@@ -7,5 +7,8 @@ export default defineConfig({
   plugins: [preact()],
   test: {
     include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    // Simulation tests build a whole valley and step the game, about 1 to 2 seconds each on an idle machine.
+    // Several worktrees often run the tests at once, which can slow one test past the 5-second default.
+    testTimeout: 20_000,
   },
 });

@@ -1,6 +1,6 @@
 // Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
-// Felled trees fall with tree-fall.ts, part of "chop-animation".
+// Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
@@ -169,6 +169,18 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     batch.trunks.instanceMatrix.needsUpdate = true;
     batch.crowns.instanceMatrix.needsUpdate = true;
     startFall(tree.position, type);
+  });
+  // A tree that stands again, such as in the asset showcase's looping chop, shows again in its batch.
+  standing.onEntityAdded.subscribe((tree) => {
+    const index = instanceOf.get(tree);
+    const type = typeOf.get(tree);
+    const batch = type === undefined ? undefined : treeBatches[type];
+    if (index === undefined || batch === undefined) return;
+    treeMatrix(tree.position, matrix);
+    batch.trunks.setMatrixAt(index, matrix);
+    batch.crowns.setMatrixAt(index, matrix);
+    batch.trunks.instanceMatrix.needsUpdate = true;
+    batch.crowns.instanceMatrix.needsUpdate = true;
   });
   const stumpQuery = stumpEntities(entities).connect();
   const logQuery = logEntities(entities).connect();

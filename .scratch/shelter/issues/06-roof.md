@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Lean-to), 05 (Log walls and door frames)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`, `debarked-log`, and `bark`. Add the draft `roof`, with build stages.
 

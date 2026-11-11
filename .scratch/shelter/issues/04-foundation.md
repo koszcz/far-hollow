@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Drawknife and debarking), 02 (Build menu)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`, `debarked-log`, and `stumps`. Add the draft `foundation`, with legs and build stages.
 

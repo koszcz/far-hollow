@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 (Roof)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`, `debarked-log`, `bark`, and `sticks`.
 

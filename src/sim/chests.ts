@@ -19,6 +19,11 @@ export interface Chests {
   open(chestId: number): void;
   /** Closes the open chest, or stops the player going to open one. The player does this by starting something else. */
   cancel(): void;
+  /**
+   * Closes the open chest once the player is out of its reach: after they have stood at it and left,
+   * or when they stop walking without reaching it. Run it after walking has moved the player.
+   */
+  step(): void;
   /** The chest the player has open, as the HUD shows it. Undefined while none is open, or while the player walks. */
   opened(): ChestView | undefined;
   /**
@@ -42,6 +47,8 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
   const players = playerEntities(entities);
   /** The chest the player opened, or is walking to open. It is not saved: a loaded game starts with every chest closed. */
   let openId: number | undefined;
+  /** Whether the player has stood within reach of the open chest since opening it. */
+  let reached = false;
 
   function chestById(chestId: number): ChestEntity | undefined {
     const entity = entities.entity(chestId);
@@ -64,6 +71,7 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
       const chest = chestById(chestId);
       if (chest === undefined) return;
       openId = chestId;
+      reached = false;
       for (const player of players) {
         const dx = player.position.x - chest.position.x;
         const dz = player.position.z - chest.position.z;
@@ -78,6 +86,18 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
     },
     cancel() {
       openId = undefined;
+    },
+    step() {
+      const chest = openId === undefined ? undefined : chestById(openId);
+      if (chest === undefined) {
+        openId = undefined;
+        return;
+      }
+      for (const player of players) {
+        const inReach = groundDistance(chest.position, player.position) <= CHEST_REACH_METRES;
+        if (inReach && player.walkPath === undefined) reached = true;
+        if (!inReach && (reached || player.walkPath === undefined)) openId = undefined;
+      }
     },
     opened() {
       const chest = openChest();

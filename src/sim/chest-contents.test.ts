@@ -32,6 +32,23 @@ describe("opening a chest", () => {
     expect(game.client.getView().openChest).toBeNull();
   });
 
+  it("closes for good once the player is out of reach, even if nothing else they did closed it", () => {
+    const game = createGame({ seed: 42 });
+    const chest = buildChest(game);
+    open(game, chest);
+    const player = onlyPlayer(game);
+    const beside = { ...player.position };
+
+    // Something moves the player away without starting a new task, as waking at the respawn point after a collapse does.
+    player.position.x -= 10;
+    game.step();
+    expect(game.client.getView().openChest).toBeNull();
+    Object.assign(player.position, beside);
+    game.step();
+
+    expect(game.client.getView().openChest).toBeNull();
+  });
+
   it("moves nothing while the chest is closed", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);

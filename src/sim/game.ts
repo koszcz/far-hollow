@@ -495,6 +495,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       drinking.step();
       const potRefusal = pot.step();
       if (potRefusal !== undefined) showNotice(potRefusal);
+      chests.step();
       const pileRefusal = piles.step();
       if (pileRefusal !== undefined) showNotice(pileRefusal);
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);

@@ -71,6 +71,8 @@ export interface GameOptions {
   progress?: GameProgress;
   /** A notice to show the player as soon as the game starts. */
   startNotice?: GameNotice;
+  /** Lets the player build anything without spending materials or needing tools. The playground turns it on. It is never saved. */
+  freeBuilding?: boolean;
 }
 
 /**
@@ -104,7 +106,7 @@ export interface Game {
   progress(): GameProgress;
 }
 
-export function createGame({ seed, progress, startNotice }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice, freeBuilding = false }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -116,7 +118,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const debarking = createDebarking(entities, walking);
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
-  const building = createBuilding(entities, walking, valley);
+  const building = createBuilding(entities, walking, valley, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);

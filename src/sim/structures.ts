@@ -328,8 +328,9 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
   canPlace({ entities, walkMap, valley }, spot, turns) {
     const rect = chest.footprint(spot, turns);
     const corners = [rect.min, rect.max, { x: rect.min.x, z: rect.max.z }, { x: rect.max.x, z: rect.min.z }];
+    // A chest is smaller than a walk-map cell, so any blocked cell it overlaps holds one of its corners.
     for (const corner of [spot, ...corners]) {
-      if (cellIndexAt(walkMap, corner) === undefined) return false;
+      if (!isWalkable(walkMap, corner)) return false;
       if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
     }
     // All on one level: every corner on a foundation's deck, or every corner on the ground.
@@ -338,7 +339,7 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
     const margin = CHEST_STUMP_MARGIN_METRES;
     const nearStumps = turnedRect(spot, CHEST_WIDTH_METRES / 2 + margin, CHEST_DEPTH_METRES / 2 + margin, turns);
     for (const stump of stumpEntities(entities)) if (isInRect(nearStumps, stump.position)) return false;
-    // A roof overhead and a foundation underfoot are not in the way. Every other structure is.
+    // A cabin roof overhead and a foundation underfoot are not in the way. Every other structure is.
     for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
     for (const frame of walkBlockerSpotEntities(entities)) {
       for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
@@ -387,7 +388,7 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
  * a finished wall or door frame, or a chest.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  * `furniture: false` lets furniture and furniture blueprints stand under it, as under a roof.
- * `roofs: false` lets it go under a finished roof or a roof blueprint, as furniture does.
+ * `roofs: false` lets it go under a finished cabin roof or a roof blueprint, as furniture does. A lean-to is still in the way.
  */
 function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect, allow: { furniture?: false; roofs?: false } = {}): boolean {
   const nearTrees = {
@@ -401,7 +402,11 @@ function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect, allow: 
     const other = structureOf(piece).footprint(blueprint.position, blueprint.facing?.turns ?? 0);
     if (rectsOverlap(rect, other)) return false;
   }
-  if (allow.roofs !== false) for (const roofed of roofEntities(entities)) if (rectsOverlap(rect, roofed.roof)) return false;
+  for (const roofed of roofEntities(entities)) {
+    // A lean-to's roof is part of the lean-to, so it is always in the way. Only a cabin's roof may be over something.
+    if (allow.roofs === false && roofed.cabinRoof === true) continue;
+    if (rectsOverlap(rect, roofed.roof)) return false;
+  }
   for (const pile of woodpileEntities(entities)) {
     if (rectsOverlap(rect, woodpile.footprint(pile.position, pile.facing?.turns ?? 0))) return false;
   }

@@ -3,7 +3,7 @@ import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
-import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES } from "./structures";
+import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
 
@@ -82,6 +82,33 @@ describe("where a chest cannot go", () => {
     send(game, place("foundation", square.x, square.z, 0));
 
     expect(game.client.checkPlacement("chest", { x: square.x + 0.6, z: square.z }, 0).allowed).toBe(false);
+  });
+
+  it("refuses the open front of a finished lean-to, under its roof", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    send(game, place("leanTo", square.x, square.z, 0));
+    const leanTo = onlyBlueprint(game);
+    const contents = onlyPlayer(game).backpack.contents;
+    contents.stick = (contents.stick ?? 0) + LEAN_TO_STICK_COST;
+    contents.bark = (contents.bark ?? 0) + LEAN_TO_BARK_COST;
+    send(game, { type: "build", blueprintId: idOf(game, leanTo) });
+    stepUntil(game, () => leanTo.blueprint === undefined);
+    // Facing the default way, the two middle squares at the front stay open to walk in.
+    const underRoof = { x: leanTo.position.x, z: leanTo.position.z + 0.5 };
+    expect(isWalkable(game.walkMap, underRoof)).toBe(true);
+
+    expect(game.client.checkPlacement("chest", underRoof, 0).allowed).toBe(false);
+  });
+
+  it("refuses ground the player cannot walk on, such as right beside a tree trunk", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTo(game, game.entities.with("tree", "position").entities);
+    // Clear of the trunk itself, but on ground the tree's trunk and roots stop the player walking on.
+    const besideTree = { x: tree.position.x + 1, z: tree.position.z };
+    expect(isWalkable(game.walkMap, besideTree)).toBe(false);
+
+    expect(game.client.checkPlacement("chest", besideTree, 0).allowed).toBe(false);
   });
 
   it("stops other structures being placed over a chest", () => {

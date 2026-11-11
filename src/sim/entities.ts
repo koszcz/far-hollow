@@ -1,5 +1,5 @@
 import { World } from "miniplex";
-import type { Backpack, Food } from "./backpack";
+import type { Backpack, BackpackContent, Food } from "./backpack";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
@@ -141,6 +141,13 @@ export interface Entity {
   potOnFire?: PotOnFire;
   /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
   rain?: Rain;
+  /**
+   * Marks a pile: things of one kind the player dropped from the backpack, lying on the ground. Its position is the middle of the pile.
+   * `count` is how many it holds, always at least 1. A pile with nothing left is removed.
+   */
+  pile?: { content: BackpackContent; count: number };
+  /** The pile the player is walking to pick up, given by its entity id. */
+  pileTask?: { pileId: number };
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -283,6 +290,11 @@ export function roofEntities(store: EntityStore) {
 /** Finished lean-tos. */
 export function leanToEntities(store: EntityStore) {
   return store.with("leanTo", "position");
+}
+
+/** Piles of things the player dropped on the ground. */
+export function pileEntities(store: EntityStore) {
+  return store.with("pile", "position");
 }
 
 /** The valley's weather. There is only ever one. */

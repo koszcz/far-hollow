@@ -1,0 +1,120 @@
+import { addToBackpack, countInBackpack, fitsInBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
+import { pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import type { Walking } from "./walking";
+
+/** Things dropped this close to a pile of the same kind join it, in metres. */
+export const JOIN_PILE_METRES = 1;
+/** The player can pick up a pile from this far from its middle, in metres. */
+const PICK_UP_REACH_METRES = 2;
+
+export type PileEntity = Entity & Required<Pick<Entity, "pile" | "position">>;
+
+/** Why the player could not pick up a pile. */
+export type PileRefusal = "backpackFull";
+
+export interface Piles {
+  /**
+   * Drops all of one kind from the backpack at the player's feet, as one pile.
+   * If a pile of the same kind lies within JOIN_PILE_METRES, they join that pile instead. Does nothing if the backpack holds none.
+   */
+  drop(content: BackpackContent): void;
+  /**
+   * Sets the player walking to a pile to put as much of it in the backpack as fits.
+   * Does nothing if the entity is not a pile. Returns "backpackFull", and does nothing, if none of it fits.
+   */
+  pickUp(pileId: number): PileRefusal | undefined;
+  /** Stops the player walking to a pile. */
+  cancel(): void;
+  /** Picks up piles the player has reached. Returns "backpackFull" if none of a reached pile fit. Run it after walking has moved the player. */
+  step(): PileRefusal | undefined;
+}
+
+/** Lets the player drop things from the backpack in piles on the ground, and pick them up again. */
+export function createPiles(entities: EntityStore, walking: Walking, valley: Valley): Piles {
+  const players = playerEntities(entities);
+  const piles = pileEntities(entities);
+  const pickers = entities.with("pileTask", "position", "backpack");
+
+  function pileById(pileId: number): PileEntity | undefined {
+    const entity = entities.entity(pileId);
+    if (entity?.pile === undefined || entity.position === undefined) return undefined;
+    return entity as PileEntity;
+  }
+
+  /** The nearest pile of `content` within JOIN_PILE_METRES of a spot, if any. */
+  function nearestPileOf(content: BackpackContent, at: GroundPoint): PileEntity | undefined {
+    let nearest: PileEntity | undefined;
+    let nearestDistance = JOIN_PILE_METRES;
+    for (const pile of piles) {
+      if (pile.pile.content !== content) continue;
+      const distance = groundDistance(pile.position, at);
+      if (distance <= nearestDistance) {
+        nearest = pile;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
+
+  return {
+    drop(content) {
+      for (const player of players) {
+        if (player.backpack === undefined) continue;
+        const count = countInBackpack(player.backpack, content);
+        if (count === 0 || !removeFromBackpack(player.backpack, content, count)) continue;
+        const near = nearestPileOf(content, player.position);
+        if (near !== undefined) {
+          near.pile.count += count;
+          continue;
+        }
+        const { x, z } = player.position;
+        entities.add({ pile: { content, count }, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } });
+      }
+    },
+    pickUp(pileId) {
+      const pile = pileById(pileId);
+      if (pile === undefined) return undefined;
+      let refusal: PileRefusal | undefined;
+      for (const player of players) {
+        if (player.backpack === undefined) continue;
+        if (howManyFit(player.backpack, pile.pile.content, pile.pile.count) === 0) {
+          refusal = "backpackFull";
+          continue;
+        }
+        walking.walkTo(pile.position);
+        setComponent(entities, player, "pileTask", { pileId });
+      }
+      return refusal;
+    },
+    cancel() {
+      for (const player of players) entities.removeComponent(player, "pileTask");
+    },
+    step() {
+      let refusal: PileRefusal | undefined;
+      // Copy the list first, because players who finish leave the query while it is being walked.
+      for (const picker of [...pickers]) {
+        if (picker.walkPath !== undefined) continue;
+        const pile = pileById(picker.pileTask.pileId);
+        entities.removeComponent(picker, "pileTask");
+        if (pile === undefined || groundDistance(pile.position, picker.position) > PICK_UP_REACH_METRES) continue;
+        const taken = howManyFit(picker.backpack, pile.pile.content, pile.pile.count);
+        if (taken === 0) {
+          refusal = "backpackFull";
+          continue;
+        }
+        addToBackpack(picker.backpack, pile.pile.content, taken);
+        pile.pile.count -= taken;
+        if (pile.pile.count === 0) entities.remove(pile);
+      }
+      return refusal;
+    },
+  };
+}
+
+/** How many of `content`, up to `count`, fit in the backpack within its weight limit. */
+function howManyFit(backpack: Backpack, content: BackpackContent, count: number): number {
+  let fit = count;
+  while (fit > 0 && !fitsInBackpack(backpack, content, fit)) fit -= 1;
+  return fit;
+}

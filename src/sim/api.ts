@@ -1,4 +1,4 @@
-import type { BackpackContents, Food } from "./backpack";
+import type { BackpackContent, BackpackContents, Food } from "./backpack";
 
 export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
@@ -40,6 +40,13 @@ export type Command =
   | { type: "splitLog" }
   /** Lay the log or debarked log the player carries on the ground at their feet. */
   | { type: "dropLog" }
+  /**
+   * Drop all of one kind from the backpack at the player's feet, as one pile.
+   * If a pile of the same kind lies within 1 m, they join that pile instead.
+   */
+  | { type: "dropFromBackpack"; content: BackpackContent }
+  /** Walk the player to a pile, given by its entity id, and put as many of its things in the backpack as fit. The rest stay in the pile. */
+  | { type: "pickUpPile"; pileId: number }
   /**
    * Place a blueprint of a structure from the build menu at the building-grid spot nearest the given spot, in metres,
    * facing `turns` quarter turns. Placing costs nothing. Nothing happens if the structure's placement rule refuses the spot.

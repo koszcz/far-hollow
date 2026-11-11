@@ -22,6 +22,7 @@ import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
+import { createPiles } from "./piles";
 import { boilProgress } from "./pot-state";
 
 /** The build menu never changes, so every view shares one frozen copy. */
@@ -109,6 +110,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const bedrolls = createBedrolls(entities, walking, valley);
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
+  const piles = createPiles(entities, walking, valley);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -214,6 +216,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     bedrolls.cancel();
     drinking.cancel();
     pot.cancel();
+    piles.cancel();
   }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
@@ -244,7 +247,9 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     pickUpStick: (command) => {
       cancelTasks();
-      const refusal = gathering.pickUpStick(command.stickId);
+      // Dropped sticks lie in a pile, and the player picks them up the same way as a stick on the forest floor.
+      const dropped = entities.entity(command.stickId)?.pile?.content === "stick";
+      const refusal = dropped ? piles.pickUp(command.stickId) : gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
     },
     forage: (command) => {
@@ -262,6 +267,14 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     dropLog: () => {
       carrying.drop();
+    },
+    dropFromBackpack: (command) => {
+      piles.drop(command.content);
+    },
+    pickUpPile: (command) => {
+      cancelTasks();
+      const refusal = piles.pickUp(command.pileId);
+      if (refusal !== undefined) showNotice(refusal);
     },
     placeBlueprint: (command) => {
       building.place(command.structure, { x: command.x, z: command.z }, command.turns);
@@ -442,6 +455,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       drinking.step();
       const potRefusal = pot.step();
       if (potRefusal !== undefined) showNotice(potRefusal);
+      const pileRefusal = piles.step();
+      if (pileRefusal !== undefined) showNotice(pileRefusal);
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }

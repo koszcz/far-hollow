@@ -22,6 +22,8 @@ test("the game loads and the player walks where the ground is clicked", async ({
   const canvas = page.locator("#scene");
   await expect(canvas).toBeVisible();
   await page.waitForFunction(() => "farHollow" in window);
+  // The loading screen covers the canvas until the first frame draws, then fades out.
+  await expect(page.locator("#loading")).toHaveCount(0);
 
   const start = await playerPosition(page);
   // The camera follows the player, so the player is in the middle of the screen. Click the ground below them on screen, which is towards the camera and into the valley.

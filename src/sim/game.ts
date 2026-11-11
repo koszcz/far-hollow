@@ -23,8 +23,12 @@ export const STEP_MS = 1000 / STEPS_PER_SECOND;
 const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
 /** Skipped time runs in slices this many game minutes long. */
 const PASS_TIME_SLICE_MINUTES = 1;
-/** A notice shows for this many game minutes, which is half a real minute. */
-const NOTICE_MINUTES = 30;
+/** How many game minutes each notice shows for. One game minute is one real second. */
+const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
+  collapsed: 30,
+  survivedFirstNight: 30,
+  backpackFull: 4,
+};
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
 
@@ -109,7 +113,7 @@ export function createGame({ seed }: GameOptions): Game {
   }
 
   function showNotice(kind: GameNotice): void {
-    notice = { kind, untilMinutes: clock.minutes + NOTICE_MINUTES };
+    notice = { kind, untilMinutes: clock.minutes + NOTICE_MINUTES[kind] };
   }
 
   function nearbyCampfire(): CampfireView | null {
@@ -163,11 +167,13 @@ export function createGame({ seed }: GameOptions): Game {
     },
     pickUpStick: (command) => {
       cancelTasks();
-      gathering.pickUpStick(command.stickId);
+      const refusal = gathering.pickUpStick(command.stickId);
+      if (refusal !== undefined) showNotice(refusal);
     },
     splitLog: () => {
       cancelTasks();
-      gathering.splitLog();
+      const refusal = gathering.splitLog();
+      if (refusal !== undefined) showNotice(refusal);
     },
     dropLog: () => {
       carrying.drop();

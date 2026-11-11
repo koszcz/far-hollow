@@ -8,11 +8,12 @@ import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
+import { ActionMenu } from "../ui/action-menu";
 import { Hud } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
-import { attachWalkInput } from "./walk-input";
+import { attachWalkInput, type MenuRequest } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
 const MAX_STEPS_PER_FRAME = 10;
@@ -140,7 +141,14 @@ const walkInput = attachWalkInput({
   onHoverChange: (pick) => {
     sceneRenderer.setHovered(pick);
   },
-  onPlacingChange: renderUi,
+  onPlacingChange: (placing) => {
+    uiState.placingCampfire = placing;
+    renderUi();
+  },
+  onMenuChange: (menu) => {
+    uiState.menu = menu;
+    renderUi();
+  },
 });
 if (import.meta.env.DEV) {
   // Lets the on-demand browser test read the game's view. Development builds only.
@@ -152,10 +160,26 @@ const loop = createFixedStepLoop({
   },
 });
 
-/** Draws the HUD and debug overlay. Called again when placing a campfire starts or ends. */
-function renderUi(placingCampfire: boolean): void {
+/** Input state the UI shows: whether a campfire is being placed, and the right-click menu, if one is open. */
+const uiState: { placingCampfire: boolean; menu: MenuRequest | undefined } = { placingCampfire: false, menu: undefined };
+
+/** Draws the HUD, the right-click menu, and the debug overlay. Called again when placing a campfire or the menu changes. */
+function renderUi(): void {
+  const { placingCampfire, menu } = uiState;
   render(
     <>
+      {menu !== undefined && (
+        <ActionMenu
+          client={game.client}
+          x={menu.x}
+          y={menu.y}
+          actions={menu.actions}
+          onClose={() => {
+            uiState.menu = undefined;
+            renderUi();
+          }}
+        />
+      )}
       <Hud
         client={game.client}
         cameraFollow={sceneRenderer.cameraRig.followEnabled}
@@ -172,7 +196,7 @@ function renderUi(placingCampfire: boolean): void {
     requireElement("#ui", HTMLDivElement),
   );
 }
-renderUi(false);
+renderUi();
 
 /** How long the loading screen takes to fade out. Matches the transition in style.css. */
 const LOADING_FADE_MS = 400;

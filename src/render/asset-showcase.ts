@@ -196,7 +196,19 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, player }) {
       place(-0.8, 0.8, { log: { heading: 0.3 } });
       place(0.9, 0.6, { log: { heading: 1.8 } });
-      player.setCarryingLog(true);
+      player.setCarryingLog("log");
+    },
+  },
+  "debarked-log": {
+    radius: 2.2,
+    focus: { x: 0, y: 0.7, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place, player }) {
+      // A log beside the debarked ones, so the two compare in one view.
+      place(-0.8, 0.8, { debarkedLog: { heading: 0.3 } });
+      place(0.9, 0.6, { log: { heading: 1.8 } });
+      place(0.2, 1.4, { debarkedLog: { heading: 1.2 } });
+      player.setCarryingLog("debarkedLog");
     },
   },
   firewood: {
@@ -278,6 +290,22 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         showPots(seconds);
         return undefined;
       },
+    },
+  },
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with bark in the backpack and on offer as fuel.
+  bark: {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: bark in the backpack", yaw: 20, pitch: 35 },
+      { label: "HUD: debarking a log", yaw: -20, pitch: 35 },
+      { label: "HUD: bark at a campfire", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: carrying a debarked log", yaw: 20, pitch: 35 },
+    ],
+    build({ place, movePlayer }) {
+      place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+      place(-1.5, 0.5, { log: { heading: 0.4 } });
+      movePlayer(0, 0, 0);
     },
   },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.

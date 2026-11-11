@@ -12,6 +12,9 @@ export interface Vec3 {
   z: number;
 }
 
+/** The kinds of log the player can carry on their shoulder. */
+export type CarriedLog = "log" | "debarkedLog";
+
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {
   /** Where the entity is after the latest logic step, in metres. */
@@ -37,14 +40,18 @@ export interface Entity {
    * `secondsDone` counts only the time spent chopping, not walking.
    */
   chopTask?: { treeId: number; secondsDone: number };
-  /** The log on the ground the player is walking to pick up, given by its entity id. */
+  /** The log or debarked log on the ground the player is walking to pick up, given by its entity id. */
   logPickUpTask?: { logId: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. */
   stump?: true;
   /** Marks a log lying on the ground. Its position is the middle of the log. `heading` is the log's turn about the vertical axis, in radians. */
   log?: { heading: number };
-  /** What the entity carries on their shoulder. Only one log fits. */
-  carrying?: "log";
+  /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */
+  debarkedLog?: { heading: number };
+  /** The log on the ground the player is walking to or debarking, given by its entity id. `secondsDone` counts only the time spent debarking. */
+  debarkTask?: { logId: number; secondsDone: number };
+  /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
+  carrying?: CarriedLog;
   /** Marks a stick lying on the forest floor. Its position is the middle of the stick. */
   stick?: true;
   /** The stick on the ground the player is walking to pick up, given by its entity id. */
@@ -154,6 +161,11 @@ export function stumpEntities(store: EntityStore) {
 /** Logs lying on the ground. Logs on a shoulder are not entities. */
 export function logEntities(store: EntityStore) {
   return store.with("log", "position");
+}
+
+/** Debarked logs lying on the ground. Debarked logs on a shoulder are not entities. */
+export function debarkedLogEntities(store: EntityStore) {
+  return store.with("debarkedLog", "position");
 }
 
 /** Sticks lying on the forest floor. Sticks in the backpack are not entities. */

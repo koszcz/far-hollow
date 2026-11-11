@@ -1,6 +1,7 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { ScenePick } from "../render/scene-renderer";
 import type { Command, GameClient } from "../sim/api";
+import { strings } from "../strings";
 
 /** The command a left-click sends for what it landed on. A blueprint is built only while the button is held, so it has none. */
 export function mainActionFor(pick: ScenePick): Command | undefined {
@@ -12,6 +13,7 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
     case "tree":
       return { type: "chopTree", treeId: pick.id };
     case "log":
+    case "debarkedLog":
       return { type: "pickUpLog", logId: pick.id };
     case "stick":
       return { type: "pickUpStick", stickId: pick.id };
@@ -24,6 +26,29 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
     case "blueprint":
       return undefined;
   }
+}
+
+/** One choice in the menu a right-click opens: its text, and the command it sends. */
+export interface MenuAction {
+  readonly label: string;
+  readonly command: Command;
+}
+
+/** The choices a right-click on this thing offers, beyond what a left-click does. Empty if it offers none. */
+export function menuActionsFor(pick: ScenePick): MenuAction[] {
+  switch (pick.kind) {
+    case "log":
+      return [{ label: strings.debark, command: { type: "debarkLog", logId: pick.id } }];
+    default:
+      return [];
+  }
+}
+
+/** A right-click menu to show at a point on the page, in page pixels. */
+export interface MenuRequest {
+  readonly x: number;
+  readonly y: number;
+  readonly actions: readonly MenuAction[];
 }
 
 /**
@@ -46,6 +71,7 @@ export function outlineFor(pick: ScenePick | undefined, placing: boolean): Scene
 }
 
 const LEFT_BUTTON = 0;
+const RIGHT_BUTTON = 2;
 /** A left-button press that moves further than this is a drag, not a click. */
 const CLICK_MAX_TRAVEL_PIXELS = 4;
 
@@ -59,6 +85,8 @@ export interface WalkInputOptions {
   readonly onHoverChange?: (pick: ScenePick | undefined) => void;
   /** Called when placing a campfire starts or ends, so the HUD can show it. */
   readonly onPlacingChange?: (placing: boolean) => void;
+  /** Called with the menu a right-click opens, or undefined when it should close. */
+  readonly onMenuChange?: (menu: MenuRequest | undefined) => void;
 }
 
 export interface WalkInput {
@@ -77,10 +105,13 @@ export interface WalkInput {
  * Holding the left button on a blueprint builds it. Letting go stops building.
  * While placing a campfire, a left-click on the ground places its blueprint.
  * A left-drag pans the camera instead, so it never counts as a click.
+ * A right-click without a drag opens a menu of the other actions the thing allows, such as debarking a log.
+ * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
  */
-export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onPlacingChange }: WalkInputOptions): WalkInput {
+export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onPlacingChange, onMenuChange }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
+  let rightPress: { x: number; y: number } | null = null;
   let holdingBuild = false;
   let placing = false;
   /** Where the pointer last was over the canvas, or null if it has left. */
@@ -124,6 +155,12 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   }
 
   function onPointerDown(event: PointerEvent): void {
+    // Any press on the scene closes an open menu.
+    onMenuChange?.(undefined);
+    if (event.button === RIGHT_BUTTON) {
+      rightPress = { x: event.clientX, y: event.clientY };
+      return;
+    }
     if (event.button !== LEFT_BUTTON) return;
     if (!placing) {
       const pick = pickAt(event.clientX, event.clientY);
@@ -136,7 +173,22 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     press = { x: event.clientX, y: event.clientY };
   }
 
+  /** Opens the menu for what a right-click without a drag landed on, if it offers anything. */
+  function openMenu(event: PointerEvent): void {
+    if (rightPress === null) return;
+    const travelled = Math.hypot(event.clientX - rightPress.x, event.clientY - rightPress.y);
+    rightPress = null;
+    if (travelled > CLICK_MAX_TRAVEL_PIXELS || placing) return;
+    const pick = pickAt(event.clientX, event.clientY);
+    const actions = pick === undefined ? [] : menuActionsFor(pick);
+    if (actions.length > 0) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
+  }
+
   function onPointerUp(event: PointerEvent): void {
+    if (event.button === RIGHT_BUTTON) {
+      openMenu(event);
+      return;
+    }
     if (event.button !== LEFT_BUTTON) return;
     if (holdingBuild) {
       stopHoldingBuild();
@@ -161,6 +213,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   function onKeyDown(event: KeyboardEvent): void {
     if (event.code === "Escape") {
       setPlacing(false);
+      onMenuChange?.(undefined);
       return;
     }
     if (event.code !== "Space" || event.repeat) return;

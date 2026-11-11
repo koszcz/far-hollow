@@ -5,6 +5,7 @@ import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
+import { createDebarking, DEBARK_SECONDS } from "./debarking";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
@@ -89,6 +90,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const player = progress === undefined ? addNewPlayer(entities, walking, valley) : savedPlayer(entities);
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
+  const debarking = createDebarking(entities, walking);
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
@@ -171,6 +173,9 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
       if (blueprint !== undefined) return Object.freeze({ kind: "build", progress: blueprint.progress });
     }
+    if (player.debarkTask !== undefined && player.walkPath === undefined) {
+      return Object.freeze({ kind: "debark", progress: Math.min(1, player.debarkTask.secondsDone / DEBARK_SECONDS) });
+    }
     if (player.splitTask !== undefined) {
       return Object.freeze({ kind: "split", progress: Math.min(1, player.splitTask.secondsDone / SPLIT_SECONDS) });
     }
@@ -182,6 +187,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   function cancelTasks(): void {
     chopping.cancel();
     carrying.cancel();
+    debarking.cancel();
     gathering.cancel();
     foraging.cancel();
     building.cancel();
@@ -210,6 +216,11 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     pickUpLog: (command) => {
       cancelTasks();
       carrying.pickUp(command.logId);
+    },
+    debarkLog: (command) => {
+      cancelTasks();
+      const refusal = debarking.start(command.logId);
+      if (refusal !== undefined) showNotice(refusal);
     },
     pickUpStick: (command) => {
       cancelTasks();
@@ -390,6 +401,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       walking.step(playerSeconds);
       chopping.step(playerSeconds);
       carrying.step();
+      debarking.step(playerSeconds);
       gathering.step(playerSeconds);
       foraging.step();
       building.step(playerSeconds);

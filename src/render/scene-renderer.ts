@@ -29,6 +29,7 @@ export type ScenePick =
   | { kind: "river"; spot: GroundPoint }
   | { kind: "tree"; id: number }
   | { kind: "log"; id: number }
+  | { kind: "debarkedLog"; id: number }
   | { kind: "stick"; id: number }
   | { kind: "forage"; id: number }
   | { kind: "blueprint"; id: number }
@@ -149,20 +150,24 @@ export function createSceneRenderer(
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
-  /** Shows what the player is doing: which way they face, whether they carry a log, and whether they chop or split. */
+  /**
+   * Shows what the player is doing: which way they face, what they carry, and whether they chop, split, or debark.
+   * Debarking reuses the chopping swing, aimed at the log.
+   */
   function posePlayer(nowSeconds: number): void {
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
-    playerMesh.setCarryingLog(player.carrying === "log");
+    playerMesh.setCarryingLog(player.carrying);
     if (player.splitTask !== undefined) {
       // Splitting has its own overhead strike, aimed where the player already faces.
       playerMesh.setSplitting(nowSeconds);
       return;
     }
     playerMesh.setSplitting(undefined);
-    const tree = player.chopTask && player.walkPath === undefined ? entities.entity(player.chopTask.treeId) : undefined;
-    if (tree?.position !== undefined) {
-      playerMesh.setHeading(Math.atan2(tree.position.x - playerDrawn.x, tree.position.z - playerDrawn.z));
+    const workTargetId = player.walkPath === undefined ? (player.chopTask?.treeId ?? player.debarkTask?.logId) : undefined;
+    const target = workTargetId === undefined ? undefined : entities.entity(workTargetId);
+    if (target?.position !== undefined) {
+      playerMesh.setHeading(Math.atan2(target.position.x - playerDrawn.x, target.position.z - playerDrawn.z));
       playerMesh.setChopping(nowSeconds);
       return;
     }

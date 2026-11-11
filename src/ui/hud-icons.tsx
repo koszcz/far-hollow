@@ -18,6 +18,8 @@ const PATHS = {
   berry: "M12 9a5.5 5.5 0 1 1 0 11a5.5 5.5 0 0 1 0-11zM12 9c0-2 1-4 3-5M12 7c-2-2-4-2-5-1",
   /** Fatigue and sleep: a crescent moon. Draft, added by settling-in ticket 04; awaiting owner approval. */
   moon: "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
+  /** Bark: two curled strips. Draft "bark" asset, added by shelter ticket 01; awaiting owner approval. */
+  bark: "M4 8c3-2 6 2 9 0s5-2 7 0M5 8c0 2 1.5 3 3 3M4 15c3-2 6 2 9 0s5-2 7 0M5 15c0 2 1.5 3 3 3",
   /** Placing something on the ground. */
   place: "M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10zM12 9v4M10 11h4",
 } as const;

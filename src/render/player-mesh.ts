@@ -2,9 +2,11 @@
 // its hood, cape, shield, mug, and big axe, and with a light brown knit beanie built here. The owner approved the asset.
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
-// The carried log is the approved "logs" asset, loaded by log-shape.ts.
+// The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the "debarked-log" draft.
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import type { CarriedLog } from "../sim/entities";
+import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import type { PlayerModel } from "./player-model";
 
@@ -58,8 +60,8 @@ export interface PlayerMesh {
   readonly group: THREE.Group;
   /** Turns the player to face along a direction on the ground, in radians from the +z axis toward +x. */
   setHeading(radians: number): void;
-  /** Shows or hides the log on the player's shoulder. */
-  setCarryingLog(carrying: boolean): void;
+  /** Shows the log or debarked log on the player's shoulder, or hides it when given undefined. */
+  setCarryingLog(carrying: CarriedLog | undefined): void;
   /** Moves the legs and arms in step. Pass the total metres walked so far, or undefined to stand still. */
   setWalking(walkedMetres: number | undefined): void;
   /** Swings the player as if chopping. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
@@ -127,7 +129,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   addBeanie();
 
   // The forest owns the log shape and disposes it, so the player does not.
-  const shoulderLog = new THREE.Mesh(logShape.geometry, [material(LOG_COLOUR, { flatShading: true }), material(LOG_CUT_COLOUR, { flatShading: true })]);
+  const shoulderBark = material(LOG_COLOUR, { flatShading: true });
+  const shoulderCut = material(LOG_CUT_COLOUR, { flatShading: true });
+  const shoulderLog = new THREE.Mesh(logShape.geometry, [shoulderBark, shoulderCut]);
   shoulderLog.castShadow = true;
   shoulderLog.position.copy(SHOULDER_LOG_SPOT);
   shoulderLog.visible = false;
@@ -137,6 +141,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   chestBone.attach(shoulderLog);
 
   let carrying = false;
+  let carriedKind: CarriedLog | undefined;
   let walkedMetres: number | undefined;
   let choppingAt: number | undefined;
   let splittingAt: number | undefined;
@@ -226,7 +231,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     setHeading(radians) {
       group.rotation.y = radians;
     },
-    setCarryingLog(carryingNow) {
+    setCarryingLog(kind) {
+      if (kind === carriedKind) return;
+      carriedKind = kind;
+      // A debarked log is the same shape, drawn pale. See debarked-log-shape.ts.
+      shoulderBark.color.set(kind === "debarkedLog" ? DEBARKED_LOG_COLOUR : LOG_COLOUR);
+      shoulderCut.color.set(kind === "debarkedLog" ? DEBARKED_LOG_CUT_COLOUR : LOG_CUT_COLOUR);
+      const carryingNow = kind !== undefined;
       if (carryingNow === carrying) return;
       carrying = carryingNow;
       shoulderLog.visible = carrying;

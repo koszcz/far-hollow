@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { PILES_SAVE_VERSION, readSave, SAVE_VERSION, STICKS_ON_GROUND_SAVE_VERSION, writeSave } from "./save";
-import { groundDistance } from "./valley";
+import { snapToGridSquare } from "./build-grid";
+import { groundDistance, terrainHeightAt } from "./valley";
 
 describe("dropping things from the backpack", () => {
   it("drops all of a kind at the player's feet as one pile", () => {
@@ -49,6 +50,23 @@ describe("dropping things from the backpack", () => {
       { content: "bark", count: 2 },
       { content: "firewood", count: 2 },
     ]));
+  });
+
+  it("lays a pile dropped on a foundation on its deck, not on the ground under it", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    const square = snapToGridSquare(player.position);
+    const deckTop = terrainHeightAt(game.valley.terrain, square.x, square.z) + 0.6;
+    game.entities.add({ foundation: true, position: { x: square.x, y: deckTop, z: square.z } });
+    giveBackpack(game, { firewood: 2, stick: 2 });
+
+    send(game, { type: "dropFromBackpack", content: "firewood" });
+    send(game, { type: "dropFromBackpack", content: "stick" });
+
+    expect(onlyPile(game).position.y).toBeCloseTo(deckTop, 5);
+    const onDeck = sticksOf(game).filter((stick) => groundDistance(stick.position, square) < 0.4);
+    expect(onDeck.length).toBeGreaterThan(0);
+    for (const stick of onDeck) expect(stick.position.y).toBeCloseTo(deckTop, 5);
   });
 
   it("does nothing when the backpack holds none of that kind", () => {

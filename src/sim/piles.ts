@@ -1,7 +1,7 @@
 import { addToBackpack, countInBackpack, fitsInBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
 import { pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
-import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { groundDistance, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
@@ -96,7 +96,7 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
           continue;
         }
         const { x, z } = player.position;
-        entities.add({ pile: { content, count }, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } });
+        entities.add({ pile: { content, count }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
       }
     },
     pickUp(pileId) {

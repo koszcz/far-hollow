@@ -75,7 +75,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   pickGeometry.translate(0, PICK_HEIGHT_METRES / 2, 0);
   const stoneMaterial = new THREE.MeshStandardMaterial({ color: STONE_COLOUR, flatShading: true });
   const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true });
-  const ghostMaterial = new THREE.MeshStandardMaterial({
+  const blueprintMaterial = new THREE.MeshStandardMaterial({
     color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
   });
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
@@ -99,7 +99,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     const stones: THREE.Mesh[] = [];
     for (let i = 0; i < STONE_COUNT; i += 1) {
       const angle = (i / STONE_COUNT) * Math.PI * 2;
-      const stone = new THREE.Mesh(stoneGeometry, ghostMaterial);
+      const stone = new THREE.Mesh(stoneGeometry, blueprintMaterial);
       stone.position.set(Math.sin(angle) * STONE_RING_RADIUS_METRES, STONE_SIZE_METRES * 0.5, Math.cos(angle) * STONE_RING_RADIUS_METRES);
       stone.rotation.set(angle, angle * 2, 0);
       root.add(stone);
@@ -113,7 +113,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       const footOut = Math.sin(STICK_LEAN_RADIANS) * STICK_LENGTH_METRES * 0.9;
       pivot.position.set(Math.sin(angle) * footOut, 0, Math.cos(angle) * footOut);
       pivot.rotation.set(0, angle, 0);
-      const mesh = new THREE.Mesh(stickGeometry, ghostMaterial);
+      const mesh = new THREE.Mesh(stickGeometry, blueprintMaterial);
       mesh.rotation.x = -STICK_LEAN_RADIANS;
       pivot.add(mesh);
       root.add(pivot);
@@ -149,11 +149,11 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     item.sticks.forEach(({ mesh }, index) => {
       const grown = Math.min(1, Math.max(0, stagesDone - index));
       const started = grown > 0;
-      mesh.material = started ? stickMaterial : ghostMaterial;
+      mesh.material = started ? stickMaterial : blueprintMaterial;
       // A stick being laid rises from the ground. Unstarted sticks show at full size as part of the outline.
       mesh.scale.set(1, started ? Math.max(0.05, grown) : 1, 1);
     });
-    for (const stone of item.stones) stone.material = progress >= 1 ? stoneMaterial : ghostMaterial;
+    for (const stone of item.stones) stone.material = progress >= 1 ? stoneMaterial : blueprintMaterial;
   }
 
   /**
@@ -213,7 +213,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       return undefined;
     },
     dispose() {
-      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, ghostMaterial, pickMaterial,
+      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, blueprintMaterial, pickMaterial,
         flameGeometry, outerFlameMaterial, innerFlameMaterial]) {
         item.dispose();
       }

@@ -3,10 +3,11 @@ import { addToBackpack, fitsInBackpack } from "./backpack";
 import { BUILD_REACH_METRES, distanceOutside, footprintOf, standSpot } from "./building";
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
-import { blueprintEntities, campfireEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, campfireEntities, chestEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
-import { isDelivered, stageMaterials, structureOf, type BuildMaterial, type DeliveredMaterial, type QuarterTurns, type StructureKind } from "./structures";
+import { rectsOverlap } from "./structure-kind";
+import { isDelivered, isFurniture, stageMaterials, structureOf, type BuildMaterial, type DeliveredMaterial, type QuarterTurns, type StructureKind } from "./structures";
 import type { GroundPoint, Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -145,7 +146,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
  * Whether another piece stands on this one, so it cannot come down yet.
- * A log wall, door frame, or campfire, finished or as a blueprint, stands on the foundation under it.
+ * A log wall, door frame, campfire, or chest, finished or as a blueprint, stands on the foundation under it.
  * A roof section, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
  * Only finished pieces hold anything up, since nothing can be placed on a blueprint.
  */
@@ -156,7 +157,16 @@ export function holdsUpAnother(entities: EntityStore, piece: Entity, kind: Struc
     if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(position, side)))) return true;
     // A campfire stands on the foundation if its centre is on the foundation's square.
     const campfires = [...campfireEntities(entities), ...blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.piece === "campfire")];
-    return campfires.some((fire) => isOnGridSquare(position, fire.position));
+    if (campfires.some((fire) => isOnGridSquare(position, fire.position))) return true;
+    // Furniture, such as a chest, stands on every foundation its base reaches over.
+    const square = footprintOf("foundation", position, 0);
+    const furniture = [
+      ...chestEntities(entities).entities.map(({ position: at, facing }) => footprintOf("chest", at, facing?.turns ?? 0)),
+      ...blueprintEntities(entities).entities.flatMap(({ blueprint, position: at, facing }) =>
+        isFurniture(blueprint.piece) ? [footprintOf(blueprint.piece, at, facing?.turns ?? 0)] : [],
+      ),
+    ];
+    return furniture.some((base) => rectsOverlap(square, base));
   }
   if (isEdgePiece(kind)) {
     const roofPlans = blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.piece === "roof");

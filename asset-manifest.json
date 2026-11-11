@@ -232,6 +232,20 @@
       }
     },
     {
+      "id": "chest",
+      "kind": "code",
+      "code": [
+        "src/render/chest-meshes.ts"
+      ],
+      "description": "The chest: a rough box hewn from debarked logs, 0.9 m wide and 0.55 m deep. Its body is thick pale planks with cut ends showing, and its lid is three planks laid side by side with a small overhang. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction builds the body in the first stage and puts on the lid in the second.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/storage/issues/03-place-and-build-a-chest.md"
+      }
+    },
+    {
       "id": "firewood",
       "kind": "code",
       "code": [

@@ -1,4 +1,4 @@
-import type { BackpackContents, Food } from "./backpack";
+import type { BackpackContent, BackpackContents, Food } from "./backpack";
 
 export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
@@ -9,7 +9,7 @@ import type { PotWater } from "./pot-state";
 import type { DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
-export type { BuildMaterial, DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
+export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, QuarterTurns, StructureKind } from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -42,7 +42,7 @@ export type Command =
   | { type: "dropLog" }
   /**
    * Place a blueprint of a structure from the build menu at the building-grid spot nearest the given spot, in metres,
-   * facing `turns` quarter turns. Placing costs nothing. Nothing happens if the structure's placement rule refuses the spot.
+   * facing `turns` quarter turns. Furniture, such as a chest, goes at the given spot itself. Placing costs nothing. Nothing happens if the structure's placement rule refuses the spot.
    */
   | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns } & GroundPoint)
   /**
@@ -183,6 +183,8 @@ export interface BuildMenuEntry {
   readonly structure: StructureKind;
   /** Everything building it costs. Placing its blueprint costs nothing. Construction spends it. */
   readonly cost: readonly MaterialCost[];
+  /** The tool the player needs in the backpack to build it. Missing if it needs none. Building does not use the tool up. */
+  readonly tool?: BackpackContent;
 }
 
 /** A blueprint, with how far it has been built and the materials carried to it. */

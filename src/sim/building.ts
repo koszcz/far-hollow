@@ -1,5 +1,5 @@
 import type { BlueprintView, PlacementCheck } from "./api";
-import { removeFromBackpack } from "./backpack";
+import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridPoint } from "./build-grid";
 import { blueprintEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import {
@@ -180,10 +180,11 @@ function needsMore(blueprint: Blueprint, material: DeliveredMaterial): boolean {
 /**
  * Works on a blueprint for one step. Each stage spends its material before work on it starts:
  * a backpack material comes out of the backpack, and a delivered one from what was carried to the blueprint.
- * Returns false, changing nothing, when the next stage's material has run out.
+ * Returns false, changing nothing, when the next stage's material has run out or the player lacks the tool the structure needs.
  */
 function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stepSeconds: number): boolean {
   const structure = structureOf(blueprint.piece);
+  if (structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return false;
   const stages = stageMaterials(structure.cost);
   if (blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
     const material = stages[blueprint.materialsSpent];

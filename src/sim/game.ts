@@ -26,7 +26,9 @@ import { boilProgress } from "./pot-state";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
-  STRUCTURES.map(({ kind, cost }) => Object.freeze({ structure: kind, cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))) })),
+  STRUCTURES.map(({ kind, cost, tool }) =>
+    Object.freeze({ structure: kind, cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))), ...(tool === undefined ? {} : { tool }) }),
+  ),
 );
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */

@@ -4,9 +4,10 @@ import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
+  blueprintEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities,
+  walkBlockerSpotEntities, type Entity, type EntityStore,
 } from "./entities";
-import { foundationDeckTop, foundationOn } from "./foundations";
+import { foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
@@ -14,7 +15,7 @@ import {
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
@@ -39,6 +40,10 @@ export interface StructureDefinition {
   readonly kind: StructureKind;
   /** Everything building it costs, in the order the build menu shows it and construction spends it. */
   readonly cost: readonly MaterialCost[];
+  /** The tool the player needs in the backpack to build it, if any. Building does not use it up. */
+  readonly tool?: BackpackContent;
+  /** Whether it is furniture: placed freely, off the building grid, so it can stand on a foundation inside a room. */
+  readonly furniture?: true;
   /** How long the player holds the build action to build it from start to finish, in seconds. */
   readonly buildSeconds: number;
   /** The ground it covers at `spot`, a building-grid spot, facing `turns`. A blueprint covers the same ground. */
@@ -47,7 +52,10 @@ export interface StructureDefinition {
   canPlace(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): boolean;
   /** The components a finished structure gets in place of its blueprint, at `spot` facing `turns`, among `entities`. */
   finish(spot: GroundPoint, turns: QuarterTurns, entities: EntityStore): Entity;
-  /** The building-grid spot a blueprint placed near `at`, facing `turns`, snaps to. Without this, it snaps to the nearest grid point. */
+  /**
+   * The spot a blueprint placed near `at`, facing `turns`, goes to: a building-grid spot, or `at` itself for furniture.
+   * Without this, it snaps to the nearest grid point.
+   */
   snap?(site: PlacementSite, at: GroundPoint, turns: QuarterTurns): GroundPoint;
   /** How high its position sits at a snapped spot, in metres. Without this, it sits on the ground. */
   heightAt?(site: PlacementSite, spot: GroundPoint): number;
@@ -97,10 +105,11 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
     if (!isWalkable(walkMap, spot)) return false;
     // On a foundation, a campfire goes only inside a room.
     if (foundationUnderCampfire(entities, spot) !== undefined && roomAround(entities, spot) === undefined) return false;
-    for (const other of [...campfireEntities(entities), ...blueprintEntities(entities)]) {
+    const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isFurniture(blueprint.piece));
+    for (const other of [...campfireEntities(entities), ...plans]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
-    return true;
+    return isClearOfFurniture(entities, campfire.footprint(spot, 0));
   },
   finish(spot, _turns, entities) {
     const finished: Entity = { campfire: { lit: false, fuelMinutes: 0 }, blocksWalking: { radius: CAMPFIRE_WALK_BLOCK_RADIUS_METRES } };
@@ -260,15 +269,67 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
     if (foundationOn(entities, spot) === undefined) return false;
     // The roof rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
     if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
-    // A roof already over the square, finished or planned, is in the way.
-    return isClearOfTreesAndPlans(entities, roof.footprint(spot, turns));
+    // A roof already over the square, finished or planned, is in the way. Furniture under it is not.
+    return isClearOfTreesAndPlans(entities, roof.footprint(spot, turns), { furniture: false });
   },
   finish: (spot) => ({ cabinRoof: true, roof: roof.footprint(spot, 0) }),
 };
 
+/** How many debarked logs a chest costs. Construction spends one at the start of each stage. */
+export const CHEST_LOG_COST = 2;
+/** How long the player holds the build action to build a chest, in seconds. */
+export const CHEST_BUILD_SECONDS = 8;
+/** A chest is this wide, along its front, in metres. */
+export const CHEST_WIDTH_METRES = 0.9;
+/** A chest is this deep, from front to back, in metres. */
+export const CHEST_DEPTH_METRES = 0.55;
+/** A stump this close to a chest, in metres, is in its way. */
+const CHEST_STUMP_MARGIN_METRES = 0.3;
+
+/**
+ * A chest: the first piece of furniture. It is placed freely, wherever the mouse points, and R turns it.
+ * It stands on the ground, or on the deck of a foundation inside a building, but never half on and half off one.
+ */
+const chest: StructureDefinition & { readonly kind: "chest" } = {
+  kind: "chest",
+  cost: [{ material: "debarkedLog", count: CHEST_LOG_COST }],
+  tool: "axe",
+  furniture: true,
+  buildSeconds: CHEST_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, CHEST_WIDTH_METRES / 2, CHEST_DEPTH_METRES / 2, turns),
+  snap: (_site, at) => ({ x: at.x, z: at.z }),
+  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
+  canPlace({ entities, walkMap, valley }, spot, turns) {
+    const rect = chest.footprint(spot, turns);
+    const corners = [rect.min, rect.max, { x: rect.min.x, z: rect.max.z }, { x: rect.max.x, z: rect.min.z }];
+    for (const corner of [spot, ...corners]) {
+      if (cellIndexAt(walkMap, corner) === undefined) return false;
+      if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
+    }
+    // All on one level: every corner on a foundation's deck, or every corner on the ground.
+    const onDecks = corners.filter((corner) => foundationOn(entities, snapToGridSquare(corner)) !== undefined).length;
+    if (onDecks !== 0 && onDecks !== corners.length) return false;
+    const margin = CHEST_STUMP_MARGIN_METRES;
+    const nearStumps = turnedRect(spot, CHEST_WIDTH_METRES / 2 + margin, CHEST_DEPTH_METRES / 2 + margin, turns);
+    for (const stump of stumpEntities(entities)) if (isInRect(nearStumps, stump.position)) return false;
+    // A roof overhead and a foundation underfoot are not in the way. Every other structure is.
+    for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
+    for (const frame of walkBlockerSpotEntities(entities)) {
+      for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
+    }
+    return isClearOfTreesAndPlans(entities, rect, { roofs: false });
+  },
+  finish: () => ({ chest: {} }),
+};
+
+/** The building-grid square that holds a spot. */
+function gridSquareAround(spot: GroundPoint): GroundRect {
+  return turnedRect(snapToGridSquare(spot), BUILD_GRID_METRES / 2, BUILD_GRID_METRES / 2, 0);
+}
+
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
 const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
-  campfire, leanTo, foundation, logWall, doorFrame, roof,
+  campfire, leanTo, foundation, logWall, doorFrame, roof, chest,
 };
 
 /** Every structure the player can build, in the order the build menu lists them. */
@@ -296,24 +357,43 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
 }
 
 /**
- * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, or a finished wall or door frame.
- * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
+ * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, a finished wall or door frame,
+ * or a chest. A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
+ * `furniture: false` lets furniture and furniture blueprints stand under it, as under a roof.
+ * `roofs: false` lets it go under a finished roof or a roof blueprint, as furniture does.
  */
-function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect): boolean {
+function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect, allow: { furniture?: false; roofs?: false } = {}): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
     max: { x: rect.max.x + TREE_CLEARANCE_METRES, z: rect.max.z + TREE_CLEARANCE_METRES },
   };
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
   for (const blueprint of blueprintEntities(entities)) {
-    const other = structureOf(blueprint.blueprint.piece).footprint(blueprint.position, blueprint.facing?.turns ?? 0);
+    const { piece } = blueprint.blueprint;
+    if ((allow.furniture === false && isFurniture(piece)) || (allow.roofs === false && piece === "roof")) continue;
+    const other = structureOf(piece).footprint(blueprint.position, blueprint.facing?.turns ?? 0);
     if (rectsOverlap(rect, other)) return false;
   }
-  for (const roofed of roofEntities(entities)) if (rectsOverlap(rect, roofed.roof)) return false;
+  if (allow.roofs !== false) for (const roofed of roofEntities(entities)) if (rectsOverlap(rect, roofed.roof)) return false;
+  if (allow.furniture !== false && !isClearOfFurniture(entities, rect)) return false;
   for (const piece of edgePieceEntities(entities)) {
     if (rectsOverlap(rect, structureOf(piece.edgePiece).footprint(piece.position, piece.facing?.turns ?? 0))) return false;
   }
   return true;
+}
+
+/** Whether `rect` keeps clear of every finished chest and every chest blueprint. */
+function isClearOfFurniture(entities: EntityStore, rect: GroundRect): boolean {
+  for (const placed of chestEntities(entities)) if (rectsOverlap(rect, chest.footprint(placed.position, placed.facing?.turns ?? 0))) return false;
+  for (const { blueprint, position, facing } of blueprintEntities(entities)) {
+    if (isFurniture(blueprint.piece) && rectsOverlap(rect, structureOf(blueprint.piece).footprint(position, facing?.turns ?? 0))) return false;
+  }
+  return true;
+}
+
+/** Whether a structure is furniture, placed freely rather than on the building grid. */
+export function isFurniture(kind: StructureKind): boolean {
+  return structureOf(kind).furniture === true;
 }
 
 /** Whether a material is carried to a blueprint on the player's shoulder, rather than taken from the backpack. */

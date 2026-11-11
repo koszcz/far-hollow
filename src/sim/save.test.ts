@@ -149,6 +149,18 @@ describe("upgrading an older save", () => {
 
     expect(writeSave(loaded.game)).toEqual(writeSave(game));
   });
+
+  it("loads a save from before chests existed as it was, at the newest version", () => {
+    const game = playedGame();
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+    save.version = 7;
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(SAVE_VERSION).toBeGreaterThan(7);
+    expect(writeSave(loaded.game)).toEqual(writeSave(game));
+  });
 });
 
 describe("saving foundations", () => {

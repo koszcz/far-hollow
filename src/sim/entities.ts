@@ -73,6 +73,15 @@ export function createEntityStore(): EntityStore {
   return new World<Entity>();
 }
 
+/**
+ * Gives an entity a component, replacing the one it already has.
+ * miniplex's addComponent never overwrites, so a new task would otherwise be ignored while an old one is running.
+ */
+export function setComponent<K extends keyof Entity>(store: EntityStore, entity: Entity, key: K, value: NonNullable<Entity[K]>): void {
+  if (entity[key] === undefined) store.addComponent(entity, key, value);
+  else entity[key] = value;
+}
+
 /** Entities that can move, so rendering blends their position between logic steps. */
 export function movingEntities(store: EntityStore) {
   return store.with("position", "previousPosition");

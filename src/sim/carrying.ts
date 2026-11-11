@@ -1,4 +1,4 @@
-import { playerEntities, type Entity, type EntityStore } from "./entities";
+import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { groundDistance, terrainHeightAt, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -31,8 +31,7 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       for (const player of players) {
         if (player.carrying !== undefined) continue;
         walking.walkTo(log.position);
-        if (player.logPickUpTask) player.logPickUpTask = { logId };
-        else entities.addComponent(player, "logPickUpTask", { logId });
+        setComponent(entities, player, "logPickUpTask", { logId });
       }
     },
     cancel() {

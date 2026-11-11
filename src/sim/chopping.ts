@@ -1,6 +1,6 @@
 import { hasInBackpack } from "./backpack";
 import { shoulderLog } from "./carrying";
-import { playerEntities, type Entity, type EntityStore } from "./entities";
+import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -37,9 +37,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
         if (player.backpack === undefined || !hasInBackpack(player.backpack, "axe")) continue;
         walking.walkTo(tree.position);
         const task = { treeId, secondsDone: 0 };
-        // addComponent never overwrites, so replace the task directly when the player is already chopping.
-        if (player.chopTask) player.chopTask = task;
-        else entities.addComponent(player, "chopTask", task);
+        setComponent(entities, player, "chopTask", task);
       }
     },
     cancel() {

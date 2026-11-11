@@ -1,5 +1,5 @@
 import { removeFromBackpack } from "./backpack";
-import { blueprintEntities, campfireEntities, playerEntities, type EntityStore } from "./entities";
+import { blueprintEntities, campfireEntities, playerEntities, setComponent, type EntityStore } from "./entities";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { isWalkable } from "./walk-map";
 import type { Walking } from "./walking";
@@ -72,8 +72,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
             z: blueprint.position.z + away.z * BUILD_STAND_METRES,
           });
         }
-        if (player.buildTask) player.buildTask = { blueprintId };
-        else entities.addComponent(player, "buildTask", { blueprintId });
+        setComponent(entities, player, "buildTask", { blueprintId });
       }
     },
     cancel() {

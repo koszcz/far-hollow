@@ -1,4 +1,4 @@
-import { playerEntities, walkBlockerEntities, type Entity, type EntityStore } from "./entities";
+import { playerEntities, setComponent, walkBlockerEntities, type Entity, type EntityStore } from "./entities";
 import { findPath } from "./pathfinding";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { blockCircle, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, type WalkMap } from "./walk-map";
@@ -34,9 +34,7 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
       for (const player of players) {
         const path = findPath(walkMap, player.position, target);
         if (path.length === 0) entities.removeComponent(player, "walkPath");
-        // addComponent never overwrites, so replace the path directly when the player is already walking.
-        else if (player.walkPath) player.walkPath = path;
-        else entities.addComponent(player, "walkPath", path);
+        else setComponent(entities, player, "walkPath", path);
       }
     },
     step(stepSeconds) {

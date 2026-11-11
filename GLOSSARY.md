@@ -168,7 +168,7 @@ One full cycle of daylight and night in the valley.
 ## Assets
 
 **Asset**:
-Anything the game shows or plays that is not game logic: a 3D model, texture, animation, or sound. An asset is either built in code or comes from a third-party file.
+Anything the game shows or plays that is not game logic: a 3D model, texture, animation, sound, or the look of an on-screen interface such as the HUD. An asset is either built in code or comes from a third-party file.
 _Avoid_: Art, resource, content
 
 **Asset catalogue**:

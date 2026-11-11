@@ -38,6 +38,7 @@ export const strings = {
   addFirewood: "Add firewood",
   lightCampfire: "Light with fire striker",
   warmth: "Warmth",
+  needs: "Needs",
   thirst: "Thirst",
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   notices: {

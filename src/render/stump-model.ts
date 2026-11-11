@@ -51,7 +51,7 @@ export async function loadStumpShape(): Promise<StumpShape> {
 }
 
 /** A copy of one index range of a geometry, as its own non-indexed geometry. */
-function partOf(source: THREE.BufferGeometry, start: number, count: number): THREE.BufferGeometry {
+export function partOf(source: THREE.BufferGeometry, start: number, count: number): THREE.BufferGeometry {
   const flat = source.index === null ? source.clone() : source.toNonIndexed();
   const part = new THREE.BufferGeometry();
   for (const [name, attribute] of Object.entries(flat.attributes)) {

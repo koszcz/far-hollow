@@ -117,30 +117,35 @@
     },
     {
       "id": "logs",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/logs/logs.glb",
       "code": [
         "src/render/log-shape.ts",
         "src/render/forest-meshes.ts",
         "src/render/player-mesh.ts"
       ],
       "description": "Logs cut from a felled tree.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. log.glb, unchanged",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/05-chop-tree-carry-log.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
       "id": "firewood",
       "kind": "code",
-      "code": [],
-      "description": "Firewood split from a log. Nothing draws it in the world yet.",
+      "code": [
+        "src/render/firewood-shape.ts"
+      ],
+      "description": "Firewood: one quarter of a log, split lengthwise, with bark on the round face and pale split wood. Nothing draws it in the world yet.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -227,6 +232,23 @@
         "src/render/daylight.ts"
       ],
       "description": "Sun, moon, sky, shadows, and haze over the valley, following the clock.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "hud",
+      "kind": "code",
+      "code": [
+        "src/ui/hud.tsx",
+        "src/ui/hud-icons.tsx",
+        "src/app/style.css"
+      ],
+      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, over the top left of the scene.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

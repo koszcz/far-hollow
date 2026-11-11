@@ -1,6 +1,7 @@
-// Draws the code-built "river" listed in asset-manifest.json: clear, rippling low-poly water,
-// pending the owner's approval. On top of the water it draws sparkles on the ripples, flow streaks
-// that show the current, froth lapping at the shoreline, and a strip of wet, darker ground along each bank.
+// Draws the code-built "river" listed in asset-manifest.json. The owner approved it.
+// It has two parts:
+// - Clear, rippling low-poly water, with faint sparkles and flow streaks that show the current.
+// - A sandy pebble bank along each side, which runs from under the shallows out onto the grass.
 import * as THREE from "three";
 import type { Terrain, Valley } from "../sim/valley";
 
@@ -10,16 +11,17 @@ const WATER_COLOUR = 0x3f8f9c;
 const DEEP_WATER_OPACITY = 0.85;
 /** How solid the water looks at the bank, where it is only a film. */
 const SHALLOW_WATER_OPACITY = 0.3;
-/** Water at least this deep has the full deep opacity. */
-const FULL_OPACITY_DEPTH_METRES = 1.4;
+/** The water reaches full opacity this share of the way from the bank to the middle. */
+const FULL_OPACITY_SHARE = 0.6;
 
-/** The riverbed is cut 2 m deep. The water fills most of it. */
-const WATER_LEVEL_ABOVE_BED_METRES = 1.5;
 /** The water reaches this far past the river's width. The player cannot walk closer than about this, so no one stands in it. */
 const WATER_OVERLAP_METRES = 1.5;
-/** The water's outer edge slopes down to sit just above the bank, so no edge of the surface floats in the air. */
-const SHORE_ABOVE_GROUND_METRES = 0.05;
-/** Distance between cross-sections of the water strip, along the river. Small enough for smooth bends. */
+/**
+ * The flat water sits this far above the lower of its two banks, so it meets the ground right at its edge.
+ * The riverbed's banks slope gently, so a higher water level would spill wider than the water's edge.
+ */
+const WATER_ABOVE_BANK_METRES = 0.15;
+/** Distance between cross-sections of the water, along the river. Small enough for smooth bends. */
 const WATER_STEP_METRES = 5;
 /** Points across the water in each cross-section, from bank to bank. */
 const WATER_POINTS_ACROSS = 9;
@@ -31,58 +33,62 @@ const RIPPLE_LENGTH_METRES = 7;
 /** How fast the ripples and the middle of the current move downstream. Water near the banks moves slower. */
 const FLOW_SPEED_METRES_PER_SECOND = 1.2;
 
-/** Width of the wet, darker ground beyond the water's edge. */
-const WET_BANK_WIDTH_METRES = 1.2;
-/** The wet strip sits this far above the ground, so it never sinks into it. */
-const WET_BANK_ABOVE_GROUND_METRES = 0.1;
-/** Wet ground is a little glossy, but much less than water, so it never glares white. */
-const WET_BANK_ROUGHNESS = 0.55;
-/** Colour of wet ground: the grass colour, darkened. */
-const WET_BANK_COLOUR = 0x34481f;
-/** How dark the wet strip is at the water's edge. It fades to nothing at its outer edge. */
-const WET_BANK_OPACITY = 0.6;
-
-/** Colour of the froth at the shoreline and of the flow streaks. */
-const FROTH_COLOUR = 0xe4f2f0;
-/** Widest reach of the shoreline froth into the water. */
-const FROTH_WIDTH_METRES = 0.9;
-/** How solid the froth looks at its thickest. */
-const FROTH_OPACITY = 0.6;
-/** How fast the froth reaches in and pulls back, in radians per second. Slow, so it reads as lapping, not flicker. */
-const FROTH_LAP_SPEED = 0.6;
-
-/** Share of the water's open surface that has a sparkle cell lit at all. */
+/** Colour of the flow streaks. */
+const STREAK_COLOUR = 0xe4f2f0;
+/** Share of the open water that has a sparkle spot at all. */
 const SPARKLE_SHARE = 0.12;
 /** How bright a sparkle is at its peak. */
 const SPARKLE_BRIGHTNESS = 0.7;
 
+/** The pebble bank starts this far inside the water's edge, so pebbles show through the shallows. */
+const BANK_UNDER_WATER_METRES = 2;
+/** The pebble bank reaches at most this far past the water's edge, onto the grass. Its edge wanders in and out. */
+const BANK_MAX_REACH_METRES = 2;
+/** Points across each pebble bank, and the distance between its cross-sections. Close enough to follow the ground's creases. */
+const BANK_POINTS_ACROSS = 6;
+const BANK_STEP_METRES = 1.25;
+/** The bank sits this far above the ground. Polygon offset also draws it over the ground. */
+const BANK_ABOVE_GROUND_METRES = 0.04;
+/** Two sand colours, close to the dirt patches in the ground texture. */
+const SAND_COLOURS = [0x8a7650, 0x7c6946] as const;
+/** Pebble colours: greys and browns. */
+const PEBBLE_COLOURS = [0x7d7a72, 0x6b665c, 0x8f8878, 0x75644a] as const;
+/** Width of the grid each pebble sits in. Pebbles are a little smaller than this. */
+const PEBBLE_SPACING_METRES = 0.3;
+
 export interface RiverMeshes {
   readonly group: THREE.Group;
-  /** Moves the ripples, streaks, sparkles, and froth. Daylight runs from 0 (night) to 1 (full day). */
+  /** Moves the ripples, streaks, and sparkles. Daylight runs from 0 (night) to 1 (full day). */
   update(nowSeconds: number, daylight: number): void;
   dispose(): void;
 }
 
 export function createRiverMeshes(valley: Valley): RiverMeshes {
-  const water = createWaterGeometry(valley);
+  const halfWidth = valley.river.width / 2 + WATER_OVERLAP_METRES;
+  const water = createWaterGeometry(sampleRiver(valley, WATER_STEP_METRES, halfWidth), halfWidth);
+  const bankGeometry = createBankGeometry(valley.terrain, sampleRiver(valley, BANK_STEP_METRES, halfWidth), halfWidth);
+
   const uniforms = {
     riverTime: { value: 0 },
     riverDaylight: { value: 1 },
-    riverHalfWidth: { value: water.halfWidth },
+    riverHalfWidth: { value: halfWidth },
     riverFlowSpeed: { value: FLOW_SPEED_METRES_PER_SECOND },
-    riverWetWidth: { value: WET_BANK_WIDTH_METRES },
-    riverWetColour: { value: new THREE.Color(WET_BANK_COLOUR) },
-    riverWetOpacity: { value: WET_BANK_OPACITY },
-    riverWetRoughness: { value: WET_BANK_ROUGHNESS },
-    riverFrothColour: { value: new THREE.Color(FROTH_COLOUR) },
-    riverFrothWidth: { value: FROTH_WIDTH_METRES },
-    riverFrothOpacity: { value: FROTH_OPACITY },
-    riverFrothLapSpeed: { value: FROTH_LAP_SPEED },
-    riverShoreline: { value: water.shoreline },
+    riverStreakColour: { value: new THREE.Color(STREAK_COLOUR) },
     riverSparkleShare: { value: SPARKLE_SHARE },
     riverSparkleBrightness: { value: SPARKLE_BRIGHTNESS },
+    riverBankReach: { value: BANK_MAX_REACH_METRES },
+    riverSandColours: { value: SAND_COLOURS.map((hex) => new THREE.Color(hex)) },
+    riverPebbleColours: { value: PEBBLE_COLOURS.map((hex) => new THREE.Color(hex)) },
+    riverPebbleSpacing: { value: PEBBLE_SPACING_METRES },
   };
-  const material = new THREE.MeshStandardMaterial({
+  const addRiverCoord = (shader: THREE.WebGLProgramParametersWithUniforms) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", `#include <common>\n${RIVER_VERTEX_HEAD}`)
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvRiverCoord = riverCoord;");
+  };
+
+  const waterMaterial = new THREE.MeshStandardMaterial({
     color: WATER_COLOUR,
     vertexColors: true,
     transparent: true,
@@ -91,23 +97,34 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     metalness: 0.1,
     side: THREE.DoubleSide,
   });
-  material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", `#include <common>\n${RIVER_VERTEX_HEAD}`)
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvRiverCoord = riverCoord;");
+  waterMaterial.onBeforeCompile = (shader) => {
+    addRiverCoord(shader);
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${RIVER_FRAGMENT_HEAD}`)
-      .replace("#include <color_fragment>", `#include <color_fragment>\n${RIVER_SURFACE_CHUNK}`)
-      .replace(
-        "#include <roughnessmap_fragment>",
-        "#include <roughnessmap_fragment>\nif (abs(vRiverCoord.y) > riverHalfWidth) roughnessFactor = riverWetRoughness;",
-      )
-      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n${RIVER_SPARKLE_CHUNK}`);
+      .replace("#include <color_fragment>", `#include <color_fragment>\n${WATER_STREAK_CHUNK}`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n${WATER_SPARKLE_CHUNK}`);
+  };
+
+  const bankMaterial = new THREE.MeshStandardMaterial({
+    roughness: 0.9,
+    flatShading: true,
+    // The two banks run outward in opposite directions, so one of them is wound face-down. Draw both faces.
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  bankMaterial.onBeforeCompile = (shader) => {
+    addRiverCoord(shader);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\n${RIVER_FRAGMENT_HEAD}\n${BANK_FRAGMENT_HEAD}`)
+      .replace("#include <color_fragment>", `#include <color_fragment>\n${BANK_COLOUR_CHUNK}`)
+      .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>\nroughnessFactor = bankRoughness;`);
   };
 
   const group = new THREE.Group();
-  group.add(new THREE.Mesh(water.geometry, material));
+  group.add(new THREE.Mesh(bankGeometry, bankMaterial));
+  group.add(new THREE.Mesh(water.geometry, waterMaterial));
 
   return {
     group,
@@ -118,39 +135,65 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     },
     dispose() {
       water.geometry.dispose();
-      material.dispose();
+      waterMaterial.dispose();
+      bankGeometry.dispose();
+      bankMaterial.dispose();
     },
   };
 }
 
+/** One cross-section of the river: its middle, the direction square to the flow, and the still water height there. */
+interface RiverFrame {
+  readonly x: number;
+  readonly z: number;
+  readonly sideX: number;
+  readonly sideZ: number;
+  /** Distance from the river's upstream end, in metres. */
+  readonly along: number;
+  readonly surface: number;
+}
+
+/** Cross-sections at about this spacing along a smooth curve through the river's path. */
+function sampleRiver(valley: Valley, stepMetres: number, halfWidth: number): RiverFrame[] {
+  const curve = new THREE.CatmullRomCurve3(valley.river.path.map((point) => new THREE.Vector3(point.x, 0, point.z)));
+  const length = curve.getLength();
+  const steps = Math.max(1, Math.round(length / stepMetres));
+  const centre = new THREE.Vector3();
+  const tangent = new THREE.Vector3();
+  const frames: RiverFrame[] = [];
+  for (let step = 0; step <= steps; step += 1) {
+    const fraction = step / steps;
+    curve.getPointAt(fraction, centre);
+    curve.getTangentAt(fraction, tangent);
+    const sideLength = Math.hypot(tangent.x, tangent.z) || 1;
+    const sideX = -tangent.z / sideLength;
+    const sideZ = tangent.x / sideLength;
+    const lowerBank = Math.min(
+      drawnGroundHeightAt(valley.terrain, centre.x - sideX * halfWidth, centre.z - sideZ * halfWidth),
+      drawnGroundHeightAt(valley.terrain, centre.x + sideX * halfWidth, centre.z + sideZ * halfWidth),
+    );
+    frames.push({ x: centre.x, z: centre.z, sideX, sideZ, along: fraction * length, surface: lowerBank + WATER_ABOVE_BANK_METRES });
+  }
+  return frames;
+}
+
 interface WaterGeometry {
   readonly geometry: THREE.BufferGeometry;
-  /** Distance from the middle of the river to the water's edge. */
-  readonly halfWidth: number;
-  /** Distance from the middle of the river to where the flat water ends and its edge slopes down under the bank. */
-  readonly shoreline: number;
   /** Raises and lowers the ripples for this moment. */
   placeCorners(nowSeconds: number): void;
 }
 
 /**
- * A strip of clear water along a smooth curve through the river's path, with a strip of wet bank on each side.
- * It is built from separate flat triangles, so each facet catches the sun on its own and glints as the ripples pass.
- * The water is more see-through where it is shallow, so the riverbed shows through near the banks.
+ * A strip of clear water from bank to bank, built from separate flat triangles,
+ * so each facet catches the sun on its own and glints as the ripples pass.
+ * The water is more see-through towards its edges, so the pebble bank shows through the shallows.
  * Each corner also carries its place on the river (metres along, metres across), which the shader uses for its effects.
  */
-function createWaterGeometry(valley: Valley): WaterGeometry {
-  const { path, width } = valley.river;
-  const halfWidth = width / 2 + WATER_OVERLAP_METRES;
-  const curve = new THREE.CatmullRomCurve3(path.map((point) => new THREE.Vector3(point.x, 0, point.z)));
-  const steps = Math.max(1, Math.round(curve.getLength() / WATER_STEP_METRES));
-
-  // Across each cross-section: the outer edge of the wet bank, the water from bank to bank, then the other wet bank.
-  const acrossOffsets: number[] = [-(halfWidth + WET_BANK_WIDTH_METRES)];
+function createWaterGeometry(frames: readonly RiverFrame[], halfWidth: number): WaterGeometry {
+  const acrossOffsets: number[] = [];
   for (let column = 0; column < WATER_POINTS_ACROSS; column += 1) {
     acrossOffsets.push(((column / (WATER_POINTS_ACROSS - 1)) * 2 - 1) * halfWidth);
   }
-  acrossOffsets.push(halfWidth + WET_BANK_WIDTH_METRES);
   const across = acrossOffsets.length;
 
   // A grid of points: one row per cross-section, one column per offset across the river.
@@ -158,39 +201,24 @@ function createWaterGeometry(valley: Valley): WaterGeometry {
   const gridZ: number[] = [];
   /** The still height of each point. Ripples are added to this. */
   const restHeights: number[] = [];
-  /** Distance of each point along the river, in metres. */
   const alongRiver: number[] = [];
-  /** How much each point ripples: 1 in the middle, 0 at and beyond the bank. */
+  /** How much each point ripples: 1 in the middle, 0 at the edge. */
   const rippleStrength: number[] = [];
-  /** How solid the water looks at each point, from its depth. The shader sets the wet bank's own opacity. */
+  /** How solid the water looks at each point, from its depth. */
   const opacity: number[] = [];
 
-  const centre = new THREE.Vector3();
-  const tangent = new THREE.Vector3();
-  for (let step = 0; step <= steps; step += 1) {
-    const fraction = step / steps;
-    curve.getPointAt(fraction, centre);
-    curve.getTangentAt(fraction, tangent);
-    // The cross-section runs square to the river's flow at this point.
-    const sideLength = Math.hypot(tangent.x, tangent.z) || 1;
-    const sideX = -tangent.z / sideLength;
-    const sideZ = tangent.x / sideLength;
-    const surface = drawnGroundHeightAt(valley.terrain, centre.x, centre.z) + WATER_LEVEL_ABOVE_BED_METRES;
+  for (const frame of frames) {
     for (const offset of acrossOffsets) {
-      const x = centre.x + sideX * offset;
-      const z = centre.z + sideZ * offset;
-      const ground = drawnGroundHeightAt(valley.terrain, x, z);
+      const x = frame.x + frame.sideX * offset;
+      const z = frame.z + frame.sideZ * offset;
       const share = Math.abs(offset) / halfWidth;
-      let rest = surface;
-      if (share > 1.001) rest = ground + WET_BANK_ABOVE_GROUND_METRES;
-      else if (share > 0.999) rest = Math.min(surface, ground + SHORE_ABOVE_GROUND_METRES);
       gridX.push(x);
       gridZ.push(z);
-      restHeights.push(rest);
-      alongRiver.push(fraction * steps * WATER_STEP_METRES);
-      rippleStrength.push(share > 0.999 ? 0 : 1 - share ** 2);
-      const depth = THREE.MathUtils.clamp((rest - ground) / FULL_OPACITY_DEPTH_METRES, 0, 1);
-      opacity.push(THREE.MathUtils.lerp(SHALLOW_WATER_OPACITY, DEEP_WATER_OPACITY, depth));
+      restHeights.push(frame.surface);
+      alongRiver.push(frame.along);
+      rippleStrength.push(1 - share ** 2);
+      const deepness = THREE.MathUtils.clamp((1 - share) / FULL_OPACITY_SHARE, 0, 1);
+      opacity.push(THREE.MathUtils.lerp(SHALLOW_WATER_OPACITY, DEEP_WATER_OPACITY, deepness));
     }
   }
 
@@ -208,7 +236,7 @@ function createWaterGeometry(valley: Valley): WaterGeometry {
       riverCoords.push(alongRiver[point] ?? 0, acrossOffsets[point % across] ?? 0);
     }
   };
-  for (let step = 1; step <= steps; step += 1) {
+  for (let step = 1; step < frames.length; step += 1) {
     const row = step * across;
     const previousRow = row - across;
     for (let column = 0; column < across - 1; column += 1) {
@@ -255,14 +283,52 @@ function createWaterGeometry(valley: Valley): WaterGeometry {
   placeCorners(0);
   geometry.computeBoundingSphere();
 
-  const shoreline = halfWidth * (1 - 2 / (WATER_POINTS_ACROSS - 1));
-  return { geometry, halfWidth, shoreline, placeCorners };
+  return { geometry, placeCorners };
+}
+
+/**
+ * Two strips that lie on the ground, one along each bank. Each runs from under the shallows out past the water's edge.
+ * The shader paints sand and pebbles on them and cuts their outer edge into an uneven line.
+ */
+function createBankGeometry(terrain: Terrain, frames: readonly RiverFrame[], halfWidth: number): THREE.BufferGeometry {
+  const inner = halfWidth - BANK_UNDER_WATER_METRES;
+  const outer = halfWidth + BANK_MAX_REACH_METRES;
+  const positions: number[] = [];
+  const riverCoords: number[] = [];
+  const indices: number[] = [];
+  for (const side of [-1, 1]) {
+    const first = positions.length / 3;
+    for (const frame of frames) {
+      for (let column = 0; column < BANK_POINTS_ACROSS; column += 1) {
+        const offset = side * THREE.MathUtils.lerp(inner, outer, column / (BANK_POINTS_ACROSS - 1));
+        const x = frame.x + frame.sideX * offset;
+        const z = frame.z + frame.sideZ * offset;
+        positions.push(x, drawnGroundHeightAt(terrain, x, z) + BANK_ABOVE_GROUND_METRES, z);
+        riverCoords.push(frame.along, offset);
+      }
+    }
+    for (let step = 1; step < frames.length; step += 1) {
+      const row = first + step * BANK_POINTS_ACROSS;
+      const previousRow = row - BANK_POINTS_ACROSS;
+      for (let column = 0; column < BANK_POINTS_ACROSS - 1; column += 1) {
+        const a = previousRow + column;
+        const b = row + column;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("riverCoord", new THREE.Float32BufferAttribute(riverCoords, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /**
  * Ground height at a spot, matching the triangles the terrain mesh in valley-meshes.ts is drawn with.
  * The valley's own terrainHeightAt blends all four corners of a grid square, which can sit a little above
- * or below the drawn triangles. Following the drawn triangles keeps the wet bank from floating or sinking.
+ * or below the drawn triangles. Following the drawn triangles keeps the bank and the water's edge on the ground.
  */
 function drawnGroundHeightAt(terrain: Terrain, x: number, z: number): number {
   const last = terrain.pointsPerSide - 1;
@@ -294,17 +360,13 @@ uniform float riverTime;
 uniform float riverDaylight;
 uniform float riverHalfWidth;
 uniform float riverFlowSpeed;
-uniform float riverWetWidth;
-uniform vec3 riverWetColour;
-uniform float riverWetOpacity;
-uniform float riverWetRoughness;
-uniform vec3 riverFrothColour;
-uniform float riverFrothWidth;
-uniform float riverFrothOpacity;
-uniform float riverFrothLapSpeed;
-uniform float riverShoreline;
+uniform vec3 riverStreakColour;
 uniform float riverSparkleShare;
 uniform float riverSparkleBrightness;
+uniform float riverBankReach;
+uniform vec3 riverSandColours[2];
+uniform vec3 riverPebbleColours[4];
+uniform float riverPebbleSpacing;
 
 float riverHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -331,43 +393,23 @@ float riverStreaks(float along, float across, float speed, float seed) {
 }
 `;
 
-// Runs after the water colour and opacity are known. Paints the wet bank, flow streaks, and shoreline froth.
-const RIVER_SURFACE_CHUNK = /* glsl */ `
+// Runs after the water colour and opacity are known. Paints faint streaks that drift with the current.
+const WATER_STREAK_CHUNK = /* glsl */ `
 {
-  float along = vRiverCoord.x;
-  float across = vRiverCoord.y;
-  float fromMiddle = abs(across);
-  if (fromMiddle > riverHalfWidth) {
-    float outward = (fromMiddle - riverHalfWidth) / riverWetWidth;
-    diffuseColor = vec4(riverWetColour, riverWetOpacity * (1.0 - smoothstep(0.0, 1.0, outward)));
-  } else {
-    float share = fromMiddle / riverHalfWidth;
-    // Two layers of streaks: fast ones in the middle and slow ones near the banks.
-    float fast = riverStreaks(along, across, riverFlowSpeed, 0.0);
-    float slow = riverStreaks(along, across, riverFlowSpeed * 0.45, 17.0);
-    float streak = mix(fast, slow, smoothstep(0.3, 0.8, share)) * (1.0 - smoothstep(0.75, 0.95, share));
-    diffuseColor.rgb = mix(diffuseColor.rgb, riverFrothColour, streak * 0.35);
-    diffuseColor.a = max(diffuseColor.a, streak * 0.5);
-
-    // Soft, uneven froth along the shoreline, where the flat water meets the bank. It slowly reaches in and pulls back.
-    // It stays on the flat water, not on the edge that slopes down under the bank, so the ground never cuts it up.
-    float side = sign(across);
-    float lap = 0.65 + 0.35 * sin(riverTime * riverFrothLapSpeed + along * 0.15 + side * 2.0);
-    float uneven = riverNoise(vec2(along * 0.3, riverTime * 0.12 + side * 9.0));
-    float reach = riverFrothWidth * lap * (0.5 + 0.5 * uneven);
-    float froth = smoothstep(riverShoreline - reach, riverShoreline - reach * 0.2, fromMiddle)
-      * (1.0 - smoothstep(riverShoreline + 0.1, riverShoreline + 0.5, fromMiddle));
-    diffuseColor.rgb = mix(diffuseColor.rgb, riverFrothColour, froth * riverFrothOpacity);
-    diffuseColor.a = max(diffuseColor.a, froth * riverFrothOpacity);
-  }
+  float share = abs(vRiverCoord.y) / riverHalfWidth;
+  // Two layers of streaks: fast ones in the middle and slow ones near the banks.
+  float fast = riverStreaks(vRiverCoord.x, vRiverCoord.y, riverFlowSpeed, 0.0);
+  float slow = riverStreaks(vRiverCoord.x, vRiverCoord.y, riverFlowSpeed * 0.45, 17.0);
+  float streak = mix(fast, slow, smoothstep(0.3, 0.8, share)) * (1.0 - smoothstep(0.6, 0.85, share));
+  diffuseColor.rgb = mix(diffuseColor.rgb, riverStreakColour, streak * 0.35);
+  diffuseColor.a = max(diffuseColor.a, streak * 0.5);
 }
 `;
 
 // Runs where the material adds its own glow. Adds a few faint, tiny sparkles that twinkle on the open water, by day only.
-const RIVER_SPARKLE_CHUNK = /* glsl */ `
+const WATER_SPARKLE_CHUNK = /* glsl */ `
 {
-  float fromMiddle = abs(vRiverCoord.y);
-  if (fromMiddle < riverShoreline - riverFrothWidth) {
+  if (abs(vRiverCoord.y) < riverHalfWidth * 0.7) {
     vec2 spot = vec2(vRiverCoord.x - riverTime * riverFlowSpeed, vRiverCoord.y) / 0.7;
     vec2 cell = floor(spot);
     float chance = riverHash(cell);
@@ -377,5 +419,64 @@ const RIVER_SPARKLE_CHUNK = /* glsl */ `
     float sparkle = fleck * twinkle * step(1.0 - riverSparkleShare, chance) * riverDaylight;
     totalEmissiveRadiance += vec3(sparkle * riverSparkleBrightness);
   }
+}
+`;
+
+const BANK_FRAGMENT_HEAD = /* glsl */ `
+float bankRoughness = 0.9;
+`;
+
+// Paints sand and pebbles on the bank, darker and glossier where wet, and cuts its outer edge into an uneven line.
+const BANK_COLOUR_CHUNK = /* glsl */ `
+{
+  float along = vRiverCoord.x;
+  float across = vRiverCoord.y;
+  float fromMiddle = abs(across);
+  float side = sign(across);
+  float beyondWater = fromMiddle - riverHalfWidth;
+
+  // The bank's outer edge wanders in broad curves, with small bites taken out of it.
+  float broad = riverNoise(vec2(along * 0.12 + side * 13.0, 0.5));
+  float bites = riverNoise(vec2(along * 1.6 + side * 7.0, 2.5));
+  float reach = riverBankReach * (0.25 + 0.75 * broad) + 0.25 * (bites - 0.5);
+  if (beyondWater > reach) discard;
+
+  // Sand, mottled between two colours.
+  vec2 spot = vec2(along, across);
+  vec3 colour = mix(riverSandColours[0], riverSandColours[1], riverNoise(spot * 0.9));
+  colour *= 0.92 + 0.16 * riverHash(floor(spot * 18.0));
+
+  // Pebbles: each grid cell may hold one, placed and sized at random. Check the cell and its neighbours,
+  // since a pebble may spill over its cell's edge.
+  vec2 grid = spot / riverPebbleSpacing;
+  vec2 home = floor(grid);
+  float nearest = 10.0;
+  float pick = 0.0;
+  for (int dx = -1; dx <= 1; dx++) {
+    for (int dz = -1; dz <= 1; dz++) {
+      vec2 cell = home + vec2(float(dx), float(dz));
+      vec2 centre = cell + 0.2 + 0.6 * vec2(riverHash(cell + 5.3), riverHash(cell + 9.1));
+      float radius = 0.22 + 0.2 * riverHash(cell + 2.7);
+      float howFar = length((grid - centre) * vec2(1.0, 1.3)) / radius;
+      if (howFar < nearest) {
+        nearest = howFar;
+        pick = riverHash(cell + 11.9);
+      }
+    }
+  }
+  // More pebbles near the water, fewer out on the grass side.
+  float crowding = mix(0.65, 0.2, smoothstep(-1.0, riverBankReach, beyondWater));
+  if (nearest < 1.0 && pick < crowding) {
+    vec3 pebble = riverPebbleColours[int(floor(pick / crowding * 3.999))];
+    // A darker rim gives each pebble a little roundness.
+    colour = pebble * mix(1.05, 0.7, smoothstep(0.55, 1.0, nearest));
+  }
+
+  // Ground under or just beside the water is wet: darker and a little glossy.
+  float wet = 1.0 - smoothstep(-0.2, 0.4, beyondWater);
+  colour *= mix(1.0, 0.7, wet);
+  bankRoughness = mix(0.9, 0.45, wet);
+
+  diffuseColor.rgb = colour;
 }
 `;

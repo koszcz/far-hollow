@@ -28,7 +28,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "pending"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

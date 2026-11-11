@@ -307,7 +307,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       if (refusal !== undefined) showNotice(refusal);
     },
     placeBlueprint: (command) => {
-      building.place(command.structure, { x: command.x, z: command.z }, command.turns);
+      const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
+      if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return;
+      cancelTasks();
+      building.build(id);
     },
     build: (command) => {
       cancelTasks();

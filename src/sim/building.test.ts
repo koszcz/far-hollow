@@ -221,6 +221,32 @@ describe("building a campfire", () => {
   });
 });
 
+describe("placing a blueprint and building it at once", () => {
+  it("starts building when the player has the sticks", () => {
+    const game = createGame({ seed: 42 });
+    giveSticks(game, CAMPFIRE_STICK_COST);
+    const spot = openSpotNearPlayer(game);
+
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z, thenBuild: true });
+    runSeconds(game, CAMPFIRE_BUILD_SECONDS + 10);
+
+    expect(game.entities.with("campfire").size).toBe(1);
+  });
+
+  it("only places the blueprint when the player lacks what the first stage needs", () => {
+    const game = createGame({ seed: 42 });
+    const start = { ...game.client.getView().playerPosition };
+    const spot = openSpotNearPlayer(game);
+
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z, thenBuild: true });
+    game.step();
+
+    expect(onlyBlueprint(game).blueprint?.progress).toBe(0);
+    expect(game.client.getView().action).toBeNull();
+    expect(game.client.getView().playerPosition).toEqual(start);
+  });
+});
+
 describe("free building, as in the playground", () => {
   it("finishes a campfire without spending any sticks", () => {
     const game = createGame({ seed: 42, freeBuilding: true });

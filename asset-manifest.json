@@ -214,6 +214,21 @@
       "approval": { "status": "approved", "by": "owner", "date": "2026-11-11" }
     },
     {
+      "id": "roof",
+      "kind": "code",
+      "code": [
+        "src/render/roof-meshes.ts",
+        "src/sim/roofs.ts"
+      ],
+      "description": "The cabin roof section: a flat roof over one foundation square, resting on the tops of its walls. Three debarked-log rafters run across the square, and four overlapping strips of bark lie over them, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/06-roof.md"
+      }
+    },
+    {
       "id": "firewood",
       "kind": "code",
       "code": [

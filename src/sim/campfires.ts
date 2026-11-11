@@ -1,6 +1,8 @@
 import type { CampfireFuel } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
+import { snapToGridSquare } from "./build-grid";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
+import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
 
@@ -131,10 +133,14 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
   };
 }
 
-/** Whether a lit campfire is close enough to warm someone standing at this spot. */
+/**
+ * Whether a lit campfire warms someone standing at this spot.
+ * Any lit campfire warms a spot close to it. A lit campfire on a foundation in a room also warms every square of that room, however far.
+ */
 export function isWarmedByCampfire(entities: EntityStore, at: GroundPoint): boolean {
   for (const { campfire, position } of campfireEntities(entities)) {
     if (campfire.lit && groundDistance(position, at) <= CAMPFIRE_WARMTH_RADIUS_METRES) return true;
   }
-  return false;
+  const room = roomAround(entities, snapToGridSquare(at));
+  return room !== undefined && isRoomHeated(entities, room);
 }

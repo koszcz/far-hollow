@@ -94,10 +94,20 @@ export interface Entity {
    */
   edgePiece?: EdgePieceKind;
   /**
+   * Marks a finished cabin roof section. It covers one foundation square, resting on the walls and door frames on its edges.
+   * Its position is the middle of that square, at the height of the foundation's deck. Its `roof` is that square.
+   */
+  cabinRoof?: true;
+  /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
+  /**
+   * Marks a campfire built on a foundation, with the middle of that foundation's grid square.
+   * A lit campfire on a foundation in a room warms the whole room. Missing for a campfire on the ground.
+   */
+  onFoundation?: GroundPoint;
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
@@ -223,6 +233,11 @@ export function foundationEntities(store: EntityStore) {
 /** Finished log walls and door frames. */
 export function edgePieceEntities(store: EntityStore) {
   return store.with("edgePiece", "position");
+}
+
+/** Finished cabin roof sections. */
+export function cabinRoofEntities(store: EntityStore) {
+  return store.with("cabinRoof", "position", "roof");
 }
 
 /** Finished campfires. */

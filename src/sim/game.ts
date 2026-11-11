@@ -18,6 +18,7 @@ import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTim
 import { createDrinking } from "./drinking";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
+import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { boilProgress } from "./pot-state";
@@ -435,6 +436,10 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     getView: () => view,
     checkPlacement: (structure, at, turns) => building.checkPlacement(structure, at, turns),
     describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
+    describeRooms: () =>
+      Object.freeze(
+        findRooms(entities).map((room) => Object.freeze({ squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))), heated: isRoomHeated(entities, room) })),
+      ),
     send: (command) => {
       pendingCommands.push(command);
     },

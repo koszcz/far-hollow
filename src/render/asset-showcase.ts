@@ -186,7 +186,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   grass: undergrowthShowcase("grass", 5, 5),
-  ferns: undergrowthShowcase("ferns", 2, 2),
+  ferns: undergrowthShowcase("ferns", 3, 3),
   flowers: undergrowthShowcase("flowers", 9, 3),
   pebbles: undergrowthShowcase("pebbles", 28, 7),
   logs: {

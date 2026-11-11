@@ -23,7 +23,7 @@ const LOOK_BY_KIND: Readonly<Record<UndergrowthKind, { readonly models: RegExp; 
   sparseGrass: { models: /^grass_tuft/, size: 0.8 },
   grassTuft: { models: /^grass_tuft/, size: 1 },
   tallGrass: { models: /^grass_tall/, size: 1 },
-  fern: { models: /^plant_flat/, size: 1.7 },
+  fern: { models: /^fern_/, size: 1 },
   flower: { models: /^flower_/, size: 1 },
   smallRock: { models: /^rock_small(?!Flat)/, size: 0.7 },
   stone: { models: /^stone_small(?!Flat)/, size: 0.9 },

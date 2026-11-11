@@ -1,0 +1,4 @@
+#!/bin/sh
+# Runs before git records a merge that applied cleanly. Git skips the pre-commit hook for those merges,
+# so this runs the same checks. Installed by `bun install` (the "prepare" script).
+exec "$(dirname "$0")/pre-commit"

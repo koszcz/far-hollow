@@ -1,7 +1,9 @@
 // Draws campfires and campfire blueprints with the code-built shape listed in asset-manifest.json as "campfire" (approved).
 // The shape is a ring of uneven stones in two greys, a cone of sticks that match the sticks on the forest floor,
 // and a bed of ash once the campfire is built. The stick tips turn black while the fire burns.
-// A blueprint grows stick by stick with the code-built "campfire-build-animation".
+// A blueprint is built with the code-built "campfire-build-animation" (approved). First the stones drop into place
+// one by one round the ring. Then each stick fades in above its place, already at its lean, is lowered straight down,
+// and is set down. Sticks never turn or bounce. The ash spreads out from the centre at the end.
 // A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, a wide glow, and a brighter pool of light that
 // marks how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
 // A campfire with a pot on it shows the code-built "pot" (approved) from pot-shape.ts nested on its sticks, steaming while lit.
@@ -42,6 +44,29 @@ const STONE_MOST_SUNK = 0.45;
 const STONE_SEED = 4217;
 /** Sticks lean in toward the centre at this angle from upright, in radians, to make a cone. */
 const STICK_LEAN_RADIANS = 0.5;
+
+// The build animation. The stones take the first BUILD_STONES_SHARE of the build. The sticks then share the rest equally,
+// one stage each, and every BUILD_*_SHARE below that is not about stones or ash is a share of one stick's stage.
+/** A new stick fades in this high above its place, in metres, already leaning at its final angle. */
+const BUILD_HOVER_METRES = 0.35;
+/** It is lowered, easing in and out, to just this high above its place, in metres. */
+const BUILD_LOWERED_METRES = 0.06;
+/** The new stick fades in over this first share of its stage. */
+export const BUILD_FADE_SHARE = 0.15;
+/** The stick is lowered until this share of its stage. */
+export const BUILD_LOWERED_SHARE = 0.6;
+/** It pauses just above its place until this share. */
+export const BUILD_HOLD_SHARE = 0.68;
+/** It drops, speeding up, and touches down at this share. It rests in place for the rest of the stage. */
+export const BUILD_SET_DOWN_SHARE = 0.8;
+/** The stones are placed in this first share of the whole build, before any stick. */
+export const BUILD_STONES_SHARE = 0.2;
+/** Each stone drops this far into place, in metres. */
+const BUILD_STONE_DROP_METRES = 0.08;
+/** Each stone's drop takes this share of the stones' part of the build. The drops overlap, one starting after another round the ring. */
+const BUILD_STONE_DROP_SHARE = 0.3;
+/** The ash spreads out from the centre, settling, between this share of the whole build and the end. */
+const BUILD_ASH_SPREAD_FROM = 0.9;
 const GLOW_COLOUR = 0xff9a4a;
 /** Flames on a campfire with almost no fuel left shrink to this share of their full size. Fuller fires burn bigger. */
 const FLAME_SMALLEST_SCALE = 0.35;
@@ -90,8 +115,8 @@ export interface CampfireMeshes {
 interface Drawn {
   readonly root: THREE.Group;
   readonly stones: THREE.Mesh[];
-  /** Each stick's shape starts at its foot, so it grows upward from the ground. */
-  readonly sticks: { mesh: THREE.Mesh }[];
+  /** Each stick's shape starts at its foot, so it turns about its foot. `fading` is its own see-through copy of the stick material. */
+  readonly sticks: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial }[];
   /** The ash bed inside the ring. Shown only once the campfire is built. */
   readonly ash: THREE.Mesh;
   readonly picker: THREE.Mesh;
@@ -156,7 +181,9 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       mesh.rotation.x = -STICK_LEAN_RADIANS;
       pivot.add(mesh);
       root.add(pivot);
-      sticks.push({ mesh });
+      const fading = stickMaterial.clone();
+      fading.transparent = true;
+      sticks.push({ mesh, fading });
     }
     const fire = fireMaker.make();
     fire.group.visible = false;
@@ -183,20 +210,39 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     return result;
   }
 
-  /** Shows how far construction has gone: built sticks are solid, the stick being laid grows, and the rest are see-through. */
+  /**
+   * Shows how far construction has gone. Built sticks are solid and in place, the stick being laid moves through its stage,
+   * and sticks not started show see-through in place as part of the outline. The pose depends only on progress, so a
+   * paused build holds still.
+   */
   function showProgress(item: Drawn, progress: number): void {
-    const stagesDone = progress * CAMPFIRE_STICK_COST;
-    item.sticks.forEach(({ mesh }, index) => {
-      const grown = Math.min(1, Math.max(0, stagesDone - index));
-      const started = grown > 0;
-      mesh.material = started ? stickMaterial : blueprintMaterial;
-      // A stick being laid rises from the ground. Unstarted sticks show at full size as part of the outline.
-      mesh.scale.set(1, started ? Math.max(0.05, grown) : 1, 1);
+    const stagesDone = (Math.max(0, progress - BUILD_STONES_SHARE) / (1 - BUILD_STONES_SHARE)) * CAMPFIRE_STICK_COST;
+    const stonesDone = Math.min(1, progress / BUILD_STONES_SHARE);
+    item.sticks.forEach(({ mesh, fading }, index) => {
+      const share = Math.min(1, Math.max(0, stagesDone - index));
+      if (share <= 0) {
+        mesh.material = blueprintMaterial;
+        mesh.position.y = 0;
+        return;
+      }
+      const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+      fading.opacity = opacity;
+      mesh.material = opacity < 1 ? fading : stickMaterial;
+      mesh.position.y = buildLift(share);
     });
     item.stones.forEach((stone, index) => {
-      stone.material = progress >= 1 ? (stoneMaterials[index % stoneMaterials.length] ?? blueprintMaterial) : blueprintMaterial;
+      const startsAt = (index / item.stones.length) * (1 - BUILD_STONE_DROP_SHARE);
+      const share = stonesDone - startsAt;
+      const placed = stones[index];
+      stone.material = share > 0 ? (stoneMaterials[index % stoneMaterials.length] ?? blueprintMaterial) : blueprintMaterial;
+      const fall = Math.min(1, Math.max(0, share / BUILD_STONE_DROP_SHARE));
+      // The stone speeds up as it falls, and lands at its resting height.
+      if (placed !== undefined) stone.position.y = placed.position.y + (share > 0 ? BUILD_STONE_DROP_METRES * (1 - fall * fall) : 0);
     });
-    item.ash.visible = progress >= 1;
+    const spread = Math.min(1, Math.max(0, (progress - BUILD_ASH_SPREAD_FROM) / (1 - BUILD_ASH_SPREAD_FROM)));
+    item.ash.visible = spread > 0;
+    const settled = spread * spread * (3 - 2 * spread);
+    item.ash.scale.set(Math.max(0.01, settled), 1, Math.max(0.01, settled));
   }
 
   /**
@@ -227,6 +273,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     const item = drawn.get(entity);
     if (item === undefined) return;
     group.remove(item.root);
+    for (const { fading } of item.sticks) fading.dispose();
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
   }
@@ -278,10 +325,34 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       ]) {
         item.dispose();
       }
+      for (const item of drawn.values()) for (const { fading } of item.sticks) fading.dispose();
       fireMaker.dispose();
       potMaker.dispose();
     },
   };
+}
+
+/** How far the whole build has gone, from 0 to 1, when the sticks have reached `stages` stick stages, such as 2.5. */
+export function buildProgressAtStickStage(stages: number): number {
+  return BUILD_STONES_SHARE + ((1 - BUILD_STONES_SHARE) * stages) / CAMPFIRE_STICK_COST;
+}
+
+/**
+ * How high above its place the stick being laid is, in metres, at `share` of its stage.
+ * It is lowered from where it fades in, holds just above its place, drops, and rests.
+ */
+export function buildLift(share: number): number {
+  if (share < BUILD_LOWERED_SHARE) {
+    return BUILD_HOVER_METRES + (BUILD_LOWERED_METRES - BUILD_HOVER_METRES) * easeInOut(share / BUILD_LOWERED_SHARE);
+  }
+  if (share < BUILD_HOLD_SHARE) return BUILD_LOWERED_METRES;
+  if (share >= BUILD_SET_DOWN_SHARE) return 0;
+  const dropped = ((share - BUILD_HOLD_SHARE) / (BUILD_SET_DOWN_SHARE - BUILD_HOLD_SHARE)) ** 2;
+  return BUILD_LOWERED_METRES * (1 - dropped);
+}
+
+function easeInOut(t: number): number {
+  return t * t * (3 - 2 * t);
 }
 
 /** One stone of the ring: its own lumpy shape, where it sits, and how far it is turned. */

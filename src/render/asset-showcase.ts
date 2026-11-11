@@ -9,7 +9,11 @@ import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBedrollMeshes } from "./bedroll-meshes";
-import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
+import {
+  BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
+  type CampfireMeshes,
+} from "./campfire-meshes";
+import { CAMPFIRE_BUILD_SECONDS } from "../sim/building";
 import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
@@ -82,6 +86,9 @@ interface Showcase {
     pose(stage: Stage, seconds: number): Partial<Vec3> | undefined;
   };
 }
+
+/** How long the built campfire rests before the "campfire-build-animation" plays again, in seconds. */
+const BUILD_PLAY_REST_SECONDS = 1.5;
 
 const FOUR_ANGLES: readonly Shot[] = [
   { label: "front", yaw: 0, pitch: 12 },
@@ -293,12 +300,27 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
   "campfire-build-animation": {
     radius: 1.1,
     focus: { x: 0, y: 0.3, z: 0 },
-    shots: [0.25, 0.5, 0.75, 1].map((progress) => ({ label: `built ${progress * 100}%`, yaw: 30, pitch: 25, seconds: progress })),
+    // Stones half placed, key moments while the third stick is laid, then the finished campfire.
+    shots: [
+      { label: "stones going down", progress: BUILD_STONES_SHARE / 2 },
+      { label: "3rd stick above its place", progress: buildProgressAtStickStage(2 + BUILD_FADE_SHARE) },
+      { label: "3rd stick set down", progress: buildProgressAtStickStage(2 + (BUILD_HOLD_SHARE + BUILD_SET_DOWN_SHARE) / 2) },
+      { label: "built", progress: 1 },
+    ].map(({ label, progress }) => ({ label, yaw: 30, pitch: 25, seconds: progress })),
     build({ place }) {
       place(0, 0, { blueprint: { piece: "campfire", progress: 0, sticksSpent: 0 } });
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+    // The whole build plays at game speed, rests built, then starts again from an empty blueprint.
+    play: {
+      shot: { label: "building, then a rest", yaw: 30, pitch: 25 },
+      pose({ store }, seconds) {
+        const cycle = seconds % (CAMPFIRE_BUILD_SECONDS + BUILD_PLAY_REST_SECONDS);
+        for (const entity of store.with("blueprint")) entity.blueprint.progress = Math.min(1, cycle / CAMPFIRE_BUILD_SECONDS);
+        return undefined;
+      },
     },
   },
   "chop-animation": {

@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Woodpile), 04 (Open a chest and move things), and Shelter 08 (Take down pieces)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `chest`, `woodpile`, `player`, and `debarked-log`.
 

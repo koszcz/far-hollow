@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`, `logs`, `debarked-log`, `firewood`, and `backpack-icons`. Adds the draft `woodpile`.
 

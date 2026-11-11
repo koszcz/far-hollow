@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`, `sticks`, `firewood`, `bark`, `pot`, and `backpack-icons`. Adds the drafts `pile` and `rolled-bedroll`.
 

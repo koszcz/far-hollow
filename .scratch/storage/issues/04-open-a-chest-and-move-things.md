@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Place and build a chest)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `chest`, `player`, and `backpack-icons`.
 

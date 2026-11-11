@@ -15,11 +15,23 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
 export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
-  addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, addWoodpiles, allowChests, fillChests,
+  addForageSpots,
+  giveBedroll,
+  givePot,
+  giveDrawknife,
+  countMaterialsSpent,
+  addDeliveredMaterials,
+  addWoodpiles,
+  allowChests,
+  allowPiles,
+  fillChests,
 ];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
+
+/** The first save version that can hold piles. */
+export const PILES_SAVE_VERSION = SAVE_UPGRADES.indexOf(allowPiles) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -163,7 +175,15 @@ function allowChests(save: Readonly<Record<string, unknown>>): Record<string, un
 }
 
 /**
- * Version 9 to 10: a chest holds small materials, tools, and food. A chest saved before then held nothing, so it becomes an empty chest.
+ * Version 9 to 10: the player can drop things from the backpack in piles on the ground.
+ * A save from before then has no piles, so nothing in it changes. The new version stops older code loading a save that has piles.
+ */
+function allowPiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return { ...save };
+}
+
+/**
+ * Version 10 to 11: a chest holds small materials, tools, and food. A chest saved before then held nothing, so it becomes an empty chest.
  */
 function fillChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };

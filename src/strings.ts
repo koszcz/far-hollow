@@ -1,4 +1,23 @@
 // All player-facing text lives here, so the game can be translated later.
+import type { BackpackContent } from "./sim/api";
+
+/** How many of each kind of thing a pile holds, in words. */
+const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> = {
+  axe: (count) => (count === 1 ? "An axe" : `${count} axes`),
+  knife: (count) => (count === 1 ? "A knife" : `${count} knives`),
+  drawknife: (count) => (count === 1 ? "A drawknife" : `${count} drawknives`),
+  fireStriker: (count) => (count === 1 ? "A fire striker" : `${count} fire strikers`),
+  bedroll: (count) => (count === 1 ? "A rolled-up bedroll" : `${count} rolled-up bedrolls`),
+  stick: (count) => (count === 1 ? "1 stick" : `${count} sticks`),
+  firewood: (count) => (count === 1 ? "1 piece of firewood" : `${count} pieces of firewood`),
+  bark: (count) => (count === 1 ? "1 piece of bark" : `${count} pieces of bark`),
+  berries: (count) => (count === 1 ? "1 handful of berries" : `${count} handfuls of berries`),
+  mushroom: (count) => (count === 1 ? "1 mushroom" : `${count} mushrooms`),
+  pot: () => "An empty pot",
+  potOfRiverWater: () => "A pot of river water",
+  potOfBoiledWater: () => "A pot of boiled water",
+};
+
 export const strings = {
   gameTitle: "Far Hollow",
   startScreen: {
@@ -147,11 +166,25 @@ export const strings = {
   chest: {
     title: "Chest",
     empty: "The chest is empty.",
+    /** The tip shown when the player points at a backpack cell while a chest is open. */
+    putTip: (name: string) => `${name}. Click to put one in the chest.`,
     /** The full name of a backpack cell while a chest is open, for screen readers. */
-    put: (name: string, count: number) => `Put ${name.toLowerCase()} in the chest (${count} in backpack)`,
+    put: (name: string) => `Put ${name.toLowerCase()} in the chest`,
+    /** The tip shown when the player points at a chest cell. */
+    takeTip: (name: string) => `${name}. Click to take one.`,
     /** The full name of a chest cell, for screen readers. */
-    take: (name: string, count: number) => `Take ${name.toLowerCase()} from the chest (${count} in chest)`,
+    take: (name: string) => `Take ${name.toLowerCase()} from the chest`,
     hint: "Click a backpack item to put one in the chest. Click a chest item to take one out. Shift-click moves all that fit.",
+  },
+  pile: {
+    title: "Pile",
+    /** What a pile holds, such as "7 sticks". */
+    holds: (content: BackpackContent, count: number) => PILE_HOLDS[content](count),
+    pickUp: "Pick up",
+    /** The tip shown when the player points at a backpack cell. */
+    dropTip: (name: string) => `${name}. Click to drop all of it here.`,
+    /** The full name of a backpack cell's drop button, for screen readers. */
+    drop: (name: string) => `Drop ${name.toLowerCase()}`,
   },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   /** The count shown in the corner of a backpack cell when the backpack holds more than one. */

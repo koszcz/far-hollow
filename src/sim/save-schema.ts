@@ -90,6 +90,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
+  pile: shape({ content: exactly(...Object.keys(CONTENT_WEIGHT_KG)), count: (value) => count(value) && (value as number) > 0 }),
+  pileTask: shape({ pileId: count }),
 };
 
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));

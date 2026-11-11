@@ -2,7 +2,7 @@
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, StructureKind, WoodpileView, WoodpileWood,
+  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, StructureKind, WoodpileView, WoodpileWood,
 } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
@@ -20,39 +20,33 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
 
 /**
  * A grid of icons, one cell per kind, with a count badge when there is more than one.
- * With `onMove`, each cell is a button: a click moves one of that kind, a shift-click moves all that fit.
+ * Each cell is a button. A click calls `onClick` with that kind, and whether shift was held.
+ * `tip` is the text shown when the player points at a cell. `label` is a cell's full name, for screen readers.
  */
 function ContentGrid({
-  contents, onMove, moveLabel,
+  contents, tip, label, onClick,
 }: {
   contents: GameView["backpack"];
-  onMove?: (content: BackpackContent, all: boolean) => void;
-  moveLabel?: (name: string, count: number) => string;
+  tip: (name: string) => string;
+  label: (name: string) => string;
+  onClick: (content: BackpackContent, shiftKey: boolean) => void;
 }) {
   return (
     <ul>
       {backpackContents(contents).map(([content, count]) => {
         const name = strings.backpackContents[content];
-        const cell = (
-          <>
-            <BackpackIcon content={content} />
-            <span class="hud-sr-only">{onMove !== undefined && moveLabel !== undefined ? moveLabel(name, count) : strings.backpackContentCount(name, count)}</span>
-            {count > 1 && (
-              <span class="hud-backpack-count" aria-hidden="true">
-                {strings.backpackCountBadge(count)}
-              </span>
-            )}
-          </>
-        );
         return (
-          <li key={content} data-tip={name}>
-            {onMove === undefined ? cell : (
-              <button type="button" class="hud-content-move" onClick={(event) => {
-                  onMove(content, event.shiftKey);
-                }}>
-                {cell}
-              </button>
-            )}
+          <li key={content} data-tip={tip(name)}>
+            <button type="button" class="hud-content-move" aria-label={label(strings.backpackContentCount(name, count))} onClick={(event) => {
+                onClick(content, event.shiftKey);
+              }}>
+              <BackpackIcon content={content} />
+              {count > 1 && (
+                <span class="hud-backpack-count" aria-hidden="true">
+                  {strings.backpackCountBadge(count)}
+                </span>
+              )}
+            </button>
           </li>
         );
       })}
@@ -266,6 +260,23 @@ function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: Bedrol
   );
 }
 
+/** Shows what the pile beside the player holds and how many, with a button to pick it up. */
+function PilePanel({ client, pile }: { client: GameClient; pile: PileView }) {
+  return (
+    <section class="hud-section hud-pile" aria-label={strings.pile.title}>
+      <h2>
+        <BackpackIcon content={pile.content} />
+        {strings.pile.holds(pile.content, pile.count)}
+      </h2>
+      <div class="hud-buttons">
+        <HudButton icon="backpack" label={strings.pile.pickUp} onClick={() => {
+            client.send({ type: "pickUpPile", pileId: pile.id });
+          }} />
+      </div>
+    </section>
+  );
+}
+
 /** Shows the blueprint beside the player: how many of each carried material it has and needs, and how to go on. */
 function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
   const name = strings.buildMenu.structures[blueprint.structure];
@@ -317,6 +328,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
     view.carrying !== null ||
     view.nearbyCampfire !== null ||
     view.nearbyBedroll !== null ||
+    view.nearbyPile !== null ||
     view.nearbyWoodpile !== null ||
     view.nearbyBlueprint !== null;
 
@@ -372,6 +384,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
             {view.nearbyWoodpile !== null && <WoodpilePanel client={client} view={view} woodpile={view.nearbyWoodpile} />}
             {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
+            {view.nearbyPile !== null && <PilePanel client={client} pile={view.nearbyPile} />}
             {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
           </div>
         </div>
@@ -398,9 +411,11 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               <span class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</span>
             </h2>
             {openChest === null ? (
-              <ContentGrid contents={view.backpack} />
+              <ContentGrid contents={view.backpack} tip={strings.pile.dropTip} label={strings.pile.drop} onClick={(content) => {
+                  client.send({ type: "dropFromBackpack", content });
+                }} />
             ) : (
-              <ContentGrid contents={view.backpack} moveLabel={strings.chest.put} onMove={(content, all) => {
+              <ContentGrid contents={view.backpack} tip={strings.chest.putTip} label={strings.chest.put} onClick={(content, all) => {
                   client.send({ type: "putInChest", chestId: openChest.id, content, all });
                 }} />
             )}
@@ -462,7 +477,7 @@ function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView })
       {empty ? (
         <p class="hud-hint">{strings.chest.empty}</p>
       ) : (
-        <ContentGrid contents={chest.contents} moveLabel={strings.chest.take} onMove={(content, all) => {
+        <ContentGrid contents={chest.contents} tip={strings.chest.takeTip} label={strings.chest.take} onClick={(content, all) => {
             client.send({ type: "takeFromChest", chestId: chest.id, content, all });
           }} />
       )}

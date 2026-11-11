@@ -19,6 +19,7 @@ const BASE_VIEW: GameView = {
   carrying: null,
   nearbyCampfire: null,
   nearbyBedroll: null,
+  nearbyPile: null,
   nearbyWoodpile: null,
   openChest: null,
   nearbyBlueprint: null,

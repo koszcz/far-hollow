@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createGame, type Game } from "./game";
 import type { Vec3 } from "./entities";
+import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { distanceToRiver, generateValley, terrainHeightAt, type GroundPoint } from "./valley";
 
 describe("createGame", () => {
@@ -120,3 +120,33 @@ function distanceToNearestTree(game: Game, spot: GroundPoint): number {
 function distanceToWater(game: Game, spot: GroundPoint): number {
   return distanceToRiver(game.valley.river, spot) - game.valley.river.width / 2;
 }
+describe("the game clock", () => {
+  function runRealSeconds(game: ReturnType<typeof createGame>, seconds: number): void {
+    for (let i = 0; i < seconds * STEPS_PER_SECOND; i += 1) game.step();
+  }
+
+  it("starts on day 1 at 08:00", () => {
+    const game = createGame({ seed: 1 });
+    expect(game.client.getView().time).toMatchObject({ day: 1, hour: 8, minute: 0 });
+  });
+
+  it("moves one game hour for each real minute of logic steps", () => {
+    const game = createGame({ seed: 1 });
+    runRealSeconds(game, 60);
+    expect(game.client.getView().time).toMatchObject({ day: 1, hour: 9, minute: 0 });
+  });
+
+  it("stands still while the game is paused", () => {
+    const game = createGame({ seed: 1 });
+    game.client.send({ type: "setPaused", paused: true });
+    runRealSeconds(game, 60);
+    expect(game.client.getView().time).toMatchObject({ day: 1, hour: 8, minute: 0 });
+  });
+
+  it("skips forward when the client sends a skip-time command", () => {
+    const game = createGame({ seed: 1 });
+    game.client.send({ type: "skipTime", hours: 13 });
+    game.step();
+    expect(game.client.getView().time).toMatchObject({ day: 1, hour: 21, minute: 0 });
+  });
+});

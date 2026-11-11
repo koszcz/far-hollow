@@ -1,4 +1,5 @@
 import type { Command, GameClient, GameView } from "./api";
+import { createClock, readClock, type ClockStart } from "./clock";
 import { createEntityStore, movingEntities, type EntityStore } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import { createWalking, playerStartSpot } from "./walking";
@@ -12,6 +13,8 @@ export const STEP_MS = 1000 / STEPS_PER_SECOND;
  * The walk map uses 1 m cells, so this leaves room for the widest trunk (about 0.4 m) plus half a cell's diagonal.
  */
 const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
+/** A new game starts on the morning of day 1. */
+export const GAME_START: ClockStart = { day: 1, hour: 8 };
 
 export interface GameOptions {
   /** Decides how the valley is laid out. The same seed always makes the same valley. */
@@ -45,6 +48,7 @@ export function createGame({ seed }: GameOptions): Game {
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
+  const clock = createClock(GAME_START);
   let paused = false;
   let stepCount = 0;
   let view = snapshot();
@@ -56,6 +60,7 @@ export function createGame({ seed }: GameOptions): Game {
       stepCount,
       entityCount: entities.entities.length,
       playerPosition: Object.freeze({ ...player.position }),
+      time: readClock(clock.minutes),
     });
   }
 
@@ -66,11 +71,15 @@ export function createGame({ seed }: GameOptions): Game {
     walkTo: (command) => {
       walking.walkTo({ x: command.x, z: command.z });
     },
+    skipTime: (command) => {
+      clock.skip(command.hours);
+    },
   };
 
   function applyCommand(command: Command): void {
-    // TypeScript cannot match each handler to its own command type through the lookup, so this cast is safe.
-    (commandHandlers[command.type] as (command: Command) => void)(command);
+    // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.
+    const handle = commandHandlers[command.type] as (command: Command) => void;
+    handle(command);
   }
 
   function step(): void {
@@ -81,6 +90,7 @@ export function createGame({ seed }: GameOptions): Game {
         Object.assign(entity.previousPosition, entity.position);
       }
       walking.step(STEP_MS / 1000);
+      clock.advance(STEP_MS);
       stepCount += 1;
     }
 

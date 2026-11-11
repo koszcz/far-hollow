@@ -161,12 +161,13 @@
         "src/ui/hud.tsx",
         "src/ui/hud-showcase.tsx"
       ],
-      "description": "Bark: a HUD line icon of two curled strips, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
+      "description": "Bark: a HUD line icon of one peeled strip with its end rolled into a curl, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/01-drawknife-and-debarking.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

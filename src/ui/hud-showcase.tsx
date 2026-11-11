@@ -68,7 +68,7 @@ const STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: Struct
   },
 ];
 
-/** The "bark" draft: bark in the backpack, debarking under way, bark offered as fuel, and a debarked log on the shoulder. */
+/** The "bark" asset: bark in the backpack, debarking under way, bark offered as fuel, and a debarked log on the shoulder. */
 const BARK_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
   { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 4 } }, buildMenuOpen: false, placing: null },
   {

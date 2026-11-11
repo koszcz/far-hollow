@@ -1,10 +1,12 @@
-// Draws the valley's ground with the code-built draft shape listed in asset-manifest.json as "terrain".
-// The river is drawn in river-meshes.ts. Trees, stumps, and logs are drawn in forest-meshes.ts.
+// Draws the valley's ground with the code-built "terrain" listed in asset-manifest.json (approved).
+// The terrain's painted texture comes from ground-texture.ts. The river is drawn in river-meshes.ts.
+// Trees, stumps, and logs are drawn in forest-meshes.ts.
 import * as THREE from "three";
 import type { Valley } from "../sim/valley";
+import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 
+/** The ground's main grass colour. The sky light also uses it as the colour bounced up from the ground. */
 export const GROUND_COLOUR = 0x5f7f3a;
-
 export interface ValleyMeshes {
   readonly group: THREE.Group;
   /** The terrain mesh, so clicks can find the spot on the ground under the pointer. */
@@ -30,7 +32,9 @@ export function createValleyMeshes(valley: Valley): ValleyMeshes {
     groundPositions.setY(index, height);
   });
   groundGeometry.computeVertexNormals();
-  const groundMaterial = track(new THREE.MeshStandardMaterial({ color: GROUND_COLOUR, flatShading: true }));
+  const groundTexture = track(createGroundTexture());
+  groundTexture.repeat.set(valley.size / GROUND_TEXTURE_TILE_METRES, valley.size / GROUND_TEXTURE_TILE_METRES);
+  const groundMaterial = track(new THREE.MeshStandardMaterial({ map: groundTexture, flatShading: true }));
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   group.add(ground);
 

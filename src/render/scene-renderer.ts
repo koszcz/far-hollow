@@ -5,12 +5,13 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
-import { createHoverOutline } from "./hover-outline";
 import { daylightAt } from "./daylight";
+import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
-import { createSkyLighting } from "./sky-lighting";
 import { createRiverMeshes } from "./river-meshes";
+import { createSkyLighting } from "./sky-lighting";
 import type { TreeShape } from "./tree-model";
+import type { StumpShape } from "./stump-model";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -43,7 +44,7 @@ export interface SceneRenderer {
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
- * treeShapes are the loaded tree types, from loadTreeShapes.
+ * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
@@ -51,6 +52,7 @@ export function createSceneRenderer(
   entities: EntityStore,
   readHourOfDay: () => number,
   treeShapes: readonly TreeShape[],
+  stumpShape: StumpShape,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -74,7 +76,7 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
-  const forestMeshes = createForestMeshes(entities, treeShapes);
+  const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
@@ -120,6 +122,8 @@ export function createSceneRenderer(
   const playerDrawn = { x: 0, y: 0, z: 0 };
   const playerDrawnBefore = { x: 0, y: 0, z: 0 };
   cameraRig.setFollowTarget(playerDrawn);
+  /** Total metres the player has walked, which keeps the legs in step with the ground. */
+  let playerWalkedMetres = 0;
 
   const moving = movingEntities(entities);
   const blended = { x: 0, y: 0, z: 0 };
@@ -145,7 +149,14 @@ export function createSceneRenderer(
     playerMesh.setChopping(undefined);
     const dx = playerDrawn.x - playerDrawnBefore.x;
     const dz = playerDrawn.z - playerDrawnBefore.z;
-    if (Math.hypot(dx, dz) > TURN_MIN_TRAVEL_METRES) playerMesh.setHeading(Math.atan2(dx, dz));
+    const travelled = Math.hypot(dx, dz);
+    if (travelled > TURN_MIN_TRAVEL_METRES) playerMesh.setHeading(Math.atan2(dx, dz));
+    if (player.walkPath === undefined) {
+      playerMesh.setWalking(undefined);
+      return;
+    }
+    playerWalkedMetres += travelled;
+    playerMesh.setWalking(playerWalkedMetres);
   }
 
   return {

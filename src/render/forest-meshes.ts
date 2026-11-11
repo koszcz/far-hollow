@@ -1,12 +1,13 @@
 // Draws trees, stumps, logs, and sticks, which are listed in asset-manifest.json as "trees", "stumps", "logs", and "sticks".
-// Trees use Kenney's tree models from tree-model.ts, which the owner approved. Stumps, logs, and sticks
-// are code-built drafts. Felled trees fall with the code-built "chop-animation".
+// Trees use Kenney's tree models from tree-model.ts, and stumps use Kenney's stump model from stump-model.ts.
+// The owner approved both. Logs and sticks are code-built drafts. Felled trees fall with the code-built "chop-animation".
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { OutlinePart } from "./hover-outline";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
+import type { StumpShape } from "./stump-model";
 import type { TreeShape, TreeTone } from "./tree-model";
 
 const TRUNK_COLOUR = 0x6b4a2b;
@@ -24,8 +25,10 @@ const STUMP_TOP_COLOUR = 0xc9a46a;
 /** Lighter than the trunks and the ground, so sticks stand out on the forest floor. */
 const STICK_COLOUR = 0xb08654;
 
-const TRUNK_RADIUS_METRES = 0.3;
-const STUMP_HEIGHT_METRES = 0.4;
+/** A stump never stands taller than this above the ground, before the tree's own size, so wide oaks leave low stumps. */
+const STUMP_MAX_HEIGHT_METRES = 0.6;
+/** Only trunk points this close to the ground count when measuring how wide a trunk's foot is, in metres. */
+const TRUNK_FOOT_BAND_METRES = 0.4;
 /** Each tree is drawn between these sizes, so the forest does not look copy-pasted. */
 const TREE_MIN_SCALE = 0.8;
 const TREE_MAX_SCALE = 1.25;
@@ -57,7 +60,7 @@ export interface ForestMeshes {
   dispose(): void;
 }
 
-export function createForestMeshes(entities: EntityStore, treeShapes: readonly TreeShape[]): ForestMeshes {
+export function createForestMeshes(entities: EntityStore, treeShapes: readonly TreeShape[], stumpShape: StumpShape): ForestMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -75,7 +78,6 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     dark: track(new THREE.MeshStandardMaterial({ color: CROWN_COLOUR, flatShading: true })),
     light: track(new THREE.MeshStandardMaterial({ color: LIGHT_CROWN_COLOUR, flatShading: true })),
   };
-  const trunkMaterial = trunkMaterials.dark;
   for (const shape of treeShapes) {
     track(shape.trunk);
     track(shape.crown);
@@ -114,18 +116,19 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   });
   const treePickTargets = treeBatches.flatMap(({ trunks, crowns }) => [trunks, crowns]);
 
-  // Stumps: one batch. A tree's stump keeps the tree's size and turn.
-  const stumpGeometry = track(new THREE.CylinderGeometry(TRUNK_RADIUS_METRES, TRUNK_RADIUS_METRES * 1.1, STUMP_HEIGHT_METRES, 6));
-  stumpGeometry.translate(0, STUMP_HEIGHT_METRES / 2, 0);
-  const stumpMaterials = [
-    trunkMaterial,
-    track(new THREE.MeshStandardMaterial({ color: STUMP_TOP_COLOUR, flatShading: true })),
-    trunkMaterial,
-  ];
-  const stumps = track(new THREE.InstancedMesh(stumpGeometry, stumpMaterials, Math.max(1, trees.length)));
-  stumps.count = 0;
-  stumps.frustumCulled = false;
-  group.add(stumps);
+  // Stumps: one batch per bark tone. A tree's stump keeps the tree's size and turn, and its foot is as wide as the trunk's.
+  const stumpGeometry = track(stumpShape.geometry);
+  const cutMaterial = track(new THREE.MeshStandardMaterial({ color: STUMP_TOP_COLOUR, flatShading: true }));
+  const stumpFits = treeShapes.map((shape) => stumpFit(shape.trunk, stumpShape));
+  const stumpBatches: Record<TreeTone, THREE.InstancedMesh> = {
+    dark: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], Math.max(1, trees.length))),
+    light: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.light, cutMaterial], Math.max(1, trees.length))),
+  };
+  for (const stumps of Object.values(stumpBatches)) {
+    stumps.count = 0;
+    stumps.frustumCulled = false;
+    group.add(stumps);
+  }
 
   // Logs on the ground: one batch, with room for every log the valley's trees can give.
   const logGeometry = track(createLogGeometry());
@@ -212,15 +215,22 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   }
 
   function rebuildStumps(): void {
-    let count = 0;
+    const counts: Record<TreeTone, number> = { dark: 0, light: 0 };
     for (const stump of stumpQuery) {
-      if (count >= stumps.instanceMatrix.count) break;
+      // A stump is the felled tree's entity, so it keeps the tree's type.
+      const type = typeOf.get(stump) ?? 0;
+      const tone = treeShapes[type]?.trunkTone ?? "dark";
+      const stumps = stumpBatches[tone];
+      if (counts[tone] >= stumps.instanceMatrix.count) continue;
       treeMatrix(stump.position, matrix);
-      stumps.setMatrixAt(count, matrix);
-      count += 1;
+      matrix.multiply(stumpFits[type] ?? IDENTITY);
+      stumps.setMatrixAt(counts[tone], matrix);
+      counts[tone] += 1;
     }
-    stumps.count = count;
-    stumps.instanceMatrix.needsUpdate = true;
+    for (const tone of ["dark", "light"] as const) {
+      stumpBatches[tone].count = counts[tone];
+      stumpBatches[tone].instanceMatrix.needsUpdate = true;
+    }
   }
 
   const logRotation = new THREE.Quaternion();
@@ -341,6 +351,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   };
 }
 
+const IDENTITY = new THREE.Matrix4();
 const treeRotation = new THREE.Quaternion();
 const treeScale = new THREE.Vector3();
 const treePosition = new THREE.Vector3();
@@ -366,6 +377,24 @@ function treeTypeFor(x: number, z: number, shapes: readonly TreeShape[]): number
     if (roll < 0) return type;
   }
   return shapes.length - 1;
+}
+
+/**
+ * Scales the stump model so its foot is as wide as a trunk's foot, in metres.
+ * The height grows with the width, up to STUMP_MAX_HEIGHT_METRES.
+ */
+function stumpFit(trunk: THREE.BufferGeometry, stump: StumpShape): THREE.Matrix4 {
+  const position = trunk.getAttribute("position");
+  let bottom = Infinity;
+  for (let i = 0; i < position.count; i += 1) bottom = Math.min(bottom, position.getY(i));
+  let footRadius = 0;
+  for (let i = 0; i < position.count; i += 1) {
+    if (position.getY(i) - bottom > TRUNK_FOOT_BAND_METRES) continue;
+    footRadius = Math.max(footRadius, Math.hypot(position.getX(i), position.getZ(i)));
+  }
+  const across = footRadius / stump.footRadius;
+  const up = Math.min(across, STUMP_MAX_HEIGHT_METRES / stump.height);
+  return new THREE.Matrix4().makeScale(across, up, across);
 }
 
 /** A steady value from 0 to 1 for a spot, used to vary each tree's size and turn. It only affects drawing. */

@@ -1,6 +1,7 @@
 // Draws trees, stumps, logs, and sticks with the code-built draft shapes listed in asset-manifest.json:
 // "trees", "stumps", "logs", and "sticks". Felled trees fall with the code-built "chop-animation".
 import * as THREE from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
@@ -8,7 +9,8 @@ import { createLogGeometry, LOG_COLOUR } from "./log-shape";
 const TRUNK_COLOUR = 0x6b4a2b;
 const CROWN_COLOUR = 0x2f5a2a;
 const STUMP_TOP_COLOUR = 0xc9a46a;
-const STICK_COLOUR = 0x8a6a45;
+/** Lighter than the trunks and the ground, so sticks stand out on the forest floor. */
+const STICK_COLOUR = 0xb08654;
 
 const TRUNK_HEIGHT_METRES = 3;
 const TRUNK_RADIUS_METRES = 0.3;
@@ -20,8 +22,13 @@ const TREE_MIN_SCALE = 0.8;
 const TREE_MAX_SCALE = 1.25;
 /** Logs lie on the ground, so their middle sits this far above it. */
 const LOG_REST_HEIGHT_METRES = 0.18;
-const STICK_LENGTH_METRES = 0.7;
-const STICK_RADIUS_METRES = 0.03;
+const STICK_LENGTH_METRES = 0.9;
+const STICK_RADIUS_METRES = 0.05;
+/** Each stick has one short side twig, so it reads as a branch and not a line. */
+const TWIG_LENGTH_METRES = 0.3;
+const TWIG_RADIUS_METRES = 0.03;
+/** Sticks float this far above their spot, so the ground's slope does not swallow them. */
+const STICK_LIFT_METRES = 0.03;
 /** Sticks are thin, so clicks hit an invisible box this wide around each one, in metres. */
 const STICK_PICK_WIDTH_METRES = 0.35;
 /** How long a felled tree takes to hit the ground, in seconds. */
@@ -94,9 +101,7 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
   let logsDrawn: Entity[] = [];
 
   // Sticks on the ground: one batch, with room for every stick the valley starts with. No new sticks appear later.
-  const stickGeometry = track(new THREE.CylinderGeometry(STICK_RADIUS_METRES, STICK_RADIUS_METRES, STICK_LENGTH_METRES, 4));
-  stickGeometry.rotateZ(Math.PI / 2);
-  stickGeometry.translate(0, STICK_RADIUS_METRES, 0);
+  const stickGeometry = track(createStickGeometry());
   const stickMaterial = track(new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true }));
   const stickCapacity = Math.max(1, stickEntities(entities).size);
   const sticks = track(new THREE.InstancedMesh(stickGeometry, stickMaterial, stickCapacity));
@@ -293,4 +298,21 @@ function treeMatrix(at: Vec3 & { look?: number }, out: THREE.Matrix4): THREE.Mat
 function lookFor(x: number, z: number): number {
   const value = Math.sin(x * 12.9898 + z * 78.233) * 43_758.5453;
   return value - Math.floor(value);
+}
+
+/** A stick lying along x: a tapered branch with one twig forking off it, resting on y = 0. */
+function createStickGeometry(): THREE.BufferGeometry {
+  const branch = new THREE.CylinderGeometry(STICK_RADIUS_METRES * 0.7, STICK_RADIUS_METRES, STICK_LENGTH_METRES, 6);
+  branch.rotateZ(Math.PI / 2);
+  const twig = new THREE.CylinderGeometry(TWIG_RADIUS_METRES * 0.6, TWIG_RADIUS_METRES, TWIG_LENGTH_METRES, 5);
+  // The twig starts a little past the middle and angles forward and sideways along the ground.
+  twig.translate(0, TWIG_LENGTH_METRES / 2, 0);
+  twig.rotateZ(-Math.PI / 2 + 0.6);
+  twig.rotateX(Math.PI / 2 - 0.15);
+  twig.translate(STICK_LENGTH_METRES * 0.1, 0, 0);
+  const stick = mergeGeometries([branch, twig]);
+  branch.dispose();
+  twig.dispose();
+  stick.translate(0, STICK_RADIUS_METRES + STICK_LIFT_METRES, 0);
+  return stick;
 }

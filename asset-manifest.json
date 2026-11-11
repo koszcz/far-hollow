@@ -5,14 +5,16 @@
       "id": "terrain",
       "kind": "code",
       "code": [
-        "src/render/valley-meshes.ts"
+        "src/render/valley-meshes.ts",
+        "src/render/ground-texture.ts"
       ],
       "description": "Ground of the valley, including the ground plane in the empty scene.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/02-seeded-valley.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

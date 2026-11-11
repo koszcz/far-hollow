@@ -52,8 +52,9 @@ export type Command =
   /**
    * Place a blueprint of a structure from the build menu at the building-grid spot nearest the given spot, in metres,
    * facing `turns` quarter turns. Furniture, such as a chest, goes at the given spot itself. Placing costs nothing. Nothing happens if the structure's placement rule refuses the spot.
+   * With `thenBuild`, the player starts building it at once if they have what the first stage needs, as if they had sent build.
    */
-  | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns } & GroundPoint)
+  | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns; thenBuild?: boolean } & GroundPoint)
   /**
    * Start building a blueprint, given by its entity id. The player walks to it first if needed.
    * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of materials.

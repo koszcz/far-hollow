@@ -1,160 +1,187 @@
 {
-  "$comment": "Every asset must be listed here and approved by the owner. See docs/adr/0004-every-asset-needs-owner-approval.md.",
+  "$comment": "The asset catalogue. List every asset here. Tickets may add drafts built in code. Only the owner approves an asset. See docs/adr/0006-tickets-add-draft-assets-owner-approves-final.md.",
   "assets": [
     {
       "id": "terrain",
       "kind": "code",
-      "description": "Ground of the valley, including the ground plane in the empty scene. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/valley-meshes.ts"
+      ],
+      "description": "Ground of the valley, including the ground plane in the empty scene.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/02-seeded-valley.md"
       }
     },
     {
       "id": "river",
       "kind": "code",
-      "description": "The river that runs through the valley. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/valley-meshes.ts"
+      ],
+      "description": "The river that runs through the valley.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/02-seeded-valley.md"
       }
     },
     {
       "id": "trees",
       "kind": "code",
-      "description": "Standing trees. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/forest-meshes.ts"
+      ],
+      "description": "Standing trees.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/02-seeded-valley.md"
       }
     },
     {
       "id": "stumps",
       "kind": "code",
-      "description": "Stumps left after a tree is felled. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/forest-meshes.ts"
+      ],
+      "description": "Stumps left after a tree is felled.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/05-chop-tree-carry-log.md"
       }
     },
     {
       "id": "sticks",
       "kind": "code",
-      "description": "Sticks on the forest floor. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/forest-meshes.ts"
+      ],
+      "description": "Sticks on the forest floor.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
       }
     },
     {
       "id": "player",
       "kind": "code",
-      "description": "The player. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/player-mesh.ts"
+      ],
+      "description": "The player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/04-click-to-walk.md"
       }
     },
     {
       "id": "logs",
       "kind": "code",
-      "description": "Logs cut from a felled tree. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/log-shape.ts",
+        "src/render/forest-meshes.ts",
+        "src/render/player-mesh.ts"
+      ],
+      "description": "Logs cut from a felled tree.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/05-chop-tree-carry-log.md"
       }
     },
     {
       "id": "firewood",
       "kind": "code",
-      "description": "Firewood split from a log. Placeholder shape built in code for the first playable.",
+      "code": [],
+      "description": "Firewood split from a log. Nothing draws it in the world yet.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
       }
     },
     {
       "id": "campfire",
       "kind": "code",
-      "description": "The campfire. Placeholder shape built in code for the first playable.",
+      "code": [
+        "src/render/campfire-meshes.ts"
+      ],
+      "description": "The campfire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/08-build-campfire.md"
       }
     },
     {
       "id": "chop-animation",
       "kind": "code",
-      "description": "Chopping motion of the player and the falling motion of a felled tree. Placeholder tween built in code for the first playable.",
+      "code": [
+        "src/render/player-mesh.ts",
+        "src/render/forest-meshes.ts"
+      ],
+      "description": "Chopping motion of the player and the falling motion of a felled tree.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/05-chop-tree-carry-log.md"
       }
     },
     {
       "id": "campfire-build-animation",
       "kind": "code",
-      "description": "Stage-by-stage growth of a campfire during construction. Placeholder tween built in code for the first playable.",
+      "code": [
+        "src/render/campfire-meshes.ts"
+      ],
+      "description": "Stage-by-stage growth of a campfire during construction.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/08-build-campfire.md"
       }
     },
     {
       "id": "fire-effect",
       "kind": "code",
-      "description": "Flames and glow of a lit campfire. Placeholder shapes and light built in code for the first playable.",
+      "code": [
+        "src/render/campfire-meshes.ts"
+      ],
+      "description": "Flames and glow of a lit campfire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/09-fuel-campfire.md"
       }
     },
     {
       "id": "split-animation",
       "kind": "code",
-      "description": "Splitting motion of the player when splitting a log into firewood. Placeholder tween built in code for the first playable, distinct from the chop animation.",
+      "code": [
+        "src/render/player-mesh.ts"
+      ],
+      "description": "Splitting motion of the player when splitting a log into firewood. Distinct from the chop animation.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
       }
     }
   ]

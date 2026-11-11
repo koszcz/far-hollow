@@ -16,4 +16,10 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ## Assets
 
-Never add a 3D model, texture, animation, or sound without the owner's explicit approval in chat. For each asset, propose either a specific CC0 file (with source and license) or building it in code, then wait for the owner to choose. See `docs/adr/0004-every-asset-needs-owner-approval.md`.
+Every asset (3D model, texture, animation, or sound) is listed in the asset catalogue, `asset-manifest.json`. When a ticket needs an asset:
+
+1. Reuse the catalogue entry if one exists. Its `code` field names the files that build or draw it.
+2. If none exists, build a draft asset in code, as cheaply as possible, and add it with `"status": "draft"` and the ticket's path.
+3. Change an approved asset or add a third-party file only with the owner's explicit approval in chat.
+
+The owner polishes drafts with the `make-asset` skill. See `docs/adr/0006-tickets-add-draft-assets-owner-approves-final.md`.

@@ -1,4 +1,4 @@
-// Draws trees, stumps, logs, and sticks with the code-built placeholder shapes approved in asset-manifest.json:
+// Draws trees, stumps, logs, and sticks with the code-built draft shapes listed in asset-manifest.json:
 // "trees", "stumps", "logs", and "sticks". Felled trees fall with the code-built "chop-animation".
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";

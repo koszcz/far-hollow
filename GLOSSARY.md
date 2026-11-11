@@ -164,3 +164,21 @@ The only weather in the valley. Being out in the rain without a roof overhead dr
 
 **Day**:
 One full cycle of daylight and night in the valley.
+
+## Assets
+
+**Asset**:
+Anything the game shows or plays that is not game logic: a 3D model, texture, animation, or sound. An asset is either built in code or comes from a third-party file.
+_Avoid_: Art, resource, content
+
+**Asset catalogue**:
+The single list of every asset in the game, with its source, license, and whether it is a draft or approved.
+_Avoid_: Asset library, asset registry
+
+**Draft asset**:
+A rough asset built in code so a feature can ship before its asset is polished. Any ticket may add one without the owner's approval. A draft stays a draft until the owner approves it.
+_Avoid_: Placeholder, temp asset, stub
+
+**Approved asset**:
+An asset the owner has approved as final. Only the owner can approve an asset, and only the owner can approve a third-party file.
+_Avoid_: Final asset, polished asset

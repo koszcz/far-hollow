@@ -1,4 +1,4 @@
-// Draws campfires and campfire blueprints with the code-built placeholder shape approved in asset-manifest.json as "campfire".
+// Draws campfires and campfire blueprints with the code-built draft shape listed in asset-manifest.json as "campfire".
 // A blueprint grows stick by stick with the code-built "campfire-build-animation".
 // A lit campfire has flames, a wide glow, and a brighter pool of light that marks how far its warmth reaches. Together they are the code-built "fire-effect".
 import * as THREE from "three";

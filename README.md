@@ -19,6 +19,7 @@ You need Bun 1.4. Bun installs the packages and runs every tool. You do not need
 - `bun run lint` checks code style and module boundaries.
 - `bun run typecheck` checks the TypeScript types.
 - `bun run build` checks the assets and builds the game into `dist/`.
+- `make drafts` lists the draft assets that still need polish. Polish one with the `make-asset` skill.
 
 ## Learn the project
 

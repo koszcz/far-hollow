@@ -1,4 +1,4 @@
-// Draws the player with the code-built placeholder shape approved in asset-manifest.json as "player".
+// Draws the player with the code-built draft shape listed in asset-manifest.json as "player".
 // The chopping swing is the code-built "chop-animation". The splitting strike is the code-built "split-animation". The carried log is the code-built "logs" shape.
 import * as THREE from "three";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";

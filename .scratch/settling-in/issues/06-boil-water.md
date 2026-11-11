@@ -6,11 +6,13 @@
 
 **Status:** ready-for-agent
 
+**Assets:** Reuse `campfire` and `fire-effect`. Add the draft `pot`, shown empty, full of water, and steaming while it boils.
+
 - [ ] A new game starts with a pot in the backpack.
 - [ ] The player can fill the pot at the river.
 - [ ] The player can put a full pot on a lit campfire. Boiling takes a short, timed wait.
 - [ ] The pot comes off the fire holding boiled water. If the fire goes out first, the water stays unboiled.
 - [ ] The player can drink boiled water from the pot. It fills thirst and does not cause sickness.
 - [ ] The pot's state is saved: empty, full of river water, or full of boiled water.
-- [ ] Before any pot model enters the game, the owner approves it (ADR 0004).
+- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
 - [ ] Unit tests cover filling, boiling, a fire going out mid-boil, and drinking safely.

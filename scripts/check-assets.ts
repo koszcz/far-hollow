@@ -1,8 +1,9 @@
-// Fails the build if any asset file in the project is not approved in asset-manifest.json.
-// See docs/adr/0004-every-asset-needs-owner-approval.md.
-import { readdirSync, readFileSync } from "node:fs";
+// Fails the build if any asset file in the project is not approved in asset-manifest.json,
+// or if an entry breaks the catalogue rules. Draft assets built in code pass.
+// See docs/adr/0006-tickets-add-draft-assets-owner-approves-final.md.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative, sep } from "node:path";
-import { findUnapprovedAssets, type AssetManifest } from "./asset-manifest";
+import { findBrokenEntries, findUnapprovedAssets, listDrafts, type AssetManifest } from "./asset-manifest";
 
 const ROOT = join(import.meta.dirname, "..");
 /** Folders that never hold game assets: installed packages, build output, and git data. */
@@ -32,13 +33,20 @@ function listAssetFiles(folder: string): string[] {
 
 const manifest = JSON.parse(readFileSync(join(ROOT, "asset-manifest.json"), "utf8")) as AssetManifest;
 const files = listAssetFiles(ROOT);
-const problems = findUnapprovedAssets(files, manifest);
+const unapproved = findUnapprovedAssets(files, manifest);
+const broken = findBrokenEntries(manifest, (path) => existsSync(join(ROOT, path)));
 
-if (problems.length > 0) {
+if (unapproved.length > 0) {
   console.error("These asset files are not approved in asset-manifest.json:");
-  for (const { file, reason } of problems) {
+  for (const { file, reason } of unapproved) {
     console.error(`  ${file} (${reason === "not-listed" ? "not listed" : "not approved"})`);
   }
-  process.exit(1);
 }
-console.log(`Asset check passed: ${files.length} asset file(s), all approved.`);
+if (broken.length > 0) {
+  console.error("These entries in asset-manifest.json break the catalogue rules:");
+  for (const problem of broken) console.error(`  ${problem}`);
+}
+if (unapproved.length > 0 || broken.length > 0) process.exit(1);
+console.log(
+  `Asset check passed: ${files.length} asset file(s), all approved. ${listDrafts(manifest).length} draft asset(s) waiting for polish (run \`make drafts\`).`,
+);

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Assets:** Reuse `player`. Add the draft `bedroll`, shown laid out on the ground.
+
 - [ ] Fatigue drains while the player is awake. It drains faster during timed work such as chopping and building.
 - [ ] Low fatigue slows the player, like other needs.
 - [ ] A new game starts with a bedroll in the backpack, along with the axe, knife, and fire striker.
@@ -15,5 +17,5 @@
 - [ ] Sleeping on a bedroll makes it the respawn point. After a collapse, the player wakes there.
 - [ ] The HUD shows fatigue.
 - [ ] Fatigue, the bedroll, and the respawn point are saved.
-- [ ] Before any bedroll model enters the game, the owner approves it (ADR 0004).
+- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
 - [ ] Unit tests cover fatigue drain, sleeping, the night skip, and the new respawn point.

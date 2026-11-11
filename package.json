@@ -16,6 +16,7 @@
     "test": "bun --bun vitest run",
     "test:e2e": "bun --bun playwright test",
     "check:assets": "bun scripts/check-assets.ts",
+    "assets:drafts": "bun scripts/list-drafts.ts",
     "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {

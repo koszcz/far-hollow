@@ -1,4 +1,4 @@
-// The code-built placeholder shape approved in asset-manifest.json as "logs".
+// The code-built draft shape listed in asset-manifest.json as "logs".
 import * as THREE from "three";
 
 export const LOG_COLOUR = 0x7a5532;

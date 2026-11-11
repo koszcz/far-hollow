@@ -1,4 +1,4 @@
-// Draws the valley with the code-built placeholder shapes approved in asset-manifest.json:
+// Draws the valley with the code-built draft shapes listed in asset-manifest.json:
 // "terrain" and "river". Trees, stumps, and logs are drawn in forest-meshes.ts.
 import * as THREE from "three";
 import { terrainHeightAt, type Valley } from "../sim/valley";

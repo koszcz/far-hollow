@@ -60,6 +60,7 @@ export const strings = {
       roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
+      sawhorse: "Sawhorse",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),

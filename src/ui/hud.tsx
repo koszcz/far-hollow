@@ -320,6 +320,7 @@ const PLACING_HINTS: { readonly [Kind in StructureKind]: (structure: string) => 
   roof: strings.buildMenu.placing.overWalls,
   woodpile: strings.buildMenu.placing.onGround,
   chest: strings.buildMenu.placing.anywhere,
+  sawhorse: strings.buildMenu.placing.onGround,
 };
 
 export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {

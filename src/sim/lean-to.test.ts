@@ -21,6 +21,7 @@ describe("the lean-to in the build menu", () => {
       { structure: "roof", cost: [{ material: "debarkedLog", count: 3 }, { material: "bark", count: 4 }] },
       { structure: "woodpile", cost: [] },
       { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", furniture: true },
+      { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }] },
     ]);
   });
 });

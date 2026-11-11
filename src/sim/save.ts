@@ -35,6 +35,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
   renameNotEmptyNotice,
+  addSawhorses,
 ];
 
 /** The version of the save format this code writes. */
@@ -50,6 +51,8 @@ export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppe
 export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalkingAtChestsAndWoodpiles) + 2;
 /** The first save version whose notice that a chest or woodpile still holds something is called `stillHoldsSomething`. */
 export const RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameNotEmptyNotice) + 2;
+/** The first save version that can hold sawhorses. */
+export const SAWHORSES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSawhorses) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -275,6 +278,11 @@ function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<s
   const notice = save.notice as { kind?: unknown } | null | undefined;
   if (notice?.kind !== "storageNotEmpty") return { ...save };
   return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
+}
+
+/** The player can build sawhorses. A save from before then has none, so it carries over unchanged. */
+function addSawhorses(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }
 
 /** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */

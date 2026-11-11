@@ -5,7 +5,7 @@ import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-gr
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
   blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, stumpEntities,
-  treeEntities, walkBlockerSpotEntities, woodpileEntities, type Entity, type EntityStore,
+  treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore,
 } from "./entities";
 import { foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { roomAround } from "./rooms";
@@ -15,7 +15,7 @@ import {
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
@@ -111,7 +111,7 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
       return false;
     }
     const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isFurniture(blueprint.structure));
-    for (const other of [...campfireEntities(entities), ...plans, ...woodpileEntities(entities)]) {
+    for (const other of [...campfireEntities(entities), ...plans, ...woodpileEntities(entities), ...workStationEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
     return isClearOfFurniture(entities, campfire.footprint(spot, 0));
@@ -364,6 +364,40 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
   finish: () => ({ chest: { contents: {} }, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } }),
 };
 
+/** How many debarked logs a sawhorse costs: one for its legs and one for the beam across them. */
+export const SAWHORSE_LOG_COST = 2;
+/** How long the player holds the build action to build a sawhorse, in seconds. */
+export const SAWHORSE_BUILD_SECONDS = 8;
+/** A sawhorse is this long, along its beam, in metres. */
+export const SAWHORSE_LENGTH_METRES = 1.2;
+/** A sawhorse's legs spread this far apart at the foot, across its beam, in metres. */
+export const SAWHORSE_WIDTH_METRES = 0.6;
+/**
+ * A finished sawhorse stops the player walking within this many metres of its centre.
+ * It sits on a grid point, where four 1 m walk-map cells meet, so this reaches the centres of all four.
+ */
+export const SAWHORSE_WALK_BLOCK_RADIUS_METRES = 0.75;
+
+/**
+ * A sawhorse: the first work station. A beam of debarked log rests on two pairs of crossed legs.
+ * It sits on a grid point on the ground, like a woodpile, and R turns it. It is not a building piece, so it needs no foundation.
+ */
+const sawhorse: StructureDefinition & { readonly kind: "sawhorse" } = {
+  kind: "sawhorse",
+  cost: [{ material: "debarkedLog", count: SAWHORSE_LOG_COST }],
+  buildSeconds: SAWHORSE_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, SAWHORSE_LENGTH_METRES / 2, SAWHORSE_WIDTH_METRES / 2, turns),
+  canPlace(site, spot, turns) {
+    const rect = sawhorse.footprint(spot, turns);
+    // The sawhorse reaches into each of the four walk-map cells that meet at its grid point, and each corner lies in one of them.
+    const corners = [rect.min, rect.max, { x: rect.min.x, z: rect.max.z }, { x: rect.max.x, z: rect.min.z }];
+    for (const corner of [spot, ...corners]) if (!isWalkable(site.walkMap, corner)) return false;
+    for (const fire of campfireEntities(site.entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
+    return isClearFor(site, rect);
+  },
+  finish: () => ({ workStation: "sawhorse", blocksWalking: { radius: SAWHORSE_WALK_BLOCK_RADIUS_METRES } }),
+};
+
 /** The building-grid square that holds a spot. */
 function gridSquareAround(spot: GroundPoint): GroundRect {
   return turnedRect(snapToGridSquare(spot), BUILD_GRID_METRES / 2, BUILD_GRID_METRES / 2, 0);
@@ -371,7 +405,7 @@ function gridSquareAround(spot: GroundPoint): GroundRect {
 
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
 const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
-  campfire, leanTo, foundation, logWall, doorFrame, roof, woodpile, chest,
+  campfire, leanTo, foundation, logWall, doorFrame, roof, woodpile, chest, sawhorse,
 };
 
 /** Every structure the player can build, in the order the build menu lists them. */
@@ -433,7 +467,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
 
 /**
  * Whether `rect` keeps clear of standing trees and of every structure: any blueprint, a finished roof, a finished woodpile,
- * a finished wall or door frame, or a chest.
+ * a finished wall or door frame, a chest, or a finished work station such as a sawhorse.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  * `ignoreFurniture` lets it go over furniture and furniture blueprints, as a roof does.
  * `ignoreCabinRoofs` lets it go under a finished cabin roof or a roof blueprint, as furniture does. A lean-to is still in the way.
@@ -459,6 +493,7 @@ function isClearOfTreesAndStructures(
     if (rectsOverlap(rect, roofed.roof)) return false;
   }
   for (const stack of woodpileEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(stack))) return false;
+  for (const station of workStationEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(station))) return false;
   if (!ignoreFurniture && !isClearOfFurniture(entities, rect)) return false;
   for (const piece of edgePieceEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(piece))) return false;
   return true;
@@ -485,7 +520,7 @@ export function isDelivered(material: BuildMaterial): material is DeliveredMater
 
 /**
  * What kind of structure an entity is: a blueprint of any structure, or a finished campfire, lean-to, foundation,
- * log wall, door frame, roof section, woodpile, or chest. Undefined for anything else.
+ * log wall, door frame, roof section, woodpile, chest, or work station. Undefined for anything else.
  */
 export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.blueprint !== undefined) return entity.blueprint.structure;
@@ -496,6 +531,7 @@ export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.cabinRoof === true) return "roof";
   if (entity.woodpile !== undefined) return "woodpile";
   if (entity.chest !== undefined) return "chest";
+  if (entity.workStation !== undefined) return entity.workStation;
   return undefined;
 }
 
@@ -509,6 +545,7 @@ export type PlacedStructure = Entity & { position: GroundPoint } & (
   | Required<Pick<Entity, "cabinRoof">>
   | Required<Pick<Entity, "woodpile">>
   | Required<Pick<Entity, "chest">>
+  | Required<Pick<Entity, "workStation">>
 );
 
 /** Whether an entity is a blueprint or a finished structure, standing somewhere. */

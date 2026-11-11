@@ -596,6 +596,20 @@
       }
     },
     {
+      "id": "sawhorse",
+      "kind": "code",
+      "code": [
+        "src/render/sawhorse-meshes.ts"
+      ],
+      "description": "The sawhorse: a pale beam of debarked log, 1.2 m long, resting 0.75 m up in the crook of two pairs of crossed legs, one pair near each end. The legs spread 0.6 m at the foot. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction stands up the legs in the first stage and lays the beam in the second.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/crafting/issues/02-sawhorse.md"
+      }
+    },
+    {
       "id": "woodpile",
       "kind": "code",
       "code": [

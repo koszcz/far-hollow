@@ -40,11 +40,12 @@ const sceneRenderer = createSceneRenderer(
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
 });
-attachWalkInput({
+const walkInput = attachWalkInput({
   canvas,
   client: game.client,
   rig: sceneRenderer.cameraRig,
   pickAt: (clientX, clientY) => sceneRenderer.pickAt(clientX, clientY),
+  onPlacingChange: renderUi,
 });
 if (import.meta.env.DEV) {
   // Lets the on-demand browser test read the game's view. Development builds only.
@@ -56,19 +57,27 @@ const loop = createFixedStepLoop({
   },
 });
 
-render(
-  <>
-    <Hud
-      client={game.client}
-      cameraFollow={sceneRenderer.cameraRig.followEnabled}
-      onCameraFollowChange={(enabled) => {
-        sceneRenderer.cameraRig.setFollowEnabled(enabled);
-      }}
-    />
-    <DebugOverlay client={game.client} />
-  </>,
-  requireElement("#ui", HTMLDivElement),
-);
+/** Draws the HUD and debug overlay. Called again when placing a campfire starts or ends. */
+function renderUi(placingCampfire: boolean): void {
+  render(
+    <>
+      <Hud
+        client={game.client}
+        cameraFollow={sceneRenderer.cameraRig.followEnabled}
+        onCameraFollowChange={(enabled) => {
+          sceneRenderer.cameraRig.setFollowEnabled(enabled);
+        }}
+        placingCampfire={placingCampfire}
+        onPlaceCampfire={() => {
+          walkInput.startPlacingCampfire();
+        }}
+      />
+      <DebugOverlay client={game.client} />
+    </>,
+    requireElement("#ui", HTMLDivElement),
+  );
+}
+renderUi(false);
 
 let lastFrameMs: number | undefined;
 function frame(nowMs: number): void {

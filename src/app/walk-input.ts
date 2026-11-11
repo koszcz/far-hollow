@@ -2,8 +2,8 @@ import type { CameraRig } from "../render/camera-rig";
 import type { ScenePick } from "../render/scene-renderer";
 import type { Command, GameClient } from "../sim/api";
 
-/** The command a left-click sends for what it landed on. */
-export function mainActionFor(pick: ScenePick): Command {
+/** The command a left-click sends for what it landed on. A blueprint is built only while the button is held, so it has none. */
+export function mainActionFor(pick: ScenePick): Command | undefined {
   switch (pick.kind) {
     case "ground":
       return { type: "walkTo", x: pick.spot.x, z: pick.spot.z };
@@ -13,6 +13,9 @@ export function mainActionFor(pick: ScenePick): Command {
       return { type: "pickUpLog", logId: pick.id };
     case "stick":
       return { type: "pickUpStick", stickId: pick.id };
+    case "blueprint":
+    case "campfire":
+      return undefined;
   }
 }
 
@@ -26,32 +29,82 @@ export interface WalkInputOptions {
   readonly rig: CameraRig;
   /** What is under a point on the screen, if anything. */
   readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
+  /** Called when placing a campfire starts or ends, so the HUD can show it. */
+  readonly onPlacingChange?: (placing: boolean) => void;
+}
+
+export interface WalkInput {
+  /** Makes the next left-click on the ground place a campfire blueprint there. Escape cancels. */
+  startPlacingCampfire(): void;
+  /** Removes the listeners. */
+  dispose(): void;
 }
 
 /**
  * Left-clicking does the main action for what is under the pointer:
  * walk to a spot on the ground, chop a tree, pick up a log, or pick up a stick.
+ * Holding the left button on a blueprint builds it. Letting go stops building.
+ * While placing a campfire, a left-click on the ground places its blueprint.
  * Space snaps the camera back to the player.
- * Returns a function that removes the listeners.
  */
-export function attachWalkInput({ canvas, client, rig, pickAt }: WalkInputOptions): () => void {
+export function attachWalkInput({ canvas, client, rig, pickAt, onPlacingChange }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
+  let holdingBuild = false;
+  let placing = false;
+
+  function setPlacing(value: boolean): void {
+    if (placing === value) return;
+    placing = value;
+    canvas.style.cursor = value ? "crosshair" : "";
+    onPlacingChange?.(value);
+  }
+
+  function stopHoldingBuild(): void {
+    if (!holdingBuild) return;
+    holdingBuild = false;
+    client.send({ type: "stopBuilding" });
+  }
 
   function onPointerDown(event: PointerEvent): void {
-    if (event.button === LEFT_BUTTON) press = { x: event.clientX, y: event.clientY };
+    if (event.button !== LEFT_BUTTON) return;
+    if (!placing) {
+      const pick = pickAt(event.clientX, event.clientY);
+      if (pick?.kind === "blueprint") {
+        holdingBuild = true;
+        client.send({ type: "build", blueprintId: pick.id });
+        return;
+      }
+    }
+    press = { x: event.clientX, y: event.clientY };
   }
 
   function onPointerUp(event: PointerEvent): void {
-    if (event.button !== LEFT_BUTTON || press === null) return;
+    if (event.button !== LEFT_BUTTON) return;
+    if (holdingBuild) {
+      stopHoldingBuild();
+      return;
+    }
+    if (press === null) return;
     const travelled = Math.hypot(event.clientX - press.x, event.clientY - press.y);
     press = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS) return;
     const pick = pickAt(event.clientX, event.clientY);
     if (pick === undefined) return;
-    client.send(mainActionFor(pick));
+    if (placing) {
+      if (pick.kind !== "ground") return;
+      client.send({ type: "placeCampfire", x: pick.spot.x, z: pick.spot.z });
+      setPlacing(false);
+      return;
+    }
+    const command = mainActionFor(pick);
+    if (command !== undefined) client.send(command);
   }
 
   function onKeyDown(event: KeyboardEvent): void {
+    if (event.code === "Escape") {
+      setPlacing(false);
+      return;
+    }
     if (event.code !== "Space" || event.repeat) return;
     // Let Space keep working in form fields and on buttons.
     if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select, button") !== null) return;
@@ -61,10 +114,22 @@ export function attachWalkInput({ canvas, client, rig, pickAt }: WalkInputOption
 
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointerup", onPointerUp);
+  // Letting go outside the canvas, or leaving the window, also lets go of the build action.
+  canvas.addEventListener("pointercancel", stopHoldingBuild);
+  window.addEventListener("pointerup", stopHoldingBuild);
+  window.addEventListener("blur", stopHoldingBuild);
   window.addEventListener("keydown", onKeyDown);
-  return () => {
-    canvas.removeEventListener("pointerdown", onPointerDown);
-    canvas.removeEventListener("pointerup", onPointerUp);
-    window.removeEventListener("keydown", onKeyDown);
+  return {
+    startPlacingCampfire() {
+      setPlacing(true);
+    },
+    dispose() {
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", stopHoldingBuild);
+      window.removeEventListener("pointerup", stopHoldingBuild);
+      window.removeEventListener("blur", stopHoldingBuild);
+      window.removeEventListener("keydown", onKeyDown);
+    },
   };
 }

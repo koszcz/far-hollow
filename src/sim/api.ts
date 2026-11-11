@@ -20,6 +20,15 @@ export type Command =
   | { type: "splitLog" }
   /** Lay the log the player carries on the ground at their feet. */
   | { type: "dropLog" }
+  /** Place a campfire blueprint at the building-grid spot nearest the given spot, in metres. Placing costs nothing. */
+  | { type: "placeCampfire"; x: number; z: number }
+  /**
+   * Start holding the build action on a blueprint, given by its entity id. The player walks to it first if needed.
+   * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of sticks.
+   */
+  | { type: "build"; blueprintId: number }
+  /** Let go of the build action. The blueprint keeps its progress. */
+  | { type: "stopBuilding" }
   /** Jumps the valley's clock forward. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
@@ -40,6 +49,8 @@ export interface GameView {
   readonly backpackWeight: number;
   /** The most the backpack can hold, in kilograms. */
   readonly backpackWeightLimit: number;
+  /** How many sticks it takes to build a campfire. */
+  readonly campfireStickCost: number;
   /** The timed work the player is doing right now, or null if none. Walking to the work does not count. */
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
@@ -47,8 +58,8 @@ export interface GameView {
 }
 
 export interface PlayerAction {
-  /** Chopping a tree, or splitting a log into firewood. */
-  readonly kind: "chop" | "split";
+  /** Chopping a tree, splitting a log into firewood, or building a blueprint. */
+  readonly kind: "chop" | "split" | "build";
   /** How far along the work is, from 0 to 1. */
   readonly progress: number;
 }

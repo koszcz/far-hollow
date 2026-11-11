@@ -18,9 +18,19 @@ export interface HudProps {
   cameraFollow: boolean;
   /** Called when the player turns camera follow on or off. The camera is not game state, so this is not a command. */
   onCameraFollowChange: (enabled: boolean) => void;
+  /** Whether the next click on the ground places a campfire blueprint. */
+  placingCampfire: boolean;
+  /** Called when the player chooses to place a campfire. Placing is input state, not game state, so this is not a command. */
+  onPlaceCampfire: () => void;
 }
 
-export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowChange }: HudProps) {
+const actionLabels = {
+  chop: strings.chopping,
+  split: strings.splitting,
+  build: strings.building,
+} as const;
+
+export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowChange, placingCampfire, onPlaceCampfire }: HudProps) {
   const [view, setView] = useState(client.getView());
   const [cameraFollow, setCameraFollow] = useState(initialCameraFollow);
   useEffect(
@@ -53,9 +63,16 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
       </label>
       {view.action !== null && (
         <label class="hud-action">
-          {view.action.kind === "chop" ? strings.chopping : strings.splitting}
+          {actionLabels[view.action.kind]}
           <progress max={1} value={view.action.progress} />
         </label>
+      )}
+      {placingCampfire ? (
+        <p class="hud-placing">{strings.placingCampfire}</p>
+      ) : (
+        <button type="button" onClick={onPlaceCampfire}>
+          {strings.placeCampfire(view.campfireStickCost)}
+        </button>
       )}
       {view.carrying === "log" && (
         <p class="hud-carrying">

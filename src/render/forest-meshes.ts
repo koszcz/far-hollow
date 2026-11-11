@@ -1,19 +1,27 @@
-// Draws trees, stumps, logs, and sticks with the code-built draft shapes listed in asset-manifest.json:
-// "trees", "stumps", "logs", and "sticks". Felled trees fall with the code-built "chop-animation".
+// Draws trees, stumps, logs, and sticks, which are listed in asset-manifest.json as "trees", "stumps", "logs", and "sticks".
+// Trees use Kenney's tree models from tree-model.ts, which the owner approved. Stumps, logs, and sticks
+// are code-built drafts. Felled trees fall with the code-built "chop-animation".
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
+import type { TreeShape, TreeTone } from "./tree-model";
 
 const TRUNK_COLOUR = 0x6b4a2b;
+const LIGHT_TRUNK_COLOUR = 0x7d5634;
 const CROWN_COLOUR = 0x2f5a2a;
+const LIGHT_CROWN_COLOUR = 0x4a7a2e;
+/** How often each tree type grows, relative to the others. Pines fill most of the valley. Unlisted types get 1. */
+const TREE_TYPE_WEIGHTS: Readonly<Record<string, number>> = {
+  tree_pineDefaultA: 4,
+  tree_pineDefaultB: 4,
+  tree_pineTallA: 3,
+  tree_pineRoundA: 2,
+};
 const STUMP_TOP_COLOUR = 0xc9a46a;
 const STICK_COLOUR = 0x8a6a45;
 
-const TRUNK_HEIGHT_METRES = 3;
 const TRUNK_RADIUS_METRES = 0.3;
-const CROWN_HEIGHT_METRES = 6;
-const CROWN_RADIUS_METRES = 1.6;
 const STUMP_HEIGHT_METRES = 0.4;
 /** Each tree is drawn between these sizes, so the forest does not look copy-pasted. */
 const TREE_MIN_SCALE = 0.8;
@@ -39,7 +47,7 @@ export interface ForestMeshes {
   dispose(): void;
 }
 
-export function createForestMeshes(entities: EntityStore): ForestMeshes {
+export function createForestMeshes(entities: EntityStore, treeShapes: readonly TreeShape[]): ForestMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -47,28 +55,54 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
     return item;
   }
 
-  // Trees: one batch for every trunk and one for every crown, so thousands of trees take two draw calls.
+  // Trees: for each type, one batch for its trunks and one for its crowns, so thousands of trees take a few draw calls.
   const trees = [...treeEntities(entities)];
-  const trunkGeometry = track(new THREE.CylinderGeometry(TRUNK_RADIUS_METRES * 0.8, TRUNK_RADIUS_METRES, TRUNK_HEIGHT_METRES, 6));
-  trunkGeometry.translate(0, TRUNK_HEIGHT_METRES / 2, 0);
-  const crownGeometry = track(new THREE.ConeGeometry(CROWN_RADIUS_METRES, CROWN_HEIGHT_METRES, 7));
-  crownGeometry.translate(0, TRUNK_HEIGHT_METRES + CROWN_HEIGHT_METRES / 2 - 0.5, 0);
-  const trunkMaterial = track(new THREE.MeshStandardMaterial({ color: TRUNK_COLOUR, flatShading: true }));
-  const crownMaterial = track(new THREE.MeshStandardMaterial({ color: CROWN_COLOUR, flatShading: true }));
-  const trunks = track(new THREE.InstancedMesh(trunkGeometry, trunkMaterial, trees.length));
-  const crowns = track(new THREE.InstancedMesh(crownGeometry, crownMaterial, trees.length));
+  const trunkMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
+    dark: track(new THREE.MeshStandardMaterial({ color: TRUNK_COLOUR, flatShading: true })),
+    light: track(new THREE.MeshStandardMaterial({ color: LIGHT_TRUNK_COLOUR, flatShading: true })),
+  };
+  const crownMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
+    dark: track(new THREE.MeshStandardMaterial({ color: CROWN_COLOUR, flatShading: true })),
+    light: track(new THREE.MeshStandardMaterial({ color: LIGHT_CROWN_COLOUR, flatShading: true })),
+  };
+  const trunkMaterial = trunkMaterials.dark;
+  for (const shape of treeShapes) {
+    track(shape.trunk);
+    track(shape.crown);
+  }
 
+  type Tree = (typeof trees)[number];
+  const typeOf = new Map<Entity, number>();
+  const treesOfType: Tree[][] = treeShapes.map(() => []);
+  for (const tree of trees) {
+    const type = treeTypeFor(tree.position.x, tree.position.z, treeShapes);
+    typeOf.set(tree, type);
+    treesOfType[type]?.push(tree);
+  }
   const matrix = new THREE.Matrix4();
   const instanceOf = new Map<Entity, number>();
-  trees.forEach((tree, index) => {
-    instanceOf.set(tree, index);
-    treeMatrix(tree.position, matrix);
-    trunks.setMatrixAt(index, matrix);
-    crowns.setMatrixAt(index, matrix);
+  /** The trees each batch draws, in instance order, so a click on a batch can find its tree. */
+  const treesOfBatch = new Map<THREE.Object3D, Tree[]>();
+  const treeBatches = treeShapes.map((shape, type) => {
+    const ofType = treesOfType[type] ?? [];
+    const trunks = track(new THREE.InstancedMesh(shape.trunk, trunkMaterials[shape.trunkTone], Math.max(1, ofType.length)));
+    const crowns = track(new THREE.InstancedMesh(shape.crown, crownMaterials[shape.crownTone], Math.max(1, ofType.length)));
+    trunks.count = ofType.length;
+    crowns.count = ofType.length;
+    ofType.forEach((tree, index) => {
+      instanceOf.set(tree, index);
+      treeMatrix(tree.position, matrix);
+      trunks.setMatrixAt(index, matrix);
+      crowns.setMatrixAt(index, matrix);
+    });
+    trunks.computeBoundingSphere();
+    crowns.computeBoundingSphere();
+    treesOfBatch.set(trunks, ofType);
+    treesOfBatch.set(crowns, ofType);
+    group.add(trunks, crowns);
+    return { trunks, crowns };
   });
-  trunks.computeBoundingSphere();
-  crowns.computeBoundingSphere();
-  group.add(trunks, crowns);
+  const treePickTargets = treeBatches.flatMap(({ trunks, crowns }) => [trunks, crowns]);
 
   // Stumps: one batch. A tree's stump keeps the tree's size and turn.
   const stumpGeometry = track(new THREE.CylinderGeometry(TRUNK_RADIUS_METRES, TRUNK_RADIUS_METRES * 1.1, STUMP_HEIGHT_METRES, 6));
@@ -118,14 +152,16 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
   const standing = treeEntities(entities).connect();
   standing.onEntityRemoved.subscribe((tree) => {
     const index = instanceOf.get(tree);
-    if (index === undefined) return;
-    // Hide this tree in the batch. Its falling copy takes over.
+    const type = typeOf.get(tree);
+    const batch = type === undefined ? undefined : treeBatches[type];
+    if (index === undefined || type === undefined || batch === undefined) return;
+    // Hide this tree in its batch. Its falling copy takes over.
     matrix.makeScale(0, 0, 0);
-    trunks.setMatrixAt(index, matrix);
-    crowns.setMatrixAt(index, matrix);
-    trunks.instanceMatrix.needsUpdate = true;
-    crowns.instanceMatrix.needsUpdate = true;
-    startFall(tree.position);
+    batch.trunks.setMatrixAt(index, matrix);
+    batch.crowns.setMatrixAt(index, matrix);
+    batch.trunks.instanceMatrix.needsUpdate = true;
+    batch.crowns.instanceMatrix.needsUpdate = true;
+    startFall(tree.position, type);
   });
   const stumpQuery = stumpEntities(entities).connect();
   const logQuery = logEntities(entities).connect();
@@ -149,7 +185,7 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
   stickQuery.onEntityAdded.subscribe(markSticks);
   stickQuery.onEntityRemoved.subscribe(markSticks);
 
-  function startFall(at: Vec3): void {
+  function startFall(at: Vec3, type: number): void {
     const player = players.first;
     const awayX = player ? at.x - player.position.x : 1;
     const awayZ = player ? at.z - player.position.z : 0;
@@ -160,7 +196,8 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
     const tree = new THREE.Group();
     treeMatrix({ x: 0, y: 0, z: 0, look: lookFor(at.x, at.z) }, matrix);
     tree.applyMatrix4(matrix);
-    tree.add(new THREE.Mesh(trunkGeometry, trunkMaterial), new THREE.Mesh(crownGeometry, crownMaterial));
+    const batch = treeBatches[type];
+    if (batch !== undefined) tree.add(new THREE.Mesh(batch.trunks.geometry, batch.trunks.material), new THREE.Mesh(batch.crowns.geometry, batch.crowns.material));
     pivot.add(tree);
     group.add(pivot);
     falling.push({ pivot, axis, startSeconds: undefined });
@@ -246,7 +283,7 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
     },
     pick(raycaster) {
       hits.length = 0;
-      raycaster.intersectObjects([trunks, crowns, logs, stickPickers], false, hits);
+      raycaster.intersectObjects([...treePickTargets, logs, stickPickers], false, hits);
       hits.sort((a, b) => a.distance - b.distance);
       for (const hit of hits) {
         if (hit.instanceId === undefined) continue;
@@ -260,7 +297,7 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
           if (stick?.stick === true) return { hit: { kind: "stick", entity: stick }, distance: hit.distance };
           continue;
         }
-        const tree = trees[hit.instanceId];
+        const tree = treesOfBatch.get(hit.object)?.[hit.instanceId];
         if (tree?.tree === true) return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
       }
       return undefined;
@@ -287,6 +324,19 @@ function treeMatrix(at: Vec3 & { look?: number }, out: THREE.Matrix4): THREE.Mat
   treeScale.setScalar(TREE_MIN_SCALE + (TREE_MAX_SCALE - TREE_MIN_SCALE) * look);
   treePosition.set(at.x, at.y, at.z);
   return out.compose(treePosition, treeRotation, treeScale);
+}
+
+/** The tree type drawn at a spot, picked by TREE_TYPE_WEIGHTS. It only affects drawing. */
+function treeTypeFor(x: number, z: number, shapes: readonly TreeShape[]): number {
+  const weights = shapes.map((shape) => TREE_TYPE_WEIGHTS[shape.name] ?? 1);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  // Offset the spot, so a tree's type does not follow its size.
+  let roll = lookFor(x + 31.7, z - 17.3) * total;
+  for (const [type, weight] of weights.entries()) {
+    roll -= weight;
+    if (roll < 0) return type;
+  }
+  return shapes.length - 1;
 }
 
 /** A steady value from 0 to 1 for a spot, used to vary each tree's size and turn. It only affects drawing. */

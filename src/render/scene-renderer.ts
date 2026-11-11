@@ -7,6 +7,7 @@ import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createSkyLighting } from "./sky-lighting";
+import type { TreeShape } from "./tree-model";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -37,12 +38,14 @@ export interface SceneRenderer {
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
+ * treeShapes are the loaded tree types, from loadTreeShapes.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
   valley: Valley,
   entities: EntityStore,
   readHourOfDay: () => number,
+  treeShapes: readonly TreeShape[],
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -64,7 +67,7 @@ export function createSceneRenderer(
 
   const valleyMeshes = createValleyMeshes(valley);
   scene.add(valleyMeshes.group);
-  const forestMeshes = createForestMeshes(entities);
+  const forestMeshes = createForestMeshes(entities, treeShapes);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);

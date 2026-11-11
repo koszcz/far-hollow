@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { attachCameraInput } from "../render/camera-input";
 import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/scene-renderer";
+import { loadTreeShapes } from "../render/tree-model";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS } from "../sim/game";
 import { strings } from "../strings";
@@ -36,6 +37,7 @@ const sceneRenderer = createSceneRenderer(
   game.valley,
   game.entities,
   () => game.client.getView().time.hourOfDay,
+  await loadTreeShapes(),
 );
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,

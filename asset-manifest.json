@@ -31,16 +31,19 @@
     },
     {
       "id": "trees",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/trees/trees.glb",
       "code": [
+        "src/render/tree-model.ts",
         "src/render/forest-meshes.ts"
       ],
       "description": "Standing trees.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Eight GLTF-format models packed into one file, unchanged: tree_pineDefaultA, tree_pineDefaultB, tree_pineTallA, tree_pineRoundA, tree_oak, tree_default, tree_tall, tree_detailed",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/02-seeded-valley.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

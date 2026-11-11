@@ -6,15 +6,15 @@
       "kind": "code",
       "code": [
         "src/render/valley-meshes.ts",
-        "src/render/ground-texture.ts"
+        "src/render/ground-texture.ts",
+        "src/sim/ground-types.ts"
       ],
-      "description": "Ground of the valley, including the ground plane in the empty scene.",
+      "description": "Ground of the valley, including the ground plane in the empty scene. It shows three ground types that blend softly: forest floor (brown needle and leaf litter near trees), clearing (brighter grass away from trees), and river bank (mud and pebbles on the slope beside the water).",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/01-ground-types.md"
       }
     },
     {
@@ -284,16 +284,19 @@
     },
     {
       "id": "mushrooms",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/mushrooms/mushrooms.glb",
       "code": [
+        "src/render/mushrooms-model.ts",
         "src/render/forage-meshes.ts"
       ],
       "description": "A small patch of three mushrooms. Nothing shows while a foraged patch grows back.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. mushroom_tanGroup.glb, unchanged. The caps are coloured brown and the stems cream in code",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/07-hunger-and-foraging.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -303,12 +306,13 @@
         "src/render/rain-effect.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "Falling rain: pale, slanting streaks around where the camera looks, shown while rain falls. It has no sound.",
+      "description": "Falling rain: pale, slanting streaks of varied length and speed around where the camera looks, with small splash rings on the ground nearby. It eases in and out as rain starts and stops, and dims at night. It has no sound.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/08-rain.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -337,6 +341,94 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "grass",
+      "kind": "file",
+      "file": "public/assets/grass/grass.glb",
+      "code": [
+        "src/render/undergrowth-models.ts",
+        "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-layout.ts"
+      ],
+      "description": "Undergrowth grass: short grass tufts in clearings, sparse grass on the forest floor, and tall grass on the river bank.",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Four GLTF-format models packed into one file, unchanged: grass, grass_large, grass_leafs, grass_leafsLarge. The colours are replaced in code with the game's own",
+      "license": "CC0 1.0",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/02-undergrowth.md"
+      },
+      "fileApproval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "ferns",
+      "kind": "file",
+      "file": "public/assets/ferns/ferns.glb",
+      "code": [
+        "src/render/undergrowth-models.ts",
+        "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-layout.ts"
+      ],
+      "description": "Undergrowth ferns on the forest floor.",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Two GLTF-format models packed into one file, unchanged: plant_flatShort, plant_flatTall. The colours are replaced in code with the game's own",
+      "license": "CC0 1.0",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/02-undergrowth.md"
+      },
+      "fileApproval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "flowers",
+      "kind": "file",
+      "file": "public/assets/flowers/flowers.glb",
+      "code": [
+        "src/render/undergrowth-models.ts",
+        "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-layout.ts"
+      ],
+      "description": "Undergrowth flowers in clearings: purple, red, and yellow.",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Nine GLTF-format models packed into one file, unchanged: flower_purpleA, flower_purpleB, flower_purpleC, flower_redA, flower_redB, flower_redC, flower_yellowA, flower_yellowB, flower_yellowC. The colours are replaced in code with the game's own",
+      "license": "CC0 1.0",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/02-undergrowth.md"
+      },
+      "fileApproval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "pebbles",
+      "kind": "file",
+      "file": "public/assets/pebbles/pebbles.glb",
+      "code": [
+        "src/render/undergrowth-models.ts",
+        "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-layout.ts"
+      ],
+      "description": "Undergrowth stones: small rocks on the forest floor, rare stones in clearings, and flat pebbles on the river bank.",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. 28 GLTF-format models packed into one file, unchanged: every rock_small and stone_small model, including the flat and top ones. The colours are replaced in code with the game's own",
+      "license": "CC0 1.0",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/02-undergrowth.md"
+      },
+      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"

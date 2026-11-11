@@ -69,7 +69,7 @@ const RIVER_MAX_WIDTH_METRES = 10;
 const RIVER_MAX_OFFSET_METRES = 250;
 const RIVER_BED_DEPTH_METRES = 2;
 /** How far beyond the water the ground slopes down into the riverbed. */
-const RIVER_BANK_WIDTH_METRES = 8;
+export const RIVER_BANK_WIDTH_METRES = 8;
 
 const TREE_COUNT = 4000;
 /** Trees stand at least this far from each other. */
@@ -308,7 +308,8 @@ export function nearestRiverPoint(river: River, point: GroundPoint): GroundPoint
   return best;
 }
 
-function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): number {
+/** Shortest distance from a spot to the straight line between a and b. */
+export function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): number {
   return groundDistance(point, nearestOnSegment(point, a, b));
 }
 

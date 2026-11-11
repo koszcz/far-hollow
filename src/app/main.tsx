@@ -1,11 +1,7 @@
 import { render } from "preact";
 import { attachCameraInput } from "../render/camera-input";
 import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/scene-renderer";
-import { loadLogShape } from "../render/log-shape";
-import { loadPlayerModel } from "../render/player-model";
-import { loadStumpShape } from "../render/stump-model";
-import { loadBerryBushShape } from "../render/berry-bush-model";
-import { loadTreeShapes } from "../render/tree-model";
+import { loadModelShapes } from "../render/model-shapes";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS, type Game } from "../sim/game";
 import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
@@ -127,7 +123,7 @@ const sceneRenderer = createSceneRenderer(
   game.valley,
   game.entities,
   () => game.client.getView().time.hourOfDay,
-  ...(await Promise.all([loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadPlayerModel()])),
+  await loadModelShapes(),
 );
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,

@@ -1,10 +1,6 @@
 // The asset showcase page: /?asset=<id> on the dev server. See src/render/asset-showcase.ts.
 import { SHOWCASE_ASSET_IDS, showAsset, type ShowOptions } from "../render/asset-showcase";
-import { loadBerryBushShape } from "../render/berry-bush-model";
-import { loadLogShape } from "../render/log-shape";
-import { loadPlayerModel } from "../render/player-model";
-import { loadStumpShape } from "../render/stump-model";
-import { loadTreeShapes } from "../render/tree-model";
+import { loadModelShapes } from "../render/model-shapes";
 
 /**
  * Draws one asset in four views, labels each view, and marks the page ready for a screenshot.
@@ -15,15 +11,13 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
   const canvas = document.querySelector("#scene");
   const ui = document.querySelector("#ui");
   if (!(canvas instanceof HTMLCanvasElement) || !(ui instanceof HTMLDivElement)) throw new Error("Missing #scene or #ui");
-  const [treeShapes, stumpShape, logShape, bushShape, playerModel] = await Promise.all([
-    loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadPlayerModel(),
-  ]);
-  let shown = showAsset(canvas, id, treeShapes, stumpShape, logShape, bushShape, playerModel, options);
+  const shapes = await loadModelShapes();
+  let shown = showAsset(canvas, id, shapes, options);
   document.querySelector("#loading")?.remove();
   // A new window size draws the views again from scratch.
   window.addEventListener("resize", () => {
     shown?.dispose();
-    shown = showAsset(canvas, id, treeShapes, stumpShape, logShape, bushShape, playerModel, options);
+    shown = showAsset(canvas, id, shapes, options);
   });
   if (shown === undefined) {
     ui.innerHTML = `<p class="showcase-missing">No showcase for "${id}". Try one of: ${SHOWCASE_ASSET_IDS.join(", ")}.</p>`;

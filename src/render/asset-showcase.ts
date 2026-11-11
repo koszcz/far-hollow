@@ -23,13 +23,11 @@ import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
-import type { LogShape } from "./log-shape";
-import type { PlayerModel } from "./player-model";
-import type { StumpShape } from "./stump-model";
-import type { BerryBushShape } from "./berry-bush-model";
+import type { ModelShapes } from "./model-shapes";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
-import type { TreeShape } from "./tree-model";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
+import { createUndergrowthMaterial } from "./undergrowth-meshes";
+import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
 import { createValleyMeshes } from "./valley-meshes";
 
 /** Every showcase uses the same valley, so screenshots of one asset compare across sessions. */
@@ -70,6 +68,8 @@ interface Stage {
    * `lift` raises it, in metres, and `heading` turns it about the vertical, in radians. The showcase disposes it.
    */
   readonly addProp: (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, z: number, lift?: number, heading?: number) => void;
+  /** Every loaded undergrowth model, from loadUndergrowthShapes. */
+  readonly undergrowthShapes: readonly UndergrowthShape[];
 }
 
 interface Showcase {
@@ -86,6 +86,33 @@ interface Showcase {
     readonly shot: Shot;
     /** Poses the animation `seconds` after it began. Returns how far the camera moves to follow it, in metres. */
     pose(stage: Stage, seconds: number): Partial<Vec3> | undefined;
+  };
+}
+
+/** Undergrowth models stand this far apart in the showcase, in metres. */
+const UNDERGROWTH_SPACING_METRES = 0.7;
+
+/**
+ * Shows every model of one undergrowth asset in rows of `columns`, each in the game's colours and material.
+ * The game draws the same models in batches, scattered by ground type.
+ */
+function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: number): Showcase {
+  const rows = Math.ceil(count / columns);
+  const width = (columns - 1) * UNDERGROWTH_SPACING_METRES;
+  const depth = (rows - 1) * UNDERGROWTH_SPACING_METRES;
+  return {
+    radius: Math.max(1, Math.max(width, depth) * 0.9),
+    focus: { x: 0, y: 0.15, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ addProp, undergrowthShapes }) {
+      undergrowthShapes
+        .filter((shape) => shape.asset === asset)
+        .forEach((shape, index) => {
+          const x = (index % columns) * UNDERGROWTH_SPACING_METRES - width / 2;
+          const z = Math.floor(index / columns) * UNDERGROWTH_SPACING_METRES - depth / 2;
+          addProp(shape.geometry.clone(), createUndergrowthMaterial(), x, z);
+        });
+    },
   };
 }
 
@@ -108,7 +135,8 @@ function showPots(seconds: number): void {
 }
 
 const SHOWCASES: Readonly<Record<string, Showcase>> = {
-  terrain: { radius: 14, focus: { x: 0, y: 0, z: 0 }, shots: FOUR_ANGLES, build() {} },
+  // Framed so all three ground types show: river bank to the west, forest floor around a tree, and clearing between.
+  terrain: { radius: 22, focus: { x: -5, y: 0, z: 4 }, shots: FOUR_ANGLES, build() {} },
   river: {
     radius: 16,
     focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },
@@ -150,13 +178,17 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   mushrooms: {
-    radius: 0.4,
-    focus: { x: 0, y: 0.08, z: 0 },
+    radius: 0.5,
+    focus: { x: 0, y: 0.15, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { forageSpot: { food: "mushroom" } });
     },
   },
+  grass: undergrowthShowcase("grass", 4, 4),
+  ferns: undergrowthShowcase("ferns", 2, 2),
+  flowers: undergrowthShowcase("flowers", 9, 3),
+  pebbles: undergrowthShowcase("pebbles", 28, 7),
   logs: {
     radius: 2.2,
     focus: { x: 0, y: 0.7, z: 0 },
@@ -423,11 +455,7 @@ export interface ShowOptions {
 export function showAsset(
   canvas: HTMLCanvasElement,
   id: string,
-  treeShapes: readonly TreeShape[],
-  stumpShape: StumpShape,
-  logShape: LogShape,
-  bushShape: BerryBushShape,
-  playerModel: PlayerModel,
+  shapes: ModelShapes,
   options: ShowOptions = { play: false, speed: 1 },
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
@@ -454,7 +482,7 @@ export function showAsset(
   if (river !== undefined) scene.add(river.group);
 
   const store = createEntityStore();
-  const player = createPlayerMesh(playerModel, logShape);
+  const player = createPlayerMesh(shapes.player, shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
   const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
@@ -468,6 +496,7 @@ export function showAsset(
   const stage: Stage = {
     store,
     player,
+    undergrowthShapes: shapes.undergrowth,
     place(x, z, entity) {
       return store.add({ ...entity, position: at(x, z) });
     },
@@ -497,13 +526,13 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
+  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.stump, shapes.log);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  const forage = createForageMeshes(store, bushShape);
+  const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
-  const rain: RainEffect = createRainEffect(store);
+  const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(forest.group, campfires.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(forest.group, campfires.group, forage.group, bedrolls.group, player.group, props);
@@ -522,7 +551,7 @@ export function showAsset(
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
-    rain.update(seconds, focus);
+    rain.update(seconds, focus, daylightAt(shot.hour ?? NOON));
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);

@@ -575,7 +575,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
-      { label: "HUD: walking, day", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu and an open chest, day", yaw: 20, pitch: 35 },
       { label: "HUD: chopping, backpack full", yaw: -20, pitch: 35 },
       { label: "HUD: carrying a log at a campfire", yaw: 40, pitch: 35, hour: 18 },
       { label: "HUD: cold at night, paused, placing", yaw: 20, pitch: 35, hour: NIGHT },
@@ -583,6 +583,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       for (const [x, z] of [[-6, -4], [0, -7], [6, -3], [-3, -9]] as const) place(x, z, { tree: true });
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+      place(-1.2, 0.6, { chest: { contents: {} }, facing: { turns: 0 } });
       movePlayer(0, 0, 0);
     },
   },

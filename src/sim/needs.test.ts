@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import { createGame, type Game } from "./game";
 import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 
-const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false };
+const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, sick: false };
 
 describe("needs", () => {
   it("start full for all four needs", () => {
@@ -11,14 +11,52 @@ describe("needs", () => {
     expect(view.needs).toEqual({ hunger: 1, thirst: 1, warmth: 1, fatigue: 1 });
   });
 
-  it("change for skipped time: warmth drains at night, the other needs stay full for now", () => {
+  it("change for skipped time: warmth drains at night, thirst drains all day, hunger and fatigue stay full for now", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipTime", hours: 14 }); // 22:00, two hours into the night.
 
     const needs = game.client.getView().needs;
     expect(needs.warmth).toBeCloseTo(0.5, 1);
     expect(needs.warmth).toBe(game.client.getView().warmth);
-    expect(needs).toMatchObject({ hunger: 1, thirst: 1, fatigue: 1 });
+    expect(needs.thirst).toBeCloseTo(1 - 14 / 24, 2);
+    expect(needs).toMatchObject({ hunger: 1, fatigue: 1 });
+  });
+
+  it("drain thirst by day and by night, emptying it over one day", () => {
+    const needs = createNeeds();
+
+    passNeedsTime(needs, 6 * 60, DAYTIME_AWAY_FROM_FIRE);
+    expect(needs.thirst.level).toBeCloseTo(0.75, 5);
+
+    passNeedsTime(needs, 6 * 60, { ...DAYTIME_AWAY_FROM_FIRE, night: true, warmedByCampfire: true });
+    expect(needs.thirst.level).toBeCloseTo(0.5, 5);
+
+    passNeedsTime(needs, 12 * 60, DAYTIME_AWAY_FROM_FIRE);
+    expect(needs.thirst.level).toBeCloseTo(0, 5);
+
+    passNeedsTime(needs, 1, DAYTIME_AWAY_FROM_FIRE);
+    expect(needs.thirst.level).toBe(0);
+  });
+
+  it("drain faster while the player is sick: twice as fast for thirst and warmth", () => {
+    const well = createNeeds();
+    const sick = createNeeds();
+
+    passNeedsTime(well, 60, { night: true, warmedByCampfire: false, sick: false });
+    passNeedsTime(sick, 60, { night: true, warmedByCampfire: false, sick: true });
+
+    expect(1 - sick.thirst.level).toBeCloseTo(2 / 24, 5);
+    expect(1 - sick.warmth.level).toBeCloseTo(0.5, 5);
+    expect(1 - well.warmth.level).toBeCloseTo(0.25, 5);
+  });
+
+  it("recover warmth beside a lit campfire at the usual speed while sick", () => {
+    const needs = createNeeds();
+    needs.warmth.level = 0.2;
+
+    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, sick: true });
+
+    expect(needs.warmth.level).toBeCloseTo(0.7, 5);
   });
 
   it("cause a collapse when a need other than warmth stays at zero for too long", () => {
@@ -76,15 +114,15 @@ describe("needs", () => {
 describe("warmth in the rain", () => {
   it("drains during the day", () => {
     const needs = createNeeds();
-    passNeedsTime(needs, 60, { night: false, warmedByCampfire: false, inRain: true });
+    passNeedsTime(needs, 60, { night: false, warmedByCampfire: false, sick: false, inRain: true });
     expect(needs.warmth.level).toBeCloseTo(0.75, 5);
   });
 
   it("drains faster at night than night alone", () => {
     const dry = createNeeds();
     const wet = createNeeds();
-    passNeedsTime(dry, 60, { night: true, warmedByCampfire: false, inRain: false });
-    passNeedsTime(wet, 60, { night: true, warmedByCampfire: false, inRain: true });
+    passNeedsTime(dry, 60, { night: true, warmedByCampfire: false, sick: false, inRain: false });
+    passNeedsTime(wet, 60, { night: true, warmedByCampfire: false, sick: false, inRain: true });
     expect(dry.warmth.level).toBeCloseTo(0.75, 5);
     expect(wet.warmth.level).toBeCloseTo(0.5, 5);
   });
@@ -92,7 +130,7 @@ describe("warmth in the rain", () => {
   it("still recovers within a lit campfire's warmth range", () => {
     const needs = createNeeds();
     needs.warmth.level = 0.2;
-    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, inRain: true });
+    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, sick: false, inRain: true });
     expect(needs.warmth.level).toBeCloseTo(0.7, 5);
   });
 });

@@ -5,12 +5,14 @@ import { loadStumpShape } from "../render/stump-model";
 import { loadTreeShapes } from "../render/tree-model";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS, type Game } from "../sim/game";
-import { continueOrStartGame, writeSave } from "../sim/save";
+import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
+import { randomSeed } from "../sim/seed";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
+import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
-import { openSaveStorage, type SaveStorage } from "./save-storage";
+import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import { attachWalkInput } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -26,7 +28,7 @@ document.title = strings.gameTitle;
 
 /**
  * The seed given as `?seed=123` in the address, if any.
- * Developers use it to start a new game in the same valley again, in place of the saved game.
+ * Developers use it to start a new game in the same valley again. It skips the start screen and is never saved.
  */
 function seedFromAddress(): number | undefined {
   const fromAddress = Number.parseInt(new URLSearchParams(window.location.search).get("seed") ?? "", 10);
@@ -46,25 +48,70 @@ async function tryOpenSaveStorage(): Promise<SaveStorage | undefined> {
   }
 }
 
-/** Continues the saved game, or starts a new one. Until the new-game screen exists, a new game gets a random seed. */
-async function loadGame(storage: SaveStorage | undefined): Promise<Game> {
-  const addressSeed = seedFromAddress();
-  if (addressSeed !== undefined) return createGame({ seed: addressSeed });
-  const stored = await storage?.read().catch((error: unknown) => {
-    console.warn("The saved game could not be read.", error);
+/** Reads the save in one slot. A slot that cannot be read counts as broken. */
+async function readSlot(storage: SaveStorage | undefined, slot: number): Promise<unknown> {
+  if (storage === undefined) return undefined;
+  try {
+    return await storage.read(slot);
+  } catch (error) {
+    console.warn(`Save slot ${slot + 1} could not be read.`, error);
     return null;
+  }
+}
+
+/** The game the player chose, and the save slot it saves to. A game started from `?seed=` has no slot and is not saved. */
+interface ChosenGame {
+  game: Game;
+  slot: number | undefined;
+}
+
+/** Shows the start screen until the player continues a saved game or starts a new one. */
+async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame> {
+  const stored = await Promise.all(Array.from({ length: SAVE_SLOT_COUNT }, (_, slot) => readSlot(storage, slot)));
+  const ui = requireElement("#ui", HTMLDivElement);
+  // The start screen replaces the loading screen until the player chooses.
+  setLoadingScreenShown(false);
+  const chosen = await new Promise<ChosenGame>((resolve) => {
+    render(
+      <StartScreen
+        slots={stored.map(describeSave)}
+        canSave={storage !== undefined}
+        onContinue={(slot) => {
+          resolve({ game: continueOrStartGame(stored[slot], randomSeed()), slot });
+        }}
+        onNewGame={(slot, seed) => {
+          const game = createGame({ seed: seed ?? randomSeed() });
+          // Save at once, so a new game started over a saved one replaces it even if the page closes soon after.
+          saveToSlot(storage, slot, game);
+          resolve({ game, slot });
+        }}
+      />,
+      ui,
+    );
   });
-  return continueOrStartGame(stored, Math.floor(Math.random() * 2 ** 32));
+  render(null, ui);
+  setLoadingScreenShown(true);
+  return chosen;
+}
+
+function saveToSlot(storage: SaveStorage | undefined, slot: number, game: Game): void {
+  storage?.write(slot, writeSave(game)).catch((error: unknown) => {
+    console.warn("The game could not be saved.", error);
+  });
+}
+
+/** Shows or hides the loading screen without removing it. */
+function setLoadingScreenShown(shown: boolean): void {
+  document.querySelector("#loading")?.classList.toggle("done", !shown);
 }
 
 const saveStorage = await tryOpenSaveStorage();
-const game = await loadGame(saveStorage);
-if (saveStorage !== undefined) {
+const addressSeed = seedFromAddress();
+const { game, slot } = addressSeed === undefined ? await chooseGame(saveStorage) : { game: createGame({ seed: addressSeed }), slot: undefined };
+if (saveStorage !== undefined && slot !== undefined) {
   startAutosave({
     save: () => {
-      saveStorage.write(writeSave(game)).catch((error: unknown) => {
-        console.warn("The game could not be saved.", error);
-      });
+      saveToSlot(saveStorage, slot, game);
     },
     intervalMs: AUTOSAVE_INTERVAL_MS,
     page: window,

@@ -71,28 +71,34 @@ describe("rain in the game", () => {
   });
 
   it("can be reached by skipping time from the debug overlay, and stopped the same way", () => {
-    const game = createGame({ seed: 42 });
-    putCampfireBesidePlayer(game); // Keeps the player warm through the first night.
+    const firstRain = rainingGame();
+    const firstRainMinutes = clockStartMinutes(firstRain.client.getView().time);
+    expect(firstRainMinutes).toBeGreaterThanOrEqual(DAY_2_MORNING_MINUTES);
 
+    // The same game, skipped to a few hours before that rain.
+    const game = createGame({ seed: 4 });
+    skipKeepingPlayerWell(game, () => clockStartMinutes(game.client.getView().time) >= firstRainMinutes - 3 * MINUTES_PER_HOUR);
     send(game, { type: "skipToRainChange" });
-    const started = game.client.getView();
-    expect(started.raining).toBe(true);
-    expect(clockStartMinutes(started.time)).toBeGreaterThanOrEqual(DAY_2_MORNING_MINUTES);
-    expect(started.notice).not.toBe("collapsed");
+    expect(game.client.getView().raining).toBe(true);
+    // The hourly skips first saw rain on the hour, so it started within the hour before.
+    expect(clockStartMinutes(game.client.getView().time)).toBeGreaterThanOrEqual(firstRainMinutes - MINUTES_PER_HOUR);
+    expect(clockStartMinutes(game.client.getView().time)).toBeLessThanOrEqual(firstRainMinutes);
 
     send(game, { type: "skipToRainChange" });
     expect(game.client.getView().raining).toBe(false);
+    expect(game.client.getView().notice).not.toBe("collapsed");
   });
 
   it("drains the player's warmth during the day", () => {
     const game = rainingGame();
     expect(isNight(game.client.getView().time.hourOfDay)).toBe(false);
-    const before = game.client.getView().warmth;
+    expect(onlyPlayer(game).needs.warmth.level).toBe(1);
 
     runGameMinutes(game, 20);
 
     expect(game.client.getView().raining).toBe(true);
-    expect(game.client.getView().warmth).toBeCloseTo(before - 0.25 / 3, 2);
+    // A quarter of full warmth per hour of rain.
+    expect(game.client.getView().warmth).toBeCloseTo(1 - 0.25 / 3, 2);
   });
 
   it("does not stop a lit campfire warming the player, or put it out", () => {
@@ -128,17 +134,21 @@ describe("rain in the game", () => {
   });
 });
 
-/**
- * A game with seed 4, skipped to the first rain with a campfire keeping the player warm through the night.
- * The campfire is then put away and the player's warmth refilled. Seed 4's first rain starts during the day.
- */
+/** A game with seed 4, skipped hour by hour to its first rain, with the player kept well. Seed 4's first rain starts during the day. */
 function rainingGame(): Game {
   const game = createGame({ seed: 4 });
-  const campfire = putCampfireBesidePlayer(game);
-  send(game, { type: "skipToRainChange" });
-  game.entities.remove(campfire);
-  onlyPlayer(game).needs.warmth.level = 1;
+  skipKeepingPlayerWell(game, () => game.client.getView().raining);
   return game;
+}
+
+/** Skips time an hour at a time until `done` says so. Before each hour, every one of the player's needs is filled. */
+function skipKeepingPlayerWell(game: Game, done: () => boolean): void {
+  for (let hours = 0; !done(); hours += 1) {
+    if (hours > 10 * 24) throw new Error("Still not done after ten days");
+    for (const need of Object.values(onlyPlayer(game).needs)) need.level = 1;
+    send(game, { type: "skipTime", hours: 1 });
+  }
+  for (const need of Object.values(onlyPlayer(game).needs)) need.level = 1;
 }
 
 /** Puts a lit campfire 2 m from the player, inside its warmth range. Its fuel lasts three days, more than any campfire holds. */

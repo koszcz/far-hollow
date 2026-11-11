@@ -61,6 +61,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
+  drinkTask: point,
+  sickness: shape({ minutesLeft: finite }),
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
 };
 

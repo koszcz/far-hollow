@@ -82,9 +82,13 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         </p>
       )}
       {view.raining && <p class="hud-raining">{strings.raining}</p>}
-      <label class="hud-warmth">
+      <label class="hud-need">
         {strings.warmth} <progress max={1} value={view.warmth} />
       </label>
+      <label class="hud-need">
+        {strings.thirst} <progress max={1} value={view.needs.thirst} />
+      </label>
+      {view.sick && <p class="hud-sick">{strings.sick}</p>}
       <button type="button" onClick={() => {
           client.send({ type: "setPaused", paused: !view.paused });
         }}>

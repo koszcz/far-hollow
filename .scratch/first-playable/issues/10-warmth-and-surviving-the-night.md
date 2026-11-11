@@ -15,3 +15,7 @@
 - [x] Until a bed exists, the respawn point is the spot where the player started at the valley edge.
 - [x] Reaching the first morning without a collapse shows a short message that the player survived the night. The message text lives in the strings file.
 - [x] Unit tests cover warmth drain, recovery, slowdown, collapse, and the respawn.
+
+## Comments
+
+- 2026-11-11, owner decision after code review: a collapse wakes the player at the next 06:00. This is intended, even though it costs no daylight. The campfire glow gets a brighter inner pool that marks the 4 m warmth range. The extras the agents added (seed in the URL, log dropped on collapse, first log shouldered automatically, 8-hour fuel cap, 2 m campfire spacing, Escape cancels placing) stay.

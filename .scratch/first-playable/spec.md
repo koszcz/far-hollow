@@ -83,7 +83,8 @@ The camera looks down at the player from above at an angle, like an isometric ga
 
 ## Tools and carrying
 
-- The player starts with an axe, a knife, and a fire striker.
+- The player starts with an axe, a knife, a fire striker, a bedroll, and a pot.
+- The pot holds water for boiling on a campfire.
 - Better tools come from crafting, such as a drawknife, saw, bow, and fishing rod.
 - **Tools** never wear out.
 - The backpack has a weight limit.

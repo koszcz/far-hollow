@@ -144,6 +144,18 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "split-animation",
+      "kind": "code",
+      "description": "Splitting motion of the player when splitting a log into firewood. Placeholder tween built in code for the first playable, distinct from the chop animation.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
     }
   ]
 }

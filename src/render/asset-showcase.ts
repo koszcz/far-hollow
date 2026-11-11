@@ -272,24 +272,42 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
   roof: {
-    radius: 1.8,
-    focus: { x: 0, y: 1.6, z: 0 },
-    // A blueprint with two logs delivered, the third rafter going up, the bark half laid, then the finished roof.
+    radius: 1.7,
+    // The views look at the front right square of the cabin, where the roof blueprint is, unless a view says otherwise.
+    focus: { x: 1, y: 1.8, z: 0 },
+    // A 3 by 2 square cabin: a roof blueprint over its front right square with two logs delivered, then with its bark half
+    // laid, then the whole cabin finished, from the front and from the side to show how the sections slope and meet.
     shots: [
       { label: `blueprint, 2 of ${ROOF_LOG_COST} logs delivered`, yaw: 30, pitch: 35, seconds: 0 },
-      { label: "3rd rafter above its place", yaw: 30, pitch: 35, seconds: (2 + BUILD_FADE_SHARE) / (ROOF_LOG_COST + ROOF_BARK_COST) },
       { label: "bark half laid", yaw: 30, pitch: 35, seconds: (ROOF_LOG_COST + ROOF_BARK_COST / 2) / (ROOF_LOG_COST + ROOF_BARK_COST) },
-      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.4, focus: { x: 0, y: 1.2, z: -0.5 } },
+      { label: "3 by 2 cabin, side", yaw: 90, pitch: 12, seconds: 1, radius: 2.2, focus: { x: 0, y: 1.3, z: -0.5 } },
     ],
-    build({ place }) {
+    build({ place, movePlayer }) {
       const deckTop = (entity: Entity) => {
         if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
       };
-      deckTop(place(0, 0, { foundation: true }));
-      // A wall at the back and a door frame at the left hold the roof up.
-      deckTop(place(0, -0.5, { edgePiece: "logWall", facing: { turns: 2 } }));
-      deckTop(place(-0.5, 0, { edgePiece: "doorFrame", facing: { turns: 1 } }));
-      deckTop(place(0, 0, { blueprint: { piece: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
+      const columns = [-1, 0, 1];
+      const rows = [-1, 0];
+      for (const x of columns) for (const z of rows) deckTop(place(x, z, { foundation: true }));
+      // Log walls all round, with a door frame in the middle of the front.
+      for (const x of columns) {
+        deckTop(place(x, -1.5, { edgePiece: "logWall", facing: { turns: 2 } }));
+        deckTop(place(x, 0.5, { edgePiece: x === 0 ? "doorFrame" : "logWall", facing: { turns: 0 } }));
+      }
+      for (const z of rows) {
+        deckTop(place(-1.5, z, { edgePiece: "logWall", facing: { turns: 1 } }));
+        deckTop(place(1.5, z, { edgePiece: "logWall", facing: { turns: 3 } }));
+      }
+      // Every square has a finished roof but the front right one, which has the blueprint.
+      for (const x of columns) {
+        for (const z of rows) {
+          if (x === 1 && z === 0) continue;
+          deckTop(place(x, z, { cabinRoof: true, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
+        }
+      }
+      deckTop(place(1, 0, { blueprint: { piece: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
+      movePlayer(0.6, 1.3, Math.PI);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;

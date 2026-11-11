@@ -22,6 +22,6 @@ build:
 drafts:
 	bun run assets:drafts
 
-# Land this worktree's branch on main and push main. Retries when other sessions land first.
+# Land this worktree's branch on main, push main, and delete the branch. Retries when other sessions land first.
 land:
 	sh scripts/land.sh

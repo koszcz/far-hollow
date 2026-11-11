@@ -13,7 +13,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createStickSegment, STICK_COLOUR } from "./stick-shape";
 
 /** Bark strips take turns between these two browns, so the roof does not look like one sheet. */
-const BARK_COLOURS = [0x5b3f2c, 0x6b4b34] as const;
+export const BARK_COLOURS = [0x5b3f2c, 0x6b4b34] as const;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
@@ -293,9 +293,11 @@ const BARK_INSIDE_COLOUR = 0xc39a6b;
 /** Peeled bark curls: each strip's two long edges lift this far above its middle, in metres. Its lower edge frays this far. */
 const BARK_CURL_METRES = 0.03;
 const BARK_FRAY_METRES = 0.09;
+/** A bark strip wavers up and down this far along its length, in metres. */
+const BARK_WAVER_METRES = 0.012;
 
 /** A small, repeatable random number generator: the same seed always gives the same numbers, from 0 up to 1. */
-function seededRandom(seed: number): () => number {
+export function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
@@ -359,8 +361,12 @@ function rafter(foot: THREE.Vector3, tip: THREE.Vector3, jitter: (size: number) 
  * Its two long edges curl up, it wavers along its length, and its lower edge is ragged.
  * It carries a colour per corner: white outside and a pale tint inside and on its edges.
  * Draw it with `vertexColors: true` and the material colour set to the bark brown `shade`.
+ * `shape` can make the curl, the fray of the lower edge, and the waver smaller than the lean-to's, in metres.
  */
-function barkStrip(width: number, length: number, shade: number, jitter: (size: number) => number): THREE.BufferGeometry {
+export function barkStrip(
+  width: number, length: number, shade: number, jitter: (size: number) => number,
+  shape: { curl: number; fray: number; waver: number } = { curl: BARK_CURL_METRES, fray: BARK_FRAY_METRES, waver: BARK_WAVER_METRES },
+): THREE.BufferGeometry {
   const geometry = new THREE.BoxGeometry(width, BARK_THICKNESS_METRES, length, BARK_COLUMNS, 1, 4);
   const positions = geometry.getAttribute("position");
   const normals = geometry.getAttribute("normal");
@@ -371,9 +377,9 @@ function barkStrip(width: number, length: number, shade: number, jitter: (size: 
     const x = positions.getX(i);
     let z = positions.getZ(i);
     const column = Math.round(((x / width) + 0.5) * BARK_COLUMNS);
-    if (z < -length / 2 + 0.001) z += (fray[column] ?? 0) * BARK_FRAY_METRES;
+    if (z < -length / 2 + 0.001) z += (fray[column] ?? 0) * shape.fray;
     const across = z / (length / 2);
-    const curl = BARK_CURL_METRES * across * across + 0.012 * Math.sin(x * 1.6 + wave);
+    const curl = shape.curl * across * across + shape.waver * Math.sin(x * 1.6 + wave);
     positions.setXYZ(i, x, positions.getY(i) + curl, z);
   }
   const outside = new THREE.Color(BARK_COLOURS[shade] ?? BARK_COLOURS[0]);

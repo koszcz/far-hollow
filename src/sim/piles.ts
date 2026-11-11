@@ -1,7 +1,7 @@
 import { addToBackpack, countInBackpack, fitsInBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
-import { pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { entityWith, pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
-import { groundDistance, type GroundPoint, type Valley } from "./valley";
+import { groundDistance, nearestWithin, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
@@ -56,25 +56,11 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
   const piles = pileEntities(entities);
   const pickers = entities.with("pileTask", "position", "backpack");
 
-  function pileById(pileId: number): PileEntity | undefined {
-    const entity = entities.entity(pileId);
-    if (entity?.pile === undefined || entity.position === undefined) return undefined;
-    return entity as PileEntity;
-  }
+  const pileById = (pileId: number): PileEntity | undefined => entityWith(entities, pileId, "pile", "position");
 
   /** The nearest pile of `content` within JOIN_PILE_METRES of a spot, if any. */
   function nearestPileOf(content: BackpackContent, at: GroundPoint): PileEntity | undefined {
-    let nearest: PileEntity | undefined;
-    let nearestDistance = JOIN_PILE_METRES;
-    for (const pile of piles) {
-      if (pile.pile.content !== content) continue;
-      const distance = groundDistance(pile.position, at);
-      if (distance <= nearestDistance) {
-        nearest = pile;
-        nearestDistance = distance;
-      }
-    }
-    return nearest;
+    return nearestWithin(at, piles.entities.filter((pile) => pile.pile.content === content), JOIN_PILE_METRES);
   }
 
   return {
@@ -137,18 +123,8 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
       return refusal;
     },
     nearby() {
-      let nearest: PileEntity | undefined;
-      let nearestDistance = PICK_UP_REACH_METRES;
-      for (const player of players) {
-        for (const pile of piles) {
-          const distance = groundDistance(pile.position, player.position);
-          if (distance <= nearestDistance) {
-            nearest = pile;
-            nearestDistance = distance;
-          }
-        }
-      }
-      return nearest;
+      const player = players.first;
+      return player === undefined ? undefined : nearestWithin(player.position, piles, PICK_UP_REACH_METRES);
     },
   };
 }

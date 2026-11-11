@@ -1,9 +1,9 @@
 // Stacking logs, debarked logs, and firewood on a woodpile, and taking them off again.
 import type { WoodpileView } from "./api";
 import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
-import { playerEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "./entities";
-import { groundDistance } from "./valley";
-import type { Walking } from "./walking";
+import { entityWith, playerEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "./entities";
+import { groundDistance, nearestWithin } from "./valley";
+import { walkBeside, type Walking } from "./walking";
 
 /** A woodpile holds up to this many logs, debarked logs, and pieces of firewood in all, in any mix. */
 export const WOODPILE_CAPACITY = 20;
@@ -12,7 +12,7 @@ const WOODPILE_STAND_METRES = 1.3;
 /** The player can use a woodpile from this far from its centre, in metres. */
 const WOODPILE_REACH_METRES = 2.5;
 
-type WoodpileEntity = Entity & { woodpile: NonNullable<Entity["woodpile"]>; position: NonNullable<Entity["position"]> };
+type WoodpileEntity = Entity & Required<Pick<Entity, "woodpile" | "position">>;
 
 export interface Woodpiles {
   /** Walks the player beside a woodpile, if they are not already within reach of it. */
@@ -42,11 +42,7 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
   const players = playerEntities(entities);
   const woodpiles = woodpileEntities(entities);
 
-  function woodpileById(woodpileId: number): WoodpileEntity | undefined {
-    const entity = entities.entity(woodpileId);
-    if (entity?.woodpile === undefined || entity.position === undefined) return undefined;
-    return entity as WoodpileEntity;
-  }
+  const woodpileById = (woodpileId: number): WoodpileEntity | undefined => entityWith(entities, woodpileId, "woodpile", "position");
 
   /** The player, if they stand still within reach of the woodpile. */
   function userOf(woodpile: WoodpileEntity) {
@@ -67,17 +63,8 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
     tend(woodpileId) {
       const woodpile = woodpileById(woodpileId);
       if (woodpile === undefined) return;
-      for (const player of players) {
-        const dx = player.position.x - woodpile.position.x;
-        const dz = player.position.z - woodpile.position.z;
-        const distance = Math.hypot(dx, dz);
-        if (distance <= WOODPILE_REACH_METRES) continue;
-        // Stand beside the woodpile on the player's side, since the woodpile itself blocks walking.
-        walking.walkTo({
-          x: woodpile.position.x + (dx / distance) * WOODPILE_STAND_METRES,
-          z: woodpile.position.z + (dz / distance) * WOODPILE_STAND_METRES,
-        });
-      }
+      // The player stands beside the woodpile on the player's side, since the woodpile itself blocks walking.
+      for (const player of players) walkBeside(walking, player.position, woodpile.position, WOODPILE_REACH_METRES, WOODPILE_STAND_METRES);
     },
     stack(woodpileId, wood, all) {
       const woodpile = woodpileById(woodpileId);
@@ -114,17 +101,8 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
       return undefined;
     },
     nearby() {
-      let nearest: WoodpileEntity | undefined;
-      let nearestDistance = Infinity;
-      for (const player of players) {
-        for (const woodpile of woodpiles) {
-          const distance = groundDistance(woodpile.position, player.position);
-          if (distance <= WOODPILE_REACH_METRES && distance < nearestDistance) {
-            nearest = woodpile;
-            nearestDistance = distance;
-          }
-        }
-      }
+      const player = players.first;
+      const nearest = player === undefined ? undefined : nearestWithin(player.position, woodpiles, WOODPILE_REACH_METRES);
       return nearest === undefined ? undefined : describe(nearest);
     },
   };

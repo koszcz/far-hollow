@@ -53,6 +53,18 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
   };
 }
 
+/**
+ * Walks the player to stand `standMetres` from something, on their own side of it, unless they are already within `reachMetres`.
+ * For things that block walking, such as a campfire, chest, or woodpile, so the player stops beside them rather than on them.
+ */
+export function walkBeside(walking: Walking, from: GroundPoint, target: GroundPoint, reachMetres: number, standMetres: number): void {
+  const dx = from.x - target.x;
+  const dz = from.z - target.z;
+  const distance = Math.hypot(dx, dz);
+  if (distance <= reachMetres) return;
+  walking.walkTo({ x: target.x + (dx / distance) * standMetres, z: target.z + (dz / distance) * standMetres });
+}
+
 /** Moves an entity up to `distance` metres along its path. Returns true once it has reached the end. */
 function walkAlong(walker: Entity & Required<Pick<Entity, "walkPath" | "position">>, distance: number, entities: EntityStore, valley: Valley): boolean {
   let left = distance;

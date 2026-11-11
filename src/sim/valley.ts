@@ -11,6 +11,20 @@ export function groundDistance(a: GroundPoint, b: GroundPoint): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
+/** The candidate nearest `spot`, if any lies within `reach` metres of it. */
+export function nearestWithin<T extends { position: GroundPoint }>(spot: GroundPoint, candidates: Iterable<T>, reach: number): T | undefined {
+  let nearest: T | undefined;
+  let nearestDistance = reach;
+  for (const candidate of candidates) {
+    const distance = groundDistance(candidate.position, spot);
+    if (distance <= nearestDistance) {
+      nearest = candidate;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
 /** The ground's height on a square grid that covers the whole valley. */
 export interface Terrain {
   /** Grid points along each side. There are `pointsPerSide * pointsPerSide` heights in all. */

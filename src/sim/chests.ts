@@ -1,9 +1,9 @@
 // Opening a chest, and moving small materials, tools, and food between it and the backpack.
 import type { ChestView } from "./api";
 import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
-import { playerEntities, type Entity, type EntityStore } from "./entities";
+import { entityWith, playerEntities, type Entity, type EntityStore } from "./entities";
 import { groundDistance } from "./valley";
-import type { Walking } from "./walking";
+import { walkBeside, type Walking } from "./walking";
 
 /** The most a chest can hold, in kilograms. */
 export const CHEST_WEIGHT_LIMIT_KG = 60;
@@ -12,7 +12,7 @@ const CHEST_STAND_METRES = 1.1;
 /** The player can use a chest from this far from its middle, in metres. */
 const CHEST_REACH_METRES = 2;
 
-type ChestEntity = Entity & { chest: NonNullable<Entity["chest"]>; position: NonNullable<Entity["position"]> };
+type ChestEntity = Entity & Required<Pick<Entity, "chest" | "position">>;
 
 export interface Chests {
   /** Walks the player beside a chest, if they are not already within reach of it, and opens it once they stand there. */
@@ -50,11 +50,7 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
   /** Whether the player has stood within reach of the open chest since opening it. */
   let reached = false;
 
-  function chestById(chestId: number): ChestEntity | undefined {
-    const entity = entities.entity(chestId);
-    if (entity?.chest === undefined || entity.position === undefined) return undefined;
-    return entity as ChestEntity;
-  }
+  const chestById = (chestId: number): ChestEntity | undefined => entityWith(entities, chestId, "chest", "position");
 
   /** The open chest, while the player stands still within reach of it. */
   function openChest(): ChestEntity | undefined {
@@ -72,17 +68,8 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
       if (chest === undefined) return;
       openId = chestId;
       reached = false;
-      for (const player of players) {
-        const dx = player.position.x - chest.position.x;
-        const dz = player.position.z - chest.position.z;
-        const distance = Math.hypot(dx, dz);
-        if (distance <= CHEST_REACH_METRES) continue;
-        // Stand beside the chest on the player's side, since the chest itself blocks walking.
-        walking.walkTo({
-          x: chest.position.x + (dx / distance) * CHEST_STAND_METRES,
-          z: chest.position.z + (dz / distance) * CHEST_STAND_METRES,
-        });
-      }
+      // The player stands beside the chest on the player's side, since the chest itself blocks walking.
+      for (const player of players) walkBeside(walking, player.position, chest.position, CHEST_REACH_METRES, CHEST_STAND_METRES);
     },
     cancel() {
       openId = undefined;

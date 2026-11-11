@@ -4,7 +4,7 @@ import { snapToGridSquare } from "./build-grid";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./valley";
-import type { Walking } from "./walking";
+import { walkBeside, type Walking } from "./walking";
 
 
 /** How many game minutes one of each kind of fuel keeps a campfire burning. Bark burns like sticks. Firewood burns longer. */
@@ -76,17 +76,8 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
     tend(campfireId) {
       const campfire = campfireById(campfireId);
       if (campfire === undefined) return;
-      for (const player of players) {
-        const dx = player.position.x - campfire.position.x;
-        const dz = player.position.z - campfire.position.z;
-        const distance = Math.hypot(dx, dz);
-        if (distance <= TEND_REACH_METRES) continue;
-        // Stand beside the fire on the player's side, since the fire itself blocks walking.
-        walking.walkTo({
-          x: campfire.position.x + (dx / distance) * TEND_STAND_METRES,
-          z: campfire.position.z + (dz / distance) * TEND_STAND_METRES,
-        });
-      }
+      // The player stands beside the fire on the player's side, since the fire itself blocks walking.
+      for (const player of players) walkBeside(walking, player.position, campfire.position, TEND_REACH_METRES, TEND_STAND_METRES);
     },
     addFuel(campfireId, fuel) {
       const campfire = campfireById(campfireId);

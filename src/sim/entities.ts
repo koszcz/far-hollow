@@ -202,6 +202,13 @@ export function restoreEntities(store: EntityStore, saved: readonly SavedEntity[
   }
 }
 
+/** The entity with this id, if it exists and has every one of `components`. */
+export function entityWith<K extends keyof Entity>(store: EntityStore, id: number, ...components: K[]): (Entity & Required<Pick<Entity, K>>) | undefined {
+  const entity = store.entity(id);
+  if (entity === undefined || components.some((component) => entity[component] === undefined)) return undefined;
+  return entity as Entity & Required<Pick<Entity, K>>;
+}
+
 /**
  * Gives an entity a component, replacing the one it already has.
  * miniplex's addComponent never overwrites, so a new task would otherwise be ignored while an old one is running.

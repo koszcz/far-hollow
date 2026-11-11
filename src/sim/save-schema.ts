@@ -70,6 +70,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   deliverTask: shape({ blueprintId: count }),
   foundation: exactly(true),
   edgePiece: exactly("logWall", "doorFrame"),
+  cabinRoof: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   leanTo: exactly(true),
   roof: shape({ min: point, max: point }),

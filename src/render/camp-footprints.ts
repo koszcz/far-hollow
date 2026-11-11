@@ -37,6 +37,8 @@ const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, tu
   foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
   logWall: (x, z, turns) => edgePieceFootprint(x, z, turns),
   doorFrame: (x, z, turns) => edgePieceFootprint(x, z, turns),
+  // A roof is built over a foundation, which already hides the undergrowth under it.
+  roof: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
 };
 
 /** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */

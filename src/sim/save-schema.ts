@@ -72,6 +72,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   edgePiece: exactly("logWall", "doorFrame"),
   cabinRoof: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
+  onFoundation: point,
   leanTo: exactly(true),
   roof: shape({ min: point, max: point }),
   forageSpot: shape({ food: exactly("berries", "mushroom") }),

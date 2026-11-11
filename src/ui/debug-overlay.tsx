@@ -1,4 +1,5 @@
-// Developer tools. Off by default. The backquote key (`) shows and hides it.
+// Developer tools: the frame rate, the clock, the rain, and the rooms the game has found. Off by default. The backquote key (`) shows and hides it.
+import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
@@ -32,6 +33,8 @@ export function DebugOverlay({ client }: { client: GameClient }) {
 function DebugPanel({ client }: { client: GameClient }) {
   const view = useGameView(client);
   const fps = useFramesPerSecond();
+  // Rooms are worked out afresh each time, so they follow every piece finished or taken down.
+  const rooms = client.describeRooms();
 
   return (
     <div class="debug-overlay">
@@ -46,6 +49,14 @@ function DebugPanel({ client }: { client: GameClient }) {
         <dd>{formatTime(view.time)}</dd>
         <dt>{strings.debugRain}</dt>
         <dd>{view.raining ? strings.debugRainFalling : strings.debugRainDry}</dd>
+        <dt>{strings.debugRooms}</dt>
+        <dd>{rooms.length}</dd>
+        {rooms.map((room, index) => (
+          <Fragment key={index}>
+            <dt>{index + 1}</dt>
+            <dd>{strings.debugRoom(room.squares.length, room.heated)}</dd>
+          </Fragment>
+        ))}
       </dl>
       {SKIP_HOURS.map((hours) => (
         <button

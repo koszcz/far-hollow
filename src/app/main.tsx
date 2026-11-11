@@ -44,7 +44,7 @@ attachWalkInput({
   canvas,
   client: game.client,
   rig: sceneRenderer.cameraRig,
-  groundSpotAt: (clientX, clientY) => sceneRenderer.groundSpotAt(clientX, clientY),
+  pickAt: (clientX, clientY) => sceneRenderer.pickAt(clientX, clientY),
 });
 if (import.meta.env.DEV) {
   // Lets the on-demand browser test read the game's view. Development builds only.

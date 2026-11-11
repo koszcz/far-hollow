@@ -375,6 +375,22 @@
       }
     },
     {
+      "id": "backpack-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/backpack-icons.tsx",
+        "src/ui/hud.tsx",
+        "src/app/style.css"
+      ],
+      "description": "Coloured filled icons for every kind of thing in the backpack, shown in the HUD's backpack chips: axe, knife, drawknife, fire striker, bedroll, stick, firewood, bark, berries, mushroom, and the pot when empty, holding river water, or holding boiled water. Each item has its own shape and colour. The item's name shows when the player points at its chip.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/hud-icons/issues/01-backpack-icons.md"
+      }
+    },
+    {
       "id": "berry-bush",
       "kind": "file",
       "file": "public/assets/berry-bush/berry-bush.glb",

@@ -1,4 +1,4 @@
-// Draws the valley's ground with the code-built "terrain" listed in asset-manifest.json (a draft).
+// Draws the valley's ground with the code-built "terrain" listed in asset-manifest.json (approved).
 // The ground shows three ground types, forest floor, clearing, and river bank, blended softly by a baked map.
 // The painted textures and the map come from ground-texture.ts. The river is drawn in river-meshes.ts.
 // Trees, stumps, and logs are drawn in forest-meshes.ts.
@@ -54,7 +54,8 @@ export function createValleyMeshes(valley: Valley): ValleyMeshes {
 }
 
 /**
- * A material that blends the three ground-type textures. The baked map says how much of each shows at every spot.
+ * A material that blends the three ground-type textures. The baked map says how much of each shows at every spot,
+ * and adds large light and dark patches so the repeating textures do not show a pattern.
  * Ground types come from the valley's starting trees, so felling a tree never changes the ground.
  */
 function createGroundMaterial(valley: Valley, track: <T extends { dispose(): void }>(item: T) => T): THREE.MeshStandardMaterial {
@@ -71,7 +72,8 @@ function createGroundMaterial(valley: Valley, track: <T extends { dispose(): voi
   weights.needsUpdate = true;
 
   // The clearing texture is the material's own map, so three.js sets up the repeating texture coordinates for all three.
-  const material = new THREE.MeshStandardMaterial({ map: textures.clearing, flatShading: true });
+  // Smooth shading, so the slopes do not show every triangle.
+  const material = new THREE.MeshStandardMaterial({ map: textures.clearing });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.forestFloorMap = { value: textures.forestFloor };
     shader.uniforms.riverBankMap = { value: textures.riverBank };
@@ -92,11 +94,19 @@ function createGroundMaterial(valley: Valley, track: <T extends { dispose(): voi
       .replace(
         "#include <map_fragment>",
         [
-          "vec3 groundWeights = texture2D( groundTypeWeights, vGroundTypeUv ).rgb;",
+          // Red is forest floor and blue is river bank. Clearing fills the rest. See bakeGroundTypeWeights.
+          "vec4 groundMap = texture2D( groundTypeWeights, vGroundTypeUv );",
+          "vec3 groundWeights = vec3( groundMap.r, max( 1.0 - groundMap.r - groundMap.b, 0.0 ), groundMap.b );",
           "groundWeights /= max( groundWeights.r + groundWeights.g + groundWeights.b, 0.001 );",
-          "vec4 groundColour = texture2D( forestFloorMap, vMapUv ) * groundWeights.r",
-          "  + texture2D( map, vMapUv ) * groundWeights.g",
-          "  + texture2D( riverBankMap, vMapUv ) * groundWeights.b;",
+          // A second, larger and turned copy of each texture, mixed in by patches, hides the repeat.
+          "vec2 largeUv = mat2( 0.8, -0.6, 0.6, 0.8 ) * vMapUv * 0.43 + vec2( 0.31, 0.67 );",
+          "vec4 forestFloorColour = mix( texture2D( forestFloorMap, vMapUv ), texture2D( forestFloorMap, largeUv ), groundMap.a );",
+          "vec4 clearingColour = mix( texture2D( map, vMapUv ), texture2D( map, largeUv ), groundMap.a );",
+          "vec4 riverBankColour = mix( texture2D( riverBankMap, vMapUv ), texture2D( riverBankMap, largeUv ), groundMap.a );",
+          "vec4 groundColour = forestFloorColour * groundWeights.r + clearingColour * groundWeights.g + riverBankColour * groundWeights.b;",
+          // Green holds large light and dark patches across the valley.
+          // Darker patches are also a little warmer and drier, lighter ones a little fresher.
+          "groundColour.rgb *= mix( vec3( 0.84, 0.8, 0.7 ), vec3( 1.1, 1.14, 1.12 ), groundMap.g );",
           "diffuseColor *= groundColour;",
         ].join("\n"),
       );

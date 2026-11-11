@@ -41,8 +41,17 @@ const FOREST_FLOOR_EDGE_METRES = 7;
 const RIVER_BANK_FULL_METRES = RIVER_BANK_WIDTH_METRES - 2;
 /** River bank fades into the next ground type until this far from the water's edge, in metres. */
 const RIVER_BANK_EDGE_METRES = RIVER_BANK_WIDTH_METRES + 2;
-/** Each lookup cell is as wide as the forest floor's reach, so only the 3 × 3 cells around a spot matter. */
-const CELL_METRES = FOREST_FLOOR_EDGE_METRES;
+/**
+ * The edges of the forest floor and the river bank wobble by up to this many metres, so patches are not perfect circles
+ * and the bank's edge is not a straight line.
+ */
+const EDGE_WOBBLE_METRES = 1.5;
+/** The wobble changes over about this many metres along an edge. */
+const EDGE_WOBBLE_SPACING_METRES = 5;
+/**
+ * Each lookup cell is as wide as the forest floor's reach plus its wobble, so only the 3 × 3 cells around a spot matter.
+ */
+const CELL_METRES = FOREST_FLOOR_EDGE_METRES + EDGE_WOBBLE_METRES;
 
 /** Builds the ground map from the valley as it is made. Pass the valley's starting trees, never the trees still standing. */
 export function createGroundMap(valley: Pick<Valley, "size" | "river" | "trees">): GroundMap {
@@ -54,7 +63,7 @@ export function createGroundMap(valley: Pick<Valley, "size" | "river" | "trees">
     if (cell) cell.push(tree);
     else treesByCell[key] = [tree];
   }
-  const reach = valley.river.width / 2 + RIVER_BANK_EDGE_METRES;
+  const reach = valley.river.width / 2 + RIVER_BANK_EDGE_METRES + EDGE_WOBBLE_METRES;
   const riverSegments: RiverSegment[] = [];
   for (let i = 1; i < valley.river.path.length; i += 1) {
     const a = valley.river.path[i - 1];
@@ -81,9 +90,11 @@ export function groundTypeAt(map: GroundMap, spot: GroundPoint): GroundType {
 
 /** How much of each ground type shows at a spot. Weights change smoothly from spot to spot, so ground types blend softly. */
 export function groundTypeWeightsAt(map: GroundMap, spot: GroundPoint): GroundTypeWeights {
-  const fromWater = distanceToRiverNear(map, spot) - map.river.width / 2;
+  const wobble = (offset: number) =>
+    EDGE_WOBBLE_METRES * smoothNoise(spot.x / EDGE_WOBBLE_SPACING_METRES + offset, spot.z / EDGE_WOBBLE_SPACING_METRES);
+  const fromWater = distanceToRiverNear(map, spot) - map.river.width / 2 + wobble(0);
   const riverBank = 1 - smoothstep((fromWater - RIVER_BANK_FULL_METRES) / (RIVER_BANK_EDGE_METRES - RIVER_BANK_FULL_METRES));
-  const fromTree = distanceToNearestTree(map, spot);
+  const fromTree = distanceToNearestTree(map, spot) + wobble(57.3);
   const forest = 1 - smoothstep((fromTree - FOREST_FLOOR_FULL_METRES) / (FOREST_FLOOR_EDGE_METRES - FOREST_FLOOR_FULL_METRES));
   return {
     riverBank,
@@ -127,6 +138,32 @@ function cellKey(size: number, cellsPerSide: number, point: GroundPoint): number
   const half = size / 2;
   const clampCell = (value: number) => Math.min(cellsPerSide - 1, Math.max(0, Math.floor((value + half) / CELL_METRES)));
   return clampCell(point.z) * cellsPerSide + clampCell(point.x);
+}
+
+/**
+ * Smooth random bumps from -1 to 1, the same for the same spot in every game.
+ * Values are picked at whole-number spots and blended smoothly between them.
+ */
+export function smoothNoise(u: number, v: number): number {
+  const column = Math.floor(u);
+  const row = Math.floor(v);
+  const across = smoothstep(u - column);
+  const down = smoothstep(v - row);
+  const top = lerp(latticeValue(column, row), latticeValue(column + 1, row), across);
+  const bottom = lerp(latticeValue(column, row + 1), latticeValue(column + 1, row + 1), across);
+  return lerp(top, bottom, down);
+}
+
+/** A fixed random value from -1 to 1 for a whole-number spot. */
+function latticeValue(column: number, row: number): number {
+  let hash = Math.imul(column, 374761393) + Math.imul(row, 668265263);
+  hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+  hash ^= hash >>> 16;
+  return ((hash >>> 0) / 4294967295) * 2 - 1;
+}
+
+function lerp(from: number, to: number, amount: number): number {
+  return from + (to - from) * amount;
 }
 
 /** Eases a value from 0 to 1 so it starts and ends gently. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
+import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack, removeFromBackpack } from "./backpack";
 
 describe("the backpack's weight limit", () => {
   it("weighs what it holds", () => {
@@ -25,5 +25,21 @@ describe("the backpack's weight limit", () => {
     expect(countInBackpack(backpack, "stick")).toBe(sticksThatFit);
     expect(countInBackpack(backpack, "firewood")).toBe(0);
     expect(backpackWeight(backpack)).toBeLessThanOrEqual(BACKPACK_WEIGHT_LIMIT_KG);
+  });
+});
+
+describe("taking things out of the backpack", () => {
+  it("takes out what it holds", () => {
+    const backpack = { contents: { stick: 3 } };
+    expect(removeFromBackpack(backpack, "stick", 2)).toBe(true);
+    expect(countInBackpack(backpack, "stick")).toBe(1);
+  });
+
+  it("refuses to take out more than it holds, and keeps what it held", () => {
+    const backpack = { contents: { stick: 1 } };
+    expect(removeFromBackpack(backpack, "stick", 2)).toBe(false);
+    expect(removeFromBackpack(backpack, "firewood", 1)).toBe(false);
+    expect(countInBackpack(backpack, "stick")).toBe(1);
+    expect(countInBackpack(backpack, "firewood")).toBe(0);
   });
 });

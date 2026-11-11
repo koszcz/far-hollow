@@ -1,4 +1,4 @@
-import { countInBackpack } from "./backpack";
+import { removeFromBackpack } from "./backpack";
 import { blueprintEntities, campfireEntities, playerEntities, type EntityStore } from "./entities";
 import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { isWalkable } from "./walk-map";
@@ -97,11 +97,10 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         }
         // Each stage needs its stick before work on it can start.
         if (blueprint.sticksSpent < stageOf(blueprint.progress) + 1) {
-          if (countInBackpack(builder.backpack, "stick") === 0) {
+          if (!removeFromBackpack(builder.backpack, "stick", 1)) {
             entities.removeComponent(builder, "buildTask");
             continue;
           }
-          builder.backpack.contents.stick = countInBackpack(builder.backpack, "stick") - 1;
           blueprint.sticksSpent += 1;
         }
         blueprint.progress = Math.min(blueprint.sticksSpent / CAMPFIRE_STICK_COST, blueprint.progress + stepSeconds / CAMPFIRE_BUILD_SECONDS);

@@ -1,5 +1,5 @@
 import type { CampfireFuel } from "./api";
-import { countInBackpack, hasInBackpack } from "./backpack";
+import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
 import type { GroundPoint } from "./valley";
 import type { Walking } from "./walking";
@@ -80,10 +80,10 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       const campfire = campfireById(campfireId);
       if (campfire === undefined) return;
       const player = tenderOf(campfire);
-      if (player?.backpack === undefined || !hasInBackpack(player.backpack, fuel)) return;
+      if (player?.backpack === undefined) return;
       const fuelMinutes = campfire.campfire.fuelMinutes + FUEL_BURN_MINUTES[fuel];
       if (fuelMinutes > CAMPFIRE_FUEL_LIMIT_MINUTES) return;
-      player.backpack.contents[fuel] = countInBackpack(player.backpack, fuel) - 1;
+      if (!removeFromBackpack(player.backpack, fuel, 1)) return;
       campfire.campfire.fuelMinutes = fuelMinutes;
     },
     light(campfireId) {

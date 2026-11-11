@@ -63,3 +63,14 @@ export function addToBackpack(backpack: Backpack, content: BackpackContent, coun
   backpack.contents[content] = countInBackpack(backpack, content) + count;
   return true;
 }
+
+/**
+ * Takes `count` of `content` out of the backpack if it holds that many.
+ * Returns false, and changes nothing, if it does not.
+ */
+export function removeFromBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
+  const held = countInBackpack(backpack, content);
+  if (held < count) return false;
+  backpack.contents[content] = held - count;
+  return true;
+}

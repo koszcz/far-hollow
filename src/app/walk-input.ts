@@ -62,6 +62,8 @@ export function menuActionsFor(pick: ScenePick): MenuAction[] {
       return [{ label: strings.debark, command: { type: "debarkLog", logId: pick.id } }];
     case "blueprint":
     case "structure":
+    case "chest":
+    case "woodpile":
       return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
     default:
       return [];

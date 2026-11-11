@@ -179,6 +179,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.14.0(supports-color@7.2.0))
+      '@playwright/test':
+        specifier: ^1.65.0
+        version: 1.65.0
       '@preact/preset-vite':
         specifier: ^2.10.6
         version: 2.10.6(@babel/core@7.29.13(supports-color@7.2.0))(preact@11.2.0)(supports-color@7.2.0)(vite@8.3.7(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
@@ -568,6 +571,11 @@ packages:
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
+
+  '@playwright/test@1.65.0':
+    resolution: {integrity: sha512-iGURLGuKDLakSEl7Pgfv8h7f+XLT+V861Wfhz0zlEl5nyFuKUopdkFBPKqTllTUp06aOwPuH8iuUEb3yp3MpbQ==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@preact/preset-vite@2.10.6':
     resolution: {integrity: sha512-ZZ5RIT2ZVXg8UxRA8VZpoT8CdpDG7RFIqOT4bELqNBp85+HKvQBbgmh3gsoW1UOQXx26TLe+ZRNKI7q281Kckw==}
@@ -1344,6 +1352,16 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  playwright-core@1.65.0:
+    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.0:
+    resolution: {integrity: sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   postcss@8.5.32:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
@@ -1936,6 +1954,10 @@ snapshots:
       eventery: 0.0.4
 
   '@oxc-project/types@0.156.0': {}
+
+  '@playwright/test@1.65.0':
+    dependencies:
+      playwright: 1.65.0
 
   '@preact/preset-vite@2.10.6(@babel/core@7.29.13(supports-color@7.2.0))(preact@11.2.0)(supports-color@7.2.0)(vite@8.3.7(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))':
     dependencies:
@@ -2675,6 +2697,12 @@ snapshots:
   picomatch@2.3.2: {}
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.65.0: {}
+
+  playwright@1.65.0:
+    dependencies:
+      playwright-core: 1.65.0
 
   postcss@8.5.32:
     dependencies:

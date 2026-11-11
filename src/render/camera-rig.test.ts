@@ -144,6 +144,22 @@ describe("camera follow", () => {
     expect(rig.view().focus).toEqual({ x: 10, y: 0, z: 0 });
   });
 
+  it("moves the view back to the target when snapped with follow off, and stays there", () => {
+    const rig = createCameraRig();
+    const target = { x: 5, y: 2, z: -3 };
+    rig.setFollowTarget(target);
+    rig.setFollowEnabled(false);
+    rig.panWhenFree(40, 40);
+    target.x = 9;
+
+    rig.snapToFollowTarget();
+    expect(rig.view().focus).toMatchObject({ x: 9, z: -3 });
+    expect(rig.followEnabled).toBe(false);
+
+    target.x = 20;
+    expect(rig.view().focus).toMatchObject({ x: 9, z: -3 });
+  });
+
   it("ignores keyboard and screen-edge panning while following", () => {
     const rig = createCameraRig();
     rig.panWhenFree(10, 10);

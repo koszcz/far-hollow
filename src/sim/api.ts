@@ -5,6 +5,8 @@ import type { TimeOfDay } from "./clock";
 
 export type Command =
   | { type: "setPaused"; paused: boolean }
+  /** Walk the player to a spot on the ground, given in metres from the valley's centre. */
+  | { type: "walkTo"; x: number; z: number }
   /** Jumps the valley's clock forward. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
@@ -15,6 +17,8 @@ export interface GameView {
   /** Logic steps run since the game started. */
   readonly stepCount: number;
   readonly entityCount: number;
+  /** Where the player stands after the latest logic step, in metres. */
+  readonly playerPosition: Readonly<{ x: number; y: number; z: number }>;
   /** The valley's clock: which day it is and the time of day. */
   readonly time: TimeOfDay;
 }

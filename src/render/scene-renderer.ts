@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { movingEntities, type EntityStore } from "../sim/entities";
-import { terrainHeightAt, type Valley } from "../sim/valley";
+import { terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
+import { createPlayerMesh } from "./player-mesh";
 import { createSkyLighting } from "./sky-lighting";
 import { createValleyMeshes } from "./valley-meshes";
 
@@ -15,6 +16,8 @@ export interface SceneRenderer {
   render(alpha: number): void;
   /** Where the camera looks. Camera input and camera follow change it. It never changes game state. */
   readonly cameraRig: CameraRig;
+  /** The spot on the ground under a point on the screen, in page pixels, or undefined if the point is off the ground. */
+  groundSpotAt(clientX: number, clientY: number): GroundPoint | undefined;
   dispose(): void;
 }
 
@@ -66,8 +69,16 @@ export function createSceneRenderer(
     camera.updateProjectionMatrix();
   }
 
+  const playerMesh = createPlayerMesh();
+  scene.add(playerMesh.group);
+  /** Where the player is drawn this frame. The camera follows it. */
+  const playerDrawn = { x: 0, y: 0, z: 0 };
+  cameraRig.setFollowTarget(playerDrawn);
+
   const moving = movingEntities(entities);
   const blended = { x: 0, y: 0, z: 0 };
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
 
   return {
     cameraRig,
@@ -76,13 +87,24 @@ export function createSceneRenderer(
       skyLighting.update(readHourOfDay());
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
-        // Later tickets copy `blended` onto the entity's mesh here.
+        if (entity.player) {
+          Object.assign(playerDrawn, blended);
+          playerMesh.group.position.set(blended.x, blended.y, blended.z);
+        }
       }
       placeCamera();
       renderer.render(scene, camera);
     },
+    groundSpotAt(clientX, clientY) {
+      const bounds = canvas.getBoundingClientRect();
+      pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObject(valleyMeshes.ground, false)[0];
+      return hit === undefined ? undefined : { x: hit.point.x, z: hit.point.z };
+    },
     dispose() {
       valleyMeshes.dispose();
+      playerMesh.dispose();
       renderer.dispose();
     },
   };

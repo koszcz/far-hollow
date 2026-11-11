@@ -5,8 +5,8 @@ const MAX_PITCH = (75 * Math.PI) / 180;
 const START_PITCH = (45 * Math.PI) / 180;
 const MIN_DISTANCE_METRES = 8;
 const MAX_DISTANCE_METRES = 1300;
-/** Far enough to show the whole valley until the player exists to follow. */
-const START_DISTANCE_METRES = 1250;
+/** Close enough to see the player and the trees around them. */
+const START_DISTANCE_METRES = 40;
 /** The camera starts south-east of the point it looks at. */
 const START_YAW = Math.PI / 4;
 
@@ -48,7 +48,10 @@ export interface CameraRig {
   readonly followEnabled: boolean;
   /** Turns follow on or off. Turning it off leaves the camera looking where it was. */
   setFollowEnabled(enabled: boolean): void;
-  /** Removes any right-drag offset, so the camera looks straight at the follow target again. */
+  /**
+   * Looks straight at the follow target again. While following, this removes any right-drag offset.
+   * With follow off, it moves the view to where the target is now, and the view stays there.
+   */
   snapToFollowTarget(): void;
   /**
    * Sets what the camera follows, such as the player's drawn position, or null for nothing.
@@ -141,6 +144,9 @@ export function createCameraRig({ groundHeightAt = () => 0 }: CameraRigOptions =
     setFollowTarget(target) {
       followTarget = target;
     },
-    snapToFollowTarget: resetFollowOffset,
+    snapToFollowTarget() {
+      resetFollowOffset();
+      if (!followEnabled && followTarget !== null) freeFocus = { ...followTarget };
+    },
   };
 }

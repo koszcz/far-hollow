@@ -2,11 +2,17 @@ import type { Command, GameClient, GameView } from "./api";
 import { createClock, readClock, type ClockStart } from "./clock";
 import { createEntityStore, movingEntities, type EntityStore } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
+import { createWalking, playerStartSpot } from "./walking";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
 export const STEP_MS = 1000 / STEPS_PER_SECOND;
 
+/**
+ * The player keeps at least this far from a tree's centre.
+ * The walk map uses 1 m cells, so this leaves room for the widest trunk (about 0.4 m) plus half a cell's diagonal.
+ */
+const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
 
@@ -29,8 +35,16 @@ export function createGame({ seed }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   for (const tree of valley.trees) {
-    entities.add({ tree: true, position: { x: tree.x, y: terrainHeightAt(valley.terrain, tree.x, tree.z), z: tree.z } });
+    entities.add({
+      tree: true,
+      position: { x: tree.x, y: terrainHeightAt(valley.terrain, tree.x, tree.z), z: tree.z },
+      blocksWalking: { radius: TREE_WALK_BLOCK_RADIUS_METRES },
+    });
   }
+  const walking = createWalking(entities, valley);
+  const start = playerStartSpot(walking, valley);
+  const startPosition = { x: start.x, y: terrainHeightAt(valley.terrain, start.x, start.z), z: start.z };
+  const player = entities.add({ player: true, position: startPosition, previousPosition: { ...startPosition } });
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -45,6 +59,7 @@ export function createGame({ seed }: GameOptions): Game {
       paused,
       stepCount,
       entityCount: entities.entities.length,
+      playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
     });
   }
@@ -52,6 +67,9 @@ export function createGame({ seed }: GameOptions): Game {
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
     setPaused: (command) => {
       paused = command.paused;
+    },
+    walkTo: (command) => {
+      walking.walkTo({ x: command.x, z: command.z });
     },
     skipTime: (command) => {
       clock.skip(command.hours);
@@ -71,6 +89,7 @@ export function createGame({ seed }: GameOptions): Game {
       for (const entity of moving) {
         Object.assign(entity.previousPosition, entity.position);
       }
+      walking.step(STEP_MS / 1000);
       clock.advance(STEP_MS);
       stepCount += 1;
     }

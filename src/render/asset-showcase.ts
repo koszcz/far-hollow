@@ -13,6 +13,7 @@ import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createSkyLighting } from "./sky-lighting";
+import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
 import { FALL_SECONDS } from "./tree-fall";
 import type { TreeShape } from "./tree-model";
@@ -257,6 +258,7 @@ export function showAsset(
   id: string,
   treeShapes: readonly TreeShape[],
   stumpShape: StumpShape,
+  logShape: LogShape,
   options: ShowOptions = { play: false, speed: 1 },
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
@@ -283,7 +285,7 @@ export function showAsset(
   if (river !== undefined) scene.add(river.group);
 
   const store = createEntityStore();
-  const player = createPlayerMesh();
+  const player = createPlayerMesh(logShape);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
   const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
@@ -307,7 +309,7 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape);
+  const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   scene.add(forest.group, campfires.group);
   sky.addShadowReceivers(ground.group);

@@ -117,18 +117,20 @@
     },
     {
       "id": "logs",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/logs/logs.glb",
       "code": [
         "src/render/log-shape.ts",
         "src/render/forest-meshes.ts",
         "src/render/player-mesh.ts"
       ],
       "description": "Logs cut from a felled tree.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. log.glb, unchanged",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/05-chop-tree-carry-log.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

@@ -1,9 +1,9 @@
 // Draws the player with the code-built shape listed in asset-manifest.json as "player": a woodcutter with adult proportions,
 // knees and elbows, a plaid work shirt, a knit cap, a beard, and an axe. The owner approved the asset.
 // The walk cycle is the code-built "walk-animation". The owner approved the asset.
-// The chopping swing is the code-built "chop-animation". The splitting strike is the code-built "split-animation". The carried log is the code-built "logs" shape.
+// The chopping swing is the code-built "chop-animation". The splitting strike is the code-built "split-animation". The carried log is the approved "logs" asset, loaded by log-shape.ts.
 import * as THREE from "three";
-import { createLogGeometry, LOG_COLOUR } from "./log-shape";
+import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 
 const SHIRT_COLOUR = "#7d3b31";
 const SHIRT_STRIPE_COLOUR = "#2b2523";
@@ -108,7 +108,8 @@ interface Leg extends Limb {
   readonly ankle: THREE.Group;
 }
 
-export function createPlayerMesh(): PlayerMesh {
+/** logShape is the loaded log, from loadLogShape. The player carries it on the shoulder. */
+export function createPlayerMesh(logShape: LogShape): PlayerMesh {
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
   const textures: THREE.Texture[] = [];
@@ -248,9 +249,8 @@ export function createPlayerMesh(): PlayerMesh {
   }
   holdAxe(axeInHand);
 
-  const logGeometry = createLogGeometry();
-  geometries.push(logGeometry);
-  const shoulderLog = new THREE.Mesh(logGeometry, material(LOG_COLOUR, { flatShading: true }));
+  // The forest owns the log shape and disposes it, so the player does not.
+  const shoulderLog = new THREE.Mesh(logShape.geometry, [material(LOG_COLOUR, { flatShading: true }), material(LOG_CUT_COLOUR, { flatShading: true })]);
   shoulderLog.position.set(SHOULDER_LOG_SPOT.x, SHOULDER_LOG_SPOT.y, SHOULDER_LOG_SPOT.z);
   shoulderLog.visible = false;
   chest.add(shoulderLog);

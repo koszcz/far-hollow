@@ -1,12 +1,12 @@
 // Decides where undergrowth must not show because the player has placed something there:
-// a campfire, a bedroll, a lean-to, a building piece, a woodpile, a chest, or a blueprint.
+// a campfire, a bedroll, a lean-to, a building piece, a woodpile, a chest, a work station, or a blueprint.
 // A blueprint covers the same ground as the structure it will become. STRUCTURE_FOOTPRINTS gives that ground for each structure,
 // so a new structure cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import {
   bedrollEntities, blueprintEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, leanToEntities, woodpileEntities,
-  type EntityStore,
+  workStationEntities, type EntityStore,
 } from "../sim/entities";
 import { structureOf } from "../sim/structures";
 import type { QuarterTurns, StructureKind } from "../sim/structure-kind";
@@ -44,6 +44,7 @@ const STRUCTURE_FOOTPRINTS: Readonly<Record<StructureKind, (x: number, z: number
   roof: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
   woodpile: (x, z, turns) => structureFootprint("woodpile", x, z, turns),
   chest: (x, z, turns) => structureFootprint("chest", x, z, turns),
+  sawhorse: (x, z, turns) => structureFootprint("sawhorse", x, z, turns),
 };
 
 /** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */
@@ -79,6 +80,9 @@ export function campFootprints(entities: EntityStore): CampFootprint[] {
   }
   for (const { position, facing } of chestEntities(entities)) {
     footprints.push(STRUCTURE_FOOTPRINTS.chest(position.x, position.z, facing?.turns ?? 0));
+  }
+  for (const { workStation, position, facing } of workStationEntities(entities)) {
+    footprints.push(STRUCTURE_FOOTPRINTS[workStation](position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

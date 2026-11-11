@@ -436,12 +436,28 @@
         "src/ui/hud.tsx",
         "src/app/style.css"
       ],
-      "description": "Coloured shaded icons for the build menu, one per structure: campfire, lean-to, foundation, log wall, door frame, roof section, woodpile, and chest. Also an icon for the debarked log, a build material that is not a backpack content. They share the backpack icons' style and renderer. Each build menu tile shows its structure's icon over its cost, drawn as material icons with counts.",
+      "description": "Coloured shaded icons for the build menu, one per structure: campfire, lean-to, foundation, log wall, door frame, roof section, woodpile, sawhorse, and chest. Also an icon for the debarked log, a build material that is not a backpack content. They share the backpack icons' style and renderer. Each build menu tile shows its structure's icon over its cost, drawn as material icons with counts.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "draft",
         "ticket": ".scratch/hud-icons/issues/02-build-menu-icons.md"
+      }
+    },
+    {
+      "id": "crafting-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/crafting-icons.tsx",
+        "src/ui/icon-drawing.ts",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "Backpack icons for the things crafting uses or makes, drawn in the same style as backpack-icons: the saw blade, a bare steel blade with teeth and a pin hole at each end, and the saw, the same blade fixed to a wooden handle. Crafting ticket 03 added the plank, a pale sawn board lying at a slant with grain lines along its face.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/crafting/issues/01-craft-menu-and-saw.md"
       }
     },
     {
@@ -613,6 +629,20 @@
       }
     },
     {
+      "id": "sawhorse",
+      "kind": "code",
+      "code": [
+        "src/render/sawhorse-meshes.ts"
+      ],
+      "description": "The sawhorse: a pale beam of debarked log, 1.2 m long, resting 0.75 m up in the crook of two pairs of crossed legs, one pair near each end. The legs spread 0.6 m at the foot. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction stands up the legs in the first stage and lays the beam in the second.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/crafting/issues/02-sawhorse.md"
+      }
+    },
+    {
       "id": "woodpile",
       "kind": "code",
       "code": [
@@ -636,12 +666,13 @@
       "code": [
         "src/render/pile-meshes.ts"
       ],
-      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood and bark lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Firewood and the pot reuse their approved shapes. Dropped sticks never form a pile: they lie as normal sticks. Bark, berries, mushrooms, and tools are rough shapes.",
+      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood lies in a stack of 5, 4, then 3, each layer resting in the gaps of the one below. Bark lies in up to three rows of strips, each strip nested in the one below. Tools, food, the pot, and the bedroll spread around the middle. Firewood, bark, mushrooms, and the pot reuse their approved shapes. The axe has a steel head and a handle painted red at its end, the knife a bright blade, the drawknife a blue-steel blade with two wooden handles, and the fire striker is a flat steel loop. A handful of berries is seven red berries on a leaf. Dropped sticks never form a pile: they lie as normal sticks. The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/01-drop-things-and-pick-up-piles.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

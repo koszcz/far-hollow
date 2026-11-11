@@ -2,7 +2,8 @@
 // One icon per structure the player can build, and one for each build material that is not a backpack content.
 // They use the same shaded style and renderer as the backpack icons in backpack-icons.tsx, drawn on a 24 by 24 grid.
 import type { BuildMaterial, StructureKind } from "../sim/api";
-import { BackpackIcon, ShadedIcon, type IconDrawing } from "./backpack-icons";
+import { BackpackIcon, ShadedIcon } from "./backpack-icons";
+import type { BackpackIconDrawing as IconDrawing } from "./icon-drawing";
 
 /** Colours shared by several icons. */
 const WOOD = "#c0763a";
@@ -87,6 +88,15 @@ const STRUCTURE_DRAWINGS: Readonly<Record<StructureKind, IconDrawing>> = {
   woodpile: {
     colour: END_GRAIN,
     parts: [...logEnd(5.5, 18), ...logEnd(12, 18), ...logEnd(18.5, 18), ...logEnd(8.8, 12.2), ...logEnd(15.2, 12.2), ...logEnd(12, 6.4)],
+  },
+  /** A sawhorse: a beam on two pairs of splayed legs, with a log resting across it. */
+  sawhorse: {
+    colour: WOOD,
+    parts: [
+      { d: "M4 21l4-10M10 21L8 11M14 21l2-10M20 21l-4-10", as: "line", colour: DARK_WOOD },
+      { d: "M3 9.5h18v2.5H3z", as: "fill" },
+      ...sideLog(6, 18, 6.5, 2.5),
+    ],
   },
   /** A wooden chest with a rounded lid, a steel band, and a lock. */
   chest: {

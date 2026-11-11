@@ -11,6 +11,7 @@ import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { createChestMeshes } from "./chest-meshes";
+import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createPileMeshes } from "./pile-meshes";
 import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
@@ -25,7 +26,9 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
-import { CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
+import {
+  CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST, SAWHORSE_LOG_COST,
+} from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createRoofMeshes } from "./roof-meshes";
@@ -292,6 +295,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
     },
   },
+  sawhorse: {
+    radius: 1.6,
+    focus: { x: 0, y: 0.35, z: 0 },
+    // A blueprint with one log delivered, the beam being set down, then the finished sawhorse from the side and from one end.
+    shots: [
+      { label: "blueprint, 1 of 2 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "beam above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / SAWHORSE_LOG_COST },
+      { label: "built, side", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, end", yaw: 90, pitch: 20, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { structure: "sawhorse", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
+      movePlayer(1.3, 0.3, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
   roof: {
@@ -475,25 +496,42 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
     },
   },
+  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Front row: the tools and a pot.
+  // One view shows them all. The others come close to the wood and bark, the tools, and the food.
   pile: {
-    radius: 2.6,
-    focus: { x: 0, y: 0.1, z: 0.7 },
-    shots: FOUR_ANGLES,
-    // Back row: one of each long thing, an axe, and a handful of berries. Middle row: many of each. Front row: tools, mushrooms, and pots.
+    radius: 3.2,
+    focus: { x: 0, y: 0.1, z: 0.5 },
+    shots: [
+      { label: "all piles", yaw: 0, pitch: 35 },
+      { label: "firewood and bark, one and many", yaw: 25, pitch: 30, radius: 1.1, focus: { x: -1.35, y: 0.1, z: -0.1 } },
+      { label: "axe, knife, drawknife, fire strikers", yaw: 0, pitch: 55, radius: 0.75, focus: { x: -0.2, y: 0, z: 1.8 } },
+      { label: "berries and mushrooms, one and many", yaw: -20, pitch: 40, radius: 0.85, focus: { x: 0.45, y: 0.05, z: 0.1 } },
+    ],
     build({ place }) {
-      const row = (z: number, piles: readonly NonNullable<Entity["pile"]>[]): void => {
-        piles.forEach((pile, index) => place((index - (piles.length - 1) / 2) * 0.9, z, { pile }));
+      const row = (z: number, piles: readonly NonNullable<Entity["pile"]>[], spacing = 0.9): void => {
+        piles.forEach((pile, index) => place((index - (piles.length - 1) / 2) * spacing, z, { pile }));
       };
-      row(-0.8, [{ content: "stick", count: 1 }, { content: "firewood", count: 1 }, { content: "bark", count: 1 }, { content: "axe", count: 1 }, { content: "berries", count: 1 }]);
-      row(0.8, [{ content: "stick", count: 12 }, { content: "firewood", count: 12 }, { content: "bark", count: 6 }, { content: "berries", count: 8 }]);
-      row(2.2, [
+      row(-0.8, [
+        { content: "firewood", count: 1 },
+        { content: "bark", count: 1 },
+        { content: "berries", count: 1 },
+        { content: "mushroom", count: 1 },
+        { content: "potOfBoiledWater", count: 1 },
+      ]);
+      row(0.6, [
+        { content: "firewood", count: 12 },
+        { content: "bark", count: 12 },
+        { content: "berries", count: 8 },
+        { content: "mushroom", count: 5 },
+        { content: "bark", count: 4 },
+      ]);
+      row(1.8, [
+        { content: "axe", count: 1 },
         { content: "knife", count: 1 },
         { content: "drawknife", count: 1 },
         { content: "fireStriker", count: 2 },
-        { content: "mushroom", count: 5 },
         { content: "pot", count: 1 },
-        { content: "potOfBoiledWater", count: 1 },
-      ]);
+      ], 0.45);
     },
   },
   "fire-effect": {
@@ -585,6 +623,20 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "HUD: materials, one and many", yaw: -20, pitch: 35 },
       { label: "HUD: food and a pot of river water", yaw: 40, pitch: 35 },
       { label: "HUD: a pot of boiled water", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the saw blade and the saw in the backpack and the craft menu.
+  "crafting-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: saw blade and the craft menu", yaw: 20, pitch: 35 },
+      { label: "HUD: crafting the saw", yaw: -20, pitch: 35 },
+      { label: "HUD: the saw, made", yaw: 40, pitch: 35 },
+      { label: "HUD: several of each", yaw: 20, pitch: 35 },
     ],
     build({ movePlayer }) {
       movePlayer(0, 0, 0);
@@ -849,17 +901,18 @@ export function showAsset(
   const bark = createBarkMeshes(store);
   const woodpiles = createWoodpileMeshes(store, shapes.log);
   const chests = createChestMeshes(store);
-  const piles = createPileMeshes(store);
+  const sawhorses = createSawhorseMeshes(store);
+  const piles = createPileMeshes(store, shapes.mushrooms);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(
     forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
-    woodpiles.group, chests.group, piles.group, rain.group,
+    woodpiles.group, chests.group, sawhorses.group, piles.group, rain.group,
   );
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(
     forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
-    woodpiles.group, chests.group, piles.group, player.group, props,
+    woodpiles.group, chests.group, sawhorses.group, piles.group, player.group, props,
   );
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
@@ -878,6 +931,7 @@ export function showAsset(
     piles.update();
     woodpiles.update();
     chests.update();
+    sawhorses.update();
     bark.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
@@ -939,6 +993,7 @@ export function showAsset(
       piles.dispose();
       woodpiles.dispose();
       chests.dispose();
+      sawhorses.dispose();
       bark.dispose();
       rain.dispose();
       player.dispose();

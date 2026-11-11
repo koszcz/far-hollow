@@ -4,7 +4,8 @@
 // The build menu icons, in build-icons.tsx, are the draft "build-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, StructureKind, WoodpileView, WoodpileWood,
+  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
+  WoodpileWood,
 } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
@@ -74,6 +75,55 @@ export interface HudProps {
   onToggleBuildMenu: () => void;
   /** Called when the player picks a structure from the build menu. Its blueprint then follows the mouse. */
   onPickBuildEntry: (structure: StructureKind) => void;
+  /** Whether the craft menu is open. */
+  craftMenuOpen: boolean;
+  /** Called when the player opens or closes the craft menu. The menu is input state, not game state, so this is not a command. */
+  onToggleCraftMenu: () => void;
+}
+
+/**
+ * The craft menu: every recipe, with what it uses and how long it takes. A recipe the player cannot follow yet says
+ * which tool or work station it lacks. Choosing a recipe starts crafting it.
+ */
+function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: RecipeKind) => void }) {
+  return (
+    <section class="hud-section hud-build-menu" aria-label={strings.craftMenu.title}>
+      <h2>
+        <HudIcon name="axe" />
+        {strings.craftMenu.title}
+      </h2>
+      <ul>
+        {view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials }) => (
+          <li key={recipe}>
+            <HudButton
+              label={strings.craftMenu.recipes[recipe]}
+              disabled={missingTool !== undefined || missingStation !== undefined || !hasMaterials || view.carrying !== null}
+              onClick={() => {
+                onChoose(recipe);
+              }}
+            />
+            <span class="hud-build-cost">
+              {strings.craftMenu.cost(
+                [
+                  ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+                  ...(besideStation === undefined || station === undefined
+                    ? []
+                    : besideStation.map(({ material, count }) =>
+                        strings.craftMenu.besideStation(strings.craftMenu.groundMaterials[material](count), strings.buildMenu.structures[station]),
+                      )),
+                ],
+                seconds,
+              )}
+              {missingTool !== undefined && ` · ${strings.craftMenu.needsTool(strings.backpackContents[missingTool])}`}
+              {missingStation !== undefined && ` · ${strings.craftMenu.needsStation(strings.buildMenu.structures[missingStation])}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {view.carrying !== null && <p class="hud-hint">{strings.craftMenu.putLogDownFirst}</p>}
+      <p class="hud-hint">{strings.craftMenu.close}</p>
+    </section>
+  );
 }
 
 /**
@@ -328,9 +378,10 @@ const actionLabels = {
   debark: strings.debarking,
   build: strings.building,
   takeDown: strings.takingDown,
+  craft: strings.crafting,
 } as const;
 
-const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe" };
+const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe", craft: "axe" };
 
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
@@ -345,9 +396,10 @@ const PLACING_HINTS: { readonly [Kind in StructureKind]: (structure: string) => 
   roof: strings.buildMenu.placing.overWalls,
   woodpile: strings.buildMenu.placing.onGround,
   chest: strings.buildMenu.placing.anywhere,
+  sawhorse: strings.buildMenu.placing.onGround,
 };
 
-export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
+export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry, craftMenuOpen, onToggleCraftMenu }: HudProps) {
   const [view, setView] = useState(client.getView());
   useEffect(
     () =>
@@ -361,6 +413,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
   const hasContext =
     view.action !== null ||
     buildMenuOpen ||
+    craftMenuOpen ||
     placing !== null ||
     view.carrying !== null ||
     view.nearbyCampfire !== null ||
@@ -389,6 +442,12 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
             )}
             {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
+            {craftMenuOpen && (
+              <CraftMenu view={view} onChoose={(recipe) => {
+                  client.send({ type: "craft", recipe });
+                  onToggleCraftMenu();
+                }} />
+            )}
             {placing !== null && (
               <p class="hud-hint">
                 {PLACING_HINTS[placing](strings.buildMenu.structures[placing])}
@@ -438,6 +497,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                 client.send({ type: "setPaused", paused: !view.paused });
               }} />
             <HudButton icon="place" label={strings.buildMenu.open} disabled={placing !== null} onClick={onToggleBuildMenu} />
+            <HudButton icon="axe" label={strings.craftMenu.open} onClick={onToggleCraftMenu} />
           </div>
         </div>
       </div>

@@ -505,7 +505,7 @@ export function showAsset(
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
-  const rain: RainEffect = createRainEffect(store);
+  const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(forest.group, campfires.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(forest.group, campfires.group, forage.group, bedrolls.group, player.group, props);
@@ -524,7 +524,7 @@ export function showAsset(
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
-    rain.update(seconds, focus);
+    rain.update(seconds, focus, daylightAt(shot.hour ?? NOON));
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);

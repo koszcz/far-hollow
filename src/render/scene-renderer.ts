@@ -101,7 +101,7 @@ export function createSceneRenderer(
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);
-  const rainEffect = createRainEffect(entities);
+  const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group, bedrollMeshes.group);
@@ -206,7 +206,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
-      rainEffect.update(nowSeconds, cameraRig.view().focus);
+      rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
     },

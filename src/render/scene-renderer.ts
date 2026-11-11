@@ -97,8 +97,8 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
-  // Undergrowth is only for looks: it is never picked, and it casts no shadows.
-  const undergrowthMeshes = createUndergrowthMeshes(valley, undergrowthShapes);
+  // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
+  const undergrowthMeshes = createUndergrowthMeshes(valley, undergrowthShapes, entities);
   scene.add(undergrowthMeshes.group);
   const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape, logShape);
   scene.add(forestMeshes.group);

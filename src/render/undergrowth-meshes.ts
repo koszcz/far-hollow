@@ -3,11 +3,13 @@
 // - Each model is one batch (an instanced mesh), so thousands of plants cost a few dozen draw calls.
 // - Only patches near where the camera looks are grown and drawn. Plants shrink into the ground as they near the edge
 //   of the drawn area, so they never pop in or out.
+// - Plants under anything the player has placed are not drawn. undergrowth-clearing.ts decides which spots are covered.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
-import type { Vec3 } from "../sim/entities";
+import type { EntityStore, Vec3 } from "../sim/entities";
 import { createGroundMap, type GroundMap } from "../sim/ground-types";
 import { terrainHeightAt, type Valley } from "../sim/valley";
+import { campFootprints, isUnderCamp, type CampFootprint } from "./undergrowth-clearing";
 import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, type UndergrowthPlant } from "./undergrowth-layout";
 import type { UndergrowthShape } from "./undergrowth-models";
 
@@ -30,7 +32,10 @@ const LOOK_BY_KIND: Readonly<Record<UndergrowthKind, { readonly models: RegExp; 
 
 export interface UndergrowthMeshes {
   readonly group: THREE.Group;
-  /** Grows and draws the undergrowth around `focus`, where the camera looks. Call it every frame. */
+  /**
+   * Grows and draws the undergrowth around `focus`, where the camera looks. Call it every frame.
+   * It draws again when the focus enters a new patch or when the player places or removes something.
+   */
   update(focus: Readonly<Vec3>): void;
   dispose(): void;
 }
@@ -40,7 +45,7 @@ export function createUndergrowthMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
 }
 
-export function createUndergrowthMeshes(valley: Valley, shapes: readonly UndergrowthShape[]): UndergrowthMeshes {
+export function createUndergrowthMeshes(valley: Valley, shapes: readonly UndergrowthShape[], entities: EntityStore): UndergrowthMeshes {
   const group = new THREE.Group();
   group.name = "undergrowth";
   const groundMap: GroundMap = createGroundMap(valley);
@@ -76,6 +81,9 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   /** Patches grown so far, by column and row. Patches far from the focus are dropped. */
   const grown = new Map<number, UndergrowthPlant[]>();
   let drawnPatch: number | undefined;
+  /** What the player had placed when the undergrowth was last drawn, and the same written as text to spot changes. */
+  let footprints: CampFootprint[] = [];
+  let drawnFootprints = "";
   const matrix = new THREE.Matrix4();
   const turn = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
@@ -108,11 +116,11 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
     }
   }
 
-  /** Adds one plant to its model's batch. Every drawn plant passes through here, so a check that hides a plant belongs here. */
+  /** Adds one plant to its model's batch, unless it lies under something the player has placed. */
   function addPlant(plant: UndergrowthPlant): void {
     const choices = batchesByKind.get(plant.kind) ?? [];
     const batch = choices[Math.min(choices.length - 1, Math.floor(plant.look * choices.length))];
-    if (batch === undefined) return;
+    if (batch === undefined || isUnderCamp(footprints, plant.x, plant.z)) return;
     if (batch.count === batch.mesh.instanceMatrix.count) {
       const bigger = newBatch(batch.shape.geometry, material, batch.mesh.instanceMatrix.count * 2);
       bigger.instanceMatrix.array.set(batch.mesh.instanceMatrix.array);
@@ -136,8 +144,12 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
       const column = Math.floor((focus.x + half) / UNDERGROWTH_PATCH_METRES);
       const row = Math.floor((focus.z + half) / UNDERGROWTH_PATCH_METRES);
       const patch = row * patchesPerSide + column;
-      if (patch === drawnPatch) return;
+      const nowFootprints = campFootprints(entities);
+      const nowFootprintsText = JSON.stringify(nowFootprints);
+      if (patch === drawnPatch && nowFootprintsText === drawnFootprints) return;
       drawnPatch = patch;
+      footprints = nowFootprints;
+      drawnFootprints = nowFootprintsText;
       drawAround(column, row);
     },
     dispose() {

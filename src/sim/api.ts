@@ -37,7 +37,7 @@ export type Command =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
-  /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's warmth changes for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
+  /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
 export interface GameView {
@@ -65,7 +65,9 @@ export interface GameView {
   readonly carrying: "log" | null;
   /** The campfire within the player's reach, or null if none is. */
   readonly nearbyCampfire: CampfireView | null;
-  /** How warm the player is, from 0 (frozen) to 1 (fully warm). */
+  /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
+  readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
+  /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
   readonly warmth: number;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: GameNotice | null;
@@ -73,7 +75,7 @@ export interface GameView {
 
 /**
  * Something that just happened that the player should be told about.
- * `collapsed`: the player had a collapse from the cold and woke at their respawn point.
+ * `collapsed`: the player had a collapse from a neglected need and woke at their respawn point.
  * `survivedFirstNight`: the player reached the first morning without a collapse.
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
  * `saveBroken`: the saved game could not be loaded, so a new game started.

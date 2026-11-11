@@ -2,6 +2,7 @@
 import type { GameNotice } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
+import { NEED_KINDS } from "./needs";
 
 /** Says whether a value has the right shape. */
 type Check = (value: unknown) => boolean;
@@ -58,7 +59,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blueprint: shape({ piece: exactly("campfire"), progress: finite, sticksSpent: count }),
   buildTask: shape({ blueprintId: count }),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
-  warmth: shape({ level: finite, minutesWithout: finite }),
+  needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
 };
 
@@ -68,7 +69,7 @@ const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS))
 const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, saveBroken: true };
 
 /** The components the player always has. */
-const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "warmth", "respawnPoint"] as const;
+const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "needs", "respawnPoint"] as const;
 
 const saveShape = shape({
   version: count,

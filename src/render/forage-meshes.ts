@@ -1,11 +1,13 @@
-// Draws berry bushes and mushroom patches: "berry-bush" (draft) and "mushrooms" (draft) in asset-manifest.json.
-// Both are rough shapes built in code. A bush is a few lumps of leaves with red berries while it has food.
-// A mushroom patch is three small mushrooms. It shows nothing while it grows back.
+// Draws berry bushes and mushroom patches: "berry-bush" (approved) and "mushrooms" (draft) in asset-manifest.json.
+// A bush is Kenney's bush, loaded in berry-bush-model.ts, with red berries while it has food.
+// A mushroom patch is three small mushrooms, built in code. It shows nothing while it grows back.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { forageSpotEntities, type Entity, type EntityStore } from "../sim/entities";
+import type { BerryBushShape } from "./berry-bush-model";
 import type { OutlinePart } from "./hover-outline";
 
+/** Kenney's bush is thin single-sided leaves, so the leaves draw on both sides. */
 const LEAF_COLOUR = 0x2f6b2c;
 const BERRY_COLOUR = 0xb3202e;
 const STEM_COLOUR = 0xe8dcc0;
@@ -34,29 +36,6 @@ export interface ForageMeshes {
   dispose(): void;
 }
 
-/** A bush: three lumps of leaves, about 0.9 m tall. */
-export function createBushGeometry(): THREE.BufferGeometry {
-  const lumps = [
-    { x: 0, y: 0.45, z: 0, radius: 0.45 },
-    { x: 0.35, y: 0.3, z: 0.1, radius: 0.32 },
-    { x: -0.3, y: 0.3, z: -0.15, radius: 0.34 },
-  ].map(({ x, y, z, radius }) => new THREE.IcosahedronGeometry(radius, 0).translate(x, y, z));
-  return mergeOwned(lumps);
-}
-
-/** A dozen berries dotted over the bush's leaves. */
-export function createBerriesGeometry(): THREE.BufferGeometry {
-  const berries: THREE.BufferGeometry[] = [];
-  for (let i = 0; i < 12; i += 1) {
-    // Spread the berries around and up the bush by a fixed pattern, so every bush looks the same before its turn.
-    const angle = i * 2.4;
-    const height = 0.2 + (i % 4) * 0.15;
-    const reach = 0.5 - Math.abs(height - 0.45) * 0.4;
-    berries.push(new THREE.IcosahedronGeometry(0.05, 0).translate(Math.sin(angle) * reach, height, Math.cos(angle) * reach));
-  }
-  return mergeOwned(berries);
-}
-
 /** Three mushrooms of different sizes, with pale stems and brown caps coloured by vertex. */
 export function createMushroomsGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
@@ -75,16 +54,17 @@ export function createMushroomsGeometry(): THREE.BufferGeometry {
   return mergeOwned(parts);
 }
 
-export function createForageMeshes(entities: EntityStore): ForageMeshes {
+/** bushShape is the loaded berry bush, from loadBerryBushShape. Its geometry is shared, so this never disposes of it. */
+export function createForageMeshes(entities: EntityStore, bushShape: BerryBushShape): ForageMeshes {
   const group = new THREE.Group();
   const spots = forageSpotEntities(entities);
   const capacity = Math.max(1, spots.size);
 
-  const bushGeometry = createBushGeometry();
-  const berriesGeometry = createBerriesGeometry();
+  const bushGeometry = bushShape.bush;
+  const berriesGeometry = bushShape.berries;
   const mushroomsGeometry = createMushroomsGeometry();
-  const leafMaterial = new THREE.MeshStandardMaterial({ color: LEAF_COLOUR, flatShading: true });
-  const berryMaterial = new THREE.MeshStandardMaterial({ color: BERRY_COLOUR, flatShading: true });
+  const leafMaterial = new THREE.MeshStandardMaterial({ color: LEAF_COLOUR, flatShading: true, side: THREE.DoubleSide });
+  const berryMaterial = new THREE.MeshStandardMaterial({ color: BERRY_COLOUR, roughness: 0.45 });
   const mushroomMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
   const bushPickGeometry = new THREE.BoxGeometry(BUSH_PICK_SIZE_METRES.width, BUSH_PICK_SIZE_METRES.height, BUSH_PICK_SIZE_METRES.width);
   bushPickGeometry.translate(0, BUSH_PICK_SIZE_METRES.height / 2, 0);
@@ -202,7 +182,7 @@ export function createForageMeshes(entities: EntityStore): ForageMeshes {
       connected.disconnect();
       regrowing.disconnect();
       for (const item of [
-        bushGeometry, berriesGeometry, mushroomsGeometry, bushPickGeometry, mushroomPickGeometry,
+        mushroomsGeometry, bushPickGeometry, mushroomPickGeometry,
         leafMaterial, berryMaterial, mushroomMaterial, pickMaterial,
         bushes, berries, mushrooms, bushPickers, mushroomPickers,
       ]) item.dispose();

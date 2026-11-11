@@ -260,16 +260,19 @@
     },
     {
       "id": "berry-bush",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/berry-bush/berry-bush.glb",
       "code": [
+        "src/render/berry-bush-model.ts",
         "src/render/forage-meshes.ts"
       ],
       "description": "A berry bush, shown with red berries, and without them while it grows back after foraging.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. plant_bushDetailed.glb, unchanged. The berries are built in code in this project",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/07-hunger-and-foraging.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

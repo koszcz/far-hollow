@@ -21,6 +21,7 @@ import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
+import type { BerryBushShape } from "./berry-bush-model";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
 import type { TreeShape } from "./tree-model";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
@@ -404,6 +405,7 @@ export function showAsset(
   treeShapes: readonly TreeShape[],
   stumpShape: StumpShape,
   logShape: LogShape,
+  bushShape: BerryBushShape,
   options: ShowOptions = { play: false, speed: 1 },
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
@@ -475,7 +477,7 @@ export function showAsset(
 
   const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  const forage = createForageMeshes(store);
+  const forage = createForageMeshes(store, bushShape);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.

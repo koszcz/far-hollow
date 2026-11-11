@@ -16,6 +16,7 @@ import { createSkyLighting } from "./sky-lighting";
 import type { TreeShape } from "./tree-model";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
+import type { BerryBushShape } from "./berry-bush-model";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -55,7 +56,7 @@ export interface SceneRenderer {
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
  * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
- * logShape is the loaded log, from loadLogShape.
+ * logShape is the loaded log, from loadLogShape. bushShape is the loaded berry bush, from loadBerryBushShape.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
@@ -65,6 +66,7 @@ export function createSceneRenderer(
   treeShapes: readonly TreeShape[],
   stumpShape: StumpShape,
   logShape: LogShape,
+  bushShape: BerryBushShape,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -92,7 +94,7 @@ export function createSceneRenderer(
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
-  const forageMeshes = createForageMeshes(entities);
+  const forageMeshes = createForageMeshes(entities, bushShape);
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);

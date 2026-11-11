@@ -18,6 +18,8 @@ import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
 import type { BerryBushShape } from "./berry-bush-model";
 import type { MushroomsShape } from "./mushrooms-model";
+import { createUndergrowthMeshes } from "./undergrowth-meshes";
+import type { UndergrowthShape } from "./undergrowth-models";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -59,6 +61,7 @@ export interface SceneRenderer {
  * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
  * logShape is the loaded log, from loadLogShape. bushShape is the loaded berry bush, from loadBerryBushShape.
  * mushroomsShape is the loaded mushroom patch, from loadMushroomsShape.
+ * undergrowthShapes are the loaded undergrowth models, from loadUndergrowthShapes.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
@@ -70,6 +73,7 @@ export function createSceneRenderer(
   logShape: LogShape,
   bushShape: BerryBushShape,
   mushroomsShape: MushroomsShape,
+  undergrowthShapes: readonly UndergrowthShape[],
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -93,6 +97,9 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
+  // Undergrowth is only for looks: it is never picked, and it casts no shadows.
+  const undergrowthMeshes = createUndergrowthMeshes(valley, undergrowthShapes);
+  scene.add(undergrowthMeshes.group);
   const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape, logShape);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
@@ -206,6 +213,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
+      undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
@@ -237,6 +245,7 @@ export function createSceneRenderer(
     dispose() {
       hoverOutline.dispose();
       valleyMeshes.dispose();
+      undergrowthMeshes.dispose();
       riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();

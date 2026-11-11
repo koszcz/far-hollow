@@ -8,7 +8,8 @@ This replaces ADR 0004. Every asset is listed in the asset catalogue, `asset-man
 
 ## Rules
 
-- A draft asset is always built in code. A third-party file always needs the owner's approval before it enters the game, so every license stays known.
+- A draft asset is built in code. A third-party file always needs the owner's approval before it enters the game, so every license stays known.
+- Exception: when the owner approves a third-party file in chat before a ticket starts, the ticket may add it as a draft. The catalogue entry records that approval in `fileApproval`, and the owner still approves the asset's final look later. The forest-floor undergrowth (`grass`, `ferns`, `flowers`, `pebbles`) was added this way.
 - A ticket may change a draft asset. Changing an approved asset needs the owner's approval first.
 - The build passes while draft assets exist. `make drafts` lists them.
 

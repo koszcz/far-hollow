@@ -12,6 +12,7 @@ import { ActionMenu } from "../ui/action-menu";
 import { Hud } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
+import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import { attachWalkInput, type MenuRequest } from "./walk-input";
 
@@ -141,9 +142,12 @@ const walkInput = attachWalkInput({
   onHoverChange: (pick) => {
     sceneRenderer.setHovered(pick);
   },
-  onPlacingChange: (placing) => {
-    uiState.placingCampfire = placing;
+  onBuildModeChange: (mode) => {
+    uiState.buildMode = mode;
     renderUi();
+  },
+  onPreviewChange: (preview) => {
+    sceneRenderer.setPlacementPreview(preview);
   },
   onMenuChange: (menu) => {
     uiState.menu = menu;
@@ -160,12 +164,12 @@ const loop = createFixedStepLoop({
   },
 });
 
-/** Input state the UI shows: whether a campfire is being placed, and the right-click menu, if one is open. */
-const uiState: { placingCampfire: boolean; menu: MenuRequest | undefined } = { placingCampfire: false, menu: undefined };
+/** Input state the UI shows: the build menu and placing, and the right-click menu, if one is open. */
+const uiState: { buildMode: BuildMode; menu: MenuRequest | undefined } = { buildMode: NOT_BUILDING, menu: undefined };
 
-/** Draws the HUD, the right-click menu, and the debug overlay. Called again when placing a campfire or the menu changes. */
+/** Draws the HUD, the right-click menu, and the debug overlay. Called again when the build mode or the right-click menu changes. */
 function renderUi(): void {
-  const { placingCampfire, menu } = uiState;
+  const { buildMode, menu } = uiState;
   render(
     <>
       {menu !== undefined && (
@@ -186,9 +190,13 @@ function renderUi(): void {
         onCameraFollowChange={(enabled) => {
           sceneRenderer.cameraRig.setFollowEnabled(enabled);
         }}
-        placingCampfire={placingCampfire}
-        onPlaceCampfire={() => {
-          walkInput.startPlacingCampfire();
+        buildMenuOpen={buildMode.menuOpen}
+        placing={buildMode.placing?.structure ?? null}
+        onToggleBuildMenu={() => {
+          walkInput.toggleBuildMenu();
+        }}
+        onPickBuildEntry={(structure) => {
+          walkInput.pickBuildEntry(structure);
         }}
       />
       <DebugOverlay client={game.client} />

@@ -1,6 +1,7 @@
 import type { CameraRig } from "../render/camera-rig";
-import type { ScenePick } from "../render/scene-renderer";
-import type { Command, GameClient } from "../sim/api";
+import type { PlacementPreview, ScenePick } from "../render/scene-renderer";
+import type { Command, GameClient, StructureKind } from "../sim/api";
+import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { strings } from "../strings";
 
 /** The command a left-click sends for what it landed on. A blueprint is built only while the button is held, so it has none. */
@@ -53,7 +54,7 @@ export interface MenuRequest {
 
 /**
  * The CSS cursor to show for what is under the pointer.
- * A hand marks things the player can click. While placing a campfire, a crosshair shows everywhere.
+ * A hand marks things the player can click. While placing a blueprint, a crosshair shows everywhere.
  */
 export function cursorFor(pick: ScenePick | undefined, placing: boolean): string {
   if (placing) return "crosshair";
@@ -63,7 +64,7 @@ export function cursorFor(pick: ScenePick | undefined, placing: boolean): string
 
 /**
  * What to outline for what is under the pointer: the same things that show a hand cursor, except the river.
- * The river is too big to outline. Nothing is outlined over the ground, or while placing a campfire.
+ * The river is too big to outline. Nothing is outlined over the ground, or while placing a blueprint.
  */
 export function outlineFor(pick: ScenePick | undefined, placing: boolean): ScenePick | undefined {
   if (pick?.kind === "river") return undefined;
@@ -83,15 +84,19 @@ export interface WalkInputOptions {
   readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
   /** Called with what the player could click under the pointer, or undefined, so the scene can outline it. */
   readonly onHoverChange?: (pick: ScenePick | undefined) => void;
-  /** Called when placing a campfire starts or ends, so the HUD can show it. */
-  readonly onPlacingChange?: (placing: boolean) => void;
+  /** Called when the build menu opens or closes, or placing a blueprint starts, turns, or ends, so the HUD can show it. */
+  readonly onBuildModeChange?: (mode: BuildMode) => void;
+  /** Called with the blueprint that should follow the mouse while placing, or undefined to hide it. */
+  readonly onPreviewChange?: (preview: PlacementPreview | undefined) => void;
   /** Called with the menu a right-click opens, or undefined when it should close. */
   readonly onMenuChange?: (menu: MenuRequest | undefined) => void;
 }
 
 export interface WalkInput {
-  /** Makes the next left-click on the ground place a campfire blueprint there. Escape cancels. */
-  startPlacingCampfire(): void;
+  /** Opens the build menu, or closes it if it is open. B does the same. */
+  toggleBuildMenu(): void;
+  /** Puts a structure's blueprint under the mouse. A left-click on the ground places it. R turns it. Escape cancels. */
+  pickBuildEntry(structure: StructureKind): void;
   /** True while the left button is held on a blueprint to build it. */
   isHoldingBuild(): boolean;
   /** Removes the listeners. */
@@ -103,17 +108,18 @@ export interface WalkInput {
  * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, forage a bush or mushrooms,
  * walk over to tend a campfire, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
  * Holding the left button on a blueprint builds it. Letting go stops building.
- * While placing a campfire, a left-click on the ground places its blueprint.
+ * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
+ * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
  * A right-click without a drag opens a menu of the other actions the thing allows, such as debarking a log.
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
  */
-export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onPlacingChange, onMenuChange }: WalkInputOptions): WalkInput {
+export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onBuildModeChange, onPreviewChange, onMenuChange }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let rightPress: { x: number; y: number } | null = null;
   let holdingBuild = false;
-  let placing = false;
+  let mode: BuildMode = NOT_BUILDING;
   /** Where the pointer last was over the canvas, or null if it has left. */
   let hover: { x: number; y: number } | null = null;
   /** The animation frame that will update the cursor, if one is waiting. */
@@ -122,8 +128,18 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   function updateCursor(): void {
     cursorFrame = null;
     const pick = hover === null ? undefined : pickAt(hover.x, hover.y);
-    canvas.style.cursor = cursorFor(pick, placing);
+    const placing = mode.placing !== null;
+    const preview = previewFor(pick);
+    canvas.style.cursor = preview?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
     onHoverChange?.(outlineFor(pick, placing));
+    onPreviewChange?.(preview);
+  }
+
+  /** The blueprint to show under the mouse while placing, snapped to the building grid. */
+  function previewFor(pick: ScenePick | undefined): PlacementPreview | undefined {
+    if (mode.placing === null || pick?.kind !== "ground") return undefined;
+    const { structure, turns } = mode.placing;
+    return { structure, turns, ...client.checkPlacement(structure, pick.spot, turns) };
   }
 
   /** Picking is a raycast, so the cursor updates at most once per frame. */
@@ -141,11 +157,10 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     queueCursorUpdate();
   }
 
-  function setPlacing(value: boolean): void {
-    if (placing === value) return;
-    placing = value;
+  function setMode(value: BuildMode): void {
+    mode = value;
     queueCursorUpdate();
-    onPlacingChange?.(value);
+    onBuildModeChange?.(value);
   }
 
   function stopHoldingBuild(): void {
@@ -162,7 +177,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
       return;
     }
     if (event.button !== LEFT_BUTTON) return;
-    if (!placing) {
+    if (mode.placing === null) {
       const pick = pickAt(event.clientX, event.clientY);
       if (pick?.kind === "blueprint") {
         holdingBuild = true;
@@ -178,7 +193,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     if (rightPress === null) return;
     const travelled = Math.hypot(event.clientX - rightPress.x, event.clientY - rightPress.y);
     rightPress = null;
-    if (travelled > CLICK_MAX_TRAVEL_PIXELS || placing) return;
+    if (travelled > CLICK_MAX_TRAVEL_PIXELS || mode.placing !== null) return;
     const pick = pickAt(event.clientX, event.clientY);
     const actions = pick === undefined ? [] : menuActionsFor(pick);
     if (actions.length > 0) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
@@ -200,10 +215,13 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     if (travelled > CLICK_MAX_TRAVEL_PIXELS) return;
     const pick = pickAt(event.clientX, event.clientY);
     if (pick === undefined) return;
-    if (placing) {
-      if (pick.kind !== "ground") return;
-      client.send({ type: "placeCampfire", x: pick.spot.x, z: pick.spot.z });
-      setPlacing(false);
+    if (mode.placing !== null) {
+      // A click where the blueprint is not allowed does nothing, so the player can try another spot.
+      if (previewFor(pick)?.allowed !== true) return;
+      const place = placeCommandFor(mode, pick);
+      if (place === undefined) return;
+      client.send(place);
+      setMode(NOT_BUILDING);
       return;
     }
     const command = mainActionFor(pick);
@@ -211,14 +229,17 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.code === "Escape") {
-      setPlacing(false);
-      onMenuChange?.(undefined);
+    if (event.code === "Escape") onMenuChange?.(undefined);
+    if (event.repeat) return;
+    // Let typing keep working in form fields, and Space keep pressing buttons.
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const typing = target?.closest("input, textarea, select") != null;
+    const next = event.code === "Escape" || !typing ? pressBuildKey(mode, event.code) : undefined;
+    if (next !== undefined) {
+      setMode(next);
       return;
     }
-    if (event.code !== "Space" || event.repeat) return;
-    // Let Space keep working in form fields and on buttons.
-    if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select, button") !== null) return;
+    if (event.code !== "Space" || target?.closest("input, textarea, select, button") != null) return;
     event.preventDefault();
     rig.snapToFollowTarget();
   }
@@ -233,8 +254,11 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   window.addEventListener("blur", stopHoldingBuild);
   window.addEventListener("keydown", onKeyDown);
   return {
-    startPlacingCampfire() {
-      setPlacing(true);
+    toggleBuildMenu() {
+      setMode(pressBuildKey(mode, "KeyB") ?? mode);
+    },
+    pickBuildEntry(structure) {
+      setMode(pickBuildEntry(structure));
     },
     isHoldingBuild() {
       return holdingBuild;

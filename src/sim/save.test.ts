@@ -241,7 +241,7 @@ function playedGame(): Game {
 
   give(game, "stick", CAMPFIRE_STICK_COST + 3);
   const campfireSpot = openSpotNearPlayer(game, 3);
-  send(game, { type: "placeCampfire", x: campfireSpot.x, z: campfireSpot.z });
+  send(game, { type: "placeBlueprint", structure: "campfire", turns: 0, x: campfireSpot.x, z: campfireSpot.z });
   const blueprint = game.entities.with("blueprint").first;
   if (blueprint === undefined) throw new Error("No blueprint");
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
@@ -254,7 +254,7 @@ function playedGame(): Game {
   send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
   const secondSpot = openSpotNearPlayer(game, 8);
-  send(game, { type: "placeCampfire", x: secondSpot.x, z: secondSpot.z });
+  send(game, { type: "placeBlueprint", structure: "campfire", turns: 0, x: secondSpot.x, z: secondSpot.z });
   const unfinished = game.entities.with("blueprint").first;
   if (unfinished === undefined) throw new Error("No second blueprint");
   send(game, { type: "build", blueprintId: idOf(game, unfinished) });

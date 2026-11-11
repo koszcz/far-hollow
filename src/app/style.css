@@ -29,6 +29,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud-tag { margin-left: auto; padding: 1px 7px; font-size: 11px; font-weight: 400; background: #3d2b1e; border-radius: 9px; }
 .hud-tag-lit { color: #2a1d14; background: #e8833a; }
 .hud-backpack-weight { margin-left: auto; font-weight: 400; color: #cdb898; }
+.hud-build-menu ul { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.hud-build-menu li { display: flex; gap: 8px; align-items: center; }
+.hud-build-cost { font-size: 12px; color: #cdb898; }
 .hud-backpack ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .hud-backpack li { display: inline-flex; gap: 4px; align-items: center; padding: 2px 7px; font-size: 12px; background: #3d2b1e; border-radius: 6px; }
 .hud-backpack li .hud-icon { width: 13px; height: 13px; }

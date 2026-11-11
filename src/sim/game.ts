@@ -1,7 +1,8 @@
 import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
-import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
+import { createBuilding } from "./building";
+import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
@@ -19,6 +20,11 @@ import { createRain, passRainTime } from "./rain";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { boilProgress } from "./pot-state";
+
+/** The build menu never changes, so every view shares one frozen copy. */
+const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
+  STRUCTURES.map(({ kind, cost }) => Object.freeze({ structure: kind, cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))) })),
+);
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -126,7 +132,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
-      campfireStickCost: CAMPFIRE_STICK_COST,
+      buildMenu: BUILD_MENU,
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
@@ -243,8 +249,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     dropLog: () => {
       carrying.drop();
     },
-    placeCampfire: (command) => {
-      building.placeCampfire({ x: command.x, z: command.z });
+    placeBlueprint: (command) => {
+      building.place(command.structure, { x: command.x, z: command.z }, command.turns);
     },
     build: (command) => {
       cancelTasks();
@@ -420,6 +426,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
 
   const client: GameClient = {
     getView: () => view,
+    checkPlacement: (structure, at, turns) => building.checkPlacement(structure, at, turns),
     send: (command) => {
       pendingCommands.push(command);
     },

@@ -3,6 +3,7 @@ import type { GameNotice } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { NEED_KINDS } from "./needs";
+import { STRUCTURES } from "./structures";
 
 /** Says whether a value has the right shape. */
 type Check = (value: unknown) => boolean;
@@ -58,7 +59,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   stick: exactly(true),
   stickPickUpTask: shape({ stickId: count }),
   splitTask: shape({ secondsDone: finite }),
-  blueprint: shape({ piece: exactly("campfire"), progress: finite, sticksSpent: count }),
+  blueprint: shape({ piece: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, sticksSpent: count }),
+  facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   forageSpot: shape({ food: exactly("berries", "mushroom") }),

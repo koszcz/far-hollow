@@ -4,6 +4,7 @@ import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
+import type { QuarterTurns, StructureKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -62,7 +63,9 @@ export interface Entity {
    * Marks a building piece the player has placed but not finished. Its position is the piece's centre.
    * `progress` runs from 0 to 1. `sticksSpent` counts the sticks construction has used so far.
    */
-  blueprint?: { piece: "campfire"; progress: number; sticksSpent: number };
+  blueprint?: { piece: StructureKind; progress: number; sticksSpent: number };
+  /** Which way a blueprint, or the structure built from it, faces. */
+  facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
   /**

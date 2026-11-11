@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
+import type { QuarterTurns, StructureKind } from "../sim/api";
+import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
@@ -36,6 +37,16 @@ export type ScenePick =
   | { kind: "campfire"; id: number }
   | { kind: "bedroll"; id: number };
 
+/** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
+export interface PlacementPreview {
+  readonly structure: StructureKind;
+  /** The building-grid spot it snaps to, on the ground, in metres. */
+  readonly spot: Readonly<Vec3>;
+  readonly turns: QuarterTurns;
+  /** False where its placement rule refuses the spot, so it shows as not allowed. */
+  readonly allowed: boolean;
+}
+
 /** A pick that landed on an entity. */
 type EntityPick = Extract<ScenePick, { id: number }>;
 
@@ -48,6 +59,8 @@ export interface SceneRenderer {
   pickAt(clientX: number, clientY: number): ScenePick | undefined;
   /** Outlines the thing this pick landed on, from the next frame on. Undefined, the ground, or the river outlines nothing. */
   setHovered(pick: ScenePick | undefined): void;
+  /** Shows the blueprint under the mouse while the player places one. Undefined hides it. */
+  setPlacementPreview(preview: PlacementPreview | undefined): void;
   dispose(): void;
 }
 
@@ -234,6 +247,10 @@ export function createSceneRenderer(
       const entityPick = pick !== undefined && "id" in pick ? pick : undefined;
       const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
+    },
+    setPlacementPreview(preview) {
+      // Each structure draws its own blueprint. Later structures add a branch here.
+      campfireMeshes.showPreview(preview?.structure === "campfire" ? preview : undefined);
     },
     dispose() {
       hoverOutline.dispose();

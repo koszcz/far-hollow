@@ -22,7 +22,8 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
-import { FOUNDATION_LOG_COST } from "../sim/structures";
+import { DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
+import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -122,6 +123,34 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
           const z = Math.floor(index / columns) * UNDERGROWTH_SPACING_METRES - depth / 2;
           addProp(shape.geometry.clone(), createUndergrowthMaterial(shape), x, z);
         });
+    },
+  };
+}
+
+/**
+ * Shows a log wall or door frame on the back edge of a finished foundation, with the player beside it for size.
+ * A blueprint with two logs delivered, the third log's part being laid, then the finished piece from the front and from behind.
+ */
+function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Showcase {
+  return {
+    radius: 1.6,
+    focus: { x: 0, y: 1.1, z: 0 },
+    shots: [
+      { label: `blueprint, 2 of ${logCost} logs delivered`, yaw: 25, pitch: 20, seconds: 0 },
+      { label: "3rd log above its place", yaw: 25, pitch: 20, seconds: (2 + BUILD_FADE_SHARE) / logCost },
+      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, back three-quarter", yaw: 215, pitch: 25, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      const deckTop = (entity: Entity) => {
+        if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
+      };
+      deckTop(place(0, 0, { foundation: true }));
+      deckTop(place(0, -0.5, { blueprint: { piece, progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 2 } }));
+      movePlayer(1.3, 0.2, -0.4);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
     },
   };
 }
@@ -239,6 +268,8 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
     },
   },
+  "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
+  "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
   firewood: {
     radius: 0.9,
     focus: { x: 0, y: 0.12, z: 0 },
@@ -567,7 +598,7 @@ export function showAsset(
   const store = createEntityStore();
   const player = createPlayerMesh(shapes.player, shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
+  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud", "log-wall", "door-frame"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
@@ -613,14 +644,15 @@ export function showAsset(
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   const leanTos = createLeanToMeshes(store);
   const foundations = createFoundationMeshes(store, groundAt);
+  const edgePieces = createEdgePieceMeshes(store);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, forage.group, bedrolls.group, rain.group);
+  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, forage.group, bedrolls.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, forage.group, bedrolls.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -632,6 +664,7 @@ export function showAsset(
     campfires.update(seconds);
     leanTos.update();
     foundations.update();
+    edgePieces.update();
     bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
@@ -685,6 +718,7 @@ export function showAsset(
       campfires.dispose();
       leanTos.dispose();
       foundations.dispose();
+      edgePieces.dispose();
       potMaker.dispose();
       forage.dispose();
       bedrolls.dispose();

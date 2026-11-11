@@ -1,8 +1,13 @@
-import { playerEntities, setComponent, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
+import {
+  playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore,
+} from "./entities";
 import { findPath } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
-import { blockCircle, blockSpots, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, unblockSpots, type WalkMap } from "./walk-map";
+import {
+  blockCircle, blockEdges, blockSpots, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, unblockEdges, unblockSpots,
+  type WalkEdge, type WalkMap,
+} from "./walk-map";
 
 /** How fast the player walks, in metres per second. */
 export const WALK_SPEED_METRES_PER_SECOND = 3;
@@ -135,5 +140,22 @@ function trackBlockers(walkMap: WalkMap, entities: EntityStore): void {
     if (spots === undefined) return;
     blockedSpots.delete(entity);
     unblockSpots(walkMap, spots);
+  });
+
+  const edgeBlockers = walkBlockerEdgeEntities(entities).connect();
+  // Remember each entity's blocked edges, for the same reason.
+  const blockedEdges = new Map<Entity, WalkEdge[]>();
+  const blockAtEdges = (entity: Entity & Required<Pick<Entity, "blocksWalkingEdges">>) => {
+    const edges = entity.blocksWalkingEdges.map(({ from, to }) => ({ from: { x: from.x, z: from.z }, to: { x: to.x, z: to.z } }));
+    blockedEdges.set(entity, edges);
+    blockEdges(walkMap, edges);
+  };
+  for (const entity of edgeBlockers) blockAtEdges(entity);
+  edgeBlockers.onEntityAdded.subscribe(blockAtEdges);
+  edgeBlockers.onEntityRemoved.subscribe((entity) => {
+    const edges = blockedEdges.get(entity);
+    if (edges === undefined) return;
+    blockedEdges.delete(entity);
+    unblockEdges(walkMap, edges);
   });
 }

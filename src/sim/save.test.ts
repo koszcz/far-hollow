@@ -3,6 +3,7 @@ import type { Command } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_LOG_COST } from "./building";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { LOG_WALL_LOG_COST } from "./structures";
 import { continueOrStartGame, describeSave, readSave, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
 import { isWalkable } from "./walk-map";
 
@@ -178,6 +179,40 @@ describe("saving foundations", () => {
     expect(loaded.game.client.getView()).toEqual(game.client.getView());
   });
 });
+
+describe("saving log walls and door frames", () => {
+  it("restores their blueprints, the logs delivered to them, and finished walls that still block walking", () => {
+    const game = createGame({ seed: 42 });
+    const foundation = foundationAt(game, openSpotNearPlayer(game, 4));
+    for (let i = 0; i < FOUNDATION_LOG_COST; i += 1) deliver(game, foundation);
+    send(game, { type: "build", blueprintId: idOf(game, foundation) });
+    stepUntil(game, () => foundation.foundation === true);
+    const square = foundation.position ?? { x: 0, z: 0 };
+    const wall = edgePieceAt(game, "logWall", square, 0);
+    for (let i = 0; i < LOG_WALL_LOG_COST; i += 1) deliver(game, wall);
+    send(game, { type: "build", blueprintId: idOf(game, wall) });
+    stepUntil(game, () => wall.edgePiece === "logWall");
+    deliver(game, edgePieceAt(game, "doorFrame", square, 2));
+
+    const saved = writeSave(game);
+    const components = saved.entities.map((entity) => entity.components);
+    expect(components.some((entity) => entity.edgePiece === "logWall")).toBe(true);
+    expect(components.some((entity) => entity.blueprint?.piece === "doorFrame" && entity.blueprint.delivered.debarkedLog === 1)).toBe(true);
+    const loaded = readSave(throughStorage(saved));
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(writeSave(loaded.game)).toEqual(saved);
+    expect(loaded.game.walkMap.edgeBlockerCounts).toEqual(game.walkMap.edgeBlockerCounts);
+    expect(loaded.game.walkMap.edgeBlockerCounts.some((count) => count > 0)).toBe(true);
+  });
+});
+
+function edgePieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: 0 | 1 | 2 | 3): Entity {
+  send(game, { type: "placeBlueprint", structure, turns, x: square.x, z: square.z });
+  const placed = game.entities.with("blueprint", "position").entities.at(-1);
+  if (placed?.blueprint.piece !== structure) throw new Error("No blueprint");
+  return placed;
+}
 
 function foundationAt(game: Game, spot: { x: number; z: number }): Entity {
   send(game, { type: "placeBlueprint", structure: "foundation", turns: 0, x: spot.x + 0.5, z: spot.z + 0.5 });

@@ -4,7 +4,7 @@
 // so a new piece cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { bedrollEntities, blueprintEntities, campfireEntities, foundationEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
+import { bedrollEntities, blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureOf } from "../sim/structures";
 import type { QuarterTurns } from "../sim/structure-kind";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
@@ -35,7 +35,19 @@ const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, tu
   },
   // Undergrowth hides under the whole square, so no leaves poke up through the deck.
   foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
+  logWall: (x, z, turns) => edgePieceFootprint(x, z, turns),
+  doorFrame: (x, z, turns) => edgePieceFootprint(x, z, turns),
 };
+
+/** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */
+const EDGE_PIECE_HALF_THICKNESS_METRES = 0.2;
+
+/** The strip of ground under a log wall or door frame: along its edge, facing `turns`, and a little either side. */
+function edgePieceFootprint(x: number, z: number, turns: QuarterTurns): CampFootprint {
+  const alongX = turns % 2 === 0;
+  const half = BUILD_GRID_METRES / 2;
+  return { x, z, halfX: alongX ? half : EDGE_PIECE_HALF_THICKNESS_METRES, halfZ: alongX ? EDGE_PIECE_HALF_THICKNESS_METRES : half };
+}
 
 /** The patches of ground covered by everything the player has placed. */
 export function campFootprints(entities: EntityStore): CampFootprint[] {
@@ -51,6 +63,9 @@ export function campFootprints(entities: EntityStore): CampFootprint[] {
   }
   for (const { position } of foundationEntities(entities)) {
     footprints.push(PIECE_FOOTPRINTS.foundation(position.x, position.z, 0));
+  }
+  for (const { edgePiece, position, facing } of edgePieceEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS[edgePiece](position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

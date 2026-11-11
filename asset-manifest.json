@@ -580,7 +580,7 @@
       "code": [
         "src/render/pile-meshes.ts"
       ],
-      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Sticks, firewood, and bark lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Sticks, firewood, and the pot reuse their approved shapes. Bark, berries, mushrooms, and tools are rough shapes.",
+      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood and bark lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Firewood and the pot reuse their approved shapes. Dropped sticks never form a pile: they lie as normal sticks. Bark, berries, mushrooms, and tools are rough shapes.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

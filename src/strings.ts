@@ -40,6 +40,7 @@ export const strings = {
       doorFrame: "Door frame",
       roof: "Roof",
       woodpile: "Woodpile",
+      chest: "Chest",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
@@ -47,6 +48,10 @@ export const strings = {
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),
+    /** What the build menu says about the tool a structure needs, such as "needs the axe". */
+    needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
+    placingFurniture: (structure: string) =>
+      `Placing: ${structure}. Click the ground or a floor to place it anywhere. Press R to turn it, or Escape to cancel.`,
     placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
     placingOnEdge: (structure: string) =>
       `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,

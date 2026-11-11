@@ -121,6 +121,11 @@ export interface Entity {
    * It holds up to WOODPILE_CAPACITY pieces in all, in any mix.
    */
   woodpile?: Record<WoodpileWood, number>;
+  /**
+   * Marks a finished chest: furniture that will hold small materials, tools, and food.
+   * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
+   */
+  chest?: Record<string, never>;
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
@@ -291,6 +296,11 @@ export function roofEntities(store: EntityStore) {
 /** Finished woodpiles. */
 export function woodpileEntities(store: EntityStore) {
   return store.with("woodpile", "position");
+}
+
+/** Finished chests. */
+export function chestEntities(store: EntityStore) {
+  return store.with("chest", "position");
 }
 
 /** Finished lean-tos. */

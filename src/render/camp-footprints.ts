@@ -1,11 +1,12 @@
 // Decides where undergrowth must not show because the player has placed something there:
-// a campfire, a bedroll, a building piece, or a blueprint.
+// a campfire, a bedroll, a building piece, a chest, or a blueprint.
 // A blueprint covers the same ground as the piece it will become. PIECE_FOOTPRINTS gives that ground for each piece,
 // so a new piece cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import {
-  bedrollEntities, blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, leanToEntities, woodpileEntities, type Entity, type EntityStore,
+  bedrollEntities, blueprintEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, leanToEntities, woodpileEntities, type Entity,
+  type EntityStore,
 } from "../sim/entities";
 import { structureOf } from "../sim/structures";
 import type { QuarterTurns } from "../sim/structure-kind";
@@ -45,6 +46,10 @@ const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, tu
     const { min, max } = structureOf("woodpile").footprint({ x, z }, turns);
     return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
   },
+  chest: (x, z, turns) => {
+    const { min, max } = structureOf("chest").footprint({ x, z }, turns);
+    return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
+  },
 };
 
 /** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */
@@ -77,6 +82,9 @@ export function campFootprints(entities: EntityStore): CampFootprint[] {
   }
   for (const { position, facing } of woodpileEntities(entities)) {
     footprints.push(PIECE_FOOTPRINTS.woodpile(position.x, position.z, facing?.turns ?? 0));
+  }
+  for (const { position, facing } of chestEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS.chest(position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

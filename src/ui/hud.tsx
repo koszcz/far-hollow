@@ -46,7 +46,7 @@ function BuildMenu({ entries, onPick }: { entries: GameView["buildMenu"]; onPick
         {strings.buildMenu.title}
       </h2>
       <ul>
-        {entries.map(({ structure, cost }) => (
+        {entries.map(({ structure, cost, tool }) => (
           <li key={structure}>
             <HudButton
               label={strings.buildMenu.structures[structure]}
@@ -54,7 +54,12 @@ function BuildMenu({ entries, onPick }: { entries: GameView["buildMenu"]; onPick
                 onPick(structure);
               }}
             />
-            <span class="hud-build-cost">{strings.buildMenu.cost(cost.map(({ material, count }) => strings.buildMenu.materials[material](count)))}</span>
+            <span class="hud-build-cost">
+              {strings.buildMenu.cost([
+                ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
+                ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
+              ])}
+            </span>
           </li>
         ))}
       </ul>
@@ -298,7 +303,9 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                   ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
                   : placing === "roof"
                     ? strings.buildMenu.placingRoof(strings.buildMenu.structures[placing])
-                    : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
+                    : placing === "chest"
+                      ? strings.buildMenu.placingFurniture(strings.buildMenu.structures[placing])
+                      : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
               </p>
             )}
             {view.carrying !== null && (

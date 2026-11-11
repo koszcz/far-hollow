@@ -9,6 +9,7 @@ import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBedrollMeshes } from "./bedroll-meshes";
+import { createChestMeshes } from "./chest-meshes";
 import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
   type CampfireMeshes,
@@ -22,7 +23,7 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
-import { DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
+import { CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
@@ -265,6 +266,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place }) {
       const blueprint = place(0, 0, { blueprint: { piece: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
       if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
+  chest: {
+    radius: 1.3,
+    focus: { x: 0, y: 0.25, z: 0 },
+    // A blueprint with one log delivered, the lid being set down, then the finished chest from the front and above.
+    shots: [
+      { label: "blueprint, 1 of 2 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "lid above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / CHEST_LOG_COST },
+      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, from above", yaw: 140, pitch: 55, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { piece: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
+      movePlayer(1, 0.2, -Math.PI / 2);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -721,11 +740,18 @@ export function showAsset(
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   const woodpiles = createWoodpileMeshes(store);
+  const chests = createChestMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group, rain.group);
+  scene.add(
+    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group,
+    chests.group, rain.group,
+  );
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group, player.group, props);
+  sky.addShadowCasters(
+    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group,
+    chests.group, player.group, props,
+  );
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -741,6 +767,7 @@ export function showAsset(
     roofs.update();
     bedrolls.update();
     woodpiles.update();
+    chests.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -799,6 +826,7 @@ export function showAsset(
       forage.dispose();
       bedrolls.dispose();
       woodpiles.dispose();
+      chests.dispose();
       rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();

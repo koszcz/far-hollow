@@ -6,6 +6,7 @@ import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
+import { createChestMeshes } from "./chest-meshes";
 import { createForageMeshes } from "./forage-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
@@ -133,12 +134,14 @@ export function createSceneRenderer(
   scene.add(woodpileMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);
+  const chestMeshes = createChestMeshes(entities);
+  scene.add(chestMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group,
+    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
@@ -159,6 +162,7 @@ export function createSceneRenderer(
     }
     else if (kind === "blueprint" && entity.blueprint?.piece === "roof") hoverOutline.show(roofMeshes.outlineOf({ kind, entity }));
     else if ((kind === "blueprint" && entity.blueprint?.piece === "woodpile") || kind === "woodpile") hoverOutline.show(woodpileMeshes.outlineOf({ kind, entity }));
+    else if (kind === "blueprint" && entity.blueprint?.piece === "chest") hoverOutline.show(chestMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
     else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
     else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
@@ -243,6 +247,7 @@ export function createSceneRenderer(
       forageMeshes.pick(raycaster),
       bedrollMeshes.pick(raycaster),
       woodpileMeshes.pick(raycaster),
+      chestMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {
@@ -273,6 +278,7 @@ export function createSceneRenderer(
       forageMeshes.update();
       bedrollMeshes.update();
       woodpileMeshes.update();
+      chestMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -320,6 +326,7 @@ export function createSceneRenderer(
       edgePieceMeshes.showPreview(preview?.structure === "logWall" || preview?.structure === "doorFrame" ? { ...preview, structure: preview.structure } : undefined);
       roofMeshes.showPreview(preview?.structure === "roof" ? preview : undefined);
       woodpileMeshes.showPreview(preview?.structure === "woodpile" ? preview : undefined);
+      chestMeshes.showPreview(preview?.structure === "chest" ? preview : undefined);
     },
     dispose() {
       hoverOutline.dispose();
@@ -335,6 +342,7 @@ export function createSceneRenderer(
       forageMeshes.dispose();
       bedrollMeshes.dispose();
       woodpileMeshes.dispose();
+      chestMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();

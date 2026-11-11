@@ -105,7 +105,7 @@ Done when the owner has approved the asset or rejected it.
 
 1. Update the comments at the top of the `code` files so they call the asset approved, not a draft.
 2. Commit on `asset/<id>`.
-3. Run `make land`. It merges local `main` into your branch, runs `make check`, moves `main` to your branch, and pushes `main`. It tries again when another session lands first. If it stops on a conflict in `asset-manifest.json`, keep every entry from both sides, commit, and run `make land` again.
+3. Run `make land`. It merges local `main` into your branch, runs `make check`, moves `main` to your branch, pushes `main`, and deletes your branch. It tries again when another session lands first. If it stops on a conflict in `asset-manifest.json`, keep every entry from both sides, commit, and run `make land` again.
 4. Run `"$s" release <id>`.
 
 Done when `main` is pushed with the approved asset and the board no longer lists your session.

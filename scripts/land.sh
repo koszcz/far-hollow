@@ -1,5 +1,5 @@
 #!/bin/sh
-# Lands the current worktree branch on local main, then pushes main.
+# Lands the current worktree branch on local main, pushes main, and deletes the branch.
 # Run it from a worktree with every change committed: `make land`.
 #
 # Several sessions land at once, so main can move while the checks run.
@@ -28,7 +28,12 @@ while [ "$try" -le "$tries" ]; do
 
   if git -C "$main_checkout" merge --ff-only --quiet "$branch"; then
     git -C "$main_checkout" push origin main
-    echo "land: $branch is on main, and main is pushed."
+    # The branch is now part of main, so delete it. Git cannot delete the branch
+    # this worktree has checked out, so detach the worktree at the same commit first.
+    git switch --quiet --detach
+    git branch -d "$branch"
+    echo "land: $branch is on main, main is pushed, and the branch is deleted."
+    echo "land: this worktree is now detached. For more work here, run: git switch -c <new-branch>"
     exit 0
   fi
 

@@ -6,7 +6,7 @@
 
 Issues live as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
 
-Implement one ticket per session. Land each finished ticket on `main` with `make land`, which merges, checks, and pushes. Once it has landed, end the session and name the next unblocked ticket for the owner to start in a fresh session.
+Implement one ticket per session. Land each finished ticket on `main` with `make land`, which merges, checks, pushes, and deletes the branch. Once it has landed, end the session and name the next unblocked ticket for the owner to start in a fresh session.
 
 ### Triage labels
 

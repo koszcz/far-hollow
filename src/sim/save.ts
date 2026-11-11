@@ -15,7 +15,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
 export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
-  addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, addWoodpiles, allowChests,
+  addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, addWoodpiles, allowChests, fillChests,
 ];
 
 /** The version of the save format this code writes. */
@@ -160,6 +160,20 @@ function addWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, u
  */
 function allowChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
+}
+
+/**
+ * Version 9 to 10: a chest holds small materials, tools, and food. A chest saved before then held nothing, so it becomes an empty chest.
+ */
+function fillChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const chest = components?.chest;
+    if (typeof chest !== "object" || chest === null || "contents" in chest) return entity;
+    return { ...(entity as object), components: { ...components, chest: { ...chest, contents: {} } } };
+  });
+  return { ...save, entities };
 }
 
 /** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */

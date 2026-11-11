@@ -79,6 +79,12 @@ export type Command =
    * Firewood goes in the backpack, as much as fits.
    */
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
+  /** Walk the player beside a finished chest, given by its entity id, and open it. It stays open until the player walks away or does something else. */
+  | { type: "openChest"; chestId: number }
+  /** Move one of a kind from the backpack into the open chest, or with `all` as many of that kind as fit. Logs never go in a chest. */
+  | { type: "putInChest"; chestId: number; content: BackpackContent; all: boolean }
+  /** Move one of a kind from the open chest into the backpack, or with `all` as many of that kind as fit. */
+  | { type: "takeFromChest"; chestId: number; content: BackpackContent; all: boolean }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
   /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
@@ -138,6 +144,8 @@ export interface GameView {
   readonly nearbyBedroll: BedrollView | null;
   /** The woodpile within the player's reach, or null if none is. */
   readonly nearbyWoodpile: WoodpileView | null;
+  /** The chest the player has open, or null if none is. It closes when the player walks away. */
+  readonly openChest: ChestView | null;
   /** The blueprint nearest the player within reach, or null if none is. */
   readonly nearbyBlueprint: BlueprintView | null;
   /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
@@ -157,10 +165,11 @@ export interface GameView {
  * `collapsed`: the player had a collapse from a neglected need and woke at their respawn point.
  * `survivedFirstNight`: the player reached the first morning without a collapse.
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
+ * `chestFull`: the open chest had no room for what the player tried to put in it.
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  */
-export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "holdsUpPiece" | "saveBroken";
+export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "saveBroken";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -230,6 +239,18 @@ export interface WoodpileView {
   readonly total: number;
   /** The most pieces of wood it holds in all, in any mix. */
   readonly capacity: number;
+}
+
+/** An open chest, with what it holds. It holds small materials, tools, and food, grouped by kind like the backpack. */
+export interface ChestView {
+  /** The chest's entity id. */
+  readonly id: number;
+  /** How many of each kind of thing it holds. Kinds it does not hold are missing. */
+  readonly contents: Readonly<BackpackContents>;
+  /** How much its contents weigh, in kilograms. */
+  readonly weight: number;
+  /** The most it can hold, in kilograms. */
+  readonly weightLimit: number;
 }
 
 export interface BedrollView {

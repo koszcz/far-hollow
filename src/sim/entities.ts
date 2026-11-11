@@ -1,5 +1,5 @@
 import { World } from "miniplex";
-import type { Backpack, Food } from "./backpack";
+import type { Backpack, BackpackContents, Food } from "./backpack";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
@@ -122,10 +122,11 @@ export interface Entity {
    */
   woodpile?: Record<WoodpileWood, number>;
   /**
-   * Marks a finished chest: furniture that will hold small materials, tools, and food.
+   * Marks a finished chest: furniture that holds small materials, tools, and food, grouped by kind like the backpack.
+   * `contents` says how many of each kind it holds, up to CHEST_WEIGHT_LIMIT_KG in all. Logs never go in a chest.
    * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
    */
-  chest?: Record<string, never>;
+  chest?: { contents: BackpackContents };
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */

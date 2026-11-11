@@ -345,7 +345,7 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
     }
     return isClearOfTreesAndPlans(entities, rect, { roofs: false });
   },
-  finish: () => ({ chest: {} }),
+  finish: () => ({ chest: { contents: {} } }),
 };
 
 /** The building-grid square that holds a spot. */

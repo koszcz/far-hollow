@@ -6,6 +6,7 @@
 // its part fades in and is lowered into place. Parts not started show see-through as part of the outline.
 // While the player places a lean-to from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
+import { facingRadians } from "./facing";
 import { blueprintEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
 import { LEAN_TO_BARK_COST, LEAN_TO_DEPTH_METRES, LEAN_TO_STICK_COST, LEAN_TO_WIDTH_METRES } from "../sim/structures";
 import type { OutlinePart } from "./hover-outline";
@@ -37,11 +38,6 @@ const BUILD_FADE_SHARE = 0.5;
 /** The front posts and the ridge pole: three of the lean-to's sticks. The rest are rafters. */
 const FRAME_STICKS = 3;
 const RAFTER_COUNT = LEAN_TO_STICK_COST - FRAME_STICKS;
-
-/** How far round a structure facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
-}
 
 /** One part of the lean-to, in the order construction adds it. */
 interface PartShape {

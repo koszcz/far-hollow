@@ -5,6 +5,7 @@
 // A blueprint, and the blueprint under the mouse while placing, shows the rails see-through. The one under the mouse turns red
 // where the woodpile is not allowed.
 import * as THREE from "three";
+import { facingRadians } from "./facing";
 import { blueprintEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "../sim/entities";
 import { WOODPILE_CAPACITY } from "../sim/woodpiles";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
@@ -55,11 +56,6 @@ interface Drawn {
   readonly picker: THREE.Mesh;
   /** What it was drawn with, so it is redrawn only when that changes. */
   readonly key: string;
-}
-
-/** How far round a woodpile facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
 }
 
 /** Where each place in the pile is, bottom layer first, as an offset from the woodpile's middle. */

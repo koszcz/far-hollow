@@ -16,6 +16,7 @@
 // A finished wall or door frame between the camera and the player fades out, so the player never disappears behind it.
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
+import { facingRadians } from "./facing";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { EdgePieceKind } from "../sim/structure-kind";
@@ -167,11 +168,6 @@ interface Drawn {
   /** The parts each stage of construction adds, in order. Each part has its own see-through copy of the wood for fading in. */
   readonly stages: Part[][];
   readonly picker: THREE.Mesh;
-}
-
-/** How far round a piece facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
 }
 
 /**

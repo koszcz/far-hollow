@@ -10,6 +10,7 @@
 // It turns red where the campfire is not allowed.
 // A campfire with a pot on it shows the code-built "pot" (approved) from pot-shape.ts nested on its sticks, steaming while lit.
 import * as THREE from "three";
+import { facingRadians } from "./facing";
 import { createFireMaker, type Fire } from "./fire-effect";
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
@@ -34,11 +35,6 @@ const BLUEPRINT_COLOUR = 0xbfe3ff;
 const BLUEPRINT_OPACITY = 0.35;
 /** A blueprint under the mouse shows in this red where its spot is not allowed. */
 const NOT_ALLOWED_COLOUR = 0xe0614f;
-
-/** How far round a structure facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
-}
 
 const STONE_COUNT = 10;
 /** The stones sit this far from the campfire's centre, in metres. Camp footprints use it too. */

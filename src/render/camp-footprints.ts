@@ -29,27 +29,24 @@ const CAMPFIRE_MARGIN_METRES = 0.25;
 /** Undergrowth also hides this far beyond a bedroll's edge, so leaves never lie over the mat, in metres. */
 const BEDROLL_MARGIN_METRES = 0.15;
 
+/** The ground a structure covers, as its placement rule sees it, centred on (x, z) and facing `turns`. */
+function structureFootprint(piece: BuildingPiece, x: number, z: number, turns: QuarterTurns): CampFootprint {
+  const { min, max } = structureOf(piece).footprint({ x, z }, turns);
+  return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
+}
+
 /** The ground each building piece covers, centred on (x, z) and facing `turns`. A blueprint and its finished piece both use this. */
 const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, turns: QuarterTurns) => CampFootprint>> = {
   campfire: (x, z) => ({ x, z, radius: STONE_RING_RADIUS_METRES + CAMPFIRE_MARGIN_METRES }),
-  leanTo: (x, z, turns) => {
-    const { min, max } = structureOf("leanTo").footprint({ x, z }, turns);
-    return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
-  },
+  leanTo: (x, z, turns) => structureFootprint("leanTo", x, z, turns),
   // Undergrowth hides under the whole square, so no leaves poke up through the deck.
   foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
   logWall: (x, z, turns) => edgePieceFootprint(x, z, turns),
   doorFrame: (x, z, turns) => edgePieceFootprint(x, z, turns),
   // A roof is built over a foundation, which already hides the undergrowth under it.
   roof: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
-  woodpile: (x, z, turns) => {
-    const { min, max } = structureOf("woodpile").footprint({ x, z }, turns);
-    return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
-  },
-  chest: (x, z, turns) => {
-    const { min, max } = structureOf("chest").footprint({ x, z }, turns);
-    return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
-  },
+  woodpile: (x, z, turns) => structureFootprint("woodpile", x, z, turns),
+  chest: (x, z, turns) => structureFootprint("chest", x, z, turns),
 };
 
 /** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */

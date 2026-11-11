@@ -6,6 +6,7 @@
 // A blueprint shows the parts see-through. A part whose debarked log has been delivered shows pale and half solid.
 // While the player places a chest from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
+import { facingRadians } from "./facing";
 import { blueprintEntities, chestEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES } from "../sim/structures";
 import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
@@ -57,11 +58,6 @@ interface Drawn {
   readonly root: THREE.Group;
   readonly stages: Stage[];
   readonly picker: THREE.Mesh;
-}
-
-/** How far round a chest facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
 }
 
 export function createChestMeshes(entities: EntityStore): ChestMeshes {

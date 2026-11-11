@@ -5,17 +5,18 @@ import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-gr
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
   blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, stumpEntities,
-  treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore,
+  treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore, type Vec3,
 } from "./entities";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
-  isInRect, rectsOverlap, SIDES, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type QuarterTurns, type StructureKind,
+  isInRect, rectsOverlap, SIDES, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type Placement, type QuarterTurns,
+  type StructureKind,
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
+export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
@@ -36,14 +37,22 @@ export interface PlacementSite {
   readonly valley: Valley;
 }
 
+/** The components that mark a finished structure. */
+export type FinishedMarker = "campfire" | "leanTo" | "foundation" | "edgePiece" | "cabinRoof" | "woodpile" | "chest" | "workStation";
+
 export interface StructureDefinition {
   readonly kind: StructureKind;
   /** Everything building it costs, in the order the build menu shows it and construction spends it. */
   readonly cost: readonly MaterialCost[];
   /** The tool the player needs in the backpack to build it, if any. Building does not use it up. */
   readonly tool?: BackpackContent;
-  /** Whether it is furniture: placed freely, off the building grid, so it can stand on a foundation inside a room. */
-  readonly furniture?: true;
+  /** How its blueprint follows the mouse. Furniture goes "anywhere": off the building grid, so it can stand on a foundation inside a room. */
+  readonly placement: Placement;
+  /**
+   * The component that marks it finished, the one `finish` gives it.
+   * Where several kinds share a component that holds a name, such as `edgePiece`, the component holds this kind's name.
+   */
+  readonly finishedAs: FinishedMarker;
   /** How long the player holds the build action to build it from start to finish, in seconds. */
   readonly buildSeconds: number;
   /** The ground it covers at `spot`, a building-grid spot, facing `turns`. A blueprint covers the same ground. */
@@ -93,6 +102,8 @@ function foundationUnderCampfire(entities: EntityStore, spot: GroundPoint) {
  */
 const campfire: StructureDefinition & { readonly kind: "campfire" } = {
   kind: "campfire",
+  placement: "onGround",
+  finishedAs: "campfire",
   cost: [{ material: "stick", count: CAMPFIRE_STICK_COST }],
   buildSeconds: CAMPFIRE_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, CAMPFIRE_WALK_BLOCK_RADIUS_METRES, CAMPFIRE_WALK_BLOCK_RADIUS_METRES, turns),
@@ -145,6 +156,8 @@ const LEAN_TO_BLOCKED_SQUARES: readonly GroundPoint[] = [
 
 const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {
   kind: "leanTo",
+  placement: "onGround",
+  finishedAs: "leanTo",
   cost: [
     { material: "stick", count: LEAN_TO_STICK_COST },
     { material: "bark", count: LEAN_TO_BARK_COST },
@@ -175,6 +188,8 @@ const STUMP_MARGIN_METRES = 0.3;
 
 const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   kind: "foundation",
+  placement: "onGround",
+  finishedAs: "foundation",
   cost: [{ material: "debarkedLog", count: FOUNDATION_LOG_COST }],
   buildSeconds: FOUNDATION_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
@@ -224,6 +239,8 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
   return {
     kind,
     cost: [{ material: "debarkedLog", count: logCost }],
+    placement: "onEdge",
+    finishedAs: "edgePiece",
     buildSeconds,
     footprint,
     snap: (_site, at, turns) => edgeMiddle(snapToGridSquare(at), turns),
@@ -265,6 +282,8 @@ export const ROOF_BUILD_SECONDS = 15;
  */
 const roof: StructureDefinition & { readonly kind: "roof" } = {
   kind: "roof",
+  placement: "overWalls",
+  finishedAs: "cabinRoof",
   cost: [
     { material: "debarkedLog", count: ROOF_LOG_COST },
     { material: "bark", count: ROOF_BARK_COST },
@@ -301,6 +320,8 @@ export const WOODPILE_WALK_BLOCK_RADIUS_METRES = 0.75;
  */
 const woodpile: StructureDefinition & { readonly kind: "woodpile" } = {
   kind: "woodpile",
+  placement: "onGround",
+  finishedAs: "woodpile",
   cost: [],
   buildSeconds: WOODPILE_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, WOODPILE_HALF_METRES, WOODPILE_HALF_METRES, turns),
@@ -335,9 +356,10 @@ export const CHEST_WALK_BLOCK_RADIUS_METRES = 0.71;
  */
 const chest: StructureDefinition & { readonly kind: "chest" } = {
   kind: "chest",
+  placement: "anywhere",
+  finishedAs: "chest",
   cost: [{ material: "debarkedLog", count: CHEST_LOG_COST }],
   tool: "axe",
-  furniture: true,
   buildSeconds: CHEST_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, CHEST_WIDTH_METRES / 2, CHEST_DEPTH_METRES / 2, turns),
   snap: (_site, at) => ({ x: at.x, z: at.z }),
@@ -386,6 +408,8 @@ export const SAWHORSE_WALK_BLOCK_RADIUS_METRES = 0.75;
  */
 const sawhorse: StructureDefinition & { readonly kind: "sawhorse" } = {
   kind: "sawhorse",
+  placement: "onGround",
+  finishedAs: "workStation",
   cost: [{ material: "debarkedLog", count: SAWHORSE_LOG_COST }],
   buildSeconds: SAWHORSE_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, SAWHORSE_LENGTH_METRES / 2, SAWHORSE_WIDTH_METRES / 2, turns),
@@ -494,12 +518,20 @@ function isClearOfTreesAndStructures(
     if (ignoreCabinRoofs && roofed.cabinRoof === true) continue;
     if (rectsOverlap(rect, roofed.roof)) return false;
   }
-  for (const stack of woodpileEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(stack))) return false;
-  for (const station of workStationEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(station))) return false;
   if (!ignoreFurniture && !isClearOfFurniture(entities, rect)) return false;
-  for (const piece of edgePieceEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(piece))) return false;
+  // Every other finished structure is in the way, so a new kind of structure is in the way unless it says otherwise.
+  for (const { entity, kind } of finishedStructures(entities)) {
+    if (CHECKED_APART.has(kind) || isFurniture(kind)) continue;
+    if (rectsOverlap(rect, footprintOfEntity(entity))) return false;
+  }
   return true;
 }
+
+/**
+ * Finished structures `isClearOfTreesAndStructures` checks in their own way, or not at all.
+ * A lean-to and a roof section are checked by their roofs. Each placement rule decides about foundations and campfires itself.
+ */
+const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "campfire", "leanTo", "roof"]);
 
 /** Whether `rect` keeps clear of every finished chest and every chest blueprint. */
 function isClearOfFurniture(entities: EntityStore, rect: GroundRect): boolean {
@@ -512,7 +544,7 @@ function isClearOfFurniture(entities: EntityStore, rect: GroundRect): boolean {
 
 /** Whether a structure is furniture, placed freely rather than on the building grid. */
 export function isFurniture(kind: StructureKind): boolean {
-  return structureOf(kind).furniture === true;
+  return structureOf(kind).placement === "anywhere";
 }
 
 /** Whether a material is carried to a blueprint on the player's shoulder, rather than taken from the backpack. */
@@ -526,29 +558,36 @@ export function isDelivered(material: BuildMaterial): material is DeliveredMater
  */
 export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.blueprint !== undefined) return entity.blueprint.structure;
-  if (entity.campfire !== undefined) return "campfire";
-  if (entity.leanTo === true) return "leanTo";
-  if (entity.foundation === true) return "foundation";
-  if (entity.edgePiece !== undefined) return entity.edgePiece;
-  if (entity.cabinRoof === true) return "roof";
-  if (entity.woodpile !== undefined) return "woodpile";
-  if (entity.chest !== undefined) return "chest";
-  if (entity.workStation !== undefined) return entity.workStation;
-  return undefined;
+  return STRUCTURES.find((definition) => isFinishedAs(definition, entity))?.kind;
+}
+
+/** Whether an entity is a finished structure of this kind: it has the kind's marker, holding the kind's name where the marker holds a name. */
+function isFinishedAs({ kind, finishedAs }: StructureDefinition, entity: Entity): boolean {
+  const marker: unknown = entity[finishedAs];
+  return marker !== undefined && (typeof marker !== "string" || marker === kind);
 }
 
 /** An entity that is a blueprint or a finished structure, standing somewhere. */
-export type PlacedStructure = Entity & { position: GroundPoint } & (
-  | Required<Pick<Entity, "blueprint">>
-  | Required<Pick<Entity, "campfire">>
-  | Required<Pick<Entity, "leanTo">>
-  | Required<Pick<Entity, "foundation">>
-  | Required<Pick<Entity, "edgePiece">>
-  | Required<Pick<Entity, "cabinRoof">>
-  | Required<Pick<Entity, "woodpile">>
-  | Required<Pick<Entity, "chest">>
-  | Required<Pick<Entity, "workStation">>
-);
+export type PlacedStructure = Entity & { position: Vec3 } & { [Marker in "blueprint" | FinishedMarker]: Required<Pick<Entity, Marker>> }["blueprint" | FinishedMarker];
+
+/** Every marker component, once each, even where several kinds share one. */
+const FINISHED_MARKERS: readonly FinishedMarker[] = [...new Set(STRUCTURES.map(({ finishedAs }) => finishedAs))];
+
+/** Every finished structure, of every kind, with its kind. Blueprints are not among them. */
+export function finishedStructures(entities: EntityStore): { entity: PlacedStructure; kind: StructureKind }[] {
+  return FINISHED_MARKERS.flatMap((marker) =>
+    [...entities.with(marker, "position")].flatMap((entity) => {
+      const kind = structureKindOf(entity);
+      return kind === undefined ? [] : [{ entity: entity, kind }];
+    }),
+  );
+}
+
+/** Every blueprint and every finished structure, with its kind. */
+export function placedStructures(entities: EntityStore): { entity: PlacedStructure; kind: StructureKind }[] {
+  const blueprints = [...blueprintEntities(entities)].map((entity) => ({ entity, kind: entity.blueprint.structure }));
+  return [...blueprints, ...finishedStructures(entities)];
+}
 
 /** Whether an entity is a blueprint or a finished structure, standing somewhere. */
 export function isPlacedStructure(entity: Entity): entity is PlacedStructure {

@@ -9,7 +9,7 @@ import { isWalkable } from "./walk-map";
 describe("building a woodpile", () => {
   it("is in the build menu, costs nothing, and takes a short construction", () => {
     const game = createGame({ seed: 42 });
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "woodpile", cost: [] });
+    expect(game.client.getView().buildMenu).toContainEqual({ structure: "woodpile", cost: [], placement: "onGround" });
     const backpackBefore = { ...game.client.getView().backpack };
 
     const woodpile = buildWoodpile(game);

@@ -3,6 +3,7 @@ import type { GameNotice } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { NEED_KINDS } from "./needs";
+import { EDGE_PIECE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, STRUCTURES } from "./structures";
 
 /** Says whether a value has the right shape. */
@@ -74,12 +75,12 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   deliverTask: shape({ blueprintId: count }),
   takeDownTask: shape({ pieceId: count, secondsDone: finite }),
   foundation: exactly(true),
-  edgePiece: exactly("logWall", "doorFrame"),
+  edgePiece: exactly(...EDGE_PIECE_KINDS),
   cabinRoof: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
   chest: shape({ contents: backpackContents }),
-  workStation: exactly("sawhorse"),
+  workStation: exactly(...WORK_STATION_KINDS),
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),

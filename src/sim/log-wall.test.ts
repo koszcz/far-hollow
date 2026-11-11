@@ -12,8 +12,8 @@ describe("log walls and door frames in the build menu", () => {
     const game = createGame({ seed: 42 });
     const menu = game.client.getView().buildMenu;
 
-    expect(menu).toContainEqual({ structure: "logWall", cost: [{ material: "debarkedLog", count: LOG_WALL_LOG_COST }] });
-    expect(menu).toContainEqual({ structure: "doorFrame", cost: [{ material: "debarkedLog", count: DOOR_FRAME_LOG_COST }] });
+    expect(menu).toContainEqual({ structure: "logWall", cost: [{ material: "debarkedLog", count: LOG_WALL_LOG_COST }], placement: "onEdge" });
+    expect(menu).toContainEqual({ structure: "doorFrame", cost: [{ material: "debarkedLog", count: DOOR_FRAME_LOG_COST }], placement: "onEdge" });
   });
 });
 

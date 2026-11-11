@@ -59,7 +59,7 @@ describe("the build menu", () => {
   it("lists the campfire and its stick cost", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().buildMenu[0]).toEqual({ structure: "campfire", cost: [{ material: "stick", count: 5 }] });
+    expect(game.client.getView().buildMenu[0]).toEqual({ structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" });
   });
 });
 

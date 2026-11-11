@@ -12,7 +12,7 @@ describe("the chest in the build menu", () => {
     const game = createGame({ seed: 42 });
 
     expect(CHEST_LOG_COST).toBe(2);
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", furniture: true });
+    expect(game.client.getView().buildMenu).toContainEqual({ structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" });
   });
 });
 

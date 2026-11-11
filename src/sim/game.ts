@@ -31,12 +31,12 @@ import { createChests } from "./chests";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
-  STRUCTURES.map(({ kind, cost, tool, furniture }) =>
+  STRUCTURES.map(({ kind, cost, tool, placement }) =>
     Object.freeze({
       structure: kind,
       cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))),
       ...(tool === undefined ? {} : { tool }),
-      ...(furniture === true ? { furniture } : {}),
+      placement,
     }),
   ),
 );

@@ -11,7 +11,7 @@ describe("the foundation in the build menu", () => {
   it("lists the foundation with its cost in debarked logs", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "foundation", cost: [{ material: "debarkedLog", count: FOUNDATION_LOG_COST }] });
+    expect(game.client.getView().buildMenu).toContainEqual({ structure: "foundation", cost: [{ material: "debarkedLog", count: FOUNDATION_LOG_COST }], placement: "onGround" });
     expect(FOUNDATION_LOG_COST).toBeGreaterThan(1);
   });
 });

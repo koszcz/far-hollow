@@ -15,7 +15,7 @@ const BASE_VIEW: GameView = {
   backpack: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, stick: 3 },
   backpackWeight: 4.2,
   backpackWeightLimit: 20,
-  buildMenu: [{ structure: "campfire", cost: [{ material: "stick", count: 5 }] }],
+  buildMenu: [{ structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" }],
   craftMenu: [
     {
       recipe: "saw",
@@ -130,15 +130,15 @@ const BACKPACK_ICON_STATES: readonly ShowcaseState[] = [
 
 /** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
 const FULL_BUILD_MENU: GameView["buildMenu"] = [
-  { structure: "campfire", cost: [{ material: "stick", count: 5 }] },
-  { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }] },
-  { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }] },
-  { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }] },
-  { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }] },
-  { structure: "roof", cost: [{ material: "debarkedLog", count: 3 }, { material: "bark", count: 4 }] },
-  { structure: "woodpile", cost: [] },
-  { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe" },
-  { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }] },
+  { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
+  { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }], placement: "onGround" },
+  { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
+  { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
+  { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
+  { structure: "roof", cost: [{ material: "debarkedLog", count: 3 }, { material: "bark", count: 4 }], placement: "overWalls" },
+  { structure: "woodpile", cost: [], placement: "onGround" },
+  { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" },
+  { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
 ];
 
 /** The "build-icons" asset: the full build menu open, in four game states. */

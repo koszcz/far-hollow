@@ -9,10 +9,10 @@ import type { CarriedLog, Vec3, WoodpileWood } from "./entities";
 
 export type { CarriedLog, WoodpileWood } from "./entities";
 import type { PotWater } from "./pot-state";
-import type { DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
+import type { DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
-export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, QuarterTurns, StructureKind } from "./structures";
+export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, Placement, QuarterTurns, StructureKind } from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -240,8 +240,8 @@ export interface BuildMenuEntry {
   readonly cost: readonly MaterialCost[];
   /** The tool the player needs in the backpack to build it. Missing if it needs none. Building does not use the tool up. */
   readonly tool?: BackpackContent;
-  /** True if it is furniture, placed freely rather than on the building grid. Missing for other structures. */
-  readonly furniture?: true;
+  /** How its blueprint follows the mouse while the player places it. Furniture goes "anywhere", off the building grid. */
+  readonly placement: Placement;
 }
 
 /** One recipe in the craft menu. */

@@ -10,7 +10,7 @@ describe("the sawhorse in the build menu", () => {
   it("lists the sawhorse with its cost of 2 debarked logs and no tool", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }] });
+    expect(game.client.getView().buildMenu).toContainEqual({ structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" });
   });
 });
 

@@ -4,7 +4,7 @@
 // The build menu icons, in build-icons.tsx, are the approved "build-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
+  BackpackContent, BedrollView, BlueprintView, BuildMenuEntry, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
   WoodpileWood,
 } from "../sim/api";
 import { strings } from "../strings";
@@ -386,18 +386,11 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
-/** The hint shown while placing each structure, given its name. Pieces on an edge or over walls snap differently, so they say so. */
-const PLACING_HINTS: { readonly [Kind in StructureKind]: (structure: string) => string } = {
-  campfire: strings.buildMenu.placing.onGround,
-  leanTo: strings.buildMenu.placing.onGround,
-  foundation: strings.buildMenu.placing.onGround,
-  logWall: strings.buildMenu.placing.onEdge,
-  doorFrame: strings.buildMenu.placing.onEdge,
-  roof: strings.buildMenu.placing.overWalls,
-  woodpile: strings.buildMenu.placing.onGround,
-  chest: strings.buildMenu.placing.anywhere,
-  sawhorse: strings.buildMenu.placing.onGround,
-};
+/** The hint shown while placing a structure. Pieces on an edge, over walls, or placed anywhere snap differently, so they say so. */
+function placingHint(entries: readonly BuildMenuEntry[], placing: StructureKind): string {
+  const placement = entries.find(({ structure }) => structure === placing)?.placement ?? "onGround";
+  return strings.buildMenu.placing[placement](strings.buildMenu.structures[placing]);
+}
 
 export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry, craftMenuOpen, onToggleCraftMenu }: HudProps) {
   const [view, setView] = useState(client.getView());
@@ -450,7 +443,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             )}
             {placing !== null && (
               <p class="hud-hint">
-                {PLACING_HINTS[placing](strings.buildMenu.structures[placing])}
+                {placingHint(view.buildMenu, placing)}
               </p>
             )}
             {view.carrying !== null && (

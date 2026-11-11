@@ -57,7 +57,7 @@ export const strings = {
       foundation: "Foundation",
       logWall: "Log wall",
       doorFrame: "Door frame",
-      roof: "Roof",
+      roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
     },
@@ -69,13 +69,16 @@ export const strings = {
     cost: (materials: readonly string[]) => materials.join(", "),
     /** What the build menu says about the tool a structure needs, such as "needs the axe". */
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
-    placingFurniture: (structure: string) =>
-      `Placing: ${structure}. Click the ground or a floor to place it anywhere. Press R to turn it, or Escape to cancel.`,
-    placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
-    placingOnEdge: (structure: string) =>
-      `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
-    placingRoof: (structure: string) =>
-      `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
+    /** What to do while placing each kind of structure, given its name. */
+    placing: {
+      anywhere: (structure: string) =>
+        `Placing: ${structure}. Click the ground or a floor to place it anywhere. Press R to turn it, or Escape to cancel.`,
+      onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
+      onEdge: (structure: string) =>
+        `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
+      overWalls: (structure: string) =>
+        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
+    },
   },
   blueprint: {
     title: (structure: string) => `Blueprint: ${structure}`,

@@ -30,7 +30,7 @@ describe("placing a chest", () => {
 
     send(game, place("chest", at.x, at.z, 0));
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "chest", progress: 0, materialsSpent: 0, delivered: {} });
+    expect(blueprint.blueprint).toMatchObject({ structure: "chest", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: at.x, z: at.z });
     // Placing costs nothing.
     expect(game.client.getView().backpack.axe).toBe(1);
@@ -249,8 +249,8 @@ describe("saving chests", () => {
     const chests = loaded.game.entities.with("chest", "position").entities;
     expect(chests.map(({ position, facing }) => ({ x: position.x, z: position.z, facing }))).toEqual([{ x: square.x, z: square.z, facing: { turns: 1 } }]);
     const plans = loaded.game.entities.with("blueprint", "position").entities;
-    expect(plans.map(({ blueprint, position, facing }) => ({ piece: blueprint.piece, x: position.x, facing }))).toEqual([
-      { piece: "chest", x: square.x + 1.2, facing: { turns: 3 } },
+    expect(plans.map(({ blueprint, position, facing }) => ({ structure: blueprint.structure, x: position.x, facing }))).toEqual([
+      { structure: "chest", x: square.x + 1.2, facing: { turns: 3 } },
     ]);
   });
 });

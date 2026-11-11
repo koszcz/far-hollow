@@ -157,8 +157,22 @@ The timed work of turning a blueprint into a finished building piece. The player
 _Avoid_: Crafting, assembly
 
 **Recipe**:
-A known way to make something from materials. A recipe becomes available as soon as the player has the tool or work station it needs.
+A known way to make something from materials. A recipe becomes available as soon as the player has the tool or work station it needs. Every recipe is either a hand recipe or a station recipe.
 _Avoid_: Blueprint, schematic, unlock
+
+**Crafting**:
+The timed work of following a recipe to make something that goes into the backpack. The materials are used up only when the work finishes. If the player stops partway, they lose nothing, and the work starts again from the beginning next time. Things placed in the world, such as work stations and furniture, come from construction, not crafting.
+_Avoid_: Making, fabrication, assembly
+
+**Hand recipe**:
+A recipe the player can follow anywhere, using only what is in their backpack.
+
+**Station recipe**:
+A recipe the player follows while standing at a work station. Besides what is in the backpack, it can use logs lying next to the station.
+
+**Craft menu**:
+The list, opened with C, of every recipe in the game. Recipes the player cannot follow yet show the tool or work station they are missing.
+_Avoid_: Crafting window, recipe book
 
 **Work station**:
 A built object where the player does a specific kind of processing.
@@ -166,6 +180,12 @@ _Avoid_: Bench, crafting table
 
 **Sawhorse**:
 A work station where the player cuts debarked logs into planks.
+
+**Saw blade**:
+The metal blade the player brings into the valley. It is a material, not a tool. The player crafts it into a saw.
+
+**Saw**:
+A bow saw: a saw blade in a wooden frame. The player needs it to cut planks at a sawhorse.
 
 **Furniture**:
 An object placed freely inside or around a building, such as a bed, table, or shelf. Furniture does not snap to the grid.

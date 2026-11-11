@@ -234,7 +234,7 @@ describe("saving woodpiles", () => {
     Object.assign(woodpile.woodpile, { log: 1, debarkedLog: 2, firewood: 3 });
     const spot = openSpotNearPlayer(game);
     send(game, { type: "placeBlueprint", structure: "woodpile", turns: 1, x: spot.x, z: spot.z });
-    expect(game.entities.with("blueprint").entities.map(({ blueprint }) => blueprint.piece)).toEqual(["woodpile"]);
+    expect(game.entities.with("blueprint").entities.map(({ blueprint }) => blueprint.structure)).toEqual(["woodpile"]);
     tend(game, woodpile);
 
     const saved = writeSave(game);
@@ -257,13 +257,13 @@ describe("saving woodpiles", () => {
   it("loads a save from before woodpiles existed, with no woodpiles in it", () => {
     const game = createGame({ seed: 42 });
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
-    // Version 7 is the last save version before woodpiles.
-    save.version = 7;
+    // Version 9 is the last save version before woodpiles.
+    save.version = 9;
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
-    expect(SAVE_VERSION).toBeGreaterThan(7);
+    expect(SAVE_VERSION).toBeGreaterThan(9);
     expect(writeSave(loaded.game)).toEqual(writeSave(game));
     expect(loaded.game.entities.with("woodpile").entities).toEqual([]);
   });

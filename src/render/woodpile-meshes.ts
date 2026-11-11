@@ -5,7 +5,7 @@
 // A blueprint, and the blueprint under the mouse while placing, shows the rails see-through. The one under the mouse turns red
 // where the woodpile is not allowed.
 import * as THREE from "three";
-import { facingRadians } from "./facing";
+import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
 import { blueprintEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "../sim/entities";
 import { WOODPILE_CAPACITY } from "../sim/woodpiles";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
@@ -27,7 +27,6 @@ const PLACE_SPACING_METRES = 0.24;
 /** Layers sit this far apart, in metres. */
 const LAYER_SPACING_METRES = 0.21;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 /** How see-through a blueprint is, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 /** Clicks on a woodpile or its blueprint hit an invisible box this big, in metres. */
@@ -46,7 +45,7 @@ export interface WoodpileMeshes {
   /** The rails and wood of a woodpile or blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: WoodpileHit): OutlinePart[];
   /** Shows a woodpile blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -165,16 +164,16 @@ export function createWoodpileMeshes(entities: EntityStore): WoodpileMeshes {
   }
 
   /** The blueprint that follows the mouse before the player places it. Hidden until placing starts. */
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewRails = addRails(preview, blueprintMaterial);
-  group.add(preview);
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingRails = addRails(placingBlueprint, blueprintMaterial);
+  group.add(placingBlueprint);
 
   return {
     group,
     update() {
       const seen = new Set<Entity>();
-      const current = [...woodpiles, ...blueprints.entities.filter(({ blueprint }) => blueprint.piece === "woodpile")];
+      const current = [...woodpiles, ...blueprints.entities.filter(({ blueprint }) => blueprint.structure === "woodpile")];
       for (const entity of current) {
         seen.add(entity);
         if (drawn.get(entity)?.key === keyOf(entity)) continue;
@@ -200,12 +199,12 @@ export function createWoodpileMeshes(entities: EntityStore): WoodpileMeshes {
       item.root.updateMatrixWorld(true);
       return item.parts.map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(placement) {
-      preview.visible = placement !== undefined;
+    showPlacingBlueprint(placement) {
+      placingBlueprint.visible = placement !== undefined;
       if (placement === undefined) return;
-      preview.position.set(placement.spot.x, placement.spot.y, placement.spot.z);
-      preview.rotation.y = facingRadians(placement.turns);
-      for (const rail of previewRails) rail.material = placement.allowed ? blueprintMaterial : notAllowedMaterial;
+      placingBlueprint.position.set(placement.spot.x, placement.spot.y, placement.spot.z);
+      placingBlueprint.rotation.y = facingRadians(placement.turns);
+      for (const rail of placingRails) rail.material = placement.allowed ? blueprintMaterial : notAllowedMaterial;
     },
     dispose() {
       for (const geometry of [railGeometry, logGeometry, firewoodGeometry, pickGeometry]) geometry.dispose();

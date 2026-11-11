@@ -6,11 +6,9 @@ import { isOnGridSquare } from "./build-grid";
 import { campfireEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
-import type { QuarterTurns } from "./structure-kind";
+import { SIDES } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
-/** The four sides of a grid square, as `edgeMiddle` numbers them. */
-const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
 
 /** The middles of the foundation squares in one room. */
 export type Room = readonly GroundPoint[];

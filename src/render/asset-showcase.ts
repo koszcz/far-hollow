@@ -8,6 +8,7 @@ import { CHOP_SECONDS } from "../sim/chopping";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
+import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { createChestMeshes } from "./chest-meshes";
 import { createPileMeshes } from "./pile-meshes";
@@ -15,7 +16,7 @@ import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
   type CampfireMeshes,
 } from "./campfire-meshes";
-import { CAMPFIRE_BUILD_SECONDS } from "../sim/building";
+import { CAMPFIRE_BUILD_SECONDS } from "../sim/structures";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../sim/structures";
 import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
@@ -25,6 +26,7 @@ import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
 import { CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
+import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
@@ -150,7 +152,7 @@ function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Sho
         if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
       };
       deckTop(place(0, 0, { foundation: true }));
-      deckTop(place(0, -0.5, { blueprint: { piece, progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 2 } }));
+      deckTop(place(0, -0.5, { blueprint: { structure: piece, progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 2 } }));
       movePlayer(1.3, 0.2, -0.4);
     },
     pose({ store }, shot) {
@@ -265,7 +267,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from above", yaw: 40, pitch: 60, seconds: 1 },
     ],
     build({ place }) {
-      const blueprint = place(0, 0, { blueprint: { piece: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
+      const blueprint = place(0, 0, { blueprint: { structure: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
       if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
     },
     pose({ store }, shot) {
@@ -283,7 +285,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from above", yaw: 140, pitch: 55, seconds: 1 },
     ],
     build({ place, movePlayer }) {
-      place(0, 0, { blueprint: { piece: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
+      place(0, 0, { blueprint: { structure: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
       movePlayer(1, 0.2, -Math.PI / 2);
     },
     pose({ store }, shot) {
@@ -327,8 +329,60 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
           deckTop(place(x, z, { cabinRoof: true, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
         }
       }
-      deckTop(place(1, 0, { blueprint: { piece: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
+      deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
       movePlayer(0.6, 1.3, Math.PI);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
+  "roof-corners": {
+    radius: 3,
+    focus: { x: 0, y: 1.6, z: 0 },
+    // A 3 by 2 cabin with a hipped roof: the long sides slope down to the front and back, and the two ends slope out, so each
+    // corner is a hip. Beside it, an L-shaped cabin one square wide whose roofs slope into the L, so its corner is a valley.
+    // The front right hip is a blueprint with two logs delivered, then with its bark half laid, then finished.
+    shots: [
+      { label: `hip blueprint, 2 of ${ROOF_LOG_COST} logs delivered`, yaw: 30, pitch: 40, seconds: 0, radius: 1.8, focus: { x: 1, y: 1.8, z: 0 } },
+      { label: "hip, bark half laid", yaw: 30, pitch: 40, radius: 1.8, focus: { x: 1, y: 1.8, z: 0 },
+        seconds: (ROOF_LOG_COST + ROOF_BARK_COST / 2) / (ROOF_LOG_COST + ROOF_BARK_COST) },
+      { label: "hipped 3 by 2 cabin", yaw: 60, pitch: 15, seconds: 1, radius: 2, focus: { x: 0, y: 1.6, z: -0.5 } },
+      { label: "L cabin, valley", yaw: 45, pitch: 35, seconds: 1, radius: 1.6, focus: { x: -4.5, y: 1.6, z: 0 } },
+    ],
+    build({ place }) {
+      const deckTop = (entity: Entity) => {
+        if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
+        return entity;
+      };
+      /** Builds foundations on these squares, and log walls on every edge with no foundation beyond it. */
+      const cabin = (squares: readonly (readonly [number, number])[]) => {
+        const taken = new Set(squares.map(([x, z]) => `${x},${z}`));
+        for (const [x, z] of squares) {
+          deckTop(place(x, z, { foundation: true }));
+          for (const turns of [0, 1, 2, 3] as const) {
+            const out = turnOffset({ x: 0, z: 1 }, turns);
+            if (taken.has(`${x + out.x},${z + out.z}`)) continue;
+            deckTop(place(x + out.x / 2, z + out.z / 2, { edgePiece: "logWall", facing: { turns } }));
+          }
+        }
+      };
+      const roofOver = (x: number, z: number, turns: QuarterTurns) =>
+        deckTop(place(x, z, { cabinRoof: true, facing: { turns }, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
+      // The hipped cabin. Turns 0 slopes down to +z, 1 to -x, 2 to -z, and 3 to +x.
+      cabin([[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0]]);
+      roofOver(0, 0, 0);
+      roofOver(0, -1, 2);
+      roofOver(-1, 0, 1);
+      roofOver(-1, -1, 1);
+      roofOver(1, -1, 3);
+      deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 3 } }));
+      // The L: an arm along x at the back, and an arm along z down its left side. Both slope into the L.
+      cabin([[-5, -1], [-4, -1], [-3, -1], [-5, 0], [-5, 1]]);
+      roofOver(-4, -1, 0);
+      roofOver(-3, -1, 0);
+      roofOver(-5, -1, 0);
+      roofOver(-5, 0, 3);
+      roofOver(-5, 1, 3);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -370,7 +424,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from behind", yaw: 200, pitch: 25, seconds: 1 },
     ],
     build({ place, movePlayer }) {
-      place(0, 0, { blueprint: { piece: "leanTo", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
+      place(0, 0, { blueprint: { structure: "leanTo", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
       movePlayer(-2.6, 1.2, Math.PI / 2);
     },
     pose({ store }, shot) {
@@ -392,7 +446,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 0.4, z: 0 },
     shots: FOUR_ANGLES,
     build({ place, movePlayer }) {
-      place(-2.4, 0, { blueprint: { piece: "woodpile", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
+      place(-2.4, 0, { blueprint: { structure: "woodpile", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
       place(-0.8, 0, { woodpile: { log: 0, debarkedLog: 0, firewood: 0 } });
       place(0.8, 0, { woodpile: { log: 3, debarkedLog: 3, firewood: 4 } });
       place(2.4, 0, { woodpile: { log: 4, debarkedLog: 4, firewood: 12 } });
@@ -485,6 +539,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with bark in the backpack and on offer as fuel.
+  // Pieces of bark lie on the ground beside the player, as taking down a building piece leaves them when the backpack is full.
   bark: {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
@@ -497,6 +552,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
       place(-1.5, 0.5, { log: { heading: 0.4 } });
+      for (const [x, z] of [[2.6, 0.3], [3, 0.7], [2.4, 0.9]] as const) place(x, z, { bark: true });
       movePlayer(0, 0, 0);
     },
   },
@@ -576,7 +632,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built", progress: 1 },
     ].map(({ label, progress }) => ({ label, yaw: 30, pitch: 25, seconds: progress })),
     build({ place }) {
-      place(0, 0, { blueprint: { piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} } });
+      place(0, 0, { blueprint: { structure: "campfire", progress: 0, materialsSpent: 0, delivered: {} } });
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -769,19 +825,20 @@ export function showAsset(
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
+  const bark = createBarkMeshes(store);
   const woodpiles = createWoodpileMeshes(store);
   const chests = createChestMeshes(store);
   const piles = createPileMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(
-    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group,
-    chests.group, piles.group, rain.group,
+    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
+    woodpiles.group, chests.group, piles.group, rain.group,
   );
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(
-    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group,
-    chests.group, piles.group, player.group, props,
+    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
+    woodpiles.group, chests.group, piles.group, player.group, props,
   );
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
@@ -800,6 +857,7 @@ export function showAsset(
     piles.update();
     woodpiles.update();
     chests.update();
+    bark.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -860,6 +918,7 @@ export function showAsset(
       piles.dispose();
       woodpiles.dispose();
       chests.dispose();
+      bark.dispose();
       rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();

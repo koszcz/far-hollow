@@ -24,7 +24,7 @@ describe("placing a foundation", () => {
     send(game, placeFoundation(square.x + 0.3, square.z - 0.4));
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "foundation", progress: 0, materialsSpent: 0, delivered: {} });
+    expect(blueprint.blueprint).toMatchObject({ structure: "foundation", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: square.x, z: square.z });
     expect(game.client.describeBlueprint(idOf(game, blueprint))?.deliveries).toEqual([
       { material: "debarkedLog", has: 0, needs: FOUNDATION_LOG_COST },

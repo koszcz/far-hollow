@@ -30,6 +30,11 @@ interface AssetEntryBase {
   license: string;
   /** The files that build, load, or draw the asset, as paths from the project root. Empty if nothing uses it yet. */
   code: string[];
+  /**
+   * Changes to the asset that the owner approved after deciding on it, each starting with the date as YYYY-MM-DD.
+   * A ticket that changes an approved asset records the owner's approval here.
+   */
+  approvalNotes?: string[];
 }
 
 /** An asset built in code. It has no file of its own. */

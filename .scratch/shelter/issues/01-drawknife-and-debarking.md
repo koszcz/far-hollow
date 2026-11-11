@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`, `logs`, `chop-animation`, and `hud`. Add the drafts `debarked-log` and `bark`.
 

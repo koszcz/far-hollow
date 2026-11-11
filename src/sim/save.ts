@@ -23,11 +23,13 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   giveDrawknife,
   countMaterialsSpent,
   addDeliveredMaterials,
-  // Version 7 to 8: the player can build woodpiles. A save from before then has none.
+  nameBlueprintStructure,
+  faceRoofsForward,
+  // Version 9 to 10: the player can build woodpiles. A save from before then has none.
   nothingToUpgrade,
-  // Version 8 to 9: the player can build chests. A save from before then has none.
+  // Version 10 to 11: the player can build chests. A save from before then has none.
   nothingToUpgrade,
-  // Version 9 to 10: the player can drop things in piles. A save from before then has none.
+  // Version 11 to 12: the player can drop things in piles. A save from before then has none.
   nothingToUpgrade,
   fillChests,
   scatterDroppedSticks,
@@ -38,8 +40,10 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
 
+/** The first save version in which every roof section faces the way it slopes down. */
+export const ROOFS_FACE_SAVE_VERSION = SAVE_UPGRADES.indexOf(faceRoofsForward) + 2;
 /** The first save version that can hold piles. */
-export const PILES_SAVE_VERSION = 10;
+export const PILES_SAVE_VERSION = 12;
 /** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
 export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 /** The first save version in which finished chests and woodpiles block walking. */
@@ -173,6 +177,37 @@ function addDeliveredMaterials(save: Readonly<Record<string, unknown>>): Record<
 }
 
 /**
+ * Version 7 to 8: a blueprint names the structure it is a blueprint of in `structure`, not `piece`,
+ * since a campfire or a lean-to is a structure, not a building piece.
+ */
+function nameBlueprintStructure(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (typeof blueprint !== "object" || blueprint === null || !("piece" in blueprint)) return entity;
+    const { piece, ...rest } = blueprint;
+    return { ...(entity as object), components: { ...components, blueprint: { structure: piece, ...rest } } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * Version 8 to 9: turns every roof section, finished or as a blueprint, to slope down to +z. Before roofs faced a direction, every roof
+ * sloped that way, whatever turn the player gave its blueprint, so an older save keeps the roofs it showed.
+ */
+function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const isRoof = components?.cabinRoof === true || components?.blueprint?.structure === "roof";
+    if (!isRoof) return entity;
+    return { ...(entity as object), components: { ...components, facing: { turns: 0 } } };
+  });
+  return { ...save, entities };
+}
+
+/**
  * For a version that added something older saves never hold, such as a new kind of structure.
  * The save carries over unchanged. The new version number stops older code loading a save that holds the new thing.
  */
@@ -181,7 +216,7 @@ function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<strin
 }
 
 /**
- * Version 10 to 11: a chest holds small materials, tools, and food. A chest saved before then held nothing, so it becomes an empty chest.
+ * Version 12 to 13: a chest holds small materials, tools, and food. A chest saved before then held nothing, so it becomes an empty chest.
  */
 function fillChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
@@ -195,7 +230,7 @@ function fillChests(save: Readonly<Record<string, unknown>>): Record<string, unk
 }
 
 /**
- * Version 11 to 12: dropped sticks lie on the ground one by one, the same as sticks on the forest floor.
+ * Version 13 to 14: dropped sticks lie on the ground one by one, the same as sticks on the forest floor.
  * Each pile of sticks becomes that many sticks, spread round where the pile lay.
  */
 function scatterDroppedSticks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
@@ -221,7 +256,7 @@ function scatterDroppedSticks(save: Readonly<Record<string, unknown>>): Record<s
 }
 
 /**
- * Version 12 to 13: a finished chest blocks walking, and a finished woodpile blocks the ground it covers.
+ * Version 14 to 15: a finished chest blocks walking, and a finished woodpile blocks the ground it covers.
  * Before then a chest blocked nothing, and a woodpile's reach was too short to block any walk-map cell.
  */
 function blockWalkingAtChestsAndWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
@@ -235,7 +270,7 @@ function blockWalkingAtChestsAndWoodpiles(save: Readonly<Record<string, unknown>
   return { ...save, entities };
 }
 
-/** Version 13 to 14: the notice that a chest or woodpile still holds something is renamed to `stillHoldsSomething`. */
+/** Version 15 to 16: the notice that a chest or woodpile still holds something is renamed to `stillHoldsSomething`. */
 function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const notice = save.notice as { kind?: unknown } | null | undefined;
   if (notice?.kind !== "storageNotEmpty") return { ...save };

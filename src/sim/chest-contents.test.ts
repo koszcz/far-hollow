@@ -194,14 +194,14 @@ describe("saving what a chest holds", () => {
     const game = createGame({ seed: 42 });
     buildChest(game);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Record<string, unknown> }[] };
-    // How a version 9 save stored a finished chest.
+    // How a version 12 save stored a finished chest.
     for (const { components } of save.entities) if ("chest" in components) components.chest = {};
-    save.version = 9;
+    save.version = 12;
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
-    expect(SAVE_VERSION).toBeGreaterThan(9);
+    expect(SAVE_VERSION).toBeGreaterThan(12);
     expect(loaded.game.entities.with("chest").entities.map(({ chest }) => chest)).toEqual([{ contents: {} }]);
   });
 

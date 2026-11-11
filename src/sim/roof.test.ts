@@ -5,7 +5,7 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_BUILD_SECONDS, ROOF_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
 import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
-import { readSave, writeSave } from "./save";
+import { readSave, ROOFS_FACE_SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
 
 describe("the roof in the build menu", () => {
@@ -47,7 +47,7 @@ describe("where a roof can go", () => {
     send(game, place("logWall", square, 2));
     expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
     send(game, place("roof", square, 0));
-    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.piece === "logWall")).toBe(true);
+    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.structure === "logWall")).toBe(true);
   });
 
   it("accepts a door frame on any edge, even one placed from the square beside it", () => {
@@ -72,7 +72,7 @@ describe("where a roof can go", () => {
 
     send(game, place("roof", square, 0));
 
-    expect(onlyBlueprint(game).blueprint).toMatchObject({ piece: "roof", progress: 0, delivered: {} });
+    expect(onlyBlueprint(game).blueprint).toMatchObject({ structure: "roof", progress: 0, delivered: {} });
     expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
   });
 });
@@ -208,9 +208,67 @@ describe("saving roofs", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(onlyBlueprint(loaded.game).blueprint).toMatchObject({ piece: "roof", delivered: { debarkedLog: 1 } });
+    expect(onlyBlueprint(loaded.game).blueprint).toMatchObject({ structure: "roof", delivered: { debarkedLog: 1 } });
     expect(cabinRoofOn(loaded.game.entities, square)).toBeDefined();
     expect(isUnderRoof(loaded.game.entities, square)).toBe(true);
+  });
+});
+
+describe("the way a roof faces", () => {
+  it("keeps the turn its blueprint was placed with when finished, and in a save", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    finishedFoundationAt(game, square);
+    finishedPieceAt(game, "logWall", square, 0);
+    send(game, place("roof", square, 1));
+    const blueprint = onlyBlueprint(game);
+    expect(blueprint.facing).toEqual({ turns: 1 });
+
+    finish(game, blueprint);
+    expect(cabinRoofOn(game.entities, square)?.facing).toEqual({ turns: 1 });
+
+    const loaded = readSave(structuredClone(writeSave(game)));
+    if (!loaded.ok) throw new Error("The save was rejected");
+    const section = cabinRoofOn(loaded.game.entities, square);
+    expect(section?.facing).toEqual({ turns: 1 });
+    // The game rules store only the turn: no height or corner shape.
+    expect(Object.keys(section ?? {}).sort()).toEqual(["cabinRoof", "facing", "position", "roof"]);
+  });
+
+  it("loads roofs from a save made before roofs faced a direction sloping to +z, as they did then", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    const beside = { x: square.x + 1, z: square.z };
+    finishedFoundationAt(game, square);
+    finishedFoundationAt(game, beside);
+    finishedPieceAt(game, "logWall", square, 0);
+    finishedPieceAt(game, "logWall", beside, 0);
+    // Back then, the blueprint kept whatever turn R gave it, though the roof ignored it.
+    send(game, place("roof", square, 2));
+    finish(game, onlyBlueprint(game));
+    send(game, place("roof", beside, 3));
+    const saved = writeSave(game);
+    const old = { ...saved, version: ROOFS_FACE_SAVE_VERSION - 1 };
+
+    const loaded = readSave(structuredClone(old));
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(cabinRoofOn(loaded.game.entities, square)?.facing).toEqual({ turns: 0 });
+    expect(onlyBlueprint(loaded.game).facing).toEqual({ turns: 0 });
+  });
+
+  it("leaves other structures' turns in an older save alone", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    finishedFoundationAt(game, square);
+    const wall = finishedPieceAt(game, "logWall", square, 3);
+    const old = { ...writeSave(game), version: ROOFS_FACE_SAVE_VERSION - 1 };
+
+    const loaded = readSave(structuredClone(old));
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    const loadedWall = loaded.game.entities.with("edgePiece", "position").entities.find(({ position }) => position.x === wall.position?.x && position.z === wall.position.z);
+    expect(loadedWall?.facing).toEqual({ turns: 3 });
   });
 });
 
@@ -245,7 +303,7 @@ function startRain(game: Game): void {
 function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: QuarterTurns): Entity {
   send(game, place(structure, square, turns));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== structure) throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== structure) throw new Error("The blueprint was not placed");
   const cost = structure === "logWall" ? LOG_WALL_LOG_COST : DOOR_FRAME_LOG_COST;
   for (let i = 0; i < cost; i += 1) deliverLog(game, blueprint);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });

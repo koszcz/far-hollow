@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 (Foundation)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player` and `debarked-log`. Add the drafts `log-wall` and `door-frame`, with build stages.
 

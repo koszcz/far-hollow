@@ -1,6 +1,6 @@
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
-import { playerEntities, setComponent, type EntityStore } from "./entities";
-import { groundDistance } from "./valley";
+import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can pick up a stick from this far away, in metres. */
@@ -21,39 +21,64 @@ export interface Gathering {
    * Returns "backpackFull" when the backpack has no room.
    */
   pickUpStick(stickId: number): GatherRefusal | undefined;
+  /** Like `pickUpStick`, for a piece of bark on the ground, such as one given back by taking down a building piece. */
+  pickUpBark(barkId: number): GatherRefusal | undefined;
   /**
    * Starts the player splitting the log on their shoulder into firewood with the axe.
    * Does nothing if the player carries no log, has no axe, or the backpack has no room for all the firewood.
    * Returns "backpackFull" when the backpack has no room for the firewood.
    */
   splitLog(): GatherRefusal | undefined;
-  /** Stops the player walking to pick up a stick, or splitting a log. */
+  /** Stops the player walking to pick up a stick or piece of bark, or splitting a log. */
   cancel(): void;
-  /** Picks up sticks the player has reached and moves splitting on by one logic step. Run it after walking has moved the player. */
+  /** Picks up sticks and bark the player has reached and moves splitting on by one logic step. Run it after walking has moved the player. */
   step(stepSeconds: number): void;
 }
 
-/** Lets the player gather fuel into the backpack: sticks from the forest floor, and firewood split from logs. */
+/** A material that lies on the ground as its own entity, and that the player picks up into the backpack. */
+type GroundMaterial = "stick" | "bark";
+
+/** Lets the player gather fuel into the backpack: sticks and bark from the ground, and firewood split from logs. */
 export function createGathering(entities: EntityStore, walking: Walking): Gathering {
   const players = playerEntities(entities);
-  const gatherers = entities.with("stickPickUpTask", "position", "backpack");
+  const stickGatherers = entities.with("stickPickUpTask", "position", "backpack");
+  const barkGatherers = entities.with("barkPickUpTask", "position", "backpack");
   const splitters = entities.with("splitTask", "backpack");
+
+  /**
+   * Sets the player walking to a stick or piece of bark on the ground. `setTask` gives them the task that picks it up there.
+   * Does nothing if the entity is not that material on the ground, and refuses if the backpack has no room for it.
+   */
+  function startPickUp(id: number, material: GroundMaterial, setTask: (player: Entity) => void): GatherRefusal | undefined {
+    const lying = entities.entity(id);
+    if (lying?.[material] !== true || lying.position === undefined) return undefined;
+    let refusal: GatherRefusal | undefined;
+    for (const player of players) {
+      if (player.backpack === undefined) continue;
+      if (!fitsInBackpack(player.backpack, material, 1)) {
+        refusal = "backpackFull";
+        continue;
+      }
+      walking.walkTo(lying.position);
+      setTask(player);
+    }
+    return refusal;
+  }
+
+  /** Puts a stick or piece of bark in the gatherer's backpack, if they have reached it and it still lies there. */
+  function finishPickUp(gatherer: Entity & { position: GroundPoint; backpack: Backpack }, id: number, material: GroundMaterial): void {
+    const lying = entities.entity(id);
+    if (lying?.[material] !== true || lying.position === undefined) return;
+    if (groundDistance(lying.position, gatherer.position) > PICK_UP_REACH_METRES) return;
+    if (addToBackpack(gatherer.backpack, material, 1)) entities.remove(lying);
+  }
 
   return {
     pickUpStick(stickId) {
-      const stick = entities.entity(stickId);
-      if (stick?.stick !== true || stick.position === undefined) return undefined;
-      let refusal: GatherRefusal | undefined;
-      for (const player of players) {
-        if (player.backpack === undefined) continue;
-        if (!fitsInBackpack(player.backpack, "stick", 1)) {
-          refusal = "backpackFull";
-          continue;
-        }
-        walking.walkTo(stick.position);
-        setComponent(entities, player, "stickPickUpTask", { stickId });
-      }
-      return refusal;
+      return startPickUp(stickId, "stick", (player) => { setComponent(entities, player, "stickPickUpTask", { stickId }); });
+    },
+    pickUpBark(barkId) {
+      return startPickUp(barkId, "bark", (player) => { setComponent(entities, player, "barkPickUpTask", { barkId }); });
     },
     splitLog() {
       let refusal: GatherRefusal | undefined;
@@ -71,6 +96,7 @@ export function createGathering(entities: EntityStore, walking: Walking): Gather
     cancel() {
       for (const player of players) {
         entities.removeComponent(player, "stickPickUpTask");
+        entities.removeComponent(player, "barkPickUpTask");
         entities.removeComponent(player, "splitTask");
       }
     },
@@ -86,14 +112,17 @@ export function createGathering(entities: EntityStore, walking: Walking): Gather
         entities.removeComponent(splitter, "splitTask");
         if (addToBackpack(splitter.backpack, "firewood", FIREWOOD_PER_LOG)) entities.removeComponent(splitter, "carrying");
       }
-      for (const gatherer of [...gatherers]) {
+      for (const gatherer of [...stickGatherers]) {
         if (gatherer.walkPath) continue;
-        const stick = entities.entity(gatherer.stickPickUpTask.stickId);
+        const { stickId } = gatherer.stickPickUpTask;
         entities.removeComponent(gatherer, "stickPickUpTask");
-        if (stick?.stick !== true || stick.position === undefined) continue;
-        const distance = groundDistance(stick.position, gatherer.position);
-        if (distance > PICK_UP_REACH_METRES) continue;
-        if (addToBackpack(gatherer.backpack, "stick", 1)) entities.remove(stick);
+        finishPickUp(gatherer, stickId, "stick");
+      }
+      for (const gatherer of [...barkGatherers]) {
+        if (gatherer.walkPath) continue;
+        const { barkId } = gatherer.barkPickUpTask;
+        entities.removeComponent(gatherer, "barkPickUpTask");
+        finishPickUp(gatherer, barkId, "bark");
       }
     },
   };

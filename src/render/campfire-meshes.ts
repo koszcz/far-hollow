@@ -10,14 +10,14 @@
 // It turns red where the campfire is not allowed.
 // A campfire with a pot on it shows the code-built "pot" (approved) from pot-shape.ts nested on its sticks, steaming while lit.
 import * as THREE from "three";
-import { facingRadians } from "./facing";
 import { createFireMaker, type Fire } from "./fire-effect";
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
-import { CAMPFIRE_STICK_COST } from "../sim/building";
+import { CAMPFIRE_STICK_COST } from "../sim/structures";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
+import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
 
 /** Stones take turns between these two greys, so the ring does not look cast from one mould. */
 const STONE_COLOURS = [0x8c8c86, 0x6f6e69] as const;
@@ -33,8 +33,6 @@ const CHAR_SHARE = 0.4;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 
 const STONE_COUNT = 10;
 /** The stones sit this far from the campfire's centre, in metres. Camp footprints use it too. */
@@ -116,7 +114,7 @@ export interface CampfireMeshes {
   /** The stones and sticks of a campfire or blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: CampfireHit): OutlinePart[];
   /** Shows a campfire blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -191,11 +189,11 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     return { stones: stoneMeshes, sticks: stickMeshes };
   }
 
-  /** The blueprint that follows the mouse before the player places it. Hidden until placing starts. */
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewParts = addStonesAndSticks(preview, blueprintMaterial);
-  group.add(preview);
+  /** The blueprint that follows the mouse before the player places it. Hidden until placingBlueprint starts. */
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingParts = addStonesAndSticks(placingBlueprint, blueprintMaterial);
+  group.add(placingBlueprint);
 
   function draw(entity: Entity & { position: { x: number; y: number; z: number } }): Drawn {
     const existing = drawn.get(entity);
@@ -314,7 +312,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       const seen = new Set<Entity>();
       for (const blueprint of blueprints) {
         // Other structures draw their own blueprints.
-        if (blueprint.blueprint.piece !== "campfire") continue;
+        if (blueprint.blueprint.structure !== "campfire") continue;
         showProgress(draw(blueprint), blueprint.blueprint.progress);
         seen.add(blueprint);
       }
@@ -348,13 +346,13 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
         matrix: mesh.matrixWorld,
       }));
     },
-    showPreview(shown) {
-      preview.visible = shown !== undefined;
+    showPlacingBlueprint(shown) {
+      placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
-      preview.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      preview.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
+      placingBlueprint.rotation.y = facingRadians(shown.turns);
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of [...previewParts.stones, ...previewParts.sticks]) mesh.material = material;
+      for (const mesh of [...placingParts.stones, ...placingParts.sticks]) mesh.material = material;
     },
     dispose() {
       for (const item of [

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Drawknife and debarking), 02 (Build menu)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player` and `bedroll`. Add the draft `lean-to`, with build stages.
 

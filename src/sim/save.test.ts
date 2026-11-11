@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_LOG_COST } from "./building";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_LOG_COST } from "./structures";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { LOG_WALL_LOG_COST } from "./structures";
@@ -153,12 +153,12 @@ describe("upgrading an older save", () => {
   it("loads a save from before chests existed as it was, at the newest version", () => {
     const game = playedGame();
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
-    save.version = 7;
+    save.version = 9;
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
-    expect(SAVE_VERSION).toBeGreaterThan(7);
+    expect(SAVE_VERSION).toBeGreaterThan(9);
     expect(writeSave(loaded.game)).toEqual(writeSave(game));
   });
 });
@@ -209,7 +209,7 @@ describe("saving log walls and door frames", () => {
     const saved = writeSave(game);
     const components = saved.entities.map((entity) => entity.components);
     expect(components.some((entity) => entity.edgePiece === "logWall")).toBe(true);
-    expect(components.some((entity) => entity.blueprint?.piece === "doorFrame" && entity.blueprint.delivered.debarkedLog === 1)).toBe(true);
+    expect(components.some((entity) => entity.blueprint?.structure === "doorFrame" && entity.blueprint.delivered.debarkedLog === 1)).toBe(true);
     const loaded = readSave(throughStorage(saved));
     if (!loaded.ok) throw new Error("The save was rejected");
 
@@ -222,7 +222,7 @@ describe("saving log walls and door frames", () => {
 function edgePieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: 0 | 1 | 2 | 3): Entity {
   send(game, { type: "placeBlueprint", structure, turns, x: square.x, z: square.z });
   const placed = game.entities.with("blueprint", "position").entities.at(-1);
-  if (placed?.blueprint.piece !== structure) throw new Error("No blueprint");
+  if (placed?.blueprint.structure !== structure) throw new Error("No blueprint");
   return placed;
 }
 

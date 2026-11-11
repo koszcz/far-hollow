@@ -100,7 +100,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved recolouring the log on the player's shoulder pale when it is a debarked log."
+      ]
     },
     {
       "id": "walk-animation",
@@ -158,18 +161,22 @@
       "id": "bark",
       "kind": "code",
       "code": [
+        "src/render/bark-meshes.ts",
         "src/ui/hud-icons.tsx",
         "src/ui/hud.tsx",
         "src/ui/hud-showcase.tsx"
       ],
-      "description": "Bark: a HUD line icon of one peeled strip with its end rolled into a curl, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
+      "description": "Bark: a HUD line icon of one peeled strip with its end rolled into a curl, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. On the ground, a piece of bark is a peeled strip curved like the trunk it came off, dark outside and pale inside, with one end rolled into a tight curl, like the icon.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved adding a ground form, so bark can lie on the ground when taking down a building piece gives back more bark than the backpack holds. The HUD icon is unchanged."
+      ]
     },
     {
       "id": "foundation",
@@ -213,7 +220,11 @@
       "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel. A finished frame between the camera and the player fades out.",
       "source": "Built in code in this project",
       "license": "Project code",
-      "approval": { "status": "approved", "by": "owner", "date": "2026-11-11" }
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
     },
     {
       "id": "roof",
@@ -222,7 +233,7 @@
         "src/render/roof-meshes.ts",
         "src/sim/roofs.ts"
       ],
-      "description": "The cabin roof section: a sloped roof over one foundation square, resting on the tops of its walls. It slopes 12 degrees down to the front to shed rain, and sections one behind another share one continuous slope. Three faceted debarked-log rafters with pale cut ends rest on the front wall. Where a section has no section beside or behind it, debarked logs stacked on the wall, cut to the slope, fill the gap up to the bark. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie over them like shingles from the front up, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it.",
+      "description": "The cabin roof section: a sloped roof over one foundation square, resting on the tops of its walls. It slopes 12 degrees down to the front to shed rain, and sections one behind another share one continuous slope. Three faceted debarked-log rafters with pale cut ends rest on the front wall. Where a section has no section beside or behind it, debarked logs stacked on the wall, cut to the slope, fill the gap up to the bark. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie over them like shingles from the front up, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it. Each section slopes down the way the player turned it. Its hip and valley corner pieces are the separate draft asset roof-corners.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -232,17 +243,18 @@
       }
     },
     {
-      "id": "chest",
+      "id": "roof-corners",
       "kind": "code",
       "code": [
-        "src/render/chest-meshes.ts"
+        "src/render/roof-meshes.ts",
+        "src/render/roof-layout.ts"
       ],
-      "description": "The chest: a rough box hewn from debarked logs, 0.9 m wide and 0.55 m deep. Its body is thick pale planks with cut ends showing, and its lid is three planks laid side by side with a small overhang. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction builds the body in the first stage and puts on the lid in the second.",
+      "description": "The hip and valley corner pieces of the cabin roof. Where two roofs that slope at right angles meet, the corner section changes shape on its own: an outside corner becomes a hip, where two slopes meet at a ridge, and an inside corner becomes a valley, where they meet in a gutter. Each has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Four rows of bark strips, made like the straight section's, are laid on both slopes from the eaves up, each cut along the meeting line and reaching a little past it, so on a hip each slope laps over the ridge and on a valley each slope tucks under the other. Logs cut to the slope fill any gap above a wall or a lower roof beside it. Construction stages match the straight section's.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "draft",
-        "ticket": ".scratch/storage/issues/03-place-and-build-a-chest.md"
+        "ticket": ".scratch/shelter/issues/09-roof-facing-and-corners.md"
       }
     },
     {
@@ -274,7 +286,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the shelter build menu's changes: a see-through blueprint copy that follows the mouse, a red colour for a spot where it is not allowed, and turning the blueprint the way it faces."
+      ]
     },
     {
       "id": "lean-to",
@@ -388,7 +403,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles."
+      ]
     },
     {
       "id": "backpack-icons",
@@ -558,6 +576,20 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "chest",
+      "kind": "code",
+      "code": [
+        "src/render/chest-meshes.ts"
+      ],
+      "description": "The chest: a rough box hewn from debarked logs, 0.9 m wide and 0.55 m deep. Its body is thick pale planks with cut ends showing, and its lid is three planks laid side by side with a small overhang. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction builds the body in the first stage and puts on the lid in the second.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/storage/issues/03-place-and-build-a-chest.md"
       }
     },
     {

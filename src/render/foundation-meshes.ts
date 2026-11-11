@@ -17,14 +17,13 @@ import { FOUNDATION_LOG_COST } from "../sim/structures";
 import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
+import { NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 /** A delivered log waiting in its place is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 /** The legs and beams are a little darker than the deck, as if cut from the heart of the log. */
 const LEG_COLOUR = 0xb8966a;
 const LEG_RADIUS_METRES = 0.08;
@@ -65,7 +64,7 @@ export interface FoundationMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: FoundationHit): OutlinePart[];
   /** Shows a foundation blueprint under the mouse with its deck top at `spot`, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: Vec3; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -160,10 +159,10 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
     });
   }
 
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewParts = addParts(preview);
-  group.add(preview);
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingParts = addParts(placingBlueprint);
+  group.add(placingBlueprint);
 
   function draw(entity: Entity & { position: Vec3 }): Drawn {
     const existing = drawn.get(entity);
@@ -230,7 +229,7 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
     update() {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
-        if (entity.blueprint.piece !== "foundation") continue;
+        if (entity.blueprint.structure !== "foundation") continue;
         showProgress(draw(entity), entity.position, entity.blueprint.progress, entity.blueprint.delivered.debarkedLog ?? 0);
         seen.add(entity);
       }
@@ -252,14 +251,7 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
       return undefined;
     },
     pickFinished(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity !== undefined && entity.blueprint === undefined) return { entity, distance: hit.distance };
-      }
-      return undefined;
+      return pickFinished(raycaster, pickers);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);
@@ -267,12 +259,12 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
       item.root.updateMatrixWorld(true);
       return [...item.logs.map(({ mesh }) => mesh), ...item.beams, ...item.legs].map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(shown) {
-      preview.visible = shown !== undefined;
+    showPlacingBlueprint(shown) {
+      placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of [...previewParts.logs, ...previewParts.beams, ...previewParts.legs]) mesh.material = material;
-      fit(preview, previewParts, shown.spot);
+      for (const mesh of [...placingParts.logs, ...placingParts.beams, ...placingParts.legs]) mesh.material = material;
+      fit(placingBlueprint, placingParts, shown.spot);
     },
     dispose() {
       for (const item of [

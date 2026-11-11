@@ -33,7 +33,7 @@ describe("placing a lean-to blueprint", () => {
     send(game, { type: "placeBlueprint", structure: "leanTo", turns: 1, x: spot.x + 0.3, z: spot.z - 0.2 });
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toEqual({ piece: "leanTo", progress: 0, materialsSpent: 0, delivered: {} });
+    expect(blueprint.blueprint).toEqual({ structure: "leanTo", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: spot.x, z: spot.z });
     expect(blueprint.facing).toEqual({ turns: 1 });
   });
@@ -251,7 +251,19 @@ describe("saving lean-tos", () => {
 
     const upgraded = upgradeSave(save) as { entities: { components: Entity }[] };
 
-    expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ piece: "campfire", progress: 0.4, materialsSpent: 2, delivered: {} });
+    expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ structure: "campfire", progress: 0.4, materialsSpent: 2, delivered: {} });
+    expect(readSave(save).ok).toBe(true);
+  });
+
+  it("upgrades a blueprint from a save that named its structure a piece", () => {
+    const save = structuredClone(writeSave(createGame({ seed: 42 }))) as unknown as { version: number; entities: { id: number; components: object }[] };
+    save.version = 7;
+    const blueprint = { piece: "leanTo", progress: 0.25, materialsSpent: 4, delivered: {} };
+    save.entities.push({ id: 99_999, components: { blueprint, facing: { turns: 1 }, position: { x: 0, y: 0, z: 0 } } });
+
+    const upgraded = upgradeSave(save) as { entities: { components: Entity }[] };
+
+    expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ structure: "leanTo", progress: 0.25, materialsSpent: 4, delivered: {} });
     expect(readSave(save).ok).toBe(true);
   });
 });

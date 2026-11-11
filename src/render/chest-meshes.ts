@@ -6,7 +6,7 @@
 // A blueprint shows the parts see-through. A part whose debarked log has been delivered shows pale and half solid.
 // While the player places a chest from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { facingRadians } from "./facing";
+import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
 import { blueprintEntities, chestEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES } from "../sim/structures";
 import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
@@ -18,8 +18,6 @@ const BLUEPRINT_COLOUR = 0xbfe3ff;
 const BLUEPRINT_OPACITY = 0.35;
 /** A part whose log has been delivered is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 /** How tall the body of the chest is, in metres. */
 const BODY_HEIGHT_METRES = 0.45;
 /** How thick the planks of the body and the lid are, in metres. */
@@ -43,7 +41,7 @@ export interface ChestMeshes {
   /** The parts of a chest or chest blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: ChestHit): OutlinePart[];
   /** Shows a chest blueprint under the mouse with its base at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -117,10 +115,10 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
     });
   }
 
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewStages = addStages(preview);
-  group.add(preview);
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingStages = addStages(placingBlueprint);
+  group.add(placingBlueprint);
 
   function draw(entity: Entity & { position: Vec3 }): Drawn {
     const existing = drawn.get(entity);
@@ -179,7 +177,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
     update() {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
-        if (entity.blueprint.piece !== "chest") continue;
+        if (entity.blueprint.structure !== "chest") continue;
         showProgress(draw(entity), entity, entity.blueprint.progress, entity.blueprint.delivered.debarkedLog ?? 0);
         seen.add(entity);
       }
@@ -206,22 +204,22 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       item.root.updateMatrixWorld(true);
       return item.stages.flatMap(({ meshes }) => meshes).map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(shown) {
-      preview.visible = shown !== undefined;
+    showPlacingBlueprint(shown) {
+      placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const stage of previewStages) {
+      for (const stage of placingStages) {
         stage.root.position.y = 0;
         for (const mesh of stage.meshes) mesh.material = material;
       }
-      preview.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      preview.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
+      placingBlueprint.rotation.y = facingRadians(shown.turns);
     },
     dispose() {
       for (const item of [...geometries.flat(), pickGeometry, woodMaterial, cutMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
         item.dispose();
       }
-      disposeFading(previewStages);
+      disposeFading(placingStages);
       for (const item of drawn.values()) disposeFading(item.stages);
     },
   };

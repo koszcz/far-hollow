@@ -1,15 +1,15 @@
 // Decides where undergrowth must not show because the player has placed something there:
-// a campfire, a bedroll, a building piece, a chest, or a blueprint.
-// A blueprint covers the same ground as the piece it will become. PIECE_FOOTPRINTS gives that ground for each piece,
-// so a new piece cannot be added without saying how much ground it covers.
+// a campfire, a bedroll, a lean-to, a building piece, a woodpile, a chest, or a blueprint.
+// A blueprint covers the same ground as the structure it will become. STRUCTURE_FOOTPRINTS gives that ground for each structure,
+// so a new structure cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import {
-  bedrollEntities, blueprintEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, leanToEntities, woodpileEntities, type Entity,
+  bedrollEntities, blueprintEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, leanToEntities, woodpileEntities,
   type EntityStore,
 } from "../sim/entities";
 import { structureOf } from "../sim/structures";
-import type { QuarterTurns } from "../sim/structure-kind";
+import type { QuarterTurns, StructureKind } from "../sim/structure-kind";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
 import { STONE_RING_RADIUS_METRES } from "./campfire-meshes";
 
@@ -21,22 +21,19 @@ export type CampFootprint =
   | { readonly x: number; readonly z: number; readonly radius: number }
   | { readonly x: number; readonly z: number; readonly halfX: number; readonly halfZ: number };
 
-/** A building piece the player can plan as a blueprint. */
-type BuildingPiece = NonNullable<Entity["blueprint"]>["piece"];
-
 /** Undergrowth also hides this far beyond a campfire's ring of stones, so it covers the stones themselves, in metres. */
 const CAMPFIRE_MARGIN_METRES = 0.25;
 /** Undergrowth also hides this far beyond a bedroll's edge, so leaves never lie over the mat, in metres. */
 const BEDROLL_MARGIN_METRES = 0.15;
 
 /** The ground a structure covers, as its placement rule sees it, centred on (x, z) and facing `turns`. */
-function structureFootprint(piece: BuildingPiece, x: number, z: number, turns: QuarterTurns): CampFootprint {
-  const { min, max } = structureOf(piece).footprint({ x, z }, turns);
+function structureFootprint(kind: StructureKind, x: number, z: number, turns: QuarterTurns): CampFootprint {
+  const { min, max } = structureOf(kind).footprint({ x, z }, turns);
   return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
 }
 
-/** The ground each building piece covers, centred on (x, z) and facing `turns`. A blueprint and its finished piece both use this. */
-const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, turns: QuarterTurns) => CampFootprint>> = {
+/** The ground each structure covers, centred on (x, z) and facing `turns`. A blueprint and its finished structure both use this. */
+const STRUCTURE_FOOTPRINTS: Readonly<Record<StructureKind, (x: number, z: number, turns: QuarterTurns) => CampFootprint>> = {
   campfire: (x, z) => ({ x, z, radius: STONE_RING_RADIUS_METRES + CAMPFIRE_MARGIN_METRES }),
   leanTo: (x, z, turns) => structureFootprint("leanTo", x, z, turns),
   // Undergrowth hides under the whole square, so no leaves poke up through the deck.
@@ -63,25 +60,25 @@ function edgePieceFootprint(x: number, z: number, turns: QuarterTurns): CampFoot
 export function campFootprints(entities: EntityStore): CampFootprint[] {
   const footprints: CampFootprint[] = [];
   for (const { blueprint, position, facing } of blueprintEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS[blueprint.piece](position.x, position.z, facing?.turns ?? 0));
+    footprints.push(STRUCTURE_FOOTPRINTS[blueprint.structure](position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of campfireEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.campfire(position.x, position.z, 0));
+    footprints.push(STRUCTURE_FOOTPRINTS.campfire(position.x, position.z, 0));
   }
   for (const { position, facing } of leanToEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.leanTo(position.x, position.z, facing?.turns ?? 0));
+    footprints.push(STRUCTURE_FOOTPRINTS.leanTo(position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of foundationEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.foundation(position.x, position.z, 0));
+    footprints.push(STRUCTURE_FOOTPRINTS.foundation(position.x, position.z, 0));
   }
   for (const { edgePiece, position, facing } of edgePieceEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS[edgePiece](position.x, position.z, facing?.turns ?? 0));
+    footprints.push(STRUCTURE_FOOTPRINTS[edgePiece](position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position, facing } of woodpileEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.woodpile(position.x, position.z, facing?.turns ?? 0));
+    footprints.push(STRUCTURE_FOOTPRINTS.woodpile(position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position, facing } of chestEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.chest(position.x, position.z, facing?.turns ?? 0));
+    footprints.push(STRUCTURE_FOOTPRINTS.chest(position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

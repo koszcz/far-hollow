@@ -58,7 +58,7 @@ describe("snapping a wall to the edge of a foundation", () => {
     send(game, { type: "placeBlueprint", structure: "foundation", turns: 0, x: square.x, z: square.z });
     expect(game.client.checkPlacement("logWall", square, 0).allowed).toBe(false);
     send(game, place("logWall", square, 0));
-    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.piece === "foundation")).toBe(true);
+    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.structure === "foundation")).toBe(true);
   });
 
   it("places a blueprint on the edge, facing the way R picked", () => {
@@ -69,7 +69,7 @@ describe("snapping a wall to the edge of a foundation", () => {
     send(game, place("logWall", square, 1));
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "logWall", progress: 0, delivered: {} });
+    expect(blueprint.blueprint).toMatchObject({ structure: "logWall", progress: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: square.x - 0.5, z: square.z });
     expect(blueprint.facing).toEqual({ turns: 1 });
   });
@@ -274,7 +274,7 @@ function isOnSquare(spot: { x: number; z: number }, square: { x: number; z: numb
 function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: QuarterTurns): Entity {
   send(game, place(structure, square, turns));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== structure) throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== structure) throw new Error("The blueprint was not placed");
   const cost = structure === "logWall" ? LOG_WALL_LOG_COST : DOOR_FRAME_LOG_COST;
   for (let i = 0; i < cost; i += 1) {
     game.entities.addComponent(onlyPlayer(game), "carrying", "debarkedLog");

@@ -1,4 +1,4 @@
-// Draws the undergrowth: the "grass", "ferns", "flowers", and "pebbles" assets in asset-manifest.json (all drafts).
+// Draws the undergrowth: the "grass", "ferns", "flowers", and "pebbles" assets in asset-manifest.json.
 // undergrowth-layout.ts decides where each plant grows. undergrowth-models.ts loads the shapes.
 // - Each model is one batch (an instanced mesh), so thousands of plants cost a few dozen draw calls.
 // - Only patches near where the camera looks are grown and drawn. Plants shrink into the ground as they near the edge
@@ -20,9 +20,9 @@ const FADE_START_METRES = 64;
 
 /** Which models each kind of undergrowth uses, by model name, and how big it is compared with its model. */
 const LOOK_BY_KIND: Readonly<Record<UndergrowthKind, { readonly models: RegExp; readonly size: number }>> = {
-  sparseGrass: { models: /^grass(_leafs)?$/, size: 0.85 },
-  grassTuft: { models: /^grass(_leafs)?$/, size: 1 },
-  tallGrass: { models: /^grass_(large|leafsLarge)$/, size: 1.8 },
+  sparseGrass: { models: /^grass_tuft/, size: 0.8 },
+  grassTuft: { models: /^grass_tuft/, size: 1 },
+  tallGrass: { models: /^grass_tall/, size: 1 },
   fern: { models: /^plant_flat/, size: 1.7 },
   flower: { models: /^flower_/, size: 1 },
   smallRock: { models: /^rock_small(?!Flat)/, size: 0.7 },
@@ -40,9 +40,12 @@ export interface UndergrowthMeshes {
   dispose(): void;
 }
 
-/** The material every undergrowth model is drawn with. Each model carries its own colours as vertex colours. */
-export function createUndergrowthMaterial(): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
+/**
+ * The material an undergrowth model is drawn with. Each model carries its own colours as vertex colours.
+ * Models are shaded flat, unless the shape asks to be lit by its own normals, like the grass.
+ */
+export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNormals">): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: shape.ownNormals !== true });
 }
 
 export function createUndergrowthMeshes(valley: Valley, shapes: readonly UndergrowthShape[], entities: EntityStore): UndergrowthMeshes {
@@ -52,26 +55,30 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   const patchesPerSide = Math.ceil(valley.size / UNDERGROWTH_PATCH_METRES);
 
   const focusUniform = { value: new THREE.Vector2() };
-  const material = createUndergrowthMaterial();
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.undergrowthFocus = focusUniform;
-    shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform vec2 undergrowthFocus;")
-      .replace(
-        "#include <begin_vertex>",
-        [
+  const flatMaterial = createUndergrowthMaterial({ ownNormals: false });
+  const ownNormalsMaterial = createUndergrowthMaterial({ ownNormals: true });
+  for (const material of [flatMaterial, ownNormalsMaterial]) {
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.undergrowthFocus = focusUniform;
+      shader.vertexShader = shader.vertexShader
+        .replace("#include <common>", "#include <common>\nuniform vec2 undergrowthFocus;")
+        .replace(
           "#include <begin_vertex>",
-          "#ifdef USE_INSTANCING",
-          // Shrink each plant towards its foot as it nears the edge of the drawn area.
-          "vec2 undergrowthSpot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
-          `transformed *= 1.0 - smoothstep( ${FADE_START_METRES.toFixed(1)}, ${UNDERGROWTH_DRAW_METRES.toFixed(1)}, distance( undergrowthSpot, undergrowthFocus ) );`,
-          "#endif",
-        ].join("\n"),
-      );
-  };
+          [
+            "#include <begin_vertex>",
+            "#ifdef USE_INSTANCING",
+            // Shrink each plant towards its foot as it nears the edge of the drawn area.
+            "vec2 undergrowthSpot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
+            `transformed *= 1.0 - smoothstep( ${FADE_START_METRES.toFixed(1)}, ${UNDERGROWTH_DRAW_METRES.toFixed(1)}, distance( undergrowthSpot, undergrowthFocus ) );`,
+            "#endif",
+          ].join("\n"),
+        );
+    };
+  }
+  const materialFor = (shape: UndergrowthShape) => (shape.ownNormals === true ? ownNormalsMaterial : flatMaterial);
 
   // One batch per model. Batches grow when a view needs more plants than they hold.
-  const batches = shapes.map((shape) => ({ shape, mesh: newBatch(shape.geometry, material, 64), count: 0 }));
+  const batches = shapes.map((shape) => ({ shape, mesh: newBatch(shape.geometry, materialFor(shape), 64), count: 0 }));
   for (const batch of batches) group.add(batch.mesh);
   const batchesByKind = new Map<UndergrowthKind, typeof batches>();
   for (const kind of Object.keys(LOOK_BY_KIND) as UndergrowthKind[]) {
@@ -121,7 +128,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
     const batch = choices[Math.min(choices.length - 1, Math.floor(plant.look * choices.length))];
     if (batch === undefined || isUnderCamp(footprints, plant.x, plant.z)) return;
     if (batch.count === batch.mesh.instanceMatrix.count) {
-      const bigger = newBatch(batch.shape.geometry, material, batch.mesh.instanceMatrix.count * 2);
+      const bigger = newBatch(batch.shape.geometry, materialFor(batch.shape), batch.mesh.instanceMatrix.count * 2);
       bigger.instanceMatrix.array.set(batch.mesh.instanceMatrix.array);
       group.remove(batch.mesh);
       batch.mesh.dispose();
@@ -151,7 +158,8 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
     },
     dispose() {
       for (const batch of batches) batch.mesh.dispose();
-      material.dispose();
+      flatMaterial.dispose();
+      ownNormalsMaterial.dispose();
     },
   };
 }

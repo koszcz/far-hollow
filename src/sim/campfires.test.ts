@@ -52,6 +52,25 @@ describe("lighting a campfire", () => {
     expect(game.client.getView().nearbyCampfire?.lit).toBe(false);
   });
 
+  it("says the campfire can be lit only when it has fuel, is out, and the player has a fire striker", () => {
+    const { game, campfire } = gameWithCampfire();
+    give(game, "stick", 1);
+    tend(game, campfire);
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+
+    send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(true);
+
+    give(game, "fireStriker", -1);
+    game.step();
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+
+    give(game, "fireStriker", 1);
+    send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
+    expect(game.client.getView().nearbyCampfire?.lit).toBe(true);
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+  });
+
   it("does nothing when the player is out of reach", () => {
     const { game, campfire } = gameWithCampfire();
     give(game, "stick", 1);

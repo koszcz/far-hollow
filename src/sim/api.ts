@@ -87,6 +87,8 @@ export interface CampfireView {
   readonly fuelLeft: number;
   /** How many more game minutes the campfire's fuel can burn. */
   readonly fuelMinutes: number;
+  /** True if sending lightCampfire would light it now: it is out, it has fuel, and the player has a fire striker. */
+  readonly canLight: boolean;
 }
 
 export interface PlayerAction {

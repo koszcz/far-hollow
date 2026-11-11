@@ -28,7 +28,6 @@ export interface HudProps {
 function CampfirePanel({ client, view, campfire }: { client: GameClient; view: GameView; campfire: CampfireView }) {
   const hasSticks = (view.backpack.stick ?? 0) > 0;
   const hasFirewood = (view.backpack.firewood ?? 0) > 0;
-  const canLight = !campfire.lit && campfire.fuelMinutes > 0 && (view.backpack.fireStriker ?? 0) > 0;
   return (
     <section class="hud-campfire" aria-label={strings.campfire}>
       <h2>{strings.campfire}</h2>
@@ -47,7 +46,7 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
         {strings.addFirewood}
       </button>
       {!campfire.lit && (
-        <button type="button" disabled={!canLight} onClick={() => {
+        <button type="button" disabled={!campfire.canLight} onClick={() => {
             client.send({ type: "lightCampfire", campfireId: campfire.id });
           }}>
           {strings.lightCampfire}

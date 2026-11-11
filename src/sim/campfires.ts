@@ -31,6 +31,8 @@ export interface Campfires {
   addFuel(campfireId: number, fuel: CampfireFuel): void;
   /** Lights a campfire within the player's reach with the fire striker. It needs fuel. */
   light(campfireId: number): void;
+  /** True if `light` would light the campfire now: it is out, it has fuel, and the player is within reach with a fire striker. */
+  canLight(campfireId: number): boolean;
   /** The campfire nearest the player that is within their reach, if any. */
   nearby(): CampfireEntity | undefined;
   /** Burns the fuel of every lit campfire for this many game minutes. A fire goes out when its fuel runs out. */
@@ -60,6 +62,13 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
     return undefined;
   }
 
+  /** True if the campfire is out, has fuel, and a player within reach has a fire striker. */
+  function canLight(campfire: CampfireEntity): boolean {
+    if (campfire.campfire.lit || campfire.campfire.fuelMinutes <= 0) return false;
+    const player = tenderOf(campfire);
+    return player?.backpack !== undefined && hasInBackpack(player.backpack, "fireStriker");
+  }
+
   return {
     tend(campfireId) {
       const campfire = campfireById(campfireId);
@@ -86,12 +95,13 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       if (!removeFromBackpack(player.backpack, fuel, 1)) return;
       campfire.campfire.fuelMinutes = fuelMinutes;
     },
+    canLight(campfireId) {
+      const campfire = campfireById(campfireId);
+      return campfire !== undefined && canLight(campfire);
+    },
     light(campfireId) {
       const campfire = campfireById(campfireId);
-      if (campfire === undefined || campfire.campfire.fuelMinutes <= 0) return;
-      const player = tenderOf(campfire);
-      if (player?.backpack === undefined || !hasInBackpack(player.backpack, "fireStriker")) return;
-      campfire.campfire.lit = true;
+      if (campfire !== undefined && canLight(campfire)) campfire.campfire.lit = true;
     },
     nearby() {
       let nearest: CampfireEntity | undefined;

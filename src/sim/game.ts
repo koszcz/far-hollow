@@ -121,6 +121,7 @@ export function createGame({ seed }: GameOptions): Game {
       lit: campfire.campfire.lit,
       fuelLeft: campfire.campfire.fuelMinutes / CAMPFIRE_FUEL_LIMIT_MINUTES,
       fuelMinutes: campfire.campfire.fuelMinutes,
+      canLight: campfires.canLight(id),
     });
   }
 

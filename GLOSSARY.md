@@ -128,6 +128,18 @@ _Avoid_: Floor, level
 The building piece the player walks on inside a building.
 _Avoid_: Floorboards, deck
 
+**Lean-to**:
+The first shelter the player builds: a sloped roof of sticks and bark on a frame, open at the front. It is one structure, not a set of building pieces.
+_Avoid_: Shack, tent, hut
+
+**Room**:
+A set of foundation squares closed in on every side by log walls or door frames, with a roof over every square. A lit campfire in a room warms the whole room.
+_Avoid_: Interior, enclosure
+
+**Build menu**:
+The list, opened with B, of every structure the player can build and what it costs.
+_Avoid_: Build bar, construction menu
+
 **Blueprint**:
 A see-through outline of a building piece the player has placed but not finished. It shows where the piece will go and how far along it is.
 _Avoid_: Ghost, preview, plan

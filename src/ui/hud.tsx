@@ -1,7 +1,7 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, BedrollView, CampfireView, Food, GameClient, GameView } from "../sim/api";
+import type { BackpackContent, BedrollView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
 import { strings } from "../strings";
 import { HudIcon, type HudIconName } from "./hud-icons";
 
@@ -28,10 +28,40 @@ export interface HudProps {
   cameraFollow: boolean;
   /** Called when the player turns camera follow on or off. The camera is not game state, so this is not a command. */
   onCameraFollowChange: (enabled: boolean) => void;
-  /** Whether the next click on the ground places a campfire blueprint. */
-  placingCampfire: boolean;
-  /** Called when the player chooses to place a campfire. Placing is input state, not game state, so this is not a command. */
-  onPlaceCampfire: () => void;
+  /** Whether the build menu is open. */
+  buildMenuOpen: boolean;
+  /** The structure whose blueprint follows the mouse, or null while not placing one. */
+  placing: StructureKind | null;
+  /** Called when the player opens or closes the build menu. The menu is input state, not game state, so this is not a command. */
+  onToggleBuildMenu: () => void;
+  /** Called when the player picks a structure from the build menu. Its blueprint then follows the mouse. */
+  onPickBuildEntry: (structure: StructureKind) => void;
+}
+
+/** The build menu: every structure the player can build, with its cost. Picking one puts its blueprint under the mouse. */
+function BuildMenu({ entries, onPick }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void }) {
+  return (
+    <section class="hud-section hud-build-menu" aria-label={strings.buildMenu.title}>
+      <h2>
+        <HudIcon name="place" />
+        {strings.buildMenu.title}
+      </h2>
+      <ul>
+        {entries.map(({ structure, cost }) => (
+          <li key={structure}>
+            <HudButton
+              label={strings.buildMenu.structures[structure]}
+              onClick={() => {
+                onPick(structure);
+              }}
+            />
+            <span class="hud-build-cost">{strings.buildMenu.cost(cost.map(({ material, count }) => strings.buildMenu.materials[material](count)))}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="hud-hint">{strings.buildMenu.close}</p>
+    </section>
+  );
 }
 
 /** Warmth's bar colour runs from this cold blue at 0 to the ember orange at 1. */
@@ -154,7 +184,7 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
-export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowChange, placingCampfire, onPlaceCampfire }: HudProps) {
+export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowChange, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
   const [view, setView] = useState(client.getView());
   const [cameraFollow, setCameraFollow] = useState(initialCameraFollow);
   useEffect(
@@ -189,14 +219,15 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           <HudButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
               client.send({ type: "setPaused", paused: !view.paused });
             }} />
-          {!placingCampfire && <HudButton icon="place" label={strings.placeCampfire(view.campfireStickCost)} onClick={onPlaceCampfire} />}
+          {placing === null && <HudButton icon="place" label={strings.buildMenu.open} onClick={onToggleBuildMenu} />}
           {(view.backpack.bedroll ?? 0) > 0 && (
             <HudButton icon="place" label={strings.layBedroll} onClick={() => {
                 client.send({ type: "layBedroll" });
               }} />
           )}
         </div>
-        {placingCampfire && <p class="hud-hint">{strings.placingCampfire}</p>}
+        {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
+        {placing !== null && <p class="hud-hint">{strings.buildMenu.placing(strings.buildMenu.structures[placing])}</p>}
         {view.carrying === "log" && (
           <section class="hud-section hud-carrying" aria-label={strings.carryingLog}>
             <h2>

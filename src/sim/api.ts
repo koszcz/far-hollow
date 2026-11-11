@@ -4,7 +4,10 @@ export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { PotWater } from "./pot-state";
+import type { MaterialCost, QuarterTurns, StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
+
+export type { BuildMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -30,8 +33,11 @@ export type Command =
   | { type: "splitLog" }
   /** Lay the log the player carries on the ground at their feet. */
   | { type: "dropLog" }
-  /** Place a campfire blueprint at the building-grid spot nearest the given spot, in metres. Placing costs nothing. */
-  | ({ type: "placeCampfire" } & GroundPoint)
+  /**
+   * Place a blueprint of a structure from the build menu at the building-grid spot nearest the given spot, in metres,
+   * facing `turns` quarter turns. Placing costs nothing. Nothing happens if the structure's placement rule refuses the spot.
+   */
+  | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns } & GroundPoint)
   /**
    * Start holding the build action on a blueprint, given by its entity id. The player walks to it first if needed.
    * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of sticks.
@@ -90,8 +96,8 @@ export interface GameView {
   readonly backpackWeight: number;
   /** The most the backpack can hold, in kilograms. */
   readonly backpackWeightLimit: number;
-  /** How many sticks it takes to build a campfire. */
-  readonly campfireStickCost: number;
+  /** Every structure the player can build, with its cost, in the order the build menu lists them. */
+  readonly buildMenu: readonly BuildMenuEntry[];
   /** The timed work the player is doing right now, or null if none. Walking to the work does not count. */
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
@@ -151,6 +157,13 @@ export interface CampfireView {
   readonly pot: { readonly water: PotWater; readonly boilProgress: number } | null;
 }
 
+/** One structure in the build menu. */
+export interface BuildMenuEntry {
+  readonly structure: StructureKind;
+  /** Everything building it costs. Placing its blueprint costs nothing. Construction spends it. */
+  readonly cost: readonly MaterialCost[];
+}
+
 export interface BedrollView {
   /** The bedroll's entity id. */
   readonly id: number;
@@ -163,8 +176,20 @@ export interface PlayerAction {
   readonly progress: number;
 }
 
+/** Where a blueprint would go, and whether its structure's placement rule allows it there. */
+export interface PlacementCheck {
+  /** The building-grid spot it snaps to, on the ground, in metres. */
+  readonly spot: Readonly<Vec3>;
+  readonly allowed: boolean;
+}
+
 export interface GameClient {
   getView(): GameView;
+  /**
+   * Where a blueprint of `structure` facing `turns` would go if placed near `at`, and whether it is allowed there.
+   * It only reads game state, so the blueprint under the mouse can follow it before the player clicks.
+   */
+  checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck;
   send(command: Command): void;
   /** Calls the listener after each logic step. Returns a function that stops listening. */
   subscribe(listener: () => void): () => void;

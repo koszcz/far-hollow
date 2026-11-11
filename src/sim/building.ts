@@ -1,20 +1,19 @@
+import type { PlacementCheck } from "./api";
 import { removeFromBackpack } from "./backpack";
-import { blueprintEntities, campfireEntities, playerEntities, setComponent, type EntityStore } from "./entities";
+import { playerEntities, setComponent, type EntityStore } from "./entities";
+import { CAMPFIRE_STICK_COST, structureOf, type QuarterTurns, type StructureKind } from "./structures";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
-import { isWalkable } from "./walk-map";
 import type { Walking } from "./walking";
+
+export { CAMPFIRE_STICK_COST } from "./structures";
 
 /** Building pieces snap to a square grid this wide, in metres (ADR 0002). */
 export const BUILD_GRID_METRES = 1;
 
-/** How many sticks a campfire costs. Construction spends one at the start of each stage. */
-export const CAMPFIRE_STICK_COST = 5;
 /** How long the player holds the build action to build a campfire, in seconds. */
 export const CAMPFIRE_BUILD_SECONDS = 5;
 /** A finished campfire stops the player walking within this many metres of its centre. */
 const CAMPFIRE_WALK_BLOCK_RADIUS_METRES = 0.8;
-/** Two campfires, finished or not, cannot be closer than this, in metres. */
-const CAMPFIRE_MIN_SPACING_METRES = 2;
 
 /** The player walks to a spot this far from a blueprint's centre to build it, in metres. */
 const BUILD_STAND_METRES = 1.5;
@@ -22,11 +21,13 @@ const BUILD_STAND_METRES = 1.5;
 const BUILD_REACH_METRES = 2.5;
 
 export interface Building {
+  /** Where a blueprint of `structure` facing `turns` would go if placed near `at`, and whether it is allowed there. Changes nothing. */
+  checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck;
   /**
-   * Places a campfire blueprint at the grid spot nearest to `at`. Placing costs nothing.
-   * Does nothing if the spot cannot be walked on or another campfire is too close.
+   * Places a blueprint of `structure` facing `turns` at the grid spot nearest to `at`. Placing costs nothing.
+   * Does nothing if the structure's placement rule refuses the spot.
    */
-  placeCampfire(at: GroundPoint): void;
+  place(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): void;
   /**
    * Starts the player building a blueprint, walking to it first if needed.
    * Building goes on for as long as the build action is held, until the piece is finished or the sticks run out.
@@ -42,19 +43,22 @@ export interface Building {
 export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley): Building {
   const players = playerEntities(entities);
   const builders = entities.with("buildTask", "position", "backpack");
-  const campfires = campfireEntities(entities);
-  const blueprints = blueprintEntities(entities);
+
+  function checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck {
+    const { x, z } = snapToBuildGrid(at);
+    const allowed = structureOf(structure).canPlace({ entities, walkMap: walking.walkMap }, { x, z }, turns);
+    return Object.freeze({ spot: Object.freeze({ x, y: terrainHeightAt(valley.terrain, x, z), z }), allowed });
+  }
 
   return {
-    placeCampfire(at) {
-      const spot = snapToBuildGrid(at);
-      if (!isWalkable(walking.walkMap, spot)) return;
-      for (const other of [...campfires, ...blueprints]) {
-        if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return;
-      }
+    checkPlacement,
+    place(structure, at, turns) {
+      const { spot, allowed } = checkPlacement(structure, at, turns);
+      if (!allowed) return;
       entities.add({
-        blueprint: { piece: "campfire", progress: 0, sticksSpent: 0 },
-        position: { x: spot.x, y: terrainHeightAt(valley.terrain, spot.x, spot.z), z: spot.z },
+        blueprint: { piece: structure, progress: 0, sticksSpent: 0 },
+        facing: { turns },
+        position: { ...spot },
       });
     },
     build(blueprintId) {

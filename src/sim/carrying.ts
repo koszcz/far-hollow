@@ -22,7 +22,7 @@ export interface Carrying {
 /** Keeps track of what the player carries on their shoulder. One log fits at a time. */
 export function createCarrying(entities: EntityStore, walking: Walking, valley: Valley): Carrying {
   const players = playerEntities(entities);
-  const pickers = entities.with("pickUpTask", "position");
+  const pickers = entities.with("logPickUpTask", "position");
 
   return {
     pickUp(logId) {
@@ -31,12 +31,12 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       for (const player of players) {
         if (player.carrying !== undefined) continue;
         walking.walkTo(log.position);
-        if (player.pickUpTask) player.pickUpTask = { logId };
-        else entities.addComponent(player, "pickUpTask", { logId });
+        if (player.logPickUpTask) player.logPickUpTask = { logId };
+        else entities.addComponent(player, "logPickUpTask", { logId });
       }
     },
     cancel() {
-      for (const player of players) entities.removeComponent(player, "pickUpTask");
+      for (const player of players) entities.removeComponent(player, "logPickUpTask");
     },
     drop() {
       for (const player of players) {
@@ -50,8 +50,8 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const picker of [...pickers]) {
         if (picker.walkPath) continue;
-        const log = entities.entity(picker.pickUpTask.logId);
-        entities.removeComponent(picker, "pickUpTask");
+        const log = entities.entity(picker.logPickUpTask.logId);
+        entities.removeComponent(picker, "logPickUpTask");
         if (log?.position === undefined) continue;
         const distance = Math.hypot(log.position.x - picker.position.x, log.position.z - picker.position.z);
         if (distance <= PICK_UP_REACH_METRES) shoulderLog(entities, picker, log);

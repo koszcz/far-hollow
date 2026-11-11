@@ -110,7 +110,7 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
         .forEach((shape, index) => {
           const x = (index % columns) * UNDERGROWTH_SPACING_METRES - width / 2;
           const z = Math.floor(index / columns) * UNDERGROWTH_SPACING_METRES - depth / 2;
-          addProp(shape.geometry.clone(), createUndergrowthMaterial(), x, z);
+          addProp(shape.geometry.clone(), createUndergrowthMaterial(shape), x, z);
         });
     },
   };
@@ -185,7 +185,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { forageSpot: { food: "mushroom" } });
     },
   },
-  grass: undergrowthShowcase("grass", 4, 4),
+  grass: undergrowthShowcase("grass", 5, 5),
   ferns: undergrowthShowcase("ferns", 2, 2),
   flowers: undergrowthShowcase("flowers", 9, 3),
   pebbles: undergrowthShowcase("pebbles", 28, 7),

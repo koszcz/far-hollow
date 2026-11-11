@@ -11,6 +11,7 @@ import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { createChestMeshes } from "./chest-meshes";
+import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createPileMeshes } from "./pile-meshes";
 import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
@@ -25,7 +26,9 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
-import { CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
+import {
+  CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST, SAWHORSE_LOG_COST,
+} from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createRoofMeshes } from "./roof-meshes";
@@ -287,6 +290,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       place(0, 0, { blueprint: { structure: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
       movePlayer(1, 0.2, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
+  sawhorse: {
+    radius: 1.6,
+    focus: { x: 0, y: 0.35, z: 0 },
+    // A blueprint with one log delivered, the beam being set down, then the finished sawhorse from the side and from one end.
+    shots: [
+      { label: "blueprint, 1 of 2 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "beam above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / SAWHORSE_LOG_COST },
+      { label: "built, side", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, end", yaw: 90, pitch: 20, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { structure: "sawhorse", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
+      movePlayer(1.3, 0.3, -Math.PI / 2);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -842,17 +863,18 @@ export function showAsset(
   const bark = createBarkMeshes(store);
   const woodpiles = createWoodpileMeshes(store);
   const chests = createChestMeshes(store);
+  const sawhorses = createSawhorseMeshes(store);
   const piles = createPileMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(
     forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
-    woodpiles.group, chests.group, piles.group, rain.group,
+    woodpiles.group, chests.group, sawhorses.group, piles.group, rain.group,
   );
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(
     forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
-    woodpiles.group, chests.group, piles.group, player.group, props,
+    woodpiles.group, chests.group, sawhorses.group, piles.group, player.group, props,
   );
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
@@ -871,6 +893,7 @@ export function showAsset(
     piles.update();
     woodpiles.update();
     chests.update();
+    sawhorses.update();
     bark.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
@@ -932,6 +955,7 @@ export function showAsset(
       piles.dispose();
       woodpiles.dispose();
       chests.dispose();
+      sawhorses.dispose();
       bark.dispose();
       rain.dispose();
       player.dispose();

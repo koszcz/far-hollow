@@ -5,7 +5,7 @@ import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
-import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -138,6 +138,11 @@ export interface Entity {
    * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
    */
   chest?: { contents: BackpackContents };
+  /**
+   * Marks a finished work station, such as a sawhorse, with its kind. A blueprint of a work station does not have it.
+   * Its position is the middle of the ground it covers. Its `facing` says which way it is turned.
+   */
+  workStation?: WorkStationKind;
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
@@ -348,6 +353,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished chests. */
 export function chestEntities(store: EntityStore) {
   return store.with("chest", "position");
+}
+
+/** Finished work stations, such as sawhorses. Blueprints are not among them. */
+export function workStationEntities(store: EntityStore) {
+  return store.with("workStation", "position");
 }
 
 /** Finished lean-tos. */

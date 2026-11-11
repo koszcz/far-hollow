@@ -35,6 +35,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
   renameNotEmptyNotice,
+  addSawhorses,
   giveSawBlade,
 ];
 
@@ -51,6 +52,8 @@ export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppe
 export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalkingAtChestsAndWoodpiles) + 2;
 /** The first save version whose notice that a chest or woodpile still holds something is called `stillHoldsSomething`. */
 export const RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameNotEmptyNotice) + 2;
+/** The first save version that can hold sawhorses. */
+export const SAWHORSES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSawhorses) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -278,8 +281,13 @@ function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<s
   return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
 }
 
+/** The player can build sawhorses. A save from before then has none, so it carries over unchanged. */
+function addSawhorses(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
 /**
- * Version 16 to 17: a new game now starts with a saw blade, for crafting the saw. A player saved before then gets one too,
+ * Version 17 to 18: a new game now starts with a saw blade, for crafting the saw. A player saved before then gets one too,
  * unless they already hold a saw.
  */
 function giveSawBlade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {

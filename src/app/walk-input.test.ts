@@ -46,6 +46,13 @@ describe("right-clicking a chest or woodpile", () => {
   });
 });
 
+describe("clicking a finished sawhorse", () => {
+  it("offers to take it down on a right-click, and does nothing on a left-click yet", () => {
+    expect(menuActionsFor({ kind: "sawhorse", id: 11 })).toEqual([{ label: strings.takeDown, command: { type: "takeDown", pieceId: 11 } }]);
+    expect(mainActionFor({ kind: "sawhorse", id: 11 })).toBeUndefined();
+  });
+});
+
 describe("left-clicking a finished building piece", () => {
   it("acts on what is under it, so the player can walk onto a foundation or into a lean-to", () => {
     const pick = { kind: "structure", id: 8, under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;

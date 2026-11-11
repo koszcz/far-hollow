@@ -38,6 +38,7 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
     case "pile":
       return { type: "pickUpPile", pileId: pick.id };
     case "blueprint":
+    case "sawhorse":
       return undefined;
   }
 }
@@ -66,6 +67,7 @@ export function menuActionsFor(pick: ScenePick): MenuAction[] {
     case "structure":
     case "chest":
     case "woodpile":
+    case "sawhorse":
       return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
     default:
       return [];

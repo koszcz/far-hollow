@@ -9,6 +9,7 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createChestMeshes } from "./chest-meshes";
+import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createForageMeshes } from "./forage-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
@@ -51,6 +52,7 @@ export type ScenePick =
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
   | { kind: "chest"; id: number }
+  | { kind: "sawhorse"; id: number }
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
@@ -141,6 +143,8 @@ export function createSceneRenderer(
   scene.add(bedrollMeshes.group);
   const chestMeshes = createChestMeshes(entities);
   scene.add(chestMeshes.group);
+  const sawhorseMeshes = createSawhorseMeshes(entities);
+  scene.add(sawhorseMeshes.group);
   const pileMeshes = createPileMeshes(entities);
   scene.add(pileMeshes.group);
   const barkMeshes = createBarkMeshes(entities);
@@ -150,7 +154,7 @@ export function createSceneRenderer(
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, pileMeshes.group, barkMeshes.group,
+    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, sawhorseMeshes.group, pileMeshes.group, barkMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
@@ -166,6 +170,7 @@ export function createSceneRenderer(
     roof: (entity) => roofMeshes.outlineOf({ kind: "blueprint", entity }),
     woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "blueprint", entity }),
     chest: (entity) => chestMeshes.outlineOf({ kind: "blueprint", entity }),
+    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "blueprint", entity }),
   };
   /** The shapes to outline for each kind of thing the player can click. */
   const outlines: { readonly [Kind in EntityPick["kind"]]: (entity: Entity) => OutlinePart[] } = {
@@ -179,6 +184,7 @@ export function createSceneRenderer(
     campfire: (entity) => campfireMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "woodpile", entity }),
     chest: (entity) => chestMeshes.outlineOf({ kind: "chest", entity }),
+    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "sawhorse", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
   };
@@ -213,6 +219,9 @@ export function createSceneRenderer(
     },
     chest: (placing) => {
       chestMeshes.showPlacingBlueprint(placing);
+    },
+    sawhorse: (placing) => {
+      sawhorseMeshes.showPlacingBlueprint(placing);
     },
   };
 
@@ -302,6 +311,7 @@ export function createSceneRenderer(
       pileMeshes.pick(raycaster),
       woodpileMeshes.pick(raycaster),
       chestMeshes.pick(raycaster),
+      sawhorseMeshes.pick(raycaster),
       barkMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
@@ -335,6 +345,7 @@ export function createSceneRenderer(
       pileMeshes.update();
       woodpileMeshes.update();
       chestMeshes.update();
+      sawhorseMeshes.update();
       barkMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
@@ -396,6 +407,7 @@ export function createSceneRenderer(
       pileMeshes.dispose();
       woodpileMeshes.dispose();
       chestMeshes.dispose();
+      sawhorseMeshes.dispose();
       barkMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();

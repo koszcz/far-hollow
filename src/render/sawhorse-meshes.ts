@@ -1,5 +1,7 @@
-// Draws sawhorses and sawhorse blueprints: the draft "sawhorse" asset in asset-manifest.json, built in code.
+// Draws sawhorses and sawhorse blueprints: the "sawhorse" asset in asset-manifest.json, built in code. The owner approved the asset.
 // A sawhorse is a beam of debarked log resting on two pairs of crossed legs, cut from debarked logs too.
+// Every part is painted like the approved debarked log of debarked-log-shape.ts: drawknife streaks, a few bark scraps
+// near the ends, and cut ends that darken towards the heartwood. The parts are too thin to show knots.
 // Its beam runs along x when it faces the default way.
 // Construction has one stage per debarked log. The first stands up the legs, and the second lays the beam across them.
 // Each part fades in above its place and is set down, like the sticks of a campfire.
@@ -10,7 +12,7 @@ import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
 import { blueprintEntities, workStationEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { SAWHORSE_LENGTH_METRES, SAWHORSE_LOG_COST, SAWHORSE_WIDTH_METRES } from "../sim/structures";
 import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
-import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
+import { createDebarkedLogGeometry, DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
@@ -30,6 +32,13 @@ const LEG_TOP_ABOVE_BEAM_METRES = 0.08;
 const LEG_INSET_METRES = 0.15;
 /** The beam has this many sides. A few flat sides look hewn. */
 const BEAM_SIDES = 8;
+/** Each leg has this many sides. */
+const LEG_SIDES = 6;
+/**
+ * Each part is painted at this radius, close to a whole debarked log's, then thinned to its own.
+ * So its cut ends darken to the heartwood in the same proportion as a debarked log's, in metres.
+ */
+const PAINT_RADIUS_METRES = 0.14;
 
 /** What a click on a sawhorse or sawhorse blueprint landed on. */
 export type SawhorseHit = { kind: "blueprint"; entity: Entity } | { kind: "workStation"; entity: Entity };
@@ -55,11 +64,11 @@ interface Part {
   readonly direction: THREE.Vector3;
 }
 
-/** One stage of construction: the meshes it adds, with their own see-through copies of the wood for fading in. */
+/** One stage of construction: the meshes it adds, with their own see-through copy of the wood for fading in. */
 interface Stage {
   readonly root: THREE.Group;
   readonly meshes: THREE.Mesh[];
-  readonly fading: THREE.MeshStandardMaterial[];
+  readonly fading: THREE.MeshStandardMaterial;
 }
 
 interface Drawn {
@@ -72,6 +81,20 @@ interface Drawn {
 function partBetween(from: THREE.Vector3, to: THREE.Vector3, radius: number): Part {
   const along = to.clone().sub(from);
   return { radius, length: along.length(), middle: from.clone().add(to).multiplyScalar(0.5), direction: along.normalize() };
+}
+
+/** A round piece of debarked log, `length` long and `radius` thick, standing along y around its middle. */
+function debarkedPartGeometry(radius: number, length: number, sides: number): THREE.BufferGeometry {
+  // Its sides are single long faces, so no corner falls inside the debarked log's knot bands and it gets no knots.
+  const cylinder = new THREE.CylinderGeometry(PAINT_RADIUS_METRES, PAINT_RADIUS_METRES, length, sides);
+  // The painting expects a log lying along z. Paint it there, then stand it back up along y at its own thickness.
+  cylinder.rotateX(Math.PI / 2);
+  const painted = createDebarkedLogGeometry(cylinder);
+  cylinder.dispose();
+  painted.rotateX(-Math.PI / 2);
+  painted.scale(radius / PAINT_RADIUS_METRES, 1, radius / PAINT_RADIUS_METRES);
+  painted.computeVertexNormals();
+  return painted;
 }
 
 /** The legs, two crossed pairs, one near each end of the beam. Each leg runs from one side's foot up past the beam to the other side. */
@@ -98,14 +121,12 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
   const stageParts = [legParts(), [beamPart()]];
   const up = new THREE.Vector3(0, 1, 0);
   const geometries = stageParts.map((parts) =>
-    parts.map(({ radius, length }) => new THREE.CylinderGeometry(radius, radius, length, radius === BEAM_RADIUS_METRES ? BEAM_SIDES : 6)),
+    parts.map(({ radius, length }) => debarkedPartGeometry(radius, length, radius === BEAM_RADIUS_METRES ? BEAM_SIDES : LEG_SIDES)),
   );
   const pickGeometry = new THREE.BoxGeometry(SAWHORSE_LENGTH_METRES, BEAM_TOP_METRES, SAWHORSE_WIDTH_METRES).translate(0, BEAM_TOP_METRES / 2, 0);
 
-  // Cylinder groups are the side, then the top cap, then the bottom cap. The caps show the pale cut ends.
-  const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
-  const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
-  const partMaterials = [woodMaterial, cutMaterial, cutMaterial];
+  // The wood carries its colours on each corner, painted by debarked-log-shape.ts.
+  const woodMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
   const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
   const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
@@ -122,10 +143,8 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
     return stageParts.map((parts, stage) => {
       const stageRoot = new THREE.Group();
       root.add(stageRoot);
-      const side = woodMaterial.clone();
-      const cut = cutMaterial.clone();
-      side.transparent = true;
-      cut.transparent = true;
+      const fading = woodMaterial.clone();
+      fading.transparent = true;
       const meshes = parts.map(({ middle, direction }, i) => {
         const mesh = new THREE.Mesh(geometries[stage]?.[i], blueprintMaterial);
         mesh.position.copy(middle);
@@ -134,7 +153,7 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
         stageRoot.add(mesh);
         return mesh;
       });
-      return { root: stageRoot, meshes, fading: [side, cut, cut] };
+      return { root: stageRoot, meshes, fading };
     });
   }
 
@@ -174,14 +193,14 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
         return;
       }
       const opacity = Math.min(1, share / BUILD_FADE_SHARE);
-      for (const material of stage.fading) material.opacity = opacity;
-      for (const mesh of stage.meshes) mesh.material = opacity < 1 ? stage.fading : partMaterials;
+      stage.fading.opacity = opacity;
+      for (const mesh of stage.meshes) mesh.material = opacity < 1 ? stage.fading : woodMaterial;
       stage.root.position.y = buildLift(share);
     });
   }
 
   function disposeFading(stages: readonly Stage[]): void {
-    for (const stage of stages) for (const material of new Set(stage.fading)) material.dispose();
+    for (const stage of stages) stage.fading.dispose();
   }
 
   function forget(entity: Entity): void {
@@ -240,7 +259,7 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
       placingBlueprint.rotation.y = facingRadians(shown.turns);
     },
     dispose() {
-      for (const item of [...geometries.flat(), pickGeometry, woodMaterial, cutMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
+      for (const item of [...geometries.flat(), pickGeometry, woodMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
         item.dispose();
       }
       disposeFading(placingStages);

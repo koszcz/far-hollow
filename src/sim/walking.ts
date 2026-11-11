@@ -1,8 +1,8 @@
-import { playerEntities, setComponent, walkBlockerEntities, type Entity, type EntityStore } from "./entities";
+import { playerEntities, setComponent, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
 import { findPath } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
-import { blockCircle, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, type WalkMap } from "./walk-map";
+import { blockCircle, blockSpots, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, unblockSpots, type WalkMap } from "./walk-map";
 
 /** How fast the player walks, in metres per second. */
 export const WALK_SPEED_METRES_PER_SECOND = 3;
@@ -118,5 +118,22 @@ function trackBlockers(walkMap: WalkMap, entities: EntityStore): void {
     if (circle === undefined) return;
     blocked.delete(entity);
     unblockCircle(walkMap, circle.centre, circle.radius);
+  });
+
+  const spotBlockers = walkBlockerSpotEntities(entities).connect();
+  // Remember each entity's blocked spots, for the same reason.
+  const blockedSpots = new Map<Entity, GroundPoint[]>();
+  const blockAtSpots = (entity: Entity & Required<Pick<Entity, "blocksWalkingSpots">>) => {
+    const spots = entity.blocksWalkingSpots.map(({ x, z }) => ({ x, z }));
+    blockedSpots.set(entity, spots);
+    blockSpots(walkMap, spots);
+  };
+  for (const entity of spotBlockers) blockAtSpots(entity);
+  spotBlockers.onEntityAdded.subscribe(blockAtSpots);
+  spotBlockers.onEntityRemoved.subscribe((entity) => {
+    const spots = blockedSpots.get(entity);
+    if (spots === undefined) return;
+    blockedSpots.delete(entity);
+    unblockSpots(walkMap, spots);
   });
 }

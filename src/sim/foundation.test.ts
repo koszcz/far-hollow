@@ -24,7 +24,7 @@ describe("placing a foundation", () => {
     send(game, placeFoundation(square.x + 0.3, square.z - 0.4));
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "foundation", progress: 0, spent: {}, delivered: {} });
+    expect(blueprint.blueprint).toMatchObject({ piece: "foundation", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: square.x, z: square.z });
     expect(game.client.describeBlueprint(idOf(game, blueprint))?.deliveries).toEqual([
       { material: "debarkedLog", has: 0, needs: FOUNDATION_LOG_COST },
@@ -147,11 +147,11 @@ describe("building a foundation", () => {
     send(game, { type: "build", blueprintId: id });
     stepUntil(game, () => game.client.getView().action?.kind === "build");
     // The first log goes in as soon as work starts.
-    expect(blueprint.blueprint?.spent).toEqual({ debarkedLog: 1 });
+    expect(blueprint.blueprint?.materialsSpent).toBe(1);
     runSeconds(game, FOUNDATION_BUILD_SECONDS);
 
     expect(game.client.getView().action).toBeNull();
-    expect(blueprint.blueprint?.spent).toEqual({ debarkedLog: 2 });
+    expect(blueprint.blueprint?.materialsSpent).toBe(2);
     expect(blueprint.blueprint?.progress).toBeCloseTo(2 / FOUNDATION_LOG_COST, 5);
     // Delivered logs stay delivered once spent.
     expect(game.client.describeBlueprint(id)?.deliveries[0]?.has).toBe(2);

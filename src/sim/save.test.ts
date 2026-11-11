@@ -134,16 +134,13 @@ describe("upgrading an older save", () => {
     expect(loaded.game.client.getView().backpack.drawknife).toBe(1);
   });
 
-  it("turns the sticks a blueprint had spent, saved before materials were counted one by one, into its spent materials", () => {
+  it("gives a blueprint saved before materials could be carried to it nothing carried", () => {
     const game = playedGame();
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Record<string, unknown> }[] };
-    save.version = 5;
+    save.version = 6;
     for (const { components } of save.entities) {
-      const blueprint = components.blueprint as { spent: { stick?: number }; delivered?: unknown; sticksSpent?: number } | undefined;
-      if (blueprint === undefined) continue;
-      blueprint.sticksSpent = blueprint.spent.stick ?? 0;
-      delete (blueprint as { spent?: unknown }).spent;
-      delete blueprint.delivered;
+      const blueprint = components.blueprint as { delivered?: unknown } | undefined;
+      if (blueprint !== undefined) delete blueprint.delivered;
     }
 
     const loaded = readSave(save);

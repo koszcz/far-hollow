@@ -1,17 +1,20 @@
 import type { BlueprintView, PlacementCheck } from "./api";
 import { removeFromBackpack } from "./backpack";
+import { snapToGridPoint } from "./build-grid";
 import { blueprintEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
-import { isDelivered, stageCount, structureOf, type BuildMaterial, type DeliveredMaterial, type QuarterTurns, type StructureKind } from "./structures";
-import { groundDistance, type GroundPoint, type Valley } from "./valley";
+import {
+  isDelivered, stageMaterials, structureOf, type BuildMaterial, type DeliveredMaterial, type GroundRect, type QuarterTurns, type StructureKind,
+} from "./structures";
+import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 export { BUILD_GRID_METRES } from "./build-grid";
 export { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_BUILD_SECONDS, FOUNDATION_LOG_COST } from "./structures";
 
-/** The player walks to a spot this far from a blueprint's centre to build it, in metres. */
-const BUILD_STAND_METRES = 1.5;
-/** The player can build a blueprint, or add a material to it, from this far from its centre, in metres. */
-const BUILD_REACH_METRES = 2.5;
+/** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
+const BUILD_STAND_METRES = 0.7;
+/** The player can build a blueprint, or add a material to it, from this far outside the ground it covers, in metres. */
+const BUILD_REACH_METRES = 1.7;
 
 type Blueprint = NonNullable<Entity["blueprint"]>;
 
@@ -25,7 +28,7 @@ export interface Building {
   place(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): void;
   /**
    * Starts the player building a blueprint, walking to it first if needed.
-   * Building goes on for as long as the build action is held, until the piece is finished or its materials run out.
+   * Building goes on for as long as the build action is held, until the piece is finished or the next material runs out.
    */
   build(blueprintId: number): void;
   /**
@@ -52,38 +55,38 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
 
   function checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck {
     const definition = structureOf(structure);
-    const { x, z } = definition.snap(at);
+    const { x, z } = definition.snap?.(at) ?? snapToBuildGrid(at);
     const allowed = definition.canPlace({ entities, walkMap: walking.walkMap, valley }, { x, z }, turns);
-    return Object.freeze({ spot: Object.freeze({ x, y: definition.heightAt(valley.terrain, { x, z }), z }), allowed });
+    const y = definition.heightAt?.(valley.terrain, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
+    return Object.freeze({ spot: Object.freeze({ x, y, z }), allowed });
   }
 
-  /** Walks the player beside a blueprint if it is out of reach, then gives them a task on it. */
+  /** Walks the player just outside a blueprint if they are out of reach or standing on it, then gives them a task on it. */
   function goTo(blueprintId: number, task: "buildTask" | "deliverTask"): void {
     const blueprint = entities.entity(blueprintId);
     if (blueprint?.blueprint === undefined || blueprint.position === undefined) return;
+    const footprint = footprintOf(blueprint.blueprint.piece, blueprint.position, blueprint.facing?.turns ?? 0);
     for (const player of players) {
-      const dx = player.position.x - blueprint.position.x;
-      const dz = player.position.z - blueprint.position.z;
-      const distance = Math.hypot(dx, dz);
-      if (distance > BUILD_REACH_METRES) {
-        // Stand beside the blueprint on the player's side, not on top of it, so a finished piece never traps them.
-        const away = distance > 0 ? { x: dx / distance, z: dz / distance } : { x: 1, z: 0 };
-        walking.walkTo({
-          x: blueprint.position.x + away.x * BUILD_STAND_METRES,
-          z: blueprint.position.z + away.z * BUILD_STAND_METRES,
-        });
+      const outside = distanceOutside(footprint, player.position);
+      // A player standing on the blueprint steps off it too, so a finished piece never traps them.
+      if (outside > BUILD_REACH_METRES || outside === 0) {
+        // Stand just outside the blueprint on the player's side.
+        walking.walkTo(standSpot(footprint, blueprint.position, player.position));
       }
       setComponent(entities, player, task, { blueprintId });
     }
   }
 
-  /** The blueprint a task points at, if it still exists and the player has reached it. */
-  function reachedBlueprint(worker: Entity & { position: GroundPoint }, blueprintId: number) {
+  /** The blueprint a task points at, if it still exists and the worker has it within reach. */
+  function reachedBlueprint(worker: { position: GroundPoint }, blueprintId: number) {
     const target = entities.entity(blueprintId);
-    if (target?.blueprint === undefined || target.position === undefined) return undefined;
+    const blueprint = target?.blueprint;
+    const position = target?.position;
+    if (target === undefined || blueprint === undefined || position === undefined) return undefined;
     // The player may have walked as close as they could but still be out of reach.
-    if (groundDistance(target.position, worker.position) > BUILD_REACH_METRES) return undefined;
-    return { target, blueprint: target.blueprint };
+    const footprint = footprintOf(blueprint.piece, position, target.facing?.turns ?? 0);
+    if (distanceOutside(footprint, worker.position) > BUILD_REACH_METRES) return undefined;
+    return { target, blueprint, position };
   }
 
   function describe(blueprintId: number): BlueprintView | undefined {
@@ -102,7 +105,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       if (!allowed) return;
       structureOf(structure).clearSite?.(entities, spot);
       entities.add({
-        blueprint: { piece: structure, progress: 0, spent: {}, delivered: {} },
+        blueprint: { piece: structure, progress: 0, materialsSpent: 0, delivered: {} },
         facing: { turns },
         position: { ...spot },
       });
@@ -124,7 +127,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       let nearest: { id: number; distance: number } | undefined;
       for (const player of players) {
         for (const blueprint of blueprints) {
-          const distance = groundDistance(blueprint.position, player.position);
+          const footprint = footprintOf(blueprint.blueprint.piece, blueprint.position, blueprint.facing?.turns ?? 0);
+          const distance = distanceOutside(footprint, player.position);
           const id = entities.id(blueprint);
           if (id === undefined || distance > BUILD_REACH_METRES || (nearest !== undefined && distance >= nearest.distance)) continue;
           nearest = { id, distance };
@@ -152,25 +156,24 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         }
         if (reached.blueprint.progress < 1) continue;
         entities.removeComponent(builder, "buildTask");
-        const { target, blueprint } = reached;
+        const { target, blueprint, position } = reached;
         entities.removeComponent(target, "blueprint");
-        for (const [key, value] of Object.entries(structureOf(blueprint.piece).finishedComponents())) {
-          setComponent(entities, target, key as keyof Entity, value as never);
-        }
+        const finished = structureOf(blueprint.piece).finish({ x: position.x, z: position.z }, target.facing?.turns ?? 0);
+        for (const key of Object.keys(finished) as (keyof Entity)[]) entities.addComponent(target, key, finished[key]);
       }
     },
   };
 }
 
-/** Whether something the player carries on their shoulder is a material any structure is built from. A log with its bark on is not. */
+/** Whether something the player carries on their shoulder is a material a structure is built from. A log with its bark on is not. */
 function isBuildMaterial(carried: CarriedLog): carried is DeliveredMaterial {
   return isDelivered(carried as BuildMaterial);
 }
 
 /** Whether a blueprint still needs more of a material carried to it. */
-function needsMore(blueprint: Blueprint, material: BuildMaterial): boolean {
-  const cost = structureOf(blueprint.piece).cost.find((item) => item.material === material);
-  return cost !== undefined && isDelivered(material) && (blueprint.delivered[material] ?? 0) < cost.count;
+function needsMore(blueprint: Blueprint, material: DeliveredMaterial): boolean {
+  const needed = structureOf(blueprint.piece).cost.find((item) => item.material === material)?.count ?? 0;
+  return (blueprint.delivered[material] ?? 0) < needed;
 }
 
 /**
@@ -180,24 +183,55 @@ function needsMore(blueprint: Blueprint, material: BuildMaterial): boolean {
  */
 function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stepSeconds: number): boolean {
   const structure = structureOf(blueprint.piece);
-  const stages = stageCount(structure);
-  const spentInAll = Object.values(blueprint.spent).reduce((sum, count) => sum + count, 0);
-  if (spentInAll < stageOf(blueprint.progress, stages) + 1) {
-    const next = structure.cost.find(({ material, count }) => (blueprint.spent[material] ?? 0) < count);
-    if (next === undefined) return false;
-    const { material } = next;
-    const spent = blueprint.spent[material] ?? 0;
-    const available = isDelivered(material) ? (blueprint.delivered[material] ?? 0) > spent : removeFromBackpack(backpack, material, 1);
-    if (!available) return false;
-    blueprint.spent[material] = spent + 1;
+  const stages = stageMaterials(structure.cost);
+  if (blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
+    const material = stages[blueprint.materialsSpent];
+    if (material === undefined) return false;
+    if (isDelivered(material)) {
+      const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
+      if ((blueprint.delivered[material] ?? 0) <= spent) return false;
+    } else if (!removeFromBackpack(backpack, material, 1)) {
+      return false;
+    }
+    blueprint.materialsSpent += 1;
   }
-  const spentNow = Object.values(blueprint.spent).reduce((sum, count) => sum + count, 0);
-  blueprint.progress = Math.min(spentNow / stages, blueprint.progress + stepSeconds / structure.buildSeconds);
+  blueprint.progress = Math.min(blueprint.materialsSpent / stages.length, blueprint.progress + stepSeconds / structure.buildSeconds);
   return true;
 }
 
-/** Which stage of construction a blueprint is in, from 0 to one less than `stages`. */
+/** Which stage of construction a blueprint is in, from 0 to one less than its number of stages. */
 export function stageOf(progress: number, stages: number): number {
   // The small allowance stops rounding errors from holding a stage back at its very end.
   return Math.min(stages - 1, Math.floor(progress * stages + 1e-9));
+}
+
+/** The grid point nearest to a spot. */
+export function snapToBuildGrid(at: GroundPoint): GroundPoint {
+  return snapToGridPoint(at);
+}
+
+/** The ground a blueprint of `piece` covers at `at`, facing `turns`. */
+function footprintOf(piece: StructureKind, at: GroundPoint, turns: QuarterTurns): GroundRect {
+  return structureOf(piece).footprint({ x: at.x, z: at.z }, turns);
+}
+
+/** How far a spot lies outside a rectangle, in metres. It is 0 for a spot inside it. */
+function distanceOutside(rect: GroundRect, spot: GroundPoint): number {
+  const dx = Math.max(rect.min.x - spot.x, 0, spot.x - rect.max.x);
+  const dz = Math.max(rect.min.z - spot.z, 0, spot.z - rect.max.z);
+  return Math.hypot(dx, dz);
+}
+
+/** Where the player stands to build: just outside the blueprint, on the line from its centre towards the player. */
+function standSpot(rect: GroundRect, centre: GroundPoint, player: GroundPoint): GroundPoint {
+  const dx = player.x - centre.x;
+  const dz = player.z - centre.z;
+  const distance = Math.hypot(dx, dz);
+  const away = distance > 0 ? { x: dx / distance, z: dz / distance } : { x: 1, z: 0 };
+  // How far along that line the edge of the blueprint is.
+  const halfX = (rect.max.x - rect.min.x) / 2;
+  const halfZ = (rect.max.z - rect.min.z) / 2;
+  const toEdge = Math.min(away.x === 0 ? Infinity : halfX / Math.abs(away.x), away.z === 0 ? Infinity : halfZ / Math.abs(away.z));
+  const reach = toEdge + BUILD_STAND_METRES;
+  return { x: centre.x + away.x * reach, z: centre.z + away.z * reach };
 }

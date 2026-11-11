@@ -14,7 +14,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countBlueprintMaterials];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -114,18 +114,32 @@ function giveDrawknife(save: Readonly<Record<string, unknown>>): Record<string, 
 }
 
 /**
- * Version 5 to 6: blueprints now count each material they have spent, and the materials carried to them.
- * Before then only campfires existed, so a saved blueprint's spent sticks become its spent materials, with nothing carried to it.
+ * Version 5 to 6: structures can cost more than sticks, so a blueprint counts the materials spent on it, not the sticks.
+ * Until then only sticks were spent, so the count carries over.
  */
-function countBlueprintMaterials(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+function countMaterialsSpent(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
   const entities: unknown[] = save.entities.map((entity: unknown) => {
     const components = (entity as { components?: Record<string, unknown> } | null)?.components;
-    const old: unknown = components?.blueprint;
-    if (typeof old !== "object" || old === null || !("sticksSpent" in old)) return entity;
-    const { sticksSpent, ...rest } = old;
-    const spent = typeof sticksSpent === "number" && sticksSpent > 0 ? { stick: sticksSpent } : {};
-    return { ...(entity as object), components: { ...components, blueprint: { ...rest, spent, delivered: {} } } };
+    const blueprint = components?.blueprint;
+    if (typeof blueprint !== "object" || blueprint === null || !("sticksSpent" in blueprint)) return entity;
+    const { sticksSpent, ...rest } = blueprint;
+    return { ...(entity as object), components: { ...components, blueprint: { ...rest, materialsSpent: sticksSpent } } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * Version 6 to 7: the player can carry materials, such as debarked logs, to a blueprint, and the blueprint counts them.
+ * Nothing was carried to a blueprint saved before then.
+ */
+function addDeliveredMaterials(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (typeof blueprint !== "object" || blueprint === null || "delivered" in blueprint) return entity;
+    return { ...(entity as object), components: { ...components, blueprint: { ...blueprint, delivered: {} } } };
   });
   return { ...save, entities };
 }

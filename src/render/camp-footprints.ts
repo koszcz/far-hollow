@@ -4,7 +4,9 @@
 // so a new piece cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { bedrollEntities, blueprintEntities, campfireEntities, foundationEntities, type Entity, type EntityStore } from "../sim/entities";
+import { bedrollEntities, blueprintEntities, campfireEntities, foundationEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
+import { structureOf } from "../sim/structures";
+import type { QuarterTurns } from "../sim/structure-kind";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
 import { STONE_RING_RADIUS_METRES } from "./campfire-meshes";
 
@@ -24,9 +26,13 @@ const CAMPFIRE_MARGIN_METRES = 0.25;
 /** Undergrowth also hides this far beyond a bedroll's edge, so leaves never lie over the mat, in metres. */
 const BEDROLL_MARGIN_METRES = 0.15;
 
-/** The ground each building piece covers, centred on (x, z). A blueprint and its finished piece both use this. */
-const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number) => CampFootprint>> = {
+/** The ground each building piece covers, centred on (x, z) and facing `turns`. A blueprint and its finished piece both use this. */
+const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, turns: QuarterTurns) => CampFootprint>> = {
   campfire: (x, z) => ({ x, z, radius: STONE_RING_RADIUS_METRES + CAMPFIRE_MARGIN_METRES }),
+  leanTo: (x, z, turns) => {
+    const { min, max } = structureOf("leanTo").footprint({ x, z }, turns);
+    return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
+  },
   // Undergrowth hides under the whole square, so no leaves poke up through the deck.
   foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
 };
@@ -34,14 +40,17 @@ const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number) =>
 /** The patches of ground covered by everything the player has placed. */
 export function campFootprints(entities: EntityStore): CampFootprint[] {
   const footprints: CampFootprint[] = [];
-  for (const { blueprint, position } of blueprintEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS[blueprint.piece](position.x, position.z));
+  for (const { blueprint, position, facing } of blueprintEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS[blueprint.piece](position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of campfireEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.campfire(position.x, position.z));
+    footprints.push(PIECE_FOOTPRINTS.campfire(position.x, position.z, 0));
+  }
+  for (const { position, facing } of leanToEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS.leanTo(position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of foundationEntities(entities)) {
-    footprints.push(PIECE_FOOTPRINTS.foundation(position.x, position.z));
+    footprints.push(PIECE_FOOTPRINTS.foundation(position.x, position.z, 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

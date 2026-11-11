@@ -14,6 +14,8 @@ import {
   type CampfireMeshes,
 } from "./campfire-meshes";
 import { CAMPFIRE_BUILD_SECONDS } from "../sim/building";
+import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../sim/structures";
+import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
@@ -32,6 +34,11 @@ import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createUndergrowthMaterial } from "./undergrowth-meshes";
 import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
 import { createValleyMeshes } from "./valley-meshes";
+
+/** How many stages a lean-to takes to build: one for each stick and each piece of bark. */
+const LEAN_TO_STAGES = LEAN_TO_STICK_COST + LEAN_TO_BARK_COST;
+/** How far a lean-to's build has gone once its two posts and ridge pole are up. */
+const LEAN_TO_FRAME_UP = 3 / LEAN_TO_STAGES;
 
 /** Every showcase uses the same valley, so screenshots of one asset compare across sessions. */
 const SHOWCASE_SEED = 42;
@@ -225,7 +232,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from above", yaw: 40, pitch: 60, seconds: 1 },
     ],
     build({ place }) {
-      const blueprint = place(0, 0, { blueprint: { piece: "foundation", progress: 0, spent: {}, delivered: { debarkedLog: 2 } } });
+      const blueprint = place(0, 0, { blueprint: { piece: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
       if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
     },
     pose({ store }, shot) {
@@ -255,6 +262,33 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { campfire: { lit: false, fuelMinutes: 0 } });
+    },
+  },
+  "lean-to": {
+    radius: 3.2,
+    focus: { x: 0, y: 0.7, z: 0 },
+    // Key stages of the build, then the finished lean-to from behind. The player stands beside it for scale.
+    shots: [
+      { label: "posts and ridge pole", yaw: 30, pitch: 20, seconds: LEAN_TO_FRAME_UP },
+      { label: "frame built", yaw: 30, pitch: 20, seconds: LEAN_TO_STICK_COST / LEAN_TO_STAGES },
+      { label: "half the bark on", yaw: 30, pitch: 20, seconds: (LEAN_TO_STICK_COST + LEAN_TO_BARK_COST / 2) / LEAN_TO_STAGES },
+      { label: "built, from behind", yaw: 200, pitch: 25, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { piece: "leanTo", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
+      movePlayer(-2.6, 1.2, Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+    // The whole build plays at game speed, rests built, then starts again from an empty blueprint.
+    play: {
+      shot: { label: "building, then a rest", yaw: 30, pitch: 20 },
+      pose({ store }, seconds) {
+        const cycle = seconds % (LEAN_TO_BUILD_SECONDS + BUILD_PLAY_REST_SECONDS);
+        for (const entity of store.with("blueprint")) entity.blueprint.progress = Math.min(1, cycle / LEAN_TO_BUILD_SECONDS);
+        return undefined;
+      },
     },
   },
   bedroll: {
@@ -391,7 +425,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built", progress: 1 },
     ].map(({ label, progress }) => ({ label, yaw: 30, pitch: 25, seconds: progress })),
     build({ place }) {
-      place(0, 0, { blueprint: { piece: "campfire", progress: 0, spent: {}, delivered: {} } });
+      place(0, 0, { blueprint: { piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} } });
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -577,15 +611,16 @@ export function showAsset(
 
   const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.stump, shapes.log);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
+  const leanTos = createLeanToMeshes(store);
   const foundations = createFoundationMeshes(store, groundAt);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, foundations.group, forage.group, bedrolls.group, rain.group);
+  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, foundations.group, forage.group, bedrolls.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, forage.group, bedrolls.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -595,6 +630,7 @@ export function showAsset(
     if (!(options.play && showcase.play !== undefined)) forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
+    leanTos.update();
     foundations.update();
     bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
@@ -647,6 +683,7 @@ export function showAsset(
       if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
       campfires.dispose();
+      leanTos.dispose();
       foundations.dispose();
       potMaker.dispose();
       forage.dispose();

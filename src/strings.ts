@@ -33,10 +33,12 @@ export const strings = {
     close: "Press B or Escape to close.",
     structures: {
       campfire: "Campfire",
+      leanTo: "Lean-to",
       foundation: "Foundation",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
+      bark: (count: number) => `${count} bark`,
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),

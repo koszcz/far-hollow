@@ -127,4 +127,6 @@ export const strings = {
   debugRainFalling: "Falling",
   debugRainDry: "Dry",
   debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
+  debugRooms: "Rooms",
+  debugRoom: (squares: number, heated: boolean) => `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}`,
 } as const;

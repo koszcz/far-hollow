@@ -55,8 +55,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
 
   function checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck {
     const definition = structureOf(structure);
-    const { x, z } = definition.snap?.(at, turns) ?? snapToBuildGrid(at);
     const site = { entities, walkMap: walking.walkMap, valley };
+    const { x, z } = definition.snap?.(site, at, turns) ?? snapToBuildGrid(at);
     const allowed = definition.canPlace(site, { x, z }, turns);
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
     return Object.freeze({ spot: Object.freeze({ x, y, z }), allowed });
@@ -159,7 +159,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         entities.removeComponent(builder, "buildTask");
         const { target, blueprint, position } = reached;
         entities.removeComponent(target, "blueprint");
-        const finished = structureOf(blueprint.piece).finish({ x: position.x, z: position.z }, target.facing?.turns ?? 0);
+        const finished = structureOf(blueprint.piece).finish({ x: position.x, z: position.z }, target.facing?.turns ?? 0, entities);
         for (const key of Object.keys(finished) as (keyof Entity)[]) entities.addComponent(target, key, finished[key]);
       }
     },

@@ -8,6 +8,11 @@ import { findBrokenEntries, findUnapprovedAssets, listDrafts, type AssetManifest
 const ROOT = join(import.meta.dirname, "..");
 /** Folders that never hold game assets: installed packages, build output, and git data. */
 const SKIPPED_FOLDERS = new Set(["node_modules", "dist", ".git"]);
+/**
+ * Folders, as paths from the project root, that hold files outside this checkout's game:
+ * other git worktrees, and unpacked third-party packs, which git ignores.
+ */
+const SKIPPED_PATHS = new Set([".claude/worktrees", "third-party"]);
 const ASSET_EXTENSIONS = new Set([
   // Models and animations
   ".glb", ".gltf", ".bin", ".fbx", ".obj", ".mtl", ".dae", ".blend", ".usdz", ".vrm",
@@ -23,7 +28,8 @@ function listAssetFiles(folder: string): string[] {
   for (const entry of readdirSync(folder, { withFileTypes: true })) {
     const path = join(folder, entry.name);
     if (entry.isDirectory()) {
-      if (!SKIPPED_FOLDERS.has(entry.name)) found.push(...listAssetFiles(path));
+      const fromRoot = relative(ROOT, path).split(sep).join("/");
+      if (!SKIPPED_FOLDERS.has(entry.name) && !SKIPPED_PATHS.has(fromRoot)) found.push(...listAssetFiles(path));
     } else if (entry.isFile() && ASSET_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
       found.push(relative(ROOT, path).split(sep).join("/"));
     }

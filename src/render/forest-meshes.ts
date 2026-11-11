@@ -1,10 +1,12 @@
 // Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
+// Debarked logs, the "debarked-log" draft, reuse the log shape with the colours in debarked-log-shape.ts.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
-import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { debarkedLogEntities, logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
@@ -38,13 +40,17 @@ const STICK_PICK_WIDTH_METRES = 0.35;
 const STICK_SHADE_SPREAD = 0.08;
 
 /** What a click on the forest landed on. */
-export type ForestHit = { kind: "tree"; entity: Entity } | { kind: "log"; entity: Entity } | { kind: "stick"; entity: Entity };
+export type ForestHit =
+  | { kind: "tree"; entity: Entity }
+  | { kind: "log"; entity: Entity }
+  | { kind: "debarkedLog"; entity: Entity }
+  | { kind: "stick"; entity: Entity };
 
 export interface ForestMeshes {
   readonly group: THREE.Group;
   /** Brings stumps, logs, and falling trees up to date. `nowSeconds` is a steady real-time clock. */
   update(nowSeconds: number): void;
-  /** What a ray from the camera hits first among standing trees, logs, and sticks, and how far away. */
+  /** What a ray from the camera hits first among standing trees, logs, debarked logs, and sticks, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
   /** The shapes that draw a tree, log, or stick, placed in the world. Empty once it is gone. */
   outlineOf(hit: ForestHit): OutlinePart[];
@@ -134,6 +140,17 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   group.add(logs);
   let logsDrawn: Entity[] = [];
 
+  // Debarked logs on the ground: the same shape as logs, drawn pale, with room for every log the valley's trees can give.
+  const debarkedLogMaterials = [
+    track(new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true })),
+    track(new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true })),
+  ];
+  const debarkedLogs = track(new THREE.InstancedMesh(logGeometry, debarkedLogMaterials, logCapacity));
+  debarkedLogs.count = 0;
+  debarkedLogs.frustumCulled = false;
+  group.add(debarkedLogs);
+  let debarkedLogsDrawn: Entity[] = [];
+
   // Sticks on the ground: one batch, with room for every stick the valley starts with. No new sticks appear later.
   const stickGeometry = track(createStickGeometry());
   // The stick geometry carries pale cut ends as vertex colours. Each stick also gets its own shade of bark.
@@ -184,9 +201,11 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   });
   const stumpQuery = stumpEntities(entities).connect();
   const logQuery = logEntities(entities).connect();
+  const debarkedLogQuery = debarkedLogEntities(entities).connect();
   const stickQuery = stickEntities(entities).connect();
   let stumpsDirty = true;
   let logsDirty = true;
+  let debarkedLogsDirty = true;
   let sticksDirty = true;
   const markStumps = () => {
     stumpsDirty = true;
@@ -198,6 +217,11 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   stumpQuery.onEntityRemoved.subscribe(markStumps);
   logQuery.onEntityAdded.subscribe(markLogs);
   logQuery.onEntityRemoved.subscribe(markLogs);
+  const markDebarkedLogs = () => {
+    debarkedLogsDirty = true;
+  };
+  debarkedLogQuery.onEntityAdded.subscribe(markDebarkedLogs);
+  debarkedLogQuery.onEntityRemoved.subscribe(markDebarkedLogs);
   const markSticks = () => {
     sticksDirty = true;
   };
@@ -245,20 +269,33 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   const logPosition = new THREE.Vector3();
   const logScale = new THREE.Vector3(1, 1, 1);
   const up = new THREE.Vector3(0, 1, 0);
-  function rebuildLogs(): void {
-    logsDrawn = [];
-    for (const log of logQuery) {
-      if (logsDrawn.length >= logCapacity) break;
-      logRotation.setFromAxisAngle(up, log.log.heading);
-      logPosition.set(log.position.x, log.position.y + logShape.restHeight, log.position.z);
+  /** Lays each log in `lying` into `batch`, and returns them in instance order. */
+  function rebuildLogBatch(batch: THREE.InstancedMesh, lying: Iterable<{ entity: Entity; heading: number; position: Vec3 }>): Entity[] {
+    const drawn: Entity[] = [];
+    for (const { entity, heading, position } of lying) {
+      if (drawn.length >= logCapacity) break;
+      logRotation.setFromAxisAngle(up, heading);
+      logPosition.set(position.x, position.y + logShape.restHeight, position.z);
       matrix.compose(logPosition, logRotation, logScale);
-      logs.setMatrixAt(logsDrawn.length, matrix);
-      logsDrawn.push(log);
+      batch.setMatrixAt(drawn.length, matrix);
+      drawn.push(entity);
     }
-    logs.count = logsDrawn.length;
-    logs.instanceMatrix.needsUpdate = true;
+    batch.count = drawn.length;
+    batch.instanceMatrix.needsUpdate = true;
     // Clicks test this sphere first, so it must cover the logs as they lie now.
-    logs.computeBoundingSphere();
+    batch.computeBoundingSphere();
+    return drawn;
+  }
+
+  function rebuildLogs(): void {
+    logsDrawn = rebuildLogBatch(logs, [...logQuery].map((log) => ({ entity: log, heading: log.log.heading, position: log.position })));
+  }
+
+  function rebuildDebarkedLogs(): void {
+    debarkedLogsDrawn = rebuildLogBatch(
+      debarkedLogs,
+      [...debarkedLogQuery].map((log) => ({ entity: log, heading: log.debarkedLog.heading, position: log.position })),
+    );
   }
 
   function rebuildSticks(): void {
@@ -292,9 +329,11 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     update(nowSeconds) {
       if (stumpsDirty) rebuildStumps();
       if (logsDirty) rebuildLogs();
+      if (debarkedLogsDirty) rebuildDebarkedLogs();
       if (sticksDirty) rebuildSticks();
       stumpsDirty = false;
       logsDirty = false;
+      debarkedLogsDirty = false;
       sticksDirty = false;
       for (let i = falling.length - 1; i >= 0; i -= 1) {
         const fall = falling[i];
@@ -310,13 +349,18 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     },
     pick(raycaster) {
       hits.length = 0;
-      raycaster.intersectObjects([...treePickTargets, logs, stickPickers], false, hits);
+      raycaster.intersectObjects([...treePickTargets, logs, debarkedLogs, stickPickers], false, hits);
       hits.sort((a, b) => a.distance - b.distance);
       for (const hit of hits) {
         if (hit.instanceId === undefined) continue;
         if (hit.object === logs) {
           const log = logsDrawn[hit.instanceId];
           if (log?.log !== undefined) return { hit: { kind: "log", entity: log }, distance: hit.distance };
+          continue;
+        }
+        if (hit.object === debarkedLogs) {
+          const log = debarkedLogsDrawn[hit.instanceId];
+          if (log?.debarkedLog !== undefined) return { hit: { kind: "debarkedLog", entity: log }, distance: hit.distance };
           continue;
         }
         if (hit.object === stickPickers) {
@@ -347,6 +391,10 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const index = logsDrawn.indexOf(hit.entity);
         return index < 0 ? [] : [{ geometry: logGeometry, matrix: placed(logs, index) }];
       }
+      if (hit.kind === "debarkedLog") {
+        const index = debarkedLogsDrawn.indexOf(hit.entity);
+        return index < 0 ? [] : [{ geometry: logGeometry, matrix: placed(debarkedLogs, index) }];
+      }
       const index = sticksDrawn.indexOf(hit.entity);
       return index < 0 ? [] : [{ geometry: stickGeometry, matrix: placed(sticks, index) }];
     },
@@ -354,6 +402,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       standing.disconnect();
       stumpQuery.disconnect();
       logQuery.disconnect();
+      debarkedLogQuery.disconnect();
       stickQuery.disconnect();
       for (const item of disposables) item.dispose();
     },

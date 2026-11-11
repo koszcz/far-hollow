@@ -6,6 +6,8 @@
 // and is set down. Sticks never turn or bounce. The ash spreads out from the centre at the end.
 // A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, a wide glow, and a brighter pool of light that
 // marks how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
+// While the player places a campfire from the build menu, a see-through copy of its stones and sticks follows the mouse.
+// It turns red where the campfire is not allowed.
 // A campfire with a pot on it shows the code-built "pot" (approved) from pot-shape.ts nested on its sticks, steaming while lit.
 import * as THREE from "three";
 import { createFireMaker, type Fire } from "./fire-effect";
@@ -30,6 +32,13 @@ const CHAR_SHARE = 0.4;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
+/** A blueprint under the mouse shows in this red where its spot is not allowed. */
+const NOT_ALLOWED_COLOUR = 0xe0614f;
+
+/** How far round a structure facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
+function facingRadians(turns: number): number {
+  return -turns * (Math.PI / 2);
+}
 
 const STONE_COUNT = 10;
 /** The stones sit this far from the campfire's centre, in metres. Camp footprints use it too. */
@@ -110,6 +119,8 @@ export interface CampfireMeshes {
   pick(raycaster: THREE.Raycaster): { hit: CampfireHit; distance: number } | undefined;
   /** The stones and sticks of a campfire or blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: CampfireHit): OutlinePart[];
+  /** Shows a campfire blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
+  showPreview(preview: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -144,6 +155,10 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   const blueprintMaterial = new THREE.MeshStandardMaterial({
     color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
   });
+  /** A blueprint under the mouse turns this colour where it cannot be placed. */
+  const notAllowedMaterial = new THREE.MeshStandardMaterial({
+    color: NOT_ALLOWED_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
+  });
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
   const fireMaker = createFireMaker();
   const potMaker = createPotMaker();
@@ -153,24 +168,17 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   const blueprints = blueprintEntities(entities);
   const campfires = campfireEntities(entities);
 
-  function draw(entity: Entity & { position: { x: number; y: number; z: number } }): Drawn {
-    const existing = drawn.get(entity);
-    if (existing !== undefined) return existing;
-    const root = new THREE.Group();
+  /** Adds the ring of stones and the cone of sticks to `root`, all in one material. */
+  function addStonesAndSticks(root: THREE.Group, material: THREE.Material): { stones: THREE.Mesh[]; sticks: THREE.Mesh[] } {
     const stoneMeshes: THREE.Mesh[] = [];
     for (const placed of stones) {
-      const stone = new THREE.Mesh(placed.geometry, blueprintMaterial);
+      const stone = new THREE.Mesh(placed.geometry, material);
       stone.position.copy(placed.position);
       stone.rotation.y = placed.turn;
       root.add(stone);
       stoneMeshes.push(stone);
     }
-    const ash = new THREE.Mesh(ashGeometry, ashMaterial);
-    ash.position.y = ASH_LIFT_METRES;
-    ash.receiveShadow = true;
-    ash.visible = false;
-    root.add(ash);
-    const sticks: Drawn["sticks"] = [];
+    const stickMeshes: THREE.Mesh[] = [];
     for (let i = 0; i < CAMPFIRE_STICK_COST; i += 1) {
       const angle = (i / CAMPFIRE_STICK_COST) * Math.PI * 2;
       const pivot = new THREE.Group();
@@ -178,14 +186,36 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       const footOut = Math.sin(STICK_LEAN_RADIANS) * STICK_LENGTH_METRES * 0.9;
       pivot.position.set(Math.sin(angle) * footOut, 0, Math.cos(angle) * footOut);
       pivot.rotation.set(0, angle, 0);
-      const mesh = new THREE.Mesh(stickGeometry, blueprintMaterial);
+      const mesh = new THREE.Mesh(stickGeometry, material);
       mesh.rotation.x = -STICK_LEAN_RADIANS;
       pivot.add(mesh);
       root.add(pivot);
+      stickMeshes.push(mesh);
+    }
+    return { stones: stoneMeshes, sticks: stickMeshes };
+  }
+
+  /** The blueprint that follows the mouse before the player places it. Hidden until placing starts. */
+  const preview = new THREE.Group();
+  preview.visible = false;
+  const previewParts = addStonesAndSticks(preview, blueprintMaterial);
+  group.add(preview);
+
+  function draw(entity: Entity & { position: { x: number; y: number; z: number } }): Drawn {
+    const existing = drawn.get(entity);
+    if (existing !== undefined) return existing;
+    const root = new THREE.Group();
+    const { stones: stoneMeshes, sticks: stickMeshes } = addStonesAndSticks(root, blueprintMaterial);
+    const ash = new THREE.Mesh(ashGeometry, ashMaterial);
+    ash.position.y = ASH_LIFT_METRES;
+    ash.receiveShadow = true;
+    ash.visible = false;
+    root.add(ash);
+    const sticks: Drawn["sticks"] = stickMeshes.map((mesh) => {
       const fading = stickMaterial.clone();
       fading.transparent = true;
-      sticks.push({ mesh, fading });
-    }
+      return { mesh, fading };
+    });
     const fire = fireMaker.make();
     fire.group.visible = false;
     // The glow stays in the scene while unlit, at zero strength, so lighting a fire does not rebuild every material.
@@ -205,6 +235,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     root.add(picker);
     pickers.push(picker);
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
+    root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
     group.add(root);
     const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, glow, warmthPool, pot };
     drawn.set(entity, result);
@@ -286,6 +317,8 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     update(nowSeconds) {
       const seen = new Set<Entity>();
       for (const blueprint of blueprints) {
+        // Other structures draw their own blueprints.
+        if (blueprint.blueprint.piece !== "campfire") continue;
         showProgress(draw(blueprint), blueprint.blueprint.progress);
         seen.add(blueprint);
       }
@@ -319,10 +352,18 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
         matrix: mesh.matrixWorld,
       }));
     },
+    showPreview(shown) {
+      preview.visible = shown !== undefined;
+      if (shown === undefined) return;
+      preview.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
+      preview.rotation.y = facingRadians(shown.turns);
+      const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
+      for (const mesh of [...previewParts.stones, ...previewParts.sticks]) mesh.material = material;
+    },
     dispose() {
       for (const item of [
         ...stones.map(({ geometry }) => geometry), ...stoneMaterials, stickGeometry, charredStickGeometry, ashGeometry,
-        pickGeometry, stickMaterial, ashMaterial, blueprintMaterial, pickMaterial,
+        pickGeometry, stickMaterial, ashMaterial, blueprintMaterial, notAllowedMaterial, pickMaterial,
       ]) {
         item.dispose();
       }

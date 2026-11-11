@@ -1,10 +1,12 @@
 import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
-import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
+import { createBuilding } from "./building";
+import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
+import { createDebarking, DEBARK_SECONDS } from "./debarking";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
@@ -15,9 +17,15 @@ import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
 import { createRain, passRainTime } from "./rain";
+import { isUnderRoof } from "./roofs";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { boilProgress } from "./pot-state";
+
+/** The build menu never changes, so every view shares one frozen copy. */
+const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
+  STRUCTURES.map(({ kind, cost }) => Object.freeze({ structure: kind, cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))) })),
+);
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -89,6 +97,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const player = progress === undefined ? addNewPlayer(entities, walking, valley) : savedPlayer(entities);
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
+  const debarking = createDebarking(entities, walking);
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
@@ -124,11 +133,12 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
-      campfireStickCost: CAMPFIRE_STICK_COST,
+      buildMenu: BUILD_MENU,
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
       nearbyBedroll: nearbyBedroll(),
+      nearbyBlueprint: building.nearby() ?? null,
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
         thirst: player.needs.thirst.level,
@@ -171,6 +181,9 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
       if (blueprint !== undefined) return Object.freeze({ kind: "build", progress: blueprint.progress });
     }
+    if (player.debarkTask !== undefined && player.walkPath === undefined) {
+      return Object.freeze({ kind: "debark", progress: Math.min(1, player.debarkTask.secondsDone / DEBARK_SECONDS) });
+    }
     if (player.splitTask !== undefined) {
       return Object.freeze({ kind: "split", progress: Math.min(1, player.splitTask.secondsDone / SPLIT_SECONDS) });
     }
@@ -182,6 +195,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   function cancelTasks(): void {
     chopping.cancel();
     carrying.cancel();
+    debarking.cancel();
     gathering.cancel();
     foraging.cancel();
     building.cancel();
@@ -211,6 +225,11 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       cancelTasks();
       carrying.pickUp(command.logId);
     },
+    debarkLog: (command) => {
+      cancelTasks();
+      const refusal = debarking.start(command.logId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
     pickUpStick: (command) => {
       cancelTasks();
       const refusal = gathering.pickUpStick(command.stickId);
@@ -232,12 +251,16 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     dropLog: () => {
       carrying.drop();
     },
-    placeCampfire: (command) => {
-      building.placeCampfire({ x: command.x, z: command.z });
+    placeBlueprint: (command) => {
+      building.place(command.structure, { x: command.x, z: command.z }, command.turns);
     },
     build: (command) => {
       cancelTasks();
       building.build(command.blueprintId);
+    },
+    deliverToBlueprint: (command) => {
+      cancelTasks();
+      building.deliver(command.blueprintId);
     },
     stopBuilding: () => {
       building.cancel();
@@ -310,14 +333,15 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       campfires.burn(minutes);
       foraging.grow(minutes);
       pot.heat(minutes);
+      const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
         working: currentAction() !== null,
         asleep,
         sick: player.sickness !== undefined,
-        // No roofs exist yet, so rain falls on the player wherever they stand.
-        inRain: rain.falling,
+        inRain: rain.falling && !underRoof,
+        underRoof,
       });
       if (player.sickness !== undefined && passSicknessTime(player.sickness, minutes, { resting: isResting() })) {
         entities.removeComponent(player, "sickness");
@@ -369,7 +393,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     Object.assign(player.previousPosition, player.position);
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const night = isNight(readClock(clock.minutes).hourOfDay);
-    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs)), true);
+    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs, isUnderRoof(entities, player.position))), true);
   }
 
   function applyCommand(command: Command): void {
@@ -390,6 +414,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       walking.step(playerSeconds);
       chopping.step(playerSeconds);
       carrying.step();
+      debarking.step(playerSeconds);
       gathering.step(playerSeconds);
       foraging.step();
       building.step(playerSeconds);
@@ -408,6 +433,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
 
   const client: GameClient = {
     getView: () => view,
+    checkPlacement: (structure, at, turns) => building.checkPlacement(structure, at, turns),
+    describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
     send: (command) => {
       pendingCommands.push(command);
     },

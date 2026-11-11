@@ -4,6 +4,7 @@ import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
+import type { DeliveredMaterial, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -11,6 +12,9 @@ export interface Vec3 {
   y: number;
   z: number;
 }
+
+/** The kinds of log the player can carry on their shoulder. */
+export type CarriedLog = "log" | "debarkedLog";
 
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {
@@ -30,6 +34,12 @@ export interface Entity {
    * A blocker must not move while it has this component.
    */
   blocksWalking?: { radius: number };
+  /**
+   * Stops the player walking on the walk-map squares that hold these spots, given in metres.
+   * Structures with straight sides, such as a lean-to's frame, block walking with this instead of `blocksWalking`.
+   * A blocker must not change its spots while it has this component.
+   */
+  blocksWalkingSpots?: GroundPoint[];
   /** The tools and small materials the entity carries. Only the player has one. */
   backpack?: Backpack;
   /**
@@ -37,14 +47,18 @@ export interface Entity {
    * `secondsDone` counts only the time spent chopping, not walking.
    */
   chopTask?: { treeId: number; secondsDone: number };
-  /** The log on the ground the player is walking to pick up, given by its entity id. */
+  /** The log or debarked log on the ground the player is walking to pick up, given by its entity id. */
   logPickUpTask?: { logId: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. */
   stump?: true;
   /** Marks a log lying on the ground. Its position is the middle of the log. `heading` is the log's turn about the vertical axis, in radians. */
   log?: { heading: number };
-  /** What the entity carries on their shoulder. Only one log fits. */
-  carrying?: "log";
+  /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */
+  debarkedLog?: { heading: number };
+  /** The log on the ground the player is walking to or debarking, given by its entity id. `secondsDone` counts only the time spent debarking. */
+  debarkTask?: { logId: number; secondsDone: number };
+  /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
+  carrying?: CarriedLog;
   /** Marks a stick lying on the forest floor. Its position is the middle of the stick. */
   stick?: true;
   /** The stick on the ground the player is walking to pick up, given by its entity id. */
@@ -53,16 +67,30 @@ export interface Entity {
   splitTask?: { secondsDone: number };
   /**
    * Marks a building piece the player has placed but not finished. Its position is the piece's centre.
-   * `progress` runs from 0 to 1. `sticksSpent` counts the sticks construction has used so far.
+   * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.
+   * `delivered` counts the materials the player has carried to it, such as debarked logs, including any already spent.
    */
-  blueprint?: { piece: "campfire"; progress: number; sticksSpent: number };
+  blueprint?: { piece: StructureKind; progress: number; materialsSpent: number; delivered: Partial<Record<DeliveredMaterial, number>> };
+  /** Which way a blueprint, or the structure built from it, faces. */
+  facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
+  /** The blueprint the player is walking to, to add the material on their shoulder to it, given by its entity id. */
+  deliverTask?: { blueprintId: number };
+  /**
+   * Marks a finished foundation: a deck of logs covering one building-grid square, on legs down to the ground.
+   * Its position is the middle of the top of the deck. The player can walk onto it and across it.
+   */
+  foundation?: true;
   /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
+  /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
+  leanTo?: true;
+  /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
+  roof?: GroundRect;
   /** Marks a berry bush or a patch of mushrooms the player can forage. Its position is the middle of the plant. */
   forageSpot?: { food: Food };
   /** A foraged bush or mushroom patch growing back. It has food again when `minutesLeft` game minutes have passed. */
@@ -156,6 +184,11 @@ export function logEntities(store: EntityStore) {
   return store.with("log", "position");
 }
 
+/** Debarked logs lying on the ground. Debarked logs on a shoulder are not entities. */
+export function debarkedLogEntities(store: EntityStore) {
+  return store.with("debarkedLog", "position");
+}
+
 /** Sticks lying on the forest floor. Sticks in the backpack are not entities. */
 export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
@@ -169,6 +202,11 @@ export function forageSpotEntities(store: EntityStore) {
 /** Building pieces placed but not finished. */
 export function blueprintEntities(store: EntityStore) {
   return store.with("blueprint", "position");
+}
+
+/** Finished foundations. */
+export function foundationEntities(store: EntityStore) {
+  return store.with("foundation", "position");
 }
 
 /** Finished campfires. */
@@ -189,6 +227,21 @@ export function playerEntities(store: EntityStore) {
 /** Everything that stops the player walking near it. */
 export function walkBlockerEntities(store: EntityStore) {
   return store.with("blocksWalking", "position");
+}
+
+/** Everything that stops the player walking on certain squares, such as a lean-to's frame. */
+export function walkBlockerSpotEntities(store: EntityStore) {
+  return store.with("blocksWalkingSpots");
+}
+
+/** Everything with a roof. */
+export function roofEntities(store: EntityStore) {
+  return store.with("roof");
+}
+
+/** Finished lean-tos. */
+export function leanToEntities(store: EntityStore) {
+  return store.with("leanTo", "position");
 }
 
 /** The valley's weather. There is only ever one. */

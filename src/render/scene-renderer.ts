@@ -1,14 +1,17 @@
 import * as THREE from "three";
-import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
+import type { QuarterTurns, StructureKind } from "../sim/api";
+import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForageMeshes } from "./forage-meshes";
+import { createFoundationMeshes } from "./foundation-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
+import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
@@ -29,11 +32,22 @@ export type ScenePick =
   | { kind: "river"; spot: GroundPoint }
   | { kind: "tree"; id: number }
   | { kind: "log"; id: number }
+  | { kind: "debarkedLog"; id: number }
   | { kind: "stick"; id: number }
   | { kind: "forage"; id: number }
   | { kind: "blueprint"; id: number }
   | { kind: "campfire"; id: number }
   | { kind: "bedroll"; id: number };
+
+/** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
+export interface PlacementPreview {
+  readonly structure: StructureKind;
+  /** The building-grid spot it snaps to, on the ground, in metres. */
+  readonly spot: Readonly<Vec3>;
+  readonly turns: QuarterTurns;
+  /** False where its placement rule refuses the spot, so it shows as not allowed. */
+  readonly allowed: boolean;
+}
 
 /** A pick that landed on an entity. */
 type EntityPick = Extract<ScenePick, { id: number }>;
@@ -47,6 +61,8 @@ export interface SceneRenderer {
   pickAt(clientX: number, clientY: number): ScenePick | undefined;
   /** Outlines the thing this pick landed on, from the next frame on. Undefined, the ground, or the river outlines nothing. */
   setHovered(pick: ScenePick | undefined): void;
+  /** Shows the blueprint under the mouse while the player places one. Undefined hides it. */
+  setPlacementPreview(preview: PlacementPreview | undefined): void;
   dispose(): void;
 }
 
@@ -91,6 +107,10 @@ export function createSceneRenderer(
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
+  const leanToMeshes = createLeanToMeshes(entities);
+  scene.add(leanToMeshes.group);
+  const foundationMeshes = createFoundationMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
+  scene.add(foundationMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
@@ -98,7 +118,7 @@ export function createSceneRenderer(
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
-  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group, bedrollMeshes.group);
+  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, forageMeshes.group, bedrollMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
@@ -111,6 +131,8 @@ export function createSceneRenderer(
     }
     const { kind, entity } = hovered;
     if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
+    else if (kind === "blueprint" && entity.blueprint?.piece === "leanTo") hoverOutline.show(leanToMeshes.outlineOf(entity));
+    else if (kind === "blueprint" && entity.blueprint?.piece === "foundation") hoverOutline.show(foundationMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
     else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
     else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
@@ -149,20 +171,24 @@ export function createSceneRenderer(
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
-  /** Shows what the player is doing: which way they face, whether they carry a log, and whether they chop or split. */
+  /**
+   * Shows what the player is doing: which way they face, what they carry, and whether they chop, split, or debark.
+   * Debarking reuses the chopping swing, aimed at the log.
+   */
   function posePlayer(nowSeconds: number): void {
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
-    playerMesh.setCarryingLog(player.carrying === "log");
+    playerMesh.setCarryingLog(player.carrying);
     if (player.splitTask !== undefined) {
       // Splitting has its own overhead strike, aimed where the player already faces.
       playerMesh.setSplitting(nowSeconds);
       return;
     }
     playerMesh.setSplitting(undefined);
-    const tree = player.chopTask && player.walkPath === undefined ? entities.entity(player.chopTask.treeId) : undefined;
-    if (tree?.position !== undefined) {
-      playerMesh.setHeading(Math.atan2(tree.position.x - playerDrawn.x, tree.position.z - playerDrawn.z));
+    const workTargetId = player.walkPath === undefined ? (player.chopTask?.treeId ?? player.debarkTask?.logId) : undefined;
+    const target = workTargetId === undefined ? undefined : entities.entity(workTargetId);
+    if (target?.position !== undefined) {
+      playerMesh.setHeading(Math.atan2(target.position.x - playerDrawn.x, target.position.z - playerDrawn.z));
       playerMesh.setChopping(nowSeconds);
       return;
     }
@@ -188,6 +214,8 @@ export function createSceneRenderer(
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
+      leanToMeshes.update();
+      foundationMeshes.update();
       forageMeshes.update();
       bedrollMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -211,7 +239,11 @@ export function createSceneRenderer(
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
-      const candidates = [forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), forageMeshes.pick(raycaster), bedrollMeshes.pick(raycaster)];
+      const candidates = [
+        forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
+        forageMeshes.pick(raycaster),
+        bedrollMeshes.pick(raycaster),
+      ];
       let nearest: (typeof candidates)[number];
       for (const candidate of candidates) {
         if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
@@ -230,6 +262,12 @@ export function createSceneRenderer(
       const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
     },
+    setPlacementPreview(preview) {
+      // Each structure draws its own blueprint. Later structures add a line here.
+      campfireMeshes.showPreview(preview?.structure === "campfire" ? preview : undefined);
+      leanToMeshes.showPreview(preview?.structure === "leanTo" ? preview : undefined);
+      foundationMeshes.showPreview(preview?.structure === "foundation" ? preview : undefined);
+    },
     dispose() {
       hoverOutline.dispose();
       valleyMeshes.dispose();
@@ -237,6 +275,8 @@ export function createSceneRenderer(
       riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();
+      leanToMeshes.dispose();
+      foundationMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
       rainEffect.dispose();

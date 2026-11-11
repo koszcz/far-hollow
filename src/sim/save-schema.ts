@@ -3,6 +3,7 @@ import type { GameNotice } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { NEED_KINDS } from "./needs";
+import { isDelivered, STRUCTURES } from "./structures";
 
 /** Says whether a value has the right shape. */
 type Check = (value: unknown) => boolean;
@@ -34,6 +35,9 @@ const point = shape({ x: finite, z: finite });
 const vec3 = shape({ x: finite, y: finite, z: finite });
 const backpackContents: Check = (value) =>
   shape(Object.fromEntries(Object.keys(CONTENT_WEIGHT_KG).map((content) => [content, count])), Object.keys(CONTENT_WEIGHT_KG))(value);
+/** Every material the player carries to a blueprint. */
+const DELIVERED_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.flatMap(({ material }) => (isDelivered(material) ? [material] : []))))];
+const deliveredCounts: Check = shape(Object.fromEntries(DELIVERED_MATERIALS.map((material) => [material, count])), DELIVERED_MATERIALS);
 
 /**
  * How each entity component must look in a save.
@@ -47,18 +51,26 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   player: exactly(true),
   walkPath: list(point),
   blocksWalking: shape({ radius: finite }),
+  blocksWalkingSpots: list(point),
   backpack: shape({ contents: backpackContents }),
   chopTask: shape({ treeId: count, secondsDone: finite }),
   logPickUpTask: shape({ logId: count }),
   stump: exactly(true),
   log: shape({ heading: finite }),
-  carrying: exactly("log"),
+  debarkedLog: shape({ heading: finite }),
+  debarkTask: shape({ logId: count, secondsDone: finite }),
+  carrying: exactly("log", "debarkedLog"),
   stick: exactly(true),
   stickPickUpTask: shape({ stickId: count }),
   splitTask: shape({ secondsDone: finite }),
-  blueprint: shape({ piece: exactly("campfire"), progress: finite, sticksSpent: count }),
+  blueprint: shape({ piece: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
+  facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
+  deliverTask: shape({ blueprintId: count }),
+  foundation: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
+  leanTo: exactly(true),
+  roof: shape({ min: point, max: point }),
   forageSpot: shape({ food: exactly("berries", "mushroom") }),
   regrowing: shape({ minutesLeft: finite }),
   forageTask: shape({ spotId: count }),

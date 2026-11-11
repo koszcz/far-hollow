@@ -5,9 +5,10 @@ import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
 
 
-/** How many game minutes one of each kind of fuel keeps a campfire burning. Firewood burns longer than sticks. */
+/** How many game minutes one of each kind of fuel keeps a campfire burning. Bark burns like sticks. Firewood burns longer. */
 export const FUEL_BURN_MINUTES: Readonly<Record<CampfireFuel, number>> = {
   stick: 20,
+  bark: 20,
   firewood: 90,
 };
 /** The most fuel a campfire holds, in game minutes of burning. Fuel that would go past it is not taken. */

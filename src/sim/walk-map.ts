@@ -40,6 +40,16 @@ export function unblockCircle(map: WalkMap, centre: GroundPoint, radius: number)
   changeCircle(map, centre, radius, -1);
 }
 
+/** Marks the cell that holds each spot as blocked. Spots outside the map are skipped. */
+export function blockSpots(map: WalkMap, spots: readonly GroundPoint[]): void {
+  changeSpots(map, spots, 1);
+}
+
+/** Undoes one earlier `blockSpots` with the same spots. */
+export function unblockSpots(map: WalkMap, spots: readonly GroundPoint[]): void {
+  changeSpots(map, spots, -1);
+}
+
 /** Marks every cell for which `isBlocked` says yes, given the cell's centre. Only cells inside the box from `min` to `max` are checked. */
 export function blockWhere(map: WalkMap, min: GroundPoint, max: GroundPoint, isBlocked: (centre: GroundPoint) => boolean): void {
   forEachCellIn(map, min, max, (index, centre) => {
@@ -113,6 +123,13 @@ function changeCircle(map: WalkMap, centre: GroundPoint, radius: number, change:
   forEachCellIn(map, min, max, (index, cell) => {
     if (groundDistance(cell, centre) <= radius) changeCell(map, index, change);
   });
+}
+
+function changeSpots(map: WalkMap, spots: readonly GroundPoint[], change: 1 | -1): void {
+  for (const spot of spots) {
+    const index = cellIndexAt(map, spot);
+    if (index !== undefined) changeCell(map, index, change);
+  }
 }
 
 function changeCell(map: WalkMap, index: number, change: 1 | -1): void {

@@ -100,6 +100,19 @@ describe("fuelling a campfire", () => {
     expect(afterTwo).toBeCloseTo(afterOne * 2);
   });
 
+  it("burns bark from the backpack, like sticks", () => {
+    const { game, campfire } = gameWithCampfire();
+    give(game, "bark", 1);
+    tend(game, campfire);
+    send(game, { type: "setPaused", paused: true });
+
+    send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" });
+    send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
+
+    expect(game.client.getView().backpack.bark).toBe(0);
+    expect(game.client.getView().nearbyCampfire).toMatchObject({ lit: true, fuelMinutes: 20 });
+  });
+
   it("does nothing when the backpack holds none of that fuel", () => {
     const { game, campfire } = gameWithCampfire();
     tend(game, campfire);
@@ -215,7 +228,7 @@ function gameWithCampfire(): { game: Game; campfire: Campfire } {
   const game = createGame({ seed: 42 });
   give(game, "stick", CAMPFIRE_STICK_COST);
   const spot = openSpotNearPlayer(game);
-  send(game, { type: "placeCampfire", x: spot.x, z: spot.z });
+  send(game, { type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z });
   const blueprint = game.entities.with("blueprint", "position").first;
   if (blueprint === undefined) throw new Error("No blueprint");
   game.client.send({ type: "build", blueprintId: idOf(game, blueprint) });

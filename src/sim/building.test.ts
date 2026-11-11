@@ -9,11 +9,11 @@ describe("placing a campfire blueprint", () => {
     const game = createGame({ seed: 42 });
     const spot = openSpotNearPlayer(game);
 
-    game.client.send({ type: "placeCampfire", x: spot.x + 0.3, z: spot.z - 0.2 });
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x + 0.3, z: spot.z - 0.2 });
     game.step();
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, sticksSpent: 0 });
+    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position.x).toBe(spot.x);
     expect(blueprint.position.z).toBe(spot.z);
     // A blueprint does not block walking, so the player can stand at it while building.
@@ -22,12 +22,22 @@ describe("placing a campfire blueprint", () => {
     expect(game.client.getView().backpack.stick).toBeUndefined();
   });
 
+  it("faces the way the player turned it", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openSpotNearPlayer(game);
+
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 3, x: spot.x, z: spot.z });
+    game.step();
+
+    expect(onlyBlueprint(game).facing).toEqual({ turns: 3 });
+  });
+
   it("refuses a spot the player cannot walk on, such as a tree", () => {
     const game = createGame({ seed: 42 });
     const tree = game.entities.with("tree", "position").first;
     if (tree === undefined) throw new Error("No tree");
 
-    game.client.send({ type: "placeCampfire", x: tree.position.x, z: tree.position.z });
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: tree.position.x, z: tree.position.z });
     game.step();
 
     expect(game.entities.with("blueprint").size).toBe(0);
@@ -37,21 +47,48 @@ describe("placing a campfire blueprint", () => {
     const game = createGame({ seed: 42 });
     const spot = openSpotNearPlayer(game);
 
-    game.client.send({ type: "placeCampfire", x: spot.x, z: spot.z });
-    game.client.send({ type: "placeCampfire", x: spot.x + 1, z: spot.z });
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z });
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x + 1, z: spot.z });
     game.step();
 
     expect(game.entities.with("blueprint").size).toBe(1);
   });
 });
 
-describe("building a campfire", () => {
-  it("tells the UI how many sticks a campfire costs", () => {
+describe("the build menu", () => {
+  it("lists the campfire and its stick cost", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().campfireStickCost).toBe(CAMPFIRE_STICK_COST);
+    expect(game.client.getView().buildMenu[0]).toEqual({ structure: "campfire", cost: [{ material: "stick", count: 5 }] });
+  });
+});
+
+describe("checking where a blueprint would go", () => {
+  it("snaps the spot to the building grid and allows open ground, without placing anything", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openSpotNearPlayer(game);
+
+    const check = game.client.checkPlacement("campfire", { x: spot.x + 0.4, z: spot.z - 0.3 }, 1);
+
+    expect(check.allowed).toBe(true);
+    expect(check.spot).toMatchObject({ x: spot.x, z: spot.z });
+    expect(game.entities.with("blueprint").size).toBe(0);
   });
 
+  it("refuses a tree, and a spot beside another campfire blueprint", () => {
+    const game = createGame({ seed: 42 });
+    const tree = game.entities.with("tree", "position").first;
+    if (tree === undefined) throw new Error("No tree");
+    const spot = openSpotNearPlayer(game);
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z });
+    game.step();
+
+    expect(game.client.checkPlacement("campfire", { x: tree.position.x, z: tree.position.z }, 0).allowed).toBe(false);
+    expect(game.client.checkPlacement("campfire", { x: spot.x + 1, z: spot.z }, 0).allowed).toBe(false);
+  });
+});
+
+describe("building a campfire", () => {
   it("walks the player to the blueprint and builds it in stages while the build action is held", () => {
     const game = createGame({ seed: 42 });
     giveSticks(game, CAMPFIRE_STICK_COST);
@@ -79,7 +116,7 @@ describe("building a campfire", () => {
     const halfwayLeft = game.client.getView().backpack.stick ?? 0;
     expect(halfwayLeft).toBeGreaterThan(0);
     expect(halfwayLeft).toBeLessThan(CAMPFIRE_STICK_COST - 1);
-    expect(blueprint.blueprint?.sticksSpent).toBe(CAMPFIRE_STICK_COST - halfwayLeft);
+    expect(blueprint.blueprint?.materialsSpent).toBe(CAMPFIRE_STICK_COST - halfwayLeft);
   });
 
   it("finishes as an unlit campfire that blocks walking, having cost exactly its sticks", () => {
@@ -114,7 +151,7 @@ describe("building a campfire", () => {
 
     expect(game.client.getView().action).toBeNull();
     expect(game.client.getView().backpack.stick).toBe(0);
-    expect(blueprint.blueprint?.sticksSpent).toBe(2);
+    expect(blueprint.blueprint?.materialsSpent).toBe(2);
     const pausedAt = blueprint.blueprint?.progress ?? 0;
     expect(pausedAt).toBeCloseTo(2 / CAMPFIRE_STICK_COST, 1);
 
@@ -202,7 +239,7 @@ function openSpotNearPlayer(game: Game): { x: number; z: number } {
 
 function placeBlueprintNearPlayer(game: Game) {
   const spot = openSpotNearPlayer(game);
-  game.client.send({ type: "placeCampfire", x: spot.x, z: spot.z });
+  game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z });
   game.step();
   return onlyBlueprint(game);
 }

@@ -1,5 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { cursorFor, mainActionFor, outlineFor } from "./walk-input";
+import { strings } from "../strings";
+import { blueprintPressFor, cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";
+
+describe("pressing on a blueprint", () => {
+  const foundation = (has: number) => ({ id: 3, structure: "foundation" as const, progress: 0, deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }] });
+
+  it("adds the debarked log on the player's shoulder while the blueprint still needs one", () => {
+    expect(blueprintPressFor(foundation(1), "debarkedLog")).toEqual({ type: "deliverToBlueprint", blueprintId: 3 });
+  });
+
+  it("builds it otherwise", () => {
+    expect(blueprintPressFor(foundation(4), "debarkedLog")).toEqual({ type: "build", blueprintId: 3 });
+    expect(blueprintPressFor(foundation(1), null)).toEqual({ type: "build", blueprintId: 3 });
+    expect(blueprintPressFor(foundation(1), "log")).toEqual({ type: "build", blueprintId: 3 });
+    expect(blueprintPressFor({ id: 5, structure: "campfire", progress: 0, deliveries: [] }, "debarkedLog")).toEqual({ type: "build", blueprintId: 5 });
+  });
+});
+
+describe("right-clicking a log", () => {
+  it("offers to debark it", () => {
+    expect(menuActionsFor({ kind: "log", id: 4 })).toEqual([{ label: strings.debark, command: { type: "debarkLog", logId: 4 } }]);
+  });
+
+  it("offers nothing for things with no extra actions", () => {
+    expect(menuActionsFor({ kind: "ground", spot: { x: 0, z: 0 } })).toEqual([]);
+    expect(menuActionsFor({ kind: "debarkedLog", id: 4 })).toEqual([]);
+  });
+});
+
+describe("clicking a debarked log", () => {
+  it("walks the player to it and shoulders it, like a log", () => {
+    expect(mainActionFor({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });
+    expect(cursorFor({ kind: "debarkedLog", id: 5 }, false)).toBe("pointer");
+  });
+});
 
 describe("clicking a campfire", () => {
   it("walks the player over to tend it", () => {

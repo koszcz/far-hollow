@@ -36,12 +36,16 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud-build-menu ul { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .hud-build-menu li { display: flex; gap: 8px; align-items: center; }
 .hud-build-cost { font-size: 12px; color: #cdb898; }
-.hud-backpack ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.hud-backpack li { display: inline-flex; gap: 4px; align-items: center; padding: 2px 7px; font-size: 12px; background: #3d2b1e; border-radius: 6px; }
-.hud-backpack li .hud-icon { width: 13px; height: 13px; }
+.hud-backpack ul { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.hud-backpack li { position: relative; display: grid; place-items: center; aspect-ratio: 1; background: #3d2b1e; border-radius: 6px; }
+.backpack-icon { width: 24px; height: 24px; flex: none; }
+.hud-button .backpack-icon { width: 16px; height: 16px; }
+.hud-backpack li .backpack-icon { width: 82%; height: 82%; }
+/* The name of a backpack item, shown at once when the player points at its grid cell. */
+.hud-backpack li[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 4px); left: 50%; z-index: 1; padding: 3px 7px; font-size: 12px; white-space: nowrap; color: #f3e6d3; background: #1f150e; border: 1px solid #6b4a2f; border-radius: 5px; transform: translateX(-50%); pointer-events: none; }
+.hud-backpack-count { position: absolute; right: 3px; bottom: 1px; font-size: 10px; font-weight: 600; line-height: 1; color: #f3e6d3; text-shadow: 0 0 2px #1f150e; }
+.hud-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .action-menu { position: absolute; display: flex; flex-direction: column; gap: 4px; padding: 6px; color: #f3e6d3; font-size: 13px; background: rgb(42 29 20 / 0.92); border: 1px solid #6b4a2f; border-radius: 8px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.35); pointer-events: auto; transform: translate(6px, 6px); }
-.hud-setting { display: flex; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 12px; color: #cdb898; user-select: none; }
-.hud-setting input { margin: 0; accent-color: #e8833a; }
 .debug-overlay { position: absolute; top: 12px; right: 12px; padding: 8px 10px; background: #000a; color: #fff; font: 12px/1.4 ui-monospace, monospace; }
 .debug-overlay dl { display: grid; grid-template-columns: auto auto; gap: 0 12px; margin: 0 0 8px; }
 .debug-overlay dd { margin: 0; text-align: right; }

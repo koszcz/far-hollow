@@ -2,7 +2,7 @@
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-grid";
-import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, squaresBeside } from "./edge-pieces";
+import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
   blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
 } from "./entities";
@@ -218,6 +218,7 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
     canPlace({ entities }, spot, turns) {
       if (foundationsBeside(entities, spot, turns).length === 0) return false;
       if (isEdgeTaken(entities, spot)) return false;
+      if (meetsDoorAtCorner(entities, kind, spot, turns)) return false;
       return isClearOfTreesAndPlans(entities, footprint(spot, turns));
     },
     finish(spot, turns) {

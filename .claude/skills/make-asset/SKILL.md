@@ -25,6 +25,8 @@ Record your step with `step` each time you start a new step. Other sessions see 
 
 All worktrees share one local `main` branch. To get another session's finished asset, merge local `main`. You do not need to fetch from `origin`.
 
+When you change this skill itself, let running sessions finish on the version they started with. Each one picks up your change when it next runs `make land`.
+
 ## Steps
 
 ### 1. Pick the asset
@@ -103,9 +105,7 @@ Done when the owner has approved the asset or rejected it.
 
 1. Update the comments at the top of the `code` files so they call the asset approved, not a draft.
 2. Commit on `asset/<id>`.
-3. Merge local `main` into your branch, so other sessions' finished assets are in it. Resolve any conflict in `asset-manifest.json` by keeping every entry from both sides.
-4. Run `make check`.
-5. Merge the branch into `main`, and push `main`.
-6. Run `"$s" release <id>`.
+3. Run `make land`. It merges local `main` into your branch, runs `make check`, moves `main` to your branch, and pushes `main`. It tries again when another session lands first. If it stops on a conflict in `asset-manifest.json`, keep every entry from both sides, commit, and run `make land` again.
+4. Run `"$s" release <id>`.
 
 Done when `main` is pushed with the approved asset and the board no longer lists your session.

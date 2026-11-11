@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && { [ -d node_modules ] || bun install >/dev/null 2>&1 || echo 'bun install failed: run it by hand before make check or the dev preview.'; }",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -28,6 +28,26 @@ describe("right-clicking a log", () => {
   });
 });
 
+describe("right-clicking a building piece", () => {
+  it("offers to take down a blueprint", () => {
+    expect(menuActionsFor({ kind: "blueprint", id: 6 })).toEqual([{ label: strings.takeDown, command: { type: "takeDown", pieceId: 6 } }]);
+  });
+
+  it("offers to take down a finished piece, such as a lean-to or a wall", () => {
+    const pick = { kind: "structure", id: 8, under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
+    expect(menuActionsFor(pick)).toEqual([{ label: strings.takeDown, command: { type: "takeDown", pieceId: 8 } }]);
+  });
+});
+
+describe("left-clicking a finished building piece", () => {
+  it("acts on what is under it, so the player can walk onto a foundation or into a lean-to", () => {
+    const pick = { kind: "structure", id: 8, under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
+    expect(mainActionFor(pick)).toEqual({ type: "walkTo", x: 1, z: 2 });
+    expect(cursorFor(pick, false)).toBe("");
+    expect(outlineFor(pick, false)).toBeUndefined();
+  });
+});
+
 describe("clicking a debarked log", () => {
   it("walks the player to it and shoulders it, like a log", () => {
     expect(mainActionFor({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });

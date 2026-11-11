@@ -118,6 +118,45 @@ describe("one piece on each edge", () => {
   });
 });
 
+describe("no door frames at corners", () => {
+  it("refuses a door frame where a wall meets its end at a corner", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    finishedFoundationAt(game, square);
+    send(game, place("logWall", square, 1));
+
+    // The +z and -z edges each share a corner with the -x wall. The +x edge does not.
+    expect(game.client.checkPlacement("doorFrame", square, 0).allowed).toBe(false);
+    expect(game.client.checkPlacement("doorFrame", square, 2).allowed).toBe(false);
+    expect(game.client.checkPlacement("doorFrame", square, 3).allowed).toBe(true);
+    // Walls still meet at corners.
+    expect(game.client.checkPlacement("logWall", square, 0).allowed).toBe(true);
+  });
+
+  it("refuses a wall that would meet a door frame at a corner, whichever is placed first", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    finishedFoundationAt(game, square);
+    finishedPieceAt(game, "doorFrame", square, 0);
+
+    expect(game.client.checkPlacement("logWall", square, 1).allowed).toBe(false);
+    expect(game.client.checkPlacement("logWall", square, 3).allowed).toBe(false);
+    expect(game.client.checkPlacement("logWall", square, 2).allowed).toBe(true);
+  });
+
+  it("allows a door frame in line with walls on either side", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    const left = { x: square.x - 1, z: square.z };
+    const right = { x: square.x + 1, z: square.z };
+    for (const each of [left, square, right]) finishedFoundationAt(game, each);
+    send(game, place("logWall", left, 0));
+    send(game, place("logWall", right, 0));
+
+    expect(game.client.checkPlacement("doorFrame", square, 0).allowed).toBe(true);
+  });
+});
+
 describe("which pieces stand on a foundation square's edges", () => {
   it("names the finished piece on each side of a square, seen from either square beside the edge", () => {
     const game = createGame({ seed: 42 });
@@ -126,12 +165,15 @@ describe("which pieces stand on a foundation square's edges", () => {
     finishedFoundationAt(game, square);
     finishedFoundationAt(game, beside);
 
-    finishedPieceAt(game, "logWall", square, 0);
+    // Both pieces on the square run along z, so the door frame stands at no corner.
+    finishedPieceAt(game, "logWall", square, 1);
     finishedPieceAt(game, "doorFrame", square, 3);
-    send(game, place("logWall", square, 2));
+    send(game, place("logWall", beside, 3));
 
-    expect(([0, 1, 2, 3] as const).map((side) => edgePieceOn(game.entities, square, side))).toEqual(["logWall", undefined, undefined, "doorFrame"]);
+    expect(([0, 1, 2, 3] as const).map((side) => edgePieceOn(game.entities, square, side))).toEqual([undefined, "logWall", undefined, "doorFrame"]);
     expect(edgePieceOn(game.entities, beside, 1)).toBe("doorFrame");
+    // A blueprint is not a finished piece.
+    expect(edgePieceOn(game.entities, beside, 3)).toBeUndefined();
   });
 });
 
@@ -182,8 +224,15 @@ describe("walking around walls", () => {
   it("walks in through a door frame, and only through it", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
-    finishedFoundationAt(game, square);
-    for (const side of [1, 2, 3] as const) finishedPieceAt(game, "logWall", square, side);
+    // Three squares in a row, walled all round, with the door in the middle of the +z side, away from the corners.
+    const left = { x: square.x - 1, z: square.z };
+    const right = { x: square.x + 1, z: square.z };
+    for (const each of [left, square, right]) finishedFoundationAt(game, each);
+    for (const each of [left, square, right]) finishedPieceAt(game, "logWall", each, 2);
+    finishedPieceAt(game, "logWall", left, 0);
+    finishedPieceAt(game, "logWall", right, 0);
+    finishedPieceAt(game, "logWall", left, 1);
+    finishedPieceAt(game, "logWall", right, 3);
     finishedPieceAt(game, "doorFrame", square, 0);
     const player = onlyPlayer(game);
     // Start on the far side from the door, so the way in goes round the walls.

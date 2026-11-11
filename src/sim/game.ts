@@ -1,15 +1,16 @@
-import type { CampfireView, Command, GameClient, GameView, PlayerAction } from "./api";
+import type { CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
-import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires } from "./campfires";
+import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
-import { createClock, readClock, type ClockStart } from "./clock";
+import { createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
 import { createEntityStore, movingEntities, type EntityStore } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot } from "./walking";
+import { createWarmth, hasCollapsed, passWarmthTime, wakeFromCollapse, warmthSpeed } from "./warmth";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -20,6 +21,10 @@ export const STEP_MS = 1000 / STEPS_PER_SECOND;
  * The walk map uses 1 m cells, so this leaves room for the widest trunk (about 0.4 m) plus half a cell's diagonal.
  */
 const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
+/** Skipped time runs in slices this many game minutes long. */
+const PASS_TIME_SLICE_MINUTES = 1;
+/** A notice shows for this many game minutes, which is half a real minute. */
+const NOTICE_MINUTES = 30;
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
 
@@ -61,6 +66,9 @@ export function createGame({ seed }: GameOptions): Game {
     position: startPosition,
     previousPosition: { ...startPosition },
     backpack: createStartingBackpack(),
+    warmth: createWarmth(),
+    // Until the player has slept in a bed, they wake where they started after a collapse.
+    respawnPoint: { x: start.x, z: start.z },
   });
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
@@ -71,6 +79,11 @@ export function createGame({ seed }: GameOptions): Game {
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
   const clock = createClock(GAME_START);
+  /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
+  const firstMorning = nextMorning(clock.minutes);
+  /** Whether the first night has ended, by morning coming or by a collapse. */
+  let firstNightOver = false;
+  let notice: { kind: GameNotice; untilMinutes: number } | null = null;
   let paused = false;
   let stepCount = 0;
   let view = snapshot();
@@ -90,7 +103,13 @@ export function createGame({ seed }: GameOptions): Game {
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
+      warmth: player.warmth.level,
+      notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
     });
+  }
+
+  function showNotice(kind: GameNotice): void {
+    notice = { kind, untilMinutes: clock.minutes + NOTICE_MINUTES };
   }
 
   function nearbyCampfire(): CampfireView | null {
@@ -173,11 +192,55 @@ export function createGame({ seed }: GameOptions): Game {
       campfires.light(command.campfireId);
     },
     skipTime: (command) => {
-      const before = clock.minutes;
-      clock.skip(command.hours);
-      campfires.burn(clock.minutes - before);
+      // Time only moves forward. Ignore a negative or broken amount.
+      if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
     },
   };
+
+  /**
+   * Moves the clock on by this many game minutes. Campfires burn and the player's warmth changes as it goes.
+   * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
+   * A collapse ends the stretch early.
+   */
+  function passTime(gameMinutes: number): void {
+    for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
+      const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
+      clock.skip(minutes / MINUTES_PER_HOUR);
+      campfires.burn(minutes);
+      passWarmthTime(player.warmth, minutes, {
+        night: isNight(readClock(clock.minutes).hourOfDay),
+        warmedByCampfire: isWarmedByCampfire(entities, player.position),
+      });
+      if (hasCollapsed(player.warmth)) {
+        collapse();
+        return;
+      }
+      if (!firstNightOver && clock.minutes >= firstMorning) {
+        firstNightOver = true;
+        showNotice("survivedFirstNight");
+      }
+    }
+  }
+
+  /**
+   * The player collapses from the cold. They drop what is on their shoulder and lose the rest of the day.
+   * They wake the next morning at their respawn point with low warmth, keeping everything in their backpack.
+   */
+  function collapse(): void {
+    // A collapse before the first morning means the player did not survive the first night.
+    firstNightOver = true;
+    cancelTasks();
+    carrying.drop();
+    entities.removeComponent(player, "walkPath");
+    const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
+    clock.skip(asleepMinutes / MINUTES_PER_HOUR);
+    campfires.burn(asleepMinutes);
+    const { x, z } = player.respawnPoint;
+    Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
+    Object.assign(player.previousPosition, player.position);
+    wakeFromCollapse(player.warmth);
+    showNotice("collapsed");
+  }
 
   function applyCommand(command: Command): void {
     // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.
@@ -192,14 +255,14 @@ export function createGame({ seed }: GameOptions): Game {
       for (const entity of moving) {
         Object.assign(entity.previousPosition, entity.position);
       }
-      walking.step(STEP_MS / 1000);
-      chopping.step(STEP_MS / 1000);
+      // A cold player moves and works more slowly, as if less time passed for them.
+      const playerSeconds = (STEP_MS / 1000) * warmthSpeed(player.warmth);
+      walking.step(playerSeconds);
+      chopping.step(playerSeconds);
       carrying.step();
-      gathering.step(STEP_MS / 1000);
-      building.step(STEP_MS / 1000);
-      const before = clock.minutes;
-      clock.advance(STEP_MS);
-      campfires.burn(clock.minutes - before);
+      gathering.step(playerSeconds);
+      building.step(playerSeconds);
+      passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }
 

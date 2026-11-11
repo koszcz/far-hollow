@@ -3,6 +3,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 #ui { position: fixed; inset: 0; pointer-events: none; }
 .hud { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 0 1px 2px #0008; }
 .hud-paused { margin: 0 0 8px; }
+.hud-notice { margin: 0 0 8px; font-weight: bold; }
+.hud-warmth { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .hud button { pointer-events: auto; }
 .hud-setting { display: block; margin-top: 8px; pointer-events: auto; user-select: none; }
 .debug-overlay { position: absolute; top: 12px; right: 12px; padding: 8px 10px; background: #000a; color: #fff; font: 12px/1.4 ui-monospace, monospace; }

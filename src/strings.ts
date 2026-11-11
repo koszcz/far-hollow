@@ -20,6 +20,11 @@ export const strings = {
   addStick: "Add a stick",
   addFirewood: "Add firewood",
   lightCampfire: "Light with fire striker",
+  warmth: "Warmth",
+  notices: {
+    survivedFirstNight: "You survived the night.",
+    collapsed: "You collapsed from the cold. You woke the next morning.",
+  },
   backpack: "Backpack",
   backpackItems: {
     axe: "Axe",

@@ -77,6 +77,14 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
   return (
     <div class="hud">
       {view.paused && <p class="hud-paused">{strings.paused}</p>}
+      {view.notice !== null && (
+        <p class="hud-notice" role="status">
+          {strings.notices[view.notice]}
+        </p>
+      )}
+      <label class="hud-warmth">
+        {strings.warmth} <progress max={1} value={view.warmth} />
+      </label>
       <button type="button" onClick={() => {
           client.send({ type: "setPaused", paused: !view.paused });
         }}>

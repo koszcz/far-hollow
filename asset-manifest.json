@@ -212,9 +212,21 @@
       "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel. A finished frame between the camera and the player fades out.",
       "source": "Built in code in this project",
       "license": "Project code",
+      "approval": { "status": "approved", "by": "owner", "date": "2026-11-11" }
+    },
+    {
+      "id": "roof",
+      "kind": "code",
+      "code": [
+        "src/render/roof-meshes.ts",
+        "src/sim/roofs.ts"
+      ],
+      "description": "The cabin roof section: a flat roof over one foundation square, resting on the tops of its walls. Three debarked-log rafters run across the square, and four overlapping strips of bark lie over them, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it.",
+      "source": "Built in code in this project",
+      "license": "Project code",
       "approval": {
         "status": "draft",
-        "ticket": ".scratch/shelter/issues/05-log-walls-and-door-frames.md"
+        "ticket": ".scratch/shelter/issues/06-roof.md"
       }
     },
     {
@@ -255,12 +267,13 @@
         "src/render/lean-to-meshes.ts",
         "src/render/stick-shape.ts"
       ],
-      "description": "The lean-to: two front posts, a ridge pole, and rafters of sticks sloping to the ground at the back, covered with strips of bark. The front is open. It is built in stages: each stick, then each strip of bark, fades in and is lowered into place.",
+      "description": "The lean-to: two crooked front posts with forked tops, a ridge pole resting in the forks, and crooked stick rafters sloping to the ground at the back. Curled strips of bark, dark outside and pale inside with ragged lower edges, cover the rafters like shingles. The front is open. It is built in stages: each stick, then each strip of bark, fades in and is lowered into place.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/03-lean-to.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -359,6 +372,22 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "backpack-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/backpack-icons.tsx",
+        "src/ui/hud.tsx",
+        "src/app/style.css"
+      ],
+      "description": "Coloured filled icons for every kind of thing in the backpack, shown in the HUD's backpack chips: axe, knife, drawknife, fire striker, bedroll, stick, firewood, bark, berries, mushroom, and the pot when empty, holding river water, or holding boiled water. Each item has its own shape and colour. The item's name shows when the player points at its chip.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/hud-icons/issues/01-backpack-icons.md"
       }
     },
     {

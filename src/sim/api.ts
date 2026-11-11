@@ -189,6 +189,14 @@ export interface BlueprintView {
   readonly deliveries: readonly { readonly material: DeliveredMaterial; readonly has: number; readonly needs: number }[];
 }
 
+/** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
+export interface RoomView {
+  /** The middles of the room's foundation squares, in metres. */
+  readonly squares: readonly GroundPoint[];
+  /** Whether a lit campfire in the room warms all of it. */
+  readonly heated: boolean;
+}
+
 export interface BedrollView {
   /** The bedroll's entity id. */
   readonly id: number;
@@ -217,6 +225,8 @@ export interface GameClient {
   checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck;
   /** What a blueprint, given by its entity id, has and needs, or null if it is not a blueprint. It only reads game state. */
   describeBlueprint(blueprintId: number): BlueprintView | null;
+  /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */
+  describeRooms(): readonly RoomView[];
   send(command: Command): void;
   /** Calls the listener after each logic step. Returns a function that stops listening. */
   subscribe(listener: () => void): () => void;

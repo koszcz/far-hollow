@@ -1,5 +1,5 @@
 // Draws log walls and door frames, and their blueprints: the "log-wall" and "door-frame" assets in asset-manifest.json,
-// built in code. The log wall is approved by the owner. The door frame is still a draft. Both stand on the edge of a foundation square, along the line to the square beside it.
+// built in code and approved by the owner. Both stand on the edge of a foundation square, along the line to the square beside it.
 // - A log wall is a stack of debarked logs laid along the edge. Each delivered log is cut in two, since the wall is
 //   one square wide, so each stage of construction lays two courses. Like the deck of a foundation, each course is a
 //   little thicker or thinner, longer or shorter, and turned a little, so the wall looks hand-built. Each course sits
@@ -9,7 +9,8 @@
 //   Its bottom course sinks half into the deck. Where a wall meets another wall at a corner, its logs reach further
 //   past the corner, so the corner shows crossed log ends, like a log cabin. Ends with no wall across them stay short,
 //   so they never reach into a doorway. A door frame never stands at a corner: see `meetsDoorAtCorner` in edge-pieces.ts.
-// - A door frame is two posts with a lintel across the top. Each stage puts up one of the three.
+// - A door frame is two posts with a lintel across the top. Each stage puts up one of the three. The posts taper and lean a
+//   little, and the lintel sits in notches on their tops and reaches past them. Their cut ends show the paler cut wood.
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
 // The part being built fades in above its place, is lowered, and set down, like the logs of a foundation.
 // A finished wall or door frame between the camera and the player fades out, so the player never disappears behind it.
@@ -70,8 +71,17 @@ const COURSE_RADIUS_METRES = (() => {
   const sunk = looks.slice(1).reduce((sum, look) => sum + look.thickness * (1 - COURSE_NOTCH_SHARE), 0);
   return EDGE_PIECE_HEIGHT_METRES / (2 * ((looks[0]?.thickness ?? 1) + sunk));
 })();
-const POST_RADIUS_METRES = 0.1;
-const LINTEL_RADIUS_METRES = 0.1;
+/** A door post is a little thicker at the foot than at the top, like the trunk it was cut from. */
+const POST_FOOT_RADIUS_METRES = 0.125;
+const POST_TOP_RADIUS_METRES = 0.11;
+const LINTEL_RADIUS_METRES = 0.11;
+/** How far the lintel reaches past the outside of each post, in metres. */
+const LINTEL_OVERHANG_METRES = 0.08;
+/** How far each door post leans from upright, in radians, so the frame looks set up by hand. */
+const LEFT_POST_LEAN_RADIANS = 0.018;
+const RIGHT_POST_LEAN_RADIANS = -0.012;
+/** How many flat sides a door post or lintel has round its length. */
+const DOOR_LOG_SIDES = 10;
 /** How thick the invisible box that catches clicks on a blueprint is, across its edge, in metres. */
 const PICK_THICKNESS_METRES = 0.35;
 
@@ -137,6 +147,8 @@ interface PartPlan {
   readonly scale?: { readonly along: number; readonly across: number };
   readonly turn?: number;
   readonly cutEnds?: boolean;
+  /** The solid wood the part is drawn in once built. Without it, the plain debarked-log wood. */
+  readonly wood?: THREE.MeshStandardMaterial;
 }
 
 /** A built part, with the solid wood it shows once built and its own see-through copies of it for fading in. */
@@ -160,13 +172,39 @@ function facingRadians(turns: number): number {
   return -turns * (Math.PI / 2);
 }
 
+/**
+ * A debarked log for a door frame, standing along y with its middle at the origin.
+ * Its sides are coloured as stripped wood and its two ends as the paler cut wood, so it is drawn with vertex colours.
+ */
+function doorLogGeometry(topRadius: number, footRadius: number, length: number): THREE.BufferGeometry {
+  const geometry = new THREE.CylinderGeometry(topRadius, footRadius, length, DOOR_LOG_SIDES);
+  const index = geometry.getIndex();
+  const colours = new Float32Array(geometry.getAttribute("position").count * 3);
+  const side = new THREE.Color(DEBARKED_LOG_COLOUR);
+  const cut = new THREE.Color(DEBARKED_LOG_CUT_COLOUR);
+  // A cylinder has three groups: the sides, then the top end, then the foot end.
+  geometry.groups.forEach((part, partIndex) => {
+    const colour = partIndex === 0 ? side : cut;
+    for (let i = part.start; i < part.start + part.count; i++) colour.toArray(colours, (index?.getX(i) ?? i) * 3);
+  });
+  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+  geometry.clearGroups();
+  return geometry;
+}
+
 export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   const group = new THREE.Group();
   // Logs lie along x, the way a piece facing the default way runs.
   // Cylinder groups are the side, then the two ends, so a list of three materials gives the ends their own colour.
   const courseGeometry = new THREE.CylinderGeometry(COURSE_RADIUS_METRES, COURSE_RADIUS_METRES, COURSE_LENGTH_METRES, 9).rotateZ(Math.PI / 2);
-  const postGeometry = new THREE.CylinderGeometry(POST_RADIUS_METRES, POST_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES, 8);
-  const lintelGeometry = new THREE.CylinderGeometry(LINTEL_RADIUS_METRES, LINTEL_RADIUS_METRES, BUILD_GRID_METRES, 8).rotateZ(Math.PI / 2);
+  // The posts stop at the middle of the lintel, so the lintel sits half sunk in notches cut into their tops.
+  const postHeight = EDGE_PIECE_HEIGHT_METRES - LINTEL_RADIUS_METRES;
+  const leftPostGeometry = doorLogGeometry(POST_TOP_RADIUS_METRES, POST_FOOT_RADIUS_METRES, postHeight).rotateZ(LEFT_POST_LEAN_RADIANS);
+  const rightPostGeometry = doorLogGeometry(POST_TOP_RADIUS_METRES, POST_FOOT_RADIUS_METRES, postHeight).rotateZ(RIGHT_POST_LEAN_RADIANS);
+  const lintelLength = BUILD_GRID_METRES + 2 * LINTEL_OVERHANG_METRES;
+  // Turned a little about its length, so its flat sides do not line up with the posts'.
+  const lintelGeometry = doorLogGeometry(LINTEL_RADIUS_METRES, LINTEL_RADIUS_METRES, lintelLength).rotateY(0.3).rotateZ(Math.PI / 2);
+  const doorWoodMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, EDGE_PIECE_HEIGHT_METRES, PICK_THICKNESS_METRES).translate(0, EDGE_PIECE_HEIGHT_METRES / 2, 0);
   const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
   const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
@@ -196,9 +234,9 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       }),
     ),
     doorFrame: [
-      [{ geometry: postGeometry, x: -(BUILD_GRID_METRES / 2 - POST_RADIUS_METRES), y: EDGE_PIECE_HEIGHT_METRES / 2 }],
-      [{ geometry: postGeometry, x: BUILD_GRID_METRES / 2 - POST_RADIUS_METRES, y: EDGE_PIECE_HEIGHT_METRES / 2 }],
-      [{ geometry: lintelGeometry, x: 0, y: EDGE_PIECE_HEIGHT_METRES - LINTEL_RADIUS_METRES }],
+      [{ geometry: leftPostGeometry, x: -(BUILD_GRID_METRES / 2 - POST_FOOT_RADIUS_METRES), y: postHeight / 2, wood: doorWoodMaterial }],
+      [{ geometry: rightPostGeometry, x: BUILD_GRID_METRES / 2 - POST_FOOT_RADIUS_METRES, y: postHeight / 2, wood: doorWoodMaterial }],
+      [{ geometry: lintelGeometry, x: 0, y: postHeight, wood: doorWoodMaterial }],
     ],
   };
   const LOG_COST: Readonly<Record<EdgePieceKind, number>> = { logWall: LOG_WALL_LOG_COST, doorFrame: DOOR_FRAME_LOG_COST };
@@ -218,9 +256,10 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
         mesh.scale.set(plan.scale?.along ?? 1, plan.scale?.across ?? 1, plan.scale?.across ?? 1);
         mesh.rotation.x = plan.turn ?? 0;
         root.add(mesh);
-        const side = woodMaterial.clone();
+        const wood = plan.wood ?? woodMaterial;
+        const side = wood.clone();
         side.transparent = true;
-        if (plan.cutEnds !== true) return { mesh, solid: woodMaterial, fading: [side], plan };
+        if (plan.cutEnds !== true) return { mesh, solid: wood, fading: [side], plan };
         const cut = cutMaterial.clone();
         cut.transparent = true;
         return { mesh, solid: logMaterials, fading: [side, cut, cut], plan };
@@ -374,7 +413,8 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
     },
     dispose() {
       for (const item of [
-        courseGeometry, postGeometry, lintelGeometry, pickGeometry, woodMaterial, cutMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial,
+        courseGeometry, leftPostGeometry, rightPostGeometry, lintelGeometry, pickGeometry, woodMaterial, cutMaterial, doorWoodMaterial,
+        blueprintMaterial, deliveredMaterial, notAllowedMaterial,
         fadedMaterial, pickMaterial,
       ]) {
         item.dispose();

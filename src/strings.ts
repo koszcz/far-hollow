@@ -37,6 +37,7 @@ export const strings = {
       foundation: "Foundation",
       logWall: "Log wall",
       doorFrame: "Door frame",
+      roof: "Roof",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
@@ -47,6 +48,8 @@ export const strings = {
     placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
     placingOnEdge: (structure: string) =>
       `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
+    placingRoof: (structure: string) =>
+      `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
   },
   blueprint: {
     title: (structure: string) => `Blueprint: ${structure}`,
@@ -81,6 +84,8 @@ export const strings = {
   raining: "It is raining. The rain chills you.",
   thirst: "Thirst",
   eat: "Eat",
+  /** The full name of an eat button, for screen readers. */
+  eatFood: (food: string) => `Eat ${food.toLowerCase()}`,
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   fatigue: "Rest",
   layBedroll: "Lay out bedroll",
@@ -110,6 +115,8 @@ export const strings = {
     mushroom: "Mushroom",
   },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
+  /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
+  backpackCountBadge: (count: number) => `${count}`,
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
   debugFps: "FPS",
   debugEntities: "Entities",
@@ -121,4 +128,6 @@ export const strings = {
   debugRainFalling: "Falling",
   debugRainDry: "Dry",
   debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
+  debugRooms: "Rooms",
+  debugRoom: (squares: number, heated: boolean) => `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}`,
 } as const;

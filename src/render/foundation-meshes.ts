@@ -14,10 +14,9 @@ import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { foundationEntities, blueprintEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { FOUNDATION_DECK_THICKNESS_METRES, foundationLegs } from "../sim/foundations";
 import { FOUNDATION_LOG_COST } from "../sim/structures";
-import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
-import { NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -103,10 +102,9 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
   const legMaterial = new THREE.MeshStandardMaterial({ color: LEG_COLOUR, flatShading: true });
   const logMaterials = [woodMaterial, cutMaterial, cutMaterial];
   const beamMaterials = [legMaterial, cutMaterial, cutMaterial];
-  const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
-  const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
-  const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
-  const notAllowedMaterial = see(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
+  const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
+  const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
+  const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const drawn = new Map<Entity, Drawn>();
@@ -199,7 +197,7 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
         return 0;
       }
-      const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+      const opacity = buildOpacity(share);
       for (const material of fading) material.opacity = opacity;
       mesh.material = opacity < 1 ? fading : logMaterials;
       return buildLift(share);

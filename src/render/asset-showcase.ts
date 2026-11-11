@@ -10,28 +10,20 @@ import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
-import { createChestMeshes } from "./chest-meshes";
-import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createPileMeshes } from "./pile-meshes";
-import {
-  BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
-  type CampfireMeshes,
-} from "./campfire-meshes";
+import { BUILD_STONES_SHARE, buildProgressAtStickStage } from "./campfire-meshes";
+import { BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE } from "./structure-look";
 import { CAMPFIRE_BUILD_SECONDS } from "../sim/structures";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../sim/structures";
-import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
-import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
 import {
   CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST, SAWHORSE_LOG_COST,
 } from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
-import { createEdgePieceMeshes } from "./edge-piece-meshes";
-import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_REACHED_SHARE, CROUCH_SETTLED_SHARE } from "./player-build-pose";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
@@ -44,7 +36,7 @@ import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createUndergrowthMaterial } from "./undergrowth-meshes";
 import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
 import { createValleyMeshes } from "./valley-meshes";
-import { createWoodpileMeshes } from "./woodpile-meshes";
+import { createStructureMeshes } from "./structure-meshes";
 
 /** How many stages a lean-to takes to build: one for each stick and each piece of bark. */
 const LEAN_TO_STAGES = LEAN_TO_STICK_COST + LEAN_TO_BARK_COST;
@@ -925,29 +917,20 @@ export function showAsset(
   showcase.build(stage);
 
   const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.stump, shapes.log);
-  const campfires: CampfireMeshes = createCampfireMeshes(store);
-  const leanTos = createLeanToMeshes(store);
-  const foundations = createFoundationMeshes(store, groundAt);
-  const edgePieces = createEdgePieceMeshes(store);
-  const roofs = createRoofMeshes(store);
+  const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   const bark = createBarkMeshes(store);
-  const woodpiles = createWoodpileMeshes(store, shapes.log);
-  const chests = createChestMeshes(store);
-  const sawhorses = createSawhorseMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(
-    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
-    woodpiles.group, chests.group, sawhorses.group, piles.group, rain.group,
+    forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, rain.group,
   );
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(
-    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group,
-    woodpiles.group, chests.group, sawhorses.group, piles.group, player.group, props,
+    forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, player.group, props,
   );
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
@@ -957,16 +940,9 @@ export function showAsset(
     // Stills restart every fall at time 0. A live loop lets each fall start when its tree is felled.
     if (!(options.play && showcase.play !== undefined)) forest.update(0);
     forest.update(seconds);
-    campfires.update(seconds);
-    leanTos.update();
-    foundations.update();
-    edgePieces.update();
-    roofs.update();
+    structures.update({ nowSeconds: seconds });
     bedrolls.update();
     piles.update();
-    woodpiles.update();
-    chests.update();
-    sawhorses.update();
     bark.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
@@ -1017,18 +993,11 @@ export function showAsset(
     dispose() {
       if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
-      campfires.dispose();
-      leanTos.dispose();
-      foundations.dispose();
-      edgePieces.dispose();
-      roofs.dispose();
+      structures.dispose();
       potMaker.dispose();
       forage.dispose();
       bedrolls.dispose();
       piles.dispose();
-      woodpiles.dispose();
-      chests.dispose();
-      sawhorses.dispose();
       bark.dispose();
       rain.dispose();
       player.dispose();

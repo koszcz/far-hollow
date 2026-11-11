@@ -1,31 +1,23 @@
 import * as THREE from "three";
-import type { QuarterTurns, StructureKind } from "../sim/api";
-import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { createPileMeshes } from "./pile-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
-import { createCampfireMeshes } from "./campfire-meshes";
-import { createChestMeshes } from "./chest-meshes";
-import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createForageMeshes } from "./forage-meshes";
-import { createEdgePieceMeshes } from "./edge-piece-meshes";
-import { createFoundationMeshes } from "./foundation-meshes";
-import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
-import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
+import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
-import { createWoodpileMeshes } from "./woodpile-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
 const CAMERA_NEAR_METRES = 0.1;
@@ -56,15 +48,7 @@ export type ScenePick =
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
-/** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
-export interface PlacingBlueprint {
-  readonly structure: StructureKind;
-  /** The building-grid spot it snaps to, on the ground, in metres. */
-  readonly spot: Readonly<Vec3>;
-  readonly turns: QuarterTurns;
-  /** False where its placement rule refuses the spot, so it shows as not allowed. */
-  readonly allowed: boolean;
-}
+export type { PlacingBlueprint } from "./structure-meshes";
 
 /** A pick that landed on anything but a finished structure. */
 export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
@@ -125,26 +109,12 @@ export function createSceneRenderer(
   scene.add(undergrowthMeshes.group);
   const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.stump, shapes.log);
   scene.add(forestMeshes.group);
-  const campfireMeshes = createCampfireMeshes(entities);
-  scene.add(campfireMeshes.group);
-  const leanToMeshes = createLeanToMeshes(entities);
-  scene.add(leanToMeshes.group);
-  const foundationMeshes = createFoundationMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
-  scene.add(foundationMeshes.group);
-  const edgePieceMeshes = createEdgePieceMeshes(entities);
-  scene.add(edgePieceMeshes.group);
-  const roofMeshes = createRoofMeshes(entities);
-  scene.add(roofMeshes.group);
+  const structureMeshes = createStructureMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z), shapes.log);
+  scene.add(structureMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
-  const woodpileMeshes = createWoodpileMeshes(entities, shapes.log);
-  scene.add(woodpileMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);
-  const chestMeshes = createChestMeshes(entities);
-  scene.add(chestMeshes.group);
-  const sawhorseMeshes = createSawhorseMeshes(entities);
-  scene.add(sawhorseMeshes.group);
   const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
   scene.add(pileMeshes.group);
   const barkMeshes = createBarkMeshes(entities);
@@ -153,25 +123,12 @@ export function createSceneRenderer(
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
-    forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, sawhorseMeshes.group, pileMeshes.group, barkMeshes.group,
+    forestMeshes.group, structureMeshes.group, forageMeshes.group, bedrollMeshes.group, pileMeshes.group, barkMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
 
-  /** The shapes to outline for a blueprint of each structure. */
-  const blueprintOutlines: { readonly [Kind in StructureKind]: (entity: Entity) => OutlinePart[] } = {
-    campfire: (entity) => campfireMeshes.outlineOf({ kind: "blueprint", entity }),
-    leanTo: (entity) => leanToMeshes.outlineOf(entity),
-    foundation: (entity) => foundationMeshes.outlineOf({ kind: "blueprint", entity }),
-    logWall: (entity) => edgePieceMeshes.outlineOf({ kind: "blueprint", entity }),
-    doorFrame: (entity) => edgePieceMeshes.outlineOf({ kind: "blueprint", entity }),
-    roof: (entity) => roofMeshes.outlineOf({ kind: "blueprint", entity }),
-    woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "blueprint", entity }),
-    chest: (entity) => chestMeshes.outlineOf({ kind: "blueprint", entity }),
-    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "blueprint", entity }),
-  };
   /** The shapes to outline for each kind of thing the player can click. */
   const outlines: { readonly [Kind in EntityPick["kind"]]: (entity: Entity) => OutlinePart[] } = {
     tree: (entity) => forestMeshes.outlineOf({ kind: "tree", entity }),
@@ -180,11 +137,11 @@ export function createSceneRenderer(
     stick: (entity) => forestMeshes.outlineOf({ kind: "stick", entity }),
     bark: (entity) => barkMeshes.outlineOf(entity),
     forage: (entity) => forageMeshes.outlineOf({ kind: "forage", entity }),
-    blueprint: (entity) => (entity.blueprint === undefined ? [] : blueprintOutlines[entity.blueprint.structure](entity)),
-    campfire: (entity) => campfireMeshes.outlineOf({ kind: "campfire", entity }),
-    woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "woodpile", entity }),
-    chest: (entity) => chestMeshes.outlineOf({ kind: "chest", entity }),
-    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "sawhorse", entity }),
+    blueprint: (entity) => structureMeshes.outlineOf({ kind: "blueprint", entity }),
+    campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
+    woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
+    chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
+    sawhorse: (entity) => structureMeshes.outlineOf({ kind: "sawhorse", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
   };
@@ -193,37 +150,6 @@ export function createSceneRenderer(
   function outlineHovered(): void {
     hoverOutline.show(hovered === undefined ? [] : outlines[hovered.kind](hovered.entity));
   }
-
-  /** Shows or hides the blueprint each structure draws under the mouse while the player places one. */
-  const placingBlueprints: { readonly [Kind in StructureKind]: (placing: PlacingBlueprint | undefined) => void } = {
-    campfire: (placing) => {
-      campfireMeshes.showPlacingBlueprint(placing);
-    },
-    leanTo: (placing) => {
-      leanToMeshes.showPlacingBlueprint(placing);
-    },
-    foundation: (placing) => {
-      foundationMeshes.showPlacingBlueprint(placing);
-    },
-    logWall: (placing) => {
-      edgePieceMeshes.showPlacingBlueprint(placing && { ...placing, structure: "logWall" });
-    },
-    doorFrame: (placing) => {
-      edgePieceMeshes.showPlacingBlueprint(placing && { ...placing, structure: "doorFrame" });
-    },
-    roof: (placing) => {
-      roofMeshes.showPlacingBlueprint(placing);
-    },
-    woodpile: (placing) => {
-      woodpileMeshes.showPlacingBlueprint(placing);
-    },
-    chest: (placing) => {
-      chestMeshes.showPlacingBlueprint(placing);
-    },
-    sawhorse: (placing) => {
-      sawhorseMeshes.showPlacingBlueprint(placing);
-    },
-  };
 
   let drawnWidth = 0;
   let drawnHeight = 0;
@@ -314,15 +240,8 @@ export function createSceneRenderer(
   function pickThroughFinishedStructures(): { pick: GroundOrThingPick; distance: number } | undefined {
     const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
     const candidates = [
-      forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
-      edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
-      forageMeshes.pick(raycaster),
-      bedrollMeshes.pick(raycaster),
-      pileMeshes.pick(raycaster),
-      woodpileMeshes.pick(raycaster),
-      chestMeshes.pick(raycaster),
-      sawhorseMeshes.pick(raycaster),
-      barkMeshes.pick(raycaster),
+      forestMeshes.pick(raycaster), structureMeshes.pick(raycaster), forageMeshes.pick(raycaster), bedrollMeshes.pick(raycaster),
+      pileMeshes.pick(raycaster), barkMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {
@@ -347,15 +266,9 @@ export function createSceneRenderer(
       const hourOfDay = readHourOfDay();
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
-      campfireMeshes.update(nowSeconds);
-      leanToMeshes.update();
-      foundationMeshes.update();
       forageMeshes.update();
       bedrollMeshes.update();
       pileMeshes.update();
-      woodpileMeshes.update();
-      chestMeshes.update();
-      sawhorseMeshes.update();
       barkMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
@@ -366,12 +279,10 @@ export function createSceneRenderer(
         }
       }
       posePlayer(nowSeconds);
-      outlineHovered();
       placeCamera();
-      // Walls between the camera and the player fade out, so the player stays in view.
-      edgePieceMeshes.update({ camera: cameraRig.view().eye, player: playerDrawn });
-      // The roof above the player hides, so the player stays in view inside a cabin.
-      roofMeshes.update({ player: playerDrawn });
+      // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
+      structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn });
+      outlineHovered();
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
@@ -382,11 +293,7 @@ export function createSceneRenderer(
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const under = pickThroughFinishedStructures();
-      let nearest: { entity: Entity; distance: number } | undefined;
-      for (const meshes of [leanToMeshes, foundationMeshes, edgePieceMeshes, roofMeshes]) {
-        const candidate = meshes.pickFinished(raycaster);
-        if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
-      }
+      const nearest = structureMeshes.pickFinished(raycaster);
       const id = nearest === undefined ? undefined : entities.id(nearest.entity);
       if (nearest === undefined || id === undefined || (under !== undefined && under.distance < nearest.distance)) return under?.pick;
       return { kind: "structure", id, under: under?.pick };
@@ -397,9 +304,7 @@ export function createSceneRenderer(
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
     },
     showPlacingBlueprint(placing) {
-      // Each structure draws its own blueprint. Hide them all, then show the one being placed.
-      for (const show of Object.values(placingBlueprints)) show(undefined);
-      if (placing !== undefined) placingBlueprints[placing.structure](placing);
+      structureMeshes.showPlacingBlueprint(placing);
     },
     dispose() {
       hoverOutline.dispose();
@@ -407,17 +312,10 @@ export function createSceneRenderer(
       undergrowthMeshes.dispose();
       riverMeshes.dispose();
       forestMeshes.dispose();
-      campfireMeshes.dispose();
-      leanToMeshes.dispose();
-      foundationMeshes.dispose();
-      edgePieceMeshes.dispose();
-      roofMeshes.dispose();
+      structureMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
       pileMeshes.dispose();
-      woodpileMeshes.dispose();
-      chestMeshes.dispose();
-      sawhorseMeshes.dispose();
       barkMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();

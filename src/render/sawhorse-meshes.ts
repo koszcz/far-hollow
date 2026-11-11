@@ -8,10 +8,9 @@
 // A blueprint shows the parts see-through. A part whose debarked log has been delivered shows pale and half solid.
 // While the player places a sawhorse from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
+import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, workStationEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { SAWHORSE_LENGTH_METRES, SAWHORSE_LOG_COST, SAWHORSE_WIDTH_METRES } from "../sim/structures";
-import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
+import { SAWHORSE_LENGTH_METRES, SAWHORSE_LOG_COST, SAWHORSE_WIDTH_METRES, structureKindOf } from "../sim/structures";
 import { createDebarkedLogGeometry, DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 
@@ -127,10 +126,9 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
 
   // The wood carries its colours on each corner, painted by debarked-log-shape.ts.
   const woodMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
-  const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
-  const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
-  const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
-  const notAllowedMaterial = see(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
+  const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
+  const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
+  const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const drawn = new Map<Entity, Drawn>();
@@ -192,7 +190,7 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
         stage.root.position.y = 0;
         return;
       }
-      const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+      const opacity = buildOpacity(share);
       stage.fading.opacity = opacity;
       for (const mesh of stage.meshes) mesh.material = opacity < 1 ? stage.fading : woodMaterial;
       stage.root.position.y = buildLift(share);
@@ -223,8 +221,9 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
         showProgress(draw(entity), entity, entity.blueprint.progress, entity.blueprint.delivered.debarkedLog ?? 0);
         seen.add(entity);
       }
-      // The sawhorse is the only work station so far. Each later kind draws its own.
+      // Each kind of work station draws its own.
       for (const entity of stations) {
+        if (structureKindOf(entity) !== "sawhorse") continue;
         showProgress(draw(entity), entity, 1, SAWHORSE_LOG_COST);
         seen.add(entity);
       }

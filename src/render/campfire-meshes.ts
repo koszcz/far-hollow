@@ -17,7 +17,7 @@ import { CAMPFIRE_STICK_COST } from "../sim/structures";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
-import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
+import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
 
 /** Stones take turns between these two greys, so the ring does not look cast from one mould. */
 const STONE_COLOURS = [0x8c8c86, 0x6f6e69] as const;
@@ -50,19 +50,7 @@ const STONE_SEED = 4217;
 const STICK_LEAN_RADIANS = 0.5;
 
 // The build animation. The stones take the first BUILD_STONES_SHARE of the build. The sticks then share the rest equally,
-// one stage each, and every BUILD_*_SHARE below that is not about stones or ash is a share of one stick's stage.
-/** A new stick fades in this high above its place, in metres, already leaning at its final angle. */
-const BUILD_HOVER_METRES = 0.35;
-/** It is lowered, easing in and out, to just this high above its place, in metres. */
-const BUILD_LOWERED_METRES = 0.06;
-/** The new stick fades in over this first share of its stage. */
-export const BUILD_FADE_SHARE = 0.15;
-/** The stick is lowered until this share of its stage. */
-export const BUILD_LOWERED_SHARE = 0.6;
-/** It pauses just above its place until this share. */
-export const BUILD_HOLD_SHARE = 0.68;
-/** It drops, speeding up, and touches down at this share. It rests in place for the rest of the stage. */
-export const BUILD_SET_DOWN_SHARE = 0.8;
+// one stage each, and each stick is laid with the shared build lift of structure-look.ts.
 /** The stones are placed in this first share of the whole build, before any stick. */
 export const BUILD_STONES_SHARE = 0.2;
 /** Each stone drops this far into place, in metres. */
@@ -251,7 +239,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
         mesh.position.y = 0;
         return;
       }
-      const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+      const opacity = buildOpacity(share);
       fading.opacity = opacity;
       mesh.material = opacity < 1 ? fading : stickMaterial;
       mesh.position.y = buildLift(share);
@@ -373,23 +361,6 @@ export function buildProgressAtStickStage(stages: number): number {
   return BUILD_STONES_SHARE + ((1 - BUILD_STONES_SHARE) * stages) / CAMPFIRE_STICK_COST;
 }
 
-/**
- * How high above its place the stick being laid is, in metres, at `share` of its stage.
- * It is lowered from where it fades in, holds just above its place, drops, and rests.
- */
-export function buildLift(share: number): number {
-  if (share < BUILD_LOWERED_SHARE) {
-    return BUILD_HOVER_METRES + (BUILD_LOWERED_METRES - BUILD_HOVER_METRES) * easeInOut(share / BUILD_LOWERED_SHARE);
-  }
-  if (share < BUILD_HOLD_SHARE) return BUILD_LOWERED_METRES;
-  if (share >= BUILD_SET_DOWN_SHARE) return 0;
-  const dropped = ((share - BUILD_HOLD_SHARE) / (BUILD_SET_DOWN_SHARE - BUILD_HOLD_SHARE)) ** 2;
-  return BUILD_LOWERED_METRES * (1 - dropped);
-}
-
-function easeInOut(t: number): number {
-  return t * t * (3 - 2 * t);
-}
 
 /** One stone of the ring: its own lumpy shape, where it sits, and how far it is turned. */
 interface PlacedStone {

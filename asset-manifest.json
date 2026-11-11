@@ -329,7 +329,8 @@
       "id": "campfire-build-animation",
       "kind": "code",
       "code": [
-        "src/render/campfire-meshes.ts"
+        "src/render/campfire-meshes.ts",
+        "src/render/structure-look.ts"
       ],
       "description": "A campfire built as a person builds one: first the stones drop into place one by one round the ring. Then each stick is held at its lean above its place, lowered straight down, and set down, without turning or bouncing. The ash spreads out at the end.",
       "source": "Built in code in this project",

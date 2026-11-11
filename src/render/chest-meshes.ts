@@ -7,10 +7,9 @@
 // A blueprint shows the parts see-through. A part whose debarked log has been delivered shows pale and half solid.
 // While the player places a chest from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
+import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, chestEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES } from "../sim/structures";
-import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 
@@ -160,10 +159,9 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
     return [0, 1, 2].flatMap((a) => (a === axis ? [cut, cut] : [side, side]));
   }
   const solidMaterials = stageParts.map((parts) => parts.map(({ grain }) => faceMaterials(grain, woodMaterial, cutMaterial)));
-  const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
-  const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
-  const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
-  const notAllowedMaterial = see(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
+  const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
+  const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
+  const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const drawn = new Map<Entity, Drawn>();
@@ -228,7 +226,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
         stage.root.position.y = 0;
         return;
       }
-      const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+      const opacity = buildOpacity(share);
       for (const material of stage.fading) material.opacity = opacity;
       stage.meshes.forEach((mesh, i) => {
         mesh.material = (opacity < 1 ? stage.fadingFaces[i] : solidMaterials[index]?.[i]) ?? blueprintMaterial;

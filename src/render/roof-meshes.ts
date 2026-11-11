@@ -25,14 +25,13 @@ import { blueprintEntities, cabinRoofEntities, type Entity, type EntityStore, ty
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { roofAbove } from "../sim/roofs";
 import { ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
-import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { BARK_COLOURS, barkStrip, seededRandom } from "./lean-to-meshes";
 import { ALONE, gridCell, roofPlaces, roofTopAt, shapeTop, type RoofPlace, type RoofShape } from "./roof-layout";
-import { facingRadians, NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
+import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -148,10 +147,9 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
   const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true, vertexColors: true });
   const grain = paintBarkGrain(seededRandom(ROOF_SEED + 1));
   const barkMaterials = BARK_COLOURS.map((color) => new THREE.MeshStandardMaterial({ color, flatShading: true, vertexColors: true, map: grain }));
-  const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
-  const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
-  const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
-  const notAllowedMaterial = see(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
+  const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
+  const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
+  const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const rafterY = EDGE_PIECE_HEIGHT_METRES + RAFTER_RADIUS_METRES;
@@ -383,7 +381,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
         mesh.material = index < Math.min(delivered, ROOF_LOG_COST) ? deliveredMaterial : blueprintMaterial;
         mesh.position.y = plan.y;
       } else {
-        fading.opacity = Math.min(1, share / BUILD_FADE_SHARE);
+        fading.opacity = buildOpacity(share);
         mesh.material = fading.opacity < 1 ? fading : plan.wood;
         mesh.position.y = plan.y + buildLift(share);
       }

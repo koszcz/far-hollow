@@ -20,10 +20,9 @@ import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
-import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
-import { facingRadians, NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
+import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -205,11 +204,10 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
   const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
   const logMaterials = [woodMaterial, cutMaterial, cutMaterial];
-  const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
-  const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
-  const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
-  const notAllowedMaterial = see(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const fadedMaterial = see(DEBARKED_LOG_COLOUR, FADED_OPACITY);
+  const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
+  const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
+  const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
+  const fadedMaterial = seeThrough(DEBARKED_LOG_COLOUR, FADED_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   /** The parts each stage adds, for each kind of piece. */
@@ -325,7 +323,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
           mesh.position.y = plan.y;
           continue;
         }
-        const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+        const opacity = buildOpacity(share);
         for (const material of fading) material.opacity = opacity;
         mesh.material = opacity < 1 ? fading : solid;
         mesh.position.y = plan.y + buildLift(share);

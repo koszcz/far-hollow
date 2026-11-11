@@ -318,9 +318,11 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       };
       if (hit.kind === "tree") {
         const index = instanceOf.get(hit.entity);
-        if (hit.entity.tree !== true || index === undefined) return [];
-        const at = placed(trunks, index);
-        return [{ geometry: trunkGeometry, matrix: at }, { geometry: crownGeometry, matrix: at }];
+        const type = typeOf.get(hit.entity);
+        const batch = type === undefined ? undefined : treeBatches[type];
+        if (hit.entity.tree !== true || index === undefined || batch === undefined) return [];
+        const at = placed(batch.trunks, index);
+        return [{ geometry: batch.trunks.geometry, matrix: at }, { geometry: batch.crowns.geometry, matrix: at }];
       }
       if (hit.kind === "log") {
         const index = logsDrawn.indexOf(hit.entity);

@@ -1,6 +1,6 @@
 import { World } from "miniplex";
 import type { Backpack } from "./backpack";
-import type { WarmthState } from "./warmth";
+import type { Needs } from "./needs";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -60,8 +60,8 @@ export interface Entity {
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
-  /** How warm the entity is. Only the player has warmth. */
-  warmth?: WarmthState;
+  /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
+  needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
 }

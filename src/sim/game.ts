@@ -10,7 +10,7 @@ import { createEntityStore, movingEntities, type EntityStore } from "./entities"
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot } from "./walking";
-import { createWarmth, hasCollapsed, passWarmthTime, wakeFromCollapse, warmthSpeed } from "./warmth";
+import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -70,7 +70,7 @@ export function createGame({ seed }: GameOptions): Game {
     position: startPosition,
     previousPosition: { ...startPosition },
     backpack: createStartingBackpack(),
-    warmth: createWarmth(),
+    needs: createNeeds(),
     // Until the player has slept in a bed, they wake where they started after a collapse.
     respawnPoint: { x: start.x, z: start.z },
   });
@@ -107,7 +107,13 @@ export function createGame({ seed }: GameOptions): Game {
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
-      warmth: player.warmth.level,
+      needs: Object.freeze({
+        hunger: player.needs.hunger.level,
+        thirst: player.needs.thirst.level,
+        warmth: player.needs.warmth.level,
+        fatigue: player.needs.fatigue.level,
+      }),
+      warmth: player.needs.warmth.level,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
     });
   }
@@ -205,7 +211,7 @@ export function createGame({ seed }: GameOptions): Game {
   };
 
   /**
-   * Moves the clock on by this many game minutes. Campfires burn and the player's warmth changes as it goes.
+   * Moves the clock on by this many game minutes. Campfires burn and the player's needs change as it goes.
    * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
    * A collapse ends the stretch early.
    */
@@ -214,11 +220,11 @@ export function createGame({ seed }: GameOptions): Game {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
       campfires.burn(minutes);
-      passWarmthTime(player.warmth, minutes, {
+      passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
       });
-      if (hasCollapsed(player.warmth)) {
+      if (hasCollapsed(player.needs)) {
         collapse();
         return;
       }
@@ -230,8 +236,8 @@ export function createGame({ seed }: GameOptions): Game {
   }
 
   /**
-   * The player collapses from the cold. They drop what is on their shoulder and lose the rest of the day.
-   * They wake the next morning at their respawn point with low warmth, keeping everything in their backpack.
+   * The player collapses from a neglected need. They drop what is on their shoulder and lose the rest of the day.
+   * They wake the next morning at their respawn point with that need low, keeping everything in their backpack.
    */
   function collapse(): void {
     // A collapse before the first morning means the player did not survive the first night.
@@ -245,7 +251,7 @@ export function createGame({ seed }: GameOptions): Game {
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
     Object.assign(player.previousPosition, player.position);
-    wakeFromCollapse(player.warmth);
+    wakeFromCollapse(player.needs);
     showNotice("collapsed");
   }
 
@@ -262,8 +268,8 @@ export function createGame({ seed }: GameOptions): Game {
       for (const entity of moving) {
         Object.assign(entity.previousPosition, entity.position);
       }
-      // A cold player moves and works more slowly, as if less time passed for them.
-      const playerSeconds = (STEP_MS / 1000) * warmthSpeed(player.warmth);
+      // A player with a low need moves and works more slowly, as if less time passed for them.
+      const playerSeconds = (STEP_MS / 1000) * needsSpeed(player.needs);
       walking.step(playerSeconds);
       chopping.step(playerSeconds);
       carrying.step();

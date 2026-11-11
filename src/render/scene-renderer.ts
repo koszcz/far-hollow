@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { QuarterTurns, StructureKind } from "../sim/api";
 import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
+import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
@@ -41,6 +42,7 @@ export type ScenePick =
   | { kind: "log"; id: number }
   | { kind: "debarkedLog"; id: number }
   | { kind: "stick"; id: number }
+  | { kind: "bark"; id: number }
   | { kind: "forage"; id: number }
   | { kind: "blueprint"; id: number }
   | { kind: "campfire"; id: number }
@@ -129,12 +131,14 @@ export function createSceneRenderer(
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);
+  const barkMeshes = createBarkMeshes(entities);
+  scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group,
+    forageMeshes.group, bedrollMeshes.group, barkMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
@@ -148,6 +152,7 @@ export function createSceneRenderer(
     }
     const { kind, entity } = hovered;
     if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
+    else if (kind === "bark") hoverOutline.show(barkMeshes.outlineOf(entity));
     else if (kind === "blueprint" && entity.blueprint?.piece === "leanTo") hoverOutline.show(leanToMeshes.outlineOf(entity));
     else if (kind === "blueprint" && entity.blueprint?.piece === "foundation") hoverOutline.show(foundationMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" && (entity.blueprint?.piece === "logWall" || entity.blueprint?.piece === "doorFrame")) {
@@ -237,6 +242,7 @@ export function createSceneRenderer(
       edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
       forageMeshes.pick(raycaster),
       bedrollMeshes.pick(raycaster),
+      barkMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {
@@ -266,6 +272,7 @@ export function createSceneRenderer(
       foundationMeshes.update();
       forageMeshes.update();
       bedrollMeshes.update();
+      barkMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -326,6 +333,7 @@ export function createSceneRenderer(
       roofMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
+      barkMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();

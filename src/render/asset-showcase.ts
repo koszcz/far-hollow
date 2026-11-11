@@ -8,6 +8,7 @@ import { CHOP_SECONDS } from "../sim/chopping";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
+import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
@@ -404,6 +405,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with bark in the backpack and on offer as fuel.
+  // Pieces of bark lie on the ground beside the player, as taking down a building piece leaves them when the backpack is full.
   bark: {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
@@ -416,6 +418,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
       place(-1.5, 0.5, { log: { heading: 0.4 } });
+      for (const [x, z] of [[2.6, 0.3], [3, 0.7], [2.4, 0.9]] as const) place(x, z, { bark: true });
       movePlayer(0, 0, 0);
     },
   },
@@ -688,11 +691,12 @@ export function showAsset(
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
+  const bark = createBarkMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, rain.group);
+  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, bark.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -707,6 +711,7 @@ export function showAsset(
     edgePieces.update();
     roofs.update();
     bedrolls.update();
+    bark.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -764,6 +769,7 @@ export function showAsset(
       potMaker.dispose();
       forage.dispose();
       bedrolls.dispose();
+      bark.dispose();
       rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();

@@ -23,6 +23,8 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
       return { type: "pickUpLog", logId: pick.id };
     case "stick":
       return { type: "pickUpStick", stickId: pick.id };
+    case "bark":
+      return { type: "pickUpBark", barkId: pick.id };
     case "forage":
       return { type: "forage", spotId: pick.id };
     case "campfire":

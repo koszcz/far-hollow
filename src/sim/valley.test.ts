@@ -80,4 +80,29 @@ describe("generateValley", () => {
       }
     }
   });
+
+  it("scatters sticks on the forest floor, laid out by the seed", () => {
+    expect(generateValley(1234).sticks).toEqual(generateValley(1234).sticks);
+    expect(generateValley(1).sticks).not.toEqual(generateValley(2).sticks);
+    const { sticks, size } = generateValley(1234);
+    expect(sticks.length).toBeGreaterThanOrEqual(1000);
+    for (const stick of sticks) {
+      expect(Math.abs(stick.x)).toBeLessThanOrEqual(size / 2);
+      expect(Math.abs(stick.z)).toBeLessThanOrEqual(size / 2);
+    }
+  });
+
+  it("keeps sticks out of the river and clear of tree trunks", () => {
+    for (const seed of [1, 2, 3, 1234]) {
+      const { river, trees, sticks } = generateValley(seed);
+      for (const stick of sticks) {
+        expect(distanceToPath(stick, river.path)).toBeGreaterThan(river.width / 2);
+      }
+      // Spot-check a sample, because checking every stick against every tree is slow.
+      for (const stick of sticks.slice(0, 50)) {
+        const nearestTree = Math.min(...trees.map((tree) => Math.hypot(tree.x - stick.x, tree.z - stick.z)));
+        expect(nearestTree).toBeGreaterThanOrEqual(1.5);
+      }
+    }
+  });
 });

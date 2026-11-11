@@ -11,6 +11,8 @@ export function mainActionFor(pick: ScenePick): Command {
       return { type: "chopTree", treeId: pick.id };
     case "log":
       return { type: "pickUpLog", logId: pick.id };
+    case "stick":
+      return { type: "pickUpStick", stickId: pick.id };
   }
 }
 
@@ -28,7 +30,7 @@ export interface WalkInputOptions {
 
 /**
  * Left-clicking does the main action for what is under the pointer:
- * walk to a spot on the ground, chop a tree, or pick up a log.
+ * walk to a spot on the ground, chop a tree, pick up a log, or pick up a stick.
  * Space snaps the camera back to the player.
  * Returns a function that removes the listeners.
  */

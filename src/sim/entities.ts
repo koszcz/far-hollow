@@ -41,6 +41,12 @@ export interface Entity {
   log?: { heading: number };
   /** What the entity carries on their shoulder. Only one log fits. */
   carrying?: "log";
+  /** Marks a stick lying on the forest floor. Its position is the middle of the stick. */
+  stick?: true;
+  /** The stick on the ground the player is walking to pick up, given by its entity id. */
+  stickPickUpTask?: { stickId: number };
+  /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
+  splitTask?: { secondsDone: number };
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -68,6 +74,11 @@ export function stumpEntities(store: EntityStore) {
 /** Logs lying on the ground. Logs on a shoulder are not entities. */
 export function logEntities(store: EntityStore) {
   return store.with("log", "position");
+}
+
+/** Sticks lying on the forest floor. Sticks in the backpack are not entities. */
+export function stickEntities(store: EntityStore) {
+  return store.with("stick", "position");
 }
 
 /** The player. There is only ever one. */

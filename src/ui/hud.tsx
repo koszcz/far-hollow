@@ -51,9 +51,9 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         />
         {strings.cameraFollow}
       </label>
-      {view.action?.kind === "chop" && (
+      {view.action !== null && (
         <label class="hud-action">
-          {strings.chopping}
+          {view.action.kind === "chop" ? strings.chopping : strings.splitting}
           <progress max={1} value={view.action.progress} />
         </label>
       )}
@@ -64,11 +64,17 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
               client.send({ type: "dropLog" });
             }}>
             {strings.dropLog}
+          </button>{" "}
+          <button type="button" onClick={() => {
+              client.send({ type: "splitLog" });
+            }}>
+            {strings.splitLog}
           </button>
         </p>
       )}
       <section class="hud-backpack" aria-label={strings.backpack}>
         <h2>{strings.backpack}</h2>
+        <p class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</p>
         <ul>
           {backpackItems(view.backpack).map(([item, count]) => (
             <li key={item}>{strings.backpackItemCount(strings.backpackItems[item], count)}</li>

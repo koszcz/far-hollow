@@ -36,6 +36,8 @@ export interface Valley {
   readonly river: River;
   /** Where each tree stands. */
   readonly trees: readonly GroundPoint[];
+  /** Where each stick lies on the forest floor at the start of a game. */
+  readonly sticks: readonly GroundPoint[];
 }
 
 /** The valley is a square 1 km on each side, so about 1 km². */
@@ -66,12 +68,18 @@ const TREE_MIN_SPACING_METRES = 3;
 /** Trees stand at least this far from the water's edge. */
 const TREE_RIVER_CLEARANCE_METRES = 4;
 
+const STICK_COUNT = 3000;
+/** Sticks fall from trees, so each lies within this ring around a tree's trunk, in metres. */
+const STICK_MIN_FROM_TREE_METRES = 1.5;
+const STICK_MAX_FROM_TREE_METRES = 4;
+
 export function generateValley(seed: number): Valley {
   const random = createRandom(seed);
   const river = generateRiver(random);
   const terrain = generateTerrain(random, river);
   const trees = placeTrees(random, river);
-  return { seed, size: VALLEY_SIZE_METRES, terrain, river, trees };
+  const sticks = placeSticks(random, river, trees);
+  return { seed, size: VALLEY_SIZE_METRES, terrain, river, trees, sticks };
 }
 
 /** Ground height at any spot in the valley, blended from the nearest grid points. Spots outside the valley use the nearest edge. */
@@ -189,6 +197,51 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
     else treesByCell.set(key, [point]);
   }
   return trees;
+}
+
+/**
+ * Scatters sticks near trees, where they would fall.
+ * A stick never lies in the water or so close to a trunk that the player cannot reach it.
+ */
+function placeSticks(random: Random, river: River, trees: readonly GroundPoint[]): GroundPoint[] {
+  const half = VALLEY_SIZE_METRES / 2;
+  const cellSize = STICK_MIN_FROM_TREE_METRES;
+  const cellsPerSide = Math.ceil(VALLEY_SIZE_METRES / cellSize);
+  const cellOf = (value: number) => clamp(Math.floor((value + half) / cellSize), 0, cellsPerSide - 1);
+  // Each cell is one clearance wide, so only the 3 × 3 cells around a spot can hold a trunk that is too close.
+  const treesByCell = new Map<number, GroundPoint[]>();
+  for (const tree of trees) {
+    const key = cellOf(tree.z) * cellsPerSide + cellOf(tree.x);
+    const cell = treesByCell.get(key);
+    if (cell) cell.push(tree);
+    else treesByCell.set(key, [tree]);
+  }
+  function tooCloseToATree(point: GroundPoint): boolean {
+    const column = cellOf(point.x);
+    const row = cellOf(point.z);
+    for (let r = row - 1; r <= row + 1; r += 1) {
+      for (let c = column - 1; c <= column + 1; c += 1) {
+        for (const tree of treesByCell.get(r * cellsPerSide + c) ?? []) {
+          if (Math.hypot(tree.x - point.x, tree.z - point.z) < STICK_MIN_FROM_TREE_METRES) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  const sticks: GroundPoint[] = [];
+  if (trees.length === 0) return sticks;
+  while (sticks.length < STICK_COUNT) {
+    const tree = trees[Math.floor(random() * trees.length)];
+    const angle = random() * Math.PI * 2;
+    const distance = lerp(STICK_MIN_FROM_TREE_METRES, STICK_MAX_FROM_TREE_METRES, random());
+    if (tree === undefined) continue;
+    const point = { x: tree.x + Math.sin(angle) * distance, z: tree.z + Math.cos(angle) * distance };
+    if (Math.abs(point.x) > half || Math.abs(point.z) > half) continue;
+    if (distanceToRiver(river, point) <= river.width / 2 + 1 || tooCloseToATree(point)) continue;
+    sticks.push(point);
+  }
+  return sticks;
 }
 
 /**

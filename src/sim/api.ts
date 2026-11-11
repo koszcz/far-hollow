@@ -35,7 +35,7 @@ export type Command =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
-  /** Jumps the valley's clock forward. Lit campfires burn their fuel for the time skipped. The debug overlay sends it. */
+  /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's warmth changes for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
 export interface GameView {
@@ -63,7 +63,18 @@ export interface GameView {
   readonly carrying: "log" | null;
   /** The campfire within the player's reach, or null if none is. */
   readonly nearbyCampfire: CampfireView | null;
+  /** How warm the player is, from 0 (frozen) to 1 (fully warm). */
+  readonly warmth: number;
+  /** A short message to show the player about something that just happened, or null if there is none. */
+  readonly notice: GameNotice | null;
 }
+
+/**
+ * Something that just happened that the player should be told about.
+ * `collapsed`: the player had a collapse from the cold and woke at their respawn point.
+ * `survivedFirstNight`: the player reached the first morning without a collapse.
+ */
+export type GameNotice = "collapsed" | "survivedFirstNight";
 
 /** The kinds of fuel the player can put on a campfire. */
 export type CampfireFuel = "stick" | "firewood";

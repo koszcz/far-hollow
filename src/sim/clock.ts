@@ -74,3 +74,9 @@ export const MORNING_HOUR = 6;
 export function isNight(hourOfDay: number): boolean {
   return hourOfDay >= NIGHT_START_HOUR || hourOfDay < MORNING_HOUR;
 }
+
+/** Game minutes since the start of day 1 at the next morning after this moment. */
+export function nextMorning(minutes: number): number {
+  const morningOfThisDay = Math.floor(minutes / MINUTES_PER_DAY) * MINUTES_PER_DAY + MORNING_HOUR * MINUTES_PER_HOUR;
+  return morningOfThisDay > minutes ? morningOfThisDay : morningOfThisDay + MINUTES_PER_DAY;
+}

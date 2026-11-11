@@ -446,6 +446,22 @@
       ]
     },
     {
+      "id": "build-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/build-icons.tsx",
+        "src/ui/hud.tsx",
+        "src/app/style.css"
+      ],
+      "description": "Coloured shaded icons for the build menu, one per structure: campfire, lean-to, foundation, log wall, door frame, roof section, woodpile, sawhorse, and chest. Also an icon for the debarked log, a build material that is not a backpack content. They share the backpack icons' style and renderer. Each build menu tile shows its structure's icon over its cost, drawn as material icons with counts.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/hud-icons/issues/02-build-menu-icons.md"
+      }
+    },
+    {
       "id": "crafting-icons",
       "kind": "code",
       "code": [

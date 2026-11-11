@@ -90,7 +90,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
-  pile: shape({ content: exactly(...Object.keys(CONTENT_WEIGHT_KG)), count: (value) => count(value) && (value as number) > 0 }),
+  // Dropped sticks lie on the ground one by one, so a pile never holds sticks.
+  pile: shape({ content: exactly(...Object.keys(CONTENT_WEIGHT_KG).filter((content) => content !== "stick")), count: (value) => count(value) && (value as number) > 0 }),
   pileTask: shape({ pileId: count }),
 };
 

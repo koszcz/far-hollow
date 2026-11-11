@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { PILES_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { PILES_SAVE_VERSION, readSave, SAVE_VERSION, STICKS_ON_GROUND_SAVE_VERSION, writeSave } from "./save";
 import { groundDistance } from "./valley";
 
 describe("dropping things from the backpack", () => {
   it("drops all of a kind at the player's feet as one pile", () => {
     const game = createGame({ seed: 42 });
     const player = onlyPlayer(game);
-    giveBackpack(game, { stick: 7 });
+    giveBackpack(game, { bark: 7 });
 
-    send(game, { type: "dropFromBackpack", content: "stick" });
+    send(game, { type: "dropFromBackpack", content: "bark" });
 
-    expect(game.client.getView().backpack.stick ?? 0).toBe(0);
+    expect(game.client.getView().backpack.bark ?? 0).toBe(0);
     const piles = pilesOf(game);
     expect(piles).toHaveLength(1);
-    expect(piles[0]?.pile).toEqual({ content: "stick", count: 7 });
+    expect(piles[0]?.pile).toEqual({ content: "bark", count: 7 });
     expect(piles[0]?.position.x).toBeCloseTo(player.position.x);
     expect(piles[0]?.position.z).toBeCloseTo(player.position.z);
   });
@@ -104,8 +104,8 @@ describe("dropping things from the backpack", () => {
 
   it("leaves piles where they lie, through days of rain", () => {
     const game = createGame({ seed: 42 });
-    giveBackpack(game, { stick: 4, berries: 2 });
-    send(game, { type: "dropFromBackpack", content: "stick" });
+    giveBackpack(game, { bark: 4, berries: 2 });
+    send(game, { type: "dropFromBackpack", content: "bark" });
     send(game, { type: "dropFromBackpack", content: "berries" });
     const before = structuredClone(pilesOf(game));
 
@@ -113,6 +113,58 @@ describe("dropping things from the backpack", () => {
     send(game, { type: "skipTime", hours: 72 });
 
     expect(pilesOf(game)).toEqual(before);
+  });
+});
+
+describe("dropping sticks", () => {
+  it("lays dropped sticks on the ground one by one, as normal sticks like those on the forest floor", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    const before = new Set(sticksOf(game));
+    giveBackpack(game, { stick: 7 });
+
+    send(game, { type: "dropFromBackpack", content: "stick" });
+
+    expect(game.client.getView().backpack.stick ?? 0).toBe(0);
+    expect(pilesOf(game)).toHaveLength(0);
+    const dropped = sticksOf(game).filter((stick) => !before.has(stick));
+    expect(dropped).toHaveLength(7);
+    for (const stick of dropped) {
+      expect(Object.keys(stick).sort()).toEqual(["position", "stick"]);
+      expect(groundDistance(stick.position, player.position)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("picks up a dropped stick the same way as a stick on the forest floor", () => {
+    const game = createGame({ seed: 42 });
+    const before = new Set(sticksOf(game));
+    giveBackpack(game, { stick: 3 });
+    send(game, { type: "dropFromBackpack", content: "stick" });
+    const stick = sticksOf(game).find((candidate) => !before.has(candidate));
+    if (stick === undefined) throw new Error("No dropped stick");
+    walkAway(game);
+
+    send(game, { type: "pickUpStick", stickId: idOf(game, stick) });
+    stepUntil(game, () => !game.entities.has(stick));
+
+    expect(game.client.getView().backpack.stick).toBe(1);
+  });
+
+  it("turns a pile of sticks in an older save into normal sticks on the ground", () => {
+    const game = createGame({ seed: 42 });
+    const stickCount = sticksOf(game).length;
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { id: number; components: Record<string, unknown> }[] };
+    const player = onlyPlayer(game);
+    save.version = STICKS_ON_GROUND_SAVE_VERSION - 1;
+    save.entities.push({ id: Math.max(...save.entities.map((entity) => entity.id)) + 1, components: { pile: { content: "stick", count: 4 }, position: { ...player.position } } });
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(pilesOf(loaded.game)).toHaveLength(0);
+    const sticks = sticksOf(loaded.game);
+    expect(sticks).toHaveLength(stickCount + 4);
+    expect(sticks.filter((stick) => groundDistance(stick.position, player.position) <= 1).length).toBeGreaterThanOrEqual(4);
   });
 });
 
@@ -162,19 +214,6 @@ describe("picking up piles", () => {
     expect(pile.pile).toEqual({ content: "firewood", count: 2 });
   });
 
-  it("picks up dropped sticks the same way as sticks on the forest floor", () => {
-    const game = createGame({ seed: 42 });
-    giveBackpack(game, { stick: 3 });
-    send(game, { type: "dropFromBackpack", content: "stick" });
-    const pile = onlyPile(game);
-    walkAway(game);
-
-    send(game, { type: "pickUpStick", stickId: idOf(game, pile) });
-    stepUntil(game, () => !game.entities.has(pile));
-
-    expect(game.client.getView().backpack.stick).toBe(3);
-  });
-
   it("puts a dropped pot of boiled water back as a pot of boiled water", () => {
     const game = createGame({ seed: 42 });
     const backpack = onlyPlayer(game).backpack;
@@ -196,10 +235,10 @@ describe("seeing a pile", () => {
   it("shows the pile within the player's reach and how many things it holds", () => {
     const game = createGame({ seed: 42 });
     expect(game.client.getView().nearbyPile).toBeNull();
-    giveBackpack(game, { stick: 7 });
-    send(game, { type: "dropFromBackpack", content: "stick" });
+    giveBackpack(game, { bark: 7 });
+    send(game, { type: "dropFromBackpack", content: "bark" });
 
-    expect(game.client.getView().nearbyPile).toEqual({ id: idOf(game, onlyPile(game)), content: "stick", count: 7 });
+    expect(game.client.getView().nearbyPile).toEqual({ id: idOf(game, onlyPile(game)), content: "bark", count: 7 });
     walkAway(game);
     expect(game.client.getView().nearbyPile).toBeNull();
   });
@@ -208,32 +247,32 @@ describe("seeing a pile", () => {
 describe("saving piles", () => {
   it("restores piles, and a walk to pick one up, exactly", () => {
     const game = createGame({ seed: 42 });
-    giveBackpack(game, { stick: 5, potOfBoiledWater: 1 });
-    send(game, { type: "dropFromBackpack", content: "stick" });
+    giveBackpack(game, { bark: 5, potOfBoiledWater: 1 });
+    send(game, { type: "dropFromBackpack", content: "bark" });
     send(game, { type: "dropFromBackpack", content: "potOfBoiledWater" });
     walkAway(game);
-    const stickPile = pilesOf(game).find((pile) => pile.pile.content === "stick");
-    if (stickPile === undefined) throw new Error("No stick pile");
-    send(game, { type: "pickUpPile", pileId: idOf(game, stickPile) });
+    const barkPile = pilesOf(game).find((pile) => pile.pile.content === "bark");
+    if (barkPile === undefined) throw new Error("No bark pile");
+    send(game, { type: "pickUpPile", pileId: idOf(game, barkPile) });
 
     const saved = writeSave(game);
     const loaded = readSave(JSON.parse(JSON.stringify(saved)));
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(pileContents(loaded.game)).toEqual(sortedPiles([{ content: "stick", count: 5 }, { content: "potOfBoiledWater", count: 1 }]));
-    stepUntil(loaded.game, () => loaded.game.client.getView().backpack.stick === 5);
+    expect(pileContents(loaded.game)).toEqual(sortedPiles([{ content: "bark", count: 5 }, { content: "potOfBoiledWater", count: 1 }]));
+    stepUntil(loaded.game, () => loaded.game.client.getView().backpack.bark === 5);
   });
 
   it("turns away a save with a broken pile", () => {
     const game = createGame({ seed: 42 });
-    giveBackpack(game, { stick: 5 });
-    send(game, { type: "dropFromBackpack", content: "stick" });
+    giveBackpack(game, { bark: 5 });
+    send(game, { type: "dropFromBackpack", content: "bark" });
     const saved = JSON.parse(JSON.stringify(writeSave(game))) as { entities: { components: Record<string, unknown> }[] };
     const pile = saved.entities.find((entity) => entity.components.pile !== undefined);
     if (pile === undefined) throw new Error("No pile saved");
 
-    pile.components.pile = { content: "stick", count: 0 };
+    pile.components.pile = { content: "bark", count: 0 };
     expect(readSave(saved).ok).toBe(false);
     pile.components.pile = { content: "log", count: 1 };
     expect(readSave(saved).ok).toBe(false);
@@ -282,6 +321,10 @@ function idOf(game: Game, entity: Entity): number {
 function send(game: Game, command: Parameters<Game["client"]["send"]>[0]): void {
   game.client.send(command);
   game.step();
+}
+
+function sticksOf(game: Game) {
+  return [...game.entities.with("stick", "position")];
 }
 
 function pilesOf(game: Game) {

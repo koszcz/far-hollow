@@ -3,6 +3,7 @@ import type { SaveSlotSummary } from "./api";
 import { readClock } from "./clock";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
+import { droppedStickSpot } from "./piles";
 import { createGame, type Game, type GameProgress } from "./game";
 import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
@@ -25,6 +26,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   allowChests,
   allowPiles,
   fillChests,
+  scatterDroppedSticks,
 ];
 
 /** The version of the save format this code writes. */
@@ -32,6 +34,8 @@ export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
 
 /** The first save version that can hold piles. */
 export const PILES_SAVE_VERSION = SAVE_UPGRADES.indexOf(allowPiles) + 2;
+/** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
+export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -193,6 +197,32 @@ function fillChests(save: Readonly<Record<string, unknown>>): Record<string, unk
     if (typeof chest !== "object" || chest === null || "contents" in chest) return entity;
     return { ...(entity as object), components: { ...components, chest: { ...chest, contents: {} } } };
   });
+  return { ...save, entities };
+}
+
+/**
+ * Version 11 to 12: dropped sticks lie on the ground one by one, the same as sticks on the forest floor.
+ * Each pile of sticks becomes that many sticks, spread round where the pile lay.
+ */
+function scatterDroppedSticks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const saved = save.entities as unknown[];
+  const ids = saved.map((entity) => (entity as { id?: unknown } | null)?.id).filter((id): id is number => typeof id === "number");
+  let nextId = Math.max(-1, ...ids) + 1;
+  const entities: unknown[] = [];
+  for (const entity of saved) {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const pile = components?.pile as { content?: unknown; count?: unknown } | undefined;
+    const position = components?.position as { x: number; y: number; z: number } | undefined;
+    if (pile?.content !== "stick" || typeof pile.count !== "number" || position === undefined) {
+      entities.push(entity);
+      continue;
+    }
+    for (let index = 0; index < pile.count; index += 1) {
+      const id = index === 0 ? (entity as { id: number }).id : nextId++;
+      entities.push({ id, components: { stick: true, position: { ...droppedStickSpot(position, index), y: position.y } } });
+    }
+  }
   return { ...save, entities };
 }
 

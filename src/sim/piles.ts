@@ -1,5 +1,6 @@
 import { addToBackpack, countInBackpack, fitsInBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
 import { pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { standingHeightAt } from "./foundations";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -7,6 +8,22 @@ import type { Walking } from "./walking";
 export const JOIN_PILE_METRES = 1;
 /** The player can pick up a pile from this far from its middle, in metres. */
 const PICK_UP_REACH_METRES = 2;
+/** How far apart dropped sticks lie, roughly, in metres. */
+const DROPPED_STICK_SPACING_METRES = 0.12;
+/** Dropped sticks lie no further than this from where they were dropped, in metres. */
+const DROPPED_STICK_SPREAD_METRES = 0.9;
+/** The turn between one dropped stick and the next, in radians, so they spread evenly round the spot. */
+const GOLDEN_ANGLE_RADIANS = Math.PI * (3 - Math.sqrt(5));
+
+/**
+ * Where the `index`th of several sticks dropped at `spot` lies. The sticks spread out from the spot in a spiral,
+ * so each lies apart from the others and all lie within 1 m of the spot.
+ */
+export function droppedStickSpot(spot: GroundPoint, index: number): GroundPoint {
+  const distance = Math.min(DROPPED_STICK_SPREAD_METRES, DROPPED_STICK_SPACING_METRES * Math.sqrt(index));
+  const angle = index * GOLDEN_ANGLE_RADIANS;
+  return { x: spot.x + Math.cos(angle) * distance, z: spot.z + Math.sin(angle) * distance };
+}
 
 export type PileEntity = Entity & Required<Pick<Entity, "pile" | "position">>;
 
@@ -17,6 +34,7 @@ export interface Piles {
   /**
    * Drops all of one kind from the backpack at the player's feet, as one pile.
    * If a pile of the same kind lies within JOIN_PILE_METRES, they join that pile instead. Does nothing if the backpack holds none.
+   * Sticks never form piles. Each one lies on the ground on its own, as a stick on the forest floor does.
    */
   drop(content: BackpackContent): void;
   /**
@@ -65,6 +83,13 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
         if (player.backpack === undefined) continue;
         const count = countInBackpack(player.backpack, content);
         if (count === 0 || !removeFromBackpack(player.backpack, content, count)) continue;
+        if (content === "stick") {
+          for (let index = 0; index < count; index += 1) {
+            const spot = droppedStickSpot(player.position, index);
+            entities.add({ stick: true, position: { ...spot, y: standingHeightAt(entities, valley.terrain, spot) } });
+          }
+          continue;
+        }
         const near = nearestPileOf(content, player.position);
         if (near !== undefined) {
           near.pile.count += count;

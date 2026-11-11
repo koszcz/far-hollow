@@ -266,9 +266,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     pickUpStick: (command) => {
       cancelTasks();
-      // Dropped sticks lie in a pile, and the player picks them up the same way as a stick on the forest floor.
-      const dropped = entities.entity(command.stickId)?.pile?.content === "stick";
-      const refusal = dropped ? piles.pickUp(command.stickId) : gathering.pickUpStick(command.stickId);
+      const refusal = gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
     },
     forage: (command) => {

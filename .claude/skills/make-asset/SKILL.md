@@ -24,7 +24,7 @@ Done when you are on that branch.
 
 ### 3. Learn how the asset is used
 
-Read the entry's `code` files and, for a draft, its `ticket`. Note the asset's size in metres, its pivot, the colours around it, and every animation or state the code drives.
+Read the entry's ticket, if it is a draft. Then read the comment at the top of each `code` file. It says which part of the file is this asset. Read whole only the files that build this asset alone, such as `stick-shape.ts`. In shared files, such as `forest-meshes.ts` and `player-mesh.ts`, search for the asset's name and read only the matching parts. Note the asset's size in metres, its pivot, the colours around it, and every animation or state the code drives.
 
 Done when you can name every place that builds, loads, or draws the asset.
 
@@ -50,7 +50,9 @@ Done when the game uses the new asset everywhere step 3 found.
 
 ### 6. Show it
 
-Start the `dev` preview, find the asset in the game, and send the owner a screenshot of it. For an animation, show it at the key moments. For a sound, describe when it plays and how loud it is.
+Start the `dev` preview and open `/?asset=<id>`. The asset showcase draws the asset with the game's own code, in four labelled views. For an animation, the views are four key moments. When `document.body.dataset.showcase` is `"ready"`, take one screenshot and send it to the owner. To change the views, or to add a new asset, edit `src/render/asset-showcase.ts`. For a sound, describe when it plays and how loud it is.
+
+Show the asset in the full game only if the owner asks to see it there.
 
 Done when the owner has seen the asset in the running game.
 

@@ -11,6 +11,8 @@ import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
+import { createDrinking } from "./drinking";
+import { passSicknessTime } from "./sickness";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -85,6 +87,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const gathering = createGathering(entities, walking);
   const building = createBuilding(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
+  const drinking = createDrinking(entities, walking, valley);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -122,6 +125,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
         fatigue: player.needs.fatigue.level,
       }),
       warmth: player.needs.warmth.level,
+      sick: player.sickness !== undefined,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
     });
   }
@@ -161,6 +165,12 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     carrying.cancel();
     gathering.cancel();
     building.cancel();
+    drinking.cancel();
+  }
+
+  /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
+  function isResting(): boolean {
+    return player.walkPath === undefined && player.drinkTask === undefined && currentAction() === null;
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
@@ -212,6 +222,10 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     lightCampfire: (command) => {
       campfires.light(command.campfireId);
     },
+    drinkFromRiver: (command) => {
+      cancelTasks();
+      drinking.drinkFromRiver({ x: command.x, z: command.z });
+    },
     skipTime: (command) => {
       // Time only moves forward. Ignore a negative or broken amount.
       if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
@@ -231,7 +245,11 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
+        sick: player.sickness !== undefined,
       });
+      if (player.sickness !== undefined && passSicknessTime(player.sickness, minutes, { resting: isResting() })) {
+        entities.removeComponent(player, "sickness");
+      }
       if (hasCollapsed(player.needs)) {
         collapse();
         return;
@@ -283,6 +301,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       carrying.step();
       gathering.step(playerSeconds);
       building.step(playerSeconds);
+      drinking.step();
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }

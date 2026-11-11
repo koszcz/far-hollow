@@ -1,7 +1,7 @@
 # Shortcuts for the Bun scripts in package.json.
 # Run `make` on its own to start the dev server.
 
-.PHONY: run test e2e check build drafts
+.PHONY: run test e2e check build drafts land
 
 run:
 	bun run dev
@@ -21,3 +21,7 @@ build:
 # List draft assets waiting for polish.
 drafts:
 	bun run assets:drafts
+
+# Land this worktree's branch on main and push main. Retries when other sessions land first.
+land:
+	sh scripts/land.sh

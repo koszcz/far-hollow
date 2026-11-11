@@ -3,11 +3,11 @@
  * Logs never go in the backpack. The player carries them on their shoulder instead.
  */
 
-/** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in ITEM_WEIGHT_KG. */
-export type BackpackItem = "axe" | "knife" | "fireStriker" | "stick" | "firewood";
+/** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in CONTENT_WEIGHT_KG. */
+export type BackpackContent = "axe" | "knife" | "fireStriker" | "stick" | "firewood";
 
 /** How many of each kind of thing the backpack holds. Kinds it does not hold are missing. */
-export type BackpackContents = Partial<Record<BackpackItem, number>>;
+export type BackpackContents = Partial<Record<BackpackContent, number>>;
 
 export interface Backpack {
   contents: BackpackContents;
@@ -17,7 +17,7 @@ export interface Backpack {
 export const BACKPACK_WEIGHT_LIMIT_KG = 20;
 
 /** How much one of each kind of thing weighs, in kilograms. */
-export const ITEM_WEIGHT_KG: Readonly<Record<BackpackItem, number>> = {
+export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   axe: 1.5,
   knife: 0.3,
   fireStriker: 0.1,
@@ -30,36 +30,47 @@ export function createStartingBackpack(): Backpack {
   return { contents: { axe: 1, knife: 1, fireStriker: 1 } };
 }
 
-export function countInBackpack(backpack: Backpack, item: BackpackItem): number {
-  return backpack.contents[item] ?? 0;
+export function countInBackpack(backpack: Backpack, content: BackpackContent): number {
+  return backpack.contents[content] ?? 0;
 }
 
-/** True if the backpack holds at least one of `item`. */
-export function hasInBackpack(backpack: Backpack, item: BackpackItem): boolean {
-  return countInBackpack(backpack, item) > 0;
+/** True if the backpack holds at least one of `content`. */
+export function hasInBackpack(backpack: Backpack, content: BackpackContent): boolean {
+  return countInBackpack(backpack, content) > 0;
 }
 
 /** How much everything in the backpack weighs, in kilograms. */
 export function backpackWeight(backpack: Backpack): number {
   let total = 0;
-  for (const item of Object.keys(backpack.contents) as BackpackItem[]) {
-    total += countInBackpack(backpack, item) * ITEM_WEIGHT_KG[item];
+  for (const content of Object.keys(backpack.contents) as BackpackContent[]) {
+    total += countInBackpack(backpack, content) * CONTENT_WEIGHT_KG[content];
   }
   return total;
 }
 
-/** True if `count` more of `item` would fit within the weight limit. */
-export function fitsInBackpack(backpack: Backpack, item: BackpackItem, count: number): boolean {
+/** True if `count` more of `content` would fit within the weight limit. */
+export function fitsInBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
   // The small allowance stops rounding errors in the weights from refusing the last thing that fits.
-  return backpackWeight(backpack) + count * ITEM_WEIGHT_KG[item] <= BACKPACK_WEIGHT_LIMIT_KG + 1e-9;
+  return backpackWeight(backpack) + count * CONTENT_WEIGHT_KG[content] <= BACKPACK_WEIGHT_LIMIT_KG + 1e-9;
 }
 
 /**
- * Puts `count` of `item` in the backpack if they all fit within the weight limit.
+ * Puts `count` of `content` in the backpack if they all fit within the weight limit.
  * Returns false, and changes nothing, if they do not.
  */
-export function addToBackpack(backpack: Backpack, item: BackpackItem, count: number): boolean {
-  if (!fitsInBackpack(backpack, item, count)) return false;
-  backpack.contents[item] = countInBackpack(backpack, item) + count;
+export function addToBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
+  if (!fitsInBackpack(backpack, content, count)) return false;
+  backpack.contents[content] = countInBackpack(backpack, content) + count;
+  return true;
+}
+
+/**
+ * Takes `count` of `content` out of the backpack if it holds that many.
+ * Returns false, and changes nothing, if it does not.
+ */
+export function removeFromBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
+  const held = countInBackpack(backpack, content);
+  if (held < count) return false;
+  backpack.contents[content] = held - count;
   return true;
 }

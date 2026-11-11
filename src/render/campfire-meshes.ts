@@ -1,9 +1,9 @@
 // Draws campfires and campfire blueprints with the code-built placeholder shape approved in asset-manifest.json as "campfire".
 // A blueprint grows stick by stick with the code-built "campfire-build-animation".
-// A lit campfire has flames and a glow that lights the ground around it, the code-built "fire-effect".
+// A lit campfire has flames, a wide glow, and a brighter pool of light that marks how far its warmth reaches. Together they are the code-built "fire-effect".
 import * as THREE from "three";
 import { CAMPFIRE_STICK_COST } from "../sim/building";
-import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
+import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
 
 const STONE_COLOUR = 0x8c8c86;
@@ -34,6 +34,15 @@ const GLOW_REACH_METRES = 14;
 /** How far the light falls off with distance. 1 is a gentle, game-like fall-off. */
 const GLOW_FALL_OFF = 1;
 const GLOW_HEIGHT_METRES = 0.8;
+/**
+ * A second, brighter light lights a pool of ground that ends where the fire stops warming the player, at CAMPFIRE_WARMTH_RADIUS_METRES.
+ * It does not fall off with distance, so it stays bright across the pool and fades only near its edge.
+ * It does not shrink as the fuel runs low, because the warmth range does not either.
+ */
+const WARMTH_POOL_STRENGTH = 3;
+const WARMTH_POOL_HEIGHT_METRES = 2;
+/** A light's reach is measured from the light itself, so this makes it end on the ground exactly at the warmth range. */
+const WARMTH_POOL_REACH_METRES = Math.hypot(CAMPFIRE_WARMTH_RADIUS_METRES, WARMTH_POOL_HEIGHT_METRES);
 /** How fast and how much the flames and glow flicker. */
 const FLICKER_PER_SECOND = 9;
 const FLICKER_AMOUNT = 0.12;
@@ -64,6 +73,8 @@ interface Drawn {
   readonly fire: THREE.Group;
   readonly flames: THREE.Group;
   readonly glow: THREE.PointLight;
+  /** Lights the ground out to the warmth range. */
+  readonly warmthPool: THREE.PointLight;
 }
 
 export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
@@ -75,7 +86,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   pickGeometry.translate(0, PICK_HEIGHT_METRES / 2, 0);
   const stoneMaterial = new THREE.MeshStandardMaterial({ color: STONE_COLOUR, flatShading: true });
   const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true });
-  const ghostMaterial = new THREE.MeshStandardMaterial({
+  const blueprintMaterial = new THREE.MeshStandardMaterial({
     color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
   });
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
@@ -99,7 +110,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     const stones: THREE.Mesh[] = [];
     for (let i = 0; i < STONE_COUNT; i += 1) {
       const angle = (i / STONE_COUNT) * Math.PI * 2;
-      const stone = new THREE.Mesh(stoneGeometry, ghostMaterial);
+      const stone = new THREE.Mesh(stoneGeometry, blueprintMaterial);
       stone.position.set(Math.sin(angle) * STONE_RING_RADIUS_METRES, STONE_SIZE_METRES * 0.5, Math.cos(angle) * STONE_RING_RADIUS_METRES);
       stone.rotation.set(angle, angle * 2, 0);
       root.add(stone);
@@ -113,7 +124,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       const footOut = Math.sin(STICK_LEAN_RADIANS) * STICK_LENGTH_METRES * 0.9;
       pivot.position.set(Math.sin(angle) * footOut, 0, Math.cos(angle) * footOut);
       pivot.rotation.set(0, angle, 0);
-      const mesh = new THREE.Mesh(stickGeometry, ghostMaterial);
+      const mesh = new THREE.Mesh(stickGeometry, blueprintMaterial);
       mesh.rotation.x = -STICK_LEAN_RADIANS;
       pivot.add(mesh);
       root.add(pivot);
@@ -131,6 +142,9 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     const glow = new THREE.PointLight(GLOW_COLOUR, 0, GLOW_REACH_METRES, GLOW_FALL_OFF);
     glow.position.set(0, GLOW_HEIGHT_METRES, 0);
     root.add(glow);
+    const warmthPool = new THREE.PointLight(GLOW_COLOUR, 0, WARMTH_POOL_REACH_METRES, 0);
+    warmthPool.position.set(0, WARMTH_POOL_HEIGHT_METRES, 0);
+    root.add(warmthPool);
     root.add(fire);
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.userData.entity = entity;
@@ -138,7 +152,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     pickers.push(picker);
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
     group.add(root);
-    const result = { root, stones, sticks, picker, fire, flames, glow };
+    const result = { root, stones, sticks, picker, fire, flames, glow, warmthPool };
     drawn.set(entity, result);
     return result;
   }
@@ -149,21 +163,22 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     item.sticks.forEach(({ mesh }, index) => {
       const grown = Math.min(1, Math.max(0, stagesDone - index));
       const started = grown > 0;
-      mesh.material = started ? stickMaterial : ghostMaterial;
+      mesh.material = started ? stickMaterial : blueprintMaterial;
       // A stick being laid rises from the ground. Unstarted sticks show at full size as part of the outline.
       mesh.scale.set(1, started ? Math.max(0.05, grown) : 1, 1);
     });
-    for (const stone of item.stones) stone.material = progress >= 1 ? stoneMaterial : ghostMaterial;
+    for (const stone of item.stones) stone.material = progress >= 1 ? stoneMaterial : blueprintMaterial;
   }
 
   /**
-   * Shows a lit campfire's flames and glow, flickering. The flames burn smaller as the fuel runs low,
+   * Shows a lit campfire's flames, glow, and warmth pool, flickering. The flames burn smaller as the fuel runs low,
    * so the player can see roughly how much fuel is left.
    */
   function showFire(item: Drawn, campfire: { lit: boolean; fuelMinutes: number }, nowSeconds: number, seed: number): void {
     item.fire.visible = campfire.lit;
     if (!campfire.lit) {
       item.glow.intensity = 0;
+      item.warmthPool.intensity = 0;
       return;
     }
     const fullness = Math.min(1, campfire.fuelMinutes / FLAME_FULL_SIZE_FUEL_MINUTES);
@@ -173,6 +188,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     item.flames.scale.set(size, size * flicker, size);
     item.flames.rotation.y = t * 0.1;
     item.glow.intensity = GLOW_STRENGTH * size * flicker;
+    item.warmthPool.intensity = WARMTH_POOL_STRENGTH * flicker;
   }
 
   function forget(entity: Entity): void {
@@ -213,7 +229,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       return undefined;
     },
     dispose() {
-      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, ghostMaterial, pickMaterial,
+      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, blueprintMaterial, pickMaterial,
         flameGeometry, outerFlameMaterial, innerFlameMaterial]) {
         item.dispose();
       }

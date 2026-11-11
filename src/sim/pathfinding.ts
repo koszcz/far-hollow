@@ -1,4 +1,4 @@
-import type { GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./valley";
 import { cellCentre, cellIndexAt, isWalkable, nearestCellWhere, type WalkMap } from "./walk-map";
 
 /** How far apart line-of-sight checks sample a straight walk, as a share of one cell. */
@@ -73,7 +73,7 @@ function regionsOf(map: WalkMap): Int32Array {
 
 /** True if a straight walk between two spots crosses only walkable cells. */
 function hasLineOfSight(map: WalkMap, a: GroundPoint, b: GroundPoint): boolean {
-  const steps = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / (map.cellSize * LINE_OF_SIGHT_STEP_CELLS));
+  const steps = Math.ceil(groundDistance(b, a) / (map.cellSize * LINE_OF_SIGHT_STEP_CELLS));
   for (let s = 0; s <= steps; s += 1) {
     const amount = steps === 0 ? 0 : s / steps;
     if (!isWalkable(map, { x: a.x + (b.x - a.x) * amount, z: a.z + (b.z - a.z) * amount })) return false;

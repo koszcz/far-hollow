@@ -35,7 +35,7 @@ export interface Entity {
    */
   chopTask?: { treeId: number; secondsDone: number };
   /** The log on the ground the player is walking to pick up, given by its entity id. */
-  pickUpTask?: { logId: number };
+  logPickUpTask?: { logId: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. */
   stump?: true;
   /** Marks a log lying on the ground. Its position is the middle of the log. `heading` is the log's turn about the vertical axis, in radians. */
@@ -71,6 +71,15 @@ export type EntityStore = World<Entity>;
 
 export function createEntityStore(): EntityStore {
   return new World<Entity>();
+}
+
+/**
+ * Gives an entity a component, replacing the one it already has.
+ * miniplex's addComponent never overwrites, so a new task would otherwise be ignored while an old one is running.
+ */
+export function setComponent<K extends keyof Entity>(store: EntityStore, entity: Entity, key: K, value: NonNullable<Entity[K]>): void {
+  if (entity[key] === undefined) store.addComponent(entity, key, value);
+  else entity[key] = value;
 }
 
 /** Entities that can move, so rendering blends their position between logic steps. */

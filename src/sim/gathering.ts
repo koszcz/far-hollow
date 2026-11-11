@@ -1,5 +1,6 @@
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
-import { playerEntities, type EntityStore } from "./entities";
+import { playerEntities, setComponent, type EntityStore } from "./entities";
+import { groundDistance } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can pick up a stick from this far away, in metres. */
@@ -40,16 +41,14 @@ export function createGathering(entities: EntityStore, walking: Walking): Gather
       for (const player of players) {
         if (player.backpack === undefined || !fitsInBackpack(player.backpack, "stick", 1)) continue;
         walking.walkTo(stick.position);
-        if (player.stickPickUpTask) player.stickPickUpTask = { stickId };
-        else entities.addComponent(player, "stickPickUpTask", { stickId });
+        setComponent(entities, player, "stickPickUpTask", { stickId });
       }
     },
     splitLog() {
       for (const player of players) {
         if (player.carrying !== "log" || player.backpack === undefined || !canSplitInto(player.backpack)) continue;
         entities.removeComponent(player, "walkPath");
-        if (player.splitTask) player.splitTask = { secondsDone: 0 };
-        else entities.addComponent(player, "splitTask", { secondsDone: 0 });
+        setComponent(entities, player, "splitTask", { secondsDone: 0 });
       }
     },
     cancel() {
@@ -75,7 +74,7 @@ export function createGathering(entities: EntityStore, walking: Walking): Gather
         const stick = entities.entity(gatherer.stickPickUpTask.stickId);
         entities.removeComponent(gatherer, "stickPickUpTask");
         if (stick?.stick !== true || stick.position === undefined) continue;
-        const distance = Math.hypot(stick.position.x - gatherer.position.x, stick.position.z - gatherer.position.z);
+        const distance = groundDistance(stick.position, gatherer.position);
         if (distance > PICK_UP_REACH_METRES) continue;
         if (addToBackpack(gatherer.backpack, "stick", 1)) entities.remove(stick);
       }

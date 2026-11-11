@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BackpackItem, Command } from "./api";
+import type { BackpackContent, Command } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
 import { isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
@@ -50,6 +50,25 @@ describe("lighting a campfire", () => {
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
     expect(game.client.getView().nearbyCampfire?.lit).toBe(false);
+  });
+
+  it("says the campfire can be lit only when it has fuel, is out, and the player has a fire striker", () => {
+    const { game, campfire } = gameWithCampfire();
+    give(game, "stick", 1);
+    tend(game, campfire);
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+
+    send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(true);
+
+    give(game, "fireStriker", -1);
+    game.step();
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+
+    give(game, "fireStriker", 1);
+    send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
+    expect(game.client.getView().nearbyCampfire?.lit).toBe(true);
+    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
   });
 
   it("does nothing when the player is out of reach", () => {
@@ -227,10 +246,10 @@ function send(game: Game, command: Command): void {
   game.step();
 }
 
-function give(game: Game, item: BackpackItem, count: number): void {
+function give(game: Game, content: BackpackContent, count: number): void {
   const backpack = onlyPlayer(game).backpack;
   if (backpack === undefined) throw new Error("No backpack");
-  backpack.contents[item] = (backpack.contents[item] ?? 0) + count;
+  backpack.contents[content] = (backpack.contents[content] ?? 0) + count;
 }
 
 /** An open spot on the building grid, a few metres from the player. */

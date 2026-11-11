@@ -1,6 +1,6 @@
-import { countInBackpack } from "./backpack";
-import { blueprintEntities, campfireEntities, playerEntities, type EntityStore } from "./entities";
-import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { removeFromBackpack } from "./backpack";
+import { blueprintEntities, campfireEntities, playerEntities, setComponent, type EntityStore } from "./entities";
+import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { isWalkable } from "./walk-map";
 import type { Walking } from "./walking";
 
@@ -50,7 +50,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       const spot = snapToBuildGrid(at);
       if (!isWalkable(walking.walkMap, spot)) return;
       for (const other of [...campfires, ...blueprints]) {
-        if (Math.hypot(other.position.x - spot.x, other.position.z - spot.z) < CAMPFIRE_MIN_SPACING_METRES) return;
+        if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return;
       }
       entities.add({
         blueprint: { piece: "campfire", progress: 0, sticksSpent: 0 },
@@ -72,8 +72,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
             z: blueprint.position.z + away.z * BUILD_STAND_METRES,
           });
         }
-        if (player.buildTask) player.buildTask = { blueprintId };
-        else entities.addComponent(player, "buildTask", { blueprintId });
+        setComponent(entities, player, "buildTask", { blueprintId });
       }
     },
     cancel() {
@@ -90,18 +89,17 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
           entities.removeComponent(builder, "buildTask");
           continue;
         }
-        if (Math.hypot(position.x - builder.position.x, position.z - builder.position.z) > BUILD_REACH_METRES) {
+        if (groundDistance(position, builder.position) > BUILD_REACH_METRES) {
           // The player walked as close as they could but the blueprint is out of reach.
           entities.removeComponent(builder, "buildTask");
           continue;
         }
         // Each stage needs its stick before work on it can start.
         if (blueprint.sticksSpent < stageOf(blueprint.progress) + 1) {
-          if (countInBackpack(builder.backpack, "stick") === 0) {
+          if (!removeFromBackpack(builder.backpack, "stick", 1)) {
             entities.removeComponent(builder, "buildTask");
             continue;
           }
-          builder.backpack.contents.stick = countInBackpack(builder.backpack, "stick") - 1;
           blueprint.sticksSpent += 1;
         }
         blueprint.progress = Math.min(blueprint.sticksSpent / CAMPFIRE_STICK_COST, blueprint.progress + stepSeconds / CAMPFIRE_BUILD_SECONDS);

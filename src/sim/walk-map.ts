@@ -1,4 +1,4 @@
-import type { GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./valley";
 
 /**
  * Which parts of the valley floor the player can walk on, as a square grid of cells.
@@ -90,7 +90,7 @@ export function nearestCellWhere(map: WalkMap, spot: GroundPoint, accept: (cell:
         const cell = row * side + column;
         if (!accept(cell)) continue;
         const centre = cellCentre(map, cell);
-        const distance = Math.hypot(centre.x - spot.x, centre.z - spot.z);
+        const distance = groundDistance(centre, spot);
         if (distance < bestDistance) {
           best = cell;
           bestDistance = distance;
@@ -111,7 +111,7 @@ function changeCircle(map: WalkMap, centre: GroundPoint, radius: number, change:
   const min = { x: centre.x - radius, z: centre.z - radius };
   const max = { x: centre.x + radius, z: centre.z + radius };
   forEachCellIn(map, min, max, (index, cell) => {
-    if (Math.hypot(cell.x - centre.x, cell.z - centre.z) <= radius) changeCell(map, index, change);
+    if (groundDistance(cell, centre) <= radius) changeCell(map, index, change);
   });
 }
 

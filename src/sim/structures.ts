@@ -1,8 +1,8 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 import type { BackpackContent } from "./backpack";
-import { BUILD_GRID_METRES, snapToGridSquare } from "./build-grid";
-import { edgeMiddle, foundationsBeside, isEdgeTaken, squaresBeside } from "./edge-pieces";
+import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-grid";
+import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
   blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
 } from "./entities";
@@ -208,9 +208,48 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
 const logWall = edgePiece("logWall", LOG_WALL_LOG_COST, LOG_WALL_BUILD_SECONDS);
 const doorFrame = edgePiece("doorFrame", DOOR_FRAME_LOG_COST, DOOR_FRAME_BUILD_SECONDS);
 
+/** How many debarked logs a roof section costs, laid as rafters. Construction spends them first. */
+export const ROOF_LOG_COST = 3;
+/** How much bark a roof section costs, laid over the rafters. Construction spends it from the backpack after the logs. */
+export const ROOF_BARK_COST = 4;
+/** How long the player holds the build action to build a roof section, in seconds. */
+export const ROOF_BUILD_SECONDS = 15;
+
+/** The four sides of a grid square, as `edgeMiddle` numbers them. */
+const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
+
+/** The finished foundation on the grid square with this middle, if any. */
+function foundationOn(entities: EntityStore, square: GroundPoint) {
+  return foundationEntities(entities).entities.find((built) => isOnGridSquare(square, built.position));
+}
+
+/**
+ * A roof section over one foundation square. It rests on the log walls and door frames on the square's edges, so it needs at least one.
+ * A finished section is a roof overhead for the whole square, like a lean-to's roof.
+ */
+const roof: StructureDefinition & { readonly kind: "roof" } = {
+  kind: "roof",
+  cost: [
+    { material: "debarkedLog", count: ROOF_LOG_COST },
+    { material: "bark", count: ROOF_BARK_COST },
+  ],
+  buildSeconds: ROOF_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
+  snap: snapToGridSquare,
+  heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace({ entities }, spot, turns) {
+    if (foundationOn(entities, spot) === undefined) return false;
+    // The roof rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
+    if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
+    // A roof already over the square, finished or planned, is in the way.
+    return isClearOfTreesAndPlans(entities, roof.footprint(spot, turns));
+  },
+  finish: (spot) => ({ cabinRoof: true, roof: roof.footprint(spot, 0) }),
+};
+
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
 const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
-  campfire, leanTo, foundation, logWall, doorFrame,
+  campfire, leanTo, foundation, logWall, doorFrame, roof,
 };
 
 /** Every structure the player can build, in the order the build menu lists them. */

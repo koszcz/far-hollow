@@ -259,7 +259,9 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           <p class="hud-hint">
             {placing === "logWall" || placing === "doorFrame"
               ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
-              : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
+              : placing === "roof"
+                ? strings.buildMenu.placingRoof(strings.buildMenu.structures[placing])
+                : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
           </p>
         )}
         {view.carrying !== null && (

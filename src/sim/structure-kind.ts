@@ -2,7 +2,7 @@
 import type { GroundPoint } from "./valley";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
-export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind;
+export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roof";
 
 /** The building pieces that stand on the edge of a foundation square, on the line between it and the square beside it. */
 export type EdgePieceKind = "logWall" | "doorFrame";

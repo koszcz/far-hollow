@@ -6,8 +6,10 @@ import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { createHoverOutline } from "./hover-outline";
+import { daylightAt } from "./daylight";
 import { createPlayerMesh } from "./player-mesh";
 import { createSkyLighting } from "./sky-lighting";
+import { createRiverMeshes } from "./river-meshes";
 import type { TreeShape } from "./tree-model";
 import { createValleyMeshes } from "./valley-meshes";
 
@@ -70,6 +72,8 @@ export function createSceneRenderer(
 
   const valleyMeshes = createValleyMeshes(valley);
   scene.add(valleyMeshes.group);
+  const riverMeshes = createRiverMeshes(valley);
+  scene.add(riverMeshes.group);
   const forestMeshes = createForestMeshes(entities, treeShapes);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
@@ -149,7 +153,9 @@ export function createSceneRenderer(
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
-      skyLighting.update(readHourOfDay());
+      const hourOfDay = readHourOfDay();
+      skyLighting.update(hourOfDay);
+      riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -186,6 +192,7 @@ export function createSceneRenderer(
     dispose() {
       hoverOutline.dispose();
       valleyMeshes.dispose();
+      riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();
       playerMesh.dispose();

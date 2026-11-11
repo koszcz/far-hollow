@@ -385,21 +385,17 @@
     },
     {
       "id": "flowers",
-      "kind": "file",
-      "file": "public/assets/flowers/flowers.glb",
+      "kind": "code",
       "code": [
+        "src/render/flower-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
         "src/render/undergrowth-layout.ts"
       ],
-      "description": "Undergrowth flowers in clearings: purple, red, and yellow.",
-      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Nine GLTF-format models packed into one file, unchanged: flower_purpleA, flower_purpleB, flower_purpleC, flower_redA, flower_redB, flower_redC, flower_yellowA, flower_yellowB, flower_yellowC. The colours are replaced in code with the game's own",
-      "license": "CC0 1.0",
+      "description": "Undergrowth flowers in clearings: clumps of white daisies, purple bellflowers, and yellow buttercups.",
+      "source": "Built in code in this project",
+      "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/02-undergrowth.md"
-      },
-      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
@@ -407,21 +403,17 @@
     },
     {
       "id": "pebbles",
-      "kind": "file",
-      "file": "public/assets/pebbles/pebbles.glb",
+      "kind": "code",
       "code": [
+        "src/render/pebble-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
         "src/render/undergrowth-layout.ts"
       ],
       "description": "Undergrowth stones: small rocks on the forest floor, rare stones in clearings, and flat pebbles on the river bank.",
-      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. 28 GLTF-format models packed into one file, unchanged: every rock_small and stone_small model, including the flat and top ones. The colours are replaced in code with the game's own",
-      "license": "CC0 1.0",
+      "source": "Built in code in this project",
+      "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/02-undergrowth.md"
-      },
-      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"

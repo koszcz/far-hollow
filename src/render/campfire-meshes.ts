@@ -4,7 +4,7 @@
 // A blueprint grows stick by stick with the code-built "campfire-build-animation".
 // A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, a wide glow, and a brighter pool of light that
 // marks how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
-// A campfire with a pot on it shows the code-built "pot" (draft) from pot-shape.ts on top of its sticks, steaming while lit.
+// A campfire with a pot on it shows the code-built "pot" (approved) from pot-shape.ts nested on its sticks, steaming while lit.
 import * as THREE from "three";
 import { createFireMaker, type Fire } from "./fire-effect";
 import { createPotMaker, type PotMesh } from "./pot-shape";
@@ -66,8 +66,8 @@ const WARMTH_POOL_REACH_METRES = Math.hypot(CAMPFIRE_WARMTH_RADIUS_METRES, WARMT
 const FLICKER_PER_SECOND = 9;
 const FLICKER_AMOUNT = 0.12;
 
-/** A pot on the fire rests on the tips of the sticks, this high above the ground. */
-const POT_HEIGHT_METRES = 0.72;
+/** A pot on the fire nests over the tips of the sticks, this high above the ground. The tips hide inside it, below the water. */
+const POT_HEIGHT_METRES = 0.67;
 
 /** Clicks on a campfire or blueprint hit an invisible cylinder this wide and tall, in metres. */
 const PICK_RADIUS_METRES = 0.8;

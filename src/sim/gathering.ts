@@ -11,17 +11,22 @@ export const SPLIT_SECONDS = 3;
 /** How many pieces of firewood one log splits into. */
 export const FIREWOOD_PER_LOG = 4;
 
+/** Why the player could not start gathering. */
+export type GatherRefusal = "backpackFull";
+
 export interface Gathering {
   /**
    * Sets the player walking to a stick on the ground to put it in the backpack.
    * Does nothing if the entity is not a stick on the ground or the backpack has no room for it.
+   * Returns "backpackFull" when the backpack has no room.
    */
-  pickUpStick(stickId: number): void;
+  pickUpStick(stickId: number): GatherRefusal | undefined;
   /**
    * Starts the player splitting the log on their shoulder into firewood with the axe.
    * Does nothing if the player carries no log, has no axe, or the backpack has no room for all the firewood.
+   * Returns "backpackFull" when the backpack has no room for the firewood.
    */
-  splitLog(): void;
+  splitLog(): GatherRefusal | undefined;
   /** Stops the player walking to pick up a stick, or splitting a log. */
   cancel(): void;
   /** Picks up sticks the player has reached and moves splitting on by one logic step. Run it after walking has moved the player. */
@@ -37,19 +42,31 @@ export function createGathering(entities: EntityStore, walking: Walking): Gather
   return {
     pickUpStick(stickId) {
       const stick = entities.entity(stickId);
-      if (stick?.stick !== true || stick.position === undefined) return;
+      if (stick?.stick !== true || stick.position === undefined) return undefined;
+      let refusal: GatherRefusal | undefined;
       for (const player of players) {
-        if (player.backpack === undefined || !fitsInBackpack(player.backpack, "stick", 1)) continue;
+        if (player.backpack === undefined) continue;
+        if (!fitsInBackpack(player.backpack, "stick", 1)) {
+          refusal = "backpackFull";
+          continue;
+        }
         walking.walkTo(stick.position);
         setComponent(entities, player, "stickPickUpTask", { stickId });
       }
+      return refusal;
     },
     splitLog() {
+      let refusal: GatherRefusal | undefined;
       for (const player of players) {
-        if (player.carrying !== "log" || player.backpack === undefined || !canSplitInto(player.backpack)) continue;
+        if (player.carrying !== "log" || player.backpack === undefined) continue;
+        if (!canSplitInto(player.backpack)) {
+          if (hasInBackpack(player.backpack, "axe")) refusal = "backpackFull";
+          continue;
+        }
         entities.removeComponent(player, "walkPath");
         setComponent(entities, player, "splitTask", { secondsDone: 0 });
       }
+      return refusal;
     },
     cancel() {
       for (const player of players) {

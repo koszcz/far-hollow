@@ -24,6 +24,7 @@ export const strings = {
   notices: {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed from the cold. You woke the next morning.",
+    backpackFull: "Your backpack is full.",
   },
   backpack: "Backpack",
   backpackContents: {

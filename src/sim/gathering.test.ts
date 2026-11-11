@@ -42,6 +42,17 @@ describe("picking up sticks", () => {
     expect(game.entities.has(stick)).toBe(true);
     expect(player.backpack?.contents.stick ?? 0).toBe(0);
   });
+
+  it("tells the player the backpack is full when it has no room for the stick", () => {
+    const game = createGame({ seed: 42 });
+    fillBackpack(game);
+    const stick = nearestToPlayer(game, "stick");
+
+    game.client.send({ type: "pickUpStick", stickId: idOf(game, stick) });
+    game.step();
+
+    expect(game.client.getView().notice).toBe("backpackFull");
+  });
 });
 
 describe("splitting a log into firewood", () => {
@@ -92,6 +103,8 @@ describe("splitting a log into firewood", () => {
     backpack.contents.stick = 30;
 
     game.client.send({ type: "splitLog" });
+    game.step();
+    expect(game.client.getView().notice).toBe("backpackFull");
     runSeconds(game, SPLIT_SECONDS * 2);
 
     expect(game.client.getView().carrying).toBe("log");

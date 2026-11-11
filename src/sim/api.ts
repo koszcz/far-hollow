@@ -76,7 +76,7 @@ export interface GameView {
  * `collapsed`: the player had a collapse from the cold and woke at their respawn point.
  * `survivedFirstNight`: the player reached the first morning without a collapse.
  */
-export type GameNotice = "collapsed" | "survivedFirstNight";
+export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull";
 
 /** The kinds of fuel the player can put on a campfire. */
 export type CampfireFuel = "stick" | "firewood";

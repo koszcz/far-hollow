@@ -52,9 +52,10 @@ export const strings = {
   takeDown: "Take down",
   crafting: "Crafting",
   craftMenu: {
-    open: "Craft (C)",
+    open: "Craft",
     title: "Craft",
-    close: "Press C or Escape to close.",
+    /** What the craft wheel's centre says before the player points at a recipe. */
+    pick: "Pick a recipe",
     recipes: {
       saw: "Saw",
       planks: "Cut planks",
@@ -74,10 +75,13 @@ export const strings = {
     needsStation: (station: string) => `needs a ${station.toLowerCase()}`,
     putLogDownFirst: "Put the log down first.",
   },
+  /** The HUD clock in the top left corner, such as "Day 2 · 14:20". */
+  clock: (day: number, hour: number, minute: number) => `Day ${day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
   buildMenu: {
-    open: "Build (B)",
+    open: "Build",
     title: "Build",
-    close: "Press B or Escape to close.",
+    /** What the build wheel's centre says before the player points at a structure. */
+    pick: "Pick a structure",
     structures: {
       campfire: "Campfire",
       leanTo: "Lean-to",

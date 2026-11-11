@@ -1,7 +1,9 @@
-// The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene. Needs sit top left, the pause and build buttons
-// bottom left, and the backpack bottom right, with an open chest above it. Banners sit top centre and the context dock bottom centre. Built in code. Approved by the owner.
-// Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
-// The build menu icons, in build-icons.tsx, are the draft "build-icons" asset.
+// The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene, in the "hotbar and wheel" layout the owner chose.
+// The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the context panels and the open chest.
+// The clock sits top left, the pause button top right, and banners top centre. Build and craft open as wheels in the middle of the screen.
+// Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
+// The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the draft "build-icons" asset.
+import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type {
   BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
@@ -81,102 +83,155 @@ export interface HudProps {
   onToggleCraftMenu: () => void;
 }
 
+/** One choice on a wheel: its icon, its name, and the detail its centre shows while the player points at it. */
+interface WheelEntry {
+  key: string;
+  name: string;
+  icon: ComponentChildren;
+  /** What the centre shows under the name, such as the cost. */
+  detail: ComponentChildren;
+  /** The full text screen readers read for this choice. */
+  label: string;
+  /** A dimmed choice still shows its detail, so the player can see what it lacks, but a click does nothing. */
+  dimmed?: boolean;
+  onPick: () => void;
+}
+
+/** How far each choice's centre sits from the wheel's centre, in pixels. */
+const WHEEL_RADIUS = 104;
+
 /**
- * The craft menu: every recipe, with what it uses and how long it takes. A recipe the player cannot follow yet says
- * which tool or work station it lacks. Choosing a recipe starts crafting it.
+ * A ring of choices in the middle of the screen, used for the build and craft menus. Pointing at a choice shows its
+ * name and detail in the centre. A click picks it. A click outside the ring closes the wheel.
  */
-function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: RecipeKind) => void }) {
+function Wheel({ title, pick, entries, onClose }: { title: string; pick: string; entries: readonly WheelEntry[]; onClose: () => void }) {
+  const [pointed, setPointed] = useState<string | null>(null);
+  const shown = entries.find(({ key }) => key === pointed);
   return (
-    <section class="hud-section hud-build-menu" aria-label={strings.craftMenu.title}>
-      <h2>
-        <HudIcon name="axe" />
-        {strings.craftMenu.title}
-      </h2>
-      <ul>
-        {view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials }) => (
-          <li key={recipe}>
-            <HudButton
-              label={strings.craftMenu.recipes[recipe]}
-              disabled={missingTool !== undefined || missingStation !== undefined || !hasMaterials || view.carrying !== null}
-              onClick={() => {
-                onChoose(recipe);
-              }}
-            />
-            <span class="hud-build-cost">
-              {strings.craftMenu.cost(
-                [
-                  ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
-                  ...(besideStation === undefined || station === undefined
-                    ? []
-                    : besideStation.map(({ material, count }) =>
-                        strings.craftMenu.besideStation(strings.craftMenu.groundMaterials[material](count), strings.buildMenu.structures[station]),
-                      )),
-                ],
-                seconds,
-              )}
-              {missingTool !== undefined && ` · ${strings.craftMenu.needsTool(strings.backpackContents[missingTool])}`}
-              {missingStation !== undefined && ` · ${strings.craftMenu.needsStation(strings.buildMenu.structures[missingStation])}`}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {view.carrying !== null && <p class="hud-hint">{strings.craftMenu.putLogDownFirst}</p>}
-      <p class="hud-hint">{strings.craftMenu.close}</p>
-    </section>
+    <div class="hud-wheel-backdrop" onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}>
+      <section class="hud-wheel" aria-label={title}>
+        <div class="hud-wheel-centre" aria-hidden="true">
+          <strong>{shown === undefined ? title : shown.name}</strong>
+          <span class="hud-wheel-detail">{shown === undefined ? pick : shown.detail}</span>
+        </div>
+        <ul>
+          {entries.map((entry, index) => {
+            const angle = (index / entries.length) * 2 * Math.PI - Math.PI / 2;
+            return (
+              <li key={entry.key} style={{ left: `calc(50% + ${Math.round(Math.cos(angle) * WHEEL_RADIUS)}px)`, top: `calc(50% + ${Math.round(Math.sin(angle) * WHEEL_RADIUS)}px)` }}>
+                <button
+                  type="button"
+                  class={entry.dimmed === true ? "hud-wheel-entry hud-wheel-entry-dimmed" : "hud-wheel-entry"}
+                  aria-label={entry.label}
+                  aria-disabled={entry.dimmed === true}
+                  onMouseEnter={() => {
+                    setPointed(entry.key);
+                  }}
+                  onFocus={() => {
+                    setPointed(entry.key);
+                  }}
+                  onMouseLeave={() => {
+                    setPointed(null);
+                  }}
+                  onClick={() => {
+                    if (entry.dimmed !== true) entry.onPick();
+                  }}
+                >
+                  {entry.icon}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
   );
 }
 
 /**
- * The build menu: a grid of tiles, one per structure the player can build. Each tile shows the structure's icon,
- * and under it the materials it costs as icons with counts, and the tool it needs. Pointing at a tile shows its name.
- * Picking one puts its blueprint under the mouse.
+ * The craft wheel: one choice per recipe, with the icon of what it makes. The centre shows what a recipe uses, how long
+ * it takes, and which tool or work station it lacks. A recipe the player cannot follow yet is dimmed. Choosing one starts crafting it.
  */
-function BuildMenu({ entries, onPick }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void }) {
-  return (
-    <section class="hud-section hud-build-menu" aria-label={strings.buildMenu.title}>
-      <h2>
-        <HudIcon name="place" />
-        {strings.buildMenu.title}
-      </h2>
-      <ul>
-        {entries.map(({ structure, cost, tool }) => {
-          const name = strings.buildMenu.structures[structure];
-          const costText = strings.buildMenu.cost([
-            ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
-            ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
-          ]);
-          return (
-            <li key={structure} data-tip={name}>
-              <button
-                type="button"
-                class="hud-build-entry"
-                aria-label={strings.buildMenu.entryLabel(name, costText)}
-                onClick={() => {
-                  onPick(structure);
-                }}
-              >
-                <StructureIcon structure={structure} />
-                <span class="hud-build-cost" aria-hidden="true">
-                  {cost.map(({ material, count }) => (
-                    <span key={material} class="hud-build-material">
-                      <MaterialIcon material={material} />
-                      {count}
-                    </span>
-                  ))}
-                  {tool !== undefined && (
-                    <span class="hud-build-material hud-build-tool">
-                      <BackpackIcon content={tool} />
-                    </span>
-                  )}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <p class="hud-hint">{strings.buildMenu.close}</p>
-    </section>
-  );
+function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (recipe: RecipeKind) => void; onClose: () => void }) {
+  const entries = view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials, result }): WheelEntry => {
+    const name = strings.craftMenu.recipes[recipe];
+    const notes = [
+      ...(missingTool === undefined ? [] : [strings.craftMenu.needsTool(strings.backpackContents[missingTool])]),
+      ...(missingStation === undefined ? [] : [strings.craftMenu.needsStation(strings.buildMenu.structures[missingStation])]),
+      ...(view.carrying === null ? [] : [strings.craftMenu.putLogDownFirst]),
+    ];
+    const cost = strings.craftMenu.cost(
+      [
+        ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+        ...(besideStation === undefined || station === undefined
+          ? []
+          : besideStation.map(({ material, count }) =>
+              strings.craftMenu.besideStation(strings.craftMenu.groundMaterials[material](count), strings.buildMenu.structures[station]),
+            )),
+      ],
+      seconds,
+    );
+    return {
+      key: recipe,
+      name,
+      icon: <BackpackIcon content={result.content} />,
+      detail: (
+        <>
+          {cost}
+          {notes.map((note) => (
+            <span key={note} class="hud-wheel-note">{note}</span>
+          ))}
+        </>
+      ),
+      label: [name, cost, ...notes].join(" · "),
+      dimmed: notes.length > 0 || !hasMaterials,
+      onPick: () => {
+        onChoose(recipe);
+      },
+    };
+  });
+  return <Wheel title={strings.craftMenu.title} pick={strings.craftMenu.pick} entries={entries} onClose={onClose} />;
+}
+
+/**
+ * The build wheel: one choice per structure the player can build, with its icon. The centre shows the materials it
+ * costs as icons with counts, and the tool it needs. Picking one puts its blueprint under the mouse.
+ */
+function BuildWheel({ entries, onPick, onClose }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void; onClose: () => void }) {
+  const wheelEntries = entries.map(({ structure, cost, tool }): WheelEntry => {
+    const name = strings.buildMenu.structures[structure];
+    const costText = strings.buildMenu.cost([
+      ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
+      ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
+    ]);
+    return {
+      key: structure,
+      name,
+      icon: <StructureIcon structure={structure} />,
+      detail: (
+        <span class="hud-build-cost">
+          {cost.map(({ material, count }) => (
+            <span key={material} class="hud-build-material">
+              <MaterialIcon material={material} />
+              {count}
+            </span>
+          ))}
+          {tool !== undefined && (
+            <span class="hud-build-material hud-build-tool">
+              <BackpackIcon content={tool} />
+            </span>
+          )}
+        </span>
+      ),
+      label: strings.buildMenu.entryLabel(name, costText),
+      onPick: () => {
+        onPick(structure);
+      },
+    };
+  });
+  return <Wheel title={strings.buildMenu.title} pick={strings.buildMenu.pick} entries={wheelEntries} onClose={onClose} />;
 }
 
 /** Warmth's bar colour runs from this cold blue at 0 to the ember orange at 1. */
@@ -199,11 +254,13 @@ function warmthColour(warmth: number): string {
 }
 
 /** One row of a bar with an icon and a label. Needs such as warmth, and the progress of timed work, use it. */
-function Meter({ icon, label, value, colour, low = false }: { icon: HudIconName; label: string; value: number; colour: string; low?: boolean }) {
+function Meter({
+  icon, label, value, colour, low = false, compact = false,
+}: { icon: HudIconName; label: string; value: number; colour: string; low?: boolean; compact?: boolean }) {
   return (
-    <label class={low ? "hud-meter hud-meter-low" : "hud-meter"} style={{ "--hud-bar": colour }}>
+    <label class={low ? "hud-meter hud-meter-low" : "hud-meter"} style={{ "--hud-bar": colour }} data-tip={compact ? label : undefined}>
       <HudIcon name={icon} />
-      <span class="hud-meter-label">{label}</span>
+      <span class={compact ? "hud-sr-only" : "hud-meter-label"}>{label}</span>
       <progress max={1} value={value} />
     </label>
   );
@@ -217,6 +274,17 @@ function HudButton({
     <button type="button" class="hud-button" disabled={disabled} onClick={onClick}>
       {icon !== undefined && <HudIcon name={icon} />}
       {label}
+    </button>
+  );
+}
+
+/** A square HUD button that shows only an icon. Its label shows when the player points at it, and screen readers read it. */
+function HudIconButton({
+  icon, label, disabled = false, pressed, onClick,
+}: { icon: HudIconName; label: string; disabled?: boolean; pressed?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" class="hud-button hud-icon-button" aria-label={label} aria-pressed={pressed} data-tip={label} disabled={disabled} onClick={onClick}>
+      <HudIcon name={icon} />
     </button>
   );
 }
@@ -383,6 +451,9 @@ const actionLabels = {
 
 const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe", craft: "axe" };
 
+/** At or above this share of its limit, the backpack weight turns amber. */
+const FULL_BACKPACK = 0.9;
+
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
@@ -412,8 +483,6 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
 
   const hasContext =
     view.action !== null ||
-    buildMenuOpen ||
-    craftMenuOpen ||
     placing !== null ||
     view.carrying !== null ||
     view.nearbyCampfire !== null ||
@@ -421,6 +490,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
     view.nearbyPile !== null ||
     view.nearbyWoodpile !== null ||
     view.nearbyBlueprint !== null;
+  const daylight = view.time.hourOfDay >= 6 && view.time.hourOfDay < 20;
 
   return (
     <>
@@ -435,18 +505,29 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           )}
         </div>
       )}
-      {hasContext && (
-        <div class="hud-context">
+      <div class="hud hud-clock">
+        <p class="hud-panel">
+          <HudIcon name={daylight ? "sun" : "moon"} />
+          {strings.clock(view.time.day, view.time.hour, view.time.minute)}
+        </p>
+      </div>
+      <div class="hud hud-pause">
+        <div class="hud-panel">
+          <HudIconButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
+              client.send({ type: "setPaused", paused: !view.paused });
+            }} />
+        </div>
+      </div>
+      <div class="hud hud-dock">
+        {openChest !== null && (
           <div class="hud-panel">
+            <ChestPanel client={client} chest={openChest} />
+          </div>
+        )}
+        {hasContext && (
+          <div class="hud-panel hud-context">
             {view.action !== null && (
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
-            )}
-            {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
-            {craftMenuOpen && (
-              <CraftMenu view={view} onChoose={(recipe) => {
-                  client.send({ type: "craft", recipe });
-                  onToggleCraftMenu();
-                }} />
             )}
             {placing !== null && (
               <p class="hud-hint">
@@ -477,43 +558,16 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             {view.nearbyPile !== null && <PilePanel client={client} pile={view.nearbyPile} />}
             {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
           </div>
-        </div>
-      )}
-      <div class="hud hud-needs-dock">
-        <div class="hud-panel">
-          <section class="hud-needs" aria-label={strings.needs}>
-            <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
-            <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
-            <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
-            <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
-            {view.sick && <p class="hud-hint">{strings.sick}</p>}
-          </section>
-        </div>
-      </div>
-      <div class="hud hud-toolbar">
-        <div class="hud-panel">
-          <div class="hud-buttons">
-            <HudButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
-                client.send({ type: "setPaused", paused: !view.paused });
-              }} />
-            <HudButton icon="place" label={strings.buildMenu.open} disabled={placing !== null} onClick={onToggleBuildMenu} />
-            <HudButton icon="axe" label={strings.craftMenu.open} onClick={onToggleCraftMenu} />
-          </div>
-        </div>
-      </div>
-      <div class="hud hud-inventory">
-        {openChest !== null && (
-          <div class="hud-panel">
-            <ChestPanel client={client} chest={openChest} />
-          </div>
         )}
-        <div class="hud-panel">
-          <section class="hud-section hud-backpack" aria-label={strings.backpack}>
-            <h2>
-              <HudIcon name="backpack" />
-              {strings.backpack}
-              <span class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</span>
-            </h2>
+        <section class="hud-needs" aria-label={strings.needs}>
+          <Meter compact icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
+          <Meter compact icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
+          <Meter compact icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
+          <Meter compact icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
+          {view.sick && <p class="hud-hint">{strings.sick}</p>}
+        </section>
+        <div class="hud-panel hud-hotbar">
+          <section class="hud-backpack" aria-label={strings.backpack}>
             {openChest === null ? (
               <ContentGrid contents={view.backpack} tip={strings.pile.dropTip} label={strings.pile.drop} onClick={(content) => {
                   client.send({ type: "dropFromBackpack", content });
@@ -523,43 +577,61 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                   client.send({ type: "putInChest", chestId: openChest.id, content, all });
                 }} />
             )}
-            <div class="hud-buttons">
-              {backpackContents(view.backpack)
-                .map(([content]) => content)
-                .filter(isFood)
-                .map((food) => (
-                  <button
-                    key={food}
-                    type="button"
-                    class="hud-button"
-                    aria-label={strings.eatFood(strings.backpackContents[food])}
-                    onClick={() => {
-                      client.send({ type: "eat", food });
-                    }}
-                  >
-                    <BackpackIcon content={food} />
-                    {strings.eat}
-                  </button>
-                ))}
-              {(view.backpack.bedroll ?? 0) > 0 && (
-                <HudButton icon="place" label={strings.layBedroll} onClick={() => {
-                    client.send({ type: "layBedroll" });
-                  }} />
-              )}
-              {(view.backpack.pot ?? 0) > 0 && (
-                <HudButton icon="droplet" label={strings.fillPot} onClick={() => {
-                    client.send({ type: "fillPot" });
-                  }} />
-              )}
-              {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
-                <HudButton icon="droplet" label={strings.drinkFromPot} onClick={() => {
-                    client.send({ type: "drinkFromPot" });
-                  }} />
-              )}
-            </div>
+            <span class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}>
+              {strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}
+            </span>
           </section>
+          <div class="hud-hotbar-buttons">
+            {backpackContents(view.backpack)
+              .map(([content]) => content)
+              .filter(isFood)
+              .map((food) => (
+                <button
+                  key={food}
+                  type="button"
+                  class="hud-button"
+                  aria-label={strings.eatFood(strings.backpackContents[food])}
+                  onClick={() => {
+                    client.send({ type: "eat", food });
+                  }}
+                >
+                  <BackpackIcon content={food} />
+                  {strings.eat}
+                </button>
+              ))}
+            {(view.backpack.bedroll ?? 0) > 0 && (
+              <HudButton icon="place" label={strings.layBedroll} onClick={() => {
+                  client.send({ type: "layBedroll" });
+                }} />
+            )}
+            {(view.backpack.pot ?? 0) > 0 && (
+              <HudButton icon="droplet" label={strings.fillPot} onClick={() => {
+                  client.send({ type: "fillPot" });
+                }} />
+            )}
+            {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
+              <HudButton icon="droplet" label={strings.drinkFromPot} onClick={() => {
+                  client.send({ type: "drinkFromPot" });
+                }} />
+            )}
+          </div>
+          <div class="hud-hotbar-buttons">
+            <HudIconButton icon="place" label={strings.buildMenu.open} pressed={buildMenuOpen} disabled={placing !== null} onClick={onToggleBuildMenu} />
+            <HudIconButton icon="axe" label={strings.craftMenu.open} pressed={craftMenuOpen} onClick={onToggleCraftMenu} />
+          </div>
         </div>
       </div>
+      {buildMenuOpen && <BuildWheel entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
+      {craftMenuOpen && (
+        <CraftWheel
+          view={view}
+          onChoose={(recipe) => {
+            client.send({ type: "craft", recipe });
+            onToggleCraftMenu();
+          }}
+          onClose={onToggleCraftMenu}
+        />
+      )}
     </>
   );
 }

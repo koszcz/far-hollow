@@ -84,6 +84,7 @@ const STATES: readonly ShowcaseState[] = [
     view: {
       ...BASE_VIEW,
       paused: true,
+      time: { day: 3, hour: 22, minute: 40, hourOfDay: 22 + 40 / 60 },
       backpack: { axe: 1, knife: 1, fireStriker: 1, stick: 3 },
       nearbyBedroll: { id: 2 },
       warmth: 0.15,

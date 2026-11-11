@@ -413,7 +413,7 @@
         "src/ui/hud-icons.tsx",
         "src/app/style.css"
       ],
-      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, in separate panels: needs top left, pause and build bottom left, backpack and open chest bottom right.",
+      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight, item buttons, and the build and craft buttons. Short need bars sit above it, and the context panels and open chest sit above them. The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -422,7 +422,8 @@
         "date": "2026-11-11"
       },
       "approvalNotes": [
-        "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles."
+        "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles.",
+        "2026-11-11: The owner chose the hotbar and wheel layout from four mockups and approved the change in chat. See .scratch/hud-redesign/issues/01-hotbar-and-wheel.md."
       ]
     },
     {

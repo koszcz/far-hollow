@@ -68,6 +68,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
   deliverTask: shape({ blueprintId: count }),
+  takeDownTask: shape({ pieceId: count, secondsDone: finite }),
   foundation: exactly(true),
   edgePiece: exactly("logWall", "doorFrame"),
   cabinRoof: exactly(true),
@@ -91,7 +92,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));
 
 /** Every kind of notice. TypeScript reports a missing one. */
-const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, saveBroken: true };
+const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, holdsUpPiece: true, saveBroken: true };
 
 /** The components the player always has. */
 const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "needs", "respawnPoint"] as const;

@@ -28,8 +28,13 @@ const CAMERA_FAR_METRES = 4000;
 /** The player turns to face where they walk only when they move further than this in one frame, in metres. */
 const TURN_MIN_TRAVEL_METRES = 0.001;
 
-/** What is under a point on the screen. Everything but the ground and the river is given by its entity id. */
+/**
+ * What is under a point on the screen. Everything but the ground and the river is given by its entity id.
+ * A finished building piece, such as a lean-to, a foundation, a wall, or a roof section, is a `structure`.
+ * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
+ */
 export type ScenePick =
+  | { kind: "structure"; id: number; under: GroundOrThingPick | undefined }
   | { kind: "ground"; spot: GroundPoint }
   | { kind: "river"; spot: GroundPoint }
   | { kind: "tree"; id: number }
@@ -51,8 +56,11 @@ export interface PlacementPreview {
   readonly allowed: boolean;
 }
 
-/** A pick that landed on an entity. */
-type EntityPick = Extract<ScenePick, { id: number }>;
+/** A pick that landed on anything but a finished building piece. */
+export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
+
+/** A pick that landed on an entity, other than a finished building piece. Those are never outlined. */
+type EntityPick = Extract<GroundOrThingPick, { id: number }>;
 
 export interface SceneRenderer {
   /** Draws one frame. alpha says how far the frame is between the last two logic steps. */
@@ -218,6 +226,33 @@ export function createSceneRenderer(
     playerMesh.setWalking(playerWalkedMetres);
   }
 
+  /**
+   * What the ray from the camera through the pointer meets first, with how far away it is, looking through finished building pieces.
+   * Set the ray before calling it.
+   */
+  function pickThroughFinishedPieces(): { pick: GroundOrThingPick; distance: number } | undefined {
+    const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
+    const candidates = [
+      forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
+      edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
+      forageMeshes.pick(raycaster),
+      bedrollMeshes.pick(raycaster),
+    ];
+    let nearest: (typeof candidates)[number];
+    for (const candidate of candidates) {
+      if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
+    }
+    if (nearest !== undefined && (ground === undefined || nearest.distance <= ground.distance)) {
+      const id = entities.id(nearest.hit.entity);
+      if (id !== undefined) return { pick: { kind: nearest.hit.kind, id }, distance: nearest.distance };
+    }
+    if (ground === undefined) return undefined;
+    const spot = { x: ground.point.x, z: ground.point.z };
+    // The ray passes through the see-through water to the riverbed below it.
+    const onRiver = distanceToRiver(valley.river, spot) <= valley.river.width / 2;
+    return { pick: onRiver ? { kind: "river", spot } : { kind: "ground", spot }, distance: ground.distance };
+  }
+
   return {
     cameraRig,
     render(alpha) {
@@ -255,28 +290,18 @@ export function createSceneRenderer(
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
-      const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
-      const candidates = [
-        forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
-        edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
-        forageMeshes.pick(raycaster),
-        bedrollMeshes.pick(raycaster),
-      ];
-      let nearest: (typeof candidates)[number];
-      for (const candidate of candidates) {
+      const under = pickThroughFinishedPieces();
+      let nearest: { entity: Entity; distance: number } | undefined;
+      for (const meshes of [leanToMeshes, foundationMeshes, edgePieceMeshes, roofMeshes]) {
+        const candidate = meshes.pickFinished(raycaster);
         if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
       }
-      if (nearest !== undefined && (ground === undefined || nearest.distance <= ground.distance)) {
-        const id = entities.id(nearest.hit.entity);
-        if (id !== undefined) return { kind: nearest.hit.kind, id };
-      }
-      if (ground === undefined) return undefined;
-      const spot = { x: ground.point.x, z: ground.point.z };
-      // The ray passes through the see-through water to the riverbed below it.
-      return distanceToRiver(valley.river, spot) <= valley.river.width / 2 ? { kind: "river", spot } : { kind: "ground", spot };
+      const id = nearest === undefined ? undefined : entities.id(nearest.entity);
+      if (nearest === undefined || id === undefined || (under !== undefined && under.distance < nearest.distance)) return under?.pick;
+      return { kind: "structure", id, under: under?.pick };
     },
     setHovered(pick) {
-      const entityPick = pick !== undefined && "id" in pick ? pick : undefined;
+      const entityPick = pick !== undefined && "id" in pick && pick.kind !== "structure" ? pick : undefined;
       const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
     },

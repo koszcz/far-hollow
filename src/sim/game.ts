@@ -2,6 +2,7 @@ import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameVi
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { createBuilding } from "./building";
+import { createTakingDown, pieceKindOf, takeDownSeconds } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
@@ -43,6 +44,7 @@ const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   collapsed: 30,
   survivedFirstNight: 30,
   backpackFull: 4,
+  holdsUpPiece: 4,
   saveBroken: 10,
 };
 /** A new game starts on the morning of day 1. */
@@ -101,6 +103,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
+  const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);
   const drinking = createDrinking(entities, walking, valley);
@@ -181,6 +184,13 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
       if (blueprint !== undefined) return Object.freeze({ kind: "build", progress: blueprint.progress });
     }
+    if (player.takeDownTask !== undefined && player.walkPath === undefined) {
+      const piece = entities.entity(player.takeDownTask.pieceId);
+      const kind = piece === undefined ? undefined : pieceKindOf(piece);
+      if (piece?.blueprint === undefined && kind !== undefined) {
+        return Object.freeze({ kind: "takeDown", progress: Math.min(1, player.takeDownTask.secondsDone / takeDownSeconds(kind)) });
+      }
+    }
     if (player.debarkTask !== undefined && player.walkPath === undefined) {
       return Object.freeze({ kind: "debark", progress: Math.min(1, player.debarkTask.secondsDone / DEBARK_SECONDS) });
     }
@@ -199,6 +209,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     gathering.cancel();
     foraging.cancel();
     building.cancel();
+    takingDown.cancel();
     bedrolls.cancel();
     drinking.cancel();
     pot.cancel();
@@ -261,6 +272,11 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     deliverToBlueprint: (command) => {
       cancelTasks();
       building.deliver(command.blueprintId);
+    },
+    takeDown: (command) => {
+      cancelTasks();
+      const refusal = takingDown.start(command.pieceId);
+      if (refusal !== undefined) showNotice(refusal);
     },
     stopBuilding: () => {
       building.cancel();
@@ -418,6 +434,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       gathering.step(playerSeconds);
       foraging.step();
       building.step(playerSeconds);
+      const takeDownRefusal = takingDown.step(playerSeconds);
+      if (takeDownRefusal !== undefined) showNotice(takeDownRefusal);
       const reachedBedroll = bedrolls.step();
       if (reachedBedroll !== undefined) sleepOn(reachedBedroll);
       drinking.step();

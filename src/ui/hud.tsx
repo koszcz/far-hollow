@@ -202,9 +202,10 @@ const actionLabels = {
   split: strings.splitting,
   debark: strings.debarking,
   build: strings.building,
+  takeDown: strings.takingDown,
 } as const;
 
-const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire" };
+const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe" };
 
 /** Backpack contents shown with an icon in front of their name. */
 const CONTENT_ICONS: Partial<Record<BackpackContent, HudIconName>> = { bark: "bark" };

@@ -1,39 +1,85 @@
 import type { Command, GameClient, GameView } from "./api";
+import { createClock, readClock, type ClockStart } from "./clock";
 import { createEntityStore, movingEntities, type EntityStore } from "./entities";
+import { generateValley, terrainHeightAt, type Valley } from "./valley";
+import { createWalking, playerStartSpot } from "./walking";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
 export const STEP_MS = 1000 / STEPS_PER_SECOND;
 
+/**
+ * The player keeps at least this far from a tree's centre.
+ * The walk map uses 1 m cells, so this leaves room for the widest trunk (about 0.4 m) plus half a cell's diagonal.
+ */
+const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
+/** A new game starts on the morning of day 1. */
+export const GAME_START: ClockStart = { day: 1, hour: 8 };
+
+export interface GameOptions {
+  /** Decides how the valley is laid out. The same seed always makes the same valley. */
+  seed: number;
+}
+
 export interface Game {
   readonly entities: EntityStore;
+  /** The valley's ground, river, and starting tree spots. These never change during a game. */
+  readonly valley: Valley;
   /** Runs one fixed logic step. */
   step(): void;
   /** What the UI uses: it reads a GameView and sends commands. */
   readonly client: GameClient;
 }
 
-export function createGame(): Game {
+export function createGame({ seed }: GameOptions): Game {
   const entities = createEntityStore();
+  const valley = generateValley(seed);
+  for (const tree of valley.trees) {
+    entities.add({
+      tree: true,
+      position: { x: tree.x, y: terrainHeightAt(valley.terrain, tree.x, tree.z), z: tree.z },
+      blocksWalking: { radius: TREE_WALK_BLOCK_RADIUS_METRES },
+    });
+  }
+  const walking = createWalking(entities, valley);
+  const start = playerStartSpot(walking, valley);
+  const startPosition = { x: start.x, y: terrainHeightAt(valley.terrain, start.x, start.z), z: start.z };
+  const player = entities.add({ player: true, position: startPosition, previousPosition: { ...startPosition } });
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
+  const clock = createClock(GAME_START);
   let paused = false;
   let stepCount = 0;
   let view = snapshot();
 
   function snapshot(): GameView {
-    return Object.freeze({ paused, stepCount, entityCount: entities.entities.length });
+    return Object.freeze({
+      seed,
+      paused,
+      stepCount,
+      entityCount: entities.entities.length,
+      playerPosition: Object.freeze({ ...player.position }),
+      time: readClock(clock.minutes),
+    });
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
     setPaused: (command) => {
       paused = command.paused;
     },
+    walkTo: (command) => {
+      walking.walkTo({ x: command.x, z: command.z });
+    },
+    skipTime: (command) => {
+      clock.skip(command.hours);
+    },
   };
 
   function applyCommand(command: Command): void {
-    commandHandlers[command.type](command);
+    // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.
+    const handle = commandHandlers[command.type] as (command: Command) => void;
+    handle(command);
   }
 
   function step(): void {
@@ -43,6 +89,8 @@ export function createGame(): Game {
       for (const entity of moving) {
         Object.assign(entity.previousPosition, entity.position);
       }
+      walking.step(STEP_MS / 1000);
+      clock.advance(STEP_MS);
       stepCount += 1;
     }
 
@@ -61,5 +109,5 @@ export function createGame(): Game {
     },
   };
 
-  return { entities, step, client };
+  return { entities, valley, step, client };
 }

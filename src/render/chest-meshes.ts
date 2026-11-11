@@ -30,16 +30,16 @@ const LID_PLANKS = 3;
 /** The gap between two lid planks, in metres. */
 const LID_GAP_METRES = 0.008;
 
-/** What a click on a chest blueprint landed on. Finished chests are not clicked yet. */
-export type ChestHit = { kind: "blueprint"; entity: Entity };
+/** What a click on a chest or chest blueprint landed on. */
+export type ChestHit = { kind: "blueprint"; entity: Entity } | { kind: "chest"; entity: Entity };
 
 export interface ChestMeshes {
   readonly group: THREE.Group;
   /** Brings every chest and chest blueprint up to date with game state. */
   update(): void;
-  /** What a ray from the camera hits first among chest blueprints, and how far away. */
+  /** What a ray from the camera hits first among chests and chest blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: ChestHit; distance: number } | undefined;
-  /** The parts of a chest blueprint, placed in the world. Empty once it is gone. */
+  /** The parts of a chest or chest blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: ChestHit): OutlinePart[];
   /** Shows a chest blueprint under the mouse with its base at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
   showPreview(preview: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
@@ -200,6 +200,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       for (const hit of hits) {
         const entity = hit.object.userData.entity as Entity | undefined;
         if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
+        if (entity?.chest !== undefined) return { hit: { kind: "chest", entity }, distance: hit.distance };
       }
       return undefined;
     },

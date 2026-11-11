@@ -144,6 +144,15 @@ export const strings = {
     berries: "Berries",
     mushroom: "Mushroom",
   },
+  chest: {
+    title: "Chest",
+    empty: "The chest is empty.",
+    /** The full name of a backpack cell while a chest is open, for screen readers. */
+    put: (name: string, count: number) => `Put ${name.toLowerCase()} in the chest (${count} in backpack)`,
+    /** The full name of a chest cell, for screen readers. */
+    take: (name: string, count: number) => `Take ${name.toLowerCase()} from the chest (${count} in chest)`,
+    hint: "Click a backpack item to put one in the chest. Click a chest item to take one out. Shift-click moves all that fit.",
+  },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
   backpackCountBadge: (count: number) => `${count}`,

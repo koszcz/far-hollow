@@ -1,4 +1,4 @@
-// Draws the real HUD over the asset showcase at /?asset=hud or /?asset=bark, once in each of the four views, each in a
+// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, or /?asset=backpack-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/asset-showcase.ts. Development builds only.
 import { render } from "preact";
 import type { GameClient, GameView, StructureKind } from "../sim/api";
@@ -92,6 +92,14 @@ const BARK_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: S
   },
 ];
 
+/** The "backpack-icons" asset: every kind of backpack content, shown once alone and once with a count. */
+const BACKPACK_ICON_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
+  { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, drawknife: 1, fireStriker: 1, bedroll: 1, pot: 1 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { axe: 1, stick: 1, firewood: 4, bark: 1 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { stick: 7, bark: 3, berries: 5, mushroom: 1, potOfRiverWater: 1 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { knife: 1, firewood: 1, berries: 1, mushroom: 2, potOfBoiledWater: 1 } }, buildMenuOpen: false, placing: null },
+];
+
 /** A client that always shows `view` and ignores commands. */
 function stillClient(view: GameView): GameClient {
   return {
@@ -103,9 +111,11 @@ function stillClient(view: GameView): GameClient {
   };
 }
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud" or "bark" showcase. */
-export function renderHudShowcase(ui: HTMLElement, asset: "hud" | "bark"): void {
-  (asset === "bark" ? BARK_STATES : STATES).forEach(({ view, buildMenuOpen, placing }, index) => {
+const STATES_BY_ASSET = { hud: STATES, bark: BARK_STATES, "backpack-icons": BACKPACK_ICON_STATES } as const;
+
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", or "backpack-icons" showcase. */
+export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
+  STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing }, index) => {
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);

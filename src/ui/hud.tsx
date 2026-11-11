@@ -1,8 +1,9 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
-// Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
+// Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the draft "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type { BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
 import { strings } from "../strings";
+import { BackpackIcon } from "./backpack-icons";
 import { HudIcon, type HudIconName } from "./hud-icons";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -206,9 +207,6 @@ const actionLabels = {
 
 const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire" };
 
-/** Backpack contents shown with an icon in front of their name. */
-const CONTENT_ICONS: Partial<Record<BackpackContent, HudIconName>> = { bark: "bark" };
-
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
@@ -308,18 +306,35 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
             </h2>
             <ul>
               {backpackContents(view.backpack).map(([content, count]) => (
-                <li key={content}>
-                  {CONTENT_ICONS[content] !== undefined && <HudIcon name={CONTENT_ICONS[content]} />}
-                  {strings.backpackContentCount(strings.backpackContents[content], count)}
-                  {isFood(content) && (
-                    <HudButton label={strings.eat} onClick={() => {
-                        client.send({ type: "eat", food: content });
-                      }} />
+                <li key={content} data-tip={strings.backpackContents[content]}>
+                  <BackpackIcon content={content} />
+                  <span class="hud-sr-only">{strings.backpackContentCount(strings.backpackContents[content], count)}</span>
+                  {count > 1 && (
+                    <span class="hud-backpack-count" aria-hidden="true">
+                      {strings.backpackCountBadge(count)}
+                    </span>
                   )}
                 </li>
               ))}
             </ul>
             <div class="hud-buttons">
+              {backpackContents(view.backpack)
+                .map(([content]) => content)
+                .filter(isFood)
+                .map((food) => (
+                  <button
+                    key={food}
+                    type="button"
+                    class="hud-button"
+                    aria-label={strings.eatFood(strings.backpackContents[food])}
+                    onClick={() => {
+                      client.send({ type: "eat", food });
+                    }}
+                  >
+                    <BackpackIcon content={food} />
+                    {strings.eat}
+                  </button>
+                ))}
               {(view.backpack.bedroll ?? 0) > 0 && (
                 <HudButton icon="place" label={strings.layBedroll} onClick={() => {
                     client.send({ type: "layBedroll" });

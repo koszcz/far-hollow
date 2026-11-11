@@ -187,12 +187,13 @@
       "code": [
         "src/render/campfire-meshes.ts"
       ],
-      "description": "Stage-by-stage growth of a campfire during construction.",
+      "description": "A campfire built as a person builds one: first the stones drop into place one by one round the ring. Then each stick is held at its lean above its place, lowered straight down, and set down, without turning or bouncing. The ash spreads out at the end.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/08-build-campfire.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

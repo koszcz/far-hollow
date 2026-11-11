@@ -64,6 +64,8 @@ export interface WalkInputOptions {
 export interface WalkInput {
   /** Makes the next left-click on the ground place a campfire blueprint there. Escape cancels. */
   startPlacingCampfire(): void;
+  /** True while the left button is held on a blueprint to build it. */
+  isHoldingBuild(): boolean;
   /** Removes the listeners. */
   dispose(): void;
 }
@@ -74,6 +76,7 @@ export interface WalkInput {
  * walk over to tend a campfire, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
  * Holding the left button on a blueprint builds it. Letting go stops building.
  * While placing a campfire, a left-click on the ground places its blueprint.
+ * A left-drag pans the camera instead, so it never counts as a click.
  * Space snaps the camera back to the player.
  */
 export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onPlacingChange }: WalkInputOptions): WalkInput {
@@ -179,6 +182,9 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   return {
     startPlacingCampfire() {
       setPlacing(true);
+    },
+    isHoldingBuild() {
+      return holdingBuild;
     },
     dispose() {
       canvas.removeEventListener("pointerdown", onPointerDown);

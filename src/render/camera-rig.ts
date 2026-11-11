@@ -1,6 +1,6 @@
 import type { Vec3 } from "../sim/entities";
 
-const MIN_PITCH = (30 * Math.PI) / 180;
+const MIN_PITCH = (20 * Math.PI) / 180;
 const MAX_PITCH = (75 * Math.PI) / 180;
 const START_PITCH = (45 * Math.PI) / 180;
 const MIN_DISTANCE_METRES = 8;

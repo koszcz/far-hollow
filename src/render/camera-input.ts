@@ -2,11 +2,11 @@ import type { CameraRig } from "./camera-rig";
 
 /** The pointer pans the camera when it is this close to a screen edge. */
 const EDGE_PAN_MARGIN_PIXELS = 12;
-/** A right-button press must move this far before it counts as a drag rather than a click. */
+/** A press must move this far before it counts as a drag rather than a click. */
 const DRAG_THRESHOLD_PIXELS = 4;
 /** Q and E turn the camera this fast. */
 const KEY_ROTATE_RADIANS_PER_SECOND = 1.5;
-/** Option + right-drag turns the camera this much per pixel. */
+/** Right-drag turns the camera this much per pixel. */
 const DRAG_ROTATE_RADIANS_PER_PIXEL = 0.006;
 const DRAG_TILT_RADIANS_PER_PIXEL = 0.004;
 /** WASD and the screen edges pan this many camera distances per second, so the speed suits the zoom. */
@@ -16,6 +16,7 @@ const WHEEL_ZOOM_PER_PIXEL = 0.0015;
 /** A trackpad pinch sends smaller wheel values, so each one zooms more. */
 const PINCH_ZOOM_PER_PIXEL = 0.01;
 const WHEEL_PIXELS_PER_LINE = 16;
+const LEFT_BUTTON = 0;
 const RIGHT_BUTTON = 2;
 
 export interface PointerPosition {
@@ -56,18 +57,21 @@ export interface CameraInput {
 export interface CameraInputOptions {
   readonly canvas: HTMLCanvasElement;
   readonly rig: CameraRig;
-  /** The camera's vertical field of view, so a right-drag moves the ground with the pointer. */
+  /** The camera's vertical field of view, so a left-drag moves the ground with the pointer. */
   readonly fieldOfViewDegrees: number;
+  /** True while the left button is busy with something else, such as building, so a left-drag must not pan. */
+  readonly isLeftButtonBusy?: () => boolean;
 }
 
 /**
  * Turns mouse, trackpad, and keyboard input into camera moves.
+ * Left-drag pans the camera. Right-drag turns and tilts it.
  * It only moves the camera. It never sends commands to the game.
  */
-export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInputOptions): CameraInput {
+export function attachCameraInput({ canvas, rig, fieldOfViewDegrees, isLeftButtonBusy }: CameraInputOptions): CameraInput {
   const heldKeys = new Set<string>();
   let pointer: PointerPosition | null = null;
-  let rightPress: { lastX: number; lastY: number; travelled: number; dragging: boolean } | null = null;
+  let press: { button: number; lastX: number; lastY: number; travelled: number; dragging: boolean } | null = null;
   const halfFieldOfViewTan = Math.tan((fieldOfViewDegrees * Math.PI) / 360);
 
   function groundMetresPerPixel(): number {
@@ -75,26 +79,27 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (event.button !== RIGHT_BUTTON) return;
-    rightPress = { lastX: event.clientX, lastY: event.clientY, travelled: 0, dragging: false };
+    if (event.button !== LEFT_BUTTON && event.button !== RIGHT_BUTTON) return;
+    if (press !== null) return;
+    press = { button: event.button, lastX: event.clientX, lastY: event.clientY, travelled: 0, dragging: false };
     canvas.setPointerCapture(event.pointerId);
   }
 
   function onPointerMove(event: PointerEvent): void {
     const bounds = canvas.getBoundingClientRect();
     pointer = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
-    if (rightPress === null) return;
-    const dx = event.clientX - rightPress.lastX;
-    const dy = event.clientY - rightPress.lastY;
-    rightPress.lastX = event.clientX;
-    rightPress.lastY = event.clientY;
-    rightPress.travelled += Math.hypot(dx, dy);
-    if (!rightPress.dragging && rightPress.travelled < DRAG_THRESHOLD_PIXELS) return;
-    rightPress.dragging = true;
-    if (event.altKey) {
+    if (press === null) return;
+    const dx = event.clientX - press.lastX;
+    const dy = event.clientY - press.lastY;
+    press.lastX = event.clientX;
+    press.lastY = event.clientY;
+    press.travelled += Math.hypot(dx, dy);
+    if (!press.dragging && press.travelled < DRAG_THRESHOLD_PIXELS) return;
+    press.dragging = true;
+    if (press.button === RIGHT_BUTTON) {
       rig.rotate(-dx * DRAG_ROTATE_RADIANS_PER_PIXEL);
       rig.tilt(dy * DRAG_TILT_RADIANS_PER_PIXEL);
-    } else {
+    } else if (isLeftButtonBusy?.() !== true) {
       // The ground follows the pointer, as if the player grabbed it.
       const metres = groundMetresPerPixel();
       rig.pan(-dx * metres, dy * metres);
@@ -102,9 +107,9 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
   }
 
   function onPointerUp(event: PointerEvent): void {
-    if (event.button !== RIGHT_BUTTON || rightPress === null) return;
+    if (press === null || event.button !== press.button) return;
     // A right-click without a drag will open the radial menu in a later ticket.
-    rightPress = null;
+    press = null;
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   }
 
@@ -157,7 +162,7 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
     update(elapsedSeconds) {
       rig.rotate(keyAxis("KeyE", "KeyQ") * KEY_ROTATE_RADIANS_PER_SECOND * elapsedSeconds);
 
-      const edge = rightPress === null
+      const edge = press === null
         ? edgePanDirection(pointer, { width: canvas.clientWidth, height: canvas.clientHeight })
         : { right: 0, forward: 0 };
       const right = clampUnit(keyAxis("KeyA", "KeyD") + edge.right);

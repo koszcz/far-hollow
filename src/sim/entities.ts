@@ -1,5 +1,6 @@
 import { World } from "miniplex";
 import type { Backpack, BackpackContent, BackpackContents, Food } from "./backpack";
+import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
@@ -78,6 +79,11 @@ export interface Entity {
   barkPickUpTask?: { barkId: number };
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
+  /**
+   * The player is crafting `recipe` where they stand. `secondsDone` counts the time spent so far.
+   * It is never saved, so a loaded game is not crafting.
+   */
+  craftTask?: { recipe: RecipeKind; secondsDone: number };
   /**
    * Marks a structure the player has placed but not finished. Its position is the structure's centre.
    * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.
@@ -182,12 +188,22 @@ export interface SavedEntity {
   components: Entity;
 }
 
-/** Lists every entity with its id, in id order. An entity that had no id yet gets one. */
+/**
+ * Lists every entity with its id, in id order. An entity that had no id yet gets one.
+ * Crafting in progress is left out, because it is never saved.
+ */
 export function saveEntities(store: EntityStore): SavedEntity[] {
   const saved: SavedEntity[] = [];
   for (const entity of store.entities) {
     const id = store.id(entity);
-    if (id !== undefined) saved.push({ id, components: entity });
+    if (id === undefined) continue;
+    if (entity.craftTask === undefined) {
+      saved.push({ id, components: entity });
+      continue;
+    }
+    const components = { ...entity };
+    delete components.craftTask;
+    saved.push({ id, components });
   }
   return saved.sort((a, b) => a.id - b.id);
 }

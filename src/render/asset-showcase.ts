@@ -570,6 +570,20 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the saw blade and the saw in the backpack and the craft menu.
+  "crafting-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: saw blade and the craft menu", yaw: 20, pitch: 35 },
+      { label: "HUD: crafting the saw", yaw: -20, pitch: 35 },
+      { label: "HUD: the saw, made", yaw: 40, pitch: 35 },
+      { label: "HUD: several of each", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.
   hud: {
     radius: 6,

@@ -1,5 +1,5 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
-import type { SaveSlotSummary } from "./api";
+import type { BackpackContent, SaveSlotSummary } from "./api";
 import { readClock } from "./clock";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
@@ -35,6 +35,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
   renameNotEmptyNotice,
+  giveSawBlade,
 ];
 
 /** The version of the save format this code writes. */
@@ -277,13 +278,29 @@ function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<s
   return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
 }
 
-/** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */
-function giveStartingItem(save: Readonly<Record<string, unknown>>, item: "bedroll" | "pot" | "drawknife"): Record<string, unknown> {
+/**
+ * Version 16 to 17: a new game now starts with a saw blade, for crafting the saw. A player saved before then gets one too,
+ * unless they already hold a saw.
+ */
+function giveSawBlade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return giveStartingItem(save, "sawBlade", ["saw"]);
+}
+
+/**
+ * Puts one of an item a new game starts with into the saved player's backpack,
+ * unless they already have one, or hold anything listed in `madeFrom`, which are things made from it.
+ */
+function giveStartingItem(
+  save: Readonly<Record<string, unknown>>,
+  item: "bedroll" | "pot" | "drawknife" | "sawBlade",
+  madeFrom: readonly BackpackContent[] = [],
+): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
   const entities: unknown[] = save.entities.map((entity: unknown) => {
     const components = (entity as { components?: Entity } | null)?.components;
     const contents = components?.backpack?.contents;
-    if (components?.player !== true || typeof contents !== "object" || (contents[item] ?? 0) > 0) return entity;
+    if (components?.player !== true || typeof contents !== "object") return entity;
+    if ([item, ...madeFrom].some((held) => (contents[held] ?? 0) > 0)) return entity;
     return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [item]: 1 } } } };
   });
   return { ...save, entities };

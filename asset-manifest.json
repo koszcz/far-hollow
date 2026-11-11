@@ -429,6 +429,22 @@
       ]
     },
     {
+      "id": "crafting-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/crafting-icons.tsx",
+        "src/ui/icon-drawing.ts",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "Backpack icons for the things crafting uses or makes, drawn in the same style as backpack-icons: the saw blade, a bare steel blade with teeth and a pin hole at each end, and the saw, the same blade fixed to a wooden handle.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/crafting/issues/01-craft-menu-and-saw.md"
+      }
+    },
+    {
       "id": "berry-bush",
       "kind": "file",
       "file": "public/assets/berry-bush/berry-bush.glb",
@@ -615,7 +631,7 @@
       "code": [
         "src/render/pile-meshes.ts"
       ],
-      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood and bark lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Firewood and the pot reuse their approved shapes. Dropped sticks never form a pile: they lie as normal sticks. Bark, berries, mushrooms, and tools are rough shapes.",
+      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood and bark lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Firewood and the pot reuse their approved shapes. Dropped sticks never form a pile: they lie as normal sticks. Bark, berries, mushrooms, tools, and the saw blade are rough shapes.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

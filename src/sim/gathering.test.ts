@@ -24,8 +24,8 @@ describe("picking up sticks", () => {
     expect(Math.hypot(player.position.x - stick.position.x, player.position.z - stick.position.z)).toBeLessThan(2);
     expect(game.client.getView().backpack.stick).toBe(1);
     expect(game.entities.with("stick").size).toBe(stickCount - 1);
-    // The view shows the backpack's weight: the starting tools, bedroll, and empty pot, plus one stick.
-    expect(game.client.getView().backpackWeight).toBeCloseTo(4.9 + 0.5);
+    // The view shows the backpack's weight: the starting tools, bedroll, empty pot, and saw blade, plus one stick.
+    expect(game.client.getView().backpackWeight).toBeCloseTo(5.4 + 0.5);
     expect(game.client.getView().backpackWeightLimit).toBe(BACKPACK_WEIGHT_LIMIT_KG);
   });
 

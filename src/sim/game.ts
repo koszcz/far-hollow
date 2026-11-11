@@ -8,6 +8,7 @@ import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { createDebarking, DEBARK_SECONDS } from "./debarking";
+import { createCrafting, RECIPES, recipeOf } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
@@ -60,6 +61,7 @@ const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   stillHoldsSomething: 4,
   chestFull: 4,
   saveBroken: 10,
+  putLogDownFirst: 4,
 };
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
@@ -114,6 +116,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
   const debarking = createDebarking(entities, walking);
+  const crafting = createCrafting(entities);
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
@@ -154,6 +157,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
       buildMenu: BUILD_MENU,
+      craftMenu: craftMenu(),
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
@@ -206,7 +210,30 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     return Object.freeze({ id, content: pile.pile.content, count: pile.pile.count });
   }
 
+  /** Every recipe, with what the player lacks to follow each one now. */
+  function craftMenu(): GameView["craftMenu"] {
+    return Object.freeze(
+      RECIPES.map(({ kind, materials, result, seconds, tool, station }) => {
+        const lacks = crafting.lacks(kind);
+        return Object.freeze({
+          recipe: kind,
+          materials: Object.freeze(materials.map((amount) => Object.freeze({ ...amount }))),
+          result: Object.freeze({ ...result }),
+          seconds,
+          ...(tool === undefined ? {} : { tool }),
+          ...(station === undefined ? {} : { station }),
+          ...(lacks.tool === undefined ? {} : { missingTool: lacks.tool }),
+          ...(lacks.station === undefined ? {} : { missingStation: lacks.station }),
+          hasMaterials: lacks.materials !== true,
+        });
+      }),
+    );
+  }
+
   function currentAction(): PlayerAction | null {
+    if (player.craftTask !== undefined && player.walkPath === undefined) {
+      return Object.freeze({ kind: "craft", progress: Math.min(1, player.craftTask.secondsDone / recipeOf(player.craftTask.recipe).seconds) });
+    }
     if (player.buildTask !== undefined && player.walkPath === undefined) {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
       if (blueprint !== undefined) return Object.freeze({ kind: "build", progress: blueprint.progress });
@@ -233,6 +260,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     chopping.cancel();
     carrying.cancel();
     debarking.cancel();
+    crafting.cancel();
     gathering.cancel();
     foraging.cancel();
     building.cancel();
@@ -268,6 +296,11 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     debarkLog: (command) => {
       cancelTasks();
       const refusal = debarking.start(command.logId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    craft: (command) => {
+      cancelTasks();
+      const refusal = crafting.start(command.recipe);
       if (refusal !== undefined) showNotice(refusal);
     },
     pickUpStick: (command) => {
@@ -496,6 +529,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       chopping.step(playerSeconds);
       carrying.step();
       debarking.step(playerSeconds);
+      crafting.step(playerSeconds);
       gathering.step(playerSeconds);
       foraging.step();
       building.step(playerSeconds);

@@ -1,4 +1,4 @@
-// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, or /?asset=backpack-icons, once in each of the four views, each in a
+// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, or /?asset=crafting-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/asset-showcase.ts. Development builds only.
 import { render } from "preact";
 import type { GameClient, GameView, StructureKind } from "../sim/api";
@@ -15,6 +15,15 @@ const BASE_VIEW: GameView = {
   backpackWeight: 4.2,
   backpackWeightLimit: 20,
   buildMenu: [{ structure: "campfire", cost: [{ material: "stick", count: 5 }] }],
+  craftMenu: [
+    {
+      recipe: "saw",
+      materials: [{ material: "sawBlade", count: 1 }, { material: "stick", count: 3 }],
+      result: { content: "saw", count: 1 },
+      seconds: 5,
+      hasMaterials: true,
+    },
+  ],
   action: null,
   carrying: null,
   nearbyCampfire: null,
@@ -30,8 +39,16 @@ const BASE_VIEW: GameView = {
   notice: null,
 };
 
+/** One HUD state: the game state, whether the build menu is open, what the player is placing, and whether the craft menu is open. */
+interface ShowcaseState {
+  view: GameView;
+  buildMenuOpen: boolean;
+  placing: StructureKind | null;
+  craftMenuOpen?: boolean;
+}
+
 /** One game state per view, with whether the build menu is open and what the player is placing. */
-const STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
+const STATES: readonly ShowcaseState[] = [
   { view: BASE_VIEW, buildMenuOpen: true, placing: null },
   {
     view: {
@@ -72,7 +89,7 @@ const STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: Struct
 ];
 
 /** The "bark" asset: bark in the backpack, debarking under way, bark offered as fuel, and a debarked log on the shoulder. */
-const BARK_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
+const BARK_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 4 } }, buildMenuOpen: false, placing: null },
   {
     view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 2 }, action: { kind: "debark", progress: 0.6 } },
@@ -96,11 +113,19 @@ const BARK_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: S
 ];
 
 /** The "backpack-icons" asset: every kind of backpack content, shown once alone and once with a count. */
-const BACKPACK_ICON_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
+const BACKPACK_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, drawknife: 1, fireStriker: 1, bedroll: 1, pot: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { axe: 1, stick: 1, firewood: 4, bark: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { stick: 7, bark: 3, berries: 5, mushroom: 1, potOfRiverWater: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { knife: 1, firewood: 1, berries: 1, mushroom: 2, potOfBoiledWater: 1 } }, buildMenuOpen: false, placing: null },
+];
+
+/** The "crafting-icons" asset: the saw blade and the saw in the backpack, with the craft menu and crafting under way. */
+const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
+  { view: { ...BASE_VIEW, backpack: { axe: 1, sawBlade: 1, stick: 3 } }, buildMenuOpen: false, placing: null, craftMenuOpen: true },
+  { view: { ...BASE_VIEW, backpack: { axe: 1, sawBlade: 1, stick: 3 }, action: { kind: "craft", progress: 0.6 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { axe: 1, saw: 1, stick: 1 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { sawBlade: 3, saw: 2 } }, buildMenuOpen: false, placing: null },
 ];
 
 /** A client that always shows `view` and ignores commands. */
@@ -115,11 +140,11 @@ function stillClient(view: GameView): GameClient {
   };
 }
 
-const STATES_BY_ASSET = { hud: STATES, bark: BARK_STATES, "backpack-icons": BACKPACK_ICON_STATES } as const;
+const STATES_BY_ASSET = { hud: STATES, bark: BARK_STATES, "backpack-icons": BACKPACK_ICON_STATES, "crafting-icons": CRAFTING_ICON_STATES } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", or "backpack-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", or "crafting-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
-  STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing }, index) => {
+  STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
@@ -130,6 +155,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         placing={placing}
         onToggleBuildMenu={() => {}}
         onPickBuildEntry={() => {}}
+        craftMenuOpen={craftMenuOpen}
+        onToggleCraftMenu={() => {}}
       />,
       quarter,
     );

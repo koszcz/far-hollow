@@ -250,8 +250,8 @@ export function createSceneRenderer(
   const pointer = new THREE.Vector2();
 
   /**
-   * Shows what the player is doing: which way they face, what they carry, and whether they chop, split, or debark.
-   * Debarking reuses the chopping swing, aimed at the log.
+   * Shows what the player is doing: which way they face, what they carry, and whether they chop, split, debark, or craft.
+   * Debarking reuses the chopping swing, aimed at the log. Crafting reuses it where the player faces.
    */
   function posePlayer(nowSeconds: number): void {
     const player = entities.with("player", "position").first;
@@ -267,6 +267,11 @@ export function createSceneRenderer(
     const target = workTargetId === undefined ? undefined : entities.entity(workTargetId);
     if (target?.position !== undefined) {
       playerMesh.setHeading(Math.atan2(target.position.x - playerDrawn.x, target.position.z - playerDrawn.z));
+      playerMesh.setChopping(nowSeconds);
+      return;
+    }
+    if (player.craftTask !== undefined && player.walkPath === undefined) {
+      // Crafting reuses the chopping swing, aimed where the player already faces.
       playerMesh.setChopping(nowSeconds);
       return;
     }

@@ -1,7 +1,7 @@
 // Draws piles the player dropped with the code-built "pile" (draft) in asset-manifest.json.
 // A draft: each pile shows one copy of its kind for each thing it holds, up to MAX_SHOWN, so a pile grows from one to many.
 // Sticks and firewood reuse the "sticks" and "firewood" shapes, the pot reuses the "pot", and the bedroll lies as the "rolled-bedroll".
-// Bark, food, and tools are rough shapes built here. The pivot of each pile is its middle, on the ground.
+// Bark, food, tools, and the saw blade are rough shapes built here. The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { BackpackContent } from "../sim/backpack";
@@ -132,6 +132,13 @@ export function createPileMeshes(entities: EntityStore): PileMeshes {
       { geometry: track(box(0.025, 0.025, 0.1, 0.16, 0, 0.05)), material: handle },
     ],
     fireStriker: [{ geometry: track(box(0.07, 0.01, 0.03)), material: steel }],
+    // The saw blade: a long, thin steel strip with no handle.
+    sawBlade: [{ geometry: track(box(0.07, 0.004, 0.45)), material: steel }],
+    // The saw: the same blade with a wooden handle at one end.
+    saw: [
+      { geometry: track(box(0.07, 0.004, 0.45, 0, 0, 0.06)), material: steel },
+      { geometry: track(box(0.04, 0.03, 0.12, 0, 0, -0.22)), material: handle },
+    ],
     bedroll: rolledBedroll.parts,
   };
   const LAYOUTS: Readonly<Record<BackpackContent, Layout>> = {
@@ -142,6 +149,8 @@ export function createPileMeshes(entities: EntityStore): PileMeshes {
     knife: "spread",
     drawknife: "spread",
     fireStriker: "spread",
+    sawBlade: "spread",
+    saw: "spread",
     berries: "spread",
     mushroom: "spread",
     bedroll: "spread",

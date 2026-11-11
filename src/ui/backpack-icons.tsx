@@ -2,24 +2,9 @@
 // Added by hud-icons ticket 01. The owner approved the two-tone version on 2026-11-11. The owner approved the shaded version, with outlines, shading, and glints, on 2026-11-11.
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
 import { useId } from "preact/hooks";
-import type { BackpackContent } from "../sim/api";
-
-/**
- * One part of an icon. `fill` is a filled shape and `line` is a thick stroke. A part takes the icon's main colour,
- * or its own `colour` when it has one, so tools can show a wooden handle and a steel blade.
- * `cut` and `cutLine` draw in the chip's background colour, to carve detail out of a filled shape.
- * `shine` is a thin pale glint, such as the light on a steel edge. It gets no outline.
- */
-interface IconPart {
-  d: string;
-  as: "fill" | "line" | "cut" | "cutLine" | "shine";
-  colour?: string;
-}
-
-interface BackpackIconDrawing {
-  colour: string;
-  parts: readonly IconPart[];
-}
+import type { BackpackContent, CraftingContent } from "../sim/api";
+import { CRAFTING_DRAWINGS } from "./crafting-icons";
+import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
 
 /** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` in style.css. */
 const CHIP_BACKGROUND = "#3d2b1e";
@@ -52,7 +37,8 @@ const POT: readonly IconPart[] = [
 /** A wave across the pot body, showing the water inside. */
 const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
-const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
+/** The approved drawings. Things that crafting uses or makes are drawn in the draft "crafting-icons" asset instead. */
+const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent>, BackpackIconDrawing>> = {
   /** A steel axe head on a red-painted handle. */
   axe: {
     colour: STEEL,
@@ -174,7 +160,7 @@ const CUT_LINE_WIDTH = 1.8;
  * The shading is lit from the top left: a highlight there fades to a shadow at the bottom right.
  */
 export function BackpackIcon({ content }: { content: BackpackContent }) {
-  const drawing = DRAWINGS[content];
+  const drawing = content === "sawBlade" || content === "saw" ? CRAFTING_DRAWINGS[content] : DRAWINGS[content];
   const shadeId = `backpack-shade-${useId()}`;
   const painted = drawing.parts.filter((part) => part.as !== "cut" && part.as !== "cutLine" && part.as !== "shine");
   return (

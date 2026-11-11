@@ -4,7 +4,13 @@
  */
 
 /** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in CONTENT_WEIGHT_KG. */
-export type BackpackContent = "axe" | "knife" | "fireStriker" | "stick" | "firewood";
+export type BackpackContent = "axe" | "knife" | "fireStriker" | "stick" | "firewood" | PotContent;
+
+/**
+ * The pot, by what it holds. The player has one pot, so the backpack holds at most one of these.
+ * `pot` is empty, `potOfRiverWater` holds unboiled river water, and `potOfBoiledWater` holds water safe to drink.
+ */
+export type PotContent = "pot" | "potOfRiverWater" | "potOfBoiledWater";
 
 /** How many of each kind of thing the backpack holds. Kinds it does not hold are missing. */
 export type BackpackContents = Partial<Record<BackpackContent, number>>;
@@ -23,11 +29,15 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   fireStriker: 0.1,
   stick: 0.5,
   firewood: 1.5,
+  pot: 1,
+  // A pot holds 2 litres of water, which weigh 2 kg.
+  potOfRiverWater: 3,
+  potOfBoiledWater: 3,
 };
 
 /** What the player starts a new game with. */
 export function createStartingBackpack(): Backpack {
-  return { contents: { axe: 1, knife: 1, fireStriker: 1 } };
+  return { contents: { axe: 1, knife: 1, fireStriker: 1, pot: 1 } };
 }
 
 export function countInBackpack(backpack: Backpack, content: BackpackContent): number {

@@ -28,6 +28,7 @@ export interface HudProps {
 function CampfirePanel({ client, view, campfire }: { client: GameClient; view: GameView; campfire: CampfireView }) {
   const hasSticks = (view.backpack.stick ?? 0) > 0;
   const hasFirewood = (view.backpack.firewood ?? 0) > 0;
+  const hasFullPot = (view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0;
   return (
     <section class="hud-campfire" aria-label={strings.campfire}>
       <h2>{strings.campfire}</h2>
@@ -51,6 +52,28 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
           }}>
           {strings.lightCampfire}
         </button>
+      )}
+      {campfire.pot === null ? (
+        <button type="button" disabled={!campfire.lit || !hasFullPot} onClick={() => {
+            client.send({ type: "putPotOnFire", campfireId: campfire.id });
+          }}>
+          {strings.putPotOnFire}
+        </button>
+      ) : (
+        <>
+          {campfire.pot.water === "boiled" ? (
+            <p>{strings.potBoiled}</p>
+          ) : (
+            <label>
+              {strings.potBoiling} <progress max={1} value={campfire.pot.boilProgress} />
+            </label>
+          )}
+          <button type="button" onClick={() => {
+              client.send({ type: "takePotOffFire", campfireId: campfire.id });
+            }}>
+            {strings.takePotOffFire}
+          </button>
+        </>
       )}
     </section>
   );
@@ -142,6 +165,20 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
             <li key={content}>{strings.backpackContentCount(strings.backpackContents[content], count)}</li>
           ))}
         </ul>
+        {(view.backpack.pot ?? 0) > 0 && (
+          <button type="button" onClick={() => {
+              client.send({ type: "fillPot" });
+            }}>
+            {strings.fillPot}
+          </button>
+        )}
+        {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
+          <button type="button" onClick={() => {
+              client.send({ type: "drinkFromPot" });
+            }}>
+            {strings.drinkFromPot}
+          </button>
+        )}
       </section>
     </div>
   );

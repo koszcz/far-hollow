@@ -8,6 +8,7 @@ import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
+import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
 import { daylightAt } from "./daylight";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
@@ -48,6 +49,8 @@ interface Stage {
   readonly place: (x: number, z: number, entity: Entity) => Entity;
   /** Moves the player to this offset from the stage's middle and turns them to face `heading`, in radians. */
   readonly movePlayer: (x: number, z: number, heading: number) => void;
+  /** Stands a pot on the ground at this offset from the stage's middle, in metres. It is not an entity. */
+  readonly placePot: (x: number, z: number) => PotMesh;
 }
 
 interface Showcase {
@@ -73,6 +76,14 @@ const FOUR_ANGLES: readonly Shot[] = [
   { label: "back three-quarter", yaw: 215, pitch: 25 },
   { label: "from above", yaw: 40, pitch: 60 },
 ];
+
+/** The pots standing on the ground in the "pot" showcase, with how each one looks. */
+const showcasePots: { pot: PotMesh; look: PotLook }[] = [];
+
+/** Shows each standing pot in the "pot" showcase as it should look `seconds` into its steam loop. */
+function showPots(seconds: number): void {
+  for (const { pot, look } of showcasePots) pot.show(look, seconds);
+}
 
 const SHOWCASES: Readonly<Record<string, Showcase>> = {
   terrain: { radius: 14, focus: { x: 0, y: 0, z: 0 }, shots: FOUR_ANGLES, build() {} },
@@ -141,6 +152,36 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     play: {
       shot: { label: "burning at dusk", yaw: 20, pitch: 14, radius: 2.4, focus: { y: 0.8 }, hour: 20 },
       pose: () => undefined,
+    },
+  },
+  pot: {
+    radius: 0.5,
+    focus: { x: 0, y: 0.15, z: 0 },
+    shots: [
+      { label: "empty", yaw: 20, pitch: 35, focus: { x: -0.5 } },
+      { label: "full of water", yaw: 20, pitch: 35, focus: { x: 0 } },
+      { label: "steaming", yaw: 20, pitch: 20, focus: { x: 0.5, y: 0.3 }, seconds: 1 },
+      { label: "on a lit campfire", yaw: 20, pitch: 15, radius: 1, focus: { x: 0, y: 0.8, z: -2 }, seconds: 1 },
+    ],
+    build({ place, placePot }) {
+      showcasePots.length = 0;
+      showcasePots.push(
+        { pot: placePot(-0.5, 0), look: "empty" },
+        { pot: placePot(0, 0), look: "full" },
+        { pot: placePot(0.5, 0), look: "steaming" },
+      );
+      place(0, -2, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES }, potOnFire: { water: "river", minutesBoiling: 0 } });
+    },
+    pose(_stage, shot) {
+      showPots(shot.seconds ?? 0);
+    },
+    // The steam rises in a loop, so it plays live on the campfire at dusk.
+    play: {
+      shot: { label: "steaming on a lit campfire", yaw: 20, pitch: 12, radius: 1, focus: { x: 0, y: 0.85, z: -2 }, hour: 19 },
+      pose(_stage, seconds) {
+        showPots(seconds);
+        return undefined;
+      },
     },
   },
   "sky-lighting": {
@@ -290,6 +331,7 @@ export function showAsset(
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
   scene.add(player.group);
+  const potMaker = createPotMaker();
   const stage: Stage = {
     store,
     player,
@@ -302,6 +344,13 @@ export function showAsset(
       playerEntity.previousPosition = { ...spot };
       player.group.position.set(spot.x, spot.y, spot.z);
       player.setHeading(heading);
+    },
+    placePot(x, z) {
+      const pot = potMaker.make();
+      const spot = at(x, z);
+      pot.group.position.set(spot.x, spot.y, spot.z);
+      scene.add(pot.group);
+      return pot;
     },
   };
   stage.movePlayer(0, 0, 0);
@@ -369,6 +418,7 @@ export function showAsset(
       if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
       campfires.dispose();
+      potMaker.dispose();
       player.dispose();
       ground.dispose();
       river?.dispose();

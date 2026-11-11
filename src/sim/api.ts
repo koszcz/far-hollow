@@ -3,6 +3,7 @@ import type { BackpackContents } from "./backpack";
 export type { BackpackContent } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
+import type { PotWater } from "./pot-state";
 import type { GroundPoint } from "./valley";
 
 // The only part of game logic the UI may import (ADR 0005).
@@ -42,6 +43,14 @@ export type Command =
    * River water is not boiled, so drinking it fills thirst but makes the player sick.
    */
   | ({ type: "drinkFromRiver" } & GroundPoint)
+  /** Walk the player to the riverbank nearest them and fill the empty pot with river water. */
+  | { type: "fillPot" }
+  /** Drink the water in the full pot. Boiled water fills thirst safely. Unboiled river water makes the player sick. */
+  | { type: "drinkFromPot" }
+  /** Put the full pot from the backpack on a lit campfire within the player's reach, to boil its water. */
+  | { type: "putPotOnFire"; campfireId: number }
+  /** Take the pot off a campfire within the player's reach and put it back in the backpack. */
+  | { type: "takePotOffFire"; campfireId: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
@@ -102,6 +111,11 @@ export interface CampfireView {
   readonly fuelMinutes: number;
   /** True if sending lightCampfire would light it now: it is out, it has fuel, and the player has a fire striker. */
   readonly canLight: boolean;
+  /**
+   * The pot on the campfire, or null if there is none. `water` says whether its water has boiled yet.
+   * `boilProgress` runs from 0 to 1 while the water boils on the lit fire.
+   */
+  readonly pot: { readonly water: PotWater; readonly boilProgress: number } | null;
 }
 
 export interface PlayerAction {

@@ -1,6 +1,7 @@
 import { World } from "miniplex";
 import type { Backpack } from "./backpack";
 import type { Needs } from "./needs";
+import type { PotOnFire } from "./pot-state";
 import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
 
@@ -69,6 +70,10 @@ export interface Entity {
   drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
+  /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
+  fillPotTask?: GroundPoint;
+  /** The full pot sitting on this campfire. Only campfires have one. */
+  potOnFire?: PotOnFire;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */

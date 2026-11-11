@@ -5,8 +5,13 @@ import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
 import { nearestWalkableSpot } from "./walk-map";
 import type { Walking } from "./walking";
 
-/** The player can drink from the river from this many metres from the water's edge. */
-const DRINK_REACH_METRES = 3;
+/** The player can drink from the river, or fill the pot, from this many metres from the water's edge. */
+const RIVER_REACH_METRES = 3;
+
+/** True if someone standing at this spot is close enough to the water to drink from the river or fill the pot. */
+export function canReachRiver(valley: Valley, at: GroundPoint): boolean {
+  return distanceToRiver(valley.river, at) - valley.river.width / 2 <= RIVER_REACH_METRES;
+}
 
 export interface Drinking {
   /** Walks the player to the riverbank nearest a spot on the river, then drinks there. */
@@ -37,8 +42,7 @@ export function createDrinking(entities: EntityStore, walking: Walking, valley: 
       for (const player of [...drinkers]) {
         if (player.walkPath !== undefined) continue;
         entities.removeComponent(player, "drinkTask");
-        const fromWater = distanceToRiver(valley.river, player.position) - valley.river.width / 2;
-        if (fromWater > DRINK_REACH_METRES) continue;
+        if (!canReachRiver(valley, player.position)) continue;
         player.needs.thirst.level = FULL_NEED;
         player.needs.thirst.minutesWithout = 0;
         setComponent(entities, player, "sickness", catchSickness());

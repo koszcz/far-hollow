@@ -144,6 +144,22 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose: () => undefined,
     },
   },
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.
+  hud: {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: walking, day", yaw: 20, pitch: 35 },
+      { label: "HUD: chopping, backpack full", yaw: -20, pitch: 35 },
+      { label: "HUD: carrying a log at a campfire", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: cold at night, paused, placing", yaw: 20, pitch: 35, hour: NIGHT },
+    ],
+    build({ place, movePlayer }) {
+      for (const [x, z] of [[-6, -4], [0, -7], [6, -3], [-3, -9]] as const) place(x, z, { tree: true });
+      place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+      movePlayer(0, 0, 0);
+    },
+  },
   "sky-lighting": {
     radius: 9,
     focus: { x: 0, y: 2, z: 0 },
@@ -287,7 +303,7 @@ export function showAsset(
   const store = createEntityStore();
   const player = createPlayerMesh(logShape);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting"].includes(id);
+  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;

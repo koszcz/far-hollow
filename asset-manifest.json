@@ -236,6 +236,23 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "hud",
+      "kind": "code",
+      "code": [
+        "src/ui/hud.tsx",
+        "src/ui/hud-icons.tsx",
+        "src/app/style.css"
+      ],
+      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, over the top left of the scene.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
     }
   ]
 }

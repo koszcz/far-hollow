@@ -21,6 +21,7 @@ export const strings = {
   addFirewood: "Add firewood",
   lightCampfire: "Light with fire striker",
   warmth: "Warmth",
+  needs: "Needs",
   notices: {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed from the cold. You woke the next morning.",

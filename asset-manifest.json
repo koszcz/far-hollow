@@ -136,13 +136,16 @@
     {
       "id": "firewood",
       "kind": "code",
-      "code": [],
-      "description": "Firewood split from a log. Nothing draws it in the world yet.",
+      "code": [
+        "src/render/firewood-shape.ts"
+      ],
+      "description": "Firewood: one quarter of a log, split lengthwise, with bark on the round face and pale split wood. Nothing draws it in the world yet.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

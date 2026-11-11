@@ -24,4 +24,6 @@ Every asset (3D model, texture, animation, or sound) is listed in the asset cata
 2. If none exists, build a draft asset in code, as cheaply as possible, and add it with `"status": "draft"` and the ticket's path.
 3. Change an approved asset or add a third-party file only with the owner's explicit approval in chat.
 
+Unpacked third-party packs, such as Kenney kits, live in `third-party/` at the root of the main checkout. Git ignores this folder. Copy a file from it into `public/assets/<id>/` only with the owner's approval.
+
 The owner polishes drafts with the `make-asset` skill. See `docs/adr/0006-tickets-add-draft-assets-owner-approves-final.md`.

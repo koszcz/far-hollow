@@ -1,4 +1,4 @@
-// The player's four needs: hunger, thirst, warmth, and fatigue. Only fatigue holds steady for now.
+// The player's four needs: hunger, thirst, warmth, and fatigue.
 
 /** The four body states the player must keep up. */
 export const NEED_KINDS = ["hunger", "thirst", "warmth", "fatigue"] as const;
@@ -19,6 +19,13 @@ export const WARMTH_RECOVERY_PER_HOUR = 1;
 export const THIRST_DRAIN_PER_HOUR = 1 / 24;
 /** While the player is sick, every need drains this many times faster. Needs that recover do so at the usual speed. */
 export const SICK_DRAIN_FACTOR = 2;
+
+/** How much fatigue the player loses per game hour while awake and not working. Full fatigue lasts a day awake. */
+export const FATIGUE_DRAIN_PER_HOUR = 1 / 24;
+/** Timed work, such as chopping or building, drains fatigue this many times faster. */
+export const WORK_FATIGUE_FACTOR = 3;
+/** How much fatigue the player regains per game hour asleep. A full night's sleep of 8 hours restores it all. */
+export const FATIGUE_RECOVERY_PER_HOUR = 1 / 8;
 
 /** Below this level, a need makes the player move and work more slowly. */
 export const LOW_NEED = 0.3;
@@ -53,6 +60,10 @@ export interface NeedConditions {
   night: boolean;
   /** Whether the player stands within a lit campfire's warmth range. */
   warmedByCampfire: boolean;
+  /** Whether the player is doing timed work, such as chopping, splitting, or building. */
+  working: boolean;
+  /** Whether the player is asleep. */
+  asleep: boolean;
   /** Whether the player is sick. */
   sick: boolean;
   /** Whether rain falls on the player. No roofs exist yet, so rain falls on the player everywhere. Missing means dry. */
@@ -78,7 +89,7 @@ function needChangePerMinute(kind: NeedKind, conditions: NeedConditions): number
   return (changePerHour * sickFactor) / 60;
 }
 
-/** How much a need changes per game hour for a player who is not sick. Fatigue holds steady for now. */
+/** How much a need changes per game hour for a player who is not sick. */
 function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
   switch (kind) {
     case "warmth":
@@ -90,8 +101,14 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
     case "hunger":
       return -HUNGER_DRAIN_PER_HOUR;
     case "fatigue":
-      return 0;
+      if (conditions.asleep) return FATIGUE_RECOVERY_PER_HOUR;
+      return -FATIGUE_DRAIN_PER_HOUR * (conditions.working ? WORK_FATIGUE_FACTOR : 1);
   }
+}
+
+/** How many game minutes of sleep restore fatigue fully. */
+export function minutesToRestFully(needs: Needs): number {
+  return ((FULL_NEED - needs.fatigue.level) / FATIGUE_RECOVERY_PER_HOUR) * 60;
 }
 
 /** Whether any one need has been empty for too long, so the player has a collapse. */

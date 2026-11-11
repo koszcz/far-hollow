@@ -149,9 +149,10 @@ describe("eating", () => {
 
     const after = game.client.getView().needs;
     expect(after.hunger).toBeCloseTo(0.65, 3);
-    // One logic step passes, so thirst drains by a hair.
+    // One logic step passes, so thirst and fatigue drain by a hair.
     expect(after.thirst).toBeCloseTo(before.thirst, 3);
-    expect(after).toMatchObject({ warmth: before.warmth, fatigue: before.fatigue });
+    expect(after.fatigue).toBeCloseTo(before.fatigue, 3);
+    expect(after.warmth).toBe(before.warmth);
     expect(game.client.getView().backpack.mushroom).toBe(0);
     expect(game.client.getView().sick).toBe(false);
   });

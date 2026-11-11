@@ -299,6 +299,20 @@
         "status": "draft",
         "ticket": ".scratch/settling-in/issues/08-rain.md"
       }
+    },
+    {
+      "id": "bedroll",
+      "kind": "code",
+      "code": [
+        "src/render/bedroll-meshes.ts"
+      ],
+      "description": "A bedroll laid out on the ground: a flat green canvas mat with a rolled-up red blanket at its head end.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/settling-in/issues/04-fatigue-and-bedroll.md"
+      }
     }
   ]
 }

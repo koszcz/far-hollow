@@ -1,7 +1,7 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
 import type { SaveSlotSummary } from "./api";
 import { readClock } from "./clock";
-import type { SavedEntity } from "./entities";
+import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import { createGame, type Game, type GameProgress } from "./game";
 import { generateValley } from "./valley";
@@ -14,7 +14,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -96,4 +96,16 @@ function addForageSpots(save: Readonly<Record<string, unknown>>): Record<string,
   const lastId = saved.reduce<number>((last, entity) => Math.max(last, idOf(entity)), -1);
   const spots = valleyForageSpots(generateValley(seed as number)).map((components, index) => ({ id: lastId + 1 + index, components }));
   return { ...save, entities: [...saved, ...spots] };
+}
+
+/** Version 2 to 3: a new game now starts with a bedroll, so a player saved before bedrolls existed gets one too. */
+function giveBedroll(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const contents = components?.backpack?.contents;
+    if (components?.player !== true || typeof contents !== "object" || (contents.bedroll ?? 0) > 0) return entity;
+    return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, bedroll: 1 } } } };
+  });
+  return { ...save, entities };
 }

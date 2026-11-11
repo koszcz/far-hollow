@@ -62,6 +62,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   forageSpot: shape({ food: exactly("berries", "mushroom") }),
   regrowing: shape({ minutesLeft: finite }),
   forageTask: shape({ spotId: count }),
+  bedroll: exactly(true),
+  bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
   drinkTask: point,

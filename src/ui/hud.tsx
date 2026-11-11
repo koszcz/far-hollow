@@ -1,7 +1,7 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, CampfireView, Food, GameClient, GameView } from "../sim/api";
+import type { BackpackContent, BedrollView, CampfireView, Food, GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
 import { HudIcon, type HudIconName } from "./hud-icons";
 
@@ -43,6 +43,8 @@ const LOW_NEED = 0.25;
 const THIRST_COLOUR = "#5aa9e6";
 /** A berry red for the hunger bar. */
 const HUNGER_COLOUR = "#c8553d";
+/** A dusk violet for the fatigue bar. */
+const FATIGUE_COLOUR = "#9a8fd6";
 
 /** The colour of the warmth bar at `warmth`, from 0 (frozen) to 1 (fully warm). */
 function warmthColour(warmth: number): string {
@@ -101,6 +103,26 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
   );
 }
 
+/** Buttons to sleep on the bedroll beside the player, or to pack it away. */
+function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: BedrollView }) {
+  return (
+    <section class="hud-section hud-bedroll" aria-label={strings.bedroll}>
+      <h2>
+        <HudIcon name="moon" />
+        {strings.bedroll}
+      </h2>
+      <div class="hud-buttons">
+        <HudButton icon="moon" label={strings.sleep} onClick={() => {
+            client.send({ type: "sleep", bedrollId: bedroll.id });
+          }} />
+        <HudButton icon="backpack" label={strings.pickUpBedroll} onClick={() => {
+            client.send({ type: "pickUpBedroll", bedrollId: bedroll.id });
+          }} />
+      </div>
+    </section>
+  );
+}
+
 const actionLabels = {
   chop: strings.chopping,
   split: strings.splitting,
@@ -137,6 +159,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
           <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
           <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
+          <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
           {view.sick && <p class="hud-hint">{strings.sick}</p>}
         </section>
         {view.action !== null && (
@@ -147,6 +170,11 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
               client.send({ type: "setPaused", paused: !view.paused });
             }} />
           {!placingCampfire && <HudButton icon="place" label={strings.placeCampfire(view.campfireStickCost)} onClick={onPlaceCampfire} />}
+          {(view.backpack.bedroll ?? 0) > 0 && (
+            <HudButton icon="place" label={strings.layBedroll} onClick={() => {
+                client.send({ type: "layBedroll" });
+              }} />
+          )}
         </div>
         {placingCampfire && <p class="hud-hint">{strings.placingCampfire}</p>}
         {view.carrying === "log" && (
@@ -166,6 +194,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           </section>
         )}
         {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
+        {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
         <section class="hud-section hud-backpack" aria-label={strings.backpack}>
           <h2>
             <HudIcon name="backpack" />

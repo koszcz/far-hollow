@@ -7,6 +7,7 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
+import { createBedrollMeshes } from "./bedroll-meshes";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
@@ -166,6 +167,14 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { campfire: { lit: false, fuelMinutes: 0 } });
+    },
+  },
+  bedroll: {
+    radius: 1.3,
+    focus: { x: 0, y: 0.1, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { bedroll: true });
     },
   },
   "fire-effect": {
@@ -402,11 +411,12 @@ export function showAsset(
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   const forage = createForageMeshes(store);
   forage.update();
+  const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store);
-  scene.add(forest.group, campfires.group, forage.group, rain.group);
+  scene.add(forest.group, campfires.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, forage.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, forage.group, bedrolls.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -415,6 +425,7 @@ export function showAsset(
     forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
+    bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -466,6 +477,7 @@ export function showAsset(
       forest.dispose();
       campfires.dispose();
       forage.dispose();
+      bedrolls.dispose();
       rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();

@@ -164,6 +164,9 @@ describe("surviving the first night", () => {
 
     send(game, { type: "skipTime", hours: 23 }); // 07:00 on day 2.
     quenchThirst(game); // So thirst does not cause a collapse during the second skip.
+    // Two days awake would also end in a collapse from fatigue, so the player is rested in between.
+    const needs = onlyPlayer(game).needs;
+    if (needs !== undefined) needs.fatigue.level = 1;
     send(game, { type: "skipTime", hours: 23 }); // 06:00 on day 3.
 
     expect(game.client.getView().notice).toBeNull();

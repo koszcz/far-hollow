@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
+import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
@@ -32,7 +33,8 @@ export type ScenePick =
   | { kind: "stick"; id: number }
   | { kind: "forage"; id: number }
   | { kind: "blueprint"; id: number }
-  | { kind: "campfire"; id: number };
+  | { kind: "campfire"; id: number }
+  | { kind: "bedroll"; id: number };
 
 /** A pick that landed on an entity. */
 type EntityPick = Extract<ScenePick, { id: number }>;
@@ -92,10 +94,12 @@ export function createSceneRenderer(
   scene.add(campfireMeshes.group);
   const forageMeshes = createForageMeshes(entities);
   scene.add(forageMeshes.group);
+  const bedrollMeshes = createBedrollMeshes(entities);
+  scene.add(bedrollMeshes.group);
   const rainEffect = createRainEffect(entities);
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
-  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group);
+  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group, bedrollMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
@@ -107,7 +111,8 @@ export function createSceneRenderer(
       return;
     }
     const { kind, entity } = hovered;
-    if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
+    if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
+    else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
     else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
     else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
   }
@@ -184,6 +189,7 @@ export function createSceneRenderer(
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
       forageMeshes.update();
+      bedrollMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -204,7 +210,7 @@ export function createSceneRenderer(
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
-      const candidates = [forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), forageMeshes.pick(raycaster)];
+      const candidates = [forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), forageMeshes.pick(raycaster), bedrollMeshes.pick(raycaster)];
       let nearest: (typeof candidates)[number];
       for (const candidate of candidates) {
         if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
@@ -230,6 +236,7 @@ export function createSceneRenderer(
       forestMeshes.dispose();
       campfireMeshes.dispose();
       forageMeshes.dispose();
+      bedrollMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();

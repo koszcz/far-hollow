@@ -41,7 +41,7 @@ describe("saving and loading a game", () => {
 });
 
 describe("upgrading an older save", () => {
-  // Only version 1 exists so far, so these use made-up upgrades to versions 2 and 3.
+  // These use made-up upgrades to versions 2 and 3, so they test the upgrade steps apart from the game's real ones.
   const upgrades: SaveUpgrade[] = [
     (save) => ({ ...save, hunger: 1 }),
     (save) => ({ ...save, needs: { hunger: save.hunger, thirst: 1 }, hunger: undefined }),
@@ -76,6 +76,20 @@ describe("upgrading an older save", () => {
 
   it("writes saves at the newest version the game's own upgrades reach", () => {
     expect(writeSave(createGame({ seed: 1 })).version).toBe(SAVE_UPGRADES.length + 1);
+  });
+
+  it("brings a version 1 save through every real upgrade: the valley's food, then a bedroll", () => {
+    const game = createGame({ seed: 42 });
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity }[] };
+    save.version = 1;
+    save.entities = save.entities.filter((entity) => entity.components.forageSpot === undefined);
+    for (const { components } of save.entities) delete components.backpack?.contents.bedroll;
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(loaded.game.entities.with("forageSpot").size).toBe(game.entities.with("forageSpot").size);
+    expect(loaded.game.client.getView().backpack.bedroll).toBe(1);
   });
 });
 

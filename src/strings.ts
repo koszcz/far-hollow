@@ -5,4 +5,10 @@ export const strings = {
   resume: "Resume",
   paused: "Paused",
   cameraFollow: "Camera follows player",
+  debugFps: "FPS",
+  debugEntities: "Entities",
+  debugSeed: "Seed",
+  debugTime: "Time",
+  debugDayAndTime: (day: number, clock: string) => `Day ${day}, ${clock}`,
+  debugSkipHours: (hours: number) => `Skip ${hours} h`,
 } as const;

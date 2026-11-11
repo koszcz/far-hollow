@@ -4,6 +4,7 @@ import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/sce
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS } from "../sim/game";
 import { strings } from "../strings";
+import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -29,7 +30,12 @@ function chooseSeed(): number {
 
 const game = createGame({ seed: chooseSeed() });
 const canvas = requireElement("#scene", HTMLCanvasElement);
-const sceneRenderer = createSceneRenderer(canvas, game.valley, game.entities);
+const sceneRenderer = createSceneRenderer(
+  canvas,
+  game.valley,
+  game.entities,
+  () => game.client.getView().time.hourOfDay,
+);
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
 });
@@ -40,13 +46,16 @@ const loop = createFixedStepLoop({
 });
 
 render(
-  <Hud
-    client={game.client}
-    cameraFollow={sceneRenderer.cameraRig.followEnabled}
-    onCameraFollowChange={(enabled) => {
-      sceneRenderer.cameraRig.setFollowEnabled(enabled);
-    }}
-  />,
+  <>
+    <Hud
+      client={game.client}
+      cameraFollow={sceneRenderer.cameraRig.followEnabled}
+      onCameraFollowChange={(enabled) => {
+        sceneRenderer.cameraRig.setFollowEnabled(enabled);
+      }}
+    />
+    <DebugOverlay client={game.client} />
+  </>,
   requireElement("#ui", HTMLDivElement),
 );
 

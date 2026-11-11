@@ -545,6 +545,36 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "pile",
+      "kind": "code",
+      "code": [
+        "src/render/pile-meshes.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Sticks, firewood, and bark lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Sticks, firewood, and the pot reuse their approved shapes. Bark, berries, mushrooms, and tools are rough shapes.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/storage/issues/01-drop-things-and-pick-up-piles.md"
+      }
+    },
+    {
+      "id": "rolled-bedroll",
+      "kind": "code",
+      "code": [
+        "src/render/rolled-bedroll-shape.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "The bedroll lying rolled up on the ground after the player drops it: a green roll held by two leather straps.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/storage/issues/01-drop-things-and-pick-up-piles.md"
+      }
     }
   ]
 }

@@ -28,6 +28,8 @@ export interface Piles {
   cancel(): void;
   /** Picks up piles the player has reached. Returns "backpackFull" if none of a reached pile fit. Run it after walking has moved the player. */
   step(): PileRefusal | undefined;
+  /** The pile nearest the player that is within their reach, if any. */
+  nearby(): PileEntity | undefined;
 }
 
 /** Lets the player drop things from the backpack in piles on the ground, and pick them up again. */
@@ -108,6 +110,20 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
         if (pile.pile.count === 0) entities.remove(pile);
       }
       return refusal;
+    },
+    nearby() {
+      let nearest: PileEntity | undefined;
+      let nearestDistance = PICK_UP_REACH_METRES;
+      for (const player of players) {
+        for (const pile of piles) {
+          const distance = groundDistance(pile.position, player.position);
+          if (distance <= nearestDistance) {
+            nearest = pile;
+            nearestDistance = distance;
+          }
+        }
+      }
+      return nearest;
     },
   };
 }

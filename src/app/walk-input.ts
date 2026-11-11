@@ -29,6 +29,8 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
       return { type: "tendCampfire", campfireId: pick.id };
     case "bedroll":
       return { type: "sleep", bedrollId: pick.id };
+    case "pile":
+      return { type: "pickUpPile", pileId: pick.id };
     case "blueprint":
       return undefined;
   }

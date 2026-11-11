@@ -1,7 +1,7 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
+import type { BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, PileView, StructureKind } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { HudIcon, type HudIconName } from "./hud-icons";
@@ -174,6 +174,23 @@ function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: Bedrol
   );
 }
 
+/** Shows what the pile beside the player holds and how many, with a button to pick it up. */
+function PilePanel({ client, pile }: { client: GameClient; pile: PileView }) {
+  return (
+    <section class="hud-section hud-pile" aria-label={strings.pile.title}>
+      <h2>
+        <BackpackIcon content={pile.content} />
+        {strings.pile.holds(pile.content, pile.count)}
+      </h2>
+      <div class="hud-buttons">
+        <HudButton icon="backpack" label={strings.pile.pickUp} onClick={() => {
+            client.send({ type: "pickUpPile", pileId: pile.id });
+          }} />
+      </div>
+    </section>
+  );
+}
+
 /** Shows the blueprint beside the player: how many of each carried material it has and needs, and how to go on. */
 function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
   const name = strings.buildMenu.structures[blueprint.structure];
@@ -224,6 +241,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
     view.carrying !== null ||
     view.nearbyCampfire !== null ||
     view.nearbyBedroll !== null ||
+    view.nearbyPile !== null ||
     view.nearbyBlueprint !== null;
 
   return (
@@ -275,6 +293,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             )}
             {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
             {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
+            {view.nearbyPile !== null && <PilePanel client={client} pile={view.nearbyPile} />}
             {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
           </div>
         </div>
@@ -302,14 +321,22 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             </h2>
             <ul>
               {backpackContents(view.backpack).map(([content, count]) => (
-                <li key={content} data-tip={strings.backpackContents[content]}>
-                  <BackpackIcon content={content} />
-                  <span class="hud-sr-only">{strings.backpackContentCount(strings.backpackContents[content], count)}</span>
-                  {count > 1 && (
-                    <span class="hud-backpack-count" aria-hidden="true">
-                      {strings.backpackCountBadge(count)}
-                    </span>
-                  )}
+                <li key={content} data-tip={strings.pile.dropTip(strings.backpackContents[content])}>
+                  <button
+                    type="button"
+                    class="hud-backpack-drop"
+                    aria-label={strings.pile.drop(strings.backpackContentCount(strings.backpackContents[content], count))}
+                    onClick={() => {
+                      client.send({ type: "dropFromBackpack", content });
+                    }}
+                  >
+                    <BackpackIcon content={content} />
+                    {count > 1 && (
+                      <span class="hud-backpack-count" aria-hidden="true">
+                        {strings.backpackCountBadge(count)}
+                      </span>
+                    )}
+                  </button>
                 </li>
               ))}
             </ul>

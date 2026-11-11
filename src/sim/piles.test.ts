@@ -192,6 +192,19 @@ describe("picking up piles", () => {
   });
 });
 
+describe("seeing a pile", () => {
+  it("shows the pile within the player's reach and how many things it holds", () => {
+    const game = createGame({ seed: 42 });
+    expect(game.client.getView().nearbyPile).toBeNull();
+    giveBackpack(game, { stick: 7 });
+    send(game, { type: "dropFromBackpack", content: "stick" });
+
+    expect(game.client.getView().nearbyPile).toEqual({ id: idOf(game, onlyPile(game)), content: "stick", count: 7 });
+    walkAway(game);
+    expect(game.client.getView().nearbyPile).toBeNull();
+  });
+});
+
 describe("saving piles", () => {
   it("restores piles, and a walk to pick one up, exactly", () => {
     const game = createGame({ seed: 42 });

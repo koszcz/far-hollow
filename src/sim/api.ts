@@ -131,6 +131,8 @@ export interface GameView {
   readonly nearbyCampfire: CampfireView | null;
   /** The laid bedroll within the player's reach, or null if none is. */
   readonly nearbyBedroll: BedrollView | null;
+  /** The pile nearest the player within reach, or null if none is. */
+  readonly nearbyPile: PileView | null;
   /** The blueprint nearest the player within reach, or null if none is. */
   readonly nearbyBlueprint: BlueprintView | null;
   /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
@@ -214,6 +216,16 @@ export interface RoomView {
 export interface BedrollView {
   /** The bedroll's entity id. */
   readonly id: number;
+}
+
+/** A pile of things the player dropped on the ground. */
+export interface PileView {
+  /** The pile's entity id. */
+  readonly id: number;
+  /** What kind of thing the pile holds. */
+  readonly content: BackpackContent;
+  /** How many things the pile holds. */
+  readonly count: number;
 }
 
 export interface PlayerAction {

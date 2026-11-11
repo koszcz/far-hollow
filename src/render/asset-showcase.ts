@@ -9,6 +9,7 @@ import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBedrollMeshes } from "./bedroll-meshes";
+import { createPileMeshes } from "./pile-meshes";
 import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
   type CampfireMeshes,
@@ -373,6 +374,35 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { bedroll: true });
     },
   },
+  "rolled-bedroll": {
+    radius: 0.6,
+    focus: { x: 0, y: 0.1, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { pile: { content: "bedroll", count: 1 } });
+    },
+  },
+  pile: {
+    radius: 2.6,
+    focus: { x: 0, y: 0.1, z: 0.7 },
+    shots: FOUR_ANGLES,
+    // Back row: one of each long thing, an axe, and a handful of berries. Middle row: many of each. Front row: tools, mushrooms, and pots.
+    build({ place }) {
+      const row = (z: number, piles: readonly NonNullable<Entity["pile"]>[]): void => {
+        piles.forEach((pile, index) => place((index - (piles.length - 1) / 2) * 0.9, z, { pile }));
+      };
+      row(-0.8, [{ content: "stick", count: 1 }, { content: "firewood", count: 1 }, { content: "bark", count: 1 }, { content: "axe", count: 1 }, { content: "berries", count: 1 }]);
+      row(0.8, [{ content: "stick", count: 12 }, { content: "firewood", count: 12 }, { content: "bark", count: 6 }, { content: "berries", count: 8 }]);
+      row(2.2, [
+        { content: "knife", count: 1 },
+        { content: "drawknife", count: 1 },
+        { content: "fireStriker", count: 2 },
+        { content: "mushroom", count: 5 },
+        { content: "pot", count: 1 },
+        { content: "potOfBoiledWater", count: 1 },
+      ]);
+    },
+  },
   "fire-effect": {
     radius: 2,
     focus: { x: 0, y: 0.5, z: 0 },
@@ -706,11 +736,12 @@ export function showAsset(
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
+  const piles = createPileMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, rain.group);
+  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, piles.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, piles.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -725,6 +756,7 @@ export function showAsset(
     edgePieces.update();
     roofs.update();
     bedrolls.update();
+    piles.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -782,6 +814,7 @@ export function showAsset(
       potMaker.dispose();
       forage.dispose();
       bedrolls.dispose();
+      piles.dispose();
       rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();

@@ -1,4 +1,4 @@
-import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
+import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PileView, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { createBuilding } from "./building";
@@ -144,6 +144,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
       nearbyBedroll: nearbyBedroll(),
+      nearbyPile: nearbyPile(),
       nearbyBlueprint: building.nearby() ?? null,
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -180,6 +181,13 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     const bedroll = bedrolls.nearby();
     const id = bedroll === undefined ? undefined : entities.id(bedroll);
     return id === undefined ? null : Object.freeze({ id });
+  }
+
+  function nearbyPile(): PileView | null {
+    const pile = piles.nearby();
+    const id = pile === undefined ? undefined : entities.id(pile);
+    if (pile === undefined || id === undefined) return null;
+    return Object.freeze({ id, content: pile.pile.content, count: pile.pile.count });
   }
 
   function currentAction(): PlayerAction | null {

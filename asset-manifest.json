@@ -222,12 +222,13 @@
         "src/render/lean-to-meshes.ts",
         "src/render/stick-shape.ts"
       ],
-      "description": "The lean-to: two front posts, a ridge pole, and rafters of sticks sloping to the ground at the back, covered with strips of bark. The front is open. It is built in stages: each stick, then each strip of bark, fades in and is lowered into place.",
+      "description": "The lean-to: two crooked front posts with forked tops, a ridge pole resting in the forks, and crooked stick rafters sloping to the ground at the back. Curled strips of bark, dark outside and pale inside with ragged lower edges, cover the rafters like shingles. The front is open. It is built in stages: each stick, then each strip of bark, fades in and is lowered into place.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/03-lean-to.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

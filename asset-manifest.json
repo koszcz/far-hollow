@@ -146,14 +146,16 @@
       "id": "campfire",
       "kind": "code",
       "code": [
-        "src/render/campfire-meshes.ts"
+        "src/render/campfire-meshes.ts",
+        "src/render/stick-shape.ts"
       ],
-      "description": "The campfire.",
+      "description": "The campfire: a ring of uneven stones, a cone of sticks, and a bed of ash.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/08-build-campfire.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

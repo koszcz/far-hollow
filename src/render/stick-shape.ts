@@ -1,4 +1,5 @@
 // The code-built draft shape listed in asset-manifest.json as "sticks". forest-meshes.ts places one on each stick's spot.
+// The approved "campfire" in campfire-meshes.ts stands these sticks up, so changing this shape changes the campfire too.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 

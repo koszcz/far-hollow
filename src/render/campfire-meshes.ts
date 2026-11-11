@@ -1,25 +1,43 @@
-// Draws campfires and campfire blueprints with the code-built draft shape listed in asset-manifest.json as "campfire".
+// Draws campfires and campfire blueprints with the code-built shape listed in asset-manifest.json as "campfire" (approved).
+// The shape is a ring of uneven stones in two greys, a cone of sticks that match the sticks on the forest floor,
+// and a bed of ash once the campfire is built. The stick tips turn black while the fire burns.
 // A blueprint grows stick by stick with the code-built "campfire-build-animation".
 // A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, a wide glow, and a brighter pool of light that
 // marks how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
 import * as THREE from "three";
 import { createFireMaker, type Fire } from "./fire-effect";
+import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import { CAMPFIRE_STICK_COST } from "../sim/building";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
 
-const STONE_COLOUR = 0x8c8c86;
-const STICK_COLOUR = 0x8a6a45;
+/** Stones take turns between these two greys, so the ring does not look cast from one mould. */
+const STONE_COLOURS = [0x8c8c86, 0x6f6e69] as const;
+/** The ash bed is a dark grey-brown disc on the ground inside the ring. */
+const ASH_COLOUR = 0x3d3934;
+const ASH_RADIUS_METRES = 0.42;
+/** The ash sits just above the ground so the ground does not flicker through it. */
+const ASH_LIFT_METRES = 0.01;
+/** While lit, each stick fades from its own colour to this colour toward its tip. */
+const CHAR_COLOUR = 0x1e1a17;
+/** The top share of each stick that turns black while the fire burns. */
+const CHAR_SHARE = 0.4;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 
-const STONE_COUNT = 8;
+const STONE_COUNT = 10;
 const STONE_RING_RADIUS_METRES = 0.55;
-const STONE_SIZE_METRES = 0.14;
-const STICK_LENGTH_METRES = 0.8;
-const STICK_RADIUS_METRES = 0.035;
+/** Each stone's size is picked between these, in metres. */
+const STONE_SMALLEST_METRES = 0.11;
+const STONE_LARGEST_METRES = 0.18;
+/** Each stone corner moves by up to this share of the stone's size, so no two stones look alike. */
+const STONE_LUMPINESS = 0.25;
+/** Stones sink into the ground by up to this share of their size. */
+const STONE_MOST_SUNK = 0.45;
+/** The same seed gives the same stones every time, so every campfire looks the same. */
+const STONE_SEED = 4217;
 /** Sticks lean in toward the centre at this angle from upright, in radians, to make a cone. */
 const STICK_LEAN_RADIANS = 0.5;
 const GLOW_COLOUR = 0xff9a4a;
@@ -69,6 +87,8 @@ interface Drawn {
   readonly stones: THREE.Mesh[];
   /** Each stick's shape starts at its foot, so it grows upward from the ground. */
   readonly sticks: { mesh: THREE.Mesh }[];
+  /** The ash bed inside the ring. Shown only once the campfire is built. */
+  readonly ash: THREE.Mesh;
   readonly picker: THREE.Mesh;
   /** Flames, embers, sparks, and smoke. Hidden while the campfire is unlit. */
   readonly fire: Fire;
@@ -79,13 +99,16 @@ interface Drawn {
 
 export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   const group = new THREE.Group();
-  const stoneGeometry = new THREE.DodecahedronGeometry(STONE_SIZE_METRES, 0);
-  const stickGeometry = new THREE.CylinderGeometry(STICK_RADIUS_METRES, STICK_RADIUS_METRES, STICK_LENGTH_METRES, 5);
-  stickGeometry.translate(0, STICK_LENGTH_METRES / 2, 0);
+  const stones = createStones();
+  const stickGeometry = createStandingStickGeometry();
+  const ashGeometry = createAshGeometry();
   const pickGeometry = new THREE.CylinderGeometry(PICK_RADIUS_METRES, PICK_RADIUS_METRES, PICK_HEIGHT_METRES, 8);
   pickGeometry.translate(0, PICK_HEIGHT_METRES / 2, 0);
-  const stoneMaterial = new THREE.MeshStandardMaterial({ color: STONE_COLOUR, flatShading: true });
+  const stoneMaterials = STONE_COLOURS.map((color) => new THREE.MeshStandardMaterial({ color, flatShading: true }));
   const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true });
+  // The stick geometry carries a colour per corner that darkens toward the tip. Only this material uses it.
+  const charredStickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true });
+  const ashMaterial = new THREE.MeshStandardMaterial({ color: ASH_COLOUR, flatShading: true });
   const blueprintMaterial = new THREE.MeshStandardMaterial({
     color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
   });
@@ -101,15 +124,19 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     const existing = drawn.get(entity);
     if (existing !== undefined) return existing;
     const root = new THREE.Group();
-    const stones: THREE.Mesh[] = [];
-    for (let i = 0; i < STONE_COUNT; i += 1) {
-      const angle = (i / STONE_COUNT) * Math.PI * 2;
-      const stone = new THREE.Mesh(stoneGeometry, blueprintMaterial);
-      stone.position.set(Math.sin(angle) * STONE_RING_RADIUS_METRES, STONE_SIZE_METRES * 0.5, Math.cos(angle) * STONE_RING_RADIUS_METRES);
-      stone.rotation.set(angle, angle * 2, 0);
+    const stoneMeshes: THREE.Mesh[] = [];
+    for (const placed of stones) {
+      const stone = new THREE.Mesh(placed.geometry, blueprintMaterial);
+      stone.position.copy(placed.position);
+      stone.rotation.y = placed.turn;
       root.add(stone);
-      stones.push(stone);
+      stoneMeshes.push(stone);
     }
+    const ash = new THREE.Mesh(ashGeometry, ashMaterial);
+    ash.position.y = ASH_LIFT_METRES;
+    ash.receiveShadow = true;
+    ash.visible = false;
+    root.add(ash);
     const sticks: Drawn["sticks"] = [];
     for (let i = 0; i < CAMPFIRE_STICK_COST; i += 1) {
       const angle = (i / CAMPFIRE_STICK_COST) * Math.PI * 2;
@@ -140,7 +167,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     pickers.push(picker);
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
     group.add(root);
-    const result = { root, stones, sticks, picker, fire, glow, warmthPool };
+    const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, glow, warmthPool };
     drawn.set(entity, result);
     return result;
   }
@@ -155,7 +182,10 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       // A stick being laid rises from the ground. Unstarted sticks show at full size as part of the outline.
       mesh.scale.set(1, started ? Math.max(0.05, grown) : 1, 1);
     });
-    for (const stone of item.stones) stone.material = progress >= 1 ? stoneMaterial : blueprintMaterial;
+    item.stones.forEach((stone, index) => {
+      stone.material = progress >= 1 ? (stoneMaterials[index % stoneMaterials.length] ?? blueprintMaterial) : blueprintMaterial;
+    });
+    item.ash.visible = progress >= 1;
   }
 
   /**
@@ -164,6 +194,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
    */
   function showFire(item: Drawn, campfire: { lit: boolean; fuelMinutes: number }, nowSeconds: number, seed: number): void {
     item.fire.group.visible = campfire.lit;
+    for (const { mesh } of item.sticks) mesh.material = campfire.lit ? charredStickMaterial : stickMaterial;
     if (!campfire.lit) {
       item.glow.intensity = 0;
       item.warmthPool.intensity = 0;
@@ -225,11 +256,118 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       }));
     },
     dispose() {
-      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, blueprintMaterial, pickMaterial,
+      for (const item of [
+        ...stones.map(({ geometry }) => geometry), ...stoneMaterials, stickGeometry, ashGeometry, pickGeometry,
+        stickMaterial, charredStickMaterial, ashMaterial, blueprintMaterial, pickMaterial,
       ]) {
         item.dispose();
       }
       fireMaker.dispose();
     },
+  };
+}
+
+/** One stone of the ring: its own lumpy shape, where it sits, and how far it is turned. */
+interface PlacedStone {
+  readonly geometry: THREE.BufferGeometry;
+  readonly position: THREE.Vector3;
+  readonly turn: number;
+}
+
+/** Makes the ring of stones. Each stone has its own size and lumpy shape, and some sit deeper in the ground than others. */
+function createStones(): PlacedStone[] {
+  const random = seededRandom(STONE_SEED);
+  const result: PlacedStone[] = [];
+  for (let i = 0; i < STONE_COUNT; i += 1) {
+    const size = STONE_SMALLEST_METRES + (STONE_LARGEST_METRES - STONE_SMALLEST_METRES) * random();
+    const geometry = new THREE.DodecahedronGeometry(size, 0);
+    // Squash each stone a little so it lies flat, then move every corner by a small random amount.
+    geometry.scale(1 + random() * 0.3, 0.6 + random() * 0.25, 0.9 + random() * 0.3);
+    lumpify(geometry, size * STONE_LUMPINESS, random);
+    const bottom = boundsOf(geometry).min.y;
+    const sunk = size * STONE_MOST_SUNK * random();
+    // Spread the stones evenly round the ring, with a little wobble in angle and distance.
+    const angle = ((i + (random() - 0.5) * 0.4) / STONE_COUNT) * Math.PI * 2;
+    const distance = STONE_RING_RADIUS_METRES + (random() - 0.5) * 0.06;
+    result.push({
+      geometry,
+      position: new THREE.Vector3(Math.sin(angle) * distance, -bottom - sunk, Math.cos(angle) * distance),
+      turn: angle + random() * 0.6,
+    });
+  }
+  return result;
+}
+
+/** Moves each corner of a shape by up to `amount` in every direction. Corners shared by several faces move together. */
+function lumpify(geometry: THREE.BufferGeometry, amount: number, random: () => number): void {
+  const position = geometry.getAttribute("position");
+  const moves = new Map<string, THREE.Vector3>();
+  for (let i = 0; i < position.count; i += 1) {
+    const key = `${position.getX(i).toFixed(4)},${position.getY(i).toFixed(4)},${position.getZ(i).toFixed(4)}`;
+    let move = moves.get(key);
+    if (move === undefined) {
+      move = new THREE.Vector3(random() - 0.5, random() - 0.5, random() - 0.5).multiplyScalar(amount * 2);
+      moves.set(key, move);
+    }
+    position.setXYZ(i, position.getX(i) + move.x, position.getY(i) + move.y, position.getZ(i) + move.z);
+  }
+  geometry.computeVertexNormals();
+}
+
+/**
+ * The forest-floor stick from stick-shape.ts, stood upright with its foot at the origin.
+ * Each corner carries a colour that fades to black toward the tip, used only while the fire burns.
+ */
+function createStandingStickGeometry(): THREE.BufferGeometry {
+  const geometry = createStickGeometry();
+  // The stick lies along x. Turning it a quarter turn stands it up along y.
+  geometry.rotateZ(Math.PI / 2);
+  const box = boundsOf(geometry);
+  geometry.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+  const position = geometry.getAttribute("position");
+  const colours = new Float32Array(position.count * 3);
+  const stick = new THREE.Color(1, 1, 1);
+  // Vertex colours multiply the material colour, so the char colour is divided by the stick colour first.
+  const base = new THREE.Color(STICK_COLOUR);
+  const charred = new THREE.Color(CHAR_COLOUR);
+  const tip = new THREE.Color(charred.r / base.r, charred.g / base.g, charred.b / base.b);
+  const charStart = STICK_LENGTH_METRES * (1 - CHAR_SHARE);
+  const colour = new THREE.Color();
+  for (let i = 0; i < position.count; i += 1) {
+    const share = Math.min(1, Math.max(0, (position.getY(i) - charStart) / (STICK_LENGTH_METRES - charStart)));
+    colour.copy(stick).lerp(tip, share);
+    colours.set([colour.r, colour.g, colour.b], i * 3);
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+  return geometry;
+}
+
+/** A flat, slightly ragged disc of ash lying on y = 0. */
+function createAshGeometry(): THREE.BufferGeometry {
+  const random = seededRandom(STONE_SEED + 1);
+  const geometry = new THREE.CircleGeometry(ASH_RADIUS_METRES, 14);
+  geometry.rotateX(-Math.PI / 2);
+  const position = geometry.getAttribute("position");
+  // Corner 0 is the centre. Push the rim corners in and out a little so the edge is not a perfect circle.
+  for (let i = 1; i < position.count; i += 1) {
+    const stretch = 0.85 + random() * 0.25;
+    position.setXYZ(i, position.getX(i) * stretch, 0, position.getZ(i) * stretch);
+  }
+  // The first and last rim corners share a spot. Keep them together so the disc has no gap.
+  position.setXYZ(position.count - 1, position.getX(1), 0, position.getZ(1));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function boundsOf(geometry: THREE.BufferGeometry): THREE.Box3 {
+  return new THREE.Box3().setFromBufferAttribute(geometry.getAttribute("position") as THREE.BufferAttribute);
+}
+
+/** A small repeatable random-number generator, so the stones need no outside state. */
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return state / 2147483647;
   };
 }

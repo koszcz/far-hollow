@@ -1,4 +1,4 @@
-// Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" in asset-manifest.json.
+// Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
 // Felled trees fall with tree-fall.ts, part of "chop-animation".
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
@@ -36,6 +36,8 @@ const TREE_MAX_SCALE = 1.25;
 const LOG_REST_HEIGHT_METRES = 0.18;
 /** Sticks are thin, so clicks hit an invisible box this wide around each one, in metres. */
 const STICK_PICK_WIDTH_METRES = 0.35;
+/** Each stick's bark is up to this share lighter or darker than the others, so the floor does not look copy-pasted. */
+const STICK_SHADE_SPREAD = 0.08;
 
 /** What a click on the forest landed on. */
 export type ForestHit = { kind: "tree"; entity: Entity } | { kind: "log"; entity: Entity } | { kind: "stick"; entity: Entity };
@@ -133,7 +135,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
 
   // Sticks on the ground: one batch, with room for every stick the valley starts with. No new sticks appear later.
   const stickGeometry = track(createStickGeometry());
-  const stickMaterial = track(new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true }));
+  // The stick geometry carries pale cut ends as vertex colours. Each stick also gets its own shade of bark.
+  const stickMaterial = track(new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true }));
   const stickCapacity = Math.max(1, stickEntities(entities).size);
   const sticks = track(new THREE.InstancedMesh(stickGeometry, stickMaterial, stickCapacity));
   sticks.count = 0;
@@ -145,6 +148,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   const stickPickers = track(new THREE.InstancedMesh(stickPickGeometry, stickPickMaterial, stickCapacity));
   stickPickers.count = 0;
   let sticksDrawn: Entity[] = [];
+  const stickShade = new THREE.Color();
 
   // Falling trees: a few short-lived meshes that share the tree shapes.
   /** `axis` is what the pivot turns about to tip the tree's top away from the player. */
@@ -254,11 +258,14 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       matrix.compose(logPosition, logRotation, logScale);
       sticks.setMatrixAt(sticksDrawn.length, matrix);
       stickPickers.setMatrixAt(sticksDrawn.length, matrix);
+      stickShade.setScalar(1 + (lookFor(stick.position.z, stick.position.x) * 2 - 1) * STICK_SHADE_SPREAD);
+      sticks.setColorAt(sticksDrawn.length, stickShade);
       sticksDrawn.push(stick);
     }
     sticks.count = sticksDrawn.length;
     stickPickers.count = sticksDrawn.length;
     sticks.instanceMatrix.needsUpdate = true;
+    if (sticks.instanceColor !== null) sticks.instanceColor.needsUpdate = true;
     stickPickers.instanceMatrix.needsUpdate = true;
     // Clicks test this sphere first, so it must cover the sticks as they lie now.
     stickPickers.computeBoundingSphere();

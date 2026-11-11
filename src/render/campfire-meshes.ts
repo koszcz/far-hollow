@@ -100,14 +100,13 @@ interface Drawn {
 export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   const group = new THREE.Group();
   const stones = createStones();
-  const stickGeometry = createStandingStickGeometry();
+  const { plain: stickGeometry, charred: charredStickGeometry } = createStandingStickGeometries();
   const ashGeometry = createAshGeometry();
   const pickGeometry = new THREE.CylinderGeometry(PICK_RADIUS_METRES, PICK_RADIUS_METRES, PICK_HEIGHT_METRES, 8);
   pickGeometry.translate(0, PICK_HEIGHT_METRES / 2, 0);
   const stoneMaterials = STONE_COLOURS.map((color) => new THREE.MeshStandardMaterial({ color, flatShading: true }));
-  const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true });
-  // The stick geometry carries a colour per corner that darkens toward the tip. Only this material uses it.
-  const charredStickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true });
+  // Both stick geometries carry a colour per corner: pale cut ends, and on the charred one a tip that darkens.
+  const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true });
   const ashMaterial = new THREE.MeshStandardMaterial({ color: ASH_COLOUR, flatShading: true });
   const blueprintMaterial = new THREE.MeshStandardMaterial({
     color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
@@ -194,7 +193,10 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
    */
   function showFire(item: Drawn, campfire: { lit: boolean; fuelMinutes: number }, nowSeconds: number, seed: number): void {
     item.fire.group.visible = campfire.lit;
-    for (const { mesh } of item.sticks) mesh.material = campfire.lit ? charredStickMaterial : stickMaterial;
+    for (const { mesh } of item.sticks) {
+      mesh.material = stickMaterial;
+      mesh.geometry = campfire.lit ? charredStickGeometry : stickGeometry;
+    }
     if (!campfire.lit) {
       item.glow.intensity = 0;
       item.warmthPool.intensity = 0;
@@ -257,8 +259,8 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     },
     dispose() {
       for (const item of [
-        ...stones.map(({ geometry }) => geometry), ...stoneMaterials, stickGeometry, ashGeometry, pickGeometry,
-        stickMaterial, charredStickMaterial, ashMaterial, blueprintMaterial, pickMaterial,
+        ...stones.map(({ geometry }) => geometry), ...stoneMaterials, stickGeometry, charredStickGeometry, ashGeometry,
+        pickGeometry, stickMaterial, ashMaterial, blueprintMaterial, pickMaterial,
       ]) {
         item.dispose();
       }
@@ -315,31 +317,30 @@ function lumpify(geometry: THREE.BufferGeometry, amount: number, random: () => n
 }
 
 /**
- * The forest-floor stick from stick-shape.ts, stood upright with its foot at the origin.
- * Each corner carries a colour that fades to black toward the tip, used only while the fire burns.
+ * The forest-floor stick from stick-shape.ts, stood upright with its foot at the origin, in two versions.
+ * The plain one keeps the stick's own colours. The charred one also fades to black toward the tip, for a burning fire.
  */
-function createStandingStickGeometry(): THREE.BufferGeometry {
-  const geometry = createStickGeometry();
+function createStandingStickGeometries(): { plain: THREE.BufferGeometry; charred: THREE.BufferGeometry } {
+  const plain = createStickGeometry();
   // The stick lies along x. Turning it a quarter turn stands it up along y.
-  geometry.rotateZ(Math.PI / 2);
-  const box = boundsOf(geometry);
-  geometry.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
-  const position = geometry.getAttribute("position");
-  const colours = new Float32Array(position.count * 3);
-  const stick = new THREE.Color(1, 1, 1);
+  plain.rotateZ(Math.PI / 2);
+  const box = boundsOf(plain);
+  plain.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+  const charred = plain.clone();
+  const position = charred.getAttribute("position");
+  const colours = charred.getAttribute("color");
   // Vertex colours multiply the material colour, so the char colour is divided by the stick colour first.
   const base = new THREE.Color(STICK_COLOUR);
-  const charred = new THREE.Color(CHAR_COLOUR);
-  const tip = new THREE.Color(charred.r / base.r, charred.g / base.g, charred.b / base.b);
+  const char = new THREE.Color(CHAR_COLOUR);
+  const tip = new THREE.Color(char.r / base.r, char.g / base.g, char.b / base.b);
   const charStart = STICK_LENGTH_METRES * (1 - CHAR_SHARE);
   const colour = new THREE.Color();
   for (let i = 0; i < position.count; i += 1) {
     const share = Math.min(1, Math.max(0, (position.getY(i) - charStart) / (STICK_LENGTH_METRES - charStart)));
-    colour.copy(stick).lerp(tip, share);
-    colours.set([colour.r, colour.g, colour.b], i * 3);
+    colour.setRGB(colours.getX(i), colours.getY(i), colours.getZ(i)).lerp(tip, share);
+    colours.setXYZ(i, colour.r, colour.g, colour.b);
   }
-  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
-  return geometry;
+  return { plain, charred };
 }
 
 /** A flat, slightly ragged disc of ash lying on y = 0. */

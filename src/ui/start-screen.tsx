@@ -48,9 +48,10 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame }: StartScre
                 </label>
                 <p class="start-screen-hint">{strings.startScreen.seedHint}</p>
                 {slot.state !== "empty" && <p class="start-screen-warning">{strings.startScreen.replaceWarning(index + 1)}</p>}
-                <button type="submit">{slot.state === "empty" ? strings.startScreen.start : strings.startScreen.replace}</button>{" "}
+                <button type="submit" class="hud-button">{slot.state === "empty" ? strings.startScreen.start : strings.startScreen.replace}</button>{" "}
                 <button
                   type="button"
+                  class="hud-button"
                   onClick={() => {
                     setNewGameSlot(null);
                   }}
@@ -63,6 +64,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame }: StartScre
                 {slot.state === "filled" && (
                   <button
                     type="button"
+                    class="hud-button"
                     onClick={() => {
                       onContinue(index);
                     }}
@@ -72,6 +74,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame }: StartScre
                 )}{" "}
                 <button
                   type="button"
+                  class="hud-button"
                   onClick={() => {
                     setSeedText("");
                     setNewGameSlot(index);

@@ -38,15 +38,20 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .debug-overlay dd { margin: 0; text-align: right; }
 .debug-overlay button { pointer-events: auto; margin-right: 4px; }
 .loading { position: fixed; inset: 0; display: grid; place-items: center; background: #1b2420; transition: opacity 0.4s; }
-.start-screen { position: absolute; inset: 0; overflow: auto; padding: 48px 16px; background: #1b2420; color: #fff; pointer-events: auto; text-align: center; }
-.start-screen h1 { margin: 0 0 24px; font-size: 32px; }
+/* The start screen uses the woodland look of the approved "hud" asset: dark bark panels, warm text, and HUD buttons. */
+.start-screen { position: absolute; inset: 0; overflow: auto; padding: 48px 16px; background: #1b2420; color: #f3e6d3; font-size: 14px; line-height: 1.4; pointer-events: auto; text-align: center; }
+.start-screen h1 { margin: 0 0 24px; font-size: 32px; font-weight: 600; letter-spacing: 0.02em; }
 .start-screen-slots { display: grid; gap: 12px; max-width: 420px; margin: 0 auto; padding: 0; list-style: none; text-align: left; }
-.start-screen-slot { padding: 12px 16px; background: #fff1; border-radius: 6px; }
-.start-screen-slot h2 { margin: 0 0 4px; font-size: 16px; }
-.start-screen-slot p { margin: 0 0 8px; }
-.start-screen-slot input { width: 12em; }
-.start-screen-hint { font-size: 12px; opacity: 0.75; }
-.start-screen-warning { color: #ffd27a; }
+.start-screen-slot { padding: 12px 14px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-radius: 10px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.35); }
+.start-screen-slot h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.start-screen-slot p { margin: 0 0 8px; color: #cdb898; }
+.start-screen-slot p:last-child { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.start-screen-slot form label { display: flex; gap: 8px; align-items: center; }
+.start-screen-slot input { width: 12em; padding: 4px 8px; font: inherit; color: #f3e6d3; background: #3d2b1e; border: 1px solid #6b4a2f; border-radius: 6px; }
+.start-screen-slot input:focus-visible { outline: 2px solid #e8833a; outline-offset: 1px; }
+.start-screen-slot form .hud-button { margin-right: 6px; }
+.start-screen-hint { font-size: 12px; opacity: 0.8; }
+.start-screen-warning { padding: 6px 8px; color: #f3e6d3; background: rgb(232 131 58 / 0.18); border-radius: 6px; }
 .loading.done { opacity: 0; pointer-events: none; }
 .loading-spinner { width: 40px; height: 40px; border: 4px solid #fff3; border-top-color: #fff; border-radius: 50%; animation: loading-spin 0.9s linear infinite; }
 @keyframes loading-spin { to { transform: rotate(1turn); } }

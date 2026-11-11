@@ -1,7 +1,7 @@
 import { hasInBackpack } from "./backpack";
 import { shoulderLog } from "./carrying";
 import { playerEntities, type Entity, type EntityStore } from "./entities";
-import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** How long the player chops at a tree before it falls, in seconds. */
@@ -55,7 +55,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
           continue;
         }
         const reach = (tree.blocksWalking?.radius ?? 0) + CHOP_REACH_METRES;
-        if (Math.hypot(tree.position.x - chopper.position.x, tree.position.z - chopper.position.z) > reach) {
+        if (groundDistance(tree.position, chopper.position) > reach) {
           // The player walked as close as they could but the tree is out of reach.
           entities.removeComponent(chopper, "chopTask");
           continue;

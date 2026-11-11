@@ -1,7 +1,7 @@
 import type { CampfireFuel } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
-import type { GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
 
 
@@ -49,7 +49,7 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
   }
 
   function withinReach(campfire: CampfireEntity, at: GroundPoint): boolean {
-    return Math.hypot(campfire.position.x - at.x, campfire.position.z - at.z) <= TEND_REACH_METRES;
+    return groundDistance(campfire.position, at) <= TEND_REACH_METRES;
   }
 
   /** The player, if they stand still within reach of the campfire. */
@@ -98,7 +98,7 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       let nearestDistance = Infinity;
       for (const player of players) {
         for (const campfire of campfires) {
-          const distance = Math.hypot(campfire.position.x - player.position.x, campfire.position.z - player.position.z);
+          const distance = groundDistance(campfire.position, player.position);
           if (distance <= TEND_REACH_METRES && distance < nearestDistance) {
             nearest = campfire;
             nearestDistance = distance;
@@ -123,7 +123,7 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
 /** Whether a lit campfire is close enough to warm someone standing at this spot. */
 export function isWarmedByCampfire(entities: EntityStore, at: GroundPoint): boolean {
   for (const { campfire, position } of campfireEntities(entities)) {
-    if (campfire.lit && Math.hypot(position.x - at.x, position.z - at.z) <= CAMPFIRE_WARMTH_RADIUS_METRES) return true;
+    if (campfire.lit && groundDistance(position, at) <= CAMPFIRE_WARMTH_RADIUS_METRES) return true;
   }
   return false;
 }

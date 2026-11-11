@@ -6,6 +6,11 @@ export interface GroundPoint {
   z: number;
 }
 
+/** How far apart two spots are across the ground, in metres. Height is ignored. */
+export function groundDistance(a: GroundPoint, b: GroundPoint): number {
+  return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
 /** The ground's height on a square grid that covers the whole valley. */
 export interface Terrain {
   /** Grid points along each side. There are `pointsPerSide * pointsPerSide` heights in all. */
@@ -179,7 +184,7 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
     for (let r = row - 1; r <= row + 1; r += 1) {
       for (let c = column - 1; c <= column + 1; c += 1) {
         for (const other of treesByCell.get(r * cellsPerSide + c) ?? []) {
-          if (Math.hypot(other.x - point.x, other.z - point.z) < TREE_MIN_SPACING_METRES) return true;
+          if (groundDistance(other, point) < TREE_MIN_SPACING_METRES) return true;
         }
       }
     }
@@ -222,7 +227,7 @@ function placeSticks(random: Random, river: River, trees: readonly GroundPoint[]
     for (let r = row - 1; r <= row + 1; r += 1) {
       for (let c = column - 1; c <= column + 1; c += 1) {
         for (const tree of treesByCell.get(r * cellsPerSide + c) ?? []) {
-          if (Math.hypot(tree.x - point.x, tree.z - point.z) < STICK_MIN_FROM_TREE_METRES) return true;
+          if (groundDistance(tree, point) < STICK_MIN_FROM_TREE_METRES) return true;
         }
       }
     }

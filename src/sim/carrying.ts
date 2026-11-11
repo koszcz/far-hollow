@@ -1,5 +1,5 @@
 import { playerEntities, type Entity, type EntityStore } from "./entities";
-import { terrainHeightAt, type Valley } from "./valley";
+import { groundDistance, terrainHeightAt, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can pick up a log from this far away, in metres. */
@@ -53,7 +53,7 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
         const log = entities.entity(picker.logPickUpTask.logId);
         entities.removeComponent(picker, "logPickUpTask");
         if (log?.position === undefined) continue;
-        const distance = Math.hypot(log.position.x - picker.position.x, log.position.z - picker.position.z);
+        const distance = groundDistance(log.position, picker.position);
         if (distance <= PICK_UP_REACH_METRES) shoulderLog(entities, picker, log);
       }
     },

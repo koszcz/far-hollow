@@ -149,20 +149,18 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   group.add(debarkedLogs);
   let debarkedLogsDrawn: Entity[] = [];
 
-  // Sticks on the ground: one batch, with room for every stick the valley starts with. No new sticks appear later.
+  // Sticks on the ground: one batch, with room for every stick the valley starts with.
+  // Taking down a structure can leave more sticks than that, so the batch grows when it runs out of room.
   const stickGeometry = track(createStickGeometry());
   // The stick geometry carries pale cut ends as vertex colours. Each stick also gets its own shade of bark.
   const stickMaterial = track(new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true }));
-  const stickCapacity = Math.max(1, stickEntities(entities).size);
-  const sticks = track(new THREE.InstancedMesh(stickGeometry, stickMaterial, stickCapacity));
-  sticks.count = 0;
-  sticks.frustumCulled = false;
-  group.add(sticks);
   // An invisible, wider copy of each stick that clicks are tested against, because the drawn sticks are too thin to hit.
   const stickPickGeometry = track(new THREE.BoxGeometry(STICK_LENGTH_METRES, STICK_PICK_WIDTH_METRES, STICK_PICK_WIDTH_METRES));
   const stickPickMaterial = track(new THREE.MeshBasicMaterial());
-  const stickPickers = track(new THREE.InstancedMesh(stickPickGeometry, stickPickMaterial, stickCapacity));
-  stickPickers.count = 0;
+  let stickCapacity = 0;
+  let sticks = new THREE.InstancedMesh(stickGeometry, stickMaterial, 1);
+  let stickPickers = new THREE.InstancedMesh(stickPickGeometry, stickPickMaterial, 1);
+  makeRoomForSticks(Math.max(1, stickEntities(entities).size));
   let sticksDrawn: Entity[] = [];
   const stickShade = new THREE.Color();
 
@@ -296,10 +294,25 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     );
   }
 
+  /** Swaps the stick batches for bigger ones, with room for `capacity` sticks. The old batches are thrown away. */
+  function makeRoomForSticks(capacity: number): void {
+    group.remove(sticks);
+    sticks.dispose();
+    stickPickers.dispose();
+    stickCapacity = capacity;
+    sticks = new THREE.InstancedMesh(stickGeometry, stickMaterial, capacity);
+    sticks.count = 0;
+    sticks.frustumCulled = false;
+    group.add(sticks);
+    stickPickers = new THREE.InstancedMesh(stickPickGeometry, stickPickMaterial, capacity);
+    stickPickers.count = 0;
+  }
+
   function rebuildSticks(): void {
+    // Double the room each time it runs out, so a few more sticks do not rebuild the batch every time.
+    if (stickQuery.size > stickCapacity) makeRoomForSticks(Math.max(stickQuery.size, stickCapacity * 2));
     sticksDrawn = [];
     for (const stick of stickQuery) {
-      if (sticksDrawn.length >= stickCapacity) break;
       // Each stick lies at its own steady angle, picked from its spot.
       logRotation.setFromAxisAngle(up, lookFor(stick.position.x, stick.position.z) * Math.PI * 2);
       logPosition.set(stick.position.x, stick.position.y, stick.position.z);
@@ -403,6 +416,9 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       debarkedLogQuery.disconnect();
       stickQuery.disconnect();
       for (const item of disposables) item.dispose();
+      // The stick batches are swapped when they grow, so they are not in `disposables`.
+      sticks.dispose();
+      stickPickers.dispose();
     },
   };
 }

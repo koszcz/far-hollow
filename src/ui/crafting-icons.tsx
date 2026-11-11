@@ -1,6 +1,6 @@
 // Backpack icons for the things crafting uses or makes, the draft "crafting-icons" asset in asset-manifest.json. Built in code.
 // Added by crafting ticket 01. Crafting ticket 03 added the plank. BackpackIcon in backpack-icons.tsx draws them, in the same style as the approved "backpack-icons".
-import type { CraftingContent } from "../sim/api";
+import type { BackpackContent, CraftingContent } from "../sim/api";
 import type { BackpackIconDrawing } from "./icon-drawing";
 
 const STEEL = "#b8c4cc";
@@ -10,6 +10,11 @@ const PLANK = "#e3bd85";
 /** Teeth along the lower edge of a blade that starts at `x` and has `count` teeth. */
 function teeth(x: number, count: number): string {
   return `M${x} 15.5` + "l.75 2 .75-2".repeat(count);
+}
+
+/** True if `content` is something crafting uses or makes, so this module draws its icon. */
+export function isCraftingContent(content: BackpackContent): content is CraftingContent {
+  return Object.hasOwn(CRAFTING_DRAWINGS, content);
 }
 
 export const CRAFTING_DRAWINGS: Readonly<Record<CraftingContent, BackpackIconDrawing>> = {

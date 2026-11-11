@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { BackpackContent, Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { CRAFTING_SAVE_VERSION, PLANKS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { CRAFTING_SAVE_VERSION, NOTICES_NAME_STATION_SAVE_VERSION, PLANKS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { groundDistance } from "./valley";
 import { isWalkable } from "./walk-map";
 
@@ -53,10 +53,37 @@ describe("cutting planks at the sawhorse", () => {
     give(game, { saw: 1 });
 
     send(game, { type: "craft", recipe: "planks" });
-    expect(game.client.getView().notice).toBe("noLogBesideStation");
+    expect(game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
     runSeconds(game, 10);
     expect(game.client.getView().action).toBeNull();
     expect(game.entities.has(log)).toBe(true);
+    expect(game.client.getView().backpack.plank).toBeUndefined();
+  });
+
+  it("stops and says why when the debarked log is gone by the time the player reaches the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const log = debarkedLogBeside(game, sawhorse, 1);
+    give(game, { saw: 1 });
+    walkAwayFrom(game, sawhorse);
+
+    send(game, { type: "craft", recipe: "planks", stationId: idOf(game, sawhorse) });
+    expect(game.client.getView().notice).toBeNull();
+    game.entities.remove(log);
+    stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
+    game.step();
+    expect(game.client.getView().action).toBeNull();
+    expect(game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
+  });
+
+  it("does not start without the saw, and names what is missing, as a right-click on the sawhorse does", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+
+    send(game, { type: "craft", recipe: "planks", stationId: idOf(game, sawhorse) });
+    expect(game.client.getView().notice).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "tool", tool: "saw" }] });
+    runSeconds(game, 10);
     expect(game.client.getView().backpack.plank).toBeUndefined();
   });
 
@@ -90,7 +117,7 @@ describe("cutting planks at the sawhorse", () => {
     onlyPlayer(game).carrying = "debarkedLog";
 
     send(game, { type: "craft", recipe: "planks" });
-    expect(game.client.getView().notice).toBe("putLogDownFirst");
+    expect(game.client.getView().notice?.kind).toBe("putLogDownFirst");
     runSeconds(game, 10);
     expect(game.client.getView().backpack.plank).toBeUndefined();
   });
@@ -104,7 +131,7 @@ describe("cutting planks at the sawhorse", () => {
     give(game, { saw: 1, firewood: 7 });
 
     send(game, { type: "craft", recipe: "planks" });
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
     runSeconds(game, 10);
     expect(game.client.getView().backpack.plank).toBeUndefined();
 
@@ -119,7 +146,7 @@ describe("cutting planks at the sawhorse", () => {
 describe("cutting planks in the craft menu", () => {
   it("lists cutting planks with the debarked log it uses, and shows the saw and the sawhorse as missing until the player has both", () => {
     const game = createGame({ seed: 42 });
-    const entry = () => game.client.getView().craftMenu.find(({ recipe }) => recipe === "planks");
+    const entry = () => game.client.getView().craftMenu.find(({ kind }) => kind === "planks");
     expect(entry()).toMatchObject({
       materials: [],
       besideStation: [{ material: "debarkedLog", count: 1 }],
@@ -127,18 +154,15 @@ describe("cutting planks in the craft menu", () => {
       seconds: 8,
       tool: "saw",
       station: "sawhorse",
-      missingTool: "saw",
-      missingStation: "sawhorse",
+      lacks: [{ kind: "tool", tool: "saw" }, { kind: "station", station: "sawhorse" }],
     });
 
     give(game, { saw: 1 });
     game.step();
-    expect(entry()?.missingTool).toBeUndefined();
-    expect(entry()?.missingStation).toBe("sawhorse");
+    expect(entry()?.lacks).toEqual([{ kind: "station", station: "sawhorse" }]);
 
     finishedSawhorseNearPlayer(game);
-    expect(entry()?.missingTool).toBeUndefined();
-    expect(entry()?.missingStation).toBeUndefined();
+    expect(entry()?.lacks).toEqual([]);
   });
 });
 
@@ -149,7 +173,7 @@ describe("a sawhorse blueprint", () => {
     const log = debarkedLogBeside(game, blueprint, 1);
     give(game, { saw: 1 });
     game.step();
-    expect(game.client.getView().craftMenu.find(({ recipe }) => recipe === "planks")?.missingStation).toBe("sawhorse");
+    expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([{ kind: "station", station: "sawhorse" }]);
 
     send(game, { type: "craft", recipe: "planks" });
     send(game, { type: "craft", recipe: "planks", stationId: idOf(game, blueprint) });
@@ -179,7 +203,6 @@ describe("saving planks", () => {
     give(game, { plank: 4 });
     const saved = writeSave(game);
     expect(saved.version).toBe(SAVE_VERSION);
-    expect(PLANKS_SAVE_VERSION).toBe(SAVE_VERSION);
     expect(PLANKS_SAVE_VERSION).toBeGreaterThan(CRAFTING_SAVE_VERSION);
 
     const loaded = readSave(JSON.parse(JSON.stringify(saved)));
@@ -191,6 +214,30 @@ describe("saving planks", () => {
     const save = JSON.parse(JSON.stringify(writeSave(createGame({ seed: 42 })))) as { version: number };
     save.version = PLANKS_SAVE_VERSION - 1;
     expect(readSave(save).ok).toBe(true);
+  });
+});
+
+describe("saving a notice about crafting", () => {
+  it("keeps what the notice names, such as the station or the missing tool", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    send(game, { type: "craft", recipe: "planks", stationId: idOf(game, sawhorse) });
+    const notice = game.client.getView().notice;
+    expect(notice?.kind).toBe("cannotCraftYet");
+
+    const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
+    if (!loaded.ok) throw new Error("The save was rejected");
+    expect(loaded.game.client.getView().notice).toEqual(notice);
+  });
+
+  it("names the sawhorse in a notice that no log lies beside the station, from a save made before notices named it", () => {
+    const save = JSON.parse(JSON.stringify(writeSave(createGame({ seed: 42 })))) as { version: number; notice: unknown };
+    save.version = NOTICES_NAME_STATION_SAVE_VERSION - 1;
+    save.notice = { kind: "noLogBesideStation", untilMinutes: 10_000 };
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+    expect(loaded.game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
   });
 });
 

@@ -146,7 +146,7 @@ describe("the chest's weight limit", () => {
 
     expect(game.client.getView().backpack.stick).toBe(1);
     expect(game.client.getView().openChest?.contents).toEqual({ firewood: 40 });
-    expect(game.client.getView().notice).toBe("chestFull");
+    expect(game.client.getView().notice?.kind).toBe("chestFull");
   });
 
   it("tells the player when the backpack has no room for what they take", () => {
@@ -159,7 +159,7 @@ describe("the chest's weight limit", () => {
     send(game, { type: "takeFromChest", chestId: idOf(game, chest), content: "firewood", all: false });
 
     expect(game.client.getView().openChest?.contents).toEqual({ firewood: 1 });
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
   });
 
   it("never takes a log or debarked log", () => {

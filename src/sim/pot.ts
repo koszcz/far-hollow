@@ -1,5 +1,5 @@
 // The pot: the player fills it at the river, boils the water on a lit campfire, and drinks from it.
-import type { GameNotice } from "./api";
+import type { PlainNotice } from "./api";
 import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack, type PotContent } from "./backpack";
 import type { Campfires } from "./campfires";
 import { canReachRiver } from "./drinking";
@@ -24,11 +24,11 @@ export interface Pot {
   /** Stops the player walking to fill the pot. */
   cancel(): void;
   /** Fills the pot once the player has reached the bank. Returns a notice if the backpack had no room for the water. */
-  step(): GameNotice | undefined;
+  step(): PlainNotice | undefined;
   /** Puts the full pot from the backpack on a lit campfire within the player's reach. */
   putOnFire(campfireId: number): void;
   /** Takes the pot off a campfire within the player's reach and puts it in the backpack. Returns a notice if it does not fit. */
-  takeOffFire(campfireId: number): GameNotice | undefined;
+  takeOffFire(campfireId: number): PlainNotice | undefined;
   /**
    * Heats every pot on a lit campfire for this many game minutes. River water boils after BOIL_MINUTES.
    * Call it after the campfires burn, so a fire that went out does not heat the pot.
@@ -62,7 +62,7 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
       for (const player of [...fillers]) entities.removeComponent(player, "fillPotTask");
     },
     step() {
-      let notice: GameNotice | undefined;
+      let notice: PlainNotice | undefined;
       // Copy the list first, because players who fill the pot leave the query while it is being walked.
       for (const player of [...fillers]) {
         if (player.walkPath !== undefined) continue;

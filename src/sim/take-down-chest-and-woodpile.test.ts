@@ -25,7 +25,7 @@ describe("taking down a chest", () => {
     chest.chest.contents.knife = 1;
 
     send(game, { type: "takeDown", pieceId: idOf(game, chest) });
-    expect(game.client.getView().notice).toBe("stillHoldsSomething");
+    expect(game.client.getView().notice?.kind).toBe("stillHoldsSomething");
     runSeconds(game, CHEST_BUILD_SECONDS);
 
     expect(game.entities.has(chest)).toBe(true);
@@ -39,7 +39,7 @@ describe("taking down a chest", () => {
     stepUntil(game, () => game.client.getView().action?.kind === "takeDown");
     chest.chest.contents.firewood = 2;
 
-    stepUntil(game, () => game.client.getView().notice === "stillHoldsSomething" || !game.entities.has(chest));
+    stepUntil(game, () => game.client.getView().notice?.kind === "stillHoldsSomething" || !game.entities.has(chest));
 
     expect(game.entities.has(chest)).toBe(true);
     expect(game.client.getView().action).toBeNull();
@@ -82,7 +82,7 @@ describe("taking down a woodpile", () => {
     woodpile.woodpile.log = 1;
 
     send(game, { type: "takeDown", pieceId: idOf(game, woodpile) });
-    expect(game.client.getView().notice).toBe("stillHoldsSomething");
+    expect(game.client.getView().notice?.kind).toBe("stillHoldsSomething");
     runSeconds(game, 10);
 
     expect(game.entities.has(woodpile)).toBe(true);
@@ -112,7 +112,7 @@ describe("saving the notice that a chest or woodpile still holds something", () 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
-    expect(loaded.game.client.getView().notice).toBe("stillHoldsSomething");
+    expect(loaded.game.client.getView().notice?.kind).toBe("stillHoldsSomething");
   });
 });
 

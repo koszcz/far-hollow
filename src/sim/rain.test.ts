@@ -86,7 +86,7 @@ describe("rain in the game", () => {
 
     send(game, { type: "skipToRainChange" });
     expect(game.client.getView().raining).toBe(false);
-    expect(game.client.getView().notice).not.toBe("collapsed");
+    expect(game.client.getView().notice?.kind).not.toBe("collapsed");
   });
 
   it("drains the player's warmth during the day", () => {

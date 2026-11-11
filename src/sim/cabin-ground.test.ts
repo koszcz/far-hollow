@@ -26,7 +26,7 @@ describe("a lean-to and foundations", () => {
 
     send(game, { type: "takeDown", pieceId: idOf(game, foundation) });
 
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice?.kind).toBe("holdsUpPiece");
   });
 });
 
@@ -130,7 +130,7 @@ describe("things set down on a foundation", () => {
 
     send(game, { type: "sleep", bedrollId: idOf(game, bedroll) });
 
-    expect(game.client.getView().notice).toBe("collapsed");
+    expect(game.client.getView().notice?.kind).toBe("collapsed");
     expect(onlyPlayer(game).position.y).toBeCloseTo(foundation.position.y, 5);
   });
 });

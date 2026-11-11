@@ -604,12 +604,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the full build menu open in each view.
+  // src/ui/hud-showcase.tsx draws every build icon large over the first view, and the HUD with the full build menu open over the others.
   "build-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
-      { label: "HUD: build menu, day", yaw: 20, pitch: 35 },
+      { label: "Build icons, large", yaw: 20, pitch: 35 },
       { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
       { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
       { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },

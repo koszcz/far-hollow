@@ -2,11 +2,11 @@
 // The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the context panels and the open chest.
 // The clock sits top left, the pause button top right, and banners top centre. Build and craft open as wheels in the middle of the screen.
 // Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
-// The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the draft "build-icons" asset.
+// The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the approved "build-icons" asset.
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
+  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, Notice, PileView, RecipeKind, RecipeLack, StructureKind, WoodpileView,
   WoodpileWood,
 } from "../sim/api";
 import { strings } from "../strings";
@@ -100,6 +100,30 @@ interface WheelEntry {
 /** How far each choice's centre sits from the wheel's centre, in pixels. */
 const WHEEL_RADIUS = 104;
 
+/** Names one thing a recipe lacks, such as "the saw". */
+function lackingText(lack: RecipeLack): string {
+  switch (lack.kind) {
+    case "tool":
+      return strings.craftMenu.lacking.tool(strings.backpackContents[lack.tool]);
+    case "station":
+      return strings.craftMenu.lacking.station(strings.buildMenu.structures[lack.station]);
+    case "materials":
+      return strings.craftMenu.lacking.materials;
+  }
+}
+
+/** The text of a notice. */
+function noticeText(notice: Notice): string {
+  switch (notice.kind) {
+    case "noLogBesideStation":
+      return strings.notices.noLogBesideStation(strings.buildMenu.structures[notice.station]);
+    case "cannotCraftYet":
+      return strings.notices.cannotCraftYet(notice.lacks.map(lackingText));
+    default:
+      return strings.notices[notice.kind];
+  }
+}
+
 /**
  * A ring of choices in the middle of the screen, used for the build and craft menus. Pointing at a choice shows its
  * name and detail in the centre. A click picks it. A click outside the ring closes the wheel.
@@ -155,12 +179,11 @@ function Wheel({ title, pick, entries, onClose }: { title: string; pick: string;
  * it takes, and which tool or work station it lacks. A recipe the player cannot follow yet is dimmed. Choosing one starts crafting it.
  */
 function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (recipe: RecipeKind) => void; onClose: () => void }) {
-  const entries = view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials, result }): WheelEntry => {
-    const name = strings.craftMenu.recipes[recipe];
+  const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, lacks, result }): WheelEntry => {
+    const name = strings.craftMenu.recipes[kind];
     const notes = [
-      ...(missingTool === undefined ? [] : [strings.craftMenu.needsTool(strings.backpackContents[missingTool])]),
-      ...(missingStation === undefined ? [] : [strings.craftMenu.needsStation(strings.buildMenu.structures[missingStation])]),
-      ...(view.carrying === null ? [] : [strings.craftMenu.putLogDownFirst]),
+      ...(lacks.length === 0 ? [] : [strings.craftMenu.needs(lacks.map(lackingText))]),
+      ...(view.carrying === null ? [] : [strings.notices.putLogDownFirst]),
     ];
     const cost = strings.craftMenu.cost(
       [
@@ -174,7 +197,7 @@ function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (re
       seconds,
     );
     return {
-      key: recipe,
+      key: kind,
       name,
       icon: <BackpackIcon content={result.content} />,
       detail: (
@@ -186,9 +209,9 @@ function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (re
         </>
       ),
       label: [name, cost, ...notes].join(" · "),
-      dimmed: notes.length > 0 || !hasMaterials,
+      dimmed: notes.length > 0,
       onPick: () => {
-        onChoose(recipe);
+        onChoose(kind);
       },
     };
   });
@@ -500,7 +523,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
           {view.notice !== null && (
             <p class="hud-banner hud-notice" role="status">
-              {strings.notices[view.notice]}
+              {noticeText(view.notice)}
             </p>
           )}
         </div>

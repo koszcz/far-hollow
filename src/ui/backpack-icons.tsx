@@ -3,7 +3,7 @@
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
 import { useId } from "preact/hooks";
 import type { BackpackContent, CraftingContent } from "../sim/api";
-import { CRAFTING_DRAWINGS } from "./crafting-icons";
+import { CRAFTING_DRAWINGS, isCraftingContent } from "./crafting-icons";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
 
 /** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` and `.hud-build-entry` in style.css. */
@@ -197,6 +197,6 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
 
 /** Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it. */
 export function BackpackIcon({ content }: { content: BackpackContent }) {
-  const drawing = content === "sawBlade" || content === "saw" || content === "plank" ? CRAFTING_DRAWINGS[content] : DRAWINGS[content];
+  const drawing = isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : DRAWINGS[content];
   return <ShadedIcon drawing={drawing} className="backpack-icon" />;
 }

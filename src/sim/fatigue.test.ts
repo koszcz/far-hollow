@@ -99,7 +99,7 @@ describe("sleeping on a bedroll", () => {
     const view = game.client.getView();
     expect(view.time).toMatchObject({ day: 2, hour: 6, minute: 0 });
     expect(view.needs.fatigue).toBeCloseTo(1, 3);
-    expect(view.notice).not.toBe("collapsed");
+    expect(view.notice?.kind).not.toBe("collapsed");
   });
 
   it("keeps warmth draining when no lit campfire is near", () => {
@@ -111,7 +111,7 @@ describe("sleeping on a bedroll", () => {
 
     // Ten hours of night with no fire is too cold to sleep through. The player collapses and wakes on the bedroll.
     const view = game.client.getView();
-    expect(view.notice).toBe("collapsed");
+    expect(view.notice?.kind).toBe("collapsed");
     expect(view.time).toMatchObject({ day: 2, hour: 6, minute: 0 });
   });
 
@@ -133,13 +133,13 @@ describe("sleeping on a bedroll", () => {
     const bedrollId = layBedroll(game);
     send(game, { type: "skipTime", hours: 12 }); // 20:00.
     send(game, { type: "sleep", bedrollId }); // Cold: the player collapses in the night and wakes on the bedroll.
-    expect(game.client.getView().notice).toBe("collapsed");
+    expect(game.client.getView().notice?.kind).toBe("collapsed");
 
     walkTo(game, offsetFromPlayer(game, -15));
     send(game, { type: "skipTime", hours: 20 }); // Into the next night, with no fire, to a second collapse.
 
     const view = game.client.getView();
-    expect(view.notice).toBe("collapsed");
+    expect(view.notice?.kind).toBe("collapsed");
     expect(view.time).toMatchObject({ day: 3, hour: 6 });
     expect(view.playerPosition.x).toBeCloseTo(bedrollAt.x, 5);
     expect(view.playerPosition.z).toBeCloseTo(bedrollAt.z, 5);
@@ -171,7 +171,7 @@ describe("sleeping on a bedroll", () => {
 
     // Asleep on the bedroll, beside the fire, the player stays warm all night.
     expect(game.client.getView().time).toMatchObject({ day: 2, hour: 6 });
-    expect(game.client.getView().notice).not.toBe("collapsed");
+    expect(game.client.getView().notice?.kind).not.toBe("collapsed");
   });
 });
 

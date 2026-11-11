@@ -2,6 +2,7 @@
 // different game state. The states match the order of the views in src/render/asset-showcase.ts. Development builds only.
 import { render } from "preact";
 import type { GameClient, GameView, StructureKind } from "../sim/api";
+import { MaterialIcon, StructureIcon } from "./build-icons";
 import { Hud } from "./hud";
 
 const BASE_VIEW: GameView = {
@@ -156,6 +157,25 @@ const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { sawBlade: 3, saw: 2 } }, buildMenuOpen: false, placing: null },
 ];
 
+/** The "build-icons" first view: every build icon drawn large, with its name, so the owner can judge the drawings. */
+function BuildIconSheet() {
+  const cell = { display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "4px", background: "#3d2b1e", borderRadius: "6px", color: "#cdb898", fontSize: "11px" } as const;
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "4px" }}>
+      {FULL_BUILD_MENU.map(({ structure }) => (
+        <div key={structure} style={cell}>
+          <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon"><StructureIcon structure={structure} /></span>
+          {structure}
+        </div>
+      ))}
+      <div style={cell}>
+        <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon"><MaterialIcon material="debarkedLog" /></span>
+        debarkedLog
+      </div>
+    </div>
+  );
+}
+
 /** A client that always shows `view` and ignores commands. */
 function stillClient(view: GameView): GameClient {
   return {
@@ -176,6 +196,14 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
+    if (asset === "build-icons") {
+      // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
+      quarter.classList.add("showcase-hud-no-needs");
+      if (index === 0) {
+        render(<BuildIconSheet />, quarter);
+        return;
+      }
+    }
     render(
       <Hud
         client={stillClient(view)}

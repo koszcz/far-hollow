@@ -2,10 +2,12 @@
 // its hood, cape, shield, mug, and big axe, and with a light brown knit beanie built here. The owner approved the asset.
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
+// While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CarriedLog } from "../sim/entities";
+import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import type { PlayerModel } from "./player-model";
@@ -47,6 +49,9 @@ export const CHOP_STRIKE_SHARE = 0.38;
 /** How many times a second the player strikes down at a log when splitting: once per loop of the split clip. */
 export const SPLIT_STRIKES_PER_SECOND = 1 / SPLIT_CLIP_SECONDS;
 
+/** Seconds the player takes to stand up when building stops partway through a crouch. */
+const BUILD_LEAVE_SECONDS = 0.3;
+
 /** The carried log rests here on the player's right shoulder, from the player's feet, in metres. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = new THREE.Vector3(-0.3, 1.0, 0);
 /** While the right hand steadies the log, the axe hangs here on the back, from the player's feet, in metres. */
@@ -70,6 +75,8 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
+  /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
+  setBuilding(nowSeconds: number | undefined): void;
   dispose(): void;
 }
 
@@ -97,6 +104,20 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const rightUpperArm = bone("upperarmr");
   const rightForearm = bone("lowerarmr");
   const rightHandSlot = bone("handslotr");
+  const limb = (side: "l" | "r", upper: string, lower: string, end: string) => ({
+    upper: bone(upper + side),
+    lower: bone(lower + side),
+    end: bone(end + side),
+    side: side === "l" ? (1 as const) : (-1 as const),
+  });
+  const leftArm = limb("l", "upperarm", "lowerarm", "wrist");
+  const buildBones: BuildBones = {
+    hips: bone("hips"),
+    chest: chestBone,
+    head: headBone,
+    legs: [limb("l", "upperleg", "lowerleg", "foot"), limb("r", "upperleg", "lowerleg", "foot")],
+    arms: [leftArm, limb("r", "upperarm", "lowerarm", "wrist")],
+  };
   const axe = bone(AXE_PART);
   const axeInHand = { position: axe.position.clone(), quaternion: axe.quaternion.clone(), scale: axe.scale.clone() };
   let axeOnBack = false;
@@ -152,6 +173,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let walkedMetres: number | undefined;
   let choppingAt: number | undefined;
   let splittingAt: number | undefined;
+  /** The clock time building began, or undefined while not building. */
+  let buildingSince: number | undefined;
+  /** The clock time it is now, while building. */
+  let buildingAt = 0;
+  /** While standing up after building stops: when it stopped, on the performance clock in seconds, and the pose then. */
+  let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt> } | undefined;
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -201,6 +228,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       axe.scale.copy(axeInHand.scale);
       return;
     }
+    // The axe hangs from the chest as the clip holds it, not as a crouch or a carry turn has moved it.
+    restoreClipPose();
     group.updateMatrixWorld(true);
     group.add(axe);
     axe.position.copy(AXE_ON_BACK_SPOT);
@@ -209,25 +238,68 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     chestBone.attach(axe);
   }
 
-  /** The right arm as the clip last posed it, before the carry turn. Undefined while the arm is not turned. */
-  let armBeforeCarryTurn: { upper: THREE.Quaternion; fore: THREE.Quaternion } | undefined;
+  /** Each bone turned or moved by code, as the clip last posed it. The mixer does not put these back itself. */
+  const posedByCode = new Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>();
+  function rememberClipPose(...bones: THREE.Object3D[]): void {
+    for (const posed of bones) {
+      if (!posedByCode.has(posed)) posedByCode.set(posed, { position: posed.position.clone(), quaternion: posed.quaternion.clone() });
+    }
+  }
+  /** Puts every bone code turned or moved back as the clip posed it. */
+  function restoreClipPose(): void {
+    for (const [posed, clipPose] of posedByCode) {
+      posed.position.copy(clipPose.position);
+      posed.quaternion.copy(clipPose.quaternion);
+    }
+    posedByCode.clear();
+  }
+  const buildPosedBones = [
+    buildBones.hips,
+    buildBones.chest,
+    buildBones.head,
+    ...[...buildBones.legs, ...buildBones.arms].flatMap((part) => [part.upper, part.lower, part.end]),
+  ];
+
+  /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with building. */
+  function updateAxe(): void {
+    const swinging = choppingAt !== undefined || splittingAt !== undefined;
+    placeAxe(!swinging && (carrying || buildingSince !== undefined));
+  }
 
   /** Shows the clip for what the player is doing now. */
   function pose(): void {
     // The mixer skips a bone whose clip value has not changed since it last wrote it.
     // Undo the carry turn first, so the turn never piles up on itself.
-    if (armBeforeCarryTurn !== undefined) {
-      rightUpperArm.quaternion.copy(armBeforeCarryTurn.upper);
-      rightForearm.quaternion.copy(armBeforeCarryTurn.fore);
-      armBeforeCarryTurn = undefined;
-    }
+    restoreClipPose();
     posePlayingClip();
     if (carrying) {
       // The right arm turns up so the hand steadies the log on the shoulder, whatever the legs do.
-      armBeforeCarryTurn = { upper: rightUpperArm.quaternion.clone(), fore: rightForearm.quaternion.clone() };
+      rememberClipPose(rightUpperArm, rightForearm);
       rightUpperArm.quaternion.multiply(CARRY_UPPER_ARM_TURN);
       rightForearm.quaternion.multiply(CARRY_FOREARM_TURN);
     }
+    poseBuilding();
+  }
+
+  /** Crouches over the clip while building, or stands back up for a moment after building stops. */
+  function poseBuilding(): void {
+    let pose: ReturnType<typeof buildPoseAt> | undefined;
+    if (buildingSince !== undefined) {
+      pose = buildPoseAt(buildingAt - buildingSince);
+    } else if (leavingBuild !== undefined) {
+      const done = (performance.now() / 1000 - leavingBuild.at) / BUILD_LEAVE_SECONDS;
+      // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
+      const idleNow = walkedMetres === undefined && choppingAt === undefined && splittingAt === undefined;
+      if (done >= 1 || !idleNow) {
+        leavingBuild = undefined;
+        return;
+      }
+      pose = scaleBuildPose(leavingBuild.pose, 1 - done * done * (3 - 2 * done));
+    }
+    if (pose === undefined) return;
+    rememberClipPose(...buildPosedBones);
+    // A hand steadying a log on the shoulder stays there, so only the left hand reaches.
+    applyBuildPose(group, buildBones, pose, carrying ? [leftArm] : buildBones.arms);
   }
 
   function posePlayingClip(): void {
@@ -264,7 +336,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (carryingNow === carrying) return;
       carrying = carryingNow;
       shoulderLog.visible = carrying;
-      placeAxe(carrying && choppingAt === undefined && splittingAt === undefined);
+      updateAxe();
       pose();
     },
     setWalking(walked) {
@@ -274,13 +346,30 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     setChopping(nowSeconds) {
       choppingAt = nowSeconds;
       if (nowSeconds !== undefined) splittingAt = undefined;
-      placeAxe(carrying && nowSeconds === undefined);
+      updateAxe();
       pose();
     },
     setSplitting(nowSeconds) {
       splittingAt = nowSeconds;
       if (nowSeconds !== undefined) choppingAt = undefined;
-      placeAxe(carrying && nowSeconds === undefined);
+      updateAxe();
+      pose();
+    },
+    setBuilding(nowSeconds) {
+      if (nowSeconds === undefined) {
+        if (buildingSince !== undefined) {
+          leavingBuild = { at: performance.now() / 1000, pose: buildPoseAt(buildingAt - buildingSince) };
+          buildingSince = undefined;
+          updateAxe();
+        }
+      } else {
+        if (buildingSince === undefined) {
+          buildingSince = nowSeconds;
+          leavingBuild = undefined;
+          updateAxe();
+        }
+        buildingAt = nowSeconds;
+      }
       pose();
     },
     dispose() {

@@ -105,4 +105,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .showcase-hud-1 { top: 32px; left: 50%; }
 .showcase-hud-2 { top: calc(50% + 32px); left: 0; }
 .showcase-hud-3 { top: calc(50% + 32px); left: 50%; }
+.showcase-hud-no-needs .hud-needs-dock { display: none; }
+.showcase-big-icon svg { width: 100%; height: 100%; }
 .showcase-missing { margin: 16px; padding: 8px 12px; background: #000a; color: #fff; }

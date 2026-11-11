@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 (Roof)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Assets:** Reuse `player`, `debarked-log`, `bark`, and `roof`. Add the hip and valley corner pieces to the `roof` entry as a draft (ADR 0006). The straight section stays approved as it is.
 
@@ -22,6 +22,7 @@
 - [ ] Each roof slopes down in its own direction. Sections one behind another in that direction share one slope, as they do now.
 - [ ] Each slope rises from its own downhill wall. A section's height is one rise for each roof section between it and that wall, in its own slope direction.
 - [ ] Where two roofs that slope at right angles to each other meet at a corner, the corner section becomes a hip (outside corner) or a valley (inside corner). The rule only looks at a section's neighbours, the same way stair corners do.
+- [ ] Where two roof runs of different depth sit side by side, logs fill the step between them, up to the higher roof's bark.
 - [ ] The hip and valley pieces cover the corner with no gap. Their bark laps so water runs down and off, never in.
 - [ ] Taking down a roof reshapes the corners next to it.
 - [ ] All player-facing text is in the strings file.
@@ -31,7 +32,4 @@
 
 - **Slope heights at a corner** (owner, 2026-11-11): Each slope rises from its own downhill wall. A section's height comes from its distance to that wall, in its own slope direction. Then two slopes that meet at a corner reach the same height there, and the hip or valley lines up.
 - **Where heights live** (owner, 2026-11-11): Drawing only. The game rules store each roof's turn, and nothing more. `src/render/roof-meshes.ts` works out each section's height and corner shape when it draws, as it does now.
-
-## Open questions for the owner
-
-1. **Roofs that meet at the same direction but different heights.** Where two runs of different depth sit side by side, their roofs meet at a step. Should logs fill the step, or should something else happen?
+- **Steps between runs** (owner, 2026-11-11): Logs fill the step. Where two roof runs of different depth sit side by side, the higher roof's side gets logs stacked on the lower roof, cut to the slope, up to the higher roof's bark. This uses the same fill logs as the open sides and backs.

@@ -113,8 +113,6 @@ export function renderHudShowcase(ui: HTMLElement, asset: "hud" | "bark"): void 
     render(
       <Hud
         client={stillClient(view)}
-        cameraFollow={true}
-        onCameraFollowChange={() => {}}
         buildMenuOpen={buildMenuOpen}
         placing={placing}
         onToggleBuildMenu={() => {}}

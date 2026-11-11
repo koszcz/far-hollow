@@ -24,10 +24,6 @@ function isFood(content: BackpackContent): content is Food {
 
 export interface HudProps {
   client: GameClient;
-  /** Whether the camera follows the player when the HUD first shows. */
-  cameraFollow: boolean;
-  /** Called when the player turns camera follow on or off. The camera is not game state, so this is not a command. */
-  onCameraFollowChange: (enabled: boolean) => void;
   /** Whether the build menu is open. */
   buildMenuOpen: boolean;
   /** The structure whose blueprint follows the mouse, or null while not placing one. */
@@ -212,9 +208,8 @@ const CONTENT_ICONS: Partial<Record<BackpackContent, HudIconName>> = { bark: "ba
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
-export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowChange, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
+export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
   const [view, setView] = useState(client.getView());
-  const [cameraFollow, setCameraFollow] = useState(initialCameraFollow);
   useEffect(
     () =>
       client.subscribe(() => {
@@ -337,18 +332,6 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
               )}
             </div>
           </section>
-          <label class="hud-setting">
-            <input
-              type="checkbox"
-              checked={cameraFollow}
-              onChange={(event) => {
-                const enabled = event.currentTarget.checked;
-                setCameraFollow(enabled);
-                onCameraFollowChange(enabled);
-              }}
-            />
-            {strings.cameraFollow}
-          </label>
         </div>
       </div>
     </>

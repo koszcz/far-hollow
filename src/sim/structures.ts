@@ -183,7 +183,7 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
       if (cellIndexAt(walkMap, corner) === undefined) return false;
       if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
     }
-    if (!isClearOfTreesAndPlans(entities, rect)) return false;
+    if (!isClearOfTreesAndStructures(entities, rect)) return false;
     // Foundations can sit side by side, but not overlap a finished foundation or campfire.
     for (const other of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(other.position, 0))) return false;
     for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
@@ -228,7 +228,7 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
       if (foundationsBeside(entities, spot, turns).length === 0) return false;
       if (isEdgeTaken(entities, spot)) return false;
       if (meetsDoorAtCorner(entities, kind, spot, turns)) return false;
-      return isClearOfTreesAndPlans(entities, footprint(spot, turns));
+      return isClearOfTreesAndStructures(entities, footprint(spot, turns));
     },
     finish(spot, turns) {
       const [inside, beyond] = squaresBeside(spot, turns);
@@ -270,7 +270,7 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
     // The roof rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
     if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
     // A roof already over the square, finished or planned, is in the way. Furniture under it is not.
-    return isClearOfTreesAndPlans(entities, roof.footprint(spot, turns), { furniture: false });
+    return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFurniture: true });
   },
   finish: (spot) => ({ cabinRoof: true, roof: roof.footprint(spot, 0) }),
 };
@@ -352,7 +352,7 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
     for (const frame of walkBlockerSpotEntities(entities)) {
       for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
     }
-    return isClearOfTreesAndPlans(entities, rect, { roofs: false });
+    return isClearOfTreesAndStructures(entities, rect, { ignoreCabinRoofs: true });
   },
   finish: () => ({ chest: { contents: {} }, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } }),
 };
@@ -388,17 +388,21 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
       if (!isWalkable(walkMap, { x, z })) return false;
     }
   }
-  return isClearOfTreesAndPlans(entities, rect);
+  return isClearOfTreesAndStructures(entities, rect);
 }
 
 /**
- * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, a finished woodpile,
+ * Whether `rect` keeps clear of standing trees and of every structure: any blueprint, a finished roof, a finished woodpile,
  * a finished wall or door frame, or a chest.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
- * `furniture: false` lets furniture and furniture blueprints stand under it, as under a roof.
- * `roofs: false` lets it go under a finished cabin roof or a roof blueprint, as furniture does. A lean-to is still in the way.
+ * `ignoreFurniture` lets it go over furniture and furniture blueprints, as a roof does.
+ * `ignoreCabinRoofs` lets it go under a finished cabin roof or a roof blueprint, as furniture does. A lean-to is still in the way.
  */
-function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect, allow: { furniture?: false; roofs?: false } = {}): boolean {
+function isClearOfTreesAndStructures(
+  entities: EntityStore,
+  rect: GroundRect,
+  { ignoreFurniture = false, ignoreCabinRoofs = false }: { ignoreFurniture?: boolean; ignoreCabinRoofs?: boolean } = {},
+): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
     max: { x: rect.max.x + TREE_CLEARANCE_METRES, z: rect.max.z + TREE_CLEARANCE_METRES },
@@ -406,19 +410,19 @@ function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect, allow: 
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
   for (const blueprint of blueprintEntities(entities)) {
     const { piece } = blueprint.blueprint;
-    if ((allow.furniture === false && isFurniture(piece)) || (allow.roofs === false && piece === "roof")) continue;
+    if ((ignoreFurniture && isFurniture(piece)) || (ignoreCabinRoofs && piece === "roof")) continue;
     const other = structureOf(piece).footprint(blueprint.position, blueprint.facing?.turns ?? 0);
     if (rectsOverlap(rect, other)) return false;
   }
   for (const roofed of roofEntities(entities)) {
     // A lean-to's roof is part of the lean-to, so it is always in the way. Only a cabin's roof may be over something.
-    if (allow.roofs === false && roofed.cabinRoof === true) continue;
+    if (ignoreCabinRoofs && roofed.cabinRoof === true) continue;
     if (rectsOverlap(rect, roofed.roof)) return false;
   }
-  for (const pile of woodpileEntities(entities)) {
-    if (rectsOverlap(rect, woodpile.footprint(pile.position, pile.facing?.turns ?? 0))) return false;
+  for (const stack of woodpileEntities(entities)) {
+    if (rectsOverlap(rect, woodpile.footprint(stack.position, stack.facing?.turns ?? 0))) return false;
   }
-  if (allow.furniture !== false && !isClearOfFurniture(entities, rect)) return false;
+  if (!ignoreFurniture && !isClearOfFurniture(entities, rect)) return false;
   for (const piece of edgePieceEntities(entities)) {
     if (rectsOverlap(rect, structureOf(piece.edgePiece).footprint(piece.position, piece.facing?.turns ?? 0))) return false;
   }

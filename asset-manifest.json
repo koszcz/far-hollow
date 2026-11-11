@@ -310,12 +310,13 @@
       "code": [
         "src/render/bedroll-meshes.ts"
       ],
-      "description": "A bedroll laid out on the ground: a flat green canvas mat with a rolled-up red blanket at its head end.",
+      "description": "A bedroll laid out on the ground: a green canvas mat with quilted seams, and a rolled red blanket at its head end held by two leather straps.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/04-fatigue-and-bedroll.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -325,12 +326,13 @@
         "src/render/pot-shape.ts",
         "src/render/campfire-meshes.ts"
       ],
-      "description": "The player's pot, shown empty, full of water, and steaming while it boils on a campfire.",
+      "description": "The player's cast-iron pot with a rolled rim and a wire handle, shown empty, full of water, and bubbling and steaming while it boils on a campfire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/06-boil-water.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     }
   ]

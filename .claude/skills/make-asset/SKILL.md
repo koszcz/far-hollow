@@ -14,7 +14,9 @@ One session makes exactly one asset in the asset catalogue, `asset-manifest.json
 
 If the owner named an asset id, use it. Otherwise run `make drafts` and ask the owner which draft to polish. For a new asset, agree its id, a one-line description, and what in the game will use it.
 
-Done when one catalogue id is fixed for this session.
+Then rename the session after the asset, so the owner can tell sessions apart. Use the title `Asset: <id>`, for example `Asset: pot`. In the Claude desktop app, call the `set_session_title` tool. If no tool can rename the session, skip this and tell the owner.
+
+Done when one catalogue id is fixed for this session and the session is named after it.
 
 ### 2. Open a branch
 

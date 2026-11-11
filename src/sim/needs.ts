@@ -26,6 +26,8 @@ export const FATIGUE_DRAIN_PER_HOUR = 1 / 24;
 export const WORK_FATIGUE_FACTOR = 3;
 /** How much fatigue the player regains per game hour asleep. A full night's sleep of 8 hours restores it all. */
 export const FATIGUE_RECOVERY_PER_HOUR = 1 / 8;
+/** Asleep under a roof, the player regains fatigue this many times faster than in the open. */
+export const ROOF_SLEEP_FACTOR = 1.5;
 
 /** Below this level, a need makes the player move and work more slowly. */
 export const LOW_NEED = 0.3;
@@ -66,8 +68,10 @@ export interface NeedConditions {
   asleep: boolean;
   /** Whether the player is sick. */
   sick: boolean;
-  /** Whether rain falls on the player. No roofs exist yet, so rain falls on the player everywhere. Missing means dry. */
+  /** Whether rain falls on the player. Rain does not fall under a roof. Missing means dry. */
   inRain?: boolean;
+  /** Whether the player is under a roof, so sleep restores fatigue faster. Missing means in the open. */
+  underRoof?: boolean;
 }
 
 /** Changes every need for this many game minutes spent in these conditions. */
@@ -101,14 +105,19 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
     case "hunger":
       return -HUNGER_DRAIN_PER_HOUR;
     case "fatigue":
-      if (conditions.asleep) return FATIGUE_RECOVERY_PER_HOUR;
+      if (conditions.asleep) return fatigueRecoveryPerHour(conditions.underRoof === true);
       return -FATIGUE_DRAIN_PER_HOUR * (conditions.working ? WORK_FATIGUE_FACTOR : 1);
   }
 }
 
-/** How many game minutes of sleep restore fatigue fully. */
-export function minutesToRestFully(needs: Needs): number {
-  return ((FULL_NEED - needs.fatigue.level) / FATIGUE_RECOVERY_PER_HOUR) * 60;
+/** How much fatigue the player regains per game hour asleep, under a roof or in the open. */
+function fatigueRecoveryPerHour(underRoof: boolean): number {
+  return FATIGUE_RECOVERY_PER_HOUR * (underRoof ? ROOF_SLEEP_FACTOR : 1);
+}
+
+/** How many game minutes of sleep restore fatigue fully, under a roof or in the open. */
+export function minutesToRestFully(needs: Needs, underRoof = false): number {
+  return ((FULL_NEED - needs.fatigue.level) / fatigueRecoveryPerHour(underRoof)) * 60;
 }
 
 /** Whether any one need has been empty for too long, so the player has a collapse. */

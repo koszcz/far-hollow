@@ -14,7 +14,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -111,6 +111,22 @@ function givePot(save: Readonly<Record<string, unknown>>): Record<string, unknow
 /** Version 4 to 5: a new game now starts with a drawknife, so a player saved before drawknives existed gets one too. */
 function giveDrawknife(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return giveStartingItem(save, "drawknife");
+}
+
+/**
+ * Version 5 to 6: structures can cost more than sticks, so a blueprint counts the materials spent on it, not the sticks.
+ * Until then only sticks were spent, so the count carries over.
+ */
+function countMaterialsSpent(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (typeof blueprint !== "object" || blueprint === null || !("sticksSpent" in blueprint)) return entity;
+    const { sticksSpent, ...rest } = blueprint;
+    return { ...(entity as object), components: { ...components, blueprint: { ...rest, materialsSpent: sticksSpent } } };
+  });
+  return { ...save, entities };
 }
 
 /** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */

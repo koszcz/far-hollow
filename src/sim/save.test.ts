@@ -40,7 +40,7 @@ describe("saving and loading a game", () => {
     runSeconds(game, 1);
 
     const saved = writeSave(game);
-    expect(saved.version).toBe(5);
+    expect(saved.version).toBe(SAVE_VERSION);
     expect(saved.entities.some((entity) => entity.components.debarkTask !== undefined)).toBe(true);
     const loaded = readSave(throughStorage(saved));
     if (!loaded.ok) throw new Error("The save was rejected");

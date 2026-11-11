@@ -17,6 +17,7 @@ import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
 import { createRain, passRainTime } from "./rain";
+import { isUnderRoof } from "./roofs";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { boilProgress } from "./pot-state";
@@ -327,14 +328,15 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       campfires.burn(minutes);
       foraging.grow(minutes);
       pot.heat(minutes);
+      const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
         working: currentAction() !== null,
         asleep,
         sick: player.sickness !== undefined,
-        // No roofs exist yet, so rain falls on the player wherever they stand.
-        inRain: rain.falling,
+        inRain: rain.falling && !underRoof,
+        underRoof,
       });
       if (player.sickness !== undefined && passSicknessTime(player.sickness, minutes, { resting: isResting() })) {
         entities.removeComponent(player, "sickness");
@@ -386,7 +388,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     Object.assign(player.previousPosition, player.position);
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const night = isNight(readClock(clock.minutes).hourOfDay);
-    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs)), true);
+    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs, isUnderRoof(entities, player.position))), true);
   }
 
   function applyCommand(command: Command): void {

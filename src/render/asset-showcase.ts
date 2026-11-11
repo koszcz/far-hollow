@@ -441,10 +441,16 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   // From left to right: a blueprint, an empty woodpile, one half full of mixed wood, and a full one. The player stands behind for size.
+  // One view shows all four. The others come close to the full one, the half-full one, and the empty one.
   woodpile: {
     radius: 2.6,
     focus: { x: 0, y: 0.4, z: 0 },
-    shots: FOUR_ANGLES,
+    shots: [
+      { label: "all four: blueprint, empty, half full, full", yaw: 0, pitch: 14 },
+      { label: "full, front three-quarter", yaw: 35, pitch: 18, radius: 1.4, focus: { x: 2.4, y: 0.5, z: 0 } },
+      { label: "half full, back three-quarter", yaw: 215, pitch: 22, radius: 1.4, focus: { x: 0.8, y: 0.35, z: 0 } },
+      { label: "blueprint and empty, from above", yaw: -20, pitch: 50, radius: 1.5, focus: { x: -1.6, y: 0.2, z: 0 } },
+    ],
     build({ place, movePlayer }) {
       place(-2.4, 0, { blueprint: { structure: "woodpile", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
       place(-0.8, 0, { woodpile: { log: 0, debarkedLog: 0, firewood: 0 } });
@@ -575,7 +581,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
-      { label: "HUD: walking, day", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu and an open chest, day", yaw: 20, pitch: 35 },
       { label: "HUD: chopping, backpack full", yaw: -20, pitch: 35 },
       { label: "HUD: carrying a log at a campfire", yaw: 40, pitch: 35, hour: 18 },
       { label: "HUD: cold at night, paused, placing", yaw: 20, pitch: 35, hour: NIGHT },
@@ -583,6 +589,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       for (const [x, z] of [[-6, -4], [0, -7], [6, -3], [-3, -9]] as const) place(x, z, { tree: true });
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+      place(-1.2, 0.6, { chest: { contents: {} }, facing: { turns: 0 } });
       movePlayer(0, 0, 0);
     },
   },
@@ -826,7 +833,7 @@ export function showAsset(
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   const bark = createBarkMeshes(store);
-  const woodpiles = createWoodpileMeshes(store);
+  const woodpiles = createWoodpileMeshes(store, shapes.log);
   const chests = createChestMeshes(store);
   const piles = createPileMeshes(store);
   // Rain shows only where the stage has rain falling.

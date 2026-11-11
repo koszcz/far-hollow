@@ -3,6 +3,7 @@ import { createSceneRenderer } from "../render/scene-renderer";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS } from "../sim/game";
 import { strings } from "../strings";
+import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -27,14 +28,25 @@ function chooseSeed(): number {
 }
 
 const game = createGame({ seed: chooseSeed() });
-const sceneRenderer = createSceneRenderer(requireElement("#scene", HTMLCanvasElement), game.valley, game.entities);
+const sceneRenderer = createSceneRenderer(
+  requireElement("#scene", HTMLCanvasElement),
+  game.valley,
+  game.entities,
+  () => game.client.getView().time.hourOfDay,
+);
 const loop = createFixedStepLoop({
   stepMs: STEP_MS, maxStepsPerAdvance: MAX_STEPS_PER_FRAME, step: () => {
     game.step();
   },
 });
 
-render(<Hud client={game.client} />, requireElement("#ui", HTMLDivElement));
+render(
+  <>
+    <Hud client={game.client} />
+    <DebugOverlay client={game.client} />
+  </>,
+  requireElement("#ui", HTMLDivElement),
+);
 
 let lastFrameMs: number | undefined;
 function frame(nowMs: number): void {

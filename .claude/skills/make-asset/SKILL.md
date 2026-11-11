@@ -50,7 +50,7 @@ Done when the game uses the new asset everywhere step 3 found.
 
 ### 6. Show it
 
-Start the `dev` preview and open `/?asset=<id>`. The asset showcase draws the asset with the game's own code, in four labelled views. For an animation, the views are four key moments. When `document.body.dataset.showcase` is `"ready"`, take one screenshot and send it to the owner. To change the views, or to add a new asset, edit `src/render/asset-showcase.ts`. For a sound, describe when it plays and how loud it is.
+Start the `dev` preview and open `/?asset=<id>`. The asset showcase draws the asset with the game's own code, in four labelled views. When `document.body.dataset.showcase` is `"ready"`, take one screenshot and send it to the owner. For an animation, do not send stills. Open `/?asset=<id>&play` instead, so the owner watches the full animation loop in the browser pane. Add `&speed=0.25` for slow motion. If the animation has no `play` entry in the showcase, add one first. To change the views, or to add a new asset, edit `src/render/asset-showcase.ts`. For a sound, describe when it plays and how loud it is.
 
 Show the asset in the full game only if the owner asks to see it there.
 

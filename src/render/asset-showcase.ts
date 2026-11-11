@@ -1,13 +1,15 @@
 // Shows one asset from asset-manifest.json on its own, from four fixed views, so one screenshot reviews it.
 // The dev server opens it at /?asset=<id>. It draws with the game's own mesh code on the real valley ground.
-// Animations show four key moments instead of four angles.
+// Animations show four key moments instead of four angles. With &play in the address, an animation that supports it
+// plays live in one full view instead, so the owner can judge its timing. &speed=0.25 slows it down.
 import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
+import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
-import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, type PlayerMesh } from "./player-mesh";
+import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createSkyLighting } from "./sky-lighting";
 import type { StumpShape } from "./stump-model";
@@ -55,6 +57,12 @@ interface Showcase {
   build(stage: Stage): void;
   /** Poses an animation for one view, before it draws. */
   pose?(stage: Stage, shot: Shot): void;
+  /** Plays the animation live in one view. */
+  readonly play?: {
+    readonly shot: Shot;
+    /** Poses the animation `seconds` after it began. Returns how far the camera moves to follow it, in metres. */
+    pose(stage: Stage, seconds: number): Partial<Vec3> | undefined;
+  };
 }
 
 const FOUR_ANGLES: readonly Shot[] = [
@@ -160,6 +168,31 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       if (falling && tree !== undefined) store.removeComponent(tree, "tree");
     },
   },
+  "walk-animation": {
+    radius: 1.2,
+    focus: { x: 0, y: 0.9, z: 0 },
+    // A quarter turn of the stride apart: each foot lands, then each leg passes the other.
+    shots: [
+      { label: "right leg passes", share: 0.25 },
+      { label: "right foot lands", share: 0.5 },
+      { label: "left leg passes", share: 0.75 },
+      { label: "left foot lands", share: 1 },
+    ].map(({ label, share }) => ({ label, yaw: 70, pitch: 8, seconds: (share * STRIDE_METRES) / WALK_SPEED_METRES_PER_SECOND })),
+    build() {},
+    pose({ player }, shot) {
+      player.setWalking((shot.seconds ?? 0) * WALK_SPEED_METRES_PER_SECOND);
+    },
+    // The player walks forward at game speed over the textured ground, so foot slide shows. The camera keeps pace.
+    play: {
+      shot: { label: "walking", yaw: 70, pitch: 10, radius: 1.6 },
+      pose({ player, movePlayer }, seconds) {
+        const walked = (seconds * WALK_SPEED_METRES_PER_SECOND) % 60;
+        movePlayer(0, walked, 0);
+        player.setWalking(walked);
+        return { z: walked };
+      },
+    },
+  },
   "split-animation": {
     radius: 1.3,
     focus: { x: 0, y: 1, z: 0 },
@@ -187,8 +220,23 @@ export interface AssetShowcase {
   dispose(): void;
 }
 
-/** Draws the asset once into a 2 by 2 grid on the canvas. Returns undefined for an id with no showcase. */
-export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: readonly TreeShape[], stumpShape: StumpShape): AssetShowcase | undefined {
+/** How to show an asset: four still views, or the animation playing live at `speed` times game speed. */
+export interface ShowOptions {
+  readonly play: boolean;
+  readonly speed: number;
+}
+
+/**
+ * Draws the asset once into a 2 by 2 grid on the canvas, or plays its animation live when `options.play` is set and the
+ * asset can play. Returns undefined for an id with no showcase.
+ */
+export function showAsset(
+  canvas: HTMLCanvasElement,
+  id: string,
+  treeShapes: readonly TreeShape[],
+  stumpShape: StumpShape,
+  options: ShowOptions = { play: false, speed: 1 },
+): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
   if (showcase === undefined) return undefined;
   // The valley's ground and river are the subject only for "terrain" and "river". Everything else stands on flat ground
@@ -213,7 +261,7 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
   const store = createEntityStore();
   const player = createPlayerMesh();
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "chop-animation", "split-animation"].includes(id);
+  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
@@ -240,18 +288,17 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
   scene.add(forest.group, campfires.group);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
-  const halfWidth = Math.floor(width / 2);
-  const halfHeight = Math.floor(height / 2);
-  showcase.shots.slice(0, 4).forEach((shot, index) => {
-    showcase.pose?.(stage, shot);
-    const seconds = shot.seconds ?? 0;
+  /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
+  const drawView = (shot: Shot, seconds: number, follow: Partial<Vec3>, view: { left: number; bottom: number; width: number; height: number }): void => {
     // A tree felled by this pose starts falling at 0 seconds, so the view shows it `seconds` into the fall.
     forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
     sky.update(shot.hour ?? NOON);
     const focusOffset = { ...showcase.focus, ...shot.focus };
-    const focus = new THREE.Vector3(middle.x + focusOffset.x, groundAt(middle.x + focusOffset.x, middle.z + focusOffset.z) + focusOffset.y, middle.z + focusOffset.z);
+    const x = middle.x + focusOffset.x + (follow.x ?? 0);
+    const z = middle.z + focusOffset.z + (follow.z ?? 0);
+    const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
     const pitch = THREE.MathUtils.degToRad(shot.pitch);
@@ -260,20 +307,39 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
       focus.y + Math.sin(pitch) * distance,
       focus.z + Math.cos(yaw) * Math.cos(pitch) * distance,
     );
-    camera.aspect = halfWidth / halfHeight;
+    camera.aspect = view.width / view.height;
     camera.updateProjectionMatrix();
     camera.lookAt(focus);
-    // three.js counts viewport rows from the bottom, so the first view takes the top left.
-    const left = (index % 2) * halfWidth;
-    const bottom = index < 2 ? height - halfHeight : 0;
-    renderer.setViewport(left, bottom, halfWidth, halfHeight);
-    renderer.setScissor(left, bottom, halfWidth, halfHeight);
+    renderer.setViewport(view.left, view.bottom, view.width, view.height);
+    renderer.setScissor(view.left, view.bottom, view.width, view.height);
     renderer.render(scene, camera);
-  });
+  };
+
+  let frame: number | undefined;
+  const play = options.play ? showcase.play : undefined;
+  if (play !== undefined) {
+    const startMs = performance.now();
+    const drawFrame = (nowMs: number): void => {
+      const seconds = ((nowMs - startMs) / 1000) * options.speed;
+      const follow = play.pose(stage, seconds) ?? {};
+      drawView(play.shot, seconds, follow, { left: 0, bottom: 0, width, height });
+      frame = requestAnimationFrame(drawFrame);
+    };
+    frame = requestAnimationFrame(drawFrame);
+  } else {
+    const halfWidth = Math.floor(width / 2);
+    const halfHeight = Math.floor(height / 2);
+    showcase.shots.slice(0, 4).forEach((shot, index) => {
+      showcase.pose?.(stage, shot);
+      // three.js counts viewport rows from the bottom, so the first view takes the top left.
+      drawView(shot, shot.seconds ?? 0, {}, { left: (index % 2) * halfWidth, bottom: index < 2 ? height - halfHeight : 0, width: halfWidth, height: halfHeight });
+    });
+  }
 
   return {
-    labels: showcase.shots.slice(0, 4).map((shot) => shot.label),
+    labels: play !== undefined ? [`${play.shot.label}, ${options.speed}× speed`] : showcase.shots.slice(0, 4).map((shot) => shot.label),
     dispose() {
+      if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
       campfires.dispose();
       player.dispose();

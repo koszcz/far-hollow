@@ -1,5 +1,6 @@
 // Draws the player with the code-built shape listed in asset-manifest.json as "player": a woodcutter with adult proportions,
 // knees and elbows, a plaid work shirt, a knit cap, a beard, and an axe. The owner approved the asset.
+// The walk cycle is the code-built "walk-animation". The owner approved the asset.
 // The chopping swing is the code-built "chop-animation". The splitting strike is the code-built "split-animation". The carried log is the code-built "logs" shape.
 import * as THREE from "three";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
@@ -32,13 +33,32 @@ const HEAD_MIDDLE_METRES = 1.68;
 /** The carried log rests here on the player's right shoulder, from the player's feet. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = { x: -0.22, y: 1.62, z: 0 };
 /** Metres walked in one full stride, left foot and right foot. */
-const STRIDE_METRES = 1.5;
-/** How far the thighs swing while walking, in radians. */
-const LEG_SWING_RADIANS = 0.5;
-/** How far a knee bends as its leg swings back, per radian of swing. */
-const KNEE_BEND_PER_SWING = 1.3;
+export const STRIDE_METRES = 1.5;
+/** How far ahead of the hip a foot lands, in metres. A foot stays on the ground for half the stride. */
+const FOOT_LANDS_AHEAD_METRES = 0.3;
+/** How far behind the hip a foot leaves the ground, in metres. The heel lifts onto the toe to reach this far. */
+const FOOT_LEAVES_BEHIND_METRES = STRIDE_METRES / 2 - FOOT_LANDS_AHEAD_METRES;
+/** How high a swinging foot lifts at its highest, in metres. */
+const STEP_LIFT_METRES = 0.12;
+/** How far the hips drop as each foot lands, in metres. They are highest as one leg passes the other. */
+const WALK_BOB_METRES = 0.04;
+/** Height of the ankle above the sole, in metres. */
+const ANKLE_HEIGHT_METRES = HIP_HEIGHT_METRES - THIGH_LENGTH_METRES - SHIN_LENGTH_METRES;
+/** How far the toe reaches in front of the ankle, and the heel behind it, in metres. A tipped foot reaches this far down. */
+const TOE_REACH_METRES = 0.16;
+const HEEL_REACH_METRES = 0.08;
 /** How far the arms swing while walking, in radians. */
-const ARM_SWING_RADIANS = 0.4;
+const ARM_SWING_RADIANS = 0.38;
+/** How far the elbows bend as an arm swings forward, in radians. They lag behind the shoulder by `ELBOW_LAG_RADIANS` of the stride. */
+const ELBOW_SWING_RADIANS = 0.45;
+const ELBOW_LAG_RADIANS = 0.6;
+/** How far the hips and the shoulders turn against each other while walking, in radians. */
+const HIP_TWIST_RADIANS = 0.08;
+const SHOULDER_TWIST_RADIANS = 0.14;
+/** How far the body tips over the foot carrying the weight, in radians. */
+const WEIGHT_SWAY_RADIANS = 0.025;
+/** How far the player leans forward while walking, in radians. */
+const WALK_LEAN_RADIANS = 0.06;
 /** Upper-arm and elbow angles that hold the axe out in front, for chopping and splitting. Negative turns forward. */
 const WORK_UPPER_ARM_RADIANS = -1.05;
 const WORK_ELBOW_RADIANS = -0.35;
@@ -81,6 +101,11 @@ export interface PlayerMesh {
 interface Limb {
   readonly root: THREE.Group;
   readonly bend: THREE.Group;
+}
+
+/** A leg also has an ankle, which tips the boot. */
+interface Leg extends Limb {
+  readonly ankle: THREE.Group;
 }
 
 export function createPlayerMesh(): PlayerMesh {
@@ -128,6 +153,9 @@ export function createPlayerMesh(): PlayerMesh {
   // The body leans inside the group, so the group can stay at the player's feet.
   const body = new THREE.Group();
   group.add(body);
+  // The chest, shoulders, and arms turn on their own about the spine, against the hips, while walking.
+  const chest = new THREE.Group();
+  body.add(chest);
 
   /** Builds a limb: an upper tube from the root joint, then a lower tube from the bend joint. */
   function limb(
@@ -135,6 +163,7 @@ export function createPlayerMesh(): PlayerMesh {
     upper: { length: number; top: number; bottom: number },
     lower: { length: number; top: number; bottom: number },
     made: THREE.Material,
+    parent: THREE.Group,
   ): Limb {
     const root = new THREE.Group();
     root.position.set(...at);
@@ -145,7 +174,7 @@ export function createPlayerMesh(): PlayerMesh {
     part(bend, ball(upper.bottom), [0, 0, 0], made);
     part(bend, hangingTube(lower.top, lower.bottom, lower.length), [0, 0, 0], made);
     root.add(bend);
-    body.add(root);
+    parent.add(root);
     return { root, bend };
   }
 
@@ -156,18 +185,22 @@ export function createPlayerMesh(): PlayerMesh {
       { length: THIGH_LENGTH_METRES, top: 0.09, bottom: 0.062 },
       { length: SHIN_LENGTH_METRES, top: 0.058, bottom: 0.045 },
       trousers,
+      body,
     );
     part(leg.bend, hangingTube(0.058, 0.058, 0.1), [0, -SHIN_LENGTH_METRES + 0.08, 0], boots);
-    part(leg.bend, ball(0.07), [0, -SHIN_LENGTH_METRES - 0.025, 0.045], boots, [0.8, 0.75, 1.75]);
-    return leg;
-  }) as [Limb, Limb];
+    const ankle = new THREE.Group();
+    ankle.position.set(0, -SHIN_LENGTH_METRES, 0);
+    leg.bend.add(ankle);
+    part(ankle, ball(0.07), [0, -0.025, 0.045], boots, [0.8, 0.75, 1.75]);
+    return { ...leg, ankle };
+  }) as [Leg, Leg];
 
   // Hips in work trousers, then the shirted torso, flattened front to back: broad chest, narrower waist.
   const flat: [number, number, number] = [1, 1, 0.62];
   part(body, turned([[0.05, 0.8], [0.15, 0.83], [0.185, 0.9], [0.18, 0.98], [0, 0.98]]), [0, 0, 0], trousers, flat);
   part(body, new THREE.CylinderGeometry(0.185, 0.185, 0.05, 16), [0, 0.965, 0], material(BELT_COLOUR, { roughness: 0.6 }), [1, 1, 0.64]);
   part(
-    body,
+    chest,
     turned([[0, 0.93], [0.178, 0.94], [0.17, 1.06], [0.2, 1.24], [0.215, 1.38], [0.19, 1.47], [0.11, 1.52], [0.06, 1.54], [0, 1.54]]),
     [0, 0, 0],
     shirt,
@@ -193,6 +226,7 @@ export function createPlayerMesh(): PlayerMesh {
       { length: UPPER_ARM_LENGTH_METRES, top: 0.062, bottom: 0.045 },
       { length: FOREARM_LENGTH_METRES, top: 0.045, bottom: 0.036 },
       shirt,
+      chest,
     );
     part(arm.bend, ball(0.042), [0, -FOREARM_LENGTH_METRES - 0.045, 0], skin, [0.75, 1.25, 0.95]);
     return arm;
@@ -206,7 +240,7 @@ export function createPlayerMesh(): PlayerMesh {
   part(axe, new THREE.CylinderGeometry(0.075, 0.075, 0.018, 3, 1, false, -Math.PI / 6, Math.PI * 2).rotateZ(Math.PI / 2), [0, -0.33, 0.08], steel, [1, 1.35, 1]);
   const axeInHand = { parent: rightArm.bend, position: new THREE.Vector3(0, -FOREARM_LENGTH_METRES - 0.3, 0.01), rotation: 0 };
   // While the right hand steadies the log, the axe hangs on the back, blade down.
-  const axeOnBack = { parent: body, position: new THREE.Vector3(0.06, 1.15, -0.16), rotation: 0.5 };
+  const axeOnBack = { parent: chest, position: new THREE.Vector3(0.06, 1.15, -0.16), rotation: 0.5 };
   function holdAxe(place: typeof axeInHand): void {
     place.parent.add(axe);
     axe.position.copy(place.position);
@@ -219,7 +253,7 @@ export function createPlayerMesh(): PlayerMesh {
   const shoulderLog = new THREE.Mesh(logGeometry, material(LOG_COLOUR, { flatShading: true }));
   shoulderLog.position.set(SHOULDER_LOG_SPOT.x, SHOULDER_LOG_SPOT.y, SHOULDER_LOG_SPOT.z);
   shoulderLog.visible = false;
-  body.add(shoulderLog);
+  chest.add(shoulderLog);
 
   let carrying = false;
   let walkedMetres: number | undefined;
@@ -227,12 +261,28 @@ export function createPlayerMesh(): PlayerMesh {
 
   /** Sets the arm and leg angles for what the player is doing now. */
   function poseLimbs(): void {
-    const swing = walkedMetres === undefined || working ? 0 : Math.sin((walkedMetres / STRIDE_METRES) * Math.PI * 2);
-    // A positive angle swings a leg back. The knee bends only while its leg is behind the body.
+    const walking = walkedMetres !== undefined && !working;
+    // One full turn of `stride` is one full stride. The left foot lands at the start of the turn, the right foot halfway.
+    const stride = walking ? ((walkedMetres ?? 0) / STRIDE_METRES) * Math.PI * 2 : 0;
+    /** How far back the left leg is, from -1 (forward) to 1 (back). */
+    const legBack = (at: number): number => (walking ? -Math.cos(at) : 0);
+    const swing = legBack(stride);
+    // Chopping and splitting own the body's lean and height. Walking owns them otherwise.
+    chest.rotation.y = 0;
+    body.rotation.y = 0;
+    body.rotation.z = 0;
+    if (!working) {
+      body.rotation.x = walking ? WALK_LEAN_RADIANS : 0;
+      body.position.y = walking ? -WALK_BOB_METRES * (1 + Math.cos(stride * 2)) * 0.5 : 0;
+    }
     legs.forEach((leg, index) => {
-      const angle = (index === 0 ? swing : -swing) * LEG_SWING_RADIANS;
-      leg.root.rotation.x = angle;
-      leg.bend.rotation.x = Math.max(0, angle) * KNEE_BEND_PER_SWING + 0.05;
+      if (!walking) {
+        leg.root.rotation.x = 0;
+        leg.bend.rotation.x = 0.05;
+        leg.ankle.rotation.x = -0.05;
+        return;
+      }
+      placeFoot(leg, (stride / (Math.PI * 2) + (index === 0 ? 0 : 0.5)) % 1);
     });
     if (working) {
       leftArm.root.rotation.set(WORK_UPPER_ARM_RADIANS, 0, -0.4);
@@ -241,18 +291,66 @@ export function createPlayerMesh(): PlayerMesh {
       rightArm.bend.rotation.x = WORK_ELBOW_RADIANS;
       return;
     }
-    // Arms swing against the legs, with elbows bending a little more on the forward swing.
-    const leftAngle = -swing * ARM_SWING_RADIANS;
-    leftArm.root.rotation.set(leftAngle, 0, 0.08);
-    leftArm.bend.rotation.x = -0.15 + Math.min(0, leftAngle) * 0.6;
+    if (walking) {
+      // The hips turn with the leg in front. The shoulders turn the other way, with the arm in front.
+      body.rotation.y = swing * HIP_TWIST_RADIANS;
+      chest.rotation.y = -swing * (HIP_TWIST_RADIANS + SHOULDER_TWIST_RADIANS);
+      // The body tips over whichever foot is on the ground. The left foot is down for the first half of the stride.
+      body.rotation.z = -Math.sin(stride) * WEIGHT_SWAY_RADIANS;
+    }
+    // Arms swing against the legs. Each elbow bends as its arm swings forward, a little after the shoulder.
+    const elbow = (side: 1 | -1): number => -0.15 - Math.max(0, -side * legBack(stride - ELBOW_LAG_RADIANS)) * ELBOW_SWING_RADIANS;
+    leftArm.root.rotation.set(-swing * ARM_SWING_RADIANS, 0, 0.08);
+    leftArm.bend.rotation.x = elbow(-1);
     if (carrying) {
       rightArm.root.rotation.set(CARRY_UPPER_ARM_RADIANS, 0, 0);
       rightArm.bend.rotation.x = CARRY_ELBOW_RADIANS;
       return;
     }
-    const rightAngle = swing * ARM_SWING_RADIANS;
-    rightArm.root.rotation.set(rightAngle, 0, -0.08);
-    rightArm.bend.rotation.x = -0.15 + Math.min(0, rightAngle) * 0.6;
+    rightArm.root.rotation.set(swing * ARM_SWING_RADIANS, 0, -0.08);
+    rightArm.bend.rotation.x = elbow(1);
+  }
+  /**
+   * Bends a leg so its foot is where it should be `step` of the way through a stride, from 0 to 1. The foot lands ahead
+   * of the hip at 0, stays put on the ground while the body passes over it, and leaves the ground behind the hip at 0.5.
+   * Then it lifts and swings forward to land again.
+   */
+  function placeFoot(leg: Leg, step: number): void {
+    const stepLength = FOOT_LANDS_AHEAD_METRES + FOOT_LEAVES_BEHIND_METRES;
+    let ahead: number;
+    let lift = 0;
+    if (step < 0.5) {
+      ahead = FOOT_LANDS_AHEAD_METRES - stepLength * (step / 0.5);
+    } else {
+      const swung = (step - 0.5) / 0.5;
+      ahead = -FOOT_LEAVES_BEHIND_METRES + stepLength * easeInOut(swung);
+      lift = Math.sin(swung * Math.PI) * STEP_LIFT_METRES;
+    }
+    // Where the ankle should be, from the hip, on the ground. Then turned into the leaning body's own frame.
+    const lean = body.rotation.x;
+    const hipUp = body.position.y + HIP_HEIGHT_METRES * Math.cos(lean);
+    const hipAhead = HIP_HEIGHT_METRES * Math.sin(lean);
+    const down = hipUp - ANKLE_HEIGHT_METRES - lift;
+    const forward = ahead - hipAhead;
+    const bodyDown = down * Math.cos(lean) + forward * Math.sin(lean);
+    const bodyForward = -down * Math.sin(lean) + forward * Math.cos(lean);
+    // Two-joint reach: the thigh points part way to the ankle, and the knee bends forward to make up the rest.
+    const legLength = THIGH_LENGTH_METRES + SHIN_LENGTH_METRES;
+    const wanted = Math.hypot(bodyDown, bodyForward);
+    const reach = Math.min(wanted, legLength - 0.001);
+    const towardAnkle = Math.atan2(-bodyForward, bodyDown);
+    const thighOffset = Math.acos(
+      (THIGH_LENGTH_METRES ** 2 + reach ** 2 - SHIN_LENGTH_METRES ** 2) / (2 * THIGH_LENGTH_METRES * reach),
+    );
+    const kneeInside = Math.acos(
+      (THIGH_LENGTH_METRES ** 2 + SHIN_LENGTH_METRES ** 2 - reach ** 2) / (2 * THIGH_LENGTH_METRES * SHIN_LENGTH_METRES),
+    );
+    leg.root.rotation.x = towardAnkle - thighOffset;
+    leg.bend.rotation.x = Math.PI - kneeInside;
+    // The boot stays flat on the ground. When the leg cannot reach, the foot tips: onto the toe behind, onto the heel in front.
+    const shortfall = wanted - reach;
+    const tip = ahead < 0 ? Math.asin(Math.min(1, shortfall / TOE_REACH_METRES)) : -Math.asin(Math.min(1, shortfall / HEEL_REACH_METRES));
+    leg.ankle.rotation.x = -(leg.root.rotation.x + leg.bend.rotation.x) - lean + tip;
   }
   poseLimbs();
 

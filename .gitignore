@@ -6,4 +6,6 @@ test-results
 playwright-report
 .claude/*
 !.claude/skills/
+!.claude/launch.json
+!.claude/settings.json
 /third-party/

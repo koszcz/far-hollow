@@ -12,9 +12,9 @@ export { BUILD_GRID_METRES } from "./build-grid";
 export { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_BUILD_SECONDS, FOUNDATION_LOG_COST } from "./structures";
 
 /** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
-const BUILD_STAND_METRES = 0.7;
+export const BUILD_STAND_METRES = 0.7;
 /** The player can build a blueprint, or add a material to it, from this far outside the ground it covers, in metres. */
-const BUILD_REACH_METRES = 1.7;
+export const BUILD_REACH_METRES = 1.7;
 
 type Blueprint = NonNullable<Entity["blueprint"]>;
 
@@ -212,19 +212,19 @@ export function snapToBuildGrid(at: GroundPoint): GroundPoint {
 }
 
 /** The ground a blueprint of `piece` covers at `at`, facing `turns`. */
-function footprintOf(piece: StructureKind, at: GroundPoint, turns: QuarterTurns): GroundRect {
+export function footprintOf(piece: StructureKind, at: GroundPoint, turns: QuarterTurns): GroundRect {
   return structureOf(piece).footprint({ x: at.x, z: at.z }, turns);
 }
 
 /** How far a spot lies outside a rectangle, in metres. It is 0 for a spot inside it. */
-function distanceOutside(rect: GroundRect, spot: GroundPoint): number {
+export function distanceOutside(rect: GroundRect, spot: GroundPoint): number {
   const dx = Math.max(rect.min.x - spot.x, 0, spot.x - rect.max.x);
   const dz = Math.max(rect.min.z - spot.z, 0, spot.z - rect.max.z);
   return Math.hypot(dx, dz);
 }
 
 /** Where the player stands to build: just outside the blueprint, on the line from its centre towards the player. */
-function standSpot(rect: GroundRect, centre: GroundPoint, player: GroundPoint): GroundPoint {
+export function standSpot(rect: GroundRect, centre: GroundPoint, player: GroundPoint): GroundPoint {
   const dx = player.x - centre.x;
   const dz = player.z - centre.z;
   const distance = Math.hypot(dx, dz);

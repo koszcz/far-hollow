@@ -1,12 +1,12 @@
 // Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
-// Debarked logs, the "debarked-log" draft, reuse the log shape with the colours in debarked-log-shape.ts.
+// Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { debarkedLogEntities, logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
+import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
@@ -140,12 +140,10 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   group.add(logs);
   let logsDrawn: Entity[] = [];
 
-  // Debarked logs on the ground: the same shape as logs, drawn pale, with room for every log the valley's trees can give.
-  const debarkedLogMaterials = [
-    track(new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true })),
-    track(new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true })),
-  ];
-  const debarkedLogs = track(new THREE.InstancedMesh(logGeometry, debarkedLogMaterials, logCapacity));
+  // Debarked logs on the ground: the same shape as logs, painted pale, with room for every log the valley's trees can give.
+  const debarkedLogGeometry = track(createDebarkedLogGeometry(logShape.geometry));
+  const debarkedLogMaterial = track(new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true }));
+  const debarkedLogs = track(new THREE.InstancedMesh(debarkedLogGeometry, debarkedLogMaterial, logCapacity));
   debarkedLogs.count = 0;
   debarkedLogs.frustumCulled = false;
   group.add(debarkedLogs);
@@ -393,7 +391,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       }
       if (hit.kind === "debarkedLog") {
         const index = debarkedLogsDrawn.indexOf(hit.entity);
-        return index < 0 ? [] : [{ geometry: logGeometry, matrix: placed(debarkedLogs, index) }];
+        return index < 0 ? [] : [{ geometry: debarkedLogGeometry, matrix: placed(debarkedLogs, index) }];
       }
       const index = sticksDrawn.indexOf(hit.entity);
       return index < 0 ? [] : [{ geometry: stickGeometry, matrix: placed(sticks, index) }];

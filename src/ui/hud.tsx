@@ -1,5 +1,5 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
-// Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the draft "backpack-icons" asset.
+// Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type { BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
 import { strings } from "../strings";
@@ -25,10 +25,6 @@ function isFood(content: BackpackContent): content is Food {
 
 export interface HudProps {
   client: GameClient;
-  /** Whether the camera follows the player when the HUD first shows. */
-  cameraFollow: boolean;
-  /** Called when the player turns camera follow on or off. The camera is not game state, so this is not a command. */
-  onCameraFollowChange: (enabled: boolean) => void;
   /** Whether the build menu is open. */
   buildMenuOpen: boolean;
   /** The structure whose blueprint follows the mouse, or null while not placing one. */
@@ -203,16 +199,16 @@ const actionLabels = {
   split: strings.splitting,
   debark: strings.debarking,
   build: strings.building,
+  takeDown: strings.takingDown,
 } as const;
 
-const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire" };
+const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe" };
 
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
-export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowChange, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
+export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
   const [view, setView] = useState(client.getView());
-  const [cameraFollow, setCameraFollow] = useState(initialCameraFollow);
   useEffect(
     () =>
       client.subscribe(() => {
@@ -352,18 +348,6 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
               )}
             </div>
           </section>
-          <label class="hud-setting">
-            <input
-              type="checkbox"
-              checked={cameraFollow}
-              onChange={(event) => {
-                const enabled = event.currentTarget.checked;
-                setCameraFollow(enabled);
-                onCameraFollowChange(enabled);
-              }}
-            />
-            {strings.cameraFollow}
-          </label>
         </div>
       </div>
     </>

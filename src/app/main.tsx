@@ -4,6 +4,7 @@ import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/sce
 import { loadLogShape } from "../render/log-shape";
 import { loadStumpShape } from "../render/stump-model";
 import { loadBerryBushShape } from "../render/berry-bush-model";
+import { loadMushroomsShape } from "../render/mushrooms-model";
 import { loadTreeShapes } from "../render/tree-model";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS, type Game } from "../sim/game";
@@ -126,7 +127,7 @@ const sceneRenderer = createSceneRenderer(
   game.valley,
   game.entities,
   () => game.client.getView().time.hourOfDay,
-  ...(await Promise.all([loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape()])),
+  ...(await Promise.all([loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadMushroomsShape()])),
 );
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,

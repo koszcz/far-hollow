@@ -22,6 +22,7 @@ import { createSkyLighting } from "./sky-lighting";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
 import type { BerryBushShape } from "./berry-bush-model";
+import type { MushroomsShape } from "./mushrooms-model";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
 import type { TreeShape } from "./tree-model";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
@@ -142,8 +143,8 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   mushrooms: {
-    radius: 0.4,
-    focus: { x: 0, y: 0.08, z: 0 },
+    radius: 0.5,
+    focus: { x: 0, y: 0.15, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { forageSpot: { food: "mushroom" } });
@@ -406,6 +407,7 @@ export function showAsset(
   stumpShape: StumpShape,
   logShape: LogShape,
   bushShape: BerryBushShape,
+  mushroomsShape: MushroomsShape,
   options: ShowOptions = { play: false, speed: 1 },
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
@@ -477,7 +479,7 @@ export function showAsset(
 
   const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  const forage = createForageMeshes(store, bushShape);
+  const forage = createForageMeshes(store, bushShape, mushroomsShape);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.

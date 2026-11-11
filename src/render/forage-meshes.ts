@@ -1,17 +1,15 @@
-// Draws berry bushes and mushroom patches: "berry-bush" (approved) and "mushrooms" (draft) in asset-manifest.json.
+// Draws berry bushes and mushroom patches: "berry-bush" (approved) and "mushrooms" (approved) in asset-manifest.json.
 // A bush is Kenney's bush, loaded in berry-bush-model.ts, with red berries while it has food.
-// A mushroom patch is three small mushrooms, built in code. It shows nothing while it grows back.
+// A mushroom patch is Kenney's group of three mushrooms, loaded in mushrooms-model.ts. It shows nothing while it grows back.
 import * as THREE from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { forageSpotEntities, type Entity, type EntityStore } from "../sim/entities";
 import type { BerryBushShape } from "./berry-bush-model";
+import type { MushroomsShape } from "./mushrooms-model";
 import type { OutlinePart } from "./hover-outline";
 
 /** Kenney's bush is thin single-sided leaves, so the leaves draw on both sides. */
 const LEAF_COLOUR = 0x2f6b2c;
 const BERRY_COLOUR = 0xb3202e;
-const STEM_COLOUR = 0xe8dcc0;
-const CAP_COLOUR = 0x8a4b2a;
 /** Each plant is drawn between these sizes, so the valley does not look copy-pasted. */
 const PLANT_MIN_SCALE = 0.8;
 const PLANT_MAX_SCALE = 1.2;
@@ -36,33 +34,22 @@ export interface ForageMeshes {
   dispose(): void;
 }
 
-/** Three mushrooms of different sizes, with pale stems and brown caps coloured by vertex. */
-export function createMushroomsGeometry(): THREE.BufferGeometry {
-  const parts: THREE.BufferGeometry[] = [];
-  for (const { x, z, size } of [
-    { x: 0, z: 0, size: 1 },
-    { x: 0.14, z: 0.08, size: 0.7 },
-    { x: -0.1, z: 0.12, size: 0.55 },
-  ]) {
-    const stemHeight = 0.12 * size;
-    const stem = new THREE.CylinderGeometry(0.025 * size, 0.03 * size, stemHeight, 6).translate(x, stemHeight / 2, z);
-    const cap = new THREE.SphereGeometry(0.08 * size, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2)
-      .scale(1, 0.7, 1)
-      .translate(x, stemHeight, z);
-    parts.push(coloured(stem, STEM_COLOUR), coloured(cap, CAP_COLOUR));
-  }
-  return mergeOwned(parts);
-}
-
-/** bushShape is the loaded berry bush, from loadBerryBushShape. Its geometry is shared, so this never disposes of it. */
-export function createForageMeshes(entities: EntityStore, bushShape: BerryBushShape): ForageMeshes {
+/**
+ * bushShape is the loaded berry bush, from loadBerryBushShape. mushroomsShape is the loaded mushroom patch, from
+ * loadMushroomsShape. Their geometry is shared, so this never disposes of it.
+ */
+export function createForageMeshes(
+  entities: EntityStore,
+  bushShape: BerryBushShape,
+  mushroomsShape: MushroomsShape,
+): ForageMeshes {
   const group = new THREE.Group();
   const spots = forageSpotEntities(entities);
   const capacity = Math.max(1, spots.size);
 
   const bushGeometry = bushShape.bush;
   const berriesGeometry = bushShape.berries;
-  const mushroomsGeometry = createMushroomsGeometry();
+  const mushroomsGeometry = mushroomsShape;
   const leafMaterial = new THREE.MeshStandardMaterial({ color: LEAF_COLOUR, flatShading: true, side: THREE.DoubleSide });
   const berryMaterial = new THREE.MeshStandardMaterial({ color: BERRY_COLOUR, roughness: 0.45 });
   const mushroomMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
@@ -182,32 +169,12 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
       connected.disconnect();
       regrowing.disconnect();
       for (const item of [
-        mushroomsGeometry, bushPickGeometry, mushroomPickGeometry,
+        bushPickGeometry, mushroomPickGeometry,
         leafMaterial, berryMaterial, mushroomMaterial, pickMaterial,
         bushes, berries, mushrooms, bushPickers, mushroomPickers,
       ]) item.dispose();
     },
   };
-}
-
-/** Merges shapes into one and disposes of the parts. All parts must have the same attributes. */
-function mergeOwned(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  // Flat shading needs no shared corners, and merging needs every part indexed the same way.
-  const loose = parts.map((part) => (part.index === null ? part : part.toNonIndexed()));
-  const merged = mergeGeometries(loose);
-  for (const part of [...parts, ...loose]) part.dispose();
-  merged.computeVertexNormals();
-  return merged;
-}
-
-/** Gives every corner of a shape one colour, as a vertex colour. */
-function coloured(geometry: THREE.BufferGeometry, hex: number): THREE.BufferGeometry {
-  const colour = new THREE.Color(hex);
-  const count = geometry.getAttribute("position").count;
-  const colours = new Float32Array(count * 3);
-  for (let i = 0; i < count; i += 1) colour.toArray(colours, i * 3);
-  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
-  return geometry;
 }
 
 /** A steady value from 0 to 1 for a spot, used to vary each plant's size and turn. It only affects drawing. */

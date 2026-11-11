@@ -17,6 +17,7 @@ import type { TreeShape } from "./tree-model";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
 import type { BerryBushShape } from "./berry-bush-model";
+import type { MushroomsShape } from "./mushrooms-model";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -57,6 +58,7 @@ export interface SceneRenderer {
  * Rendering only reads the clock. It never changes it.
  * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
  * logShape is the loaded log, from loadLogShape. bushShape is the loaded berry bush, from loadBerryBushShape.
+ * mushroomsShape is the loaded mushroom patch, from loadMushroomsShape.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
@@ -67,6 +69,7 @@ export function createSceneRenderer(
   stumpShape: StumpShape,
   logShape: LogShape,
   bushShape: BerryBushShape,
+  mushroomsShape: MushroomsShape,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -94,7 +97,7 @@ export function createSceneRenderer(
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
-  const forageMeshes = createForageMeshes(entities, bushShape);
+  const forageMeshes = createForageMeshes(entities, bushShape, mushroomsShape);
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);

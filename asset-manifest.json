@@ -277,16 +277,19 @@
     },
     {
       "id": "mushrooms",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/mushrooms/mushrooms.glb",
       "code": [
+        "src/render/mushrooms-model.ts",
         "src/render/forage-meshes.ts"
       ],
       "description": "A small patch of three mushrooms. Nothing shows while a foraged patch grows back.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. mushroom_tanGroup.glb, unchanged. The caps are coloured brown and the stems cream in code",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/07-hunger-and-foraging.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

@@ -5,8 +5,10 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
+import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
+import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
 import type { TreeShape } from "./tree-model";
 import type { StumpShape } from "./stump-model";
@@ -72,6 +74,8 @@ export function createSceneRenderer(
 
   const valleyMeshes = createValleyMeshes(valley);
   scene.add(valleyMeshes.group);
+  const riverMeshes = createRiverMeshes(valley);
+  scene.add(riverMeshes.group);
   const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
@@ -163,6 +167,8 @@ export function createSceneRenderer(
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
+      const hourOfDay = readHourOfDay();
+      riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -176,7 +182,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
-      skyLighting.update(readHourOfDay(), { focus: cameraRig.view().focus, distance: cameraRig.distance });
+      skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
     },
     pickAt(clientX, clientY) {
@@ -200,6 +206,7 @@ export function createSceneRenderer(
     dispose() {
       hoverOutline.dispose();
       valleyMeshes.dispose();
+      riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();
       playerMesh.dispose();

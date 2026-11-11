@@ -6,6 +6,7 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
+import { daylightAt } from "./daylight";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -13,6 +14,7 @@ import { createSkyLighting } from "./sky-lighting";
 import type { StumpShape } from "./stump-model";
 import { FALL_SECONDS } from "./tree-fall";
 import type { TreeShape } from "./tree-model";
+import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 
 /** Every showcase uses the same valley, so screenshots of one asset compare across sessions. */
@@ -224,6 +226,8 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
   const sky = createSkyLighting(scene, renderer);
   const ground = onValley ? createValleyMeshes(valley) : createFlatGround();
   scene.add(ground.group);
+  const river: RiverMeshes | undefined = onValley ? createRiverMeshes(valley) : undefined;
+  if (river !== undefined) scene.add(river.group);
 
   const store = createEntityStore();
   const player = createPlayerMesh();
@@ -266,6 +270,7 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
     forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
+    river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const focus = new THREE.Vector3(middle.x + focusOffset.x, groundAt(middle.x + focusOffset.x, middle.z + focusOffset.z) + focusOffset.y, middle.z + focusOffset.z);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
@@ -295,6 +300,7 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
       campfires.dispose();
       player.dispose();
       ground.dispose();
+      river?.dispose();
       sky.dispose();
       renderer.dispose();
     },

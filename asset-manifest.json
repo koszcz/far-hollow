@@ -21,14 +21,16 @@
       "id": "river",
       "kind": "code",
       "code": [
-        "src/render/valley-meshes.ts"
+        "src/render/river-meshes.ts",
+        "src/render/scene-renderer.ts"
       ],
       "description": "The river that runs through the valley.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/02-seeded-valley.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

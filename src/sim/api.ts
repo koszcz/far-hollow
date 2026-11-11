@@ -55,6 +55,12 @@ export type Command =
    * Nothing is added if the blueprint already has all the debarked logs it needs.
    */
   | { type: "deliverToBlueprint"; blueprintId: number }
+  /**
+   * Walk the player to a blueprint or finished building piece, such as a lean-to or a log wall, given by its entity id, and take it down.
+   * A blueprint comes down at once. A finished piece takes timed work. The player gets back every material spent on it or carried to it.
+   * Nothing happens if another piece stands on it, or if the bark it gives back would not fit in the backpack.
+   */
+  | { type: "takeDown"; pieceId: number }
   /** Let go of the build action. The blueprint keeps its progress. */
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
@@ -137,9 +143,10 @@ export interface GameView {
  * `collapsed`: the player had a collapse from a neglected need and woke at their respawn point.
  * `survivedFirstNight`: the player reached the first morning without a collapse.
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
+ * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  */
-export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "saveBroken";
+export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "holdsUpPiece" | "saveBroken";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -203,8 +210,8 @@ export interface BedrollView {
 }
 
 export interface PlayerAction {
-  /** Chopping a tree, splitting a log into firewood, debarking a log, or building a blueprint. */
-  readonly kind: "chop" | "split" | "debark" | "build";
+  /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, or taking down a finished piece. */
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown";
   /** How far along the work is, from 0 to 1. */
   readonly progress: number;
 }

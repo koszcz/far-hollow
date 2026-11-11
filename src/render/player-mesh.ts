@@ -2,11 +2,11 @@
 // its hood, cape, shield, mug, and big axe, and with a light brown knit beanie built here. The owner approved the asset.
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
-// The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the "debarked-log" draft.
+// The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CarriedLog } from "../sim/entities";
-import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
+import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import type { PlayerModel } from "./player-model";
 
@@ -133,7 +133,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   // The forest owns the log shape and disposes it, so the player does not.
   const shoulderBark = material(LOG_COLOUR, { flatShading: true });
   const shoulderCut = material(LOG_CUT_COLOUR, { flatShading: true });
-  const shoulderLog = new THREE.Mesh(logShape.geometry, [shoulderBark, shoulderCut]);
+  const logMaterials = [shoulderBark, shoulderCut];
+  // The debarked log is the player's own copy of the shape, painted pale, so the player disposes it.
+  const debarkedLogGeometry = createDebarkedLogGeometry(logShape.geometry);
+  geometries.push(debarkedLogGeometry);
+  const debarkedLogMaterial = material(0xffffff, { flatShading: true, vertexColors: true });
+  const shoulderLog = new THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>(logShape.geometry, logMaterials);
   shoulderLog.castShadow = true;
   shoulderLog.position.copy(SHOULDER_LOG_SPOT);
   shoulderLog.visible = false;
@@ -251,9 +256,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     setCarryingLog(kind) {
       if (kind === carriedKind) return;
       carriedKind = kind;
-      // A debarked log is the same shape, drawn pale. See debarked-log-shape.ts.
-      shoulderBark.color.set(kind === "debarkedLog" ? DEBARKED_LOG_COLOUR : LOG_COLOUR);
-      shoulderCut.color.set(kind === "debarkedLog" ? DEBARKED_LOG_CUT_COLOUR : LOG_CUT_COLOUR);
+      // A debarked log is the same shape, painted pale. See debarked-log-shape.ts.
+      const debarked = kind === "debarkedLog";
+      shoulderLog.geometry = debarked ? debarkedLogGeometry : logShape.geometry;
+      shoulderLog.material = debarked ? debarkedLogMaterial : logMaterials;
       const carryingNow = kind !== undefined;
       if (carryingNow === carrying) return;
       carrying = carryingNow;

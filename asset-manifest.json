@@ -145,12 +145,13 @@
         "src/render/forest-meshes.ts",
         "src/render/player-mesh.ts"
       ],
-      "description": "A debarked log: the log shape from the \"logs\" asset, drawn pale all over because its bark is gone. Shown lying on the ground and on the player's shoulder.",
+      "description": "A debarked log: the log shape from the \"logs\" asset, pale because its bark is gone, with faint lengthwise drawknife streaks, a few bark scraps near the ends, darker knots, and cut ends that darken towards the middle. Shown lying on the ground and on the player's shoulder.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/01-drawknife-and-debarking.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -197,8 +198,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/05-log-walls-and-door-frames.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

@@ -81,6 +81,11 @@ export interface Entity {
   facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
+  /**
+   * The blueprint or finished building piece the player is walking to or taking down, given by its entity id.
+   * `secondsDone` counts only the time spent taking it down, not walking.
+   */
+  takeDownTask?: { pieceId: number; secondsDone: number };
   /** The blueprint the player is walking to, to add the material on their shoulder to it, given by its entity id. */
   deliverTask?: { blueprintId: number };
   /**

@@ -51,6 +51,7 @@ const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   survivedFirstNight: 30,
   backpackFull: 4,
   holdsUpPiece: 4,
+  storageNotEmpty: 4,
   chestFull: 4,
   saveBroken: 10,
 };

@@ -108,7 +108,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         if (blueprint.progress < 1) continue;
         entities.removeComponent(builder, "buildTask");
         entities.removeComponent(target, "blueprint");
-        entities.addComponent(target, "campfire", { lit: false });
+        entities.addComponent(target, "campfire", { lit: false, fuelMinutes: 0 });
         entities.addComponent(target, "blocksWalking", { radius: CAMPFIRE_WALK_BLOCK_RADIUS_METRES });
       }
     },

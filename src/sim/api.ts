@@ -29,7 +29,13 @@ export type Command =
   | { type: "build"; blueprintId: number }
   /** Let go of the build action. The blueprint keeps its progress. */
   | { type: "stopBuilding" }
-  /** Jumps the valley's clock forward. The debug overlay sends it. */
+  /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
+  | { type: "tendCampfire"; campfireId: number }
+  /** Put one stick or piece of firewood from the backpack on a campfire within the player's reach. */
+  | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
+  /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
+  | { type: "lightCampfire"; campfireId: number }
+  /** Jumps the valley's clock forward. Lit campfires burn their fuel for the time skipped. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
 export interface GameView {
@@ -55,6 +61,21 @@ export interface GameView {
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
   readonly carrying: "log" | null;
+  /** The campfire within the player's reach, or null if none is. */
+  readonly nearbyCampfire: CampfireView | null;
+}
+
+/** The kinds of fuel the player can put on a campfire. */
+export type CampfireFuel = "stick" | "firewood";
+
+export interface CampfireView {
+  /** The campfire's entity id. */
+  readonly id: number;
+  readonly lit: boolean;
+  /** How full of fuel the campfire is, from 0 (empty) to 1 (it holds no more). */
+  readonly fuelLeft: number;
+  /** How many more game minutes the campfire's fuel can burn. */
+  readonly fuelMinutes: number;
 }
 
 export interface PlayerAction {

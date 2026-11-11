@@ -1,7 +1,8 @@
-import type { Command, GameClient, GameView, PlayerAction } from "./api";
+import type { CampfireView, Command, GameClient, GameView, PlayerAction } from "./api";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
+import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { createClock, readClock, type ClockStart } from "./clock";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
@@ -65,6 +66,7 @@ export function createGame({ seed }: GameOptions): Game {
   const carrying = createCarrying(entities, walking, valley);
   const gathering = createGathering(entities, walking);
   const building = createBuilding(entities, walking, valley);
+  const campfires = createCampfires(entities, walking);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -87,6 +89,19 @@ export function createGame({ seed }: GameOptions): Game {
       campfireStickCost: CAMPFIRE_STICK_COST,
       action: currentAction(),
       carrying: player.carrying ?? null,
+      nearbyCampfire: nearbyCampfire(),
+    });
+  }
+
+  function nearbyCampfire(): CampfireView | null {
+    const campfire = campfires.nearby();
+    const id = campfire === undefined ? undefined : entities.id(campfire);
+    if (campfire === undefined || id === undefined) return null;
+    return Object.freeze({
+      id,
+      lit: campfire.campfire.lit,
+      fuelLeft: campfire.campfire.fuelMinutes / CAMPFIRE_FUEL_LIMIT_MINUTES,
+      fuelMinutes: campfire.campfire.fuelMinutes,
     });
   }
 
@@ -147,8 +162,20 @@ export function createGame({ seed }: GameOptions): Game {
     stopBuilding: () => {
       building.cancel();
     },
+    tendCampfire: (command) => {
+      cancelTasks();
+      campfires.tend(command.campfireId);
+    },
+    addFuel: (command) => {
+      campfires.addFuel(command.campfireId, command.fuel);
+    },
+    lightCampfire: (command) => {
+      campfires.light(command.campfireId);
+    },
     skipTime: (command) => {
+      const before = clock.minutes;
       clock.skip(command.hours);
+      campfires.burn(clock.minutes - before);
     },
   };
 
@@ -170,7 +197,9 @@ export function createGame({ seed }: GameOptions): Game {
       carrying.step();
       gathering.step(STEP_MS / 1000);
       building.step(STEP_MS / 1000);
+      const before = clock.minutes;
       clock.advance(STEP_MS);
+      campfires.burn(clock.minutes - before);
       stepCount += 1;
     }
 

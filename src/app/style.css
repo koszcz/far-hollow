@@ -12,5 +12,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud-action { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .hud-carrying { margin: 8px 0 0; }
 .hud-placing { margin: 8px 0 0; }
+.hud-campfire h2 { margin: 12px 0 4px; font-size: 14px; }
+.hud-campfire p { margin: 0 0 4px; font-size: 13px; }
+.hud-campfire label { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; font-size: 13px; }
+.hud-campfire button { margin-right: 4px; }
 .hud-backpack h2 { margin: 12px 0 4px; font-size: 14px; }
 .hud-backpack ul { margin: 0; padding-left: 18px; font-size: 13px; }

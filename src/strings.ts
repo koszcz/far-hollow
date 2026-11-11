@@ -13,6 +13,13 @@ export const strings = {
   carryingLog: "Carrying a log",
   dropLog: "Drop log",
   splitLog: "Split into firewood",
+  campfire: "Campfire",
+  campfireLit: "Burning",
+  campfireUnlit: "Not lit",
+  campfireFuel: "Fuel",
+  addStick: "Add a stick",
+  addFirewood: "Add firewood",
+  lightCampfire: "Light with fire striker",
   backpack: "Backpack",
   backpackItems: {
     axe: "Axe",

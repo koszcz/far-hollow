@@ -1,6 +1,8 @@
 // Checks every structure in the catalogue the same way, so a new structure kind gets these checks without new tests.
 import { describe, expect, it } from "vitest";
 import { createEntityStore } from "./entities";
+import { createGame } from "./game";
+import { readSave, writeSave } from "./save";
 import { finishedStructures, footprintOfEntity, placedStructures, STRUCTURES, structureKindOf, type PlacedStructure } from "./structures";
 
 const SPOT = { x: 10, z: -4 };
@@ -35,5 +37,19 @@ describe.each(STRUCTURES.map((definition) => [definition.kind, definition] as co
 
     expect(footprintOfEntity(finished)).toEqual(footprintOfEntity(blueprint));
     expect(footprintOfEntity(finished)).toEqual(definition.footprint(SPOT, 1));
+  });
+
+  it("survives saving and loading, finished and as a blueprint", () => {
+    const game = createGame({ seed: 42 });
+    const position = { x: SPOT.x, y: 0, z: SPOT.z };
+    game.entities.add({ ...definition.finish(SPOT, 1, game.entities), position, facing: { turns: 1 } });
+    game.entities.add({ blueprint: { structure: kind, progress: 0.5, materialsSpent: 0, delivered: {} }, position: { ...position, x: position.x + 3 }, facing: { turns: 2 } });
+
+    const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
+
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(finishedStructures(loaded.game.entities).map((placed) => placed.kind)).toEqual([kind]);
+    expect(placedStructures(loaded.game.entities).map((placed) => placed.kind)).toEqual([kind, kind]);
   });
 });

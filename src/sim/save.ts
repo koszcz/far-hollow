@@ -4,7 +4,6 @@ import { readClock } from "./clock";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import { droppedStickSpot } from "./piles";
-import { CHEST_WALK_BLOCK_RADIUS_METRES, WOODPILE_WALK_BLOCK_RADIUS_METRES } from "./structures";
 import { createGame, type Game, type GameProgress } from "./game";
 import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
@@ -15,6 +14,10 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
 /**
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
+ * A new kind of structure, notice, or component does not break older saves, so it needs no upgrade: the save check is built
+ * from the structure catalogue and the notice table, and older code turns away a save that holds something it does not know.
+ * Never remove or reorder an upgrade. Stored saves count on each version number keeping its place.
+ * An upgrade uses its own fixed values, never the game's current rules, so it does the same thing however the game changes later.
  */
 export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addForageSpots,
@@ -25,12 +28,9 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addDeliveredMaterials,
   nameBlueprintStructure,
   faceRoofsForward,
-  // Version 9 to 10: the player can build woodpiles. A save from before then has none.
-  nothingToUpgrade,
-  // Version 10 to 11: the player can build chests. A save from before then has none.
-  nothingToUpgrade,
-  // Version 11 to 12: the player can drop things in piles. A save from before then has none.
-  nothingToUpgrade,
+  addWoodpiles,
+  addChests,
+  addPiles,
   fillChests,
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
@@ -46,7 +46,7 @@ export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
 /** The first save version in which every roof section faces the way it slopes down. */
 export const ROOFS_FACE_SAVE_VERSION = SAVE_UPGRADES.indexOf(faceRoofsForward) + 2;
 /** The first save version that can hold piles. */
-export const PILES_SAVE_VERSION = 12;
+export const PILES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPiles) + 2;
 /** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
 export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 /** The first save version in which finished chests and woodpiles block walking. */
@@ -217,11 +217,26 @@ function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<strin
 }
 
 /**
- * For a version that added something older saves never hold, such as a new kind of structure.
- * The save carries over unchanged. The new version number stops older code loading a save that holds the new thing.
+ * For a version that added something older saves never hold, such as a new kind of structure. The save carries over unchanged.
+ * Versions 10, 11, 12, 17, and 19 did this. New kinds no longer need a version of their own.
  */
 function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
+}
+
+/** Version 9 to 10: the player can build woodpiles. A save from before then has none, so it carries over unchanged. */
+function addWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 10 to 11: the player can build chests. A save from before then has none, so it carries over unchanged. */
+function addChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 11 to 12: the player can drop things in piles. A save from before then has none, so it carries over unchanged. */
+function addPiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }
 
 /**
@@ -267,13 +282,16 @@ function scatterDroppedSticks(save: Readonly<Record<string, unknown>>): Record<s
 /**
  * Version 14 to 15: a finished chest blocks walking, and a finished woodpile blocks the ground it covers.
  * Before then a chest blocked nothing, and a woodpile's reach was too short to block any walk-map cell.
+ * The reaches are the ones version 15 gave them, kept here so a later change to the game's rules does not change this upgrade.
  */
 function blockWalkingAtChestsAndWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const CHEST_REACH_METRES = 0.71;
+  const WOODPILE_REACH_METRES = 0.75;
   if (!Array.isArray(save.entities)) return { ...save };
   const entities: unknown[] = save.entities.map((entity: unknown) => {
     const components = (entity as { components?: Record<string, unknown> } | null)?.components;
-    if (components?.chest !== undefined) return { ...(entity as object), components: { ...components, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } } };
-    if (components?.woodpile !== undefined) return { ...(entity as object), components: { ...components, blocksWalking: { radius: WOODPILE_WALK_BLOCK_RADIUS_METRES } } };
+    if (components?.chest !== undefined) return { ...(entity as object), components: { ...components, blocksWalking: { radius: CHEST_REACH_METRES } } };
+    if (components?.woodpile !== undefined) return { ...(entity as object), components: { ...components, blocksWalking: { radius: WOODPILE_REACH_METRES } } };
     return entity;
   });
   return { ...save, entities };
@@ -286,7 +304,7 @@ function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<s
   return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
 }
 
-/** The player can build sawhorses. A save from before then has none, so it carries over unchanged. */
+/** Version 16 to 17: the player can build sawhorses. A save from before then has none, so it carries over unchanged. */
 function addSawhorses(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

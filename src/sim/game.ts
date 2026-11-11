@@ -25,6 +25,7 @@ import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
+import { NOTICE_MINUTES } from "./notices";
 import { createPiles } from "./piles";
 import { boilProgress } from "./pot-state";
 import { createWoodpiles } from "./woodpiles";
@@ -53,18 +54,6 @@ export const STEP_MS = 1000 / STEPS_PER_SECOND;
 const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
 /** Skipped time runs in slices this many game minutes long. */
 const PASS_TIME_SLICE_MINUTES = 1;
-/** How many game minutes each notice shows for. One game minute is one real second. */
-const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
-  collapsed: 30,
-  survivedFirstNight: 30,
-  backpackFull: 4,
-  holdsUpPiece: 4,
-  stillHoldsSomething: 4,
-  chestFull: 4,
-  saveBroken: 10,
-  putLogDownFirst: 4,
-  noLogBesideStation: 4,
-};
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
 

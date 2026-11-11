@@ -1,8 +1,8 @@
 // Checks that stored data has the shape of a save, so a broken save is turned away before the game loads it.
-import type { GameNotice } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { NEED_KINDS } from "./needs";
+import { NOTICE_KINDS } from "./notices";
 import { EDGE_PIECE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, STRUCTURES } from "./structures";
 
@@ -103,9 +103,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
 
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));
 
-/** Every kind of notice. TypeScript reports a missing one. */
-const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, chestFull: true, holdsUpPiece: true, stillHoldsSomething: true, saveBroken: true, putLogDownFirst: true, noLogBesideStation: true };
-
 /** The components the player always has. */
 const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "needs", "respawnPoint"] as const;
 
@@ -115,7 +112,7 @@ const saveShape = shape({
   clockMinutes: (value) => finite(value) && (value as number) >= 0,
   stepCount: count,
   firstNightOver: boolean,
-  notice: (value) => value === null || shape({ kind: exactly(...Object.keys(NOTICES)), untilMinutes: finite })(value),
+  notice: (value) => value === null || shape({ kind: exactly(...NOTICE_KINDS), untilMinutes: finite })(value),
   entities: list(shape({ id: count, components })),
 });
 

@@ -36,14 +36,14 @@ The camera looks down at the player from above at an angle, like an isometric ga
 | Left-click an object | Walk to it and do its main action, such as chopping a tree. |
 | Shift + left-click | Add an action to the queue, such as chopping three trees in a row. |
 | Right-click (no drag) | Open a radial menu of every action the object allows. |
-| Right-drag | Pan the camera. |
-| Q / E, or Option + right-drag | Rotate the camera. |
+| Left-drag | Pan the camera. |
+| Q / E, or right-drag | Rotate the camera. Right-drag up and down also tilts it. |
 | Scroll wheel, two-finger scroll, or pinch | Zoom. |
 | Space | Snap the camera back to the player. |
 | WASD or screen edges | Pan the camera when follow is off. |
 
 - A setting decides whether the camera follows the player. It follows by default.
-- Camera pitch is limited to about 30° to 75°.
+- Camera pitch is limited to about 20° to 75°.
 - On a trackpad, a two-finger click works as a right-click.
 - When the player is inside a building, that building's roof hides. Walls between the camera and the player fade out.
 

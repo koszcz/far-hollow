@@ -4,10 +4,10 @@ import { createCameraRig } from "./camera-rig";
 const degrees = (value: number) => (value * Math.PI) / 180;
 
 describe("camera pitch", () => {
-  it("never tilts flatter than 30°", () => {
+  it("never tilts flatter than 20°", () => {
     const rig = createCameraRig();
     rig.tilt(degrees(-500));
-    expect(rig.pitch).toBeCloseTo(degrees(30));
+    expect(rig.pitch).toBeCloseTo(degrees(20));
   });
 
   it("never tilts steeper than 75°", () => {
@@ -25,7 +25,7 @@ describe("camera position", () => {
     rig.tilt(degrees(-100));
     const { eye, focus } = rig.view();
     expect(Math.hypot(eye.x - focus.x, eye.y - focus.y, eye.z - focus.z)).toBeCloseTo(10);
-    expect(eye.y - focus.y).toBeCloseTo(10 * Math.sin(degrees(30)));
+    expect(eye.y - focus.y).toBeCloseTo(10 * Math.sin(degrees(20)));
   });
 
   it("circles the point it looks at when rotated a half turn", () => {

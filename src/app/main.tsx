@@ -126,7 +126,11 @@ const sceneRenderer = createSceneRenderer(
   await loadModelShapes(),
 );
 const cameraInput = attachCameraInput({
-  canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
+  canvas,
+  rig: sceneRenderer.cameraRig,
+  fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
+  // The walk input is attached next. A drag only reads this after both exist.
+  isLeftButtonBusy: () => walkInput.isHoldingBuild(),
 });
 const walkInput = attachWalkInput({
   canvas,

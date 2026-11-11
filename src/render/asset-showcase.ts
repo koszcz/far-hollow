@@ -4,6 +4,7 @@
 // plays live in one full view instead, so the owner can judge its timing. &speed=0.25 slows it down.
 import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
+import { CHOP_SECONDS } from "../sim/chopping";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
@@ -11,12 +12,12 @@ import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
-import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
+import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createSkyLighting } from "./sky-lighting";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
-import { FALL_SECONDS } from "./tree-fall";
+import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
 import type { TreeShape } from "./tree-model";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
@@ -29,6 +30,8 @@ const FIELD_OF_VIEW_DEGREES = 40;
 /** Midday, so colours show as they do in daylight. */
 const NOON = 12;
 const NIGHT = 22;
+/** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
+const CHOP_PLAY_REST_SECONDS = 1.2;
 
 /** One of the four views. Angles are in degrees. Yaw 0 looks at the front of the player, from +z. */
 interface Shot {
@@ -196,10 +199,10 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 1.4,
     focus: { x: 0, y: 1, z: 1.2 },
     shots: [
-      { label: "axe raised", yaw: 125, pitch: 10, seconds: 0.25 / CHOP_SWINGS_PER_SECOND },
-      { label: "strike", yaw: 125, pitch: 10, seconds: 0.75 / CHOP_SWINGS_PER_SECOND },
-      { label: "tree falling", yaw: 90, pitch: 15, radius: 6, focus: { y: 3, z: -2 }, seconds: FALL_SECONDS * 0.6 },
-      { label: "tree landing", yaw: 90, pitch: 15, radius: 6, focus: { y: 1.5, z: -3 }, seconds: FALL_SECONDS * 0.95 },
+      { label: "axe raised", yaw: 90, pitch: 12, seconds: (CHOP_RAISED_SHARE + CHOP_SWING_SHARE) / 2 / CHOP_SWINGS_PER_SECOND },
+      { label: "strike", yaw: 110, pitch: 45, seconds: (CHOP_STRIKE_SHARE + 0.01) / CHOP_SWINGS_PER_SECOND },
+      { label: "tree falling", yaw: 90, pitch: 15, radius: 6, focus: { y: 3, z: -2 }, seconds: FALL_LANDS_SECONDS * 0.75 },
+      { label: "tree bounces", yaw: 90, pitch: 15, radius: 6, focus: { y: 1.5, z: -3 }, seconds: FALL_LANDS_SECONDS + 0.08 },
     ],
     build({ place, movePlayer }) {
       place(0, 0, { tree: true });
@@ -211,6 +214,20 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       player.setChopping(falling ? undefined : shot.seconds);
       const tree = store.with("tree").first;
       if (falling && tree !== undefined) store.removeComponent(tree, "tree");
+    },
+    // The player chops for as long as the game takes, the tree falls, and after a pause the tree stands again.
+    play: {
+      shot: { label: "chopping, then the fall", yaw: 80, pitch: 12, radius: 4.6, focus: { y: 1.8, z: -2.8 } },
+      pose({ store, player }, seconds) {
+        const cycle = seconds % (CHOP_SECONDS + FALL_SECONDS + CHOP_PLAY_REST_SECONDS);
+        const tree = store.with("position").where((entity) => entity.player === undefined).first;
+        if (tree === undefined) return undefined;
+        const chopping = cycle < CHOP_SECONDS;
+        player.setChopping(chopping ? cycle : undefined);
+        if (chopping && tree.tree === undefined) store.addComponent(tree, "tree", true);
+        if (!chopping && tree.tree !== undefined) store.removeComponent(tree, "tree");
+        return undefined;
+      },
     },
   },
   "walk-animation": {
@@ -352,7 +369,8 @@ export function showAsset(
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
   const drawView = (shot: Shot, seconds: number, follow: Partial<Vec3>, view: { left: number; bottom: number; width: number; height: number }): void => {
     // A tree felled by this pose starts falling at 0 seconds, so the view shows it `seconds` into the fall.
-    forest.update(0);
+    // Stills restart every fall at time 0. A live loop lets each fall start when its tree is felled.
+    if (!(options.play && showcase.play !== undefined)) forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
     river?.update(seconds, daylightAt(shot.hour ?? NOON));

@@ -5,14 +5,16 @@
 import * as THREE from "three";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 
-const SHIRT_COLOUR = "#7d3b31";
-const SHIRT_STRIPE_COLOUR = "#2b2523";
-const TROUSER_COLOUR = 0x4f4a3d;
-const BOOT_COLOUR = 0x3a2c22;
+const SHIRT_COLOUR = "#a2352b";
+const SHIRT_STRIPE_COLOUR = "#24201f";
+const TROUSER_COLOUR = 0x3f4a5a;
+const BOOT_COLOUR = 0x6b4a2e;
+const SOLE_COLOUR = 0x2a211b;
 const BELT_COLOUR = 0x2a1f18;
+const BUCKLE_COLOUR = 0xb8a36a;
 const SKIN_COLOUR = 0xc99a7a;
 const BEARD_COLOUR = 0x4a3426;
-const CAP_COLOUR = 0x3e4245;
+const CAP_COLOUR = 0xc9952f;
 const EYE_COLOUR = 0x1e1612;
 const AXE_HANDLE_COLOUR = 0x8a6a45;
 const AXE_HEAD_COLOUR = 0x8f969c;
@@ -28,7 +30,7 @@ const SHOULDER_SPREAD_METRES = 0.2;
 const UPPER_ARM_LENGTH_METRES = 0.3;
 const FOREARM_LENGTH_METRES = 0.27;
 /** Middle of the head, in metres above the feet. */
-const HEAD_MIDDLE_METRES = 1.68;
+const HEAD_MIDDLE_METRES = 1.71;
 
 /** The carried log rests here on the player's right shoulder, from the player's feet. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = { x: -0.22, y: 1.62, z: 0 };
@@ -137,8 +139,9 @@ export function createPlayerMesh(logShape: LogShape): PlayerMesh {
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
   const textures: THREE.Texture[] = [];
+  // Every part is flat-shaded with few facets, to match the low-poly Kenney models around the player.
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
-    const made = new THREE.MeshStandardMaterial({ color, roughness: 0.9, ...extra });
+    const made = new THREE.MeshStandardMaterial({ color, roughness: 0.9, flatShading: true, ...extra });
     materials.push(made);
     return made;
   }
@@ -157,22 +160,26 @@ export function createPlayerMesh(logShape: LogShape): PlayerMesh {
     parent.add(mesh);
     return mesh;
   }
-  const ball = (radius: number) => new THREE.SphereGeometry(radius, 14, 10);
-  /** A tapered tube hanging down from its top end. */
+  /** A faceted ball. Big parts get more facets than small ones. */
+  const ball = (radius: number, facets: 0 | 1 = 0) => new THREE.IcosahedronGeometry(radius, facets);
+  /** A tapered six-sided tube hanging down from its top end. */
   const hangingTube = (radiusTop: number, radiusBottom: number, length: number) =>
-    new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 12).translate(0, -length / 2, 0);
-  /** A body of revolution around the vertical axis. Each point is [radius, height] in metres, bottom to top. */
+    new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 6).translate(0, -length / 2, 0);
+  /** A body of revolution around the vertical axis, with eight flat sides. Each point is [radius, height] in metres, bottom to top. */
   const turned = (profile: [number, number][]) =>
-    new THREE.LatheGeometry(profile.map(([radius, height]) => new THREE.Vector2(radius, height)), 16);
+    new THREE.LatheGeometry(profile.map(([radius, height]) => new THREE.Vector2(radius, height)), 8, Math.PI / 8);
+  const box = (width: number, height: number, depth: number) => new THREE.BoxGeometry(width, height, depth);
 
   const shirtTexture = createPlaidTexture();
   textures.push(shirtTexture);
   const shirt = material(0xffffff, { map: shirtTexture });
   const trousers = material(TROUSER_COLOUR);
   const boots = material(BOOT_COLOUR, { roughness: 0.7 });
+  const soles = material(SOLE_COLOUR);
   const skin = material(SKIN_COLOUR, { roughness: 0.75 });
   const beard = material(BEARD_COLOUR);
   const cap = material(CAP_COLOUR);
+  const belt = material(BELT_COLOUR, { roughness: 0.6 });
 
   const group = new THREE.Group();
   // The body leans inside the group, so the group can stay at the player's feet.
@@ -187,82 +194,95 @@ export function createPlayerMesh(logShape: LogShape): PlayerMesh {
     at: [number, number, number],
     upper: { length: number; top: number; bottom: number },
     lower: { length: number; top: number; bottom: number },
-    made: THREE.Material,
+    made: { upper: THREE.Material; lower: THREE.Material },
     parent: THREE.Group,
   ): Limb {
     const root = new THREE.Group();
     root.position.set(...at);
-    part(root, ball(upper.top), [0, 0, 0], made);
-    part(root, hangingTube(upper.top, upper.bottom, upper.length), [0, 0, 0], made);
+    part(root, ball(upper.top), [0, 0, 0], made.upper);
+    part(root, hangingTube(upper.top, upper.bottom, upper.length), [0, 0, 0], made.upper);
     const bend = new THREE.Group();
     bend.position.set(0, -upper.length, 0);
-    part(bend, ball(upper.bottom), [0, 0, 0], made);
-    part(bend, hangingTube(lower.top, lower.bottom, lower.length), [0, 0, 0], made);
+    part(bend, ball(upper.bottom), [0, 0, 0], made.upper);
+    part(bend, hangingTube(lower.top, lower.bottom, lower.length), [0, 0, 0], made.lower);
     root.add(bend);
     parent.add(root);
     return { root, bend };
   }
 
-  // Legs: thigh, knee, shin, and a laced work boot that points forward.
+  // Legs: sturdy trousers with a turned-up cuff, then a chunky work boot with a thick sole.
   const legs = [HIP_SPREAD_METRES, -HIP_SPREAD_METRES].map((x) => {
     const leg = limb(
       [x, HIP_HEIGHT_METRES, 0],
-      { length: THIGH_LENGTH_METRES, top: 0.09, bottom: 0.062 },
-      { length: SHIN_LENGTH_METRES, top: 0.058, bottom: 0.045 },
-      trousers,
+      { length: THIGH_LENGTH_METRES, top: 0.1, bottom: 0.072 },
+      { length: SHIN_LENGTH_METRES, top: 0.068, bottom: 0.066 },
+      { upper: trousers, lower: trousers },
       body,
     );
-    part(leg.bend, hangingTube(0.058, 0.058, 0.1), [0, -SHIN_LENGTH_METRES + 0.08, 0], boots);
+    part(leg.bend, hangingTube(0.078, 0.078, 0.05), [0, -SHIN_LENGTH_METRES + 0.15, 0], trousers);
+    part(leg.bend, hangingTube(0.07, 0.072, 0.1), [0, -SHIN_LENGTH_METRES + 0.09, 0], boots);
     const ankle = new THREE.Group();
     ankle.position.set(0, -SHIN_LENGTH_METRES, 0);
     leg.bend.add(ankle);
-    part(ankle, ball(0.07), [0, -0.025, 0.045], boots, [0.8, 0.75, 1.75]);
+    // The boot reaches TOE_REACH_METRES ahead of the ankle and HEEL_REACH_METRES behind it.
+    const bootLength = TOE_REACH_METRES + HEEL_REACH_METRES;
+    const bootMiddle = (TOE_REACH_METRES - HEEL_REACH_METRES) / 2;
+    part(ankle, box(0.13, 0.085, bootLength - 0.02), [0, -ANKLE_HEIGHT_METRES + 0.065, bootMiddle - 0.005], boots);
+    part(ankle, box(0.12, 0.05, 0.08), [0, -ANKLE_HEIGHT_METRES + 0.07, TOE_REACH_METRES - 0.05], boots, [1, 1, 1]).rotation.x = 0.35;
+    part(ankle, box(0.14, 0.025, bootLength), [0, -ANKLE_HEIGHT_METRES + 0.0125, bootMiddle], soles);
     return { ...leg, ankle };
   }) as [Leg, Leg];
 
-  // Hips in work trousers, then the shirted torso, flattened front to back: broad chest, narrower waist.
-  const flat: [number, number, number] = [1, 1, 0.62];
-  part(body, turned([[0.05, 0.8], [0.15, 0.83], [0.185, 0.9], [0.18, 0.98], [0, 0.98]]), [0, 0, 0], trousers, flat);
-  part(body, new THREE.CylinderGeometry(0.185, 0.185, 0.05, 16), [0, 0.965, 0], material(BELT_COLOUR, { roughness: 0.6 }), [1, 1, 0.64]);
+  // Hips in work trousers, a wide belt with a buckle, then a broad shirted chest that narrows to the waist.
+  const flat: [number, number, number] = [1, 1, 0.66];
+  part(body, turned([[0.06, 0.8], [0.17, 0.83], [0.2, 0.9], [0.195, 0.98], [0, 0.98]]), [0, 0, 0], trousers, flat);
+  part(body, new THREE.CylinderGeometry(0.205, 0.205, 0.06, 8, 1, false, Math.PI / 8), [0, 0.965, 0], belt, [1, 1, 0.68]);
+  part(body, box(0.06, 0.05, 0.02), [0, 0.965, 0.14], material(BUCKLE_COLOUR, { metalness: 0.6, roughness: 0.4 }));
   part(
     chest,
-    turned([[0, 0.93], [0.178, 0.94], [0.17, 1.06], [0.2, 1.24], [0.215, 1.38], [0.19, 1.47], [0.11, 1.52], [0.06, 1.54], [0, 1.54]]),
+    turned([[0, 0.94], [0.2, 0.95], [0.21, 1.08], [0.245, 1.26], [0.26, 1.4], [0.22, 1.5], [0.11, 1.55], [0, 1.55]]),
     [0, 0, 0],
     shirt,
     flat,
   );
 
-  // Neck and head: a beard along the jaw, a nose, ears, eyes, and a knit cap with a folded brim.
-  part(body, hangingTube(0.052, 0.058, 0.1), [0, 1.6, 0], skin);
-  part(body, ball(0.105), [0, HEAD_MIDDLE_METRES, 0], skin, [0.88, 1.15, 1]);
-  part(body, ball(0.09), [0, HEAD_MIDDLE_METRES - 0.075, 0.025], beard, [1.02, 0.78, 0.92]);
-  part(body, ball(0.07), [0, HEAD_MIDDLE_METRES - 0.03, 0.06], beard, [1.15, 0.45, 0.6]);
-  part(body, new THREE.ConeGeometry(0.018, 0.045, 8).rotateX(Math.PI / 2), [0, HEAD_MIDDLE_METRES + 0.005, 0.115], skin);
-  for (const x of [0.093, -0.093]) part(body, ball(0.022), [x, HEAD_MIDDLE_METRES + 0.005, -0.005], skin, [0.5, 1.2, 0.9]);
+  // Neck and big head: a bushy beard and moustache, a blocky nose, ears, eyes, brows, and a knit cap with a bobble.
+  part(body, hangingTube(0.06, 0.068, 0.08), [0, 1.6, 0], skin);
+  const head = HEAD_MIDDLE_METRES;
+  part(body, ball(0.14, 1), [0, head, 0], skin, [0.92, 1.04, 0.98]);
+  part(body, ball(0.12, 1), [0, head - 0.09, 0.035], beard, [1.12, 0.85, 0.95]);
+  part(body, ball(0.07), [0, head - 0.025, 0.115], beard, [1.35, 0.42, 0.55]);
+  part(body, ball(0.03), [0, head + 0.01, 0.135], skin, [0.9, 1.1, 1]);
+  for (const x of [0.128, -0.128]) part(body, ball(0.03), [x, head + 0.005, -0.005], skin, [0.5, 1.1, 0.8]);
   const eyes = material(EYE_COLOUR, { roughness: 0.3 });
-  for (const x of [0.036, -0.036]) part(body, ball(0.011), [x, HEAD_MIDDLE_METRES + 0.03, 0.093], eyes);
-  part(body, new THREE.SphereGeometry(0.106, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2), [0, HEAD_MIDDLE_METRES + 0.045, -0.005], cap, [0.92, 1.05, 1.02]);
-  part(body, new THREE.CylinderGeometry(0.1, 0.1, 0.05, 14), [0, HEAD_MIDDLE_METRES + 0.055, -0.005], cap, [0.97, 1, 1.07]);
+  for (const x of [0.048, -0.048]) {
+    part(body, box(0.022, 0.03, 0.01), [x, head + 0.04, 0.128], eyes);
+    part(body, box(0.05, 0.016, 0.02), [x, head + 0.072, 0.124], beard).rotation.z = x > 0 ? -0.15 : 0.15;
+  }
+  part(body, new THREE.SphereGeometry(0.145, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), [0, head + 0.05, -0.005], cap, [0.95, 1.1, 1]);
+  part(body, new THREE.CylinderGeometry(0.143, 0.143, 0.06, 8), [0, head + 0.065, -0.005], cap, [0.98, 1, 1.02]);
+  part(body, ball(0.04), [0, head + 0.215, -0.005], cap);
 
-  // Arms: shirt sleeves down to the wrist, then bare hands.
+  // Arms: plaid sleeves rolled up past the elbow, bare forearms, and big hands.
   const [leftArm, rightArm] = [SHOULDER_SPREAD_METRES, -SHOULDER_SPREAD_METRES].map((x) => {
     const arm = limb(
       [x, SHOULDER_HEIGHT_METRES, 0],
-      { length: UPPER_ARM_LENGTH_METRES, top: 0.062, bottom: 0.045 },
-      { length: FOREARM_LENGTH_METRES, top: 0.045, bottom: 0.036 },
-      shirt,
+      { length: UPPER_ARM_LENGTH_METRES, top: 0.075, bottom: 0.058 },
+      { length: FOREARM_LENGTH_METRES, top: 0.048, bottom: 0.04 },
+      { upper: shirt, lower: skin },
       chest,
     );
-    part(arm.bend, ball(0.042), [0, -FOREARM_LENGTH_METRES - 0.045, 0], skin, [0.75, 1.25, 0.95]);
+    part(arm.bend, hangingTube(0.064, 0.06, 0.06), [0, 0.03, 0], shirt);
+    part(arm.bend, ball(0.055), [0, -FOREARM_LENGTH_METRES - 0.045, 0], skin, [0.85, 1.15, 1]);
     return arm;
   }) as [Limb, Limb];
 
-  // The axe: a slightly tapered handle with a steel head. It starts in the right hand, with the blade facing forward.
+  // The axe: a six-sided handle with a chunky steel head. It starts in the right hand, with the blade facing forward.
   const axe = new THREE.Group();
-  part(axe, new THREE.CylinderGeometry(0.018, 0.022, 0.78, 8), [0, 0, 0], material(AXE_HANDLE_COLOUR, { roughness: 0.7 }));
-  const steel = material(AXE_HEAD_COLOUR, { metalness: 0.7, roughness: 0.35 });
-  part(axe, new THREE.BoxGeometry(0.035, 0.08, 0.07), [0, -0.33, 0], steel);
-  part(axe, new THREE.CylinderGeometry(0.075, 0.075, 0.018, 3, 1, false, -Math.PI / 6, Math.PI * 2).rotateZ(Math.PI / 2), [0, -0.33, 0.08], steel, [1, 1.35, 1]);
+  part(axe, new THREE.CylinderGeometry(0.02, 0.024, 0.78, 6), [0, 0, 0], material(AXE_HANDLE_COLOUR, { roughness: 0.7 }));
+  const steel = material(AXE_HEAD_COLOUR, { metalness: 0.6, roughness: 0.4 });
+  part(axe, box(0.045, 0.09, 0.08), [0, -0.33, 0], steel);
+  part(axe, new THREE.CylinderGeometry(0.085, 0.085, 0.024, 3, 1, false, -Math.PI / 6, Math.PI * 2).rotateZ(Math.PI / 2), [0, -0.33, 0.085], steel, [1, 1.35, 1]);
   const axeInHand = { parent: rightArm.bend, position: new THREE.Vector3(0, -FOREARM_LENGTH_METRES - 0.3, 0.01), rotation: 0 };
   // While the right hand steadies the log, the axe hangs on the back, blade down.
   const axeOnBack = { parent: chest, position: new THREE.Vector3(0.06, 1.15, -0.16), rotation: 0.5 };
@@ -549,6 +569,7 @@ function createPlaidTexture(): THREE.CanvasTexture {
   context.fillRect(24, 0, 2, size);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.NearestFilter;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(3, 3);

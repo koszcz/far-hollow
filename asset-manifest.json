@@ -90,13 +90,11 @@
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player: a woodcutter with adult proportions, a plaid work shirt, a knit cap, a beard, and an axe. Knees and elbows bend.",
+      "description": "The player: a low-poly, flat-shaded woodcutter with a big head and hands, a red plaid shirt with rolled sleeves, a mustard knit cap with a bobble, a bushy beard, chunky boots, and an axe. Knees and elbows bend.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "pending"
       }
     },
     {

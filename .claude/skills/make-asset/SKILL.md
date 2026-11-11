@@ -37,6 +37,14 @@ Offer the owner two or three options. Each option is one of:
 
 Then wait. The owner's choice is the permission to download a file. Download nothing before it.
 
+Look for third-party files in the local packs folder first. It is `third-party/` at the root of the main checkout, and git ignores it. Each pack is unpacked as `third-party/<maker>_<pack>/`, for example `third-party/kenney_nature-kit/`. A Kenney pack has `License.txt`, models under `Models/GLTF format/`, and preview images under `Isometric/`. From a worktree, find the folder with this command:
+
+```sh
+echo "$(git rev-parse --path-format=absolute --git-common-dir)/../third-party"
+```
+
+If the pack you need is not there, give the owner its page link. Ask them to download it and unpack it into `third-party/`. A scripted download from kenney.nl fails with `403 Forbidden`.
+
 Done when the owner has picked one option.
 
 ### 5. Build it

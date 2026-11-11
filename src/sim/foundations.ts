@@ -1,7 +1,7 @@
 // The shape of a foundation: a deck of logs over one building-grid square, held level on a leg at each corner.
 // On sloped ground the deck sits just above the highest corner, so the legs on the low side grow longer.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
-import { foundationEntities, type EntityStore } from "./entities";
+import { blueprintEntities, foundationEntities, type EntityStore } from "./entities";
 import { terrainHeightAt, type GroundPoint, type Terrain } from "./valley";
 
 /** How far the top of the deck sits above the highest ground under the foundation, in metres. */
@@ -23,8 +23,47 @@ export interface FoundationLeg {
 
 /** The height of the top of the deck of a foundation over the grid square with this middle, in metres. */
 export function foundationDeckTop(terrain: Terrain, middle: GroundPoint): number {
-  const highest = Math.max(...[middle, ...legSpots(middle)].map(({ x, z }) => terrainHeightAt(terrain, x, z)));
-  return highest + FOUNDATION_DECK_LIFT_METRES;
+  return highestGroundUnder(terrain, middle) + FOUNDATION_DECK_LIFT_METRES;
+}
+
+/** The height of the highest ground under the middle and legs of a foundation over this grid square, in metres. */
+function highestGroundUnder(terrain: Terrain, middle: GroundPoint): number {
+  return Math.max(...[middle, ...legSpots(middle)].map(({ x, z }) => terrainHeightAt(terrain, x, z)));
+}
+
+/**
+ * The height of the top of the deck for a new foundation over the grid square with this middle, in metres.
+ * Foundations that share an edge make one flat floor. So a new foundation beside others, finished or blueprints, takes their deck height.
+ * On its own, it sits just above its highest ground, as `foundationDeckTop` gives.
+ * Undefined if it cannot join a flat floor: the foundations beside it stand at different heights,
+ * or the ground under it rises so high that the deck would not fit above it.
+ */
+export function floorDeckTop(entities: EntityStore, terrain: Terrain, middle: GroundPoint): number | undefined {
+  const beside = foundationsBeside(entities, middle);
+  const floor = beside[0];
+  if (floor === undefined) return foundationDeckTop(terrain, middle);
+  if (beside.some((height) => !isClose(height, floor))) return undefined;
+  // The whole deck must fit above the ground, so the legs are never shorter than nothing.
+  return highestGroundUnder(terrain, middle) + FOUNDATION_DECK_THICKNESS_METRES <= floor + CLOSE_METRES ? floor : undefined;
+}
+
+/** Two heights or distances closer than this, in metres, count as the same. */
+const CLOSE_METRES = 1e-6;
+
+function isClose(a: number, b: number): boolean {
+  return Math.abs(a - b) <= CLOSE_METRES;
+}
+
+/** The deck heights of the foundations, finished or blueprints, on the four grid squares that share an edge with this one. */
+function foundationsBeside(entities: EntityStore, middle: GroundPoint): number[] {
+  const isBeside = (spot: GroundPoint) => {
+    const dx = Math.abs(spot.x - middle.x);
+    const dz = Math.abs(spot.z - middle.z);
+    return (isClose(dx, BUILD_GRID_METRES) && isClose(dz, 0)) || (isClose(dx, 0) && isClose(dz, BUILD_GRID_METRES));
+  };
+  const finished = foundationEntities(entities).entities.filter(({ position }) => isBeside(position));
+  const planned = blueprintEntities(entities).entities.filter(({ blueprint, position }) => blueprint.structure === "foundation" && isBeside(position));
+  return [...finished, ...planned].map(({ position }) => position.y);
 }
 
 /**

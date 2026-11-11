@@ -105,7 +105,7 @@ export const strings = {
       debarkedLog: (has: number, needs: number) => `Debarked logs: ${has} of ${needs}`,
     },
     deliverHint: "Carry a debarked log here and click the blueprint to add it.",
-    buildHint: "Hold the mouse button on the blueprint to build it.",
+    buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",
   },
   carryingLog: "Carrying a log",
   carryingDebarkedLog: "Carrying a debarked log",

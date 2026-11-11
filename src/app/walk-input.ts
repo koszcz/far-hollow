@@ -5,7 +5,7 @@ import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type Buil
 import { strings } from "../strings";
 
 /**
- * The command a left-click sends for what it landed on. A blueprint is built only while the button is held, so it has none.
+ * The command a left-click sends for what it landed on. A blueprint needs to know what the player carries, so `blueprintPressFor` decides it instead.
  * A click on a finished structure acts on what is under it.
  */
 export function mainActionFor(pick: ScenePick): Command | undefined {
@@ -44,8 +44,8 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
 }
 
 /**
- * The command a press on a blueprint sends. If the player carries a material the blueprint still needs, such as a debarked log,
- * the press adds it. Otherwise it builds the blueprint for as long as the button is held.
+ * The command a click on a blueprint sends. If the player carries a material the blueprint still needs, such as a debarked log,
+ * the click adds it. Otherwise it starts building the blueprint. Building goes on until it finishes, the materials run out, or the player stops.
  */
 export function blueprintPressFor(blueprint: BlueprintView, carrying: CarriedLog | null): Command {
   const needsCarried = blueprint.deliveries.some(({ material, has, needs }) => material === carrying && has < needs);
@@ -129,8 +129,6 @@ export interface WalkInput {
   toggleBuildMenu(): void;
   /** Puts a structure's blueprint under the mouse. A left-click on the ground places it. R turns it. Escape cancels. */
   pickBuildEntry(structure: StructureKind): void;
-  /** True while the left button is held on a blueprint to build it. */
-  isHoldingBuild(): boolean;
   /** Removes the listeners. */
   dispose(): void;
 }
@@ -139,7 +137,7 @@ export interface WalkInput {
  * Left-clicking does the main action for what is under the pointer:
  * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, forage a bush or mushrooms,
  * walk over to tend a campfire, use a woodpile, or open a chest, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
- * Holding the left button on a blueprint builds it. Letting go stops building. Clicking a blueprint while carrying a debarked log it needs adds the log.
+ * Clicking a blueprint starts building it. Clicking anywhere else, or pressing Escape, stops building. Clicking a blueprint while carrying a debarked log it needs adds the log.
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
  * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
@@ -151,7 +149,6 @@ export interface WalkInput {
 export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onBuildModeChange, onPlacingBlueprintChange, onMenuChange }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let rightPress: { x: number; y: number } | null = null;
-  let holdingBuild = false;
   let mode: BuildMode = NOT_BUILDING;
   /** Where the pointer last was over the canvas, or null if it has left. */
   let hover: { x: number; y: number } | null = null;
@@ -202,12 +199,6 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     onBuildModeChange?.(value);
   }
 
-  function stopHoldingBuild(): void {
-    if (!holdingBuild) return;
-    holdingBuild = false;
-    client.send({ type: "stopBuilding" });
-  }
-
   function onPointerDown(event: PointerEvent): void {
     // Any press on the scene closes an open menu.
     onMenuChange?.(undefined);
@@ -216,17 +207,6 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
       return;
     }
     if (event.button !== LEFT_BUTTON) return;
-    if (mode.placing === null) {
-      const pick = pickThrough(event.clientX, event.clientY);
-      const blueprint = pick?.kind === "blueprint" ? client.describeBlueprint(pick.id) : null;
-      if (blueprint !== null) {
-        const command = blueprintPressFor(blueprint, client.getView().carrying);
-        // Adding a material is one click. Only building goes on while the button is held.
-        holdingBuild = command.type === "build";
-        client.send(command);
-        return;
-      }
-    }
     press = { x: event.clientX, y: event.clientY };
   }
 
@@ -247,10 +227,6 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
       return;
     }
     if (event.button !== LEFT_BUTTON) return;
-    if (holdingBuild) {
-      stopHoldingBuild();
-      return;
-    }
     if (press === null) return;
     const travelled = Math.hypot(event.clientX - press.x, event.clientY - press.y);
     press = null;
@@ -266,12 +242,16 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
       setMode(NOT_BUILDING);
       return;
     }
-    const command = mainActionFor(pick);
+    const blueprint = pick.kind === "blueprint" ? client.describeBlueprint(pick.id) : null;
+    const command = blueprint !== null ? blueprintPressFor(blueprint, client.getView().carrying) : mainActionFor(pick);
     if (command !== undefined) client.send(command);
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.code === "Escape") onMenuChange?.(undefined);
+    if (event.code === "Escape") {
+      onMenuChange?.(undefined);
+      if (client.getView().action?.kind === "build") client.send({ type: "stopBuilding" });
+    }
     if (event.repeat) return;
     // Let typing keep working in form fields, and Space keep pressing buttons.
     const target = event.target instanceof HTMLElement ? event.target : null;
@@ -290,10 +270,6 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   canvas.addEventListener("pointerup", onPointerUp);
   canvas.addEventListener("pointermove", onPointerMove);
   canvas.addEventListener("pointerleave", onPointerLeave);
-  // Letting go outside the canvas, or leaving the window, also lets go of the build action.
-  canvas.addEventListener("pointercancel", stopHoldingBuild);
-  window.addEventListener("pointerup", stopHoldingBuild);
-  window.addEventListener("blur", stopHoldingBuild);
   window.addEventListener("keydown", onKeyDown);
   return {
     toggleBuildMenu() {
@@ -302,18 +278,12 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     pickBuildEntry(structure) {
       setMode(pickBuildEntry(structure));
     },
-    isHoldingBuild() {
-      return holdingBuild;
-    },
     dispose() {
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerleave", onPointerLeave);
       if (cursorFrame !== null) cancelAnimationFrame(cursorFrame);
-      canvas.removeEventListener("pointercancel", stopHoldingBuild);
-      window.removeEventListener("pointerup", stopHoldingBuild);
-      window.removeEventListener("blur", stopHoldingBuild);
       window.removeEventListener("keydown", onKeyDown);
     },
   };

@@ -73,6 +73,8 @@ export interface GameOptions {
   progress?: GameProgress;
   /** A notice to show the player as soon as the game starts. */
   startNotice?: GameNotice;
+  /** Lets the player build anything without spending materials or needing tools. The playground turns it on. It is never saved. */
+  freeBuilding?: boolean;
 }
 
 /**
@@ -106,7 +108,7 @@ export interface Game {
   progress(): GameProgress;
 }
 
-export function createGame({ seed, progress, startNotice }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice, freeBuilding = false }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -119,7 +121,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const crafting = createCrafting(entities);
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
-  const building = createBuilding(entities, walking, valley);
+  const building = createBuilding(entities, walking, valley, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);
@@ -338,7 +340,10 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       if (refusal !== undefined) showNotice(refusal);
     },
     placeBlueprint: (command) => {
-      building.place(command.structure, { x: command.x, z: command.z }, command.turns);
+      const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
+      if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return;
+      cancelTasks();
+      building.build(id);
     },
     build: (command) => {
       cancelTasks();

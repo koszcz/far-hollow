@@ -11,6 +11,7 @@ import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
+import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import { attachWalkInput } from "./walk-input";
 
@@ -140,7 +141,10 @@ const walkInput = attachWalkInput({
   onHoverChange: (pick) => {
     sceneRenderer.setHovered(pick);
   },
-  onPlacingChange: renderUi,
+  onBuildModeChange: renderUi,
+  onPreviewChange: (preview) => {
+    sceneRenderer.setPlacementPreview(preview);
+  },
 });
 if (import.meta.env.DEV) {
   // Lets the on-demand browser test read the game's view. Development builds only.
@@ -152,8 +156,8 @@ const loop = createFixedStepLoop({
   },
 });
 
-/** Draws the HUD and debug overlay. Called again when placing a campfire starts or ends. */
-function renderUi(placingCampfire: boolean): void {
+/** Draws the HUD and debug overlay. Called again when the build menu opens or closes, or placing a blueprint starts or ends. */
+function renderUi(buildMode: BuildMode): void {
   render(
     <>
       <Hud
@@ -162,9 +166,13 @@ function renderUi(placingCampfire: boolean): void {
         onCameraFollowChange={(enabled) => {
           sceneRenderer.cameraRig.setFollowEnabled(enabled);
         }}
-        placingCampfire={placingCampfire}
-        onPlaceCampfire={() => {
-          walkInput.startPlacingCampfire();
+        buildMenuOpen={buildMode.menuOpen}
+        placing={buildMode.placing?.structure ?? null}
+        onToggleBuildMenu={() => {
+          walkInput.toggleBuildMenu();
+        }}
+        onPickBuildEntry={(structure) => {
+          walkInput.pickBuildEntry(structure);
         }}
       />
       <DebugOverlay client={game.client} />
@@ -172,7 +180,7 @@ function renderUi(placingCampfire: boolean): void {
     requireElement("#ui", HTMLDivElement),
   );
 }
-renderUi(false);
+renderUi(NOT_BUILDING);
 
 /** How long the loading screen takes to fade out. Matches the transition in style.css. */
 const LOADING_FADE_MS = 400;

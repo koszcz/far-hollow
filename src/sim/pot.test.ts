@@ -189,7 +189,7 @@ function gameWithLitCampfire(fuel: "stick" | "firewood" = "firewood"): { game: G
   fillPot(game);
   give(game, "stick", CAMPFIRE_STICK_COST);
   const spot = openSpotNearPlayer(game);
-  send(game, { type: "placeCampfire", x: spot.x, z: spot.z });
+  send(game, { type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z });
   const blueprint = game.entities.with("blueprint", "position").first;
   if (blueprint === undefined) throw new Error("No blueprint");
   game.client.send({ type: "build", blueprintId: idOf(game, blueprint) });

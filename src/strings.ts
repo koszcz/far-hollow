@@ -25,8 +25,19 @@ export const strings = {
   chopping: "Chopping",
   splitting: "Splitting",
   building: "Building",
-  placeCampfire: (sticks: number) => `Place campfire (${sticks} sticks)`,
-  placingCampfire: "Click the ground to place the campfire. Press Escape to cancel.",
+  buildMenu: {
+    open: "Build (B)",
+    title: "Build",
+    close: "Press B or Escape to close.",
+    structures: {
+      campfire: "Campfire",
+    },
+    materials: {
+      stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
+    },
+    cost: (materials: readonly string[]) => materials.join(", "),
+    placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
+  },
   carryingLog: "Carrying a log",
   dropLog: "Drop log",
   splitLog: "Split into firewood",

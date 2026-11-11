@@ -218,6 +218,8 @@ export interface BuildMenuEntry {
   readonly cost: readonly MaterialCost[];
   /** The tool the player needs in the backpack to build it. Missing if it needs none. Building does not use the tool up. */
   readonly tool?: BackpackContent;
+  /** True if it is furniture, placed freely rather than on the building grid. Missing for other structures. */
+  readonly furniture?: true;
 }
 
 /** A blueprint, with how far it has been built and the materials carried to it. */

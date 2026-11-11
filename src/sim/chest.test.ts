@@ -8,11 +8,11 @@ import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
 
 describe("the chest in the build menu", () => {
-  it("lists the chest with its cost of 2 debarked logs and the axe it needs", () => {
+  it("lists the chest as furniture, with its cost of 2 debarked logs and the axe it needs", () => {
     const game = createGame({ seed: 42 });
 
     expect(CHEST_LOG_COST).toBe(2);
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe" });
+    expect(game.client.getView().buildMenu).toContainEqual({ structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", furniture: true });
   });
 });
 

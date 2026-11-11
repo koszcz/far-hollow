@@ -358,7 +358,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                   ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
                   : placing === "roof"
                     ? strings.buildMenu.placingRoof(strings.buildMenu.structures[placing])
-                    : placing === "chest"
+                    : view.buildMenu.some((entry) => entry.structure === placing && entry.furniture === true)
                       ? strings.buildMenu.placingFurniture(strings.buildMenu.structures[placing])
                       : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
               </p>

@@ -24,6 +24,7 @@ import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { createPiles } from "./piles";
 import { boilProgress } from "./pot-state";
+import { createWoodpiles } from "./woodpiles";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -108,6 +109,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);
+  const woodpiles = createWoodpiles(entities, walking);
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const piles = createPiles(entities, walking, valley);
@@ -145,6 +147,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       nearbyCampfire: nearbyCampfire(),
       nearbyBedroll: nearbyBedroll(),
       nearbyPile: nearbyPile(),
+      nearbyWoodpile: woodpiles.nearby() ?? null,
       nearbyBlueprint: building.nearby() ?? null,
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -309,6 +312,17 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     addFuel: (command) => {
       campfires.addFuel(command.campfireId, command.fuel);
+    },
+    tendWoodpile: (command) => {
+      cancelTasks();
+      woodpiles.tend(command.woodpileId);
+    },
+    stackOnWoodpile: (command) => {
+      woodpiles.stack(command.woodpileId, command.wood, command.all);
+    },
+    takeFromWoodpile: (command) => {
+      const refusal = woodpiles.take(command.woodpileId, command.wood);
+      if (refusal !== undefined) showNotice(refusal);
     },
     lightCampfire: (command) => {
       campfires.light(command.campfireId);

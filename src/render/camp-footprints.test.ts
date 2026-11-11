@@ -19,6 +19,14 @@ describe("undergrowth under the camp", () => {
     expect(isUnderCamp(footprints, 1.5, 0)).toBe(false);
   });
 
+  it("hides under a finished woodpile, but not beside it", () => {
+    const entities = createEntityStore();
+    entities.add({ woodpile: { log: 0, debarkedLog: 0, firewood: 0 }, position: { x: 2, y: 0, z: 3 } });
+    const footprints = campFootprints(entities);
+    expect(isUnderCamp(footprints, 2.4, 3.4)).toBe(true);
+    expect(isUnderCamp(footprints, 3, 3)).toBe(false);
+  });
+
   it("hides under the whole length of a laid bedroll, but not beside it", () => {
     const entities = createEntityStore();
     entities.add({ bedroll: true, position: { x: 5, y: 0, z: 5 } });

@@ -4,7 +4,8 @@ import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
+  blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, woodpileEntities, type Entity,
+  type EntityStore,
 } from "./entities";
 import { foundationDeckTop, foundationOn } from "./foundations";
 import { roomAround } from "./rooms";
@@ -97,7 +98,7 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
     if (!isWalkable(walkMap, spot)) return false;
     // On a foundation, a campfire goes only inside a room.
     if (foundationUnderCampfire(entities, spot) !== undefined && roomAround(entities, spot) === undefined) return false;
-    for (const other of [...campfireEntities(entities), ...blueprintEntities(entities)]) {
+    for (const other of [...campfireEntities(entities), ...blueprintEntities(entities), ...woodpileEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
     return true;
@@ -266,9 +267,35 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   finish: (spot) => ({ cabinRoof: true, roof: roof.footprint(spot, 0) }),
 };
 
+/** How long the player holds the build action to build a woodpile, in seconds. It costs nothing, so it goes up quickly. */
+export const WOODPILE_BUILD_SECONDS = 3;
+/** A woodpile covers this much ground either side of its centre, in metres: about one log's length across. */
+const WOODPILE_HALF_METRES = 0.5;
+/** A finished woodpile stops the player walking within this many metres of its centre. */
+const WOODPILE_WALK_BLOCK_RADIUS_METRES = 0.6;
+
+/**
+ * A woodpile: logs, debarked logs, and firewood stacked on two rails on the ground. It costs nothing.
+ * It sits on a grid point, like a campfire on open ground. It is never built on a foundation.
+ */
+const woodpile: StructureDefinition & { readonly kind: "woodpile" } = {
+  kind: "woodpile",
+  cost: [],
+  buildSeconds: WOODPILE_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, WOODPILE_HALF_METRES, WOODPILE_HALF_METRES, turns),
+  canPlace(site, spot, turns) {
+    const rect = woodpile.footprint(spot, turns);
+    if (!isWalkable(site.walkMap, spot)) return false;
+    for (const other of foundationEntities(site.entities)) if (rectsOverlap(rect, foundation.footprint(other.position, 0))) return false;
+    for (const fire of campfireEntities(site.entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
+    return isClearFor(site, rect);
+  },
+  finish: () => ({ woodpile: { log: 0, debarkedLog: 0, firewood: 0 }, blocksWalking: { radius: WOODPILE_WALK_BLOCK_RADIUS_METRES } }),
+};
+
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
 const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
-  campfire, leanTo, foundation, logWall, doorFrame, roof,
+  campfire, leanTo, foundation, logWall, doorFrame, roof, woodpile,
 };
 
 /** Every structure the player can build, in the order the build menu lists them. */
@@ -296,7 +323,8 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
 }
 
 /**
- * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, or a finished wall or door frame.
+ * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, a finished woodpile,
+ * or a finished wall or door frame.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  */
 function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect): boolean {
@@ -310,6 +338,9 @@ function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect): boolea
     if (rectsOverlap(rect, other)) return false;
   }
   for (const roofed of roofEntities(entities)) if (rectsOverlap(rect, roofed.roof)) return false;
+  for (const pile of woodpileEntities(entities)) {
+    if (rectsOverlap(rect, woodpile.footprint(pile.position, pile.facing?.turns ?? 0))) return false;
+  }
   for (const piece of edgePieceEntities(entities)) {
     if (rectsOverlap(rect, structureOf(piece.edgePiece).footprint(piece.position, piece.facing?.turns ?? 0))) return false;
   }

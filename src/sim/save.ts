@@ -14,7 +14,16 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, allowPiles];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
+  addForageSpots,
+  giveBedroll,
+  givePot,
+  giveDrawknife,
+  countMaterialsSpent,
+  addDeliveredMaterials,
+  addWoodpiles,
+  allowPiles,
+];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -148,7 +157,15 @@ function addDeliveredMaterials(save: Readonly<Record<string, unknown>>): Record<
 }
 
 /**
- * Version 7 to 8: the player can drop things from the backpack in piles on the ground.
+ * Version 7 to 8: the player can build woodpiles and stack wood on them. A save from before then has no woodpiles,
+ * so it carries over unchanged.
+ */
+function addWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return { ...save };
+}
+
+/**
+ * Version 8 to 9: the player can drop things from the backpack in piles on the ground.
  * A save from before then has no piles, so nothing in it changes. The new version stops older code loading a save that has piles.
  */
 function allowPiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {

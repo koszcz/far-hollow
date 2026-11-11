@@ -37,6 +37,7 @@ import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createUndergrowthMaterial } from "./undergrowth-meshes";
 import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
 import { createValleyMeshes } from "./valley-meshes";
+import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** How many stages a lean-to takes to build: one for each stick and each piece of bark. */
 const LEAN_TO_STAGES = LEAN_TO_STICK_COST + LEAN_TO_BARK_COST;
@@ -364,6 +365,19 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         for (const entity of store.with("blueprint")) entity.blueprint.progress = Math.min(1, cycle / LEAN_TO_BUILD_SECONDS);
         return undefined;
       },
+    },
+  },
+  // From left to right: a blueprint, an empty woodpile, one half full of mixed wood, and a full one. The player stands behind for size.
+  woodpile: {
+    radius: 2.6,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place, movePlayer }) {
+      place(-2.4, 0, { blueprint: { piece: "woodpile", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
+      place(-0.8, 0, { woodpile: { log: 0, debarkedLog: 0, firewood: 0 } });
+      place(0.8, 0, { woodpile: { log: 3, debarkedLog: 3, firewood: 4 } });
+      place(2.4, 0, { woodpile: { log: 4, debarkedLog: 4, firewood: 12 } });
+      movePlayer(0, -1.4, 0);
     },
   },
   bedroll: {
@@ -736,12 +750,19 @@ export function showAsset(
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
+  const woodpiles = createWoodpileMeshes(store);
   const piles = createPileMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, piles.group, rain.group);
+  scene.add(
+    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group, piles.group,
+    rain.group,
+  );
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, piles.group, player.group, props);
+  sky.addShadowCasters(
+    forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, woodpiles.group, piles.group,
+    player.group, props,
+  );
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -757,6 +778,7 @@ export function showAsset(
     roofs.update();
     bedrolls.update();
     piles.update();
+    woodpiles.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -815,6 +837,7 @@ export function showAsset(
       forage.dispose();
       bedrolls.dispose();
       piles.dispose();
+      woodpiles.dispose();
       rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();

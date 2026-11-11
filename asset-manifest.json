@@ -108,6 +108,42 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "chop-animation",
+      "kind": "code",
+      "description": "Chopping motion of the player and the falling motion of a felled tree. Placeholder tween built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "campfire-build-animation",
+      "kind": "code",
+      "description": "Stage-by-stage growth of a campfire during construction. Placeholder tween built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "fire-effect",
+      "kind": "code",
+      "description": "Flames and glow of a lit campfire. Placeholder shapes and light built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
     }
   ]
 }

@@ -421,14 +421,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 1.3,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
-      { label: "after the strike", phase: 0 },
-      { label: "lifting", phase: 0.35 },
-      { label: "axe overhead", phase: 0.7 },
-      { label: "dropping", phase: 0.9 },
+      { label: "lifting", phase: 0.15 },
+      { label: "axe overhead", phase: 0.35 },
+      { label: "dropping", phase: 0.45 },
+      { label: "strike", phase: 0.52 },
     ].map(({ label, phase }) => ({ label, yaw: 90, pitch: 10, seconds: phase / SPLIT_STRIKES_PER_SECOND })),
-    build({ player }) {
-      player.setCarryingLog(true);
-    },
+    build() {},
     pose({ player }, shot) {
       player.setSplitting(shot.seconds);
     },
@@ -484,7 +482,7 @@ export function showAsset(
   if (river !== undefined) scene.add(river.group);
 
   const store = createEntityStore();
-  const player = createPlayerMesh(shapes.log);
+  const player = createPlayerMesh(shapes.player, shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
   const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.

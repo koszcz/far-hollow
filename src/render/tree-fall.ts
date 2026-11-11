@@ -1,5 +1,5 @@
-// The felled tree's fall, part of the code-built "chop-animation" in asset-manifest.json. The owner approved the asset.
-// The player's swing is in player-mesh.ts. forest-meshes.ts starts a fall when a tree is felled.
+// The felled tree's fall, built in code, part of "chop-animation" in asset-manifest.json. The owner approved the asset.
+// The player's swing is KayKit's 2H_Melee_Attack_Slice clip, played by player-mesh.ts. forest-meshes.ts starts a fall when a tree is felled.
 import * as THREE from "three";
 
 /** How long a felled tree takes to fall, land, and settle, in seconds. */

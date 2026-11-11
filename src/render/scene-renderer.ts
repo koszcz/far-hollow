@@ -134,7 +134,7 @@ export function createSceneRenderer(
     hoverOutline.setViewSize(width, height);
   }
 
-  const playerMesh = createPlayerMesh(shapes.log);
+  const playerMesh = createPlayerMesh(shapes.player, shapes.log);
   scene.add(playerMesh.group);
   skyLighting.addShadowCasters(playerMesh.group);
   /** Where the player is drawn this frame. The camera follows it. */
@@ -159,6 +159,7 @@ export function createSceneRenderer(
       playerMesh.setSplitting(nowSeconds);
       return;
     }
+    playerMesh.setSplitting(undefined);
     const tree = player.chopTask && player.walkPath === undefined ? entities.entity(player.chopTask.treeId) : undefined;
     if (tree?.position !== undefined) {
       playerMesh.setHeading(Math.atan2(tree.position.x - playerDrawn.x, tree.position.z - playerDrawn.z));

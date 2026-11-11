@@ -3,6 +3,7 @@
 import { loadBerryBushShape, type BerryBushShape } from "./berry-bush-model";
 import { loadLogShape, type LogShape } from "./log-shape";
 import { loadMushroomsShape, type MushroomsShape } from "./mushrooms-model";
+import { loadPlayerModel, type PlayerModel } from "./player-model";
 import { loadStumpShape, type StumpShape } from "./stump-model";
 import { loadTreeShapes, type TreeShape } from "./tree-model";
 import { loadUndergrowthShapes, type UndergrowthShape } from "./undergrowth-models";
@@ -21,12 +22,14 @@ export interface ModelShapes {
   readonly mushrooms: MushroomsShape;
   /** The undergrowth models, from loadUndergrowthShapes. */
   readonly undergrowth: readonly UndergrowthShape[];
+  /** The player and its animation clips, from loadPlayerModel. */
+  readonly player: PlayerModel;
 }
 
 /** Loads every model shape at the same time. */
 export async function loadModelShapes(): Promise<ModelShapes> {
-  const [trees, stump, log, berryBush, mushrooms, undergrowth] = await Promise.all([
-    loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadMushroomsShape(), loadUndergrowthShapes(),
+  const [trees, stump, log, berryBush, mushrooms, undergrowth, player] = await Promise.all([
+    loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadMushroomsShape(), loadUndergrowthShapes(), loadPlayerModel(),
   ]);
-  return { trees, stump, log, berryBush, mushrooms, undergrowth };
+  return { trees, stump, log, berryBush, mushrooms, undergrowth, player };
 }

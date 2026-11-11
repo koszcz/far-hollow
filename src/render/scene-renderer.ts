@@ -3,6 +3,7 @@ import type { QuarterTurns, StructureKind } from "../sim/api";
 import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBedrollMeshes } from "./bedroll-meshes";
+import { createPileMeshes } from "./pile-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
@@ -47,7 +48,8 @@ export type ScenePick =
   | { kind: "blueprint"; id: number }
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
-  | { kind: "bedroll"; id: number };
+  | { kind: "bedroll"; id: number }
+  | { kind: "pile"; id: number };
 
 /** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
 export interface PlacementPreview {
@@ -136,12 +138,14 @@ export function createSceneRenderer(
   scene.add(bedrollMeshes.group);
   const chestMeshes = createChestMeshes(entities);
   scene.add(chestMeshes.group);
+  const pileMeshes = createPileMeshes(entities);
+  scene.add(pileMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group,
+    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, pileMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
@@ -155,6 +159,7 @@ export function createSceneRenderer(
     }
     const { kind, entity } = hovered;
     if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
+    else if (kind === "pile") hoverOutline.show(pileMeshes.outlineOf(entity));
     else if (kind === "blueprint" && entity.blueprint?.piece === "leanTo") hoverOutline.show(leanToMeshes.outlineOf(entity));
     else if (kind === "blueprint" && entity.blueprint?.piece === "foundation") hoverOutline.show(foundationMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" && (entity.blueprint?.piece === "logWall" || entity.blueprint?.piece === "doorFrame")) {
@@ -246,6 +251,7 @@ export function createSceneRenderer(
       edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
       forageMeshes.pick(raycaster),
       bedrollMeshes.pick(raycaster),
+      pileMeshes.pick(raycaster),
       woodpileMeshes.pick(raycaster),
       chestMeshes.pick(raycaster),
     ];
@@ -277,6 +283,7 @@ export function createSceneRenderer(
       foundationMeshes.update();
       forageMeshes.update();
       bedrollMeshes.update();
+      pileMeshes.update();
       woodpileMeshes.update();
       chestMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -341,6 +348,7 @@ export function createSceneRenderer(
       roofMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
+      pileMeshes.dispose();
       woodpileMeshes.dispose();
       chestMeshes.dispose();
       rainEffect.dispose();

@@ -1,4 +1,4 @@
-import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
+import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PileView, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { createBuilding } from "./building";
@@ -22,6 +22,7 @@ import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
+import { createPiles } from "./piles";
 import { boilProgress } from "./pot-state";
 import { createWoodpiles } from "./woodpiles";
 
@@ -113,6 +114,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const woodpiles = createWoodpiles(entities, walking);
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
+  const piles = createPiles(entities, walking, valley);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -146,6 +148,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
       nearbyBedroll: nearbyBedroll(),
+      nearbyPile: nearbyPile(),
       nearbyWoodpile: woodpiles.nearby() ?? null,
       nearbyBlueprint: building.nearby() ?? null,
       needs: Object.freeze({
@@ -185,6 +188,13 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     return id === undefined ? null : Object.freeze({ id });
   }
 
+  function nearbyPile(): PileView | null {
+    const pile = piles.nearby();
+    const id = pile === undefined ? undefined : entities.id(pile);
+    if (pile === undefined || id === undefined) return null;
+    return Object.freeze({ id, content: pile.pile.content, count: pile.pile.count });
+  }
+
   function currentAction(): PlayerAction | null {
     if (player.buildTask !== undefined && player.walkPath === undefined) {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
@@ -219,6 +229,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     bedrolls.cancel();
     drinking.cancel();
     pot.cancel();
+    piles.cancel();
   }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
@@ -249,7 +260,9 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     pickUpStick: (command) => {
       cancelTasks();
-      const refusal = gathering.pickUpStick(command.stickId);
+      // Dropped sticks lie in a pile, and the player picks them up the same way as a stick on the forest floor.
+      const dropped = entities.entity(command.stickId)?.pile?.content === "stick";
+      const refusal = dropped ? piles.pickUp(command.stickId) : gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
     },
     forage: (command) => {
@@ -267,6 +280,14 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     dropLog: () => {
       carrying.drop();
+    },
+    dropFromBackpack: (command) => {
+      piles.drop(command.content);
+    },
+    pickUpPile: (command) => {
+      cancelTasks();
+      const refusal = piles.pickUp(command.pileId);
+      if (refusal !== undefined) showNotice(refusal);
     },
     placeBlueprint: (command) => {
       building.place(command.structure, { x: command.x, z: command.z }, command.turns);
@@ -458,6 +479,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       drinking.step();
       const potRefusal = pot.step();
       if (potRefusal !== undefined) showNotice(potRefusal);
+      const pileRefusal = piles.step();
+      if (pileRefusal !== undefined) showNotice(pileRefusal);
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }

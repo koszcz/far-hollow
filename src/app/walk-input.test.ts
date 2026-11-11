@@ -62,6 +62,14 @@ describe("clicking a campfire", () => {
   });
 });
 
+describe("clicking a pile", () => {
+  it("walks the player to it to pick it up, with a hand and an outline", () => {
+    expect(mainActionFor({ kind: "pile", id: 4 })).toEqual({ type: "pickUpPile", pileId: 4 });
+    expect(cursorFor({ kind: "pile", id: 4 }, false)).toBe("pointer");
+    expect(outlineFor({ kind: "pile", id: 4 }, false)).toEqual({ kind: "pile", id: 4 });
+  });
+});
+
 describe("clicking a woodpile", () => {
   it("walks the player over to use it", () => {
     expect(mainActionFor({ kind: "woodpile", id: 4 })).toEqual({ type: "tendWoodpile", woodpileId: 4 });

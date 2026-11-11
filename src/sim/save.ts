@@ -23,9 +23,12 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   giveDrawknife,
   countMaterialsSpent,
   addDeliveredMaterials,
-  addWoodpiles,
-  allowChests,
-  allowPiles,
+  // Version 7 to 8: the player can build woodpiles. A save from before then has none.
+  nothingToUpgrade,
+  // Version 8 to 9: the player can build chests. A save from before then has none.
+  nothingToUpgrade,
+  // Version 9 to 10: the player can drop things in piles. A save from before then has none.
+  nothingToUpgrade,
   fillChests,
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
@@ -36,13 +39,13 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
 
 /** The first save version that can hold piles. */
-export const PILES_SAVE_VERSION = SAVE_UPGRADES.indexOf(allowPiles) + 2;
+export const PILES_SAVE_VERSION = 10;
+/** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
+export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 /** The first save version in which finished chests and woodpiles block walking. */
 export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalkingAtChestsAndWoodpiles) + 2;
 /** The first save version whose notice that a chest or woodpile still holds something is called `stillHoldsSomething`. */
 export const RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameNotEmptyNotice) + 2;
-/** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
-export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -170,26 +173,10 @@ function addDeliveredMaterials(save: Readonly<Record<string, unknown>>): Record<
 }
 
 /**
- * Version 7 to 8: the player can build woodpiles and stack wood on them. A save from before then has no woodpiles,
- * so it carries over unchanged.
+ * For a version that added something older saves never hold, such as a new kind of structure.
+ * The save carries over unchanged. The new version number stops older code loading a save that holds the new thing.
  */
-function addWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  return { ...save };
-}
-
-/**
- * Version 8 to 9: the player can build chests, which older games cannot load.
- * A save from before then has no chests, so nothing in it changes.
- */
-function allowChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  return { ...save };
-}
-
-/**
- * Version 9 to 10: the player can drop things from the backpack in piles on the ground.
- * A save from before then has no piles, so nothing in it changes. The new version stops older code loading a save that has piles.
- */
-function allowPiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
 }
 

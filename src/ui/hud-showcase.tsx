@@ -123,8 +123,6 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
     render(
       <Hud
         client={stillClient(view)}
-        cameraFollow={true}
-        onCameraFollowChange={() => {}}
         buildMenuOpen={buildMenuOpen}
         placing={placing}
         onToggleBuildMenu={() => {}}

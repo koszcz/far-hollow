@@ -1,9 +1,12 @@
-// Draws foundations and foundation blueprints: the "foundation" asset in asset-manifest.json, a draft built in code.
-// A foundation is a deck of debarked logs laid side by side over one building-grid square, on a leg at each corner.
+// Draws foundations and foundation blueprints: the "foundation" asset in asset-manifest.json, built in code and approved by the owner.
+// A foundation is a deck of debarked logs laid side by side over one building-grid square. The deck logs rest on two
+// cross beams, and each beam rests on a leg at each end, so a leg stands under each corner.
 // The legs reach down to the ground, so on a slope the legs on the low side are longer.
-// A blueprint shows the deck and legs see-through. Each debarked log the player has delivered shows pale and half solid
+// Each deck log is a little thicker or thinner, longer or shorter, and turned a little differently, so the deck looks hand-built.
+// The deck logs and beams show darker cut ends.
+// A blueprint shows the deck, beams, and legs see-through. Each debarked log the player has delivered shows pale and half solid
 // in its place, so the blueprint shows how many logs it has and how many it still needs.
-// Construction has one stage per log. The legs go in when work starts. Then each log fades in above its place,
+// Construction has one stage per log. The legs and beams go in when work starts. Then each log fades in above its place,
 // is lowered, and set down, like the sticks of a campfire.
 // While the player places a foundation from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
@@ -12,7 +15,7 @@ import { foundationEntities, blueprintEntities, type Entity, type EntityStore, t
 import { FOUNDATION_DECK_THICKNESS_METRES, foundationLegs } from "../sim/foundations";
 import { FOUNDATION_LOG_COST } from "../sim/structures";
 import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
-import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
+import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
@@ -22,13 +25,31 @@ const BLUEPRINT_OPACITY = 0.35;
 const DELIVERED_OPACITY = 0.7;
 /** A blueprint under the mouse shows in this red where its spot is not allowed. */
 const NOT_ALLOWED_COLOUR = 0xe0614f;
-/** The legs are a little darker than the deck, as if cut from the heart of the log. */
+/** The legs and beams are a little darker than the deck, as if cut from the heart of the log. */
 const LEG_COLOUR = 0xb8966a;
-const LEG_RADIUS_METRES = 0.06;
+const LEG_RADIUS_METRES = 0.08;
 /** Each deck log is as thick as the deck. The logs lie along x, side by side across z. */
 const DECK_LOG_RADIUS_METRES = FOUNDATION_DECK_THICKNESS_METRES / 2;
+/**
+ * The two beams run along z, under the ends of the deck logs, one over each pair of legs.
+ * Each beam is notched into the logs above it: its middle sits at the underside of the deck.
+ */
+const BEAM_RADIUS_METRES = 0.065;
+/**
+ * How each deck log differs from a plain one: its thickness and length as shares of the plain log,
+ * how far it sits off the middle along its length, and how far it is turned about its length, in radians.
+ * Fixed, so every foundation looks the same and nothing changes from frame to frame.
+ */
+const DECK_LOG_LOOKS = [
+  { thickness: 0.94, length: 1.06, shift: 0.03, turn: 0.2 },
+  { thickness: 1, length: 1.02, shift: -0.04, turn: 0.9 },
+  { thickness: 0.9, length: 1.08, shift: 0.01, turn: 0.5 },
+  { thickness: 0.97, length: 1.03, shift: -0.02, turn: 1.3 },
+] as const;
 /** A leg shorter than this still shows, so a foundation on flat ground does not float. */
 const SHORTEST_LEG_METRES = 0.02;
+/** How far each leg's foot reaches below the ground, in metres. */
+const LEG_FOOT_SINK_METRES = 0.04;
 
 /** What a click on a foundation blueprint landed on. Finished foundations are walked on, not clicked. */
 export type FoundationHit = { kind: "blueprint"; entity: Entity };
@@ -46,23 +67,41 @@ export interface FoundationMeshes {
   dispose(): void;
 }
 
+/** A deck log or beam with its own see-through copies of the wood and cut ends, for fading in. */
+interface FadingLog {
+  readonly mesh: THREE.Mesh;
+  readonly fading: THREE.MeshStandardMaterial[];
+}
+
 interface Drawn {
   readonly root: THREE.Group;
   /** Each deck log, with its own see-through copy of the wood for fading in. */
-  readonly logs: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial }[];
+  readonly logs: FadingLog[];
+  readonly beams: THREE.Mesh[];
   readonly legs: THREE.Mesh[];
   readonly picker: THREE.Mesh;
+}
+
+interface Parts {
+  readonly logs: THREE.Mesh[];
+  readonly beams: THREE.Mesh[];
+  readonly legs: THREE.Mesh[];
 }
 
 /** `groundAt` gives the height of the ground at a spot, so the legs reach it. */
 export function createFoundationMeshes(entities: EntityStore, groundAt: (x: number, z: number) => number): FoundationMeshes {
   const group = new THREE.Group();
-  const logGeometry = new THREE.CylinderGeometry(DECK_LOG_RADIUS_METRES, DECK_LOG_RADIUS_METRES, BUILD_GRID_METRES, 8).rotateZ(Math.PI / 2);
-  // One metre tall with its top at the origin, so scaling it makes a leg of any length hanging down from the deck.
-  const legGeometry = new THREE.CylinderGeometry(LEG_RADIUS_METRES, LEG_RADIUS_METRES * 1.15, 1, 6).translate(0, -0.5, 0);
+  // Cylinder groups are the side, then the two ends, so a list of three materials gives the ends their own colour.
+  const logGeometry = new THREE.CylinderGeometry(DECK_LOG_RADIUS_METRES, DECK_LOG_RADIUS_METRES, BUILD_GRID_METRES, 9).rotateZ(Math.PI / 2);
+  const beamGeometry = new THREE.CylinderGeometry(BEAM_RADIUS_METRES, BEAM_RADIUS_METRES, BUILD_GRID_METRES, 7).rotateX(Math.PI / 2);
+  // One metre tall with its top at the origin, so scaling it makes a leg of any length hanging down from the beam.
+  const legGeometry = new THREE.CylinderGeometry(LEG_RADIUS_METRES, LEG_RADIUS_METRES * 1.2, 1, 7).translate(0, -0.5, 0);
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, FOUNDATION_DECK_THICKNESS_METRES * 2, BUILD_GRID_METRES);
   const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
+  const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
   const legMaterial = new THREE.MeshStandardMaterial({ color: LEG_COLOUR, flatShading: true });
+  const logMaterials = [woodMaterial, cutMaterial, cutMaterial];
+  const beamMaterials = [legMaterial, cutMaterial, cutMaterial];
   const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
   const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
@@ -74,37 +113,48 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
   const blueprints = blueprintEntities(entities);
   const foundations = foundationEntities(entities);
 
-  /** Adds the deck logs and legs to `root`, all in one material. */
-  function addParts(root: THREE.Group): { logs: THREE.Mesh[]; legs: THREE.Mesh[] } {
-    const logs: THREE.Mesh[] = [];
-    for (let i = 0; i < FOUNDATION_LOG_COST; i += 1) {
-      const mesh = new THREE.Mesh(logGeometry, blueprintMaterial);
-      mesh.castShadow = true;
-      root.add(mesh);
-      logs.push(mesh);
-    }
-    const legs: THREE.Mesh[] = [];
-    for (let i = 0; i < 4; i += 1) {
-      const mesh = new THREE.Mesh(legGeometry, blueprintMaterial);
-      mesh.castShadow = true;
-      root.add(mesh);
-      legs.push(mesh);
-    }
-    return { logs, legs };
+  /** Adds the deck logs, beams, and legs to `root`, all in one material. */
+  function addParts(root: THREE.Group): Parts {
+    const make = (geometry: THREE.BufferGeometry, count: number) =>
+      Array.from({ length: count }, () => {
+        const mesh = new THREE.Mesh(geometry, blueprintMaterial);
+        mesh.castShadow = true;
+        root.add(mesh);
+        return mesh;
+      });
+    return { logs: make(logGeometry, FOUNDATION_LOG_COST), beams: make(beamGeometry, 2), legs: make(legGeometry, 4) };
   }
 
-  /** Lays the deck logs side by side, `lift` metres above their places, and stretches each leg down to the ground. */
-  function fit(root: THREE.Group, logs: readonly THREE.Mesh[], legs: readonly THREE.Mesh[], deck: Vec3, lifts: readonly number[] = []): void {
+  /**
+   * Lays the deck logs side by side, `lift` metres above their places, on two beams over the legs.
+   * Stretches each leg from under its beam down into the ground.
+   */
+  function fit(root: THREE.Group, parts: Parts, deck: Vec3, lifts: readonly number[] = []): void {
     root.position.set(deck.x, deck.y, deck.z);
-    logs.forEach((mesh, i) => {
-      const across = -BUILD_GRID_METRES / 2 + ((i + 0.5) * BUILD_GRID_METRES) / logs.length;
-      mesh.position.set(0, -DECK_LOG_RADIUS_METRES + (lifts[i] ?? 0), across);
+    parts.logs.forEach((mesh, i) => {
+      const look = DECK_LOG_LOOKS[i % DECK_LOG_LOOKS.length] ?? DECK_LOG_LOOKS[0];
+      const across = -BUILD_GRID_METRES / 2 + ((i + 0.5) * BUILD_GRID_METRES) / parts.logs.length;
+      // Each log rests on the beams, so a thinner log sits with its underside level with the others.
+      const middle = -FOUNDATION_DECK_THICKNESS_METRES + DECK_LOG_RADIUS_METRES * look.thickness;
+      mesh.position.set(look.shift, middle + (lifts[i] ?? 0), across);
+      mesh.scale.set(look.length, look.thickness, look.thickness);
+      mesh.rotation.x = look.turn;
     });
-    foundationLegs(deck, groundAt).forEach((leg, i) => {
-      const mesh = legs[i];
+    const legs = foundationLegs(deck, groundAt);
+    // The legs stand in two pairs, one pair at each end of the deck logs. Each beam spans one pair.
+    [legs[0], legs[2]].forEach((leg, i) => {
+      const mesh = parts.beams[i];
+      if (mesh === undefined || leg === undefined) return;
+      mesh.position.set(leg.x - deck.x, leg.top - deck.y, 0);
+      mesh.rotation.z = i * 0.7;
+    });
+    legs.forEach((leg, i) => {
+      const mesh = parts.legs[i];
       if (mesh === undefined) return;
-      mesh.position.set(leg.x - deck.x, leg.top - deck.y, leg.z - deck.z);
-      mesh.scale.y = Math.max(SHORTEST_LEG_METRES, leg.top - leg.bottom);
+      const top = leg.top - BEAM_RADIUS_METRES;
+      mesh.position.set(leg.x - deck.x, top - deck.y, leg.z - deck.z);
+      // The foot sinks a little into the ground, so no gap shows on a slope.
+      mesh.scale.y = Math.max(SHORTEST_LEG_METRES, top - leg.bottom) + LEG_FOOT_SINK_METRES;
     });
   }
 
@@ -119,9 +169,11 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
     const root = new THREE.Group();
     const parts = addParts(root);
     const logs = parts.logs.map((mesh) => {
-      const fading = woodMaterial.clone();
-      fading.transparent = true;
-      return { mesh, fading };
+      const side = woodMaterial.clone();
+      const cut = cutMaterial.clone();
+      side.transparent = true;
+      cut.transparent = true;
+      return { mesh, fading: [side, cut, cut] };
     });
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.position.y = -FOUNDATION_DECK_THICKNESS_METRES / 2;
@@ -129,14 +181,14 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
     root.add(picker);
     pickers.push(picker);
     group.add(root);
-    const result = { root, logs, legs: parts.legs, picker };
+    const result = { root, logs, beams: parts.beams, legs: parts.legs, picker };
     drawn.set(entity, result);
     return result;
   }
 
   /**
    * Shows how far construction has gone. Built logs are solid and in place, the log being laid moves through its stage,
-   * delivered logs wait half solid in their places, and the rest show see-through. The legs go in when work starts.
+   * delivered logs wait half solid in their places, and the rest show see-through. The legs and beams go in when work starts.
    */
   function showProgress(item: Drawn, deck: Vec3, progress: number, delivered: number): void {
     const stagesDone = progress * item.logs.length;
@@ -146,19 +198,25 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
         return 0;
       }
-      fading.opacity = Math.min(1, share / BUILD_FADE_SHARE);
-      mesh.material = fading.opacity < 1 ? fading : woodMaterial;
+      const opacity = Math.min(1, share / BUILD_FADE_SHARE);
+      for (const material of fading) material.opacity = opacity;
+      mesh.material = opacity < 1 ? fading : logMaterials;
       return buildLift(share);
     });
     for (const leg of item.legs) leg.material = progress > 0 ? legMaterial : blueprintMaterial;
-    fit(item.root, item.logs.map(({ mesh }) => mesh), item.legs, deck, lifts);
+    for (const beam of item.beams) beam.material = progress > 0 ? beamMaterials : blueprintMaterial;
+    fit(item.root, { logs: item.logs.map(({ mesh }) => mesh), beams: item.beams, legs: item.legs }, deck, lifts);
+  }
+
+  function disposeFading(item: Drawn): void {
+    for (const { fading } of item.logs) for (const material of new Set(fading)) material.dispose();
   }
 
   function forget(entity: Entity): void {
     const item = drawn.get(entity);
     if (item === undefined) return;
     group.remove(item.root);
-    for (const { fading } of item.logs) fading.dispose();
+    disposeFading(item);
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
   }
@@ -195,22 +253,23 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
       const item = drawn.get(hit.entity);
       if (item === undefined) return [];
       item.root.updateMatrixWorld(true);
-      return [...item.logs.map(({ mesh }) => mesh), ...item.legs].map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
+      return [...item.logs.map(({ mesh }) => mesh), ...item.beams, ...item.legs].map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
     showPreview(shown) {
       preview.visible = shown !== undefined;
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of [...previewParts.logs, ...previewParts.legs]) mesh.material = material;
-      fit(preview, previewParts.logs, previewParts.legs, shown.spot);
+      for (const mesh of [...previewParts.logs, ...previewParts.beams, ...previewParts.legs]) mesh.material = material;
+      fit(preview, previewParts, shown.spot);
     },
     dispose() {
       for (const item of [
-        logGeometry, legGeometry, pickGeometry, woodMaterial, legMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial,
+        logGeometry, beamGeometry, legGeometry, pickGeometry, woodMaterial, cutMaterial, legMaterial,
+        blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial,
       ]) {
         item.dispose();
       }
-      for (const item of drawn.values()) for (const { fading } of item.logs) fading.dispose();
+      for (const item of drawn.values()) disposeFading(item);
     },
   };
 }

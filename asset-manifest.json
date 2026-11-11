@@ -176,12 +176,13 @@
         "src/render/foundation-meshes.ts",
         "src/sim/foundations.ts"
       ],
-      "description": "The foundation: four debarked logs laid side by side over one building-grid square, on a leg at each corner. The legs reach down to the ground, so they grow longer on the low side of a slope. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the logs one per stage after the legs go in.",
+      "description": "The foundation: four debarked logs laid side by side over one building-grid square, resting on two cross beams with a leg under each end. Each deck log differs a little in thickness, length, and turn, and the logs and beams show darker cut ends. The legs reach down to the ground, so they grow longer on the low side of a slope. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the logs one per stage after the legs and beams go in.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/04-foundation.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

@@ -177,7 +177,7 @@ The camera looks down at the player from above at an angle, like an isometric ga
 - TypeScript runs in strict mode.
 - ESLint checks code style and common mistakes.
 - `dependency-cruiser` checks that folders only import what they are allowed to.
-- The package manager is pnpm.
+- Bun is the package manager and the runtime for every tool. (This replaced pnpm and Node.js on 2026-11-11.)
 - A pre-commit hook runs type checks, lint, and unit tests.
 - There is no CI until the project has a GitHub remote.
 

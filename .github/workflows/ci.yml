@@ -19,21 +19,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          bun-version-file: .tool-versions
 
-      - run: pnpm install --frozen-lockfile
+      - run: bun install --frozen-lockfile
 
-      - run: pnpm lint
+      - run: bun run lint
 
-      - run: pnpm test
+      - run: bun run test
 
       # Build with the GitHub Pages base path, so the deploy job can reuse this build.
-      - run: pnpm build
+      - run: bun run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 

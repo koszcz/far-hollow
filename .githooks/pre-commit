@@ -1,7 +1,7 @@
 #!/bin/sh
-# Runs before every commit. Installed by `pnpm install` (the "prepare" script).
+# Runs before every commit. Installed by `bun install` (the "prepare" script).
 set -e
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm check:assets
+bun run typecheck
+bun run lint
+bun run test
+bun run check:assets

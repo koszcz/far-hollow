@@ -1,7 +1,7 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, CampfireView, GameClient, GameView } from "../sim/api";
+import type { BackpackContent, CampfireView, Food, GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
 import { HudIcon, type HudIconName } from "./hud-icons";
 
@@ -13,6 +13,13 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
     if (count > 0) contents.push([content, count]);
   }
   return contents;
+}
+
+/** Backpack contents the player can eat. */
+const FOODS: readonly BackpackContent[] = ["berries", "mushroom"] satisfies Food[];
+
+function isFood(content: BackpackContent): content is Food {
+  return FOODS.includes(content);
 }
 
 export interface HudProps {
@@ -34,6 +41,8 @@ const WARM_RGB = [232, 131, 58] as const;
 const LOW_NEED = 0.25;
 /** A cool river blue for the thirst bar. */
 const THIRST_COLOUR = "#5aa9e6";
+/** A berry red for the hunger bar. */
+const HUNGER_COLOUR = "#c8553d";
 
 /** The colour of the warmth bar at `warmth`, from 0 (frozen) to 1 (fully warm). */
 function warmthColour(warmth: number): string {
@@ -125,6 +134,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
       <div class="hud-panel">
         <section class="hud-needs" aria-label={strings.needs}>
           <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
+          <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
           <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
           {view.sick && <p class="hud-hint">{strings.sick}</p>}
         </section>
@@ -163,7 +173,14 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           </h2>
           <ul>
             {backpackContents(view.backpack).map(([content, count]) => (
-              <li key={content}>{strings.backpackContentCount(strings.backpackContents[content], count)}</li>
+              <li key={content}>
+                {strings.backpackContentCount(strings.backpackContents[content], count)}
+                {isFood(content) && (
+                  <HudButton label={strings.eat} onClick={() => {
+                      client.send({ type: "eat", food: content });
+                    }} />
+                )}
+              </li>
             ))}
           </ul>
         </section>

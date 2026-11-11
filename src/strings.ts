@@ -39,7 +39,9 @@ export const strings = {
   lightCampfire: "Light with fire striker",
   warmth: "Warmth",
   needs: "Needs",
+  hunger: "Hunger",
   thirst: "Thirst",
+  eat: "Eat",
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   notices: {
     survivedFirstNight: "You survived the night.",
@@ -54,6 +56,8 @@ export const strings = {
     fireStriker: "Fire striker",
     stick: "Stick",
     firewood: "Firewood",
+    berries: "Berries",
+    mushroom: "Mushroom",
   },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,

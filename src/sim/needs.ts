@@ -1,4 +1,4 @@
-// The player's four needs: hunger, thirst, warmth, and fatigue. Only warmth and thirst change for now.
+// The player's four needs: hunger, thirst, warmth, and fatigue. Only fatigue holds steady for now.
 
 /** The four body states the player must keep up. */
 export const NEED_KINDS = ["hunger", "thirst", "warmth", "fatigue"] as const;
@@ -8,6 +8,8 @@ export type NeedKind = (typeof NEED_KINDS)[number];
 export const FULL_NEED = 1;
 /** How much warmth the player loses per game hour at night, away from a lit campfire. Full warmth lasts 4 hours. */
 export const WARMTH_DRAIN_PER_HOUR = 0.25;
+/** How much hunger the player loses per game hour, all day and night. Full hunger lasts two days. */
+export const HUNGER_DRAIN_PER_HOUR = 1 / 48;
 /** How much warmth the player gains per game hour within a lit campfire's warmth range. */
 export const WARMTH_RECOVERY_PER_HOUR = 1;
 /** How much thirst the player loses per game hour, by day and by night. Full thirst lasts one day. */
@@ -71,7 +73,7 @@ function needChangePerMinute(kind: NeedKind, conditions: NeedConditions): number
   return (changePerHour * sickFactor) / 60;
 }
 
-/** How much a need changes per game hour for a player who is not sick. Hunger and fatigue hold steady for now. */
+/** How much a need changes per game hour for a player who is not sick. Fatigue holds steady for now. */
 function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
   switch (kind) {
     case "warmth":
@@ -80,6 +82,7 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
     case "thirst":
       return -THIRST_DRAIN_PER_HOUR;
     case "hunger":
+      return -HUNGER_DRAIN_PER_HOUR;
     case "fatigue":
       return 0;
   }
@@ -106,4 +109,11 @@ export function needsSpeed(needs: Needs): number {
   const lowest = Math.min(...NEED_KINDS.map((kind) => needs[kind].level));
   if (lowest >= LOW_NEED) return 1;
   return SLOWEST_SPEED + (1 - SLOWEST_SPEED) * (lowest / LOW_NEED);
+}
+
+/** Fills a need by this much, up to full. */
+export function fillNeed(needs: Needs, kind: NeedKind, amount: number): void {
+  const need = needs[kind];
+  need.level = Math.min(FULL_NEED, need.level + amount);
+  if (need.level > 0) need.minutesWithout = 0;
 }

@@ -11,7 +11,7 @@ describe("needs", () => {
     expect(view.needs).toEqual({ hunger: 1, thirst: 1, warmth: 1, fatigue: 1 });
   });
 
-  it("change for skipped time: warmth drains at night, thirst drains all day, hunger and fatigue stay full for now", () => {
+  it("change for skipped time: warmth drains at night, thirst and hunger drain all day, fatigue stays full for now", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipTime", hours: 14 }); // 22:00, two hours into the night.
 
@@ -19,7 +19,8 @@ describe("needs", () => {
     expect(needs.warmth).toBeCloseTo(0.5, 1);
     expect(needs.warmth).toBe(game.client.getView().warmth);
     expect(needs.thirst).toBeCloseTo(1 - 14 / 24, 2);
-    expect(needs).toMatchObject({ hunger: 1, fatigue: 1 });
+    expect(needs.hunger).toBeCloseTo(1 - 14 / 48, 2);
+    expect(needs).toMatchObject({ fatigue: 1 });
   });
 
   it("drain thirst by day and by night, emptying it over one day", () => {

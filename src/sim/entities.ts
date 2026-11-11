@@ -1,5 +1,5 @@
 import { World } from "miniplex";
-import type { Backpack } from "./backpack";
+import type { Backpack, Food } from "./backpack";
 import type { Needs } from "./needs";
 import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
@@ -61,6 +61,12 @@ export interface Entity {
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
+  /** Marks a berry bush or a patch of mushrooms the player can forage. Its position is the middle of the plant. */
+  forageSpot?: { food: Food };
+  /** A foraged bush or mushroom patch growing back. It has food again when `minutesLeft` game minutes have passed. */
+  regrowing?: { minutesLeft: number };
+  /** The bush or mushroom patch the player is walking to forage, given by its entity id. */
+  forageTask?: { spotId: number };
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
@@ -141,6 +147,11 @@ export function logEntities(store: EntityStore) {
 /** Sticks lying on the forest floor. Sticks in the backpack are not entities. */
 export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
+}
+
+/** Berry bushes and mushroom patches, with food or growing back. */
+export function forageSpotEntities(store: EntityStore) {
+  return store.with("forageSpot", "position");
 }
 
 /** Building pieces placed but not finished. */

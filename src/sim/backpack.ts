@@ -4,7 +4,10 @@
  */
 
 /** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in CONTENT_WEIGHT_KG. */
-export type BackpackContent = "axe" | "knife" | "fireStriker" | "stick" | "firewood";
+export type BackpackContent = "axe" | "knife" | "fireStriker" | "stick" | "firewood" | Food;
+
+/** Wild food the player forages and eats. One "berries" is a handful of berries. */
+export type Food = "berries" | "mushroom";
 
 /** How many of each kind of thing the backpack holds. Kinds it does not hold are missing. */
 export type BackpackContents = Partial<Record<BackpackContent, number>>;
@@ -23,6 +26,8 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   fireStriker: 0.1,
   stick: 0.5,
   firewood: 1.5,
+  berries: 0.1,
+  mushroom: 0.1,
 };
 
 /** What the player starts a new game with. */

@@ -14,6 +14,8 @@ const PATHS = {
   log: "M6 9h12a3 3 0 0 1 0 6H6a3 3 0 0 1 0-6zM6 9a3 3 0 0 0 0 6",
   /** Thirst: a water drop. Draft, added by settling-in ticket 05; awaiting owner approval. */
   droplet: "M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z",
+  /** Hunger: a berry with a leaf. Draft, added by settling-in ticket 07; awaiting owner approval. */
+  berry: "M12 9a5.5 5.5 0 1 1 0 11a5.5 5.5 0 0 1 0-11zM12 9c0-2 1-4 3-5M12 7c-2-2-4-2-5-1",
   /** Placing something on the ground. */
   place: "M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10zM12 9v4M10 11h4",
 } as const;

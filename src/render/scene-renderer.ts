@@ -5,8 +5,10 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
+import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
+import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
 import type { TreeShape } from "./tree-model";
 import type { StumpShape } from "./stump-model";
@@ -55,7 +57,7 @@ export function createSceneRenderer(
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   const scene = new THREE.Scene();
-  const skyLighting = createSkyLighting(scene);
+  const skyLighting = createSkyLighting(scene, renderer);
 
   const camera = new THREE.PerspectiveCamera(
     CAMERA_FIELD_OF_VIEW_DEGREES,
@@ -72,10 +74,14 @@ export function createSceneRenderer(
 
   const valleyMeshes = createValleyMeshes(valley);
   scene.add(valleyMeshes.group);
+  const riverMeshes = createRiverMeshes(valley);
+  scene.add(riverMeshes.group);
   const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
+  skyLighting.addShadowReceivers(valleyMeshes.group);
+  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: Exclude<ScenePick["kind"], "ground">; entity: Entity } | undefined;
@@ -114,6 +120,7 @@ export function createSceneRenderer(
 
   const playerMesh = createPlayerMesh();
   scene.add(playerMesh.group);
+  skyLighting.addShadowCasters(playerMesh.group);
   /** Where the player is drawn this frame. The camera follows it. */
   const playerDrawn = { x: 0, y: 0, z: 0 };
   const playerDrawnBefore = { x: 0, y: 0, z: 0 };
@@ -160,7 +167,8 @@ export function createSceneRenderer(
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
-      skyLighting.update(readHourOfDay());
+      const hourOfDay = readHourOfDay();
+      riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -174,6 +182,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
+      skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
     },
     pickAt(clientX, clientY) {
@@ -197,6 +206,7 @@ export function createSceneRenderer(
     dispose() {
       hoverOutline.dispose();
       valleyMeshes.dispose();
+      riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();
       playerMesh.dispose();

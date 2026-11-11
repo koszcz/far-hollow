@@ -4,7 +4,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 0 1px 2px #0008; }
 .hud-paused { margin: 0 0 8px; }
 .hud-notice { margin: 0 0 8px; font-weight: bold; }
-.hud-warmth, .hud-fatigue { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.hud-need { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.hud-sick { margin: 0 0 8px; font-size: 13px; }
 .hud button { pointer-events: auto; }
 .hud-setting { display: block; margin-top: 8px; pointer-events: auto; user-select: none; }
 .debug-overlay { position: absolute; top: 12px; right: 12px; padding: 8px 10px; background: #000a; color: #fff; font: 12px/1.4 ui-monospace, monospace; }
@@ -20,7 +21,16 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud-campfire button, .hud-bedroll button { margin-right: 4px; }
 .hud-backpack h2 { margin: 12px 0 4px; font-size: 14px; }
 .hud-backpack ul { margin: 0; padding-left: 18px; font-size: 13px; }
-.loading { position: fixed; inset: 0; display: grid; place-items: center; background: #1b2420; transition: opacity 0.4s; }
+.start-screen { position: absolute; inset: 0; overflow: auto; padding: 48px 16px; background: #1b2420; color: #fff; pointer-events: auto; text-align: center; }
+.start-screen h1 { margin: 0 0 24px; font-size: 32px; }
+.start-screen-slots { display: grid; gap: 12px; max-width: 420px; margin: 0 auto; padding: 0; list-style: none; text-align: left; }
+.start-screen-slot { padding: 12px 16px; background: #fff1; border-radius: 6px; }
+.start-screen-slot h2 { margin: 0 0 4px; font-size: 16px; }
+.start-screen-slot p { margin: 0 0 8px; }
+.start-screen-slot input { width: 12em; }
+.start-screen-hint { font-size: 12px; opacity: 0.75; }
+.start-screen-warning { color: #ffd27a; }
+.loading {position: fixed; inset: 0; display: grid; place-items: center; background: #1b2420; transition: opacity 0.4s; }
 .loading.done { opacity: 0; pointer-events: none; }
 .loading-spinner { width: 40px; height: 40px; border: 4px solid #fff3; border-top-color: #fff; border-radius: 50%; animation: loading-spin 0.9s linear infinite; }
 @keyframes loading-spin { to { transform: rotate(1turn); } }

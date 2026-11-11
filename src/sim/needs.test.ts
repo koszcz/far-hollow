@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import { createGame, type Game } from "./game";
 import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 
-const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, working: false, asleep: false };
+const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, working: false, asleep: false, sick: false };
 
 describe("needs", () => {
   it("start full for all four needs", () => {
@@ -11,15 +11,53 @@ describe("needs", () => {
     expect(view.needs).toEqual({ hunger: 1, thirst: 1, warmth: 1, fatigue: 1 });
   });
 
-  it("change for skipped time: warmth drains at night, fatigue drains while awake, hunger and thirst stay full for now", () => {
+  it("change for skipped time: warmth drains at night, thirst and fatigue drain all day, hunger stays full for now", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipTime", hours: 14 }); // 22:00, two hours into the night.
 
     const needs = game.client.getView().needs;
     expect(needs.warmth).toBeCloseTo(0.5, 1);
     expect(needs.warmth).toBe(game.client.getView().warmth);
+    expect(needs.thirst).toBeCloseTo(1 - 14 / 24, 2);
     expect(needs.fatigue).toBeCloseTo(1 - 14 / 24, 2);
-    expect(needs).toMatchObject({ hunger: 1, thirst: 1 });
+    expect(needs).toMatchObject({ hunger: 1 });
+  });
+
+  it("drain thirst by day and by night, emptying it over one day", () => {
+    const needs = createNeeds();
+
+    passNeedsTime(needs, 6 * 60, DAYTIME_AWAY_FROM_FIRE);
+    expect(needs.thirst.level).toBeCloseTo(0.75, 5);
+
+    passNeedsTime(needs, 6 * 60, { ...DAYTIME_AWAY_FROM_FIRE, night: true, warmedByCampfire: true });
+    expect(needs.thirst.level).toBeCloseTo(0.5, 5);
+
+    passNeedsTime(needs, 12 * 60, DAYTIME_AWAY_FROM_FIRE);
+    expect(needs.thirst.level).toBeCloseTo(0, 5);
+
+    passNeedsTime(needs, 1, DAYTIME_AWAY_FROM_FIRE);
+    expect(needs.thirst.level).toBe(0);
+  });
+
+  it("drain faster while the player is sick: twice as fast for thirst and warmth", () => {
+    const well = createNeeds();
+    const sick = createNeeds();
+
+    passNeedsTime(well, 60, { night: true, warmedByCampfire: false, working: false, asleep: false, sick: false });
+    passNeedsTime(sick, 60, { night: true, warmedByCampfire: false, working: false, asleep: false, sick: true });
+
+    expect(1 - sick.thirst.level).toBeCloseTo(2 / 24, 5);
+    expect(1 - sick.warmth.level).toBeCloseTo(0.5, 5);
+    expect(1 - well.warmth.level).toBeCloseTo(0.25, 5);
+  });
+
+  it("recover warmth beside a lit campfire at the usual speed while sick", () => {
+    const needs = createNeeds();
+    needs.warmth.level = 0.2;
+
+    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, working: false, asleep: false, sick: true });
+
+    expect(needs.warmth.level).toBeCloseTo(0.7, 5);
   });
 
   it("cause a collapse when a need other than warmth stays at zero for too long", () => {

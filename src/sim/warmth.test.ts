@@ -163,7 +163,8 @@ describe("surviving the first night", () => {
     putCampfireBesidePlayer(game, { lit: true, fuelMinutes: 48 * 60 });
 
     send(game, { type: "skipTime", hours: 23 }); // 07:00 on day 2.
-    // Two days awake would end in a collapse from fatigue, so the player is rested in between.
+    quenchThirst(game); // So thirst does not cause a collapse during the second skip.
+    // Two days awake would also end in a collapse from fatigue, so the player is rested in between.
     const needs = onlyPlayer(game).needs;
     if (needs !== undefined) needs.fatigue.level = 1;
     send(game, { type: "skipTime", hours: 23 }); // 06:00 on day 3.
@@ -217,6 +218,13 @@ function putCampfireBesidePlayer(game: Game, { lit, fuelMinutes = 8 * 60 }: { li
     campfire: { lit, fuelMinutes },
     position: { x: player.position.x + 2, y: player.position.y, z: player.position.z },
   });
+}
+
+/** Fills the player's thirst, as if they had drunk safe water. */
+function quenchThirst(game: Game): void {
+  const player = game.entities.with("player", "needs").first;
+  if (player === undefined) throw new Error("No player");
+  player.needs.thirst.level = 1;
 }
 
 function onlyPlayer(game: Game) {

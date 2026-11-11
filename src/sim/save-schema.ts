@@ -63,6 +63,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
+  drinkTask: point,
+  sickness: shape({ minutesLeft: finite }),
 };
 
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));

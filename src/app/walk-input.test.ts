@@ -8,6 +8,21 @@ describe("clicking a campfire", () => {
   });
 });
 
+describe("clicking the river", () => {
+  it("walks the player to the bank to drink", () => {
+    expect(mainActionFor({ kind: "river", spot: { x: 3, z: -4 } })).toEqual({ type: "drinkFromRiver", x: 3, z: -4 });
+  });
+
+  it("shows a hand, but outlines nothing, because the river is too big to outline", () => {
+    expect(cursorFor({ kind: "river", spot: { x: 0, z: 0 } }, false)).toBe("pointer");
+    expect(outlineFor({ kind: "river", spot: { x: 0, z: 0 } }, false)).toBeUndefined();
+  });
+
+  it("cannot have a campfire placed on it", () => {
+    expect(cursorFor({ kind: "river", spot: { x: 0, z: 0 } }, true)).toBe("crosshair");
+  });
+});
+
 describe("the pointer", () => {
   it("shows a hand over things the player can click", () => {
     for (const kind of ["tree", "log", "stick", "blueprint", "campfire"] as const) {

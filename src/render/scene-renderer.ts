@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
-import { terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
+import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
@@ -21,15 +21,19 @@ const CAMERA_FAR_METRES = 4000;
 /** The player turns to face where they walk only when they move further than this in one frame, in metres. */
 const TURN_MIN_TRAVEL_METRES = 0.001;
 
-/** What is under a point on the screen. Everything but the ground is given by its entity id. */
+/** What is under a point on the screen. Everything but the ground and the river is given by its entity id. */
 export type ScenePick =
   | { kind: "ground"; spot: GroundPoint }
+  | { kind: "river"; spot: GroundPoint }
   | { kind: "tree"; id: number }
   | { kind: "log"; id: number }
   | { kind: "stick"; id: number }
   | { kind: "blueprint"; id: number }
   | { kind: "campfire"; id: number }
   | { kind: "bedroll"; id: number };
+
+/** A pick that landed on an entity. */
+type EntityPick = Extract<ScenePick, { id: number }>;
 
 export interface SceneRenderer {
   /** Draws one frame. alpha says how far the frame is between the last two logic steps. */
@@ -38,7 +42,7 @@ export interface SceneRenderer {
   readonly cameraRig: CameraRig;
   /** What is under a point on the screen, in page pixels, or undefined if nothing is. */
   pickAt(clientX: number, clientY: number): ScenePick | undefined;
-  /** Outlines the thing this pick landed on, from the next frame on. Undefined, or the ground, outlines nothing. */
+  /** Outlines the thing this pick landed on, from the next frame on. Undefined, the ground, or the river outlines nothing. */
   setHovered(pick: ScenePick | undefined): void;
   dispose(): void;
 }
@@ -88,7 +92,7 @@ export function createSceneRenderer(
   skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, bedrollMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
-  let hovered: { kind: Exclude<ScenePick["kind"], "ground">; entity: Entity } | undefined;
+  let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
 
   /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */
   function outlineHovered(): void {
@@ -196,7 +200,7 @@ export function createSceneRenderer(
       const forest = forestMeshes.pick(raycaster);
       const campfire = campfireMeshes.pick(raycaster);
       const bedroll = bedrollMeshes.pick(raycaster);
-      let nearest: { hit: { kind: Exclude<ScenePick["kind"], "ground">; entity: Entity }; distance: number } | undefined;
+      let nearest: { hit: { kind: EntityPick["kind"]; entity: Entity }; distance: number } | undefined;
       for (const candidate of [forest, campfire, bedroll]) {
         if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
       }
@@ -204,11 +208,15 @@ export function createSceneRenderer(
         const id = entities.id(nearest.hit.entity);
         if (id !== undefined) return { kind: nearest.hit.kind, id };
       }
-      return ground === undefined ? undefined : { kind: "ground", spot: { x: ground.point.x, z: ground.point.z } };
+      if (ground === undefined) return undefined;
+      const spot = { x: ground.point.x, z: ground.point.z };
+      // The ray passes through the see-through water to the riverbed below it.
+      return distanceToRiver(valley.river, spot) <= valley.river.width / 2 ? { kind: "river", spot } : { kind: "ground", spot };
     },
     setHovered(pick) {
-      const entity = pick === undefined || pick.kind === "ground" ? undefined : entities.entity(pick.id);
-      hovered = pick !== undefined && pick.kind !== "ground" && entity !== undefined ? { kind: pick.kind, entity } : undefined;
+      const entityPick = pick !== undefined && "id" in pick ? pick : undefined;
+      const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
+      hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
     },
     dispose() {
       hoverOutline.dispose();

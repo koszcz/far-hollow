@@ -61,6 +61,8 @@ export interface FoundationMeshes {
   /** What a ray from the camera hits first among foundation blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: FoundationHit; distance: number } | undefined;
   /** The logs and legs of a foundation blueprint, placed in the world. Empty once it is gone. */
+  /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The right-click menu uses it. */
+  pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: FoundationHit): OutlinePart[];
   /** Shows a foundation blueprint under the mouse with its deck top at `spot`, red where it is not allowed. Undefined hides it. */
   showPreview(preview: { spot: Vec3; allowed: boolean } | undefined): void;
@@ -246,6 +248,16 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
       for (const hit of hits) {
         const entity = hit.object.userData.entity as Entity | undefined;
         if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
+      }
+      return undefined;
+    },
+    pickFinished(raycaster) {
+      hits.length = 0;
+      raycaster.intersectObjects(pickers, false, hits);
+      hits.sort((a, b) => a.distance - b.distance);
+      for (const hit of hits) {
+        const entity = hit.object.userData.entity as Entity | undefined;
+        if (entity !== undefined && entity.blueprint === undefined) return { entity, distance: hit.distance };
       }
       return undefined;
     },

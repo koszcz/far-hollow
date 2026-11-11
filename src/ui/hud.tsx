@@ -203,9 +203,10 @@ const actionLabels = {
   split: strings.splitting,
   debark: strings.debarking,
   build: strings.building,
+  takeDown: strings.takingDown,
 } as const;
 
-const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire" };
+const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe" };
 
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";

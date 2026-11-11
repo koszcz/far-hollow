@@ -255,7 +255,13 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           )}
         </div>
         {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
-        {placing !== null && <p class="hud-hint">{strings.buildMenu.placing(strings.buildMenu.structures[placing])}</p>}
+        {placing !== null && (
+          <p class="hud-hint">
+            {placing === "logWall" || placing === "doorFrame"
+              ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
+              : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
+          </p>
+        )}
         {view.carrying !== null && (
           <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
             <h2>

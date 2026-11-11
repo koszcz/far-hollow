@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { findPath } from "./pathfinding";
 import type { GroundPoint } from "./valley";
-import { blockCircle, blockWhere, createWalkMap } from "./walk-map";
+import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";
 
 describe("findPath", () => {
   it("walks straight to the target across open ground", () => {
@@ -67,6 +67,85 @@ describe("findPath", () => {
     expect(Math.hypot(end.x - from.x, end.z - from.z)).toBeLessThan(1.5);
   });
 });
+
+describe("findPath with walls on the lines between squares", () => {
+  it("walks around a wall, though the squares either side stay walkable", () => {
+    const map = createWalkMap({ size: 100 });
+    // A wall along x = 1, from z = -10 to z = 10.
+    const wall = wallAlongX1(-10, 10);
+    blockEdges(map, wall);
+    const from = { x: -3.5, z: 0.5 };
+    const to = { x: 5.5, z: 0.5 };
+
+    const path = findPath(map, from, to);
+
+    expect(isWalkable(map, { x: 0.5, z: 0.5 })).toBe(true);
+    expect(isWalkable(map, { x: 1.5, z: 0.5 })).toBe(true);
+    expect(path.at(-1)).toEqual(to);
+    for (const crossing of crossingsOfX1([from, ...path])) expect(Math.abs(crossing)).toBeGreaterThanOrEqual(10);
+  });
+
+  it("walks straight through once the wall is taken away", () => {
+    const map = createWalkMap({ size: 100 });
+    const wall = wallAlongX1(-10, 10);
+    blockEdges(map, wall);
+    unblockEdges(map, wall);
+
+    expect(findPath(map, { x: -3.5, z: 0.5 }, { x: 5.5, z: 0.5 })).toEqual([{ x: 5.5, z: 0.5 }]);
+  });
+
+  it("cannot get into a square walled in on all four sides, not even across a corner", () => {
+    const map = createWalkMap({ size: 100 });
+    const inside = { x: 10.5, z: 10.5 };
+    blockEdges(map, edgesAround(inside));
+    const from = { x: 0.5, z: 0.5 };
+
+    const path = findPath(map, from, inside);
+
+    const end = path.at(-1) ?? from;
+    expect(Math.floor(end.x) === 10 && Math.floor(end.z) === 10).toBe(false);
+    expect(Math.hypot(end.x - inside.x, end.z - inside.z)).toBeLessThan(1.5);
+  });
+
+  it("walks in through the one side left open, and back out again", () => {
+    const map = createWalkMap({ size: 100 });
+    const inside = { x: 10.5, z: 10.5 };
+    // Every side but the one facing +z.
+    blockEdges(map, edgesAround(inside).filter((edge) => edge.to.z <= inside.z));
+    const outside = { x: 0.5, z: 0.5 };
+
+    const path = findPath(map, outside, inside);
+
+    expect(path.at(-1)).toEqual(inside);
+    // The way in comes through the open side.
+    expect(path.some((spot) => spot.z > inside.z + 0.4)).toBe(true);
+    expect(findPath(map, inside, outside).at(-1)).toEqual(outside);
+  });
+});
+
+/** The edges of a wall along the line x = 1, from z = `fromZ` to z = `toZ`. */
+function wallAlongX1(fromZ: number, toZ: number): WalkEdge[] {
+  const edges: WalkEdge[] = [];
+  for (let z = fromZ + 0.5; z < toZ; z += 1) edges.push({ from: { x: 0.5, z }, to: { x: 1.5, z } });
+  return edges;
+}
+
+/** The four edges around the 1 m square with this middle. */
+function edgesAround(middle: GroundPoint): WalkEdge[] {
+  return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx = 0, dz = 0]) => ({ from: middle, to: { x: middle.x + dx, z: middle.z + dz } }));
+}
+
+/** The z of each spot where a walk along a path crosses the line x = 1. */
+function crossingsOfX1(path: readonly GroundPoint[]): number[] {
+  const crossings: number[] = [];
+  for (let i = 1; i < path.length; i += 1) {
+    const a = path[i - 1];
+    const b = path[i];
+    if (a === undefined || b === undefined || (a.x - 1) * (b.x - 1) > 0 || a.x === b.x) continue;
+    crossings.push(a.z + ((b.z - a.z) * (1 - a.x)) / (b.x - a.x));
+  }
+  return crossings;
+}
 
 const TREE_RADIUS = 1.5;
 

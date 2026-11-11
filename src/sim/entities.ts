@@ -4,7 +4,7 @@ import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
-import type { DeliveredMaterial, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -40,6 +40,12 @@ export interface Entity {
    * A blocker must not change its spots while it has this component.
    */
   blocksWalkingSpots?: GroundPoint[];
+  /**
+   * Stops the player stepping across the edge between two walk-map squares side by side, each given by a spot on it, in metres.
+   * The player can still stand on either square. A log wall blocks walking with this.
+   * A blocker must not change its edges while it has this component.
+   */
+  blocksWalkingEdges?: { from: GroundPoint; to: GroundPoint }[];
   /** The tools and small materials the entity carries. Only the player has one. */
   backpack?: Backpack;
   /**
@@ -82,6 +88,11 @@ export interface Entity {
    * Its position is the middle of the top of the deck. The player can walk onto it and across it.
    */
   foundation?: true;
+  /**
+   * Marks a finished log wall or door frame. It stands on the edge of a foundation square, along the line between two squares.
+   * Its position is the middle of that edge, at the height of the foundation's deck. Its `facing` says which edge of the square it is.
+   */
+  edgePiece?: EdgePieceKind;
   /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
@@ -209,6 +220,11 @@ export function foundationEntities(store: EntityStore) {
   return store.with("foundation", "position");
 }
 
+/** Finished log walls and door frames. */
+export function edgePieceEntities(store: EntityStore) {
+  return store.with("edgePiece", "position");
+}
+
 /** Finished campfires. */
 export function campfireEntities(store: EntityStore) {
   return store.with("campfire", "position");
@@ -232,6 +248,11 @@ export function walkBlockerEntities(store: EntityStore) {
 /** Everything that stops the player walking on certain squares, such as a lean-to's frame. */
 export function walkBlockerSpotEntities(store: EntityStore) {
   return store.with("blocksWalkingSpots");
+}
+
+/** Everything that stops the player stepping across the edges between certain squares, such as a log wall. */
+export function walkBlockerEdgeEntities(store: EntityStore) {
+  return store.with("blocksWalkingEdges");
 }
 
 /** Everything with a roof. */

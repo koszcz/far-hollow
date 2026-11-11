@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import type { OutlinePart } from "./hover-outline";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
 
 const TRUNK_COLOUR = 0x6b4a2b;
@@ -43,6 +44,8 @@ export interface ForestMeshes {
   update(nowSeconds: number): void;
   /** What a ray from the camera hits first among standing trees, logs, and sticks, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
+  /** The shapes that draw a tree, log, or stick, placed in the world. Empty once it is gone. */
+  outlineOf(hit: ForestHit): OutlinePart[];
   dispose(): void;
 }
 
@@ -269,6 +272,25 @@ export function createForestMeshes(entities: EntityStore): ForestMeshes {
         if (tree?.tree === true) return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
       }
       return undefined;
+    },
+    outlineOf(hit) {
+      group.updateMatrixWorld();
+      const placed = (batch: THREE.InstancedMesh, index: number): THREE.Matrix4 => {
+        batch.getMatrixAt(index, matrix);
+        return new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
+      };
+      if (hit.kind === "tree") {
+        const index = instanceOf.get(hit.entity);
+        if (hit.entity.tree !== true || index === undefined) return [];
+        const at = placed(trunks, index);
+        return [{ geometry: trunkGeometry, matrix: at }, { geometry: crownGeometry, matrix: at }];
+      }
+      if (hit.kind === "log") {
+        const index = logsDrawn.indexOf(hit.entity);
+        return index < 0 ? [] : [{ geometry: logGeometry, matrix: placed(logs, index) }];
+      }
+      const index = sticksDrawn.indexOf(hit.entity);
+      return index < 0 ? [] : [{ geometry: stickGeometry, matrix: placed(sticks, index) }];
     },
     dispose() {
       standing.disconnect();

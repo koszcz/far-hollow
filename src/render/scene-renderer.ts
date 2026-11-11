@@ -1,10 +1,11 @@
 import * as THREE from "three";
-import { movingEntities, type EntityStore } from "../sim/entities";
+import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
 import { terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
+import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
 import { createSkyLighting } from "./sky-lighting";
 import { createValleyMeshes } from "./valley-meshes";
@@ -31,6 +32,8 @@ export interface SceneRenderer {
   readonly cameraRig: CameraRig;
   /** What is under a point on the screen, in page pixels, or undefined if nothing is. */
   pickAt(clientX: number, clientY: number): ScenePick | undefined;
+  /** Outlines the thing this pick landed on, from the next frame on. Undefined, or the ground, outlines nothing. */
+  setHovered(pick: ScenePick | undefined): void;
   dispose(): void;
 }
 
@@ -68,6 +71,23 @@ export function createSceneRenderer(
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
+  const hoverOutline = createHoverOutline(scene);
+  /** The thing under the pointer that the player can click, if any. */
+  let hovered: { kind: Exclude<ScenePick["kind"], "ground">; entity: Entity } | undefined;
+
+  /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */
+  function outlineHovered(): void {
+    if (hovered === undefined) {
+      hoverOutline.show([]);
+      return;
+    }
+    const { kind, entity } = hovered;
+    hoverOutline.show(
+      kind === "blueprint" || kind === "campfire"
+        ? campfireMeshes.outlineOf({ kind, entity })
+        : forestMeshes.outlineOf({ kind, entity }),
+    );
+  }
 
   let drawnWidth = 0;
   let drawnHeight = 0;
@@ -84,6 +104,7 @@ export function createSceneRenderer(
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    hoverOutline.setViewSize(width, height);
   }
 
   const playerMesh = createPlayerMesh();
@@ -137,6 +158,7 @@ export function createSceneRenderer(
         }
       }
       posePlayer(nowSeconds);
+      outlineHovered();
       placeCamera();
       renderer.render(scene, camera);
     },
@@ -154,7 +176,12 @@ export function createSceneRenderer(
       }
       return ground === undefined ? undefined : { kind: "ground", spot: { x: ground.point.x, z: ground.point.z } };
     },
+    setHovered(pick) {
+      const entity = pick === undefined || pick.kind === "ground" ? undefined : entities.entity(pick.id);
+      hovered = pick !== undefined && pick.kind !== "ground" && entity !== undefined ? { kind: pick.kind, entity } : undefined;
+    },
     dispose() {
+      hoverOutline.dispose();
       valleyMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();

@@ -45,6 +45,9 @@ const walkInput = attachWalkInput({
   client: game.client,
   rig: sceneRenderer.cameraRig,
   pickAt: (clientX, clientY) => sceneRenderer.pickAt(clientX, clientY),
+  onHoverChange: (pick) => {
+    sceneRenderer.setHovered(pick);
+  },
   onPlacingChange: renderUi,
 });
 if (import.meta.env.DEV) {

@@ -4,6 +4,7 @@
 import * as THREE from "three";
 import { CAMPFIRE_STICK_COST } from "../sim/building";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
+import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
 
 const STONE_COLOUR = 0x8c8c86;
@@ -60,6 +61,8 @@ export interface CampfireMeshes {
   update(nowSeconds: number): void;
   /** What a ray from the camera hits first among campfires and blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: CampfireHit; distance: number } | undefined;
+  /** The stones and sticks of a campfire or blueprint, placed in the world. Empty once it is gone. */
+  outlineOf(hit: CampfireHit): OutlinePart[];
   dispose(): void;
 }
 
@@ -227,6 +230,15 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
         if (entity?.campfire !== undefined) return { hit: { kind: "campfire", entity }, distance: hit.distance };
       }
       return undefined;
+    },
+    outlineOf(hit) {
+      const item = drawn.get(hit.entity);
+      if (item === undefined) return [];
+      item.root.updateMatrixWorld(true);
+      return [...item.stones, ...item.sticks.map(({ mesh }) => mesh)].map((mesh) => ({
+        geometry: mesh.geometry,
+        matrix: mesh.matrixWorld,
+      }));
     },
     dispose() {
       for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, blueprintMaterial, pickMaterial,

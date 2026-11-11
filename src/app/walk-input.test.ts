@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cursorFor, mainActionFor } from "./walk-input";
+import { cursorFor, mainActionFor, outlineFor } from "./walk-input";
 
 describe("clicking a campfire", () => {
   it("walks the player over to tend it", () => {
@@ -22,5 +22,22 @@ describe("the pointer", () => {
   it("shows a crosshair while placing a campfire", () => {
     expect(cursorFor({ kind: "ground", spot: { x: 0, z: 0 } }, true)).toBe("crosshair");
     expect(cursorFor({ kind: "tree", id: 1 }, true)).toBe("crosshair");
+  });
+});
+
+describe("the hover outline", () => {
+  it("outlines things the player can click", () => {
+    for (const kind of ["tree", "log", "stick", "blueprint", "campfire"] as const) {
+      expect(outlineFor({ kind, id: 1 }, false)).toEqual({ kind, id: 1 });
+    }
+  });
+
+  it("outlines nothing over the ground or the sky", () => {
+    expect(outlineFor({ kind: "ground", spot: { x: 0, z: 0 } }, false)).toBeUndefined();
+    expect(outlineFor(undefined, false)).toBeUndefined();
+  });
+
+  it("outlines nothing while placing a campfire", () => {
+    expect(outlineFor({ kind: "tree", id: 1 }, true)).toBeUndefined();
   });
 });

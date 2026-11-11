@@ -30,6 +30,14 @@ export function cursorFor(pick: ScenePick | undefined, placing: boolean): string
   return "pointer";
 }
 
+/**
+ * What to outline for what is under the pointer: the same things that show a hand cursor.
+ * Nothing is outlined over the ground, or while placing a campfire.
+ */
+export function outlineFor(pick: ScenePick | undefined, placing: boolean): ScenePick | undefined {
+  return cursorFor(pick, placing) === "pointer" ? pick : undefined;
+}
+
 const LEFT_BUTTON = 0;
 /** A left-button press that moves further than this is a drag, not a click. */
 const CLICK_MAX_TRAVEL_PIXELS = 4;
@@ -40,6 +48,8 @@ export interface WalkInputOptions {
   readonly rig: CameraRig;
   /** What is under a point on the screen, if anything. */
   readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
+  /** Called with what the player could click under the pointer, or undefined, so the scene can outline it. */
+  readonly onHoverChange?: (pick: ScenePick | undefined) => void;
   /** Called when placing a campfire starts or ends, so the HUD can show it. */
   readonly onPlacingChange?: (placing: boolean) => void;
 }
@@ -58,7 +68,7 @@ export interface WalkInput {
  * While placing a campfire, a left-click on the ground places its blueprint.
  * Space snaps the camera back to the player.
  */
-export function attachWalkInput({ canvas, client, rig, pickAt, onPlacingChange }: WalkInputOptions): WalkInput {
+export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onPlacingChange }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let holdingBuild = false;
   let placing = false;
@@ -71,6 +81,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onPlacingChange }
     cursorFrame = null;
     const pick = hover === null ? undefined : pickAt(hover.x, hover.y);
     canvas.style.cursor = cursorFor(pick, placing);
+    onHoverChange?.(outlineFor(pick, placing));
   }
 
   /** Picking is a raycast, so the cursor updates at most once per frame. */

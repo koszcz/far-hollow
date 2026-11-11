@@ -4,7 +4,8 @@ import { defineConfig } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  { ignores: ["dist", "node_modules"] },
+  // Other git worktrees and unpacked third-party packs are not this checkout's code.
+  { ignores: ["dist", "node_modules", ".claude/worktrees", "third-party"] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

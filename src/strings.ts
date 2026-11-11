@@ -26,14 +26,14 @@ export const strings = {
     collapsed: "You collapsed from the cold. You woke the next morning.",
   },
   backpack: "Backpack",
-  backpackItems: {
+  backpackContents: {
     axe: "Axe",
     knife: "Knife",
     fireStriker: "Fire striker",
     stick: "Stick",
     firewood: "Firewood",
   },
-  backpackItemCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
+  backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
   debugFps: "FPS",
   debugEntities: "Entities",

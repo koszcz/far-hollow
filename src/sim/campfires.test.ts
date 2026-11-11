@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BackpackItem, Command } from "./api";
+import type { BackpackContent, Command } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
 import { isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
@@ -227,10 +227,10 @@ function send(game: Game, command: Command): void {
   game.step();
 }
 
-function give(game: Game, item: BackpackItem, count: number): void {
+function give(game: Game, content: BackpackContent, count: number): void {
   const backpack = onlyPlayer(game).backpack;
   if (backpack === undefined) throw new Error("No backpack");
-  backpack.contents[item] = (backpack.contents[item] ?? 0) + count;
+  backpack.contents[content] = (backpack.contents[content] ?? 0) + count;
 }
 
 /** An open spot on the building grid, a few metres from the player. */

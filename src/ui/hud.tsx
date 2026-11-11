@@ -1,15 +1,15 @@
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackItem, CampfireView, GameClient, GameView } from "../sim/api";
+import type { BackpackContent, CampfireView, GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
-function backpackItems(backpack: GameView["backpack"]): [BackpackItem, number][] {
-  const items: [BackpackItem, number][] = [];
-  for (const item of Object.keys(strings.backpackItems) as BackpackItem[]) {
-    const count = backpack[item] ?? 0;
-    if (count > 0) items.push([item, count]);
+function backpackContents(backpack: GameView["backpack"]): [BackpackContent, number][] {
+  const contents: [BackpackContent, number][] = [];
+  for (const content of Object.keys(strings.backpackContents) as BackpackContent[]) {
+    const count = backpack[content] ?? 0;
+    if (count > 0) contents.push([content, count]);
   }
-  return items;
+  return contents;
 }
 
 export interface HudProps {
@@ -135,8 +135,8 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         <h2>{strings.backpack}</h2>
         <p class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</p>
         <ul>
-          {backpackItems(view.backpack).map(([item, count]) => (
-            <li key={item}>{strings.backpackItemCount(strings.backpackItems[item], count)}</li>
+          {backpackContents(view.backpack).map(([content, count]) => (
+            <li key={content}>{strings.backpackContentCount(strings.backpackContents[content], count)}</li>
           ))}
         </ul>
       </section>

@@ -1,6 +1,6 @@
 import type { BackpackContents } from "./backpack";
 
-export type { BackpackItem } from "./backpack";
+export type { BackpackContent } from "./backpack";
 import type { TimeOfDay } from "./clock";
 
 // The only part of game logic the UI may import (ADR 0005).

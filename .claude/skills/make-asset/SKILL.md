@@ -26,6 +26,8 @@ Done when you are on that branch.
 
 Read the entry's ticket, if it is a draft. Then read the comment at the top of each `code` file. It says which part of the file is this asset. Read whole only the files that build this asset alone, such as `stick-shape.ts`. In shared files, such as `forest-meshes.ts` and `player-mesh.ts`, search for the asset's name and read only the matching parts. Note the asset's size in metres, its pivot, the colours around it, and every animation or state the code drives.
 
+If the asset is an animation, read `animation.md` in this skill's folder now. Plan and build the animation by its rules.
+
 Done when you can name every place that builds, loads, or draws the asset.
 
 ### 4. Propose options
@@ -54,7 +56,7 @@ Done when the owner has picked one option.
 
 Set the entry's `approval` to `{ "status": "pending" }`. A pending file fails `make check` on purpose: the asset is not approved yet.
 
-Done when the game uses the new asset everywhere step 3 found.
+Done when the game uses the new asset everywhere step 3 found. For an animation, the pop checks in `animation.md` must also pass.
 
 ### 6. Show it
 

@@ -9,6 +9,7 @@ import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { daylightAt } from "./daylight";
+import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -49,6 +50,11 @@ interface Stage {
   readonly place: (x: number, z: number, entity: Entity) => Entity;
   /** Moves the player to this offset from the stage's middle and turns them to face `heading`, in radians. */
   readonly movePlayer: (x: number, z: number, heading: number) => void;
+  /**
+   * Adds a shape that no entity draws yet, standing on the ground at this offset from the stage's middle.
+   * `lift` raises it, in metres, and `heading` turns it about the vertical, in radians. The showcase disposes it.
+   */
+  readonly addProp: (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, z: number, lift?: number, heading?: number) => void;
 }
 
 interface Showcase {
@@ -115,6 +121,22 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(-0.8, 0.8, { log: { heading: 0.3 } });
       place(0.9, 0.6, { log: { heading: 1.8 } });
       player.setCarryingLog(true);
+    },
+  },
+  firewood: {
+    radius: 0.9,
+    focus: { x: 0, y: 0.12, z: 0 },
+    shots: FOUR_ANGLES,
+    // One piece alone, a small pile, and the log it is split from, for size and colour.
+    build({ place, addProp }) {
+      const geometry = createFirewoodGeometry();
+      const material = new THREE.MeshStandardMaterial({ color: FIREWOOD_COLOUR, flatShading: true, vertexColors: true });
+      addProp(geometry, material, -0.45, 0.25, 0, 0.5);
+      // Two pieces side by side, bark to bark, with a third resting in the groove between them.
+      addProp(geometry, material, 0.31, 0.1, 0, 0);
+      addProp(geometry, material, 0.47, 0.1, 0, Math.PI);
+      addProp(geometry, material, 0.39, 0.12, 0.07, 0.04);
+      place(0, -0.75, { log: { heading: Math.PI / 2 } });
     },
   },
   player: { radius: 1.1, focus: { x: 0, y: 0.9, z: 0 }, shots: FOUR_ANGLES, build() {} },
@@ -292,11 +314,22 @@ export function showAsset(
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
   scene.add(player.group);
+  const props = new THREE.Group();
+  const propResources = new Set<{ dispose(): void }>();
+  scene.add(props);
   const stage: Stage = {
     store,
     player,
     place(x, z, entity) {
       return store.add({ ...entity, position: at(x, z) });
+    },
+    addProp(geometry, material, x, z, lift = 0, heading = 0) {
+      const mesh = new THREE.Mesh(geometry, material);
+      const spot = at(x, z);
+      mesh.position.set(spot.x, spot.y + lift, spot.z);
+      mesh.rotation.y = heading;
+      props.add(mesh);
+      propResources.add(geometry).add(material);
     },
     movePlayer(x, z, heading) {
       const spot = at(x, z);
@@ -313,7 +346,7 @@ export function showAsset(
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   scene.add(forest.group, campfires.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, player.group);
+  sky.addShadowCasters(forest.group, campfires.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -372,6 +405,7 @@ export function showAsset(
       forest.dispose();
       campfires.dispose();
       player.dispose();
+      for (const resource of propResources) resource.dispose();
       ground.dispose();
       river?.dispose();
       sky.dispose();

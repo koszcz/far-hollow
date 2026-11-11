@@ -12,6 +12,8 @@ export interface Entity {
   position?: Vec3;
   /** Where the entity was one logic step earlier. Rendering blends between the two. */
   previousPosition?: Vec3;
+  /** Marks a standing tree. Its position is the foot of its trunk. */
+  tree?: true;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -24,4 +26,9 @@ export function createEntityStore(): EntityStore {
 /** Entities that can move, so rendering blends their position between logic steps. */
 export function movingEntities(store: EntityStore) {
   return store.with("position", "previousPosition");
+}
+
+/** Standing trees. */
+export function treeEntities(store: EntityStore) {
+  return store.with("tree", "position");
 }

@@ -1,23 +1,22 @@
 import * as THREE from "three";
 import { movingEntities, type EntityStore } from "../sim/entities";
+import type { Valley } from "../sim/valley";
 import { blendPosition } from "./blend";
+import { createValleyMeshes, GROUND_COLOUR } from "./valley-meshes";
 
 const SKY_COLOUR = 0x9cc7e8;
-const GROUND_COLOUR = 0x5f7f3a;
-/** The valley is about 1 km across. */
-const VALLEY_SIZE_METRES = 1000;
 
-/** Distant ground fades into the sky colour between these distances, so the horizon reads as sky. */
-const FOG_START_METRES = 30;
-const FOG_END_METRES = 110;
+/** Ground beyond the far side of the valley fades into the sky colour between these distances. */
+const FOG_START_METRES = 1400;
+const FOG_END_METRES = 2600;
 
 const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
 const CAMERA_NEAR_METRES = 0.1;
-const CAMERA_FAR_METRES = 2000;
-/** How far the camera sits from the point it looks at. */
-const CAMERA_DISTANCE_METRES = 34;
+const CAMERA_FAR_METRES = 4000;
+/** Until camera controls exist, a fixed camera looks at the valley's centre from far enough away to show all of it. */
+const CAMERA_DISTANCE_METRES = 1250;
 /** How steeply the camera looks down. The spec allows about 30° to 75°. */
-const CAMERA_DOWN_ANGLE_DEGREES = 30;
+const CAMERA_DOWN_ANGLE_DEGREES = 45;
 
 const SKY_LIGHT_STRENGTH = 1.2;
 const SUN_STRENGTH = 1.5;
@@ -28,7 +27,7 @@ export interface SceneRenderer {
   dispose(): void;
 }
 
-export function createSceneRenderer(canvas: HTMLCanvasElement, entities: EntityStore): SceneRenderer {
+export function createSceneRenderer(canvas: HTMLCanvasElement, valley: Valley, entities: EntityStore): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   const scene = new THREE.Scene();
@@ -55,12 +54,8 @@ export function createSceneRenderer(canvas: HTMLCanvasElement, entities: EntityS
   sun.position.set(30, 50, 10);
   scene.add(sun);
 
-  // Terrain placeholder, built in code and approved in asset-manifest.json.
-  const groundGeometry = new THREE.PlaneGeometry(VALLEY_SIZE_METRES, VALLEY_SIZE_METRES);
-  const groundMaterial = new THREE.MeshStandardMaterial({ color: GROUND_COLOUR });
-  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
+  const valleyMeshes = createValleyMeshes(valley, entities);
+  scene.add(valleyMeshes.group);
 
   let drawnWidth = 0;
   let drawnHeight = 0;
@@ -92,8 +87,7 @@ export function createSceneRenderer(canvas: HTMLCanvasElement, entities: EntityS
       renderer.render(scene, camera);
     },
     dispose() {
-      groundGeometry.dispose();
-      groundMaterial.dispose();
+      valleyMeshes.dispose();
       renderer.dispose();
     },
   };

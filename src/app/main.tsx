@@ -16,8 +16,18 @@ function requireElement<T extends Element>(selector: string, type: new () => T):
 
 document.title = strings.gameTitle;
 
-const game = createGame();
-const sceneRenderer = createSceneRenderer(requireElement("#scene", HTMLCanvasElement), game.entities);
+/**
+ * Until the new-game screen exists, each page load picks a random seed.
+ * Developers can add `?seed=123` to the address to load the same valley again.
+ */
+function chooseSeed(): number {
+  const fromAddress = Number.parseInt(new URLSearchParams(window.location.search).get("seed") ?? "", 10);
+  if (Number.isSafeInteger(fromAddress)) return fromAddress >>> 0;
+  return Math.floor(Math.random() * 2 ** 32);
+}
+
+const game = createGame({ seed: chooseSeed() });
+const sceneRenderer = createSceneRenderer(requireElement("#scene", HTMLCanvasElement), game.valley, game.entities);
 const loop = createFixedStepLoop({
   stepMs: STEP_MS, maxStepsPerAdvance: MAX_STEPS_PER_FRAME, step: () => {
     game.step();

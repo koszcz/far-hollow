@@ -4,6 +4,8 @@
 export type Command = { type: "setPaused"; paused: boolean };
 
 export interface GameView {
+  /** The seed the valley was laid out from. */
+  readonly seed: number;
   readonly paused: boolean;
   /** Logic steps run since the game started. */
   readonly stepCount: number;

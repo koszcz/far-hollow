@@ -635,12 +635,13 @@
         "src/render/rolled-bedroll-shape.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "The bedroll lying rolled up on the ground after the player drops it: a green roll held by two leather straps.",
+      "description": "The bedroll lying rolled up on the ground after the player drops it: the laid bedroll rolled up, green canvas outside with the red blanket spiralling through each end, a hemmed loose flap, and two leather straps with brass buckles.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/01-drop-things-and-pick-up-piles.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     }
   ]

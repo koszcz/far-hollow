@@ -15,10 +15,11 @@ You need Bun 1.4. Bun installs the packages and runs every tool. You do not need
 ## Check your changes
 
 - `bun run test` runs the tests.
-- `bun run test:e2e` runs the browser test in your installed Google Chrome. It checks that the game loads and the player can walk. Run it when you need it. The pre-commit hook does not run it.
+- `bun run test:e2e` runs the browser test in your installed Google Chrome. It checks that the game loads and the player can walk. Run it when you need it. The git hooks do not run it.
 - `bun run lint` checks code style and module boundaries.
 - `bun run typecheck` checks the TypeScript types.
 - `bun run build` checks the assets and builds the game into `dist/`.
+- Git runs the typecheck, lint, tests, and asset check before every commit and every merge. The hooks live in `.githooks/`.
 - `make drafts` lists the draft assets that still need polish. Polish one with the `make-asset` skill.
 
 ## Learn the project

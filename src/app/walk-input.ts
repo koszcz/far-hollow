@@ -27,6 +27,8 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
       return { type: "forage", spotId: pick.id };
     case "campfire":
       return { type: "tendCampfire", campfireId: pick.id };
+    case "woodpile":
+      return { type: "tendWoodpile", woodpileId: pick.id };
     case "bedroll":
       return { type: "sleep", bedrollId: pick.id };
     case "blueprint":
@@ -126,7 +128,7 @@ export interface WalkInput {
 /**
  * Left-clicking does the main action for what is under the pointer:
  * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, forage a bush or mushrooms,
- * walk over to tend a campfire, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
+ * walk over to tend a campfire or use a woodpile, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
  * Holding the left button on a blueprint builds it. Letting go stops building. Clicking a blueprint while carrying a debarked log it needs adds the log.
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
  * R turns it, a left-click on the ground places it, and Escape cancels.

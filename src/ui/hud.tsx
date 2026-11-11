@@ -1,7 +1,9 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
+import type {
+  BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, StructureKind, WoodpileView, WoodpileWood,
+} from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { HudIcon, type HudIconName } from "./hud-icons";
@@ -92,7 +94,9 @@ function Meter({ icon, label, value, colour, low = false }: { icon: HudIconName;
 }
 
 /** A HUD button with an icon in front of its text. */
-function HudButton({ icon, label, disabled = false, onClick }: { icon?: HudIconName; label: string; disabled?: boolean; onClick: () => void }) {
+function HudButton({
+  icon, label, disabled = false, onClick,
+}: { icon?: HudIconName; label: string; disabled?: boolean; onClick: (event: MouseEvent) => void }) {
   return (
     <button type="button" class="hud-button" disabled={disabled} onClick={onClick}>
       {icon !== undefined && <HudIcon name={icon} />}
@@ -150,6 +154,47 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+/** The kinds of wood a woodpile holds, in the order the woodpile panel lists them. */
+const WOODPILE_WOODS: readonly WoodpileWood[] = ["log", "debarkedLog", "firewood"];
+
+/**
+ * Shows how full the woodpile beside the player is and what it holds, with buttons to stack wood on it and take wood off.
+ * A log or debarked log is stacked from the shoulder. Firewood is stacked from the backpack: one with a click, all that fit with a shift-click.
+ */
+function WoodpilePanel({ client, view, woodpile }: { client: GameClient; view: GameView; woodpile: WoodpileView }) {
+  const full = woodpile.total >= woodpile.capacity;
+  const canStack = (wood: WoodpileWood): boolean => !full && (wood === "firewood" ? (view.backpack.firewood ?? 0) > 0 : view.carrying === wood);
+  const canTake = (wood: WoodpileWood): boolean => woodpile.contents[wood] > 0 && (wood === "firewood" || view.carrying === null);
+  return (
+    <section class="hud-section hud-woodpile" aria-label={strings.woodpile.title}>
+      <h2>
+        <HudIcon name="log" />
+        {strings.woodpile.title}
+        <span class="hud-tag">{strings.woodpile.count(woodpile.total, woodpile.capacity)}</span>
+      </h2>
+      <Meter icon="log" label={strings.woodpile.fill} value={woodpile.total / woodpile.capacity} colour={WORK_BAR_COLOUR} />
+      <ul>
+        {WOODPILE_WOODS.filter((wood) => woodpile.contents[wood] > 0).map((wood) => (
+          <li key={wood}>{strings.woodpile.contents[wood](woodpile.contents[wood])}</li>
+        ))}
+      </ul>
+      <div class="hud-buttons">
+        {WOODPILE_WOODS.filter((wood) => wood === "firewood" || view.carrying === wood).map((wood) => (
+          <HudButton key={`stack-${wood}`} label={strings.woodpile.stack[wood]} disabled={!canStack(wood)} onClick={(event) => {
+              client.send({ type: "stackOnWoodpile", woodpileId: woodpile.id, wood, all: event.shiftKey });
+            }} />
+        ))}
+        {WOODPILE_WOODS.map((wood) => (
+          <HudButton key={`take-${wood}`} icon={wood === "firewood" ? "backpack" : "log"} label={strings.woodpile.take[wood]} disabled={!canTake(wood)} onClick={() => {
+              client.send({ type: "takeFromWoodpile", woodpileId: woodpile.id, wood });
+            }} />
+        ))}
+      </div>
+      <p class="hud-hint">{strings.woodpile.stackAllHint}</p>
     </section>
   );
 }
@@ -224,6 +269,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
     view.carrying !== null ||
     view.nearbyCampfire !== null ||
     view.nearbyBedroll !== null ||
+    view.nearbyWoodpile !== null ||
     view.nearbyBlueprint !== null;
 
   return (
@@ -274,6 +320,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               </section>
             )}
             {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
+            {view.nearbyWoodpile !== null && <WoodpilePanel client={client} view={view} woodpile={view.nearbyWoodpile} />}
             {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
             {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
           </div>

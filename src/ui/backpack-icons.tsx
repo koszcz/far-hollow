@@ -1,16 +1,18 @@
 // Coloured icons for the things in the backpack, the approved "backpack-icons" asset in asset-manifest.json. Built in code.
-// Added by hud-icons ticket 01. The owner approved the two-tone version on 2026-11-11.
+// Added by hud-icons ticket 01. The owner approved the two-tone version on 2026-11-11. The owner approved the shaded version, with outlines, shading, and glints, on 2026-11-11.
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
+import { useId } from "preact/hooks";
 import type { BackpackContent } from "../sim/api";
 
 /**
  * One part of an icon. `fill` is a filled shape and `line` is a thick stroke. A part takes the icon's main colour,
  * or its own `colour` when it has one, so tools can show a wooden handle and a steel blade.
  * `cut` and `cutLine` draw in the chip's background colour, to carve detail out of a filled shape.
+ * `shine` is a thin pale glint, such as the light on a steel edge. It gets no outline.
  */
 interface IconPart {
   d: string;
-  as: "fill" | "line" | "cut" | "cutLine";
+  as: "fill" | "line" | "cut" | "cutLine" | "shine";
   colour?: string;
 }
 
@@ -44,6 +46,7 @@ function splitPiece(x: number, y: number): IconPart[] {
 const POT: readonly IconPart[] = [
   { d: "M5 9.5h14v6.5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z", as: "fill" },
   { d: "M3 9.5h18M5 12.5H3M19 12.5h2", as: "line", colour: "#dde5ea" },
+  { d: "M7 12.5v3", as: "shine" },
 ];
 
 /** A wave across the pot body, showing the water inside. */
@@ -57,6 +60,7 @@ const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
       { d: "M14.5 6.5L3.5 20.5", as: "line", colour: "#d0533f" },
       { d: "M10.5 3h5.5c3.5 0 5.5 3.2 5.5 6s-1.8 4.5-4 4.5l-2.8-2.8h-4.2z", as: "fill" },
       { d: "M18.5 5.5c1.2 1 1.8 2.4 1.8 3.8", as: "cutLine" },
+      { d: "M11.5 4.2h4", as: "shine" },
     ],
   },
   /** A bright blade with a curved back, and a wooden handle. */
@@ -64,6 +68,7 @@ const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
     colour: "#e6edf2",
     parts: [
       { d: "M9.5 14.5L20.5 3c1.5 4.8-.5 9.5-8 14z", as: "fill" },
+      { d: "M11.5 14L19.5 5.5", as: "shine" },
       { d: "M2.5 20l5.5-5.5 2.5 2.5-5.5 5.5z", as: "fill", colour: WOOD },
     ],
   },
@@ -72,6 +77,7 @@ const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
     colour: "#9fc0d8",
     parts: [
       { d: "M4.5 10.5h15c-1 4.5-4.2 6.5-7.5 6.5s-6.5-2-7.5-6.5z", as: "fill" },
+      { d: "M7 12c1.3 2 3 3 5 3", as: "shine" },
       { d: "M4.5 10.5L2.5 4.5M19.5 10.5l2-6", as: "line", colour: "#d9a066" },
     ],
   },
@@ -121,6 +127,7 @@ const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
       { d: circle(7.5, 15.5, 4), as: "fill" },
       { d: circle(16, 16, 4), as: "fill" },
       { d: circle(12, 9.5, 3.8), as: "fill" },
+      { d: "M5.5 14.5a2 2 0 0 1 1.5-1.5M14 15a2 2 0 0 1 1.5-1.5M10.2 8.6a1.8 1.8 0 0 1 1.3-1.3", as: "shine" },
       { d: "M12 6c0-1.5 1-3 3-3.5", as: "line", colour: LEAF },
       { d: "M14 4c1.5-2 4.2-2.5 6.5-1.5-1.5 2.2-4.2 2.8-6.5 1.5z", as: "fill", colour: LEAF },
     ],
@@ -151,17 +158,51 @@ const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
   },
 };
 
-/** Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it. */
+/** The dark outline drawn around every icon, so each one stands off the chip. */
+const OUTLINE = "#1a110a";
+
+/** How much wider than a part its outline is, in grid units. */
+const OUTLINE_WIDTH = 1.6;
+
+/** The stroke width of a `line` part and a `cutLine` part. */
+const LINE_WIDTH = 2.6;
+const CUT_LINE_WIDTH = 1.8;
+
+/**
+ * Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it.
+ * It draws in three passes: a dark outline under every part, the parts in their colours, then soft shading over each filled part.
+ * The shading is lit from the top left: a highlight there fades to a shadow at the bottom right.
+ */
 export function BackpackIcon({ content }: { content: BackpackContent }) {
   const drawing = DRAWINGS[content];
+  const shadeId = `backpack-shade-${useId()}`;
+  const painted = drawing.parts.filter((part) => part.as !== "cut" && part.as !== "cutLine" && part.as !== "shine");
   return (
-    <svg class="backpack-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg class="backpack-icon" viewBox="-1 -1 26 26" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id={shadeId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff" stop-opacity="0.38" />
+          <stop offset="0.42" stop-color="#fff" stop-opacity="0" />
+          <stop offset="0.58" stop-color="#000" stop-opacity="0" />
+          <stop offset="1" stop-color="#000" stop-opacity="0.34" />
+        </linearGradient>
+      </defs>
+      {painted.map(({ d, as }, index) => (
+        <path key={`outline-${index}`} d={d} fill={as === "fill" ? OUTLINE : "none"} stroke={OUTLINE}
+          stroke-width={as === "fill" ? OUTLINE_WIDTH : LINE_WIDTH + OUTLINE_WIDTH} stroke-linecap="round" stroke-linejoin="round" />
+      ))}
       {drawing.parts.map(({ d, as, colour }, index) => {
+        if (as === "shine") {
+          return <path key={index} d={d} fill="none" stroke={colour ?? "#ffffff"} stroke-opacity="0.75" stroke-width={1.2} stroke-linecap="round" />;
+        }
         const paint = as === "cut" || as === "cutLine" ? CHIP_BACKGROUND : (colour ?? drawing.colour);
         return as === "fill" || as === "cut" ? (
-          <path key={index} d={d} fill={paint} fill-rule="evenodd" />
+          <g key={index}>
+            <path d={d} fill={paint} fill-rule="evenodd" />
+            {as === "fill" && <path d={d} fill={`url(#${shadeId})`} fill-rule="evenodd" />}
+          </g>
         ) : (
-          <path key={index} d={d} fill="none" stroke={paint} stroke-width={as === "line" ? 2.6 : 1.8} stroke-linecap="round" stroke-linejoin="round" />
+          <path key={index} d={d} fill="none" stroke={paint} stroke-width={as === "line" ? LINE_WIDTH : CUT_LINE_WIDTH} stroke-linecap="round" stroke-linejoin="round" />
         );
       })}
     </svg>

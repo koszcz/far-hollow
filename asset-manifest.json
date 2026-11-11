@@ -423,7 +423,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the shaded version: a dark outline, top-left shading, and glints on steel and berries."
+      ]
     },
     {
       "id": "berry-bush",

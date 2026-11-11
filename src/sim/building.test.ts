@@ -13,7 +13,7 @@ describe("placing a campfire blueprint", () => {
     game.step();
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, sticksSpent: 0 });
+    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, materialsSpent: 0 });
     expect(blueprint.position.x).toBe(spot.x);
     expect(blueprint.position.z).toBe(spot.z);
     // A blueprint does not block walking, so the player can stand at it while building.
@@ -59,7 +59,7 @@ describe("the build menu", () => {
   it("lists the campfire and its stick cost", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().buildMenu).toEqual([{ structure: "campfire", cost: [{ material: "stick", count: 5 }] }]);
+    expect(game.client.getView().buildMenu[0]).toEqual({ structure: "campfire", cost: [{ material: "stick", count: 5 }] });
   });
 });
 
@@ -116,7 +116,7 @@ describe("building a campfire", () => {
     const halfwayLeft = game.client.getView().backpack.stick ?? 0;
     expect(halfwayLeft).toBeGreaterThan(0);
     expect(halfwayLeft).toBeLessThan(CAMPFIRE_STICK_COST - 1);
-    expect(blueprint.blueprint?.sticksSpent).toBe(CAMPFIRE_STICK_COST - halfwayLeft);
+    expect(blueprint.blueprint?.materialsSpent).toBe(CAMPFIRE_STICK_COST - halfwayLeft);
   });
 
   it("finishes as an unlit campfire that blocks walking, having cost exactly its sticks", () => {
@@ -151,7 +151,7 @@ describe("building a campfire", () => {
 
     expect(game.client.getView().action).toBeNull();
     expect(game.client.getView().backpack.stick).toBe(0);
-    expect(blueprint.blueprint?.sticksSpent).toBe(2);
+    expect(blueprint.blueprint?.materialsSpent).toBe(2);
     const pausedAt = blueprint.blueprint?.progress ?? 0;
     expect(pausedAt).toBeCloseTo(2 / CAMPFIRE_STICK_COST, 1);
 

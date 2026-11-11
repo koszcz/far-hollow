@@ -33,9 +33,11 @@ export const strings = {
     close: "Press B or Escape to close.",
     structures: {
       campfire: "Campfire",
+      leanTo: "Lean-to",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
+      bark: (count: number) => `${count} bark`,
     },
     cost: (materials: readonly string[]) => materials.join(", "),
     placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,

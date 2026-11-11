@@ -370,7 +370,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built", progress: 1 },
     ].map(({ label, progress }) => ({ label, yaw: 30, pitch: 25, seconds: progress })),
     build({ place }) {
-      place(0, 0, { blueprint: { piece: "campfire", progress: 0, sticksSpent: 0 } });
+      place(0, 0, { blueprint: { piece: "campfire", progress: 0, materialsSpent: 0 } });
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;

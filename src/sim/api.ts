@@ -9,10 +9,10 @@ import type { CarriedLog, Vec3, WoodpileWood } from "./entities";
 
 export type { CarriedLog, WoodpileWood } from "./entities";
 import type { PotWater } from "./pot-state";
-import type { DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind } from "./structures";
+import type { DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
-export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, Placement, QuarterTurns, StructureKind } from "./structures";
+export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -258,11 +258,11 @@ export interface CraftMenuEntry {
   /** The tool it needs in the backpack. Missing if it needs none. Crafting does not use the tool up. */
   readonly tool?: BackpackContent;
   /** The work station it is crafted at. Missing for a hand recipe, which is crafted where the player stands. */
-  readonly station?: StructureKind;
+  readonly station?: WorkStationKind;
   /** The tool it needs that is not in the backpack. Missing if the player has it, or it needs none. */
   readonly missingTool?: BackpackContent;
   /** The work station it needs that does not stand finished in the valley. Missing if one does, or it needs none. */
-  readonly missingStation?: StructureKind;
+  readonly missingStation?: WorkStationKind;
   /** True if the backpack holds every material it uses. */
   readonly hasMaterials: boolean;
 }
@@ -350,6 +350,8 @@ export interface GameClient {
   describeBlueprint(blueprintId: number): BlueprintView | null;
   /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */
   describeRooms(): readonly RoomView[];
+  /** The recipes the player can follow at this finished work station, given by its entity id. Empty for anything else. */
+  recipesAt(stationId: number): readonly RecipeKind[];
   send(command: Command): void;
   /** Calls the listener after each logic step. Returns a function that stops listening. */
   subscribe(listener: () => void): () => void;

@@ -45,7 +45,7 @@ export type ScenePick =
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
   | { kind: "chest"; id: number }
-  | { kind: "sawhorse"; id: number }
+  | { kind: "workStation"; id: number }
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
@@ -142,7 +142,7 @@ export function createSceneRenderer(
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
     chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
-    sawhorse: (entity) => structureMeshes.outlineOf({ kind: "sawhorse", entity }),
+    workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
   };

@@ -9,7 +9,7 @@ import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping } from "./chopping";
 import { createDebarking } from "./debarking";
-import { createCrafting, RECIPES } from "./crafting";
+import { createCrafting, RECIPES, recipesAt } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering } from "./gathering";
@@ -525,6 +525,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       Object.freeze(
         findRooms(entities).map((room) => Object.freeze({ squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))), heated: isRoomHeated(entities, room) })),
       ),
+    recipesAt: (stationId) => Object.freeze(recipesAt(entities.entity(stationId))),
     send: (command) => {
       pendingCommands.push(command);
     },

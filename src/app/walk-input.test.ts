@@ -46,13 +46,15 @@ describe("right-clicking a chest or woodpile", () => {
   });
 });
 
-describe("clicking a finished sawhorse", () => {
-  it("offers to cut planks at it or take it down on a right-click, and does nothing on a left-click yet", () => {
-    expect(menuActionsFor({ kind: "sawhorse", id: 11 })).toEqual([
+describe("clicking a finished work station", () => {
+  it("offers each recipe game logic lists for it, or to take it down, on a right-click, and does nothing on a left-click yet", () => {
+    const recipesAt = (stationId: number) => (stationId === 11 ? (["planks", "saw"] as const) : []);
+    expect(menuActionsFor({ kind: "workStation", id: 11 }, recipesAt)).toEqual([
       { label: strings.craftMenu.recipes.planks, command: { type: "craft", recipe: "planks", stationId: 11 } },
+      { label: strings.craftMenu.recipes.saw, command: { type: "craft", recipe: "saw", stationId: 11 } },
       { label: strings.takeDown, command: { type: "takeDown", pieceId: 11 } },
     ]);
-    expect(mainActionFor({ kind: "sawhorse", id: 11 })).toBeUndefined();
+    expect(mainActionFor({ kind: "workStation", id: 11 })).toBeUndefined();
   });
 });
 

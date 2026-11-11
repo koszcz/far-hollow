@@ -1,9 +1,10 @@
 // Crafting: timed work that turns materials into something new that goes in the backpack.
 // Every recipe is listed in RECIPES. A new recipe needs only a new entry there, with its name in the strings file.
+// A station recipe also shows in the right-click menu of its work station, through recipesAt.
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG, countInBackpack, hasInBackpack, type Backpack, type BackpackContent } from "./backpack";
-import { debarkedLogEntities, logEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import { debarkedLogEntities, logEntities, playerEntities, setComponent, workStationEntities, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
-import { structureKindOf, type StructureKind } from "./structures";
+import type { WorkStationKind } from "./structure-kind";
 import { groundDistance, type GroundPoint } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 
@@ -42,7 +43,7 @@ export interface Recipe {
   /** The tool the player needs in the backpack. The work does not use it up. Missing if no tool is needed. */
   readonly tool?: BackpackContent;
   /** The work station the player follows it at. Missing for a hand recipe. */
-  readonly station?: StructureKind;
+  readonly station?: WorkStationKind;
 }
 
 /** How long crafting the saw takes, in seconds. */
@@ -91,6 +92,12 @@ export function recipeOf(kind: RecipeKind): Recipe {
   return RECIPE_BY_KIND[kind];
 }
 
+/** The recipes followed at a finished work station, in the order the craft menu lists them. Empty for anything else. */
+export function recipesAt(entity: Entity | undefined): RecipeKind[] {
+  const station = entity?.workStation;
+  return station === undefined ? [] : RECIPES.filter((recipe) => recipe.station === station).map(({ kind }) => kind);
+}
+
 /**
  * How far the player is through crafting, from 0 to 1, and the work station they craft at, if any.
  * Undefined if they are not crafting now. Walking to the station does not count.
@@ -106,13 +113,13 @@ export interface RecipeLacks {
   /** The tool the recipe needs, when it is not in the backpack. */
   readonly tool?: BackpackContent;
   /** The work station the recipe needs, when no finished one stands in the valley. */
-  readonly station?: StructureKind;
+  readonly station?: WorkStationKind;
   /** True when the backpack does not hold every material the recipe uses. */
   readonly materials?: true;
 }
 
 /** What the player lacks to follow `recipe`, given their backpack and whether a finished station of a kind stands anywhere. */
-export function recipeLacks(recipe: Recipe, backpack: Backpack, hasStation: (station: StructureKind) => boolean): RecipeLacks {
+export function recipeLacks(recipe: Recipe, backpack: Backpack, hasStation: (station: WorkStationKind) => boolean): RecipeLacks {
   return {
     ...(recipe.tool !== undefined && !hasInBackpack(backpack, recipe.tool) ? { tool: recipe.tool } : {}),
     ...(recipe.station !== undefined && !hasStation(recipe.station) ? { station: recipe.station } : {}),
@@ -169,18 +176,18 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
   };
 
   /** True if `entity` is a finished work station of this kind. A blueprint is not. */
-  function isStation(entity: Entity | undefined, station: StructureKind): entity is Station {
-    return entity?.position !== undefined && entity.blueprint === undefined && structureKindOf(entity) === station;
+  function isStation(entity: Entity | undefined, station: WorkStationKind): entity is Station {
+    return entity?.position !== undefined && entity.workStation === station;
   }
 
-  function hasStation(station: StructureKind): boolean {
-    return entities.entities.some((entity) => isStation(entity, station));
+  function hasStation(station: WorkStationKind): boolean {
+    return workStationEntities(entities).entities.some((entity) => isStation(entity, station));
   }
 
   /** The finished station of this kind nearest to `from`, if any stands. */
-  function nearestStation(station: StructureKind, from: GroundPoint): Station | undefined {
+  function nearestStation(station: WorkStationKind, from: GroundPoint): Station | undefined {
     let nearest: Station | undefined;
-    for (const entity of entities.entities) {
+    for (const entity of workStationEntities(entities)) {
       if (!isStation(entity, station)) continue;
       if (nearest === undefined || groundDistance(entity.position, from) < groundDistance(nearest.position, from)) nearest = entity;
     }

@@ -16,7 +16,7 @@ import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
-export type StructureHit = { kind: "blueprint" | "campfire" | "woodpile" | "chest" | "sawhorse"; entity: Entity };
+export type StructureHit = { kind: "blueprint" | "campfire" | "woodpile" | "chest" | "workStation"; entity: Entity };
 
 /** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
 export interface PlacingBlueprint {
@@ -141,7 +141,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
           return woodpiles.outlineOf({ kind, entity });
         case "chest":
           return chests.outlineOf({ kind, entity });
-        case "sawhorse":
+        case "workStation":
+          // The sawhorse is the only work station so far. A later kind of station adds its meshes here.
           return sawhorses.outlineOf({ kind, entity });
       }
     },

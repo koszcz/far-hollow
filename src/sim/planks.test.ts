@@ -6,6 +6,19 @@ import { CRAFTING_SAVE_VERSION, PLANKS_SAVE_VERSION, readSave, SAVE_VERSION, wri
 import { groundDistance } from "./valley";
 import { isWalkable } from "./walk-map";
 
+describe("the recipes a work station offers", () => {
+  it("lists planks for a finished sawhorse, and nothing for a sawhorse blueprint or anything else", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const blueprint = sawhorseBlueprintNearPlayer(game, 9);
+
+    expect(game.client.recipesAt(idOf(game, sawhorse))).toEqual(["planks"]);
+    expect(game.client.recipesAt(idOf(game, blueprint))).toEqual([]);
+    expect(game.client.recipesAt(idOf(game, onlyPlayer(game)))).toEqual([]);
+    expect(game.client.recipesAt(-1)).toEqual([]);
+  });
+});
+
 describe("cutting planks at the sawhorse", () => {
   it("walks the player to the sawhorse from the craft menu, then turns the debarked log beside it into four planks in eight seconds", () => {
     const game = createGame({ seed: 42 });

@@ -151,22 +151,22 @@ describe("crafting the saw", () => {
 });
 
 describe("what a recipe lacks", () => {
-  // A made-up station recipe that needs the saw at a woodpile, to check tools and stations before real ones exist.
+  // A made-up station recipe that needs the saw at a sawhorse, to check tools and stations apart from the real recipes.
   const recipe: Recipe = {
     kind: "saw",
     materials: [{ material: "stick", count: 2 }],
     result: { content: "firewood", count: 1 },
     seconds: 1,
     tool: "saw",
-    station: "woodpile",
+    station: "sawhorse",
   };
 
   it("names the tool that is not in the backpack and the station that does not stand", () => {
-    expect(recipeLacks(recipe, { contents: { stick: 2 } }, () => false)).toEqual({ tool: "saw", station: "woodpile" });
+    expect(recipeLacks(recipe, { contents: { stick: 2 } }, () => false)).toEqual({ tool: "saw", station: "sawhorse" });
   });
 
   it("lacks nothing once the player has the tool, the station, and the materials", () => {
-    expect(recipeLacks(recipe, { contents: { saw: 1, stick: 2 } }, (station) => station === "woodpile")).toEqual({});
+    expect(recipeLacks(recipe, { contents: { saw: 1, stick: 2 } }, () => true)).toEqual({});
   });
 
   it("says when materials are missing", () => {

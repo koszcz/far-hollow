@@ -1,6 +1,6 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { GroundOrThingPick, PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import type { BlueprintView, CarriedLog, Command, GameClient, StructureKind } from "../sim/api";
+import type { BlueprintView, CarriedLog, Command, GameClient, RecipeKind, StructureKind } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { strings } from "../strings";
 
@@ -38,7 +38,7 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
     case "pile":
       return { type: "pickUpPile", pileId: pick.id };
     case "blueprint":
-    case "sawhorse":
+    case "workStation":
       return undefined;
   }
 }
@@ -58,8 +58,11 @@ export interface MenuAction {
   readonly command: Command;
 }
 
-/** The choices a right-click on this thing offers, beyond what a left-click does. Empty if it offers none. */
-export function menuActionsFor(pick: ScenePick): MenuAction[] {
+/**
+ * The choices a right-click on this thing offers, beyond what a left-click does. Empty if it offers none.
+ * `recipesAt` gives the recipes game logic says a work station offers.
+ */
+export function menuActionsFor(pick: ScenePick, recipesAt: (stationId: number) => readonly RecipeKind[] = () => []): MenuAction[] {
   switch (pick.kind) {
     case "log":
       return [{ label: strings.debark, command: { type: "debarkLog", logId: pick.id } }];
@@ -68,10 +71,10 @@ export function menuActionsFor(pick: ScenePick): MenuAction[] {
     case "chest":
     case "woodpile":
       return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
-    // A finished sawhorse offers its recipe. The player walks to it first.
-    case "sawhorse":
+    // A finished work station, such as a sawhorse, offers its recipes. The player walks to it first.
+    case "workStation":
       return [
-        { label: strings.craftMenu.recipes.planks, command: { type: "craft", recipe: "planks", stationId: pick.id } },
+        ...recipesAt(pick.id).map((recipe) => ({ label: strings.craftMenu.recipes[recipe], command: { type: "craft", recipe, stationId: pick.id } as const })),
         { label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } },
       ];
     default:
@@ -222,7 +225,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     rightPress = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS || mode.placing !== null) return;
     const pick = pickAt(event.clientX, event.clientY);
-    const actions = pick === undefined ? [] : menuActionsFor(pick);
+    const actions = pick === undefined ? [] : menuActionsFor(pick, (stationId) => client.recipesAt(stationId));
     if (actions.length > 0) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
   }
 

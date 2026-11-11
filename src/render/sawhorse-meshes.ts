@@ -40,7 +40,7 @@ const LEG_SIDES = 6;
 const PAINT_RADIUS_METRES = 0.14;
 
 /** What a click on a sawhorse or sawhorse blueprint landed on. */
-export type SawhorseHit = { kind: "blueprint"; entity: Entity } | { kind: "sawhorse"; entity: Entity };
+export type SawhorseHit = { kind: "blueprint"; entity: Entity } | { kind: "workStation"; entity: Entity };
 
 export interface SawhorseMeshes {
   readonly group: THREE.Group;
@@ -236,7 +236,7 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
       for (const hit of hits) {
         const entity = hit.object.userData.entity as Entity | undefined;
         if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
-        if (entity?.workStation === "sawhorse") return { hit: { kind: "sawhorse", entity }, distance: hit.distance };
+        if (entity?.workStation === "sawhorse") return { hit: { kind: "workStation", entity }, distance: hit.distance };
       }
       return undefined;
     },

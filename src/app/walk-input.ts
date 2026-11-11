@@ -20,6 +20,16 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
   }
 }
 
+/**
+ * The CSS cursor to show for what is under the pointer.
+ * A hand marks things the player can click. While placing a campfire, a crosshair shows everywhere.
+ */
+export function cursorFor(pick: ScenePick | undefined, placing: boolean): string {
+  if (placing) return "crosshair";
+  if (pick === undefined || pick.kind === "ground") return "";
+  return "pointer";
+}
+
 const LEFT_BUTTON = 0;
 /** A left-button press that moves further than this is a drag, not a click. */
 const CLICK_MAX_TRAVEL_PIXELS = 4;
@@ -52,11 +62,36 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onPlacingChange }
   let press: { x: number; y: number } | null = null;
   let holdingBuild = false;
   let placing = false;
+  /** Where the pointer last was over the canvas, or null if it has left. */
+  let hover: { x: number; y: number } | null = null;
+  /** The animation frame that will update the cursor, if one is waiting. */
+  let cursorFrame: number | null = null;
+
+  function updateCursor(): void {
+    cursorFrame = null;
+    const pick = hover === null ? undefined : pickAt(hover.x, hover.y);
+    canvas.style.cursor = cursorFor(pick, placing);
+  }
+
+  /** Picking is a raycast, so the cursor updates at most once per frame. */
+  function queueCursorUpdate(): void {
+    if (cursorFrame === null) cursorFrame = requestAnimationFrame(updateCursor);
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    hover = { x: event.clientX, y: event.clientY };
+    queueCursorUpdate();
+  }
+
+  function onPointerLeave(): void {
+    hover = null;
+    queueCursorUpdate();
+  }
 
   function setPlacing(value: boolean): void {
     if (placing === value) return;
     placing = value;
-    canvas.style.cursor = value ? "crosshair" : "";
+    queueCursorUpdate();
     onPlacingChange?.(value);
   }
 
@@ -115,6 +150,8 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onPlacingChange }
 
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerleave", onPointerLeave);
   // Letting go outside the canvas, or leaving the window, also lets go of the build action.
   canvas.addEventListener("pointercancel", stopHoldingBuild);
   window.addEventListener("pointerup", stopHoldingBuild);
@@ -127,6 +164,9 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onPlacingChange }
     dispose() {
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
+      if (cursorFrame !== null) cancelAnimationFrame(cursorFrame);
       canvas.removeEventListener("pointercancel", stopHoldingBuild);
       window.removeEventListener("pointerup", stopHoldingBuild);
       window.removeEventListener("blur", stopHoldingBuild);

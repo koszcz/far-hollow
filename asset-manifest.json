@@ -1,0 +1,113 @@
+{
+  "$comment": "Every asset must be listed here and approved by the owner. See docs/adr/0004-every-asset-needs-owner-approval.md.",
+  "assets": [
+    {
+      "id": "terrain",
+      "kind": "code",
+      "description": "Ground of the valley, including the ground plane in the empty scene. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "river",
+      "kind": "code",
+      "description": "The river that runs through the valley. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "trees",
+      "kind": "code",
+      "description": "Standing trees. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "stumps",
+      "kind": "code",
+      "description": "Stumps left after a tree is felled. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "sticks",
+      "kind": "code",
+      "description": "Sticks on the forest floor. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "player",
+      "kind": "code",
+      "description": "The player. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "logs",
+      "kind": "code",
+      "description": "Logs cut from a felled tree. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "firewood",
+      "kind": "code",
+      "description": "Firewood split from a log. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "campfire",
+      "kind": "code",
+      "description": "The campfire. Placeholder shape built in code for the first playable.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    }
+  ]
+}

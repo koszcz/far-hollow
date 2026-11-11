@@ -95,6 +95,14 @@ _Avoid_: Equipment, gear
 What the player carries small materials and tools in. It has a weight limit.
 _Avoid_: Inventory, bag
 
+**Drop**:
+To put something the player carries on the ground at their feet. Anything in the backpack or on the player's shoulder can be dropped. Dropped things stay where they lie until the player picks them up again.
+_Avoid_: Discard, throw away
+
+**Pile**:
+Dropped things of one kind lying together on the ground, such as seven sticks. Things dropped close to a pile of the same kind join it.
+_Avoid_: Stack, heap, drop
+
 **Sled**:
 A craftable object the player drags to carry several logs at once.
 
@@ -162,6 +170,14 @@ A work station where the player cuts debarked logs into planks.
 **Furniture**:
 An object placed freely inside or around a building, such as a bed, table, or shelf. Furniture does not snap to the grid.
 _Avoid_: Decoration, prop
+
+**Chest**:
+Furniture that stores small materials, tools, and food, grouped by kind. It has a weight limit. Putting things in chests is how the player keeps the camp organised.
+_Avoid_: Box, crate, container, storage
+
+**Woodpile**:
+A structure the player builds to stack logs, debarked logs, and firewood. It holds a fixed number of them.
+_Avoid_: Log pile, log rack, stockpile
 
 ## Fire
 

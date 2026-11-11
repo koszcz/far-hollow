@@ -1,9 +1,12 @@
-import type { BackpackContents } from "./backpack";
+import type { BackpackContents, Food } from "./backpack";
 
-export type { BackpackContent } from "./backpack";
+export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { GroundPoint } from "./valley";
+
+/** The new-game screen uses it to turn typed text into a seed. */
+export { seedFromText } from "./seed";
 
 // The only part of game logic the UI may import (ADR 0005).
 // The UI reads a GameView and changes the game only by sending a Command.
@@ -18,6 +21,10 @@ export type Command =
   | { type: "pickUpLog"; logId: number }
   /** Walk the player to a stick on the ground and put it in the backpack, if it fits. The stick is given by its entity id. */
   | { type: "pickUpStick"; stickId: number }
+  /** Walk the player to a berry bush or mushroom patch, given by its entity id, and put its food in the backpack, if it all fits. */
+  | { type: "forage"; spotId: number }
+  /** Eat one of this food from the backpack. It fills hunger. */
+  | { type: "eat"; food: Food }
   /** Split the log the player carries into firewood with the axe. The firewood goes in the backpack, if it all fits. */
   | { type: "splitLog" }
   /** Lay the log the player carries on the ground at their feet. */
@@ -37,8 +44,15 @@ export type Command =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
-  /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's warmth changes for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
-  | { type: "skipTime"; hours: number };
+  /**
+   * Walk the player to the riverbank nearest a spot on the river, given in metres, and drink there.
+   * River water is not boiled, so drinking it fills thirst but makes the player sick.
+   */
+  | ({ type: "drinkFromRiver" } & GroundPoint)
+  /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
+  | { type: "skipTime"; hours: number }
+  /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
+  | { type: "skipToRainChange" };
 
 export interface GameView {
   /** The seed the valley was laid out from. */
@@ -65,18 +79,36 @@ export interface GameView {
   readonly carrying: "log" | null;
   /** The campfire within the player's reach, or null if none is. */
   readonly nearbyCampfire: CampfireView | null;
-  /** How warm the player is, from 0 (frozen) to 1 (fully warm). */
+  /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
+  readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
+  /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
   readonly warmth: number;
+  /** Whether the player is sick, so their needs drain faster. */
+  readonly sick: boolean;
+  /** Whether rain is falling in the valley. */
+  readonly raining: boolean;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: GameNotice | null;
 }
 
 /**
  * Something that just happened that the player should be told about.
- * `collapsed`: the player had a collapse from the cold and woke at their respawn point.
+ * `collapsed`: the player had a collapse from a neglected need and woke at their respawn point.
  * `survivedFirstNight`: the player reached the first morning without a collapse.
+ * `backpackFull`: the backpack had no room for what the player tried to put in it.
+ * `saveBroken`: the saved game could not be loaded, so a new game started.
  */
-export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull";
+export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "saveBroken";
+
+/**
+ * What one save slot holds, as the start screen shows it.
+ * `empty`: nothing is saved there. `broken`: the save cannot be loaded.
+ * `filled`: a game the player can continue, with its seed and the day it reached.
+ */
+export type SaveSlotSummary =
+  | { readonly state: "empty" }
+  | { readonly state: "broken" }
+  | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
 /** The kinds of fuel the player can put on a campfire. */
 export type CampfireFuel = "stick" | "firewood";

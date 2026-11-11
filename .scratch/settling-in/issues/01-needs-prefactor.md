@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The game holds all four needs for the player. Hunger, thirst, and fatigue stay full until later tickets make them change.
-- [ ] A collapse happens when any one need stays at zero for too long.
-- [ ] The slowest need decides how much the player slows down.
-- [ ] The game view shows all four need levels. The HUD still shows only warmth.
-- [ ] Skipping time changes every need for the time skipped.
-- [ ] The existing warmth, collapse, and first-night tests pass without changing what they check.
-- [ ] Unit tests cover collapse and slowdown caused by a need other than warmth.
+- [x] The game holds all four needs for the player. Hunger, thirst, and fatigue stay full until later tickets make them change.
+- [x] A collapse happens when any one need stays at zero for too long.
+- [x] The slowest need decides how much the player slows down.
+- [x] The game view shows all four need levels. The HUD still shows only warmth.
+- [x] Skipping time changes every need for the time skipped.
+- [x] The existing warmth, collapse, and first-night tests pass without changing what they check.
+- [x] Unit tests cover collapse and slowdown caused by a need other than warmth.

@@ -44,6 +44,8 @@ function DebugPanel({ client }: { client: GameClient }) {
         <dd>{view.seed}</dd>
         <dt>{strings.debugTime}</dt>
         <dd>{formatTime(view.time)}</dd>
+        <dt>{strings.debugRain}</dt>
+        <dd>{view.raining ? strings.debugRainFalling : strings.debugRainDry}</dd>
       </dl>
       {SKIP_HOURS.map((hours) => (
         <button
@@ -56,6 +58,14 @@ function DebugPanel({ client }: { client: GameClient }) {
           {strings.debugSkipHours(hours)}
         </button>
       ))}
+      <button
+        type="button"
+        onClick={() => {
+          client.send({ type: "skipToRainChange" });
+        }}
+      >
+        {strings.debugSkipToRainChange(view.raining)}
+      </button>
     </div>
   );
 }

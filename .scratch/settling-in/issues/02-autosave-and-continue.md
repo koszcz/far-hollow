@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The game autosaves at a regular interval and when the page is hidden or closed.
-- [ ] Reloading the page restores the saved game. A restored valley matches the saved one exactly.
-- [ ] Each save has a version number.
-- [ ] Older saves are upgraded one version at a time when loaded. The upgrade path is tested, even though only one version exists yet.
-- [ ] A schema check rejects a broken save. The player then starts a new game and sees a short message. The message text lives in the strings file.
-- [ ] Saving reads game state only. It does not import three.js.
-- [ ] New kinds of game state can be added to the save without rewriting it. Later tickets will add their state this way.
-- [ ] Unit tests cover the round trip from save to load, the version upgrade, and the rejection of broken saves.
+- [x] The game autosaves at a regular interval and when the page is hidden or closed.
+- [x] Reloading the page restores the saved game. A restored valley matches the saved one exactly.
+- [x] Each save has a version number.
+- [x] Older saves are upgraded one version at a time when loaded. The upgrade path is tested, even though only one version exists yet.
+- [x] A schema check rejects a broken save. The player then starts a new game and sees a short message. The message text lives in the strings file.
+- [x] Saving reads game state only. It does not import three.js.
+- [x] New kinds of game state can be added to the save without rewriting it. Later tickets will add their state this way.
+- [x] Unit tests cover the round trip from save to load, the version upgrade, and the rejection of broken saves.

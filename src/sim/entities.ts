@@ -1,6 +1,8 @@
 import { World } from "miniplex";
-import type { Backpack } from "./backpack";
-import type { WarmthState } from "./warmth";
+import type { Backpack, Food } from "./backpack";
+import type { Needs } from "./needs";
+import type { Rain } from "./rain";
+import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -60,10 +62,22 @@ export interface Entity {
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
-  /** How warm the entity is. Only the player has warmth. */
-  warmth?: WarmthState;
+  /** Marks a berry bush or a patch of mushrooms the player can forage. Its position is the middle of the plant. */
+  forageSpot?: { food: Food };
+  /** A foraged bush or mushroom patch growing back. It has food again when `minutesLeft` game minutes have passed. */
+  regrowing?: { minutesLeft: number };
+  /** The bush or mushroom patch the player is walking to forage, given by its entity id. */
+  forageTask?: { spotId: number };
+  /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
+  needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
+  /** The player is walking to the riverbank to drink. The spot is where they clicked on the river. */
+  drinkTask?: GroundPoint;
+  /** The player is sick, so their needs drain faster. Missing when they are well. */
+  sickness?: Sickness;
+  /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
+  rain?: Rain;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -71,6 +85,37 @@ export type EntityStore = World<Entity>;
 
 export function createEntityStore(): EntityStore {
   return new World<Entity>();
+}
+
+/** An entity's components as stored in a save, with the id that tasks and commands know it by. */
+export interface SavedEntity {
+  id: number;
+  components: Entity;
+}
+
+/** Lists every entity with its id, in id order. An entity that had no id yet gets one. */
+export function saveEntities(store: EntityStore): SavedEntity[] {
+  const saved: SavedEntity[] = [];
+  for (const entity of store.entities) {
+    const id = store.id(entity);
+    if (id !== undefined) saved.push({ id, components: entity });
+  }
+  return saved.sort((a, b) => a.id - b.id);
+}
+
+/**
+ * Adds saved entities to an empty store, giving each one its saved id.
+ * miniplex hands out ids in order, so each unused id goes to a stand-in entity that is removed at once.
+ */
+export function restoreEntities(store: EntityStore, saved: readonly SavedEntity[]): void {
+  const byId = new Map(saved.map((entity) => [entity.id, entity.components]));
+  const lastId = saved.reduce((last, entity) => Math.max(last, entity.id), -1);
+  for (let id = 0; id <= lastId; id += 1) {
+    const components = byId.get(id);
+    const entity = store.add(components ?? {});
+    if (store.id(entity) !== id) throw new Error("Entities can only be restored into an empty store");
+    if (components === undefined) store.remove(entity);
+  }
 }
 
 /**
@@ -107,6 +152,11 @@ export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
 }
 
+/** Berry bushes and mushroom patches, with food or growing back. */
+export function forageSpotEntities(store: EntityStore) {
+  return store.with("forageSpot", "position");
+}
+
 /** Building pieces placed but not finished. */
 export function blueprintEntities(store: EntityStore) {
   return store.with("blueprint", "position");
@@ -125,4 +175,9 @@ export function playerEntities(store: EntityStore) {
 /** Everything that stops the player walking near it. */
 export function walkBlockerEntities(store: EntityStore) {
   return store.with("blocksWalking", "position");
+}
+
+/** The valley's weather. There is only ever one. */
+export function rainEntities(store: EntityStore) {
+  return store.with("rain");
 }

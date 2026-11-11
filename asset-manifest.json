@@ -240,6 +240,66 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "hud",
+      "kind": "code",
+      "code": [
+        "src/ui/hud.tsx",
+        "src/ui/hud-icons.tsx",
+        "src/app/style.css"
+      ],
+      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, over the top left of the scene.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "berry-bush",
+      "kind": "code",
+      "code": [
+        "src/render/forage-meshes.ts"
+      ],
+      "description": "A berry bush, shown with red berries, and without them while it grows back after foraging.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/settling-in/issues/07-hunger-and-foraging.md"
+      }
+    },
+    {
+      "id": "mushrooms",
+      "kind": "code",
+      "code": [
+        "src/render/forage-meshes.ts"
+      ],
+      "description": "A small patch of three mushrooms. Nothing shows while a foraged patch grows back.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/settling-in/issues/07-hunger-and-foraging.md"
+      }
+    },
+    {
+      "id": "rain",
+      "kind": "code",
+      "code": [
+        "src/render/rain-effect.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "Falling rain: pale, slanting streaks around where the camera looks, shown while rain falls. It has no sound.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/settling-in/issues/08-rain.md"
+      }
     }
   ]
 }

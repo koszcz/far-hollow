@@ -4,13 +4,17 @@ import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
-import { createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
+import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
+import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
-import { createEntityStore, movingEntities, type EntityStore } from "./entities";
+import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
-import { createWalking, playerStartSpot } from "./walking";
-import { createWarmth, hasCollapsed, passWarmthTime, wakeFromCollapse, warmthSpeed } from "./warmth";
+import { createWalking, playerStartSpot, type Walking } from "./walking";
+import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
+import { createDrinking } from "./drinking";
+import { createRain, passRainTime } from "./rain";
+import { passSicknessTime } from "./sickness";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -28,6 +32,7 @@ const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   collapsed: 30,
   survivedFirstNight: 30,
   backpackFull: 4,
+  saveBroken: 10,
 };
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
@@ -35,7 +40,28 @@ export const GAME_START: ClockStart = { day: 1, hour: 8 };
 export interface GameOptions {
   /** Decides how the valley is laid out. The same seed always makes the same valley. */
   seed: number;
+  /** Carries on a saved game instead of starting a new one. It must have been saved from a game with the same seed. */
+  progress?: GameProgress;
+  /** A notice to show the player as soon as the game starts. */
+  startNotice?: GameNotice;
 }
+
+/**
+ * Everything about a game in progress that its seed does not decide. It is plain data, so it can be stored.
+ * State kept in entity components is included without any change here.
+ */
+export interface GameProgress {
+  /** Game minutes since midnight at the start of day 1. */
+  clockMinutes: number;
+  stepCount: number;
+  firstNightOver: boolean;
+  notice: { kind: GameNotice; untilMinutes: number } | null;
+  /** Every entity, with the id that tasks and commands know it by. */
+  entities: SavedEntity[];
+}
+
+/** The player entity, with the components every player has. */
+type Player = Entity & Required<Pick<Entity, "position" | "previousPosition" | "backpack" | "needs" | "respawnPoint">>;
 
 export interface Game {
   readonly entities: EntityStore;
@@ -47,49 +73,39 @@ export interface Game {
   step(): void;
   /** What the UI uses: it reads a GameView and sends commands. */
   readonly client: GameClient;
+  /** A copy of the game's progress, for saving. Changing the copy does not change the game. */
+  progress(): GameProgress;
 }
 
-export function createGame({ seed }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
-  for (const tree of valley.trees) {
-    entities.add({
-      tree: true,
-      position: { x: tree.x, y: terrainHeightAt(valley.terrain, tree.x, tree.z), z: tree.z },
-      blocksWalking: { radius: TREE_WALK_BLOCK_RADIUS_METRES },
-    });
-  }
-  for (const stick of valley.sticks) {
-    entities.add({ stick: true, position: { x: stick.x, y: terrainHeightAt(valley.terrain, stick.x, stick.z), z: stick.z } });
-  }
+  if (progress === undefined) addValleyEntities(entities, valley);
+  else restoreEntities(entities, structuredClone(progress.entities));
   const walking = createWalking(entities, valley);
-  const start = playerStartSpot(walking, valley);
-  const startPosition = { x: start.x, y: terrainHeightAt(valley.terrain, start.x, start.z), z: start.z };
-  const player = entities.add({
-    player: true,
-    position: startPosition,
-    previousPosition: { ...startPosition },
-    backpack: createStartingBackpack(),
-    warmth: createWarmth(),
-    // Until the player has slept in a bed, they wake where they started after a collapse.
-    respawnPoint: { x: start.x, z: start.z },
-  });
+  const player = progress === undefined ? addNewPlayer(entities, walking, valley) : savedPlayer(entities);
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
   const gathering = createGathering(entities, walking);
+  const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
+  const drinking = createDrinking(entities, walking, valley);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
-  const clock = createClock(GAME_START);
+  const gameStartMinutes = clockStartMinutes(GAME_START);
+  const clock = createClock(progress?.clockMinutes ?? gameStartMinutes);
+  // A save made before rain existed has no weather, so it starts dry from here.
+  const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes) })).rain;
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
-  const firstMorning = nextMorning(clock.minutes);
+  const firstMorning = nextMorning(gameStartMinutes);
   /** Whether the first night has ended, by morning coming or by a collapse. */
-  let firstNightOver = false;
-  let notice: { kind: GameNotice; untilMinutes: number } | null = null;
+  let firstNightOver = progress?.firstNightOver ?? false;
+  let notice: { kind: GameNotice; untilMinutes: number } | null = progress?.notice ? { ...progress.notice } : null;
   let paused = false;
-  let stepCount = 0;
+  let stepCount = progress?.stepCount ?? 0;
+  if (startNotice !== undefined) showNotice(startNotice);
   let view = snapshot();
 
   function snapshot(): GameView {
@@ -107,7 +123,15 @@ export function createGame({ seed }: GameOptions): Game {
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
-      warmth: player.warmth.level,
+      needs: Object.freeze({
+        hunger: player.needs.hunger.level,
+        thirst: player.needs.thirst.level,
+        warmth: player.needs.warmth.level,
+        fatigue: player.needs.fatigue.level,
+      }),
+      warmth: player.needs.warmth.level,
+      sick: player.sickness !== undefined,
+      raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
     });
   }
@@ -146,7 +170,14 @@ export function createGame({ seed }: GameOptions): Game {
     chopping.cancel();
     carrying.cancel();
     gathering.cancel();
+    foraging.cancel();
     building.cancel();
+    drinking.cancel();
+  }
+
+  /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
+  function isResting(): boolean {
+    return player.walkPath === undefined && player.drinkTask === undefined && currentAction() === null;
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
@@ -169,6 +200,14 @@ export function createGame({ seed }: GameOptions): Game {
       cancelTasks();
       const refusal = gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
+    },
+    forage: (command) => {
+      cancelTasks();
+      const refusal = foraging.forage(command.spotId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    eat: (command) => {
+      foraging.eat(command.food);
     },
     splitLog: () => {
       cancelTasks();
@@ -198,40 +237,61 @@ export function createGame({ seed }: GameOptions): Game {
     lightCampfire: (command) => {
       campfires.light(command.campfireId);
     },
+    drinkFromRiver: (command) => {
+      cancelTasks();
+      drinking.drinkFromRiver({ x: command.x, z: command.z });
+    },
     skipTime: (command) => {
       // Time only moves forward. Ignore a negative or broken amount.
       if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
     },
+    skipToRainChange: () => {
+      const wasFalling = rain.falling;
+      // Slice by slice, so the skip stops on the minute rain starts or stops, or at a collapse.
+      while (rain.falling === wasFalling) {
+        if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
+      }
+    },
   };
 
   /**
-   * Moves the clock on by this many game minutes. Campfires burn and the player's warmth changes as it goes.
+   * Moves the clock on by this many game minutes. Campfires burn and the player's needs change as it goes.
    * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
-   * A collapse ends the stretch early.
+   * Rain starts and stops as it goes. A collapse ends the stretch early, and then this returns false.
    */
-  function passTime(gameMinutes: number): void {
+  function passTime(gameMinutes: number): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
+      passRainTime(rain, seed, clock.minutes);
+      // Rain does not put out campfires.
       campfires.burn(minutes);
-      passWarmthTime(player.warmth, minutes, {
+      foraging.grow(minutes);
+      passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
+        sick: player.sickness !== undefined,
+        // No roofs exist yet, so rain falls on the player wherever they stand.
+        inRain: rain.falling,
       });
-      if (hasCollapsed(player.warmth)) {
+      if (player.sickness !== undefined && passSicknessTime(player.sickness, minutes, { resting: isResting() })) {
+        entities.removeComponent(player, "sickness");
+      }
+      if (hasCollapsed(player.needs)) {
         collapse();
-        return;
+        return false;
       }
       if (!firstNightOver && clock.minutes >= firstMorning) {
         firstNightOver = true;
         showNotice("survivedFirstNight");
       }
     }
+    return true;
   }
 
   /**
-   * The player collapses from the cold. They drop what is on their shoulder and lose the rest of the day.
-   * They wake the next morning at their respawn point with low warmth, keeping everything in their backpack.
+   * The player collapses from a neglected need. They drop what is on their shoulder and lose the rest of the day.
+   * They wake the next morning at their respawn point with that need low, keeping everything in their backpack.
    */
   function collapse(): void {
     // A collapse before the first morning means the player did not survive the first night.
@@ -242,10 +302,11 @@ export function createGame({ seed }: GameOptions): Game {
     const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
     campfires.burn(asleepMinutes);
+    foraging.grow(asleepMinutes);
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
     Object.assign(player.previousPosition, player.position);
-    wakeFromCollapse(player.warmth);
+    wakeFromCollapse(player.needs);
     showNotice("collapsed");
   }
 
@@ -262,13 +323,15 @@ export function createGame({ seed }: GameOptions): Game {
       for (const entity of moving) {
         Object.assign(entity.previousPosition, entity.position);
       }
-      // A cold player moves and works more slowly, as if less time passed for them.
-      const playerSeconds = (STEP_MS / 1000) * warmthSpeed(player.warmth);
+      // A player with a low need moves and works more slowly, as if less time passed for them.
+      const playerSeconds = (STEP_MS / 1000) * needsSpeed(player.needs);
       walking.step(playerSeconds);
       chopping.step(playerSeconds);
       carrying.step();
       gathering.step(playerSeconds);
+      foraging.step();
       building.step(playerSeconds);
+      drinking.step();
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }
@@ -288,5 +351,52 @@ export function createGame({ seed }: GameOptions): Game {
     },
   };
 
-  return { entities, valley, walkMap: walking.walkMap, step, client };
+  function readProgress(): GameProgress {
+    return structuredClone({
+      clockMinutes: clock.minutes,
+      stepCount,
+      firstNightOver,
+      notice,
+      entities: saveEntities(entities),
+    });
+  }
+
+  return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress };
+}
+
+/** Adds the valley's starting trees, sticks, berry bushes, and mushrooms. */
+function addValleyEntities(entities: EntityStore, valley: Valley): void {
+  for (const tree of valley.trees) {
+    entities.add({
+      tree: true,
+      position: { x: tree.x, y: terrainHeightAt(valley.terrain, tree.x, tree.z), z: tree.z },
+      blocksWalking: { radius: TREE_WALK_BLOCK_RADIUS_METRES },
+    });
+  }
+  for (const stick of valley.sticks) {
+    entities.add({ stick: true, position: { x: stick.x, y: terrainHeightAt(valley.terrain, stick.x, stick.z), z: stick.z } });
+  }
+  for (const spot of valleyForageSpots(valley)) entities.add(spot);
+}
+
+/** Adds a new game's player near the river, with a starting backpack. */
+function addNewPlayer(entities: EntityStore, walking: Walking, valley: Valley): Player {
+  const start = playerStartSpot(walking, valley);
+  const startPosition = { x: start.x, y: terrainHeightAt(valley.terrain, start.x, start.z), z: start.z };
+  return entities.add<Player>({
+    player: true,
+    position: startPosition,
+    previousPosition: { ...startPosition },
+    backpack: createStartingBackpack(),
+    needs: createNeeds(),
+    // Until the player has slept in a bed, they wake where they started after a collapse.
+    respawnPoint: { x: start.x, z: start.z },
+  });
+}
+
+/** Finds the player among restored entities. */
+function savedPlayer(entities: EntityStore): Player {
+  const player = entities.with("player", "position", "previousPosition", "backpack", "needs", "respawnPoint").first;
+  if (player === undefined) throw new Error("The saved game has no player");
+  return player;
 }

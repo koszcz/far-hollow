@@ -7,12 +7,16 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
   switch (pick.kind) {
     case "ground":
       return { type: "walkTo", x: pick.spot.x, z: pick.spot.z };
+    case "river":
+      return { type: "drinkFromRiver", x: pick.spot.x, z: pick.spot.z };
     case "tree":
       return { type: "chopTree", treeId: pick.id };
     case "log":
       return { type: "pickUpLog", logId: pick.id };
     case "stick":
       return { type: "pickUpStick", stickId: pick.id };
+    case "forage":
+      return { type: "forage", spotId: pick.id };
     case "campfire":
       return { type: "tendCampfire", campfireId: pick.id };
     case "blueprint":
@@ -31,10 +35,11 @@ export function cursorFor(pick: ScenePick | undefined, placing: boolean): string
 }
 
 /**
- * What to outline for what is under the pointer: the same things that show a hand cursor.
- * Nothing is outlined over the ground, or while placing a campfire.
+ * What to outline for what is under the pointer: the same things that show a hand cursor, except the river.
+ * The river is too big to outline. Nothing is outlined over the ground, or while placing a campfire.
  */
 export function outlineFor(pick: ScenePick | undefined, placing: boolean): ScenePick | undefined {
+  if (pick?.kind === "river") return undefined;
   return cursorFor(pick, placing) === "pointer" ? pick : undefined;
 }
 
@@ -63,7 +68,8 @@ export interface WalkInput {
 
 /**
  * Left-clicking does the main action for what is under the pointer:
- * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, or walk over to tend a campfire.
+ * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, forage a bush or mushrooms,
+ * walk over to tend a campfire, or walk to the riverbank to drink.
  * Holding the left button on a blueprint builds it. Letting go stops building.
  * While placing a campfire, a left-click on the ground places its blueprint.
  * Space snaps the camera back to the player.

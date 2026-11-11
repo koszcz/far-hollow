@@ -11,9 +11,11 @@ import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
+import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
+import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
@@ -116,6 +118,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const [x, z] of [[-0.6, 0], [0.5, -0.4], [0.3, 0.6]] as const) place(x, z, { stick: true });
     },
   },
+  "berry-bush": {
+    radius: 1.5,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      // With berries on the left, foraged and growing back on the right.
+      place(-0.8, 0, { forageSpot: { food: "berries" } });
+      place(0.8, 0, { forageSpot: { food: "berries" }, regrowing: { minutesLeft: 60 } });
+    },
+  },
+  mushrooms: {
+    radius: 0.4,
+    focus: { x: 0, y: 0.08, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { forageSpot: { food: "mushroom" } });
+    },
+  },
   logs: {
     radius: 2.2,
     focus: { x: 0, y: 0.7, z: 0 },
@@ -169,6 +189,22 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose: () => undefined,
     },
   },
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.
+  hud: {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: walking, day", yaw: 20, pitch: 35 },
+      { label: "HUD: chopping, backpack full", yaw: -20, pitch: 35 },
+      { label: "HUD: carrying a log at a campfire", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: cold at night, paused, placing", yaw: 20, pitch: 35, hour: NIGHT },
+    ],
+    build({ place, movePlayer }) {
+      for (const [x, z] of [[-6, -4], [0, -7], [6, -3], [-3, -9]] as const) place(x, z, { tree: true });
+      place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+      movePlayer(0, 0, 0);
+    },
+  },
   "sky-lighting": {
     radius: 9,
     focus: { x: 0, y: 2, z: 0 },
@@ -182,6 +218,26 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const [x, z] of [[-5, -3], [0, -6], [5, -2], [-3, 4]] as const) place(x, z, { tree: true });
       place(2, 1, { log: { heading: 0.6 } });
       place(-2, 1.5, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+    },
+  },
+  rain: {
+    radius: 6,
+    focus: { x: 0, y: 1.5, z: 0 },
+    shots: [
+      { label: "midday", yaw: 200, pitch: 10, hour: NOON, seconds: 0 },
+      { label: "midday, from above", yaw: 40, pitch: 45, hour: NOON, seconds: 0.4 },
+      { label: "dusk, by a campfire", yaw: 70, pitch: 10, hour: 19, seconds: 0.8 },
+      { label: "night, by a campfire", yaw: 200, pitch: 10, hour: NIGHT, seconds: 1.2 },
+    ],
+    build({ place }) {
+      place(0, 0, { rain: { falling: true, changeAtMinutes: Infinity, changes: 1 } });
+      for (const [x, z] of [[-4, -3], [3, -5], [5, 1]] as const) place(x, z, { tree: true });
+      place(-1.5, 1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+    },
+    // Rain falls all the time, so it plays live in the afternoon.
+    play: {
+      shot: { label: "rain falling", yaw: 200, pitch: 10, hour: 15 },
+      pose: () => undefined,
     },
   },
   "campfire-build-animation": {
@@ -326,7 +382,7 @@ export function showAsset(
   const store = createEntityStore();
   const player = createPlayerMesh(logShape);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting"].includes(id);
+  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
@@ -361,9 +417,13 @@ export function showAsset(
 
   const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  scene.add(forest.group, campfires.group);
+  const forage = createForageMeshes(store);
+  forage.update();
+  // Rain shows only where the stage has rain falling.
+  const rain: RainEffect = createRainEffect(store);
+  scene.add(forest.group, campfires.group, forage.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, forage.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -378,6 +438,7 @@ export function showAsset(
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
+    rain.update(seconds, focus);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
@@ -422,6 +483,8 @@ export function showAsset(
       if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
       campfires.dispose();
+      forage.dispose();
+      rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();
       ground.dispose();

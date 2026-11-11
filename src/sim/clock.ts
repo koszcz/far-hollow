@@ -36,8 +36,14 @@ export interface Clock {
   skip(hours: number): void;
 }
 
-export function createClock(start: ClockStart): Clock {
-  let minutes = (start.day - 1) * MINUTES_PER_DAY + start.hour * MINUTES_PER_HOUR;
+/** Game minutes since the start of day 1 at this start. */
+export function clockStartMinutes(start: ClockStart): number {
+  return (start.day - 1) * MINUTES_PER_DAY + start.hour * MINUTES_PER_HOUR;
+}
+
+/** Starts the clock at a start, or at game minutes since the start of day 1, such as a saved game's time. */
+export function createClock(start: ClockStart | number): Clock {
+  let minutes = typeof start === "number" ? start : clockStartMinutes(start);
   return {
     get minutes() {
       return minutes;

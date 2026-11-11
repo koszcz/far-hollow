@@ -5,10 +5,15 @@ import { loadLogShape } from "../render/log-shape";
 import { loadStumpShape } from "../render/stump-model";
 import { loadTreeShapes } from "../render/tree-model";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
-import { createGame, STEP_MS } from "../sim/game";
+import { createGame, STEP_MS, type Game } from "../sim/game";
+import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
+import { randomSeed } from "../sim/seed";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
+import { StartScreen } from "../ui/start-screen";
+import { startAutosave } from "./autosave";
+import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import { attachWalkInput } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -23,16 +28,97 @@ function requireElement<T extends Element>(selector: string, type: new () => T):
 document.title = strings.gameTitle;
 
 /**
- * Until the new-game screen exists, each page load picks a random seed.
- * Developers can add `?seed=123` to the address to load the same valley again.
+ * The seed given as `?seed=123` in the address, if any.
+ * Developers use it to start a new game in the same valley again. It skips the start screen and is never saved.
  */
-function chooseSeed(): number {
+function seedFromAddress(): number | undefined {
   const fromAddress = Number.parseInt(new URLSearchParams(window.location.search).get("seed") ?? "", 10);
-  if (Number.isSafeInteger(fromAddress)) return fromAddress >>> 0;
-  return Math.floor(Math.random() * 2 ** 32);
+  return Number.isSafeInteger(fromAddress) ? fromAddress >>> 0 : undefined;
 }
 
-const game = createGame({ seed: chooseSeed() });
+/** How often the game saves itself while it runs, in real milliseconds. */
+const AUTOSAVE_INTERVAL_MS = 30_000;
+
+/** Opens the save database. Returns undefined if the browser will not store anything, such as in some private windows. */
+async function tryOpenSaveStorage(): Promise<SaveStorage | undefined> {
+  try {
+    return await openSaveStorage();
+  } catch (error) {
+    console.warn("The game cannot be saved in this browser.", error);
+    return undefined;
+  }
+}
+
+/** Reads the save in one slot. A slot that cannot be read counts as broken. */
+async function readSlot(storage: SaveStorage | undefined, slot: number): Promise<unknown> {
+  if (storage === undefined) return undefined;
+  try {
+    return await storage.read(slot);
+  } catch (error) {
+    console.warn(`Save slot ${slot + 1} could not be read.`, error);
+    return null;
+  }
+}
+
+/** The game the player chose, and the save slot it saves to. A game started from `?seed=` has no slot and is not saved. */
+interface ChosenGame {
+  game: Game;
+  slot: number | undefined;
+}
+
+/** Shows the start screen until the player continues a saved game or starts a new one. */
+async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame> {
+  const stored = await Promise.all(Array.from({ length: SAVE_SLOT_COUNT }, (_, slot) => readSlot(storage, slot)));
+  const ui = requireElement("#ui", HTMLDivElement);
+  // The start screen replaces the loading screen until the player chooses.
+  setLoadingScreenShown(false);
+  const chosen = await new Promise<ChosenGame>((resolve) => {
+    render(
+      <StartScreen
+        slots={stored.map(describeSave)}
+        canSave={storage !== undefined}
+        onContinue={(slot) => {
+          resolve({ game: continueOrStartGame(stored[slot], randomSeed()), slot });
+        }}
+        onNewGame={(slot, seed) => {
+          const game = createGame({ seed: seed ?? randomSeed() });
+          // Save at once, so a new game started over a saved one replaces it even if the page closes soon after.
+          saveToSlot(storage, slot, game);
+          resolve({ game, slot });
+        }}
+      />,
+      ui,
+    );
+  });
+  render(null, ui);
+  setLoadingScreenShown(true);
+  return chosen;
+}
+
+function saveToSlot(storage: SaveStorage | undefined, slot: number, game: Game): void {
+  storage?.write(slot, writeSave(game)).catch((error: unknown) => {
+    console.warn("The game could not be saved.", error);
+  });
+}
+
+/** Shows or hides the loading screen without removing it. */
+function setLoadingScreenShown(shown: boolean): void {
+  document.querySelector("#loading")?.classList.toggle("done", !shown);
+}
+
+const saveStorage = await tryOpenSaveStorage();
+const addressSeed = seedFromAddress();
+const { game, slot } = addressSeed === undefined ? await chooseGame(saveStorage) : { game: createGame({ seed: addressSeed }), slot: undefined };
+if (saveStorage !== undefined && slot !== undefined) {
+  startAutosave({
+    save: () => {
+      saveToSlot(saveStorage, slot, game);
+    },
+    intervalMs: AUTOSAVE_INTERVAL_MS,
+    page: window,
+    isHidden: () => document.visibilityState === "hidden",
+  });
+}
 const canvas = requireElement("#scene", HTMLCanvasElement);
 const sceneRenderer = createSceneRenderer(
   canvas,

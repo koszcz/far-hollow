@@ -25,6 +25,10 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
     ui.innerHTML = `<p class="showcase-missing">No showcase for "${id}". Try one of: ${SHOWCASE_ASSET_IDS.join(", ")}.</p>`;
   } else {
     ui.innerHTML = shown.labels.map((label, index) => `<span class="showcase-label showcase-label-${index}">${label}</span>`).join("");
+    if (id === "hud") {
+      const { renderHudShowcase } = await import("../ui/hud-showcase");
+      renderHudShowcase(ui);
+    }
   }
   document.body.dataset.showcase = "ready";
 }

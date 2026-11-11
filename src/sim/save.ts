@@ -1,0 +1,99 @@
+// Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
+import type { SaveSlotSummary } from "./api";
+import { readClock } from "./clock";
+import type { SavedEntity } from "./entities";
+import { valleyForageSpots } from "./foraging";
+import { createGame, type Game, type GameProgress } from "./game";
+import { generateValley } from "./valley";
+import { isValidSave } from "./save-schema";
+
+/** Turns a save of one version into the next version. It is given the save without its version number. */
+export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<string, unknown>;
+
+/**
+ * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
+ * When a change to the game state would break older saves, add an upgrade to the end of this list.
+ */
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots];
+
+/** The version of the save format this code writes. */
+export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
+
+/**
+ * Brings a save up to the newest version the upgrades reach, one version at a time.
+ * Returns undefined if the data is not a save, or its version is missing or newer than the upgrades know.
+ */
+export function upgradeSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_UPGRADES): Record<string, unknown> | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+  const { version, ...save } = data as Record<string, unknown>;
+  const newest = upgrades.length + 1;
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 1 || version > newest) return undefined;
+  let upgraded: Record<string, unknown> = save;
+  for (const upgrade of upgrades.slice(version - 1)) upgraded = upgrade(upgraded);
+  return { version: newest, ...upgraded };
+}
+
+/** A saved game, as stored in the browser. It is plain data. */
+export interface SaveFile extends GameProgress {
+  version: number;
+  seed: number;
+}
+
+export type ReadSaveResult = { ok: true; game: Game } | { ok: false };
+
+/** Reads a game's state into a save. Changing the save does not change the game. */
+export function writeSave(game: Game): SaveFile {
+  return { version: SAVE_VERSION, seed: game.client.getView().seed, ...game.progress() };
+}
+
+/**
+ * Continues the stored game, or starts a new one from `newSeed` if nothing is stored.
+ * If the stored save is broken, the new game opens with a notice telling the player.
+ */
+export function continueOrStartGame(stored: unknown, newSeed: number): Game {
+  if (stored === undefined) return createGame({ seed: newSeed });
+  const loaded = readSave(stored);
+  return loaded.ok ? loaded.game : createGame({ seed: newSeed, startNotice: "saveBroken" });
+}
+
+/** Says what a save slot holds, for the start screen: nothing, a save that cannot be loaded, or a game's seed and day. */
+export function describeSave(stored: unknown): SaveSlotSummary {
+  if (stored === undefined) return { state: "empty" };
+  const save = upgradeSave(stored);
+  if (!isValidSave(save)) return { state: "broken" };
+  const { seed, clockMinutes } = save as unknown as SaveFile;
+  return { state: "filled", seed, day: readClock(clockMinutes).day };
+}
+
+/**
+ * Turns stored data back into a game, upgrading an older save first.
+ * Returns `ok: false` if the data is not a save this game can load.
+ */
+export function readSave(data: unknown): ReadSaveResult {
+  const save = upgradeSave(data);
+  if (!isValidSave(save)) return { ok: false };
+  const { seed, clockMinutes, stepCount, firstNightOver, notice, entities } = save as unknown as SaveFile;
+  try {
+    return { ok: true, game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, notice, entities } }) };
+  } catch {
+    // The save had the right shape but still could not be loaded.
+    return { ok: false };
+  }
+}
+
+/**
+ * Version 1 to 2: berry bushes and mushrooms grow in the valley. A save from before then gets the valley's spots, all with food.
+ * A save that is not plain data is passed on unchanged, so the shape check turns it away.
+ */
+function addForageSpots(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const { seed, entities } = save;
+  if (!Number.isSafeInteger(seed) || !Array.isArray(entities)) return { ...save };
+  const saved = entities as unknown[];
+  const idOf = (entity: unknown): number => {
+    const id = (entity as Partial<SavedEntity> | null)?.id;
+    return typeof id === "number" ? id : -1;
+  };
+  const lastId = saved.reduce<number>((last, entity) => Math.max(last, idOf(entity)), -1);
+  const spots = valleyForageSpots(generateValley(seed as number)).map((components, index) => ({ id: lastId + 1 + index, components }));
+  return { ...save, entities: [...saved, ...spots] };
+}

@@ -4,9 +4,10 @@
 // The build menu icons, in build-icons.tsx, are the approved "build-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, BuildMenuEntry, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
-  WoodpileWood,
+  BackpackContent, BedrollView, BlueprintView, BuildMenuEntry, CampfireView, ChestView, Food, GameClient, GameView, NearbyThing, PileView, RecipeKind,
+  StructureKind, WoodpileView, WoodpileWood,
 } from "../sim/api";
+import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
@@ -392,6 +393,24 @@ function placingHint(entries: readonly BuildMenuEntry[], placing: StructureKind)
   return strings.buildMenu.placing[placement](strings.buildMenu.structures[placing]);
 }
 
+/** The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel. */
+function NearbyPanel({ client, view, thing }: { client: GameClient; view: GameView; thing: NearbyThing }) {
+  switch (thing.kind) {
+    case "campfire":
+      return <CampfirePanel client={client} view={view} campfire={thing.view} />;
+    case "woodpile":
+      return <WoodpilePanel client={client} view={view} woodpile={thing.view} />;
+    case "bedroll":
+      return <BedrollPanel client={client} bedroll={thing.view} />;
+    case "pile":
+      return <PilePanel client={client} pile={thing.view} />;
+    case "blueprint":
+      return <BlueprintPanel blueprint={thing.view} />;
+    case "openChest":
+      return <ChestPanel client={client} chest={thing.view} />;
+  }
+}
+
 export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry, craftMenuOpen, onToggleCraftMenu }: HudProps) {
   const [view, setView] = useState(client.getView());
   useEffect(
@@ -401,19 +420,11 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
       }),
     [client],
   );
-  const openChest = view.openChest;
+  const openChest = nearbyOf(view, "openChest");
+  /** The open chest shows beside the backpack. Everything else within reach shows a panel under the work. */
+  const nearbyPanels = view.nearby.filter((thing) => thing.kind !== "openChest");
 
-  const hasContext =
-    view.action !== null ||
-    buildMenuOpen ||
-    craftMenuOpen ||
-    placing !== null ||
-    view.carrying !== null ||
-    view.nearbyCampfire !== null ||
-    view.nearbyBedroll !== null ||
-    view.nearbyPile !== null ||
-    view.nearbyWoodpile !== null ||
-    view.nearbyBlueprint !== null;
+  const hasContext = view.action !== null || buildMenuOpen || craftMenuOpen || placing !== null || view.carrying !== null || nearbyPanels.length > 0;
 
   return (
     <>
@@ -464,11 +475,9 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                 </div>
               </section>
             )}
-            {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
-            {view.nearbyWoodpile !== null && <WoodpilePanel client={client} view={view} woodpile={view.nearbyWoodpile} />}
-            {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
-            {view.nearbyPile !== null && <PilePanel client={client} pile={view.nearbyPile} />}
-            {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
+            {nearbyPanels.map((thing) => (
+              <NearbyPanel key={thing.kind} client={client} view={view} thing={thing} />
+            ))}
           </div>
         </div>
       )}

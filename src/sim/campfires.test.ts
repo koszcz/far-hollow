@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BackpackContent, Command } from "./api";
+import { nearbyOf } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
 import { isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
@@ -10,11 +11,11 @@ describe("lighting a campfire", () => {
   it("walks the player to a campfire they click on, and shows it as the nearby campfire", () => {
     const { game, campfire } = gameWithCampfire();
     walkAway(game);
-    expect(game.client.getView().nearbyCampfire).toBeNull();
+    expect(nearbyOf(game.client.getView(), "campfire")).toBeNull();
 
     tend(game, campfire);
 
-    expect(game.client.getView().nearbyCampfire).toMatchObject({ id: idOf(game, campfire), lit: false, fuelLeft: 0 });
+    expect(nearbyOf(game.client.getView(), "campfire")).toMatchObject({ id: idOf(game, campfire), lit: false, fuelLeft: 0 });
   });
 
   it("will not light without fuel", () => {
@@ -23,7 +24,7 @@ describe("lighting a campfire", () => {
 
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
   });
 
   it("lights with the fire striker once it has fuel", () => {
@@ -34,7 +35,7 @@ describe("lighting a campfire", () => {
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(true);
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
     expect(game.client.getView().backpack.stick).toBe(0);
     // The striker is a tool, so lighting does not use it up.
     expect(game.client.getView().backpack.fireStriker).toBe(1);
@@ -49,26 +50,26 @@ describe("lighting a campfire", () => {
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
   });
 
   it("says the campfire can be lit only when it has fuel, is out, and the player has a fire striker", () => {
     const { game, campfire } = gameWithCampfire();
     give(game, "stick", 1);
     tend(game, campfire);
-    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
 
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
-    expect(game.client.getView().nearbyCampfire?.canLight).toBe(true);
+    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(true);
 
     give(game, "fireStriker", -1);
     game.step();
-    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
 
     give(game, "fireStriker", 1);
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(true);
-    expect(game.client.getView().nearbyCampfire?.canLight).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
+    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
   });
 
   it("does nothing when the player is out of reach", () => {
@@ -91,9 +92,9 @@ describe("fuelling a campfire", () => {
     tend(game, campfire);
 
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
-    const afterOne = game.client.getView().nearbyCampfire?.fuelLeft ?? 0;
+    const afterOne = nearbyOf(game.client.getView(), "campfire")?.fuelLeft ?? 0;
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
-    const afterTwo = game.client.getView().nearbyCampfire?.fuelLeft ?? 0;
+    const afterTwo = nearbyOf(game.client.getView(), "campfire")?.fuelLeft ?? 0;
 
     expect(game.client.getView().backpack.stick).toBe(0);
     expect(afterOne).toBeGreaterThan(0);
@@ -110,7 +111,7 @@ describe("fuelling a campfire", () => {
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
     expect(game.client.getView().backpack.bark).toBe(0);
-    expect(game.client.getView().nearbyCampfire).toMatchObject({ lit: true, fuelMinutes: 20 });
+    expect(nearbyOf(game.client.getView(), "campfire")).toMatchObject({ lit: true, fuelMinutes: 20 });
   });
 
   it("does nothing when the backpack holds none of that fuel", () => {
@@ -119,7 +120,7 @@ describe("fuelling a campfire", () => {
 
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "firewood" });
 
-    expect(game.client.getView().nearbyCampfire?.fuelLeft).toBe(0);
+    expect(nearbyOf(game.client.getView(), "campfire")?.fuelLeft).toBe(0);
   });
 
   it("stops taking fuel once it is full", () => {
@@ -129,8 +130,8 @@ describe("fuelling a campfire", () => {
 
     for (let i = 0; i < 20; i += 1) send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "firewood" });
 
-    expect(game.client.getView().nearbyCampfire?.fuelLeft).toBeLessThanOrEqual(1);
-    expect(game.client.getView().nearbyCampfire?.fuelLeft).toBeGreaterThan(0.8);
+    expect(nearbyOf(game.client.getView(), "campfire")?.fuelLeft).toBeLessThanOrEqual(1);
+    expect(nearbyOf(game.client.getView(), "campfire")?.fuelLeft).toBeGreaterThan(0.8);
     expect(game.client.getView().backpack.firewood).toBeGreaterThan(0);
   });
 });
@@ -142,16 +143,16 @@ describe("a lit campfire burning down", () => {
     tend(game, campfire);
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
-    const full = game.client.getView().nearbyCampfire?.fuelLeft ?? 0;
+    const full = nearbyOf(game.client.getView(), "campfire")?.fuelLeft ?? 0;
 
     // One game minute passes each real second.
     runSeconds(game, 10);
-    const later = game.client.getView().nearbyCampfire;
+    const later = nearbyOf(game.client.getView(), "campfire");
     expect(later?.lit).toBe(true);
     expect(later?.fuelLeft).toBeLessThan(full);
 
     runSeconds(game, 20);
-    expect(game.client.getView().nearbyCampfire).toMatchObject({ lit: false, fuelLeft: 0 });
+    expect(nearbyOf(game.client.getView(), "campfire")).toMatchObject({ lit: false, fuelLeft: 0 });
   });
 
   it("keeps a stick burning 20 game minutes and firewood longer", () => {
@@ -164,11 +165,11 @@ describe("a lit campfire burning down", () => {
     give(game, "firewood", 1);
     tend(game, campfire);
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "firewood" });
-    const before = game.client.getView().nearbyCampfire?.fuelLeft;
+    const before = nearbyOf(game.client.getView(), "campfire")?.fuelLeft;
 
     send(game, { type: "skipTime", hours: 3 });
 
-    expect(game.client.getView().nearbyCampfire?.fuelLeft).toBe(before);
+    expect(nearbyOf(game.client.getView(), "campfire")?.fuelLeft).toBe(before);
   });
 
   it("can be lit again after it goes out, once it has fresh fuel", () => {
@@ -179,12 +180,12 @@ describe("a lit campfire burning down", () => {
     send(game, { type: "addFuel", campfireId: id, fuel: "stick" });
     send(game, { type: "lightCampfire", campfireId: id });
     send(game, { type: "skipTime", hours: 1 });
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
 
     send(game, { type: "addFuel", campfireId: id, fuel: "stick" });
     send(game, { type: "lightCampfire", campfireId: id });
 
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(true);
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
+import { nearbyOf } from "./api";
 import type { Entity } from "./entities";
 import { FOUNDATION_DECK_LIFT_METRES, foundationDeckTop, foundationLegs } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
@@ -141,7 +142,7 @@ describe("delivering debarked logs to a blueprint", () => {
     const blueprint = foundationBlueprintNearPlayer(game, 8);
     deliverLogs(game, blueprint, 2);
 
-    expect(game.client.getView().nearbyBlueprint).toEqual({
+    expect(nearbyOf(game.client.getView(), "blueprint")).toEqual({
       id: idOf(game, blueprint),
       structure: "foundation",
       progress: 0,

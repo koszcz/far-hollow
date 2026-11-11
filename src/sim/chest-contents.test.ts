@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BackpackContent, Command } from "./api";
+import { nearbyOf } from "./api";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
 import { readSave, SAVE_VERSION, writeSave } from "./save";
@@ -10,11 +11,11 @@ describe("opening a chest", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
     walkAway(game);
-    expect(game.client.getView().openChest).toBeNull();
+    expect(nearbyOf(game.client.getView(), "openChest")).toBeNull();
 
     open(game, chest);
 
-    expect(game.client.getView().openChest).toEqual({ id: idOf(game, chest), contents: {}, weight: 0, weightLimit: 60 });
+    expect(nearbyOf(game.client.getView(), "openChest")).toEqual({ id: idOf(game, chest), contents: {}, weight: 0, weightLimit: 60 });
   });
 
   it("closes when the player walks away, and stays closed when they come back", () => {
@@ -24,12 +25,12 @@ describe("opening a chest", () => {
 
     const player = onlyPlayer(game);
     send(game, { type: "walkTo", x: player.position.x - 15, z: player.position.z });
-    expect(game.client.getView().openChest).toBeNull();
+    expect(nearbyOf(game.client.getView(), "openChest")).toBeNull();
     stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
     send(game, { type: "walkTo", x: chest.position.x + 1.1, z: chest.position.z });
     stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
 
-    expect(game.client.getView().openChest).toBeNull();
+    expect(nearbyOf(game.client.getView(), "openChest")).toBeNull();
   });
 
   it("closes for good once the player is out of reach, even if nothing else they did closed it", () => {
@@ -42,11 +43,11 @@ describe("opening a chest", () => {
     // Something moves the player away without starting a new task, as waking at the respawn point after a collapse does.
     player.position.x -= 10;
     game.step();
-    expect(game.client.getView().openChest).toBeNull();
+    expect(nearbyOf(game.client.getView(), "openChest")).toBeNull();
     Object.assign(player.position, beside);
     game.step();
 
-    expect(game.client.getView().openChest).toBeNull();
+    expect(nearbyOf(game.client.getView(), "openChest")).toBeNull();
   });
 
   it("moves nothing while the chest is closed", () => {
@@ -72,12 +73,12 @@ describe("moving one thing", () => {
 
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "stick", all: false });
     expect(game.client.getView().backpack.stick).toBe(2);
-    expect(game.client.getView().openChest?.contents).toEqual({ stick: 1 });
-    expect(game.client.getView().openChest?.weight).toBe(0.5);
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ stick: 1 });
+    expect(nearbyOf(game.client.getView(), "openChest")?.weight).toBe(0.5);
 
     send(game, { type: "takeFromChest", chestId: idOf(game, chest), content: "stick", all: false });
     expect(game.client.getView().backpack.stick).toBe(3);
-    expect(game.client.getView().openChest?.contents).toEqual({});
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({});
   });
 
   it("moves tools and food as well as materials", () => {
@@ -89,7 +90,7 @@ describe("moving one thing", () => {
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "axe", all: false });
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "berries", all: false });
 
-    expect(game.client.getView().openChest?.contents).toEqual({ axe: 1, berries: 1 });
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ axe: 1, berries: 1 });
     expect(game.client.getView().backpack.axe ?? 0).toBe(0);
   });
 });
@@ -104,7 +105,7 @@ describe("moving all of a kind", () => {
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "stick", all: true });
 
     expect(game.client.getView().backpack.stick ?? 0).toBe(0);
-    expect(game.client.getView().openChest?.contents).toEqual({ stick: 7 });
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ stick: 7 });
   });
 
   it("takes as many of a kind as fit in the backpack, and leaves the rest in the chest", () => {
@@ -118,7 +119,7 @@ describe("moving all of a kind", () => {
     send(game, { type: "takeFromChest", chestId: idOf(game, chest), content: "firewood", all: true });
 
     expect(game.client.getView().backpack.firewood).toBe(9);
-    expect(game.client.getView().openChest?.contents).toEqual({ firewood: 21 });
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ firewood: 21 });
   });
 });
 
@@ -131,7 +132,7 @@ describe("the chest's weight limit", () => {
 
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "firewood", all: true });
 
-    expect(game.client.getView().openChest).toMatchObject({ contents: { firewood: 40 }, weight: 60, weightLimit: 60 });
+    expect(nearbyOf(game.client.getView(), "openChest")).toMatchObject({ contents: { firewood: 40 }, weight: 60, weightLimit: 60 });
     expect(game.client.getView().backpack.firewood).toBe(5);
   });
 
@@ -145,7 +146,7 @@ describe("the chest's weight limit", () => {
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "stick", all: false });
 
     expect(game.client.getView().backpack.stick).toBe(1);
-    expect(game.client.getView().openChest?.contents).toEqual({ firewood: 40 });
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ firewood: 40 });
     expect(game.client.getView().notice).toBe("chestFull");
   });
 
@@ -158,7 +159,7 @@ describe("the chest's weight limit", () => {
 
     send(game, { type: "takeFromChest", chestId: idOf(game, chest), content: "firewood", all: false });
 
-    expect(game.client.getView().openChest?.contents).toEqual({ firewood: 1 });
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ firewood: 1 });
     expect(game.client.getView().notice).toBe("backpackFull");
   });
 
@@ -171,7 +172,7 @@ describe("the chest's weight limit", () => {
       send(game, { type: "putInChest", chestId: idOf(game, chest), content: log as BackpackContent, all: true });
     }
 
-    expect(game.client.getView().openChest?.contents).toEqual({});
+    expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({});
   });
 });
 

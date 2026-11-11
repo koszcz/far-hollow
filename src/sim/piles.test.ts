@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { nearbyOf } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { PILES_SAVE_VERSION, readSave, SAVE_VERSION, STICKS_ON_GROUND_SAVE_VERSION, writeSave } from "./save";
@@ -100,7 +101,7 @@ describe("dropping things from the backpack", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "dropFromBackpack", content: "bedroll" });
     expect(game.entities.with("bedroll").size).toBe(0);
-    expect(game.client.getView().nearbyBedroll).toBeNull();
+    expect(nearbyOf(game.client.getView(), "bedroll")).toBeNull();
 
     giveBackpack(game, { bedroll: 1 });
     send(game, { type: "layBedroll" });
@@ -252,13 +253,13 @@ describe("picking up piles", () => {
 describe("seeing a pile", () => {
   it("shows the pile within the player's reach and how many things it holds", () => {
     const game = createGame({ seed: 42 });
-    expect(game.client.getView().nearbyPile).toBeNull();
+    expect(nearbyOf(game.client.getView(), "pile")).toBeNull();
     giveBackpack(game, { bark: 7 });
     send(game, { type: "dropFromBackpack", content: "bark" });
 
-    expect(game.client.getView().nearbyPile).toEqual({ id: idOf(game, onlyPile(game)), content: "bark", count: 7 });
+    expect(nearbyOf(game.client.getView(), "pile")).toEqual({ id: idOf(game, onlyPile(game)), content: "bark", count: 7 });
     walkAway(game);
-    expect(game.client.getView().nearbyPile).toBeNull();
+    expect(nearbyOf(game.client.getView(), "pile")).toBeNull();
   });
 });
 

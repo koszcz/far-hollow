@@ -1,4 +1,4 @@
-import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PileView, PlayerAction } from "./api";
+import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, NearbyThing, NearbyViews, PileView, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, type Activity } from "./activity";
@@ -167,12 +167,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       craftMenu: craftMenu(),
       action: currentAction(),
       carrying: player.carrying ?? null,
-      nearbyCampfire: nearbyCampfire(),
-      nearbyBedroll: nearbyBedroll(),
-      nearbyPile: nearbyPile(),
-      nearbyWoodpile: woodpiles.nearby() ?? null,
-      openChest: chests.opened() ?? null,
-      nearbyBlueprint: building.nearby() ?? null,
+      nearby: nearbyThings(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
         thirst: player.needs.thirst.level,
@@ -188,6 +183,21 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   function showNotice(kind: GameNotice): void {
     notice = { kind, untilMinutes: clock.minutes + NOTICE_MINUTES[kind] };
+  }
+
+  /** Each thing within the player's reach that the HUD shows a panel for, in the order the HUD shows them. */
+  function nearbyThings(): readonly NearbyThing[] {
+    const things: NearbyThing[] = [];
+    const add = <Kind extends NearbyThing["kind"]>(kind: Kind, view: NearbyViews[Kind] | null | undefined): void => {
+      if (view !== null && view !== undefined) things.push(Object.freeze({ kind, view }) as NearbyThing);
+    };
+    add("campfire", nearbyCampfire());
+    add("woodpile", woodpiles.nearby());
+    add("bedroll", nearbyBedroll());
+    add("pile", nearbyPile());
+    add("blueprint", building.nearby());
+    add("openChest", chests.opened());
+    return Object.freeze(things);
   }
 
   function nearbyCampfire(): CampfireView | null {

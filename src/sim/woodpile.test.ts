@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BackpackContent, CarriedLog, Command } from "./api";
+import { nearbyOf } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
@@ -46,11 +47,11 @@ describe("stacking wood on a woodpile", () => {
     const game = createGame({ seed: 42 });
     const woodpile = buildWoodpile(game);
     walkAway(game);
-    expect(game.client.getView().nearbyWoodpile).toBeNull();
+    expect(nearbyOf(game.client.getView(), "woodpile")).toBeNull();
 
     tend(game, woodpile);
 
-    expect(game.client.getView().nearbyWoodpile).toEqual({
+    expect(nearbyOf(game.client.getView(), "woodpile")).toEqual({
       id: idOf(game, woodpile), contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20,
     });
   });
@@ -67,7 +68,7 @@ describe("stacking wood on a woodpile", () => {
 
     expect(woodpile.woodpile).toEqual({ log: 1, debarkedLog: 1, firewood: 0 });
     expect(game.client.getView().carrying).toBeNull();
-    expect(game.client.getView().nearbyWoodpile?.total).toBe(2);
+    expect(nearbyOf(game.client.getView(), "woodpile")?.total).toBe(2);
   });
 
   it("stacks nothing when the player carries a different kind of log, or none", () => {
@@ -124,7 +125,7 @@ describe("the woodpile's limit", () => {
 
     expect(woodpile.woodpile).toEqual({ log: 6, debarkedLog: 6, firewood: 8 });
     expect(game.client.getView().backpack.firewood).toBe(2);
-    expect(game.client.getView().nearbyWoodpile?.total).toBe(20);
+    expect(nearbyOf(game.client.getView(), "woodpile")?.total).toBe(20);
   });
 
   it("keeps the log on the player's shoulder when the woodpile is full", () => {
@@ -242,7 +243,7 @@ describe("saving woodpiles", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(loaded.game.client.getView().nearbyWoodpile?.contents).toEqual({ log: 1, debarkedLog: 2, firewood: 3 });
+    expect(nearbyOf(loaded.game.client.getView(), "woodpile")?.contents).toEqual({ log: 1, debarkedLog: 2, firewood: 3 });
   });
 
   it("turns away a save whose woodpile holds a broken count", () => {

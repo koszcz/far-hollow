@@ -163,18 +163,11 @@ export interface GameView {
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
   readonly carrying: CarriedLog | null;
-  /** The campfire within the player's reach, or null if none is. */
-  readonly nearbyCampfire: CampfireView | null;
-  /** The laid bedroll within the player's reach, or null if none is. */
-  readonly nearbyBedroll: BedrollView | null;
-  /** The pile nearest the player within reach, or null if none is. */
-  readonly nearbyPile: PileView | null;
-  /** The woodpile within the player's reach, or null if none is. */
-  readonly nearbyWoodpile: WoodpileView | null;
-  /** The chest the player has open, or null if none is. It closes when the player walks away. */
-  readonly openChest: ChestView | null;
-  /** The blueprint nearest the player within reach, or null if none is. */
-  readonly nearbyBlueprint: BlueprintView | null;
+  /**
+   * The things within the player's reach that the HUD shows a panel for, at most one of each kind, in the order the HUD shows them.
+   * `nearbyOf` finds one kind.
+   */
+  readonly nearby: readonly NearbyThing[];
   /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
   readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
   /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
@@ -323,6 +316,29 @@ export interface PileView {
   readonly content: BackpackContent;
   /** How many things the pile holds. */
   readonly count: number;
+}
+
+/**
+ * What the HUD shows for each kind of thing within the player's reach:
+ * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, and the nearest blueprint.
+ * A chest closes when the player walks away.
+ */
+export interface NearbyViews {
+  readonly campfire: CampfireView;
+  readonly bedroll: BedrollView;
+  readonly pile: PileView;
+  readonly woodpile: WoodpileView;
+  readonly openChest: ChestView;
+  readonly blueprint: BlueprintView;
+}
+
+/** One thing within the player's reach, with its kind. */
+export type NearbyThing = { readonly [Kind in keyof NearbyViews]: { readonly kind: Kind; readonly view: NearbyViews[Kind] } }[keyof NearbyViews];
+
+/** The thing of this kind within the player's reach, or null if none is. */
+export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: Kind): NearbyViews[Kind] | null {
+  const found = view.nearby.find((thing) => thing.kind === kind);
+  return found === undefined ? null : (found.view as NearbyViews[Kind]);
 }
 
 export interface PlayerAction {

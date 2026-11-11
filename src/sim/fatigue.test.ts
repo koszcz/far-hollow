@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
+import { nearbyOf } from "./api";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, needsSpeed } from "./needs";
 import { readSave, SAVE_VERSION, upgradeSave, writeSave } from "./save";
@@ -60,7 +61,7 @@ describe("the bedroll", () => {
 
     send(game, { type: "pickUpBedroll", bedrollId });
 
-    expect(game.client.getView().nearbyBedroll).toBeNull();
+    expect(nearbyOf(game.client.getView(), "bedroll")).toBeNull();
     expect(game.client.getView().backpack.bedroll).toBe(1);
     expect(game.entities.with("bedroll").entities).toHaveLength(0);
   });
@@ -77,7 +78,7 @@ describe("the bedroll", () => {
     const game = createGame({ seed: 42 });
     const bedrollId = layBedroll(game);
     walkTo(game, offsetFromPlayer(game, 8));
-    expect(game.client.getView().nearbyBedroll).toBeNull();
+    expect(nearbyOf(game.client.getView(), "bedroll")).toBeNull();
 
     send(game, { type: "pickUpBedroll", bedrollId });
     stepUntil(game, () => game.client.getView().backpack.bedroll === 1);
@@ -215,7 +216,7 @@ describe("saving fatigue and the bedroll", () => {
 /** Lays the bedroll at the player's feet and returns its entity id. */
 function layBedroll(game: Game): number {
   send(game, { type: "layBedroll" });
-  const id = game.client.getView().nearbyBedroll?.id;
+  const id = nearbyOf(game.client.getView(), "bedroll")?.id;
   if (id === undefined) throw new Error("No bedroll was laid");
   return id;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
+import { nearbyOf } from "./api";
 import { createEntityStore, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, passNeedsTime, type NeedConditions } from "./needs";
@@ -210,7 +211,7 @@ describe("sleeping under a roof", () => {
     const minutesAsleep = (game: Game) => {
       onlyPlayer(game).needs.fatigue.level = 0.5;
       send(game, { type: "layBedroll" });
-      const bedrollId = game.client.getView().nearbyBedroll?.id;
+      const bedrollId = nearbyOf(game.client.getView(), "bedroll")?.id;
       if (bedrollId === undefined) throw new Error("No bedroll");
       const before = minutesOf(game);
       send(game, { type: "sleep", bedrollId });

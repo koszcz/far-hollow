@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BackpackContent, Command } from "./api";
+import { nearbyOf } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
 import type { Entity } from "./entities";
 import { FUEL_BURN_MINUTES } from "./campfires";
@@ -69,16 +70,16 @@ describe("boiling water", () => {
     send(game, { type: "setPaused", paused: true });
     send(game, { type: "putPotOnFire", campfireId });
     expect(game.client.getView().backpack.potOfRiverWater).toBe(0);
-    expect(game.client.getView().nearbyCampfire?.pot).toEqual({ water: "river", boilProgress: 0 });
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot).toEqual({ water: "river", boilProgress: 0 });
 
     skipMinutes(game, BOIL_MINUTES / 2);
-    expect(game.client.getView().nearbyCampfire?.pot?.water).toBe("river");
-    expect(game.client.getView().nearbyCampfire?.pot?.boilProgress).toBeCloseTo(0.5, 1);
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot?.water).toBe("river");
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot?.boilProgress).toBeCloseTo(0.5, 1);
     skipMinutes(game, BOIL_MINUTES / 2 + 1);
 
-    expect(game.client.getView().nearbyCampfire?.pot).toEqual({ water: "boiled", boilProgress: 1 });
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot).toEqual({ water: "boiled", boilProgress: 1 });
     send(game, { type: "takePotOffFire", campfireId });
-    expect(game.client.getView().nearbyCampfire?.pot).toBeNull();
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot).toBeNull();
     expect(game.client.getView().backpack).toMatchObject({ potOfRiverWater: 0, potOfBoiledWater: 1 });
   });
 
@@ -89,8 +90,8 @@ describe("boiling water", () => {
     send(game, { type: "putPotOnFire", campfireId });
 
     skipMinutes(game, BOIL_MINUTES * 2);
-    expect(game.client.getView().nearbyCampfire?.lit).toBe(false);
-    expect(game.client.getView().nearbyCampfire?.pot?.water).toBe("river");
+    expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot?.water).toBe("river");
 
     send(game, { type: "takePotOffFire", campfireId });
     expect(game.client.getView().backpack).toMatchObject({ potOfRiverWater: 1 });
@@ -102,7 +103,7 @@ describe("boiling water", () => {
     give(empty.game, "potOfRiverWater", -1);
     give(empty.game, "pot", 1);
     send(empty.game, { type: "putPotOnFire", campfireId: empty.campfireId });
-    expect(empty.game.client.getView().nearbyCampfire?.pot).toBeNull();
+    expect(nearbyOf(empty.game.client.getView(), "campfire")?.pot).toBeNull();
     expect(empty.game.client.getView().backpack.pot).toBe(1);
 
     const unlit = gameWithLitCampfire();
@@ -110,7 +111,7 @@ describe("boiling water", () => {
     if (campfire === undefined) throw new Error("No campfire");
     campfire.lit = false;
     send(unlit.game, { type: "putPotOnFire", campfireId: unlit.campfireId });
-    expect(unlit.game.client.getView().nearbyCampfire?.pot).toBeNull();
+    expect(nearbyOf(unlit.game.client.getView(), "campfire")?.pot).toBeNull();
     expect(unlit.game.client.getView().backpack.potOfRiverWater).toBe(1);
   });
 });
@@ -170,7 +171,7 @@ describe("saving the pot", () => {
     const loaded = saveAndLoad(game);
 
     expect(loaded.entities.entity(campfireId)?.potOnFire).toEqual(game.entities.entity(campfireId)?.potOnFire);
-    expect(loaded.client.getView().nearbyCampfire?.pot).toEqual(game.client.getView().nearbyCampfire?.pot);
+    expect(nearbyOf(loaded.client.getView(), "campfire")?.pot).toEqual(nearbyOf(game.client.getView(), "campfire")?.pot);
   });
 });
 
@@ -204,7 +205,7 @@ function gameWithLitCampfire(fuel: "stick" | "firewood" = "firewood"): { game: G
   give(game, fuel, 1);
   send(game, { type: "addFuel", campfireId, fuel });
   send(game, { type: "lightCampfire", campfireId });
-  if (game.client.getView().nearbyCampfire?.lit !== true) throw new Error("The campfire did not light");
+  if (nearbyOf(game.client.getView(), "campfire")?.lit !== true) throw new Error("The campfire did not light");
   return { game, campfireId };
 }
 

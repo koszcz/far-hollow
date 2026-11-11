@@ -141,7 +141,7 @@ export function createSceneRenderer(
   scene.add(bedrollMeshes.group);
   const chestMeshes = createChestMeshes(entities);
   scene.add(chestMeshes.group);
-  const pileMeshes = createPileMeshes(entities);
+  const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
   scene.add(pileMeshes.group);
   const barkMeshes = createBarkMeshes(entities);
   scene.add(barkMeshes.group);

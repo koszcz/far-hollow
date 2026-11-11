@@ -55,8 +55,12 @@ function curvedSheet(radius: number, length: number, wrap: number, z: number): T
   return geometry;
 }
 
-/** The strip and its curl, each drawn twice: once for the outer bark, once for the pale inner face. */
-function barkParts(): { geometry: THREE.BufferGeometry; material: THREE.Material }[] {
+/**
+ * The strip and its curl, each drawn twice: once for the outer bark, once for the pale inner face.
+ * The strip lies along z, centred on it, resting on y = 0, with the curl at +z. pile-meshes.ts reuses it for piles of bark.
+ * Each call makes new geometry and materials. The caller disposes of them.
+ */
+export function barkParts(): { geometry: THREE.BufferGeometry; material: THREE.Material }[] {
   const strip = curvedSheet(STRIP_RADIUS_METRES, STRIP_LENGTH_METRES, STRIP_WRAP, 0);
   const curl = curvedSheet(CURL_RADIUS_METRES, CURL_LENGTH_METRES, CURL_WRAP, STRIP_LENGTH_METRES / 2 + CURL_LENGTH_METRES / 2 - 0.02);
   const outer = new THREE.MeshStandardMaterial({ color: OUTER_COLOUR, roughness: 0.95, flatShading: true, side: THREE.FrontSide });

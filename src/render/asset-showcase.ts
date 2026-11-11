@@ -475,25 +475,42 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
     },
   },
+  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Front row: the tools and a pot.
+  // One view shows them all. The others come close to the wood and bark, the tools, and the food.
   pile: {
-    radius: 2.6,
-    focus: { x: 0, y: 0.1, z: 0.7 },
-    shots: FOUR_ANGLES,
-    // Back row: one of each long thing, an axe, and a handful of berries. Middle row: many of each. Front row: tools, mushrooms, and pots.
+    radius: 3.2,
+    focus: { x: 0, y: 0.1, z: 0.5 },
+    shots: [
+      { label: "all piles", yaw: 0, pitch: 35 },
+      { label: "firewood and bark, one and many", yaw: 25, pitch: 30, radius: 1.1, focus: { x: -1.35, y: 0.1, z: -0.1 } },
+      { label: "axe, knife, drawknife, fire strikers", yaw: 0, pitch: 55, radius: 0.75, focus: { x: -0.2, y: 0, z: 1.8 } },
+      { label: "berries and mushrooms, one and many", yaw: -20, pitch: 40, radius: 0.85, focus: { x: 0.45, y: 0.05, z: 0.1 } },
+    ],
     build({ place }) {
-      const row = (z: number, piles: readonly NonNullable<Entity["pile"]>[]): void => {
-        piles.forEach((pile, index) => place((index - (piles.length - 1) / 2) * 0.9, z, { pile }));
+      const row = (z: number, piles: readonly NonNullable<Entity["pile"]>[], spacing = 0.9): void => {
+        piles.forEach((pile, index) => place((index - (piles.length - 1) / 2) * spacing, z, { pile }));
       };
-      row(-0.8, [{ content: "stick", count: 1 }, { content: "firewood", count: 1 }, { content: "bark", count: 1 }, { content: "axe", count: 1 }, { content: "berries", count: 1 }]);
-      row(0.8, [{ content: "stick", count: 12 }, { content: "firewood", count: 12 }, { content: "bark", count: 6 }, { content: "berries", count: 8 }]);
-      row(2.2, [
+      row(-0.8, [
+        { content: "firewood", count: 1 },
+        { content: "bark", count: 1 },
+        { content: "berries", count: 1 },
+        { content: "mushroom", count: 1 },
+        { content: "potOfBoiledWater", count: 1 },
+      ]);
+      row(0.6, [
+        { content: "firewood", count: 12 },
+        { content: "bark", count: 12 },
+        { content: "berries", count: 8 },
+        { content: "mushroom", count: 5 },
+        { content: "bark", count: 4 },
+      ]);
+      row(1.8, [
+        { content: "axe", count: 1 },
         { content: "knife", count: 1 },
         { content: "drawknife", count: 1 },
         { content: "fireStriker", count: 2 },
-        { content: "mushroom", count: 5 },
         { content: "pot", count: 1 },
-        { content: "potOfBoiledWater", count: 1 },
-      ]);
+      ], 0.45);
     },
   },
   "fire-effect": {
@@ -834,7 +851,7 @@ export function showAsset(
   const bark = createBarkMeshes(store);
   const woodpiles = createWoodpileMeshes(store, shapes.log);
   const chests = createChestMeshes(store);
-  const piles = createPileMeshes(store);
+  const piles = createPileMeshes(store, shapes.mushrooms);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
   scene.add(

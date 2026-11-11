@@ -28,6 +28,19 @@ describe("building a woodpile", () => {
   });
 });
 
+describe("a finished woodpile", () => {
+  it("blocks walking on the ground it covers", () => {
+    const game = createGame({ seed: 42 });
+    const woodpile = buildWoodpile(game);
+    walkAway(game);
+
+    // A woodpile sits on a grid point, where four walk-map cells meet. It covers a corner of each.
+    for (const [dx, dz] of [[0.25, 0.25], [-0.25, 0.25], [0.25, -0.25], [-0.25, -0.25]] as const) {
+      expect(isWalkable(game.walkMap, { x: woodpile.position.x + dx, z: woodpile.position.z + dz })).toBe(false);
+    }
+  });
+});
+
 describe("stacking wood on a woodpile", () => {
   it("walks the player to a woodpile they click, and shows it as the nearby woodpile", () => {
     const game = createGame({ seed: 42 });

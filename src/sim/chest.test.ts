@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, writeSave } from "./save";
+import { CHESTS_BLOCK_WALKING_SAVE_VERSION, readSave, writeSave } from "./save";
 import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
@@ -120,6 +120,50 @@ describe("where a chest cannot go", () => {
     for (const structure of ["foundation", "campfire", "leanTo"] as const) {
       expect(game.client.checkPlacement(structure, square, 0).allowed).toBe(false);
     }
+  });
+});
+
+describe("a finished chest", () => {
+  it("blocks walking on the ground it covers, wherever it stands", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    // One chest in the middle of a walk-map cell, and one where four cells meet.
+    for (const at of [square, { x: square.x + 1.5, z: square.z + 1.5 }]) {
+      send(game, place("chest", at.x, at.z, 0));
+      buildFully(game, onlyBlueprint(game));
+    }
+
+    for (const chest of game.entities.with("chest", "position")) {
+      for (const [dx, dz] of [[0, 0], [0.4, 0.2], [-0.4, 0.2], [0.4, -0.2], [-0.4, -0.2]] as const) {
+        expect(isWalkable(game.walkMap, { x: chest.position.x + dx, z: chest.position.z + dz })).toBe(false);
+      }
+    }
+  });
+});
+
+describe("upgrading older saves", () => {
+  it("makes chests and woodpiles from a save before they blocked walking block it", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    send(game, place("chest", square.x, square.z, 0));
+    buildFully(game, onlyBlueprint(game));
+    send(game, place("woodpile", square.x + 2, square.z + 2, 0));
+    buildFully(game, onlyBlueprint(game));
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity }[] };
+    save.version = CHESTS_BLOCK_WALKING_SAVE_VERSION - 1;
+    for (const { components } of save.entities) {
+      if (components.chest !== undefined) delete components.blocksWalking;
+      if (components.woodpile !== undefined) components.blocksWalking = { radius: 0.6 };
+    }
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save did not load");
+
+    const chest = loaded.game.entities.with("chest", "position").first;
+    const woodpile = loaded.game.entities.with("woodpile", "position").first;
+    if (chest === undefined || woodpile === undefined) throw new Error("Missing a chest or woodpile");
+    expect(isWalkable(loaded.game.walkMap, chest.position)).toBe(false);
+    expect(isWalkable(loaded.game.walkMap, { x: woodpile.position.x + 0.25, z: woodpile.position.z + 0.25 })).toBe(false);
   });
 });
 

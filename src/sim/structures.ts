@@ -279,8 +279,11 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
 export const WOODPILE_BUILD_SECONDS = 3;
 /** A woodpile covers this much ground either side of its centre, in metres: about one log's length across. */
 const WOODPILE_HALF_METRES = 0.5;
-/** A finished woodpile stops the player walking within this many metres of its centre. */
-const WOODPILE_WALK_BLOCK_RADIUS_METRES = 0.6;
+/**
+ * A finished woodpile stops the player walking within this many metres of its centre.
+ * It sits on a grid point, where four 1 m walk-map cells meet, so this reaches the centres of all four.
+ */
+export const WOODPILE_WALK_BLOCK_RADIUS_METRES = 0.75;
 
 /**
  * A woodpile: logs, debarked logs, and firewood stacked on two rails on the ground. It costs nothing.
@@ -311,6 +314,11 @@ export const CHEST_WIDTH_METRES = 0.9;
 export const CHEST_DEPTH_METRES = 0.55;
 /** A stump this close to a chest, in metres, is in its way. */
 const CHEST_STUMP_MARGIN_METRES = 0.3;
+/**
+ * A finished chest stops the player walking within this many metres of its centre.
+ * It is placed freely, so this reaches the centre of every 1 m walk-map cell it covers, even where four cells meet.
+ */
+export const CHEST_WALK_BLOCK_RADIUS_METRES = 0.71;
 
 /**
  * A chest: the first piece of furniture. It is placed freely, wherever the mouse points, and R turns it.
@@ -346,7 +354,7 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
     }
     return isClearOfTreesAndPlans(entities, rect, { roofs: false });
   },
-  finish: () => ({ chest: { contents: {} } }),
+  finish: () => ({ chest: { contents: {} }, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } }),
 };
 
 /** The building-grid square that holds a spot. */

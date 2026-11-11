@@ -4,6 +4,7 @@ import { readClock } from "./clock";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import { droppedStickSpot } from "./piles";
+import { CHEST_WALK_BLOCK_RADIUS_METRES, WOODPILE_WALK_BLOCK_RADIUS_METRES } from "./structures";
 import { createGame, type Game, type GameProgress } from "./game";
 import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
@@ -27,6 +28,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   allowPiles,
   fillChests,
   scatterDroppedSticks,
+  blockWalkingAtChestsAndWoodpiles,
 ];
 
 /** The version of the save format this code writes. */
@@ -34,6 +36,8 @@ export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
 
 /** The first save version that can hold piles. */
 export const PILES_SAVE_VERSION = SAVE_UPGRADES.indexOf(allowPiles) + 2;
+/** The first save version in which finished chests and woodpiles block walking. */
+export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalkingAtChestsAndWoodpiles) + 2;
 /** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
 export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 
@@ -223,6 +227,21 @@ function scatterDroppedSticks(save: Readonly<Record<string, unknown>>): Record<s
       entities.push({ id, components: { stick: true, position: { ...droppedStickSpot(position, index), y: position.y } } });
     }
   }
+  return { ...save, entities };
+}
+
+/**
+ * Version 12 to 13: a finished chest blocks walking, and a finished woodpile blocks the ground it covers.
+ * Before then a chest blocked nothing, and a woodpile's reach was too short to block any walk-map cell.
+ */
+function blockWalkingAtChestsAndWoodpiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    if (components?.chest !== undefined) return { ...(entity as object), components: { ...components, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } } };
+    if (components?.woodpile !== undefined) return { ...(entity as object), components: { ...components, blocksWalking: { radius: WOODPILE_WALK_BLOCK_RADIUS_METRES } } };
+    return entity;
+  });
   return { ...save, entities };
 }
 

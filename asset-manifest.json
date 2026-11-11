@@ -322,12 +322,13 @@
         "src/render/pot-shape.ts",
         "src/render/campfire-meshes.ts"
       ],
-      "description": "The player's pot, shown empty, full of water, and steaming while it boils on a campfire.",
+      "description": "The player's cast-iron pot with a rolled rim and a wire handle, shown empty, full of water, and bubbling and steaming while it boils on a campfire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/settling-in/issues/06-boil-water.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     }
   ]

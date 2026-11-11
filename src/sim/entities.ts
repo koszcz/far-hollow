@@ -47,6 +47,15 @@ export interface Entity {
   stickPickUpTask?: { stickId: number };
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
+  /**
+   * Marks a building piece the player has placed but not finished. Its position is the piece's centre.
+   * `progress` runs from 0 to 1. `sticksSpent` counts the sticks construction has used so far.
+   */
+  blueprint?: { piece: "campfire"; progress: number; sticksSpent: number };
+  /** The blueprint the player is walking to or building, given by its entity id. */
+  buildTask?: { blueprintId: number };
+  /** Marks a finished campfire. Its position is the centre of the fire. */
+  campfire?: { lit: boolean };
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -79,6 +88,16 @@ export function logEntities(store: EntityStore) {
 /** Sticks lying on the forest floor. Sticks in the backpack are not entities. */
 export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
+}
+
+/** Building pieces placed but not finished. */
+export function blueprintEntities(store: EntityStore) {
+  return store.with("blueprint", "position");
+}
+
+/** Finished campfires. */
+export function campfireEntities(store: EntityStore) {
+  return store.with("campfire", "position");
 }
 
 /** The player. There is only ever one. */

@@ -3,6 +3,7 @@ import { movingEntities, type EntityStore } from "../sim/entities";
 import { terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
+import { createCampfireMeshes } from "./campfire-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createSkyLighting } from "./sky-lighting";
@@ -14,12 +15,14 @@ const CAMERA_FAR_METRES = 4000;
 /** The player turns to face where they walk only when they move further than this in one frame, in metres. */
 const TURN_MIN_TRAVEL_METRES = 0.001;
 
-/** What is under a point on the screen. Trees, logs, and sticks are given by their entity id. */
+/** What is under a point on the screen. Everything but the ground is given by its entity id. */
 export type ScenePick =
   | { kind: "ground"; spot: GroundPoint }
   | { kind: "tree"; id: number }
   | { kind: "log"; id: number }
-  | { kind: "stick"; id: number };
+  | { kind: "stick"; id: number }
+  | { kind: "blueprint"; id: number }
+  | { kind: "campfire"; id: number };
 
 export interface SceneRenderer {
   /** Draws one frame. alpha says how far the frame is between the last two logic steps. */
@@ -63,6 +66,8 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const forestMeshes = createForestMeshes(entities);
   scene.add(forestMeshes.group);
+  const campfireMeshes = createCampfireMeshes(entities);
+  scene.add(campfireMeshes.group);
 
   let drawnWidth = 0;
   let drawnHeight = 0;
@@ -122,6 +127,7 @@ export function createSceneRenderer(
       matchCanvasSize();
       skyLighting.update(readHourOfDay());
       forestMeshes.update(nowSeconds);
+      campfireMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -140,15 +146,18 @@ export function createSceneRenderer(
       raycaster.setFromCamera(pointer, camera);
       const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
       const forest = forestMeshes.pick(raycaster);
-      if (forest !== undefined && (ground === undefined || forest.distance <= ground.distance)) {
-        const id = entities.id(forest.hit.entity);
-        if (id !== undefined) return { kind: forest.hit.kind, id };
+      const campfire = campfireMeshes.pick(raycaster);
+      const nearest = campfire !== undefined && (forest === undefined || campfire.distance < forest.distance) ? campfire : forest;
+      if (nearest !== undefined && (ground === undefined || nearest.distance <= ground.distance)) {
+        const id = entities.id(nearest.hit.entity);
+        if (id !== undefined) return { kind: nearest.hit.kind, id };
       }
       return ground === undefined ? undefined : { kind: "ground", spot: { x: ground.point.x, z: ground.point.z } };
     },
     dispose() {
       valleyMeshes.dispose();
       forestMeshes.dispose();
+      campfireMeshes.dispose();
       playerMesh.dispose();
       renderer.dispose();
     },

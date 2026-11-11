@@ -11,5 +11,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .debug-overlay button { pointer-events: auto; margin-right: 4px; }
 .hud-action { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .hud-carrying { margin: 8px 0 0; }
+.hud-placing { margin: 8px 0 0; }
 .hud-backpack h2 { margin: 12px 0 4px; font-size: 14px; }
 .hud-backpack ul { margin: 0; padding-left: 18px; font-size: 13px; }

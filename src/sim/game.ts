@@ -1,11 +1,13 @@
 import type { Command, GameClient, GameView, PlayerAction } from "./api";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
+import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { createClock, readClock, type ClockStart } from "./clock";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
 import { createEntityStore, movingEntities, type EntityStore } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
+import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot } from "./walking";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
@@ -29,6 +31,8 @@ export interface Game {
   readonly entities: EntityStore;
   /** The valley's ground, river, and starting tree spots. These never change during a game. */
   readonly valley: Valley;
+  /** Which parts of the valley floor can be walked on. It updates itself as blockers are added and removed. */
+  readonly walkMap: WalkMap;
   /** Runs one fixed logic step. */
   step(): void;
   /** What the UI uses: it reads a GameView and sends commands. */
@@ -60,6 +64,7 @@ export function createGame({ seed }: GameOptions): Game {
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
   const gathering = createGathering(entities, walking);
+  const building = createBuilding(entities, walking, valley);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -79,12 +84,17 @@ export function createGame({ seed }: GameOptions): Game {
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
+      campfireStickCost: CAMPFIRE_STICK_COST,
       action: currentAction(),
       carrying: player.carrying ?? null,
     });
   }
 
   function currentAction(): PlayerAction | null {
+    if (player.buildTask !== undefined && player.walkPath === undefined) {
+      const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
+      if (blueprint !== undefined) return Object.freeze({ kind: "build", progress: blueprint.progress });
+    }
     if (player.splitTask !== undefined) {
       return Object.freeze({ kind: "split", progress: Math.min(1, player.splitTask.secondsDone / SPLIT_SECONDS) });
     }
@@ -97,6 +107,7 @@ export function createGame({ seed }: GameOptions): Game {
     chopping.cancel();
     carrying.cancel();
     gathering.cancel();
+    building.cancel();
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
@@ -126,6 +137,16 @@ export function createGame({ seed }: GameOptions): Game {
     dropLog: () => {
       carrying.drop();
     },
+    placeCampfire: (command) => {
+      building.placeCampfire({ x: command.x, z: command.z });
+    },
+    build: (command) => {
+      cancelTasks();
+      building.build(command.blueprintId);
+    },
+    stopBuilding: () => {
+      building.cancel();
+    },
     skipTime: (command) => {
       clock.skip(command.hours);
     },
@@ -148,6 +169,7 @@ export function createGame({ seed }: GameOptions): Game {
       chopping.step(STEP_MS / 1000);
       carrying.step();
       gathering.step(STEP_MS / 1000);
+      building.step(STEP_MS / 1000);
       clock.advance(STEP_MS);
       stepCount += 1;
     }
@@ -167,5 +189,5 @@ export function createGame({ seed }: GameOptions): Game {
     },
   };
 
-  return { entities, valley, step, client };
+  return { entities, valley, walkMap: walking.walkMap, step, client };
 }

@@ -35,6 +35,8 @@ export const strings = {
       campfire: "Campfire",
       leanTo: "Lean-to",
       foundation: "Foundation",
+      logWall: "Log wall",
+      doorFrame: "Door frame",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
@@ -43,6 +45,8 @@ export const strings = {
     },
     cost: (materials: readonly string[]) => materials.join(", "),
     placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
+    placingOnEdge: (structure: string) =>
+      `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
   },
   blueprint: {
     title: (structure: string) => `Blueprint: ${structure}`,

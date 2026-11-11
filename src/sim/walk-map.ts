@@ -3,7 +3,8 @@ import { groundDistance, type GroundPoint } from "./valley";
 /**
  * Which parts of the valley floor the player can walk on, as a square grid of cells.
  * Anything that blocks walking, such as a tree or the river, marks the cells it covers.
- * Each cell counts how many things block it, so removing one blocker never frees a cell that another still covers.
+ * A log wall instead marks the edge between two cells, so the player cannot step across it but can stand on either side.
+ * Each cell and edge counts how many things block it, so removing one blocker never frees one that another still covers.
  */
 export interface WalkMap {
   /** Width and depth of the square area the map covers, in metres. Its centre is at x = 0, z = 0. */
@@ -13,8 +14,19 @@ export interface WalkMap {
   readonly cellsPerSide: number;
   /** How many blockers cover each cell, row by row. Row 0 is the edge at z = -size / 2. */
   readonly blockerCounts: Uint8Array;
-  /** Goes up each time a cell changes between walkable and blocked. */
+  /**
+   * How many blockers cover each edge between two cells side by side, two for each cell, in the same order as the cells.
+   * The first is the edge on the cell's +x side, and the second the edge on its +z side.
+   */
+  readonly edgeBlockerCounts: Uint8Array;
+  /** Goes up each time a cell or edge changes between walkable and blocked. */
   version: number;
+}
+
+/** The edge between the cell that holds `from` and the cell beside it that holds `to`, across x or across z. */
+export interface WalkEdge {
+  readonly from: GroundPoint;
+  readonly to: GroundPoint;
 }
 
 export interface WalkMapOptions {
@@ -27,7 +39,38 @@ const DEFAULT_CELL_SIZE_METRES = 1;
 
 export function createWalkMap({ size, cellSize = DEFAULT_CELL_SIZE_METRES }: WalkMapOptions): WalkMap {
   const cellsPerSide = Math.ceil(size / cellSize);
-  return { size, cellSize, cellsPerSide, blockerCounts: new Uint8Array(cellsPerSide * cellsPerSide), version: 0 };
+  const cells = cellsPerSide * cellsPerSide;
+  return { size, cellSize, cellsPerSide, blockerCounts: new Uint8Array(cells), edgeBlockerCounts: new Uint8Array(cells * 2), version: 0 };
+}
+
+/** Marks each edge as blocked, so the player cannot step across it. Edges between cells that are not side by side are skipped. */
+export function blockEdges(map: WalkMap, edges: readonly WalkEdge[]): void {
+  changeEdges(map, edges, 1);
+}
+
+/** Undoes one earlier `blockEdges` with the same edges. */
+export function unblockEdges(map: WalkMap, edges: readonly WalkEdge[]): void {
+  changeEdges(map, edges, -1);
+}
+
+/**
+ * Whether the player can step from one cell straight into a neighbouring one, side by side or across a corner.
+ * The cell stepped into must be walkable, and no blocked edge may lie between them.
+ * Across a corner, both cells beside the corner must be walkable too, and all four edges at the corner open, so no step cuts a corner.
+ */
+export function canStep(map: WalkMap, from: number, to: number): boolean {
+  if (map.blockerCounts[to] !== 0) return false;
+  const side = map.cellsPerSide;
+  const dx = (to % side) - (from % side);
+  const dz = Math.floor(to / side) - Math.floor(from / side);
+  if (Math.abs(dx) > 1 || Math.abs(dz) > 1) return false;
+  if (dx === 0 || dz === 0) return isEdgeOpen(map, from, to);
+  const besideX = from + dx;
+  const besideZ = from + dz * side;
+  return (
+    map.blockerCounts[besideX] === 0 && map.blockerCounts[besideZ] === 0
+    && isEdgeOpen(map, from, besideX) && isEdgeOpen(map, besideX, to) && isEdgeOpen(map, from, besideZ) && isEdgeOpen(map, besideZ, to)
+  );
 }
 
 /** Marks every cell whose centre lies within `radius` of a spot as blocked. */
@@ -130,6 +173,34 @@ function changeSpots(map: WalkMap, spots: readonly GroundPoint[], change: 1 | -1
     const index = cellIndexAt(map, spot);
     if (index !== undefined) changeCell(map, index, change);
   }
+}
+
+function changeEdges(map: WalkMap, edges: readonly WalkEdge[], change: 1 | -1): void {
+  for (const { from, to } of edges) {
+    const a = cellIndexAt(map, from);
+    const b = cellIndexAt(map, to);
+    const index = a === undefined || b === undefined ? undefined : edgeIndex(map, a, b);
+    if (index === undefined) continue;
+    const before = map.edgeBlockerCounts[index] ?? 0;
+    const after = Math.max(0, before + change);
+    map.edgeBlockerCounts[index] = after;
+    if ((before === 0) !== (after === 0)) map.version += 1;
+  }
+}
+
+/** Whether no blocker covers the edge between two cells side by side. */
+function isEdgeOpen(map: WalkMap, a: number, b: number): boolean {
+  const index = edgeIndex(map, a, b);
+  return index !== undefined && map.edgeBlockerCounts[index] === 0;
+}
+
+/** Where the edge between two cells side by side is counted, or undefined if the cells are not side by side. */
+function edgeIndex(map: WalkMap, a: number, b: number): number | undefined {
+  const low = Math.min(a, b);
+  const high = Math.max(a, b);
+  if (high - low === 1 && high % map.cellsPerSide !== 0) return low * 2;
+  if (high - low === map.cellsPerSide) return low * 2 + 1;
+  return undefined;
 }
 
 function changeCell(map: WalkMap, index: number, change: 1 | -1): void {

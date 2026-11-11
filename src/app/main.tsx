@@ -82,13 +82,31 @@ function renderUi(placingCampfire: boolean): void {
 }
 renderUi(false);
 
+/** How long the loading screen takes to fade out. Matches the transition in style.css. */
+const LOADING_FADE_MS = 400;
+
+/**
+ * Fades out the loading screen, then removes it.
+ * A timer removes it, not `transitionend`, because background tabs pause transitions.
+ */
+function hideLoadingScreen(): void {
+  const loading = document.querySelector("#loading");
+  if (!loading) return;
+  loading.classList.add("done");
+  setTimeout(() => {
+    loading.remove();
+  }, LOADING_FADE_MS);
+}
+
 let lastFrameMs: number | undefined;
 function frame(nowMs: number): void {
+  const isFirstFrame = lastFrameMs === undefined;
   const elapsedMs = lastFrameMs === undefined ? 0 : nowMs - lastFrameMs;
   const { alpha } = loop.advance(elapsedMs);
   lastFrameMs = nowMs;
   cameraInput.update(elapsedMs / 1000);
   sceneRenderer.render(alpha);
+  if (isFirstFrame) hideLoadingScreen();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

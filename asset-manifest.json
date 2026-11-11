@@ -85,28 +85,33 @@
     },
     {
       "id": "player",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/player/barbarian.glb",
       "code": [
+        "src/render/player-model.ts",
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player: a low-poly, flat-shaded woodcutter with a big head and hands, a red plaid shirt with rolled sleeves, a mustard knit cap with a bobble, a bushy beard, chunky boots, and an axe. Knees and elbows bend.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "The player: KayKit's Barbarian, a chunky bearded woodcutter with a one-handed axe. Code hides his hood, cape, shield, mug, and big axe, and adds a light brown knit beanie with a folded cuff and a bobble.",
+      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. The beanie is built in code in this project",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "pending"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
       "id": "walk-animation",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/player/barbarian.glb",
       "code": [
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player's walk cycle. Each foot stays planted while the body passes over it, then the heel lifts onto the toe and the foot swings forward. The hips bob 4 cm and sway over the planted foot, the shoulders turn against the hips, and the arms swing with lagging elbows.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "The player's walk: KayKit's Running_A clip, played at the pace the player moves, so each foot stays planted while the body passes over it.",
+      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clip Running_A",
+      "license": "CC0 1.0",
       "approval": {
         "status": "approved",
         "by": "owner",
@@ -164,15 +169,16 @@
     },
     {
       "id": "chop-animation",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/player/barbarian.glb",
       "code": [
         "src/render/player-mesh.ts",
         "src/render/tree-fall.ts",
         "src/render/forest-meshes.ts"
       ],
-      "description": "Chopping motion of the player and the falling motion of a felled tree.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "Chopping motion of the player, KayKit's sideways 2H_Melee_Attack_Slice clip, and the falling motion of a felled tree, built in code.",
+      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clip 2H_Melee_Attack_Slice. The tree's fall is built in code in this project",
+      "license": "CC0 1.0",
       "approval": {
         "status": "approved",
         "by": "owner",
@@ -212,16 +218,18 @@
     },
     {
       "id": "split-animation",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/player/barbarian.glb",
       "code": [
         "src/render/player-mesh.ts"
       ],
-      "description": "Splitting motion of the player when splitting a log into firewood. Distinct from the chop animation.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "Splitting motion of the player when splitting a log into firewood: KayKit's overhead 2H_Melee_Attack_Chop clip. Distinct from the chop animation.",
+      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clip 2H_Melee_Attack_Chop",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

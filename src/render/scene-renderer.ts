@@ -10,6 +10,7 @@ import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
+import type { PlayerModel } from "./player-model";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
@@ -57,6 +58,7 @@ export interface SceneRenderer {
  * Rendering only reads the clock. It never changes it.
  * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
  * logShape is the loaded log, from loadLogShape. bushShape is the loaded berry bush, from loadBerryBushShape.
+ * playerModel is the loaded player, from loadPlayerModel.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
@@ -67,6 +69,7 @@ export function createSceneRenderer(
   stumpShape: StumpShape,
   logShape: LogShape,
   bushShape: BerryBushShape,
+  playerModel: PlayerModel,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -137,7 +140,7 @@ export function createSceneRenderer(
     hoverOutline.setViewSize(width, height);
   }
 
-  const playerMesh = createPlayerMesh(logShape);
+  const playerMesh = createPlayerMesh(playerModel, logShape);
   scene.add(playerMesh.group);
   skyLighting.addShadowCasters(playerMesh.group);
   /** Where the player is drawn this frame. The camera follows it. */
@@ -162,6 +165,7 @@ export function createSceneRenderer(
       playerMesh.setSplitting(nowSeconds);
       return;
     }
+    playerMesh.setSplitting(undefined);
     const tree = player.chopTask && player.walkPath === undefined ? entities.entity(player.chopTask.treeId) : undefined;
     if (tree?.position !== undefined) {
       playerMesh.setHeading(Math.atan2(tree.position.x - playerDrawn.x, tree.position.z - playerDrawn.z));

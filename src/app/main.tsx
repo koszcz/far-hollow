@@ -2,6 +2,7 @@ import { render } from "preact";
 import { attachCameraInput } from "../render/camera-input";
 import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/scene-renderer";
 import { loadLogShape } from "../render/log-shape";
+import { loadPlayerModel } from "../render/player-model";
 import { loadStumpShape } from "../render/stump-model";
 import { loadBerryBushShape } from "../render/berry-bush-model";
 import { loadTreeShapes } from "../render/tree-model";
@@ -126,7 +127,7 @@ const sceneRenderer = createSceneRenderer(
   game.valley,
   game.entities,
   () => game.client.getView().time.hourOfDay,
-  ...(await Promise.all([loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape()])),
+  ...(await Promise.all([loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadPlayerModel()])),
 );
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,

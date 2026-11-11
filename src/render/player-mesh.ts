@@ -1,5 +1,5 @@
 // Draws the player with the code-built placeholder shape approved in asset-manifest.json as "player".
-// The chopping swing is the code-built "chop-animation". The carried log is the code-built "logs" shape.
+// The chopping swing is the code-built "chop-animation". The splitting strike is the code-built "split-animation". The carried log is the code-built "logs" shape.
 import * as THREE from "three";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
 
@@ -14,6 +14,16 @@ const SHOULDER_LOG_SPOT = { x: -0.32, y: 1.45, z: 0 };
 const CHOP_SWINGS_PER_SECOND = 1.25;
 /** How far the player leans into each swing, in radians. */
 const CHOP_LEAN_RADIANS = 0.35;
+/** How many times a second the player strikes down at a log when splitting. Slower than chopping, because each strike is a full overhead lift. */
+const SPLIT_STRIKES_PER_SECOND = 0.8;
+/** Share of each splitting strike spent lifting the axe overhead. The rest is the fast drop onto the log. */
+const SPLIT_LIFT_SHARE = 0.7;
+/** How far the player leans back with the axe overhead, in radians. */
+const SPLIT_LIFT_LEAN_RADIANS = 0.4;
+/** How far the player bends forward at the end of the strike, in radians. */
+const SPLIT_STRIKE_LEAN_RADIANS = 0.55;
+/** How far the player dips at the knees as the axe lands, in metres. */
+const SPLIT_STRIKE_DIP_METRES = 0.18;
 
 export interface PlayerMesh {
   /** Place this at the player's feet. */
@@ -24,6 +34,8 @@ export interface PlayerMesh {
   setCarryingLog(carrying: boolean): void;
   /** Swings the player as if chopping. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setChopping(nowSeconds: number | undefined): void;
+  /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
+  setSplitting(nowSeconds: number | undefined): void;
   dispose(): void;
 }
 
@@ -57,12 +69,33 @@ export function createPlayerMesh(): PlayerMesh {
       shoulderLog.visible = carrying;
     },
     setChopping(nowSeconds) {
+      body.position.y = 0;
       if (nowSeconds === undefined) {
         body.rotation.x = 0;
         return;
       }
       // Lean back to raise the axe, then forward into the strike.
       body.rotation.x = Math.sin(nowSeconds * CHOP_SWINGS_PER_SECOND * Math.PI * 2) * CHOP_LEAN_RADIANS;
+    },
+    setSplitting(nowSeconds) {
+      if (nowSeconds === undefined) {
+        body.rotation.x = 0;
+        body.position.y = 0;
+        return;
+      }
+      // Unlike the steady to-and-fro of chopping, splitting is a slow lift overhead, then a sharp drop with a dip at the knees.
+      const phase = (nowSeconds * SPLIT_STRIKES_PER_SECOND) % 1;
+      if (phase < SPLIT_LIFT_SHARE) {
+        // Rise from the end of the last strike to leaning back with the axe overhead, easing in and out.
+        const lift = easeInOut(phase / SPLIT_LIFT_SHARE);
+        body.rotation.x = SPLIT_STRIKE_LEAN_RADIANS + (-SPLIT_LIFT_LEAN_RADIANS - SPLIT_STRIKE_LEAN_RADIANS) * lift;
+        body.position.y = -SPLIT_STRIKE_DIP_METRES * (1 - lift);
+      } else {
+        // Drop fast, speeding up into the log.
+        const strike = ((phase - SPLIT_LIFT_SHARE) / (1 - SPLIT_LIFT_SHARE)) ** 2;
+        body.rotation.x = -SPLIT_LIFT_LEAN_RADIANS + (SPLIT_STRIKE_LEAN_RADIANS + SPLIT_LIFT_LEAN_RADIANS) * strike;
+        body.position.y = -SPLIT_STRIKE_DIP_METRES * strike;
+      }
     },
     dispose() {
       bodyGeometry.dispose();
@@ -73,4 +106,9 @@ export function createPlayerMesh(): PlayerMesh {
       logMaterial.dispose();
     },
   };
+}
+
+/** Eases a value from 0 to 1 so it starts and ends slowly. */
+function easeInOut(t: number): number {
+  return t * t * (3 - 2 * t);
 }

@@ -104,8 +104,8 @@ export function createSceneRenderer(
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying === "log");
     if (player.splitTask !== undefined) {
-      // Splitting uses the same swing as chopping, aimed where the player already faces.
-      playerMesh.setChopping(nowSeconds);
+      // Splitting has its own overhead strike, aimed where the player already faces.
+      playerMesh.setSplitting(nowSeconds);
       return;
     }
     const tree = player.chopTask && player.walkPath === undefined ? entities.entity(player.chopTask.treeId) : undefined;

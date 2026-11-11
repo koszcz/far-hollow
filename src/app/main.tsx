@@ -1,5 +1,6 @@
 import { render } from "preact";
-import { createSceneRenderer } from "../render/scene-renderer";
+import { attachCameraInput } from "../render/camera-input";
+import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/scene-renderer";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
 import { createGame, STEP_MS } from "../sim/game";
 import { strings } from "../strings";
@@ -27,19 +28,34 @@ function chooseSeed(): number {
 }
 
 const game = createGame({ seed: chooseSeed() });
-const sceneRenderer = createSceneRenderer(requireElement("#scene", HTMLCanvasElement), game.valley, game.entities);
+const canvas = requireElement("#scene", HTMLCanvasElement);
+const sceneRenderer = createSceneRenderer(canvas, game.valley, game.entities);
+const cameraInput = attachCameraInput({
+  canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
+});
 const loop = createFixedStepLoop({
   stepMs: STEP_MS, maxStepsPerAdvance: MAX_STEPS_PER_FRAME, step: () => {
     game.step();
   },
 });
 
-render(<Hud client={game.client} />, requireElement("#ui", HTMLDivElement));
+render(
+  <Hud
+    client={game.client}
+    cameraFollow={sceneRenderer.cameraRig.followEnabled}
+    onCameraFollowChange={(enabled) => {
+      sceneRenderer.cameraRig.setFollowEnabled(enabled);
+    }}
+  />,
+  requireElement("#ui", HTMLDivElement),
+);
 
 let lastFrameMs: number | undefined;
 function frame(nowMs: number): void {
-  const { alpha } = loop.advance(lastFrameMs === undefined ? 0 : nowMs - lastFrameMs);
+  const elapsedMs = lastFrameMs === undefined ? 0 : nowMs - lastFrameMs;
+  const { alpha } = loop.advance(elapsedMs);
   lastFrameMs = nowMs;
+  cameraInput.update(elapsedMs / 1000);
   sceneRenderer.render(alpha);
   requestAnimationFrame(frame);
 }

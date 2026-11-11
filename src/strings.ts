@@ -4,4 +4,5 @@ export const strings = {
   pause: "Pause",
   resume: "Resume",
   paused: "Paused",
+  cameraFollow: "Camera follows player",
 } as const;

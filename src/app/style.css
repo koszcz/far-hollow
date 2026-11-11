@@ -4,3 +4,4 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 0 1px 2px #0008; }
 .hud-paused { margin: 0 0 8px; }
 .hud button { pointer-events: auto; }
+.hud-setting { display: block; margin-top: 8px; pointer-events: auto; user-select: none; }

@@ -55,7 +55,7 @@ export function createSceneRenderer(
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   const scene = new THREE.Scene();
-  const skyLighting = createSkyLighting(scene);
+  const skyLighting = createSkyLighting(scene, renderer);
 
   const camera = new THREE.PerspectiveCamera(
     CAMERA_FIELD_OF_VIEW_DEGREES,
@@ -76,6 +76,8 @@ export function createSceneRenderer(
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
+  skyLighting.addShadowReceivers(valleyMeshes.group);
+  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: Exclude<ScenePick["kind"], "ground">; entity: Entity } | undefined;
@@ -114,6 +116,7 @@ export function createSceneRenderer(
 
   const playerMesh = createPlayerMesh();
   scene.add(playerMesh.group);
+  skyLighting.addShadowCasters(playerMesh.group);
   /** Where the player is drawn this frame. The camera follows it. */
   const playerDrawn = { x: 0, y: 0, z: 0 };
   const playerDrawnBefore = { x: 0, y: 0, z: 0 };
@@ -160,7 +163,6 @@ export function createSceneRenderer(
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
-      skyLighting.update(readHourOfDay());
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -174,6 +176,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
+      skyLighting.update(readHourOfDay(), { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
     },
     pickAt(clientX, clientY) {

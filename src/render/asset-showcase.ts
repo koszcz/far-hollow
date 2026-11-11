@@ -128,6 +128,21 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
     },
   },
+  "sky-lighting": {
+    radius: 9,
+    focus: { x: 0, y: 2, z: 0 },
+    shots: [
+      { label: "dawn, 07:00", yaw: 250, pitch: 8, hour: 7 },
+      { label: "midday, 12:00", yaw: 200, pitch: 20, hour: NOON },
+      { label: "dusk, 19:00", yaw: 70, pitch: 8, hour: 19 },
+      { label: "night, 23:00", yaw: 200, pitch: 8, hour: 23 },
+    ],
+    build({ place }) {
+      for (const [x, z] of [[-5, -3], [0, -6], [5, -2], [-3, 4]] as const) place(x, z, { tree: true });
+      place(2, 1, { log: { heading: 0.6 } });
+      place(-2, 1.5, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+    },
+  },
   "campfire-build-animation": {
     radius: 1.1,
     focus: { x: 0, y: 0.3, z: 0 },
@@ -206,14 +221,14 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
   renderer.setSize(width, height, false);
   renderer.setScissorTest(true);
   const scene = new THREE.Scene();
-  const sky = createSkyLighting(scene);
+  const sky = createSkyLighting(scene, renderer);
   const ground = onValley ? createValleyMeshes(valley) : createFlatGround();
   scene.add(ground.group);
 
   const store = createEntityStore();
   const player = createPlayerMesh();
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "chop-animation", "split-animation"].includes(id);
+  const showsPlayer = ["player", "logs", "chop-animation", "split-animation", "sky-lighting"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
@@ -238,6 +253,8 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
   const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   scene.add(forest.group, campfires.group);
+  sky.addShadowReceivers(ground.group);
+  sky.addShadowCasters(forest.group, campfires.group, player.group);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   const halfWidth = Math.floor(width / 2);
@@ -249,10 +266,10 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
     forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
-    sky.update(shot.hour ?? NOON);
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const focus = new THREE.Vector3(middle.x + focusOffset.x, groundAt(middle.x + focusOffset.x, middle.z + focusOffset.z) + focusOffset.y, middle.z + focusOffset.z);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
+    sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
     const pitch = THREE.MathUtils.degToRad(shot.pitch);
     camera.position.set(
@@ -278,6 +295,7 @@ export function showAsset(canvas: HTMLCanvasElement, id: string, treeShapes: rea
       campfires.dispose();
       player.dispose();
       ground.dispose();
+      sky.dispose();
       renderer.dispose();
     },
   };

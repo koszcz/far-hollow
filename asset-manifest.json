@@ -195,6 +195,22 @@
         "status": "draft",
         "ticket": ".scratch/first-playable/issues/07-gather-fuel.md"
       }
+    },
+    {
+      "id": "sky-lighting",
+      "kind": "code",
+      "code": [
+        "src/render/sky-lighting.ts",
+        "src/render/daylight.ts"
+      ],
+      "description": "Sun, moon, sky, shadows, and haze over the valley, following the clock.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
     }
   ]
 }

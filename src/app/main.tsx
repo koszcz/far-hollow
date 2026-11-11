@@ -6,6 +6,7 @@ import { createGame, STEP_MS } from "../sim/game";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
+import { attachWalkInput } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
 const MAX_STEPS_PER_FRAME = 10;
@@ -39,6 +40,16 @@ const sceneRenderer = createSceneRenderer(
 const cameraInput = attachCameraInput({
   canvas, rig: sceneRenderer.cameraRig, fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
 });
+attachWalkInput({
+  canvas,
+  client: game.client,
+  rig: sceneRenderer.cameraRig,
+  groundSpotAt: (clientX, clientY) => sceneRenderer.groundSpotAt(clientX, clientY),
+});
+if (import.meta.env.DEV) {
+  // Lets the on-demand browser test read the game's view. Development builds only.
+  Object.assign(window, { farHollow: { client: game.client } });
+}
 const loop = createFixedStepLoop({
   stepMs: STEP_MS, maxStepsPerAdvance: MAX_STEPS_PER_FRAME, step: () => {
     game.step();

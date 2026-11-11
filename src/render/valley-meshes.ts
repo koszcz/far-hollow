@@ -24,6 +24,8 @@ const TREE_MAX_SCALE = 1.25;
 
 export interface ValleyMeshes {
   readonly group: THREE.Group;
+  /** The terrain mesh, so clicks can find the spot on the ground under the pointer. */
+  readonly ground: THREE.Mesh;
   dispose(): void;
 }
 
@@ -46,7 +48,8 @@ export function createValleyMeshes(valley: Valley, entities: EntityStore): Valle
   });
   groundGeometry.computeVertexNormals();
   const groundMaterial = track(new THREE.MeshStandardMaterial({ color: GROUND_COLOUR, flatShading: true }));
-  group.add(new THREE.Mesh(groundGeometry, groundMaterial));
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  group.add(ground);
 
   // River: a flat strip of water along the river's path.
   const riverGeometry = track(createRiverGeometry(valley));
@@ -86,6 +89,7 @@ export function createValleyMeshes(valley: Valley, entities: EntityStore): Valle
 
   return {
     group,
+    ground,
     dispose() {
       for (const item of disposables) item.dispose();
     },

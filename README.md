@@ -15,6 +15,7 @@ You need Node.js 26 and pnpm.
 ## Check your changes
 
 - `pnpm test` runs the tests.
+- `pnpm test:e2e` runs the browser test in your installed Google Chrome. It checks that the game loads and the player can walk. Run it when you need it. The pre-commit hook does not run it.
 - `pnpm lint` checks code style and module boundaries.
 - `pnpm typecheck` checks the TypeScript types.
 - `pnpm build` checks the assets and builds the game into `dist/`.

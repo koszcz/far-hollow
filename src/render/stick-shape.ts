@@ -1,5 +1,6 @@
 // The code-built shape listed in asset-manifest.json as "sticks" (approved). forest-meshes.ts places one on each stick's spot.
 // The approved "campfire" in campfire-meshes.ts stands these sticks up, so changing this shape changes the campfire too.
+// The approved "lean-to" in lean-to-meshes.ts builds its poles from createStickSegment, so changing that changes the lean-to too.
 // Each stick is a crooked branch: three tapered segments with small bends, two side twigs, and pale cut ends.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -50,14 +51,14 @@ export function createStickGeometry(): THREE.BufferGeometry {
     const last = i === segments.length - 1;
     // Inner segments start a little inside the previous one, so no notch shows at the bends.
     const start = first ? fromPoint : fromPoint.clone().addScaledVector(toPoint.clone().sub(fromPoint).normalize(), -from.radius * 0.6);
-    parts.push(segment(start, toPoint, from.radius, to.radius, BRANCH_SIDES, first, last));
+    parts.push(createStickSegment(start, toPoint, from.radius, to.radius, BRANCH_SIDES, first, last));
   });
   for (const twig of TWIGS) {
     const host = ends[twig.segment];
     if (host === undefined) continue;
     const start = host.from.clone().lerp(host.to, twig.along);
     const end = start.clone().addScaledVector(twig.direction, twig.length);
-    parts.push(segment(start, end, twig.radius, twig.radius * 0.5, TWIG_SIDES, false, false));
+    parts.push(createStickSegment(start, end, twig.radius, twig.radius * 0.5, TWIG_SIDES, false, false));
   }
   const stick = mergeGeometries(parts);
   for (const part of parts) part.dispose();
@@ -65,8 +66,11 @@ export function createStickGeometry(): THREE.BufferGeometry {
   return stick;
 }
 
-/** A tapered cylinder from `from` to `to`, with bark-coloured sides and optionally pale cut ends. */
-function segment(
+/**
+ * A tapered cylinder from `from` to `to`, with bark-coloured sides and optionally pale cut ends.
+ * The lean-to in lean-to-meshes.ts builds its crooked posts and ridge pole from these.
+ */
+export function createStickSegment(
   from: THREE.Vector3, to: THREE.Vector3, fromRadius: number, toRadius: number, sides: number, paleFrom: boolean, paleTo: boolean,
 ): THREE.BufferGeometry {
   const direction = to.clone().sub(from);

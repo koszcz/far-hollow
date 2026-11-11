@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Rework the approved `terrain` asset and set it back to `"status": "draft"`. The owner approved this in chat on 2026-11-11.
 

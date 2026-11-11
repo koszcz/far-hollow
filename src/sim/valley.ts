@@ -69,7 +69,7 @@ const RIVER_MAX_WIDTH_METRES = 10;
 const RIVER_MAX_OFFSET_METRES = 250;
 const RIVER_BED_DEPTH_METRES = 2;
 /** How far beyond the water the ground slopes down into the riverbed. */
-const RIVER_BANK_WIDTH_METRES = 8;
+export const RIVER_BANK_WIDTH_METRES = 8;
 
 const TREE_COUNT = 4000;
 /** Trees stand at least this far from each other. */

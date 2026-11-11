@@ -108,7 +108,8 @@ function showPots(seconds: number): void {
 }
 
 const SHOWCASES: Readonly<Record<string, Showcase>> = {
-  terrain: { radius: 14, focus: { x: 0, y: 0, z: 0 }, shots: FOUR_ANGLES, build() {} },
+  // Framed so all three ground types show: river bank to the west, forest floor around a tree, and clearing between.
+  terrain: { radius: 22, focus: { x: -5, y: 0, z: 4 }, shots: FOUR_ANGLES, build() {} },
   river: {
     radius: 16,
     focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },

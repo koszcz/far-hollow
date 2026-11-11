@@ -6,11 +6,12 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
-import { createEntityStore, movingEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
+import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
+import { createRain, passRainTime } from "./rain";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -90,6 +91,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const listeners = new Set<() => void>();
   const gameStartMinutes = clockStartMinutes(GAME_START);
   const clock = createClock(progress?.clockMinutes ?? gameStartMinutes);
+  // A save made before rain existed has no weather, so it starts dry from here.
+  const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes) })).rain;
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
   const firstMorning = nextMorning(gameStartMinutes);
   /** Whether the first night has ended, by morning coming or by a collapse. */
@@ -122,6 +125,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
         fatigue: player.needs.fatigue.level,
       }),
       warmth: player.needs.warmth.level,
+      raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
     });
   }
@@ -216,31 +220,43 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       // Time only moves forward. Ignore a negative or broken amount.
       if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
     },
+    skipToRainChange: () => {
+      const wasFalling = rain.falling;
+      // Slice by slice, so the skip stops on the minute rain starts or stops, or at a collapse.
+      while (rain.falling === wasFalling) {
+        if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
+      }
+    },
   };
 
   /**
    * Moves the clock on by this many game minutes. Campfires burn and the player's needs change as it goes.
    * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
-   * A collapse ends the stretch early.
+   * Rain starts and stops as it goes. A collapse ends the stretch early, and then this returns false.
    */
-  function passTime(gameMinutes: number): void {
+  function passTime(gameMinutes: number): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
+      passRainTime(rain, seed, clock.minutes);
+      // Rain does not put out campfires.
       campfires.burn(minutes);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
+        // No roofs exist yet, so rain falls on the player wherever they stand.
+        inRain: rain.falling,
       });
       if (hasCollapsed(player.needs)) {
         collapse();
-        return;
+        return false;
       }
       if (!firstNightOver && clock.minutes >= firstMorning) {
         firstNightOver = true;
         showNotice("survivedFirstNight");
       }
     }
+    return true;
   }
 
   /**

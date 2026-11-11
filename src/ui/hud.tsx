@@ -81,6 +81,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           {strings.notices[view.notice]}
         </p>
       )}
+      {view.raining && <p class="hud-raining">{strings.raining}</p>}
       <label class="hud-warmth">
         {strings.warmth} <progress max={1} value={view.warmth} />
       </label>

@@ -234,6 +234,21 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "rain",
+      "kind": "code",
+      "code": [
+        "src/render/rain-effect.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "Falling rain: pale, slanting streaks around where the camera looks, shown while rain falls. It has no sound.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/settling-in/issues/08-rain.md"
+      }
     }
   ]
 }

@@ -8,6 +8,8 @@ export type NeedKind = (typeof NEED_KINDS)[number];
 export const FULL_NEED = 1;
 /** How much warmth the player loses per game hour at night, away from a lit campfire. Full warmth lasts 4 hours. */
 export const WARMTH_DRAIN_PER_HOUR = 0.25;
+/** How much warmth the player loses per game hour out in the rain, away from a lit campfire. It adds to the night's drain. */
+export const RAIN_WARMTH_DRAIN_PER_HOUR = 0.25;
 /** How much warmth the player gains per game hour within a lit campfire's warmth range. */
 export const WARMTH_RECOVERY_PER_HOUR = 1;
 
@@ -44,6 +46,8 @@ export interface NeedConditions {
   night: boolean;
   /** Whether the player stands within a lit campfire's warmth range. */
   warmedByCampfire: boolean;
+  /** Whether rain falls on the player. No roofs exist yet, so rain falls on the player everywhere. Missing means dry. */
+  inRain?: boolean;
 }
 
 /** Changes every need for this many game minutes spent in these conditions. */
@@ -62,8 +66,9 @@ export function passNeedsTime(needs: Needs, gameMinutes: number, conditions: Nee
 function needChangePerMinute(kind: NeedKind, conditions: NeedConditions): number {
   if (kind !== "warmth") return 0;
   if (conditions.warmedByCampfire) return WARMTH_RECOVERY_PER_HOUR / 60;
-  if (conditions.night) return -WARMTH_DRAIN_PER_HOUR / 60;
-  return 0;
+  const nightDrain = conditions.night ? WARMTH_DRAIN_PER_HOUR : 0;
+  const rainDrain = conditions.inRain === true ? RAIN_WARMTH_DRAIN_PER_HOUR : 0;
+  return -(nightDrain + rainDrain) / 60;
 }
 
 /** Whether any one need has been empty for too long, so the player has a collapse. */

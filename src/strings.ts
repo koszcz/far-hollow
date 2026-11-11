@@ -21,6 +21,7 @@ export const strings = {
   addFirewood: "Add firewood",
   lightCampfire: "Light with fire striker",
   warmth: "Warmth",
+  raining: "It is raining. The rain chills you.",
   notices: {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed from the cold. You woke the next morning.",
@@ -43,4 +44,8 @@ export const strings = {
   debugTime: "Time",
   debugDayAndTime: (day: number, clock: string) => `Day ${day}, ${clock}`,
   debugSkipHours: (hours: number) => `Skip ${hours} h`,
+  debugRain: "Rain",
+  debugRainFalling: "Falling",
+  debugRainDry: "Dry",
+  debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
 } as const;

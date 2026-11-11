@@ -1,6 +1,7 @@
 import { World } from "miniplex";
 import type { Backpack } from "./backpack";
 import type { Needs } from "./needs";
+import type { Rain } from "./rain";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -64,6 +65,8 @@ export interface Entity {
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
+  /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
+  rain?: Rain;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -156,4 +159,9 @@ export function playerEntities(store: EntityStore) {
 /** Everything that stops the player walking near it. */
 export function walkBlockerEntities(store: EntityStore) {
   return store.with("blocksWalking", "position");
+}
+
+/** The valley's weather. There is only ever one. */
+export function rainEntities(store: EntityStore) {
+  return store.with("rain");
 }

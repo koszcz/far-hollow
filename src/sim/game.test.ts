@@ -21,8 +21,8 @@ describe("createGame", () => {
     }));
     const byPlace = (a: { x: number; z: number }, b: { x: number; z: number }) => a.x - b.x || a.z - b.z;
     expect(trees.map((tree) => tree.position).sort(byPlace)).toEqual(expected.sort(byPlace));
-    // Every entity is a tree, a stick, or the player.
-    expect(game.client.getView().entityCount).toBe(trees.length + game.valley.sticks.length + 1);
+    // Every entity is a tree, a stick, the player, or the valley's weather.
+    expect(game.client.getView().entityCount).toBe(trees.length + game.valley.sticks.length + 2);
   });
 });
 

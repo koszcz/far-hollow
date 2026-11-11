@@ -38,7 +38,9 @@ export type Command =
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
-  | { type: "skipTime"; hours: number };
+  | { type: "skipTime"; hours: number }
+  /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
+  | { type: "skipToRainChange" };
 
 export interface GameView {
   /** The seed the valley was laid out from. */
@@ -69,6 +71,8 @@ export interface GameView {
   readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
   /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
   readonly warmth: number;
+  /** Whether rain is falling in the valley. */
+  readonly raining: boolean;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: GameNotice | null;
 }

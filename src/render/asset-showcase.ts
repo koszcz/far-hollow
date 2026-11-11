@@ -500,15 +500,16 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
     },
   },
-  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Front row: the tools and a pot.
-  // One view shows them all. The others come close to the wood and bark, the tools, and the food.
+  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Then the tools and a pot.
+  // Front row: the crafting draft shapes: a saw blade, a saw, one plank, and several planks.
+  // One view shows them all. The others come close to the wood and bark, the tools and crafting things, and the food.
   pile: {
     radius: 3.2,
-    focus: { x: 0, y: 0.1, z: 0.5 },
+    focus: { x: 0, y: 0.1, z: 1 },
     shots: [
-      { label: "all piles", yaw: 0, pitch: 35 },
+      { label: "all piles", yaw: 0, pitch: 35, radius: 3.8 },
       { label: "firewood and bark, one and many", yaw: 25, pitch: 30, radius: 1.1, focus: { x: -1.35, y: 0.1, z: -0.1 } },
-      { label: "axe, knife, drawknife, fire strikers", yaw: 0, pitch: 55, radius: 0.75, focus: { x: -0.2, y: 0, z: 1.8 } },
+      { label: "tools, saw blade, saw, and planks", yaw: 0, pitch: 55, radius: 1.3, focus: { x: 0, y: 0, z: 2.3 } },
       { label: "berries and mushrooms, one and many", yaw: -20, pitch: 40, radius: 0.85, focus: { x: 0.45, y: 0.05, z: 0.1 } },
     ],
     build({ place }) {
@@ -536,6 +537,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         { content: "fireStriker", count: 2 },
         { content: "pot", count: 1 },
       ], 0.45);
+      row(2.8, [
+        { content: "sawBlade", count: 1 },
+        { content: "saw", count: 1 },
+        { content: "plank", count: 1 },
+        { content: "plank", count: 6 },
+      ], 0.5);
     },
   },
   "fire-effect": {

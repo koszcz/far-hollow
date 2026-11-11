@@ -84,6 +84,8 @@ export const strings = {
   raining: "It is raining. The rain chills you.",
   thirst: "Thirst",
   eat: "Eat",
+  /** The full name of an eat button, for screen readers. */
+  eatFood: (food: string) => `Eat ${food.toLowerCase()}`,
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   fatigue: "Rest",
   layBedroll: "Lay out bedroll",
@@ -113,6 +115,8 @@ export const strings = {
     mushroom: "Mushroom",
   },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
+  /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
+  backpackCountBadge: (count: number) => `${count}`,
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
   debugFps: "FPS",
   debugEntities: "Entities",

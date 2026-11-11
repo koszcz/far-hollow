@@ -78,18 +78,22 @@ describe("upgrading an older save", () => {
     expect(writeSave(createGame({ seed: 1 })).version).toBe(SAVE_UPGRADES.length + 1);
   });
 
-  it("brings a version 1 save through every real upgrade: the valley's food, then a bedroll", () => {
+  it("brings a version 1 save through every real upgrade: the valley's food, a bedroll, then a pot", () => {
     const game = createGame({ seed: 42 });
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity }[] };
     save.version = 1;
     save.entities = save.entities.filter((entity) => entity.components.forageSpot === undefined);
-    for (const { components } of save.entities) delete components.backpack?.contents.bedroll;
+    for (const { components } of save.entities) {
+      delete components.backpack?.contents.bedroll;
+      delete components.backpack?.contents.pot;
+    }
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(loaded.game.entities.with("forageSpot").size).toBe(game.entities.with("forageSpot").size);
     expect(loaded.game.client.getView().backpack.bedroll).toBe(1);
+    expect(loaded.game.client.getView().backpack.pot).toBe(1);
   });
 });
 

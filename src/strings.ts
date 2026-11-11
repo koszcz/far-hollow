@@ -38,9 +38,11 @@ export const strings = {
   addFirewood: "Add firewood",
   lightCampfire: "Light with fire striker",
   warmth: "Warmth",
+  thirst: "Thirst",
+  sick: "Sick: your needs drain faster. Rest to recover sooner.",
   notices: {
     survivedFirstNight: "You survived the night.",
-    collapsed: "You collapsed from the cold. You woke the next morning.",
+    collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
   },

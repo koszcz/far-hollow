@@ -40,6 +40,11 @@ export type Command =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
+  /**
+   * Walk the player to the riverbank nearest a spot on the river, given in metres, and drink there.
+   * River water is not boiled, so drinking it fills thirst but makes the player sick.
+   */
+  | ({ type: "drinkFromRiver" } & GroundPoint)
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
@@ -72,6 +77,8 @@ export interface GameView {
   readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
   /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
   readonly warmth: number;
+  /** Whether the player is sick, so their needs drain faster. */
+  readonly sick: boolean;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: GameNotice | null;
 }

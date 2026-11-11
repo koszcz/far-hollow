@@ -4,7 +4,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud { position: absolute; top: 12px; left: 12px; color: #fff; text-shadow: 0 1px 2px #0008; }
 .hud-paused { margin: 0 0 8px; }
 .hud-notice { margin: 0 0 8px; font-weight: bold; }
-.hud-warmth { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.hud-warmth, .hud-fatigue { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .hud button { pointer-events: auto; }
 .hud-setting { display: block; margin-top: 8px; pointer-events: auto; user-select: none; }
 .debug-overlay { position: absolute; top: 12px; right: 12px; padding: 8px 10px; background: #000a; color: #fff; font: 12px/1.4 ui-monospace, monospace; }
@@ -14,10 +14,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud-action { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .hud-carrying { margin: 8px 0 0; }
 .hud-placing { margin: 8px 0 0; }
-.hud-campfire h2 { margin: 12px 0 4px; font-size: 14px; }
+.hud-campfire h2, .hud-bedroll h2 { margin: 12px 0 4px; font-size: 14px; }
 .hud-campfire p { margin: 0 0 4px; font-size: 13px; }
 .hud-campfire label { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; font-size: 13px; }
-.hud-campfire button { margin-right: 4px; }
+.hud-campfire button, .hud-bedroll button { margin-right: 4px; }
 .hud-backpack h2 { margin: 12px 0 4px; font-size: 14px; }
 .hud-backpack ul { margin: 0; padding-left: 18px; font-size: 13px; }
 .loading { position: fixed; inset: 0; display: grid; place-items: center; background: #1b2420; transition: opacity 0.4s; }

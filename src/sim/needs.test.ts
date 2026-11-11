@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import { createGame, type Game } from "./game";
 import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 
-const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false };
+const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, working: false, asleep: false };
 
 describe("needs", () => {
   it("start full for all four needs", () => {
@@ -11,14 +11,15 @@ describe("needs", () => {
     expect(view.needs).toEqual({ hunger: 1, thirst: 1, warmth: 1, fatigue: 1 });
   });
 
-  it("change for skipped time: warmth drains at night, the other needs stay full for now", () => {
+  it("change for skipped time: warmth drains at night, fatigue drains while awake, hunger and thirst stay full for now", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipTime", hours: 14 }); // 22:00, two hours into the night.
 
     const needs = game.client.getView().needs;
     expect(needs.warmth).toBeCloseTo(0.5, 1);
     expect(needs.warmth).toBe(game.client.getView().warmth);
-    expect(needs).toMatchObject({ hunger: 1, thirst: 1, fatigue: 1 });
+    expect(needs.fatigue).toBeCloseTo(1 - 14 / 24, 2);
+    expect(needs).toMatchObject({ hunger: 1, thirst: 1 });
   });
 
   it("cause a collapse when a need other than warmth stays at zero for too long", () => {

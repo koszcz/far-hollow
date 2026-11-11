@@ -37,6 +37,16 @@ export type Command =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
+  /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
+  | { type: "layBedroll" }
+  /** Walk the player to a laid bedroll, given by its entity id, and put it back in the backpack. */
+  | { type: "pickUpBedroll"; bedrollId: number }
+  /**
+   * Walk the player to a laid bedroll, given by its entity id, and sleep on it. It becomes the player's respawn point.
+   * At night the player sleeps until morning. By day they sleep until fatigue is restored.
+   * Other needs change for the time slept, and a collapse cuts sleep short.
+   */
+  | { type: "sleep"; bedrollId: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
@@ -65,6 +75,8 @@ export interface GameView {
   readonly carrying: "log" | null;
   /** The campfire within the player's reach, or null if none is. */
   readonly nearbyCampfire: CampfireView | null;
+  /** The laid bedroll within the player's reach, or null if none is. */
+  readonly nearbyBedroll: BedrollView | null;
   /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
   readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
   /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
@@ -95,6 +107,11 @@ export interface CampfireView {
   readonly fuelMinutes: number;
   /** True if sending lightCampfire would light it now: it is out, it has fuel, and the player has a fire striker. */
   readonly canLight: boolean;
+}
+
+export interface BedrollView {
+  /** The bedroll's entity id. */
+  readonly id: number;
 }
 
 export interface PlayerAction {

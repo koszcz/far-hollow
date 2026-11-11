@@ -59,6 +59,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blueprint: shape({ piece: exactly("campfire"), progress: finite, sticksSpent: count }),
   buildTask: shape({ blueprintId: count }),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
+  bedroll: exactly(true),
+  bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
 };

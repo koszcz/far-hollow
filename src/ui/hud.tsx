@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, CampfireView, GameClient, GameView } from "../sim/api";
+import type { BackpackContent, BedrollView, CampfireView, GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -56,6 +56,25 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
   );
 }
 
+/** Buttons to sleep on the bedroll beside the player, or to pack it away. */
+function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: BedrollView }) {
+  return (
+    <section class="hud-bedroll" aria-label={strings.bedroll}>
+      <h2>{strings.bedroll}</h2>
+      <button type="button" onClick={() => {
+          client.send({ type: "sleep", bedrollId: bedroll.id });
+        }}>
+        {strings.sleep}
+      </button>
+      <button type="button" onClick={() => {
+          client.send({ type: "pickUpBedroll", bedrollId: bedroll.id });
+        }}>
+        {strings.pickUpBedroll}
+      </button>
+    </section>
+  );
+}
+
 const actionLabels = {
   chop: strings.chopping,
   split: strings.splitting,
@@ -83,6 +102,9 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
       )}
       <label class="hud-warmth">
         {strings.warmth} <progress max={1} value={view.warmth} />
+      </label>
+      <label class="hud-fatigue">
+        {strings.fatigue} <progress max={1} value={view.needs.fatigue} />
       </label>
       <button type="button" onClick={() => {
           client.send({ type: "setPaused", paused: !view.paused });
@@ -130,6 +152,14 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         </p>
       )}
       {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
+      {(view.backpack.bedroll ?? 0) > 0 && (
+        <button type="button" onClick={() => {
+            client.send({ type: "layBedroll" });
+          }}>
+          {strings.layBedroll}
+        </button>
+      )}
+      {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
       <section class="hud-backpack" aria-label={strings.backpack}>
         <h2>{strings.backpack}</h2>
         <p class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</p>

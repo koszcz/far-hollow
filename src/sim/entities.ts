@@ -60,6 +60,10 @@ export interface Entity {
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
+  /** Marks a bedroll laid out on the ground. Its position is the middle of the bedroll. A rolled-up bedroll is in the backpack. */
+  bedroll?: true;
+  /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
+  bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
@@ -146,6 +150,11 @@ export function blueprintEntities(store: EntityStore) {
 /** Finished campfires. */
 export function campfireEntities(store: EntityStore) {
   return store.with("campfire", "position");
+}
+
+/** Bedrolls laid out on the ground. */
+export function bedrollEntities(store: EntityStore) {
+  return store.with("bedroll", "position");
 }
 
 /** The player. There is only ever one. */

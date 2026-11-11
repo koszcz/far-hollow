@@ -15,6 +15,8 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
       return { type: "pickUpStick", stickId: pick.id };
     case "campfire":
       return { type: "tendCampfire", campfireId: pick.id };
+    case "bedroll":
+      return { type: "sleep", bedrollId: pick.id };
     case "blueprint":
       return undefined;
   }
@@ -63,7 +65,8 @@ export interface WalkInput {
 
 /**
  * Left-clicking does the main action for what is under the pointer:
- * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, or walk over to tend a campfire.
+ * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, walk over to tend a campfire,
+ * or walk to a bedroll and sleep on it.
  * Holding the left button on a blueprint builds it. Letting go stops building.
  * While placing a campfire, a left-click on the ground places its blueprint.
  * Space snaps the camera back to the player.

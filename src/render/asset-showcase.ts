@@ -7,6 +7,7 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
+import { createBedrollMeshes } from "./bedroll-meshes";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { daylightAt } from "./daylight";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
@@ -123,6 +124,14 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { campfire: { lit: false, fuelMinutes: 0 } });
+    },
+  },
+  bedroll: {
+    radius: 1.3,
+    focus: { x: 0, y: 0.1, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { bedroll: true });
     },
   },
   "fire-effect": {
@@ -309,9 +318,10 @@ export function showAsset(
 
   const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  scene.add(forest.group, campfires.group);
+  const bedrolls = createBedrollMeshes(store);
+  scene.add(forest.group, campfires.group, bedrolls.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, player.group);
+  sky.addShadowCasters(forest.group, campfires.group, bedrolls.group, player.group);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -320,6 +330,7 @@ export function showAsset(
     forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
+    bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -369,6 +380,7 @@ export function showAsset(
       if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
       campfires.dispose();
+      bedrolls.dispose();
       player.dispose();
       ground.dispose();
       river?.dispose();

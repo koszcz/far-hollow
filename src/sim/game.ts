@@ -1,4 +1,5 @@
-import type { CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
+import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
+import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
@@ -10,7 +11,7 @@ import { createEntityStore, movingEntities, restoreEntities, saveEntities, type 
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
-import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
+import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -85,6 +86,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const gathering = createGathering(entities, walking);
   const building = createBuilding(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
+  const bedrolls = createBedrolls(entities, walking, valley);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -115,6 +117,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
+      nearbyBedroll: nearbyBedroll(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
         thirst: player.needs.thirst.level,
@@ -143,6 +146,12 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     });
   }
 
+  function nearbyBedroll(): BedrollView | null {
+    const bedroll = bedrolls.nearby();
+    const id = bedroll === undefined ? undefined : entities.id(bedroll);
+    return id === undefined ? null : Object.freeze({ id });
+  }
+
   function currentAction(): PlayerAction | null {
     if (player.buildTask !== undefined && player.walkPath === undefined) {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
@@ -161,6 +170,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     carrying.cancel();
     gathering.cancel();
     building.cancel();
+    bedrolls.cancel();
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
@@ -212,6 +222,18 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     lightCampfire: (command) => {
       campfires.light(command.campfireId);
     },
+    layBedroll: () => {
+      bedrolls.lay();
+    },
+    pickUpBedroll: (command) => {
+      cancelTasks();
+      bedrolls.pickUp(command.bedrollId);
+    },
+    sleep: (command) => {
+      cancelTasks();
+      const bedroll = bedrolls.sleep(command.bedrollId);
+      if (bedroll !== undefined) sleepOn(bedroll);
+    },
     skipTime: (command) => {
       // Time only moves forward. Ignore a negative or broken amount.
       if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
@@ -221,9 +243,9 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   /**
    * Moves the clock on by this many game minutes. Campfires burn and the player's needs change as it goes.
    * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
-   * A collapse ends the stretch early.
+   * A collapse ends the stretch early. `asleep` says whether the player sleeps through it.
    */
-  function passTime(gameMinutes: number): void {
+  function passTime(gameMinutes: number, asleep = false): void {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
@@ -231,6 +253,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
+        working: currentAction() !== null,
+        asleep,
       });
       if (hasCollapsed(player.needs)) {
         collapse();
@@ -263,6 +287,22 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     showNotice("collapsed");
   }
 
+  /**
+   * The player lies down on a bedroll and sleeps. The bedroll becomes their respawn point.
+   * At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
+   */
+  function sleepOn(bedroll: BedrollEntity): void {
+    carrying.drop();
+    entities.removeComponent(player, "walkPath");
+    const { x, z } = bedroll.position;
+    player.respawnPoint = { x, z };
+    Object.assign(player.position, bedroll.position);
+    Object.assign(player.previousPosition, player.position);
+    const untilMorning = nextMorning(clock.minutes) - clock.minutes;
+    const night = isNight(readClock(clock.minutes).hourOfDay);
+    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs)), true);
+  }
+
   function applyCommand(command: Command): void {
     // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.
     const handle = commandHandlers[command.type] as (command: Command) => void;
@@ -283,6 +323,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       carrying.step();
       gathering.step(playerSeconds);
       building.step(playerSeconds);
+      const reachedBedroll = bedrolls.step();
+      if (reachedBedroll !== undefined) sleepOn(reachedBedroll);
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }

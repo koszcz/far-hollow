@@ -20,14 +20,18 @@
 - [ ] The roof blueprint under the mouse turns with the same key as walls. Its preview shows which way it slopes down.
 - [ ] A finished roof keeps its turn, and saved games keep it. Roofs saved before this change load sloping to +z, as they do now.
 - [ ] Each roof slopes down in its own direction. Sections one behind another in that direction share one slope, as they do now.
+- [ ] Each slope rises from its own downhill wall. A section's height is one rise for each roof section between it and that wall, in its own slope direction.
 - [ ] Where two roofs that slope at right angles to each other meet at a corner, the corner section becomes a hip (outside corner) or a valley (inside corner). The rule only looks at a section's neighbours, the same way stair corners do.
 - [ ] The hip and valley pieces cover the corner with no gap. Their bark laps so water runs down and off, never in.
 - [ ] Taking down a roof reshapes the corners next to it.
 - [ ] All player-facing text is in the strings file.
 - [ ] Unit tests cover the corner rule, the turn kept in saves, and old saves loading.
 
+## Decisions
+
+- **Slope heights at a corner** (owner, 2026-11-11): Each slope rises from its own downhill wall. A section's height comes from its distance to that wall, in its own slope direction. Then two slopes that meet at a corner reach the same height there, and the hip or valley lines up.
+
 ## Open questions for the owner
 
-1. **Slope heights at a corner.** Today a slope keeps climbing for every section in front of it. A hip only lines up when both slopes reach the same height at the corner. One way to do that: every slope rises from its own downhill wall, and a section's height comes from its distance to that wall. Is that right, or should the corner use some other rule?
-2. **Where the roof sits.** Should the turn shape the roof only, with drawing deciding the heights as now? Or should the game rules also store each section's height, for example so rain or heat can use it later?
-3. **Roofs that meet at the same direction but different heights.** Where two runs of different depth sit side by side, their roofs meet at a step. Should logs fill the step, or should something else happen?
+1. **Where the roof sits.** Should the turn shape the roof only, with drawing deciding the heights as now? Or should the game rules also store each section's height, for example so rain or heat can use it later?
+2. **Roofs that meet at the same direction but different heights.** Where two runs of different depth sit side by side, their roofs meet at a step. Should logs fill the step, or should something else happen?

@@ -10,7 +10,7 @@ import { distanceToRiver } from "../sim/valley";
 export type UndergrowthKind = "fern" | "smallRock" | "sparseGrass" | "grassTuft" | "flower" | "stone" | "tallGrass" | "flatPebble";
 
 /** One plant or stone on the ground. */
-export interface UndergrowthPlant {
+export interface UndergrowthItem {
   readonly kind: UndergrowthKind;
   /** Where it stands, in metres from the valley's centre. */
   readonly x: number;
@@ -51,12 +51,12 @@ const GROWTH_CHANCES: Readonly<Record<GroundType, readonly { kind: UndergrowthKi
 const SIZE_SPREAD = 0.3;
 
 /** Grows the undergrowth on one patch of ground. The same seed and patch always give the same plants. */
-export function growUndergrowthPatch(seed: number, map: GroundMap, column: number, row: number): UndergrowthPlant[] {
+export function growUndergrowthPatch(seed: number, map: GroundMap, column: number, row: number): UndergrowthItem[] {
   const random = createRandom(patchSeed(seed, column, row));
   const left = column * UNDERGROWTH_PATCH_METRES - map.size / 2;
   const top = row * UNDERGROWTH_PATCH_METRES - map.size / 2;
   const tries = Math.round(UNDERGROWTH_PATCH_METRES * UNDERGROWTH_PATCH_METRES * SPOTS_PER_SQUARE_METRE);
-  const plants: UndergrowthPlant[] = [];
+  const plants: UndergrowthItem[] = [];
   for (let i = 0; i < tries; i += 1) {
     // Every try uses the same five random numbers, grown or not, so one spot never shifts the next.
     const x = left + random() * UNDERGROWTH_PATCH_METRES;

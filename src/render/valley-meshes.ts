@@ -10,8 +10,11 @@ import { bakeGroundTypeWeights, createGroundTypeTextures, GROUND_TEXTURE_TILE_ME
 /** Spots across each side of the baked ground-type map. About 1 m apart in a 1 km valley, close enough to ring each tree. */
 const GROUND_TYPE_MAP_TEXELS = 1024;
 
-/** The ground's main grass colour. The sky light also uses it as the colour bounced up from the ground. */
-export const GROUND_COLOUR = 0x5f7f3a;
+/**
+ * The ground's average colour, halfway between brown forest floor and green clearing.
+ * The sky light uses it as the colour bounced up from the ground.
+ */
+export const GROUND_COLOUR = 0x62683a;
 export interface ValleyMeshes {
   readonly group: THREE.Group;
   /** The terrain mesh, so clicks can find the spot on the ground under the pointer. */

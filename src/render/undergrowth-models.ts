@@ -6,8 +6,8 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 /** The four undergrowth assets, each one file in public/assets/<id>/<id>.glb. */
-export type UndergrowthAsset = "grass" | "ferns" | "flowers" | "pebbles";
-export const UNDERGROWTH_ASSETS: readonly UndergrowthAsset[] = ["grass", "ferns", "flowers", "pebbles"];
+export const UNDERGROWTH_ASSETS = ["grass", "ferns", "flowers", "pebbles"] as const;
+export type UndergrowthAsset = (typeof UNDERGROWTH_ASSETS)[number];
 
 /** How many metres one model unit is. A grass tuft then stands about 0.4 m tall. */
 const METRES_PER_MODEL_UNIT = 1.6;

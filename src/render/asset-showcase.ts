@@ -23,12 +23,8 @@ import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
-import type { LogShape } from "./log-shape";
-import type { StumpShape } from "./stump-model";
-import type { BerryBushShape } from "./berry-bush-model";
-import type { MushroomsShape } from "./mushrooms-model";
+import type { ModelShapes } from "./model-shapes";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
-import type { TreeShape } from "./tree-model";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createUndergrowthMaterial } from "./undergrowth-meshes";
 import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
@@ -461,12 +457,7 @@ export interface ShowOptions {
 export function showAsset(
   canvas: HTMLCanvasElement,
   id: string,
-  treeShapes: readonly TreeShape[],
-  stumpShape: StumpShape,
-  logShape: LogShape,
-  bushShape: BerryBushShape,
-  mushroomsShape: MushroomsShape,
-  undergrowthShapes: readonly UndergrowthShape[],
+  shapes: ModelShapes,
   options: ShowOptions = { play: false, speed: 1 },
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
@@ -493,7 +484,7 @@ export function showAsset(
   if (river !== undefined) scene.add(river.group);
 
   const store = createEntityStore();
-  const player = createPlayerMesh(logShape);
+  const player = createPlayerMesh(shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
   const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
@@ -507,7 +498,7 @@ export function showAsset(
   const stage: Stage = {
     store,
     player,
-    undergrowthShapes,
+    undergrowthShapes: shapes.undergrowth,
     place(x, z, entity) {
       return store.add({ ...entity, position: at(x, z) });
     },
@@ -537,9 +528,9 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
+  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.stump, shapes.log);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  const forage = createForageMeshes(store, bushShape, mushroomsShape);
+  const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.

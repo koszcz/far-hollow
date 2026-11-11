@@ -68,8 +68,7 @@ export function findUnapprovedAssets(files: string[], manifest: AssetManifest): 
   const statusByFile = new Map<string, AssetStatus["status"]>();
   for (const entry of manifest.assets) {
     if (entry.kind !== "file") continue;
-    const fileLetIn = entry.approval.status === "draft" && entry.fileApproval?.status === "approved";
-    statusByFile.set(entry.file, fileLetIn ? "approved" : entry.approval.status);
+    statusByFile.set(entry.file, isDraftFileLetIn(entry) ? "approved" : entry.approval.status);
   }
 
   const problems: UnapprovedAsset[] = [];
@@ -81,6 +80,11 @@ export function findUnapprovedAssets(files: string[], manifest: AssetManifest): 
   return problems;
 }
 
+/** Whether an entry is a draft whose third-party file the owner has let into the game. */
+function isDraftFileLetIn(entry: FileAssetEntry): boolean {
+  return entry.approval.status === "draft" && entry.fileApproval?.status === "approved";
+}
+
 /** Returns a message for every entry that breaks the catalogue rules, such as a draft file or a path that does not exist. */
 export function findBrokenEntries(manifest: AssetManifest, pathExists: (path: string) => boolean): string[] {
   const problems: string[] = [];
@@ -89,7 +93,7 @@ export function findBrokenEntries(manifest: AssetManifest, pathExists: (path: st
     if (seenIds.has(entry.id)) problems.push(`${entry.id}: the id is listed more than once`);
     seenIds.add(entry.id);
 
-    if (entry.kind === "file" && entry.approval.status === "draft" && entry.fileApproval?.status !== "approved") {
+    if (entry.kind === "file" && entry.approval.status === "draft" && !isDraftFileLetIn(entry)) {
       problems.push(`${entry.id}: a draft file needs the owner's approval of the file in fileApproval`);
     }
     if (entry.approval.status === "draft" && !pathExists(entry.approval.ticket)) {

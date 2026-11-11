@@ -57,7 +57,10 @@ const PAINTS: Readonly<Record<GroundType, GroundPaint>> = {
   },
 };
 
-/** Paints the clearing's seamless grass texture on a canvas. Needs a browser `document`. */
+/**
+ * Paints the clearing's seamless grass texture on a canvas. Needs a browser `document`.
+ * Only the asset showcase uses it, for the flat ground under a prop. The valley uses createGroundTypeTextures.
+ */
 export function createGroundTexture(): THREE.CanvasTexture {
   return paintGroundTexture(PAINTS.clearing);
 }

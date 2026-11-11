@@ -308,7 +308,8 @@ export function nearestRiverPoint(river: River, point: GroundPoint): GroundPoint
   return best;
 }
 
-function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): number {
+/** Shortest distance from a spot to the straight line between a and b. */
+export function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): number {
   return groundDistance(point, nearestOnSegment(point, a, b));
 }
 

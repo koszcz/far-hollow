@@ -2,7 +2,7 @@
 // Ground types come from where trees stand when the valley is made and from where the river runs.
 // Felling a tree does not change them, because the map is built once from the valley's starting trees.
 // The terrain drawing blends ground types with groundTypeWeightsAt. Undergrowth picks what grows with groundTypeAt.
-import { groundDistance, RIVER_BANK_WIDTH_METRES, type GroundPoint, type Valley } from "./valley";
+import { distanceToSegment, groundDistance, RIVER_BANK_WIDTH_METRES, type GroundPoint, type Valley } from "./valley";
 
 export type GroundType = "forestFloor" | "clearing" | "riverBank";
 
@@ -109,16 +109,16 @@ function distanceToNearestTree(map: GroundMap, spot: GroundPoint): number {
   return best;
 }
 
-/** Distance from a spot to the middle of the river, or Infinity when the spot is beyond the river bank's reach. */
+/**
+ * Distance from a spot to the middle of the river, or Infinity when the spot is beyond the river bank's reach.
+ * It works like distanceToRiver in valley.ts, but skips segments whose box does not hold the spot.
+ * The skip matters because every undergrowth plant and every ground texture pixel asks this.
+ */
 function distanceToRiverNear(map: GroundMap, spot: GroundPoint): number {
   let best = Infinity;
   for (const { a, b, minX, maxX, minZ, maxZ } of map.riverSegments) {
     if (spot.z < minZ || spot.z > maxZ || spot.x < minX || spot.x > maxX) continue;
-    const dx = b.x - a.x;
-    const dz = b.z - a.z;
-    const lengthSquared = dx * dx + dz * dz;
-    const t = lengthSquared === 0 ? 0 : Math.min(1, Math.max(0, ((spot.x - a.x) * dx + (spot.z - a.z) * dz) / lengthSquared));
-    best = Math.min(best, Math.hypot(spot.x - (a.x + t * dx), spot.z - (a.z + t * dz)));
+    best = Math.min(best, distanceToSegment(spot, a, b));
   }
   return best;
 }

@@ -2,7 +2,7 @@
 
 **Status:** resolved
 
-**Assets:** changes the approved `hud`. The owner approved this change in chat on 2026-11-11. Reuses the approved `backpack-icons`, and the draft `build-icons` and `crafting-icons`.
+**Assets:** changes the approved `hud`. The owner approved this change in chat on 2026-11-11. Reuses the approved `backpack-icons` and `build-icons`, and the draft `crafting-icons`.
 
 **What to build:** The owner chose variant B, "Hotbar and wheel", from four HUD mockups on 2026-11-11. The HUD moves to the bottom centre of the screen, so the scene stays clear.
 

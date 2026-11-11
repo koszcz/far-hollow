@@ -691,7 +691,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved keeping rough draft shapes for the saw blade, the saw, and the plank in the pile until they are polished."
+      ]
     },
     {
       "id": "rolled-bedroll",

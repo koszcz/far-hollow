@@ -54,6 +54,8 @@ const AXE_ON_BACK_SPOT = new THREE.Vector3(0.05, 0.95, -0.3);
 /** How the right arm turns up to steady the log, in radians about the upper arm's own axes. */
 const CARRY_UPPER_ARM = new THREE.Euler(-1.3, 0, 1.3);
 const CARRY_FOREARM = new THREE.Euler(0, 0, 0);
+const CARRY_UPPER_ARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_UPPER_ARM);
+const CARRY_FOREARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_FOREARM);
 
 export interface PlayerMesh {
   /** Place this at the player's feet. */
@@ -207,8 +209,28 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     chestBone.attach(axe);
   }
 
+  /** The right arm as the clip last posed it, before the carry turn. Undefined while the arm is not turned. */
+  let armBeforeCarryTurn: { upper: THREE.Quaternion; fore: THREE.Quaternion } | undefined;
+
   /** Shows the clip for what the player is doing now. */
   function pose(): void {
+    // The mixer skips a bone whose clip value has not changed since it last wrote it.
+    // Undo the carry turn first, so the turn never piles up on itself.
+    if (armBeforeCarryTurn !== undefined) {
+      rightUpperArm.quaternion.copy(armBeforeCarryTurn.upper);
+      rightForearm.quaternion.copy(armBeforeCarryTurn.fore);
+      armBeforeCarryTurn = undefined;
+    }
+    posePlayingClip();
+    if (carrying) {
+      // The right arm turns up so the hand steadies the log on the shoulder, whatever the legs do.
+      armBeforeCarryTurn = { upper: rightUpperArm.quaternion.clone(), fore: rightForearm.quaternion.clone() };
+      rightUpperArm.quaternion.multiply(CARRY_UPPER_ARM_TURN);
+      rightForearm.quaternion.multiply(CARRY_FOREARM_TURN);
+    }
+  }
+
+  function posePlayingClip(): void {
     if (choppingAt !== undefined) {
       showClip(chop, choppingAt * CHOP_SWINGS_PER_SECOND * chop.getClip().duration);
       return;
@@ -222,11 +244,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     } else {
       // Standing still, the player breathes on a steady clock of its own.
       showClip(carrying ? carry : idle, carrying ? 0 : performance.now() / 1000);
-    }
-    if (carrying) {
-      // The right arm turns up so the hand steadies the log on the shoulder, whatever the legs do.
-      rightUpperArm.quaternion.multiply(new THREE.Quaternion().setFromEuler(CARRY_UPPER_ARM));
-      rightForearm.quaternion.multiply(new THREE.Quaternion().setFromEuler(CARRY_FOREARM));
     }
   }
   pose();

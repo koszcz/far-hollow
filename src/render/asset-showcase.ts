@@ -22,8 +22,9 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
-import { DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
+import { DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
+import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -270,6 +271,30 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
+  roof: {
+    radius: 1.8,
+    focus: { x: 0, y: 1.6, z: 0 },
+    // A blueprint with two logs delivered, the third rafter going up, the bark half laid, then the finished roof.
+    shots: [
+      { label: `blueprint, 2 of ${ROOF_LOG_COST} logs delivered`, yaw: 30, pitch: 35, seconds: 0 },
+      { label: "3rd rafter above its place", yaw: 30, pitch: 35, seconds: (2 + BUILD_FADE_SHARE) / (ROOF_LOG_COST + ROOF_BARK_COST) },
+      { label: "bark half laid", yaw: 30, pitch: 35, seconds: (ROOF_LOG_COST + ROOF_BARK_COST / 2) / (ROOF_LOG_COST + ROOF_BARK_COST) },
+      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+    ],
+    build({ place }) {
+      const deckTop = (entity: Entity) => {
+        if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
+      };
+      deckTop(place(0, 0, { foundation: true }));
+      // A wall at the back and a door frame at the left hold the roof up.
+      deckTop(place(0, -0.5, { edgePiece: "logWall", facing: { turns: 2 } }));
+      deckTop(place(-0.5, 0, { edgePiece: "doorFrame", facing: { turns: 1 } }));
+      deckTop(place(0, 0, { blueprint: { piece: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
   firewood: {
     radius: 0.9,
     focus: { x: 0, y: 0.12, z: 0 },
@@ -645,14 +670,15 @@ export function showAsset(
   const leanTos = createLeanToMeshes(store);
   const foundations = createFoundationMeshes(store, groundAt);
   const edgePieces = createEdgePieceMeshes(store);
+  const roofs = createRoofMeshes(store);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, forage.group, bedrolls.group, rain.group);
+  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, forage.group, bedrolls.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, edgePieces.group, roofs.group, forage.group, bedrolls.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -665,6 +691,7 @@ export function showAsset(
     leanTos.update();
     foundations.update();
     edgePieces.update();
+    roofs.update();
     bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
@@ -719,6 +746,7 @@ export function showAsset(
       leanTos.dispose();
       foundations.dispose();
       edgePieces.dispose();
+      roofs.dispose();
       potMaker.dispose();
       forage.dispose();
       bedrolls.dispose();

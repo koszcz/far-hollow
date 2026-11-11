@@ -223,111 +223,134 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
     [client],
   );
 
+  const hasContext =
+    view.action !== null ||
+    buildMenuOpen ||
+    placing !== null ||
+    view.carrying !== null ||
+    view.nearbyCampfire !== null ||
+    view.nearbyBedroll !== null ||
+    view.nearbyBlueprint !== null;
+
   return (
-    <div class="hud">
-      {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
-      {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
-      {view.notice !== null && (
-        <p class="hud-banner hud-notice" role="status">
-          {strings.notices[view.notice]}
-        </p>
-      )}
-      <div class="hud-panel">
-        <section class="hud-needs" aria-label={strings.needs}>
-          <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
-          <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
-          <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
-          <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
-          {view.sick && <p class="hud-hint">{strings.sick}</p>}
-        </section>
-        {view.action !== null && (
-          <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
-        )}
-        <div class="hud-buttons">
-          <HudButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
-              client.send({ type: "setPaused", paused: !view.paused });
-            }} />
-          {placing === null && <HudButton icon="place" label={strings.buildMenu.open} onClick={onToggleBuildMenu} />}
-          {(view.backpack.bedroll ?? 0) > 0 && (
-            <HudButton icon="place" label={strings.layBedroll} onClick={() => {
-                client.send({ type: "layBedroll" });
-              }} />
+    <>
+      {(view.paused || view.raining || view.notice !== null) && (
+        <div class="hud-banners">
+          {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
+          {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
+          {view.notice !== null && (
+            <p class="hud-banner hud-notice" role="status">
+              {strings.notices[view.notice]}
+            </p>
           )}
         </div>
-        {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
-        {placing !== null && (
-          <p class="hud-hint">
-            {placing === "logWall" || placing === "doorFrame"
-              ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
-              : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
-          </p>
-        )}
-        {view.carrying !== null && (
-          <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
+      )}
+      {hasContext && (
+        <div class="hud-context">
+          <div class="hud-panel">
+            {view.action !== null && (
+              <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
+            )}
+            {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
+            {placing !== null && (
+              <p class="hud-hint">
+                {placing === "logWall" || placing === "doorFrame"
+                  ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
+                  : placing === "roof"
+                    ? strings.buildMenu.placingRoof(strings.buildMenu.structures[placing])
+                    : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
+              </p>
+            )}
+            {view.carrying !== null && (
+              <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
+                <h2>
+                  <HudIcon name="log" />
+                  {view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}
+                </h2>
+                <div class="hud-buttons">
+                  <HudButton label={strings.dropLog} onClick={() => {
+                      client.send({ type: "dropLog" });
+                    }} />
+                  {view.carrying === "log" && (
+                    <HudButton icon="axe" label={strings.splitLog} onClick={() => {
+                        client.send({ type: "splitLog" });
+                      }} />
+                  )}
+                </div>
+              </section>
+            )}
+            {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
+            {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
+            {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
+          </div>
+        </div>
+      )}
+      <div class="hud">
+        <div class="hud-panel">
+          <section class="hud-needs" aria-label={strings.needs}>
+            <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
+            <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
+            <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
+            <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
+            {view.sick && <p class="hud-hint">{strings.sick}</p>}
+          </section>
+          <div class="hud-buttons">
+            <HudButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
+                client.send({ type: "setPaused", paused: !view.paused });
+              }} />
+            <HudButton icon="place" label={strings.buildMenu.open} disabled={placing !== null} onClick={onToggleBuildMenu} />
+          </div>
+          <section class="hud-section hud-backpack" aria-label={strings.backpack}>
             <h2>
-              <HudIcon name="log" />
-              {view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}
+              <HudIcon name="backpack" />
+              {strings.backpack}
+              <span class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</span>
             </h2>
+            <ul>
+              {backpackContents(view.backpack).map(([content, count]) => (
+                <li key={content}>
+                  {CONTENT_ICONS[content] !== undefined && <HudIcon name={CONTENT_ICONS[content]} />}
+                  {strings.backpackContentCount(strings.backpackContents[content], count)}
+                  {isFood(content) && (
+                    <HudButton label={strings.eat} onClick={() => {
+                        client.send({ type: "eat", food: content });
+                      }} />
+                  )}
+                </li>
+              ))}
+            </ul>
             <div class="hud-buttons">
-              <HudButton label={strings.dropLog} onClick={() => {
-                  client.send({ type: "dropLog" });
-                }} />
-              {view.carrying === "log" && (
-                <HudButton icon="axe" label={strings.splitLog} onClick={() => {
-                    client.send({ type: "splitLog" });
+              {(view.backpack.bedroll ?? 0) > 0 && (
+                <HudButton icon="place" label={strings.layBedroll} onClick={() => {
+                    client.send({ type: "layBedroll" });
+                  }} />
+              )}
+              {(view.backpack.pot ?? 0) > 0 && (
+                <HudButton icon="droplet" label={strings.fillPot} onClick={() => {
+                    client.send({ type: "fillPot" });
+                  }} />
+              )}
+              {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
+                <HudButton icon="droplet" label={strings.drinkFromPot} onClick={() => {
+                    client.send({ type: "drinkFromPot" });
                   }} />
               )}
             </div>
           </section>
-        )}
-        {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
-        {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
-        {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
-        <section class="hud-section hud-backpack" aria-label={strings.backpack}>
-          <h2>
-            <HudIcon name="backpack" />
-            {strings.backpack}
-            <span class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</span>
-          </h2>
-          <ul>
-            {backpackContents(view.backpack).map(([content, count]) => (
-              <li key={content}>
-                {CONTENT_ICONS[content] !== undefined && <HudIcon name={CONTENT_ICONS[content]} />}
-                {strings.backpackContentCount(strings.backpackContents[content], count)}
-                {isFood(content) && (
-                  <HudButton label={strings.eat} onClick={() => {
-                      client.send({ type: "eat", food: content });
-                    }} />
-                )}
-              </li>
-            ))}
-          </ul>
-          <div class="hud-buttons">
-            {(view.backpack.pot ?? 0) > 0 && (
-              <HudButton icon="droplet" label={strings.fillPot} onClick={() => {
-                  client.send({ type: "fillPot" });
-                }} />
-            )}
-            {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
-              <HudButton icon="droplet" label={strings.drinkFromPot} onClick={() => {
-                  client.send({ type: "drinkFromPot" });
-                }} />
-            )}
-          </div>
-        </section>
-        <label class="hud-setting">
-          <input
-            type="checkbox"
-            checked={cameraFollow}
-            onChange={(event) => {
-              const enabled = event.currentTarget.checked;
-              setCameraFollow(enabled);
-              onCameraFollowChange(enabled);
-            }}
-          />
-          {strings.cameraFollow}
-        </label>
+          <label class="hud-setting">
+            <input
+              type="checkbox"
+              checked={cameraFollow}
+              onChange={(event) => {
+                const enabled = event.currentTarget.checked;
+                setCameraFollow(enabled);
+                onCameraFollowChange(enabled);
+              }}
+            />
+            {strings.cameraFollow}
+          </label>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

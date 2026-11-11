@@ -4,7 +4,11 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 /* The HUD, the "hud" asset in asset-manifest.json: a woodland panel of dark bark with warm text. Approved by the owner. */
 .hud { position: absolute; top: 12px; left: 12px; width: 260px; color: #f3e6d3; font-size: 13px; line-height: 1.35; }
 .hud-panel { padding: 10px 12px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-radius: 10px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.35); pointer-events: auto; }
-.hud-banner { margin: 0 0 6px; padding: 6px 10px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-left: 3px solid #e8833a; border-radius: 0; }
+/* Banners and the context dock sit apart from the HUD panel, so the panel never jumps when they come and go. */
+.hud-banners { position: absolute; top: 12px; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: min(420px, calc(100% - 24px)); transform: translateX(-50%); }
+.hud-context { position: absolute; bottom: 12px; left: 50%; width: min(300px, calc(100% - 24px)); color: #f3e6d3; font-size: 13px; line-height: 1.35; transform: translateX(-50%); }
+.hud-context .hud-panel > :first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.hud-banner { margin: 0; padding: 6px 10px; color: #f3e6d3; font-size: 13px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-left: 3px solid #e8833a; border-radius: 0; }
 .hud-notice { font-weight: 600; }
 .hud-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .hud-meter { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }

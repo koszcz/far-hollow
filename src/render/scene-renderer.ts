@@ -9,6 +9,7 @@ import { createCampfireMeshes } from "./campfire-meshes";
 import { createForageMeshes } from "./forage-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
+import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
@@ -114,6 +115,8 @@ export function createSceneRenderer(
   scene.add(foundationMeshes.group);
   const edgePieceMeshes = createEdgePieceMeshes(entities);
   scene.add(edgePieceMeshes.group);
+  const roofMeshes = createRoofMeshes(entities);
+  scene.add(roofMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
@@ -122,8 +125,8 @@ export function createSceneRenderer(
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
-    forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, forageMeshes.group,
-    bedrollMeshes.group,
+    forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
+    forageMeshes.group, bedrollMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
@@ -142,6 +145,7 @@ export function createSceneRenderer(
     else if (kind === "blueprint" && (entity.blueprint?.piece === "logWall" || entity.blueprint?.piece === "doorFrame")) {
       hoverOutline.show(edgePieceMeshes.outlineOf({ kind, entity }));
     }
+    else if (kind === "blueprint" && entity.blueprint?.piece === "roof") hoverOutline.show(roofMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
     else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
     else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
@@ -240,6 +244,8 @@ export function createSceneRenderer(
       placeCamera();
       // Walls between the camera and the player fade out, so the player stays in view.
       edgePieceMeshes.update({ camera: cameraRig.view().eye, player: playerDrawn });
+      // The roof above the player hides, so the player stays in view inside a cabin.
+      roofMeshes.update({ player: playerDrawn });
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
@@ -252,7 +258,7 @@ export function createSceneRenderer(
       const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
       const candidates = [
         forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
-        edgePieceMeshes.pick(raycaster),
+        edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
         forageMeshes.pick(raycaster),
         bedrollMeshes.pick(raycaster),
       ];
@@ -280,6 +286,7 @@ export function createSceneRenderer(
       leanToMeshes.showPreview(preview?.structure === "leanTo" ? preview : undefined);
       foundationMeshes.showPreview(preview?.structure === "foundation" ? preview : undefined);
       edgePieceMeshes.showPreview(preview?.structure === "logWall" || preview?.structure === "doorFrame" ? { ...preview, structure: preview.structure } : undefined);
+      roofMeshes.showPreview(preview?.structure === "roof" ? preview : undefined);
     },
     dispose() {
       hoverOutline.dispose();
@@ -291,6 +298,7 @@ export function createSceneRenderer(
       leanToMeshes.dispose();
       foundationMeshes.dispose();
       edgePieceMeshes.dispose();
+      roofMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
       rainEffect.dispose();

@@ -1,9 +1,9 @@
 // Draws the player with the code-built shape listed in asset-manifest.json as "player": a woodcutter with adult proportions,
 // knees and elbows, a plaid work shirt, a knit cap, a beard, and an axe. The owner approved the asset.
 // The walk cycle is the code-built "walk-animation". The owner approved the asset.
-// The chopping swing is the code-built "chop-animation". The splitting strike is the code-built "split-animation". The carried log is the code-built "logs" shape.
+// The chopping swing is the code-built "chop-animation". The owner approved the asset. The splitting strike is the code-built "split-animation". The carried log is the approved "logs" asset, loaded by log-shape.ts.
 import * as THREE from "three";
-import { createLogGeometry, LOG_COLOUR } from "./log-shape";
+import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 
 const SHIRT_COLOUR = "#7d3b31";
 const SHIRT_STRIPE_COLOUR = "#2b2523";
@@ -68,8 +68,32 @@ const CARRY_ELBOW_RADIANS = -2.1;
 
 /** How many times a second the player swings the axe. */
 export const CHOP_SWINGS_PER_SECOND = 1.25;
-/** How far the player leans into each swing, in radians. */
-const CHOP_LEAN_RADIANS = 0.35;
+/**
+ * Each chopping swing is a side swing at waist height, like felling with an axe. Its parts, as shares of one swing:
+ * lift the axe back over the right shoulder until `CHOP_RAISED_SHARE`, hold it there until `CHOP_SWING_SHARE`,
+ * swing it across into the trunk at `CHOP_STRIKE_SHARE`, then jolt with the impact until the swing ends.
+ */
+export const CHOP_RAISED_SHARE = 0.5;
+export const CHOP_SWING_SHARE = 0.58;
+export const CHOP_STRIKE_SHARE = 0.78;
+/**
+ * The chopping pose at the strike and with the axe raised. Angles are in radians. The handle's angles are against the
+ * chest: yaw turns toward the player's left, pitch tips up. `grip` is the point the handle swings about, in metres
+ * from the feet, in the chest's own frame.
+ */
+const CHOP_STRIKE_POSE = { chestYaw: 0.15, hipYaw: 0.05, lean: 0.05, handleYaw: -0.2, handlePitch: -0.4, grip: new THREE.Vector3(0, 1.2, -0.12) };
+const CHOP_RAISED_POSE = { chestYaw: -0.9, hipYaw: -0.25, lean: -0.05, handleYaw: -1.3, handlePitch: 0.6, grip: new THREE.Vector3(-0.12, 1.42, 0.2) };
+/** How far the handle rebounds off the trunk at the strike, in radians, and how far the body rocks back, in radians. */
+const CHOP_REBOUND_RADIANS = 0.1;
+const CHOP_REBOUND_LEAN_RADIANS = 0.05;
+/** Where the hands hold the handle, in metres from the grip point. The right hand slides up the handle as the axe rises. */
+const CHOP_LEFT_HAND_METRES = 0.25;
+const CHOP_RIGHT_HAND_STRIKE_METRES = 0.33;
+const CHOP_RIGHT_HAND_RAISED_METRES = 0.5;
+/** How far the feet stand apart while chopping, as a turn of each leg outward, in radians. */
+const CHOP_STANCE_RADIANS = 0.1;
+/** The axe's handle runs from its knob to its head. Its middle is this far along the handle from the knob, in metres. */
+const AXE_KNOB_TO_MIDDLE_METRES = 0.39;
 /** How many times a second the player strikes down at a log when splitting. Slower than chopping, because each strike is a full overhead lift. */
 export const SPLIT_STRIKES_PER_SECOND = 0.8;
 /** Share of each splitting strike spent lifting the axe overhead. The rest is the fast drop onto the log. */
@@ -108,7 +132,8 @@ interface Leg extends Limb {
   readonly ankle: THREE.Group;
 }
 
-export function createPlayerMesh(): PlayerMesh {
+/** logShape is the loaded log, from loadLogShape. The player carries it on the shoulder. */
+export function createPlayerMesh(logShape: LogShape): PlayerMesh {
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
   const textures: THREE.Texture[] = [];
@@ -248,9 +273,8 @@ export function createPlayerMesh(): PlayerMesh {
   }
   holdAxe(axeInHand);
 
-  const logGeometry = createLogGeometry();
-  geometries.push(logGeometry);
-  const shoulderLog = new THREE.Mesh(logGeometry, material(LOG_COLOUR, { flatShading: true }));
+  // The forest owns the log shape and disposes it, so the player does not.
+  const shoulderLog = new THREE.Mesh(logShape.geometry, [material(LOG_COLOUR, { flatShading: true }), material(LOG_CUT_COLOUR, { flatShading: true })]);
   shoulderLog.position.set(SHOULDER_LOG_SPOT.x, SHOULDER_LOG_SPOT.y, SHOULDER_LOG_SPOT.z);
   shoulderLog.visible = false;
   chest.add(shoulderLog);
@@ -258,6 +282,8 @@ export function createPlayerMesh(): PlayerMesh {
   let carrying = false;
   let walkedMetres: number | undefined;
   let working = false;
+  /** The clock time while chopping, or undefined. */
+  let choppingAt: number | undefined;
 
   /** Sets the arm and leg angles for what the player is doing now. */
   function poseLimbs(): void {
@@ -276,14 +302,18 @@ export function createPlayerMesh(): PlayerMesh {
       body.position.y = walking ? -WALK_BOB_METRES * (1 + Math.cos(stride * 2)) * 0.5 : 0;
     }
     legs.forEach((leg, index) => {
+      leg.root.rotation.set(0, 0, 0);
       if (!walking) {
-        leg.root.rotation.x = 0;
         leg.bend.rotation.x = 0.05;
         leg.ankle.rotation.x = -0.05;
         return;
       }
       placeFoot(leg, (stride / (Math.PI * 2) + (index === 0 ? 0 : 0.5)) % 1);
     });
+    if (choppingAt !== undefined) {
+      poseChop(choppingAt);
+      return;
+    }
     if (working) {
       leftArm.root.rotation.set(WORK_UPPER_ARM_RADIANS, 0, -0.4);
       rightArm.root.rotation.set(WORK_UPPER_ARM_RADIANS, 0, 0.4);
@@ -352,6 +382,91 @@ export function createPlayerMesh(): PlayerMesh {
     const tip = ahead < 0 ? Math.asin(Math.min(1, shortfall / TOE_REACH_METRES)) : -Math.asin(Math.min(1, shortfall / HEEL_REACH_METRES));
     leg.ankle.rotation.x = -(leg.root.rotation.x + leg.bend.rotation.x) - lean + tip;
   }
+
+  const shoulders = { left: new THREE.Vector3(SHOULDER_SPREAD_METRES, SHOULDER_HEIGHT_METRES, 0), right: new THREE.Vector3(-SHOULDER_SPREAD_METRES, SHOULDER_HEIGHT_METRES, 0) };
+  const elbowsPoint = { left: new THREE.Vector3(0.4, -1, -0.2).normalize(), right: new THREE.Vector3(-0.4, -1, -0.2).normalize() };
+  const grip = new THREE.Vector3();
+  const handle = new THREE.Vector3();
+  const bladeFaces = new THREE.Vector3();
+  const hand = new THREE.Vector3();
+  const axeTurn = new THREE.Matrix4();
+  const axisX = new THREE.Vector3();
+  const axisY = new THREE.Vector3();
+
+  /** Poses the body, arms, and axe `nowSeconds` into the chopping swing. */
+  function poseChop(nowSeconds: number): void {
+    const phase = (nowSeconds * CHOP_SWINGS_PER_SECOND) % 1;
+    // `raised` runs from 0 at the strike to 1 with the axe raised. `rebound` shakes off the impact and dies away.
+    let raised = 0;
+    let rebound = 0;
+    if (phase < CHOP_RAISED_SHARE) raised = easeInOut(phase / CHOP_RAISED_SHARE);
+    else if (phase < CHOP_SWING_SHARE) raised = 1;
+    else if (phase < CHOP_STRIKE_SHARE) raised = 1 - ((phase - CHOP_SWING_SHARE) / (CHOP_STRIKE_SHARE - CHOP_SWING_SHARE)) ** 2;
+    else {
+      const after = (phase - CHOP_STRIKE_SHARE) / (1 - CHOP_STRIKE_SHARE);
+      rebound = (1 - after) ** 2 * Math.sin(after * Math.PI * 3);
+    }
+    const blend = (key: "chestYaw" | "hipYaw" | "lean" | "handleYaw" | "handlePitch"): number =>
+      CHOP_STRIKE_POSE[key] + (CHOP_RAISED_POSE[key] - CHOP_STRIKE_POSE[key]) * raised;
+
+    // The hips turn a little and the chest a lot, winding up against the feet, which stay planted apart.
+    const hipYaw = blend("hipYaw");
+    body.rotation.set(blend("lean") - rebound * CHOP_REBOUND_LEAN_RADIANS, hipYaw, 0);
+    body.position.y = 0;
+    chest.rotation.y = blend("chestYaw") - rebound * CHOP_REBOUND_RADIANS * 0.5;
+    legs.forEach((leg, index) => leg.root.rotation.set(0, -hipYaw, index === 0 ? CHOP_STANCE_RADIANS : -CHOP_STANCE_RADIANS));
+
+    // The handle swings about the grip point. The blade leads, facing the way the head moves.
+    const yaw = blend("handleYaw") - rebound * CHOP_REBOUND_RADIANS;
+    const pitch = blend("handlePitch");
+    grip.lerpVectors(CHOP_STRIKE_POSE.grip, CHOP_RAISED_POSE.grip, raised);
+    handle.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
+    bladeFaces.set(Math.cos(yaw), 0, -Math.sin(yaw));
+    bladeFaces.addScaledVector(handle, -bladeFaces.dot(handle)).normalize();
+    // The axe's own -y runs from knob to head, and its blade faces its +z.
+    axisY.copy(handle).negate();
+    axisX.crossVectors(axisY, bladeFaces);
+    axeTurn.makeBasis(axisX, axisY, bladeFaces);
+    axe.quaternion.setFromRotationMatrix(axeTurn);
+    axe.position.copy(grip).addScaledVector(handle, CHOP_LEFT_HAND_METRES - 0.05 + AXE_KNOB_TO_MIDDLE_METRES);
+
+    // Both hands hold the handle: the left near the knob, the right further up.
+    reachFor(leftArm, shoulders.left, hand.copy(grip).addScaledVector(handle, CHOP_LEFT_HAND_METRES), elbowsPoint.left);
+    const rightHandMetres = CHOP_RIGHT_HAND_STRIKE_METRES + (CHOP_RIGHT_HAND_RAISED_METRES - CHOP_RIGHT_HAND_STRIKE_METRES) * raised;
+    reachFor(rightArm, shoulders.right, hand.copy(grip).addScaledVector(handle, rightHandMetres), elbowsPoint.right);
+  }
+
+  const armTurn = new THREE.Matrix4();
+  const toHand = new THREE.Vector3();
+  const elbowSide = new THREE.Vector3();
+  const upperArm = new THREE.Vector3();
+  const forearm = new THREE.Vector3();
+  const bendSide = new THREE.Vector3();
+  const across = new THREE.Vector3();
+  /** Turns and bends an arm so its hand reaches `target`, in the chest's frame, with the elbow out toward `elbowPoints`. */
+  function reachFor(arm: Limb, shoulder: THREE.Vector3, target: THREE.Vector3, elbowPoints: THREE.Vector3): void {
+    const upperLength = UPPER_ARM_LENGTH_METRES;
+    // The middle of the hand sits a little past the wrist.
+    const lowerLength = FOREARM_LENGTH_METRES + 0.045;
+    toHand.subVectors(target, shoulder);
+    const reach = Math.min(toHand.length(), upperLength + lowerLength - 0.001);
+    toHand.normalize();
+    // Two-joint reach: the upper arm points part way to the hand, toward the elbow side, and the elbow bends to make up the rest.
+    const offset = Math.acos(THREE.MathUtils.clamp((upperLength ** 2 + reach ** 2 - lowerLength ** 2) / (2 * upperLength * reach), -1, 1));
+    elbowSide.copy(elbowPoints).addScaledVector(toHand, -elbowPoints.dot(toHand)).normalize();
+    upperArm.copy(toHand).multiplyScalar(Math.cos(offset)).addScaledVector(elbowSide, Math.sin(offset));
+    // The forearm runs from the elbow to the hand.
+    forearm.copy(toHand).multiplyScalar(reach).addScaledVector(upperArm, -upperLength).normalize();
+    // The arm hangs along its -y and its elbow bends toward its +z.
+    bendSide.copy(forearm).addScaledVector(upperArm, -forearm.dot(upperArm));
+    if (bendSide.lengthSq() < 1e-8) bendSide.copy(elbowSide).negate();
+    bendSide.normalize();
+    axisY.copy(upperArm).negate();
+    across.crossVectors(axisY, bendSide);
+    armTurn.makeBasis(across, axisY, bendSide);
+    arm.root.quaternion.setFromRotationMatrix(armTurn);
+    arm.bend.rotation.set(Math.atan2(-forearm.dot(bendSide), forearm.dot(upperArm)), 0, 0);
+  }
   poseLimbs();
 
   return {
@@ -363,7 +478,7 @@ export function createPlayerMesh(): PlayerMesh {
       if (carryingNow === carrying) return;
       carrying = carryingNow;
       shoulderLog.visible = carrying;
-      holdAxe(carrying ? axeOnBack : axeInHand);
+      if (choppingAt === undefined) holdAxe(carrying ? axeOnBack : axeInHand);
       poseLimbs();
     },
     setWalking(walked) {
@@ -371,17 +486,21 @@ export function createPlayerMesh(): PlayerMesh {
       poseLimbs();
     },
     setChopping(nowSeconds) {
-      body.position.y = 0;
+      const wasChopping = choppingAt !== undefined;
+      choppingAt = nowSeconds;
       working = nowSeconds !== undefined;
+      // While chopping, both hands hold the axe, so it hangs from the chest instead of the right hand.
+      if (working && !wasChopping) chest.add(axe);
+      if (!working && wasChopping) holdAxe(carrying ? axeOnBack : axeInHand);
+      body.position.y = 0;
+      if (!working) body.rotation.x = 0;
       poseLimbs();
-      if (nowSeconds === undefined) {
-        body.rotation.x = 0;
-        return;
-      }
-      // Lean back to raise the axe, then forward into the strike.
-      body.rotation.x = Math.sin(nowSeconds * CHOP_SWINGS_PER_SECOND * Math.PI * 2) * CHOP_LEAN_RADIANS;
     },
     setSplitting(nowSeconds) {
+      if (choppingAt !== undefined) {
+        choppingAt = undefined;
+        holdAxe(carrying ? axeOnBack : axeInHand);
+      }
       working = nowSeconds !== undefined;
       poseLimbs();
       if (nowSeconds === undefined) {

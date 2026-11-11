@@ -4,6 +4,7 @@ import { cursorFor, mainActionFor, outlineFor } from "./walk-input";
 describe("clicking a campfire", () => {
   it("walks the player over to tend it", () => {
     expect(mainActionFor({ kind: "campfire", id: 7 })).toEqual({ type: "tendCampfire", campfireId: 7 });
+    expect(mainActionFor({ kind: "bedroll", id: 9 })).toEqual({ type: "sleep", bedrollId: 9 });
   });
 });
 

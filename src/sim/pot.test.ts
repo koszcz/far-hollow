@@ -52,8 +52,8 @@ describe("filling the pot", () => {
 
   it("leaves the pot empty when the backpack has no room for the water", () => {
     const game = createGame({ seed: 42 });
-    // 11 pieces of firewood weigh 16.5 kg. With the tools and the empty pot that makes 19.4 kg, too much to add 2 kg of water.
-    give(game, "firewood", 11);
+    // 10 pieces of firewood weigh 15 kg. With the tools, bedroll, and empty pot that makes 19.4 kg, too much to add 2 kg of water.
+    give(game, "firewood", 10);
 
     send(game, { type: "fillPot" });
     runUntilStill(game);

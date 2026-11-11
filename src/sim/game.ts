@@ -1,17 +1,20 @@
-import type { CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
+import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PlayerAction } from "./api";
+import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { CAMPFIRE_STICK_COST, createBuilding } from "./building";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
+import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
-import { createEntityStore, movingEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
+import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
-import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
+import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
+import { createRain, passRainTime } from "./rain";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { boilProgress } from "./pot-state";
@@ -87,8 +90,10 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
   const gathering = createGathering(entities, walking);
+  const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
+  const bedrolls = createBedrolls(entities, walking, valley);
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const moving = movingEntities(entities);
@@ -96,6 +101,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const listeners = new Set<() => void>();
   const gameStartMinutes = clockStartMinutes(GAME_START);
   const clock = createClock(progress?.clockMinutes ?? gameStartMinutes);
+  // A save made before rain existed has no weather, so it starts dry from here.
+  const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes) })).rain;
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
   const firstMorning = nextMorning(gameStartMinutes);
   /** Whether the first night has ended, by morning coming or by a collapse. */
@@ -121,6 +128,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       action: currentAction(),
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
+      nearbyBedroll: nearbyBedroll(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
         thirst: player.needs.thirst.level,
@@ -129,6 +137,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       }),
       warmth: player.needs.warmth.level,
       sick: player.sickness !== undefined,
+      raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
     });
   }
@@ -151,6 +160,12 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     });
   }
 
+  function nearbyBedroll(): BedrollView | null {
+    const bedroll = bedrolls.nearby();
+    const id = bedroll === undefined ? undefined : entities.id(bedroll);
+    return id === undefined ? null : Object.freeze({ id });
+  }
+
   function currentAction(): PlayerAction | null {
     if (player.buildTask !== undefined && player.walkPath === undefined) {
       const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
@@ -168,7 +183,9 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     chopping.cancel();
     carrying.cancel();
     gathering.cancel();
+    foraging.cancel();
     building.cancel();
+    bedrolls.cancel();
     drinking.cancel();
     pot.cancel();
   }
@@ -199,6 +216,14 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const refusal = gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
     },
+    forage: (command) => {
+      cancelTasks();
+      const refusal = foraging.forage(command.spotId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    eat: (command) => {
+      foraging.eat(command.food);
+    },
     splitLog: () => {
       cancelTasks();
       const refusal = gathering.splitLog();
@@ -227,6 +252,18 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     lightCampfire: (command) => {
       campfires.light(command.campfireId);
     },
+    layBedroll: () => {
+      bedrolls.lay();
+    },
+    pickUpBedroll: (command) => {
+      cancelTasks();
+      bedrolls.pickUp(command.bedrollId);
+    },
+    sleep: (command) => {
+      cancelTasks();
+      const bedroll = bedrolls.sleep(command.bedrollId);
+      if (bedroll !== undefined) sleepOn(bedroll);
+    },
     drinkFromRiver: (command) => {
       cancelTasks();
       drinking.drinkFromRiver({ x: command.x, z: command.z });
@@ -249,36 +286,52 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       // Time only moves forward. Ignore a negative or broken amount.
       if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
     },
+    skipToRainChange: () => {
+      const wasFalling = rain.falling;
+      // Slice by slice, so the skip stops on the minute rain starts or stops, or at a collapse.
+      while (rain.falling === wasFalling) {
+        if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
+      }
+    },
   };
 
   /**
    * Moves the clock on by this many game minutes. Campfires burn and the player's needs change as it goes.
    * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
-   * A collapse ends the stretch early.
+   * Rain starts and stops as it goes. A collapse ends the stretch early, and then this returns false.
+   * `asleep` says whether the player sleeps through it.
    */
-  function passTime(gameMinutes: number): void {
+  function passTime(gameMinutes: number, asleep = false): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
+      passRainTime(rain, seed, clock.minutes);
+      // Rain does not put out campfires.
       campfires.burn(minutes);
+      foraging.grow(minutes);
       pot.heat(minutes);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
+        working: currentAction() !== null,
+        asleep,
         sick: player.sickness !== undefined,
+        // No roofs exist yet, so rain falls on the player wherever they stand.
+        inRain: rain.falling,
       });
       if (player.sickness !== undefined && passSicknessTime(player.sickness, minutes, { resting: isResting() })) {
         entities.removeComponent(player, "sickness");
       }
       if (hasCollapsed(player.needs)) {
         collapse();
-        return;
+        return false;
       }
       if (!firstNightOver && clock.minutes >= firstMorning) {
         firstNightOver = true;
         showNotice("survivedFirstNight");
       }
     }
+    return true;
   }
 
   /**
@@ -294,12 +347,29 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
     campfires.burn(asleepMinutes);
+    foraging.grow(asleepMinutes);
     pot.heat(asleepMinutes);
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
     Object.assign(player.previousPosition, player.position);
     wakeFromCollapse(player.needs);
     showNotice("collapsed");
+  }
+
+  /**
+   * The player lies down on a bedroll and sleeps. The bedroll becomes their respawn point.
+   * At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
+   */
+  function sleepOn(bedroll: BedrollEntity): void {
+    carrying.drop();
+    entities.removeComponent(player, "walkPath");
+    const { x, z } = bedroll.position;
+    player.respawnPoint = { x, z };
+    Object.assign(player.position, bedroll.position);
+    Object.assign(player.previousPosition, player.position);
+    const untilMorning = nextMorning(clock.minutes) - clock.minutes;
+    const night = isNight(readClock(clock.minutes).hourOfDay);
+    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs)), true);
   }
 
   function applyCommand(command: Command): void {
@@ -321,7 +391,10 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       chopping.step(playerSeconds);
       carrying.step();
       gathering.step(playerSeconds);
+      foraging.step();
       building.step(playerSeconds);
+      const reachedBedroll = bedrolls.step();
+      if (reachedBedroll !== undefined) sleepOn(reachedBedroll);
       drinking.step();
       const potRefusal = pot.step();
       if (potRefusal !== undefined) showNotice(potRefusal);
@@ -357,7 +430,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress };
 }
 
-/** Adds the valley's starting trees and sticks. */
+/** Adds the valley's starting trees, sticks, berry bushes, and mushrooms. */
 function addValleyEntities(entities: EntityStore, valley: Valley): void {
   for (const tree of valley.trees) {
     entities.add({
@@ -369,6 +442,7 @@ function addValleyEntities(entities: EntityStore, valley: Valley): void {
   for (const stick of valley.sticks) {
     entities.add({ stick: true, position: { x: stick.x, y: terrainHeightAt(valley.terrain, stick.x, stick.z), z: stick.z } });
   }
+  for (const spot of valleyForageSpots(valley)) entities.add(spot);
 }
 
 /** Adds a new game's player near the river, with a starting backpack. */

@@ -1,16 +1,20 @@
 import * as THREE from "three";
 import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
+import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
+import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
+import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
 import type { TreeShape } from "./tree-model";
+import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
 import { createValleyMeshes } from "./valley-meshes";
 
@@ -27,8 +31,10 @@ export type ScenePick =
   | { kind: "tree"; id: number }
   | { kind: "log"; id: number }
   | { kind: "stick"; id: number }
+  | { kind: "forage"; id: number }
   | { kind: "blueprint"; id: number }
-  | { kind: "campfire"; id: number };
+  | { kind: "campfire"; id: number }
+  | { kind: "bedroll"; id: number };
 
 /** A pick that landed on an entity. */
 type EntityPick = Extract<ScenePick, { id: number }>;
@@ -49,6 +55,7 @@ export interface SceneRenderer {
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
  * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
+ * logShape is the loaded log, from loadLogShape.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
@@ -57,6 +64,7 @@ export function createSceneRenderer(
   readHourOfDay: () => number,
   treeShapes: readonly TreeShape[],
   stumpShape: StumpShape,
+  logShape: LogShape,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -80,12 +88,18 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
-  const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape);
+  const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape, logShape);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
+  const forageMeshes = createForageMeshes(entities);
+  scene.add(forageMeshes.group);
+  const bedrollMeshes = createBedrollMeshes(entities);
+  scene.add(bedrollMeshes.group);
+  const rainEffect = createRainEffect(entities);
+  scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
-  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group);
+  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group, bedrollMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
@@ -97,11 +111,10 @@ export function createSceneRenderer(
       return;
     }
     const { kind, entity } = hovered;
-    hoverOutline.show(
-      kind === "blueprint" || kind === "campfire"
-        ? campfireMeshes.outlineOf({ kind, entity })
-        : forestMeshes.outlineOf({ kind, entity }),
-    );
+    if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
+    else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
+    else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
+    else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
   }
 
   let drawnWidth = 0;
@@ -122,7 +135,7 @@ export function createSceneRenderer(
     hoverOutline.setViewSize(width, height);
   }
 
-  const playerMesh = createPlayerMesh();
+  const playerMesh = createPlayerMesh(logShape);
   scene.add(playerMesh.group);
   skyLighting.addShadowCasters(playerMesh.group);
   /** Where the player is drawn this frame. The camera follows it. */
@@ -175,6 +188,8 @@ export function createSceneRenderer(
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
+      forageMeshes.update();
+      bedrollMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -186,6 +201,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
+      rainEffect.update(nowSeconds, cameraRig.view().focus);
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
     },
@@ -194,9 +210,11 @@ export function createSceneRenderer(
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
-      const forest = forestMeshes.pick(raycaster);
-      const campfire = campfireMeshes.pick(raycaster);
-      const nearest = campfire !== undefined && (forest === undefined || campfire.distance < forest.distance) ? campfire : forest;
+      const candidates = [forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), forageMeshes.pick(raycaster), bedrollMeshes.pick(raycaster)];
+      let nearest: (typeof candidates)[number];
+      for (const candidate of candidates) {
+        if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
+      }
       if (nearest !== undefined && (ground === undefined || nearest.distance <= ground.distance)) {
         const id = entities.id(nearest.hit.entity);
         if (id !== undefined) return { kind: nearest.hit.kind, id };
@@ -217,6 +235,9 @@ export function createSceneRenderer(
       riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();
+      forageMeshes.dispose();
+      bedrollMeshes.dispose();
+      rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();
     },

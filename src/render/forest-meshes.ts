@@ -1,12 +1,12 @@
 // Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
-// Felled trees fall with tree-fall.ts, part of "chop-animation".
+// Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { OutlinePart } from "./hover-outline";
-import { createLogGeometry, LOG_COLOUR } from "./log-shape";
+import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
@@ -32,8 +32,6 @@ const TRUNK_FOOT_BAND_METRES = 0.4;
 /** Each tree is drawn between these sizes, so the forest does not look copy-pasted. */
 const TREE_MIN_SCALE = 0.8;
 const TREE_MAX_SCALE = 1.25;
-/** Logs lie on the ground, so their middle sits this far above it. */
-const LOG_REST_HEIGHT_METRES = 0.18;
 /** Sticks are thin, so clicks hit an invisible box this wide around each one, in metres. */
 const STICK_PICK_WIDTH_METRES = 0.35;
 /** Each stick's bark is up to this share lighter or darker than the others, so the floor does not look copy-pasted. */
@@ -53,7 +51,7 @@ export interface ForestMeshes {
   dispose(): void;
 }
 
-export function createForestMeshes(entities: EntityStore, treeShapes: readonly TreeShape[], stumpShape: StumpShape): ForestMeshes {
+export function createForestMeshes(entities: EntityStore, treeShapes: readonly TreeShape[], stumpShape: StumpShape, logShape: LogShape): ForestMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -124,10 +122,13 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   }
 
   // Logs on the ground: one batch, with room for every log the valley's trees can give.
-  const logGeometry = track(createLogGeometry());
-  const logMaterial = track(new THREE.MeshStandardMaterial({ color: LOG_COLOUR, flatShading: true }));
+  const logGeometry = track(logShape.geometry);
+  const logMaterials = [
+    track(new THREE.MeshStandardMaterial({ color: LOG_COLOUR, flatShading: true })),
+    track(new THREE.MeshStandardMaterial({ color: LOG_CUT_COLOUR, flatShading: true })),
+  ];
   const logCapacity = Math.max(1, trees.length * LOGS_PER_TREE);
-  const logs = track(new THREE.InstancedMesh(logGeometry, logMaterial, logCapacity));
+  const logs = track(new THREE.InstancedMesh(logGeometry, logMaterials, logCapacity));
   logs.count = 0;
   logs.frustumCulled = false;
   group.add(logs);
@@ -168,6 +169,18 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     batch.trunks.instanceMatrix.needsUpdate = true;
     batch.crowns.instanceMatrix.needsUpdate = true;
     startFall(tree.position, type);
+  });
+  // A tree that stands again, such as in the asset showcase's looping chop, shows again in its batch.
+  standing.onEntityAdded.subscribe((tree) => {
+    const index = instanceOf.get(tree);
+    const type = typeOf.get(tree);
+    const batch = type === undefined ? undefined : treeBatches[type];
+    if (index === undefined || batch === undefined) return;
+    treeMatrix(tree.position, matrix);
+    batch.trunks.setMatrixAt(index, matrix);
+    batch.crowns.setMatrixAt(index, matrix);
+    batch.trunks.instanceMatrix.needsUpdate = true;
+    batch.crowns.instanceMatrix.needsUpdate = true;
   });
   const stumpQuery = stumpEntities(entities).connect();
   const logQuery = logEntities(entities).connect();
@@ -237,7 +250,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     for (const log of logQuery) {
       if (logsDrawn.length >= logCapacity) break;
       logRotation.setFromAxisAngle(up, log.log.heading);
-      logPosition.set(log.position.x, log.position.y + LOG_REST_HEIGHT_METRES, log.position.z);
+      logPosition.set(log.position.x, log.position.y + logShape.restHeight, log.position.z);
       matrix.compose(logPosition, logRotation, logScale);
       logs.setMatrixAt(logsDrawn.length, matrix);
       logsDrawn.push(log);

@@ -1,7 +1,8 @@
 import { World } from "miniplex";
-import type { Backpack } from "./backpack";
+import type { Backpack, Food } from "./backpack";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
+import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
 
@@ -62,6 +63,16 @@ export interface Entity {
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
+  /** Marks a berry bush or a patch of mushrooms the player can forage. Its position is the middle of the plant. */
+  forageSpot?: { food: Food };
+  /** A foraged bush or mushroom patch growing back. It has food again when `minutesLeft` game minutes have passed. */
+  regrowing?: { minutesLeft: number };
+  /** The bush or mushroom patch the player is walking to forage, given by its entity id. */
+  forageTask?: { spotId: number };
+  /** Marks a bedroll laid out on the ground. Its position is the middle of the bedroll. A rolled-up bedroll is in the backpack. */
+  bedroll?: true;
+  /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
+  bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
@@ -74,6 +85,8 @@ export interface Entity {
   fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */
   potOnFire?: PotOnFire;
+  /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
+  rain?: Rain;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -148,6 +161,11 @@ export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
 }
 
+/** Berry bushes and mushroom patches, with food or growing back. */
+export function forageSpotEntities(store: EntityStore) {
+  return store.with("forageSpot", "position");
+}
+
 /** Building pieces placed but not finished. */
 export function blueprintEntities(store: EntityStore) {
   return store.with("blueprint", "position");
@@ -158,6 +176,11 @@ export function campfireEntities(store: EntityStore) {
   return store.with("campfire", "position");
 }
 
+/** Bedrolls laid out on the ground. */
+export function bedrollEntities(store: EntityStore) {
+  return store.with("bedroll", "position");
+}
+
 /** The player. There is only ever one. */
 export function playerEntities(store: EntityStore) {
   return store.with("player", "position", "previousPosition");
@@ -166,4 +189,9 @@ export function playerEntities(store: EntityStore) {
 /** Everything that stops the player walking near it. */
 export function walkBlockerEntities(store: EntityStore) {
   return store.with("blocksWalking", "position");
+}
+
+/** The valley's weather. There is only ever one. */
+export function rainEntities(store: EntityStore) {
+  return store.with("rain");
 }

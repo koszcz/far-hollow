@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { continueOrStartGame, readSave,SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
+import { continueOrStartGame, describeSave, readSave, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
 import { isWalkable } from "./walk-map";
 
 describe("saving and loading a game", () => {
@@ -41,7 +41,7 @@ describe("saving and loading a game", () => {
 });
 
 describe("upgrading an older save", () => {
-  // Only version 1 exists so far, so these use made-up upgrades to versions 2 and 3.
+  // These use made-up upgrades to versions 2 and 3, so they test the upgrade steps apart from the game's real ones.
   const upgrades: SaveUpgrade[] = [
     (save) => ({ ...save, hunger: 1 }),
     (save) => ({ ...save, needs: { hunger: save.hunger, thirst: 1 }, hunger: undefined }),
@@ -76,6 +76,20 @@ describe("upgrading an older save", () => {
 
   it("writes saves at the newest version the game's own upgrades reach", () => {
     expect(writeSave(createGame({ seed: 1 })).version).toBe(SAVE_UPGRADES.length + 1);
+  });
+
+  it("brings a version 1 save through every real upgrade: the valley's food, then a bedroll", () => {
+    const game = createGame({ seed: 42 });
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity }[] };
+    save.version = 1;
+    save.entities = save.entities.filter((entity) => entity.components.forageSpot === undefined);
+    for (const { components } of save.entities) delete components.backpack?.contents.bedroll;
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(loaded.game.entities.with("forageSpot").size).toBe(game.entities.with("forageSpot").size);
+    expect(loaded.game.client.getView().backpack.bedroll).toBe(1);
   });
 });
 
@@ -143,6 +157,28 @@ describe("continuing or starting a game when the page loads", () => {
     expect(game.client.getView().seed).toBe(99);
     expect(game.client.getView().stepCount).toBe(0);
     expect(game.client.getView().notice).toBe("saveBroken");
+  });
+});
+
+describe("describing a save slot on the start screen", () => {
+  it("calls a slot with nothing stored empty", () => {
+    expect(describeSave(undefined)).toEqual({ state: "empty" });
+  });
+
+  it("shows a filled slot's seed and the day it reached", () => {
+    const game = createGame({ seed: 4321 });
+    game.client.send({ type: "skipTime", hours: 20 });
+    game.step();
+    expect(describeSave(throughStorage(writeSave(game)))).toEqual({ state: "filled", seed: 4321, day: 2 });
+  });
+
+  it("shows a new game's slot on day 1", () => {
+    expect(describeSave(throughStorage(writeSave(createGame({ seed: 8 }))))).toEqual({ state: "filled", seed: 8, day: 1 });
+  });
+
+  it("calls a slot broken when its save cannot be loaded", () => {
+    expect(describeSave({ version: SAVE_VERSION, seed: "broken" })).toEqual({ state: "broken" });
+    expect(describeSave("far hollow")).toEqual({ state: "broken" });
   });
 });
 

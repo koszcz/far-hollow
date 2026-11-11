@@ -4,18 +4,24 @@
 // plays live in one full view instead, so the owner can judge its timing. &speed=0.25 slows it down.
 import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
+import { CHOP_SECONDS } from "../sim/chopping";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
+import { createBedrollMeshes } from "./bedroll-meshes";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
 import { daylightAt } from "./daylight";
+import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
+import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
-import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
+import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
+import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
+import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
-import { FALL_SECONDS } from "./tree-fall";
+import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
 import type { TreeShape } from "./tree-model";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
@@ -28,6 +34,8 @@ const FIELD_OF_VIEW_DEGREES = 40;
 /** Midday, so colours show as they do in daylight. */
 const NOON = 12;
 const NIGHT = 22;
+/** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
+const CHOP_PLAY_REST_SECONDS = 1.2;
 
 /** One of the four views. Angles are in degrees. Yaw 0 looks at the front of the player, from +z. */
 interface Shot {
@@ -51,6 +59,11 @@ interface Stage {
   readonly movePlayer: (x: number, z: number, heading: number) => void;
   /** Stands a pot on the ground at this offset from the stage's middle, in metres. It is not an entity. */
   readonly placePot: (x: number, z: number) => PotMesh;
+  /**
+   * Adds a shape that no entity draws yet, standing on the ground at this offset from the stage's middle.
+   * `lift` raises it, in metres, and `heading` turns it about the vertical, in radians. The showcase disposes it.
+   */
+  readonly addProp: (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, z: number, lift?: number, heading?: number) => void;
 }
 
 interface Showcase {
@@ -117,6 +130,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const [x, z] of [[-0.6, 0], [0.5, -0.4], [0.3, 0.6]] as const) place(x, z, { stick: true });
     },
   },
+  "berry-bush": {
+    radius: 1.5,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      // With berries on the left, foraged and growing back on the right.
+      place(-0.8, 0, { forageSpot: { food: "berries" } });
+      place(0.8, 0, { forageSpot: { food: "berries" }, regrowing: { minutesLeft: 60 } });
+    },
+  },
+  mushrooms: {
+    radius: 0.4,
+    focus: { x: 0, y: 0.08, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { forageSpot: { food: "mushroom" } });
+    },
+  },
   logs: {
     radius: 2.2,
     focus: { x: 0, y: 0.7, z: 0 },
@@ -127,6 +158,22 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       player.setCarryingLog(true);
     },
   },
+  firewood: {
+    radius: 0.9,
+    focus: { x: 0, y: 0.12, z: 0 },
+    shots: FOUR_ANGLES,
+    // One piece alone, a small pile, and the log it is split from, for size and colour.
+    build({ place, addProp }) {
+      const geometry = createFirewoodGeometry();
+      const material = new THREE.MeshStandardMaterial({ color: FIREWOOD_COLOUR, flatShading: true, vertexColors: true });
+      addProp(geometry, material, -0.45, 0.25, 0, 0.5);
+      // Two pieces side by side, bark to bark, with a third resting in the groove between them.
+      addProp(geometry, material, 0.31, 0.1, 0, 0);
+      addProp(geometry, material, 0.47, 0.1, 0, Math.PI);
+      addProp(geometry, material, 0.39, 0.12, 0.07, 0.04);
+      place(0, -0.75, { log: { heading: Math.PI / 2 } });
+    },
+  },
   player: { radius: 1.1, focus: { x: 0, y: 0.9, z: 0 }, shots: FOUR_ANGLES, build() {} },
   campfire: {
     radius: 1.1,
@@ -134,6 +181,14 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { campfire: { lit: false, fuelMinutes: 0 } });
+    },
+  },
+  bedroll: {
+    radius: 1.3,
+    focus: { x: 0, y: 0.1, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { bedroll: true });
     },
   },
   "fire-effect": {
@@ -184,6 +239,22 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.
+  hud: {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: walking, day", yaw: 20, pitch: 35 },
+      { label: "HUD: chopping, backpack full", yaw: -20, pitch: 35 },
+      { label: "HUD: carrying a log at a campfire", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: cold at night, paused, placing", yaw: 20, pitch: 35, hour: NIGHT },
+    ],
+    build({ place, movePlayer }) {
+      for (const [x, z] of [[-6, -4], [0, -7], [6, -3], [-3, -9]] as const) place(x, z, { tree: true });
+      place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+      movePlayer(0, 0, 0);
+    },
+  },
   "sky-lighting": {
     radius: 9,
     focus: { x: 0, y: 2, z: 0 },
@@ -197,6 +268,26 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const [x, z] of [[-5, -3], [0, -6], [5, -2], [-3, 4]] as const) place(x, z, { tree: true });
       place(2, 1, { log: { heading: 0.6 } });
       place(-2, 1.5, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+    },
+  },
+  rain: {
+    radius: 6,
+    focus: { x: 0, y: 1.5, z: 0 },
+    shots: [
+      { label: "midday", yaw: 200, pitch: 10, hour: NOON, seconds: 0 },
+      { label: "midday, from above", yaw: 40, pitch: 45, hour: NOON, seconds: 0.4 },
+      { label: "dusk, by a campfire", yaw: 70, pitch: 10, hour: 19, seconds: 0.8 },
+      { label: "night, by a campfire", yaw: 200, pitch: 10, hour: NIGHT, seconds: 1.2 },
+    ],
+    build({ place }) {
+      place(0, 0, { rain: { falling: true, changeAtMinutes: Infinity, changes: 1 } });
+      for (const [x, z] of [[-4, -3], [3, -5], [5, 1]] as const) place(x, z, { tree: true });
+      place(-1.5, 1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+    },
+    // Rain falls all the time, so it plays live in the afternoon.
+    play: {
+      shot: { label: "rain falling", yaw: 200, pitch: 10, hour: 15 },
+      pose: () => undefined,
     },
   },
   "campfire-build-animation": {
@@ -214,10 +305,10 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 1.4,
     focus: { x: 0, y: 1, z: 1.2 },
     shots: [
-      { label: "axe raised", yaw: 125, pitch: 10, seconds: 0.25 / CHOP_SWINGS_PER_SECOND },
-      { label: "strike", yaw: 125, pitch: 10, seconds: 0.75 / CHOP_SWINGS_PER_SECOND },
-      { label: "tree falling", yaw: 90, pitch: 15, radius: 6, focus: { y: 3, z: -2 }, seconds: FALL_SECONDS * 0.6 },
-      { label: "tree landing", yaw: 90, pitch: 15, radius: 6, focus: { y: 1.5, z: -3 }, seconds: FALL_SECONDS * 0.95 },
+      { label: "axe raised", yaw: 90, pitch: 12, seconds: (CHOP_RAISED_SHARE + CHOP_SWING_SHARE) / 2 / CHOP_SWINGS_PER_SECOND },
+      { label: "strike", yaw: 110, pitch: 45, seconds: (CHOP_STRIKE_SHARE + 0.01) / CHOP_SWINGS_PER_SECOND },
+      { label: "tree falling", yaw: 90, pitch: 15, radius: 6, focus: { y: 3, z: -2 }, seconds: FALL_LANDS_SECONDS * 0.75 },
+      { label: "tree bounces", yaw: 90, pitch: 15, radius: 6, focus: { y: 1.5, z: -3 }, seconds: FALL_LANDS_SECONDS + 0.08 },
     ],
     build({ place, movePlayer }) {
       place(0, 0, { tree: true });
@@ -229,6 +320,20 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       player.setChopping(falling ? undefined : shot.seconds);
       const tree = store.with("tree").first;
       if (falling && tree !== undefined) store.removeComponent(tree, "tree");
+    },
+    // The player chops for as long as the game takes, the tree falls, and after a pause the tree stands again.
+    play: {
+      shot: { label: "chopping, then the fall", yaw: 80, pitch: 12, radius: 4.6, focus: { y: 1.8, z: -2.8 } },
+      pose({ store, player }, seconds) {
+        const cycle = seconds % (CHOP_SECONDS + FALL_SECONDS + CHOP_PLAY_REST_SECONDS);
+        const tree = store.with("position").where((entity) => entity.player === undefined).first;
+        if (tree === undefined) return undefined;
+        const chopping = cycle < CHOP_SECONDS;
+        player.setChopping(chopping ? cycle : undefined);
+        if (chopping && tree.tree === undefined) store.addComponent(tree, "tree", true);
+        if (!chopping && tree.tree !== undefined) store.removeComponent(tree, "tree");
+        return undefined;
+      },
     },
   },
   "walk-animation": {
@@ -298,6 +403,7 @@ export function showAsset(
   id: string,
   treeShapes: readonly TreeShape[],
   stumpShape: StumpShape,
+  logShape: LogShape,
   options: ShowOptions = { play: false, speed: 1 },
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
@@ -324,19 +430,30 @@ export function showAsset(
   if (river !== undefined) scene.add(river.group);
 
   const store = createEntityStore();
-  const player = createPlayerMesh();
+  const player = createPlayerMesh(logShape);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting"].includes(id);
+  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
   scene.add(player.group);
   const potMaker = createPotMaker();
+  const props = new THREE.Group();
+  const propResources = new Set<{ dispose(): void }>();
+  scene.add(props);
   const stage: Stage = {
     store,
     player,
     place(x, z, entity) {
       return store.add({ ...entity, position: at(x, z) });
+    },
+    addProp(geometry, material, x, z, lift = 0, heading = 0) {
+      const mesh = new THREE.Mesh(geometry, material);
+      const spot = at(x, z);
+      mesh.position.set(spot.x, spot.y + lift, spot.z);
+      mesh.rotation.y = heading;
+      props.add(mesh);
+      propResources.add(geometry).add(material);
     },
     movePlayer(x, z, heading) {
       const spot = at(x, z);
@@ -356,24 +473,32 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape);
+  const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape, logShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  scene.add(forest.group, campfires.group);
+  const forage = createForageMeshes(store);
+  forage.update();
+  const bedrolls = createBedrollMeshes(store);
+  // Rain shows only where the stage has rain falling.
+  const rain: RainEffect = createRainEffect(store);
+  scene.add(forest.group, campfires.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, player.group);
+  sky.addShadowCasters(forest.group, campfires.group, forage.group, bedrolls.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
   const drawView = (shot: Shot, seconds: number, follow: Partial<Vec3>, view: { left: number; bottom: number; width: number; height: number }): void => {
     // A tree felled by this pose starts falling at 0 seconds, so the view shows it `seconds` into the fall.
-    forest.update(0);
+    // Stills restart every fall at time 0. A live loop lets each fall start when its tree is felled.
+    if (!(options.play && showcase.play !== undefined)) forest.update(0);
     forest.update(seconds);
     campfires.update(seconds);
+    bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
+    rain.update(seconds, focus);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
@@ -419,7 +544,11 @@ export function showAsset(
       forest.dispose();
       campfires.dispose();
       potMaker.dispose();
+      forage.dispose();
+      bedrolls.dispose();
+      rain.dispose();
       player.dispose();
+      for (const resource of propResources) resource.dispose();
       ground.dispose();
       river?.dispose();
       sky.dispose();

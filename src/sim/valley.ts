@@ -43,6 +43,10 @@ export interface Valley {
   readonly trees: readonly GroundPoint[];
   /** Where each stick lies on the forest floor at the start of a game. */
   readonly sticks: readonly GroundPoint[];
+  /** Where each berry bush grows. */
+  readonly berryBushes: readonly GroundPoint[];
+  /** Where each patch of mushrooms grows. */
+  readonly mushrooms: readonly GroundPoint[];
 }
 
 /** The valley is a square 1 km on each side, so about 1 km². */
@@ -78,13 +82,25 @@ const STICK_COUNT = 3000;
 const STICK_MIN_FROM_TREE_METRES = 1.5;
 const STICK_MAX_FROM_TREE_METRES = 4;
 
+const BERRY_BUSH_COUNT = 400;
+/** Berry bushes grow at the forest's edge, this far from a tree's trunk, in metres. */
+const BERRY_BUSH_MIN_FROM_TREE_METRES = 2.5;
+const BERRY_BUSH_MAX_FROM_TREE_METRES = 6;
+const MUSHROOM_COUNT = 500;
+/** Mushrooms grow in the shade, close to a tree's trunk, in metres. */
+const MUSHROOM_MIN_FROM_TREE_METRES = 1.5;
+const MUSHROOM_MAX_FROM_TREE_METRES = 3;
+
 export function generateValley(seed: number): Valley {
   const random = createRandom(seed);
   const river = generateRiver(random);
   const terrain = generateTerrain(random, river);
   const trees = placeTrees(random, river);
-  const sticks = placeSticks(random, river, trees);
-  return { seed, size: VALLEY_SIZE_METRES, terrain, river, trees, sticks };
+  const sticks = placeNearTrees(random, river, trees, STICK_COUNT, STICK_MIN_FROM_TREE_METRES, STICK_MAX_FROM_TREE_METRES);
+  // Food is placed last, so adding it did not move the trees and sticks of any valley.
+  const berryBushes = placeNearTrees(random, river, trees, BERRY_BUSH_COUNT, BERRY_BUSH_MIN_FROM_TREE_METRES, BERRY_BUSH_MAX_FROM_TREE_METRES);
+  const mushrooms = placeNearTrees(random, river, trees, MUSHROOM_COUNT, MUSHROOM_MIN_FROM_TREE_METRES, MUSHROOM_MAX_FROM_TREE_METRES);
+  return { seed, size: VALLEY_SIZE_METRES, terrain, river, trees, sticks, berryBushes, mushrooms };
 }
 
 /** Ground height at any spot in the valley, blended from the nearest grid points. Spots outside the valley use the nearest edge. */
@@ -205,12 +221,19 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
 }
 
 /**
- * Scatters sticks near trees, where they would fall.
- * A stick never lies in the water or so close to a trunk that the player cannot reach it.
+ * Scatters `count` spots in a ring from `minFromTree` to `maxFromTree` metres around random trees, such as where sticks fall.
+ * A spot is never in the water or closer than `minFromTree` to any trunk, so the player can reach it.
  */
-function placeSticks(random: Random, river: River, trees: readonly GroundPoint[]): GroundPoint[] {
+function placeNearTrees(
+  random: Random,
+  river: River,
+  trees: readonly GroundPoint[],
+  count: number,
+  minFromTree: number,
+  maxFromTree: number,
+): GroundPoint[] {
   const half = VALLEY_SIZE_METRES / 2;
-  const cellSize = STICK_MIN_FROM_TREE_METRES;
+  const cellSize = minFromTree;
   const cellsPerSide = Math.ceil(VALLEY_SIZE_METRES / cellSize);
   const cellOf = (value: number) => clamp(Math.floor((value + half) / cellSize), 0, cellsPerSide - 1);
   // Each cell is one clearance wide, so only the 3 × 3 cells around a spot can hold a trunk that is too close.
@@ -227,26 +250,26 @@ function placeSticks(random: Random, river: River, trees: readonly GroundPoint[]
     for (let r = row - 1; r <= row + 1; r += 1) {
       for (let c = column - 1; c <= column + 1; c += 1) {
         for (const tree of treesByCell.get(r * cellsPerSide + c) ?? []) {
-          if (groundDistance(tree, point) < STICK_MIN_FROM_TREE_METRES) return true;
+          if (groundDistance(tree, point) < minFromTree) return true;
         }
       }
     }
     return false;
   }
 
-  const sticks: GroundPoint[] = [];
-  if (trees.length === 0) return sticks;
-  while (sticks.length < STICK_COUNT) {
+  const spots: GroundPoint[] = [];
+  if (trees.length === 0) return spots;
+  while (spots.length < count) {
     const tree = trees[Math.floor(random() * trees.length)];
     const angle = random() * Math.PI * 2;
-    const distance = lerp(STICK_MIN_FROM_TREE_METRES, STICK_MAX_FROM_TREE_METRES, random());
+    const distance = lerp(minFromTree, maxFromTree, random());
     if (tree === undefined) continue;
     const point = { x: tree.x + Math.sin(angle) * distance, z: tree.z + Math.cos(angle) * distance };
     if (Math.abs(point.x) > half || Math.abs(point.z) > half) continue;
     if (distanceToRiver(river, point) <= river.width / 2 + 1 || tooCloseToATree(point)) continue;
-    sticks.push(point);
+    spots.push(point);
   }
-  return sticks;
+  return spots;
 }
 
 /**

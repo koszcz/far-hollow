@@ -59,12 +59,18 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blueprint: shape({ piece: exactly("campfire"), progress: finite, sticksSpent: count }),
   buildTask: shape({ blueprintId: count }),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
+  forageSpot: shape({ food: exactly("berries", "mushroom") }),
+  regrowing: shape({ minutesLeft: finite }),
+  forageTask: shape({ spotId: count }),
+  bedroll: exactly(true),
+  bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
   drinkTask: point,
   sickness: shape({ minutesLeft: finite }),
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
+  rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
 };
 
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));

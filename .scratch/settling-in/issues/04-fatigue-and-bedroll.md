@@ -4,18 +4,18 @@
 
 **Blocked by:** 01 (Turn warmth into one of four needs), 02 (Autosave and continue)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`. Add the draft `bedroll`, shown laid out on the ground.
 
-- [ ] Fatigue drains while the player is awake. It drains faster during timed work such as chopping and building.
-- [ ] Low fatigue slows the player, like other needs.
-- [ ] A new game starts with a bedroll in the backpack, along with the axe, knife, and fire striker.
-- [ ] The player can lay the bedroll on the ground and pick it up again.
-- [ ] The player can sleep on a laid bedroll. Sleeping at night skips to morning and restores fatigue.
-- [ ] Other needs change for the time slept. Warmth still drains if no lit campfire is near.
-- [ ] Sleeping on a bedroll makes it the respawn point. After a collapse, the player wakes there.
-- [ ] The HUD shows fatigue.
-- [ ] Fatigue, the bedroll, and the respawn point are saved.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover fatigue drain, sleeping, the night skip, and the new respawn point.
+- [x] Fatigue drains while the player is awake. It drains faster during timed work such as chopping and building.
+- [x] Low fatigue slows the player, like other needs.
+- [x] A new game starts with a bedroll in the backpack, along with the axe, knife, and fire striker.
+- [x] The player can lay the bedroll on the ground and pick it up again.
+- [x] The player can sleep on a laid bedroll. Sleeping at night skips to morning and restores fatigue.
+- [x] Other needs change for the time slept. Warmth still drains if no lit campfire is near.
+- [x] Sleeping on a bedroll makes it the respawn point. After a collapse, the player wakes there.
+- [x] The HUD shows fatigue.
+- [x] Fatigue, the bedroll, and the respawn point are saved.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover fatigue drain, sleeping, the night skip, and the new respawn point.

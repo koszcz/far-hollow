@@ -1,5 +1,10 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
+import type { SaveSlotSummary } from "./api";
+import { readClock } from "./clock";
+import type { Entity, SavedEntity } from "./entities";
+import { valleyForageSpots } from "./foraging";
 import { createGame, type Game, type GameProgress } from "./game";
+import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
 
 /** Turns a save of one version into the next version. It is given the save without its version number. */
@@ -9,7 +14,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -51,6 +56,15 @@ export function continueOrStartGame(stored: unknown, newSeed: number): Game {
   return loaded.ok ? loaded.game : createGame({ seed: newSeed, startNotice: "saveBroken" });
 }
 
+/** Says what a save slot holds, for the start screen: nothing, a save that cannot be loaded, or a game's seed and day. */
+export function describeSave(stored: unknown): SaveSlotSummary {
+  if (stored === undefined) return { state: "empty" };
+  const save = upgradeSave(stored);
+  if (!isValidSave(save)) return { state: "broken" };
+  const { seed, clockMinutes } = save as unknown as SaveFile;
+  return { state: "filled", seed, day: readClock(clockMinutes).day };
+}
+
 /**
  * Turns stored data back into a game, upgrading an older save first.
  * Returns `ok: false` if the data is not a save this game can load.
@@ -65,4 +79,33 @@ export function readSave(data: unknown): ReadSaveResult {
     // The save had the right shape but still could not be loaded.
     return { ok: false };
   }
+}
+
+/**
+ * Version 1 to 2: berry bushes and mushrooms grow in the valley. A save from before then gets the valley's spots, all with food.
+ * A save that is not plain data is passed on unchanged, so the shape check turns it away.
+ */
+function addForageSpots(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const { seed, entities } = save;
+  if (!Number.isSafeInteger(seed) || !Array.isArray(entities)) return { ...save };
+  const saved = entities as unknown[];
+  const idOf = (entity: unknown): number => {
+    const id = (entity as Partial<SavedEntity> | null)?.id;
+    return typeof id === "number" ? id : -1;
+  };
+  const lastId = saved.reduce<number>((last, entity) => Math.max(last, idOf(entity)), -1);
+  const spots = valleyForageSpots(generateValley(seed as number)).map((components, index) => ({ id: lastId + 1 + index, components }));
+  return { ...save, entities: [...saved, ...spots] };
+}
+
+/** Version 2 to 3: a new game now starts with a bedroll, so a player saved before bedrolls existed gets one too. */
+function giveBedroll(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const contents = components?.backpack?.contents;
+    if (components?.player !== true || typeof contents !== "object" || (contents.bedroll ?? 0) > 0) return entity;
+    return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, bedroll: 1 } } } };
+  });
+  return { ...save, entities };
 }

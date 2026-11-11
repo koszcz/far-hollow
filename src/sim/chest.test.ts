@@ -145,7 +145,7 @@ describe("building a chest", () => {
     runSeconds(game, CHEST_BUILD_SECONDS + 1);
 
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.chest).toEqual({});
+    expect(blueprint.chest).toEqual({ contents: {} });
     expect(blueprint.facing).toEqual({ turns: 0 });
   });
 

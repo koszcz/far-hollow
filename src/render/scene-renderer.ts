@@ -48,6 +48,7 @@ export type ScenePick =
   | { kind: "blueprint"; id: number }
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
+  | { kind: "chest"; id: number }
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
@@ -167,7 +168,7 @@ export function createSceneRenderer(
     }
     else if (kind === "blueprint" && entity.blueprint?.piece === "roof") hoverOutline.show(roofMeshes.outlineOf({ kind, entity }));
     else if ((kind === "blueprint" && entity.blueprint?.piece === "woodpile") || kind === "woodpile") hoverOutline.show(woodpileMeshes.outlineOf({ kind, entity }));
-    else if (kind === "blueprint" && entity.blueprint?.piece === "chest") hoverOutline.show(chestMeshes.outlineOf({ kind, entity }));
+    else if ((kind === "blueprint" && entity.blueprint?.piece === "chest") || kind === "chest") hoverOutline.show(chestMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
     else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
     else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));

@@ -24,6 +24,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addWoodpiles,
   allowChests,
   allowPiles,
+  fillChests,
 ];
 
 /** The version of the save format this code writes. */
@@ -179,6 +180,20 @@ function allowChests(save: Readonly<Record<string, unknown>>): Record<string, un
  */
 function allowPiles(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
+}
+
+/**
+ * Version 10 to 11: a chest holds small materials, tools, and food. A chest saved before then held nothing, so it becomes an empty chest.
+ */
+function fillChests(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const chest = components?.chest;
+    if (typeof chest !== "object" || chest === null || "contents" in chest) return entity;
+    return { ...(entity as object), components: { ...components, chest: { ...chest, contents: {} } } };
+  });
+  return { ...save, entities };
 }
 
 /** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */

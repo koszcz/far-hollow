@@ -25,6 +25,7 @@ import { createPot } from "./pot";
 import { createPiles } from "./piles";
 import { boilProgress } from "./pot-state";
 import { createWoodpiles } from "./woodpiles";
+import { createChests } from "./chests";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -50,6 +51,7 @@ const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   survivedFirstNight: 30,
   backpackFull: 4,
   holdsUpPiece: 4,
+  chestFull: 4,
   saveBroken: 10,
 };
 /** A new game starts on the morning of day 1. */
@@ -112,6 +114,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);
   const woodpiles = createWoodpiles(entities, walking);
+  const chests = createChests(entities, walking);
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const piles = createPiles(entities, walking, valley);
@@ -150,6 +153,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       nearbyBedroll: nearbyBedroll(),
       nearbyPile: nearbyPile(),
       nearbyWoodpile: woodpiles.nearby() ?? null,
+      openChest: chests.opened() ?? null,
       nearbyBlueprint: building.nearby() ?? null,
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -229,6 +233,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     bedrolls.cancel();
     drinking.cancel();
     pot.cancel();
+    chests.cancel();
     piles.cancel();
   }
 
@@ -324,6 +329,18 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     takeFromWoodpile: (command) => {
       const refusal = woodpiles.take(command.woodpileId, command.wood);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    openChest: (command) => {
+      cancelTasks();
+      chests.open(command.chestId);
+    },
+    putInChest: (command) => {
+      const refusal = chests.put(command.chestId, command.content, command.all);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    takeFromChest: (command) => {
+      const refusal = chests.take(command.chestId, command.content, command.all);
       if (refusal !== undefined) showNotice(refusal);
     },
     lightCampfire: (command) => {

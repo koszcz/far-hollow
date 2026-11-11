@@ -74,7 +74,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   cabinRoof: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
-  chest: shape({}),
+  chest: shape({ contents: backpackContents }),
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),
@@ -97,7 +97,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));
 
 /** Every kind of notice. TypeScript reports a missing one. */
-const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, holdsUpPiece: true, saveBroken: true };
+const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, chestFull: true, holdsUpPiece: true, saveBroken: true };
 
 /** The components the player always has. */
 const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "needs", "respawnPoint"] as const;

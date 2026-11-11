@@ -41,9 +41,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .backpack-icon { width: 24px; height: 24px; flex: none; }
 .hud-button .backpack-icon { width: 16px; height: 16px; }
 .hud-backpack li .backpack-icon { width: 82%; height: 82%; }
-/* Clicking a backpack cell drops all of that kind in a pile. The button fills the cell. */
-.hud-backpack-drop { display: grid; place-items: center; width: 100%; height: 100%; padding: 0; color: inherit; background: none; border: none; border-radius: 6px; cursor: pointer; pointer-events: auto; }
-.hud-backpack-drop:hover, .hud-backpack-drop:focus-visible { background: #5a3f2a; }
+/* A backpack or chest cell is a button that fills the cell. A click drops or moves that kind. */
+.hud-content-move { display: grid; place-items: center; width: 100%; height: 100%; padding: 0; color: inherit; background: none; border: none; border-radius: 6px; cursor: pointer; pointer-events: auto; }
+.hud-content-move:hover, .hud-content-move:focus-visible { background: #5a3f2a; }
 .hud-pile h2 .backpack-icon { width: 18px; height: 18px; }
 /* The name of a backpack item, shown at once when the player points at its grid cell. */
 .hud-backpack li[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 4px); left: 50%; z-index: 1; padding: 3px 7px; font-size: 12px; white-space: nowrap; color: #f3e6d3; background: #1f150e; border: 1px solid #6b4a2f; border-radius: 5px; transform: translateX(-50%); pointer-events: none; }

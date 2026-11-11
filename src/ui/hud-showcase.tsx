@@ -21,6 +21,7 @@ const BASE_VIEW: GameView = {
   nearbyBedroll: null,
   nearbyPile: null,
   nearbyWoodpile: null,
+  openChest: null,
   nearbyBlueprint: null,
   warmth: 0.9,
   needs: { hunger: 1, thirst: 0.8, warmth: 0.9, fatigue: 1 },

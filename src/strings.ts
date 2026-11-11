@@ -143,6 +143,7 @@ export const strings = {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
+    chestFull: "The chest is full.",
     holdsUpPiece: "Something stands on this. Take that down first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
   },
@@ -161,6 +162,19 @@ export const strings = {
     potOfBoiledWater: "Pot of boiled water",
     berries: "Berries",
     mushroom: "Mushroom",
+  },
+  chest: {
+    title: "Chest",
+    empty: "The chest is empty.",
+    /** The tip shown when the player points at a backpack cell while a chest is open. */
+    putTip: (name: string) => `${name}. Click to put one in the chest.`,
+    /** The full name of a backpack cell while a chest is open, for screen readers. */
+    put: (name: string) => `Put ${name.toLowerCase()} in the chest`,
+    /** The tip shown when the player points at a chest cell. */
+    takeTip: (name: string) => `${name}. Click to take one.`,
+    /** The full name of a chest cell, for screen readers. */
+    take: (name: string) => `Take ${name.toLowerCase()} from the chest`,
+    hint: "Click a backpack item to put one in the chest. Click a chest item to take one out. Shift-click moves all that fit.",
   },
   pile: {
     title: "Pile",

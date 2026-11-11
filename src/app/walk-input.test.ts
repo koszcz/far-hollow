@@ -76,6 +76,12 @@ describe("clicking a woodpile", () => {
   });
 });
 
+describe("clicking a chest", () => {
+  it("walks the player to it and opens it", () => {
+    expect(mainActionFor({ kind: "chest", id: 6 })).toEqual({ type: "openChest", chestId: 6 });
+  });
+});
+
 describe("clicking the river", () => {
   it("walks the player to the bank to drink", () => {
     expect(mainActionFor({ kind: "river", spot: { x: 3, z: -4 } })).toEqual({ type: "drinkFromRiver", x: 3, z: -4 });

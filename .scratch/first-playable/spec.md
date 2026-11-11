@@ -70,8 +70,8 @@ The camera looks down at the player from above at an angle, like an isometric ga
 | Material | How the player gets it | Used for |
 | --- | --- | --- |
 | Log | Chop a tree with the axe | Debarking, firewood |
-| Debarked log | Strip a log with the drawknife | Log walls, planks |
-| Bark | Left over from debarking | Fuel, tinder, early lean-to roofs |
+| Debarked log | Strip a log with the drawknife | Foundations, log walls, roofs, planks |
+| Bark | Left over from debarking | Fuel, tinder, lean-tos, roofs |
 | Plank | Cut a debarked log at a **sawhorse** | Floors, furniture |
 | Firewood | Split a log with the axe | Fuel |
 | Stick | Pick up from the forest floor | Fuel |
@@ -83,9 +83,9 @@ The camera looks down at the player from above at an angle, like an isometric ga
 
 ## Tools and carrying
 
-- The player starts with an axe, a knife, a fire striker, a bedroll, and a pot.
+- The player starts with an axe, a knife, a fire striker, a drawknife, a bedroll, and a pot.
 - The pot holds water for boiling on a campfire.
-- Better tools come from crafting, such as a drawknife, saw, bow, and fishing rod.
+- Better tools come from crafting, such as a saw, bow, and fishing rod.
 - **Tools** never wear out.
 - The backpack has a weight limit.
 - The player carries logs on their shoulder, one at a time.
@@ -104,18 +104,23 @@ The camera looks down at the player from above at an angle, like an isometric ga
 
 - Fires burn **fuel** and go out when it runs out.
 - Campfires give warmth and light. The player cooks and boils water on them.
+- The player can build a campfire inside a **room**. It warms the whole room.
 - A **fireplace** heats the room it is in.
 - **Torches** can be carried or mounted. They light a small area.
 - Nights are dark enough that the player needs fire. Faint moonlight keeps shapes visible.
 
 ## Building
 
+- The first shelter is a **lean-to**: one quick structure of sticks and bark. It is not built from building pieces.
 - Building pieces snap to a grid. They include foundations, log walls, door frames, windows, floors, stairs, and roof sections.
 - To build, the player places a **blueprint**, then holds the build action. The piece grows in stages with an animation.
 - Materials are spent as **construction** goes on.
 - The player can stop partway and come back later. Progress is saved.
 - Walls need a foundation. Roofs need walls under them. There is no physics, and nothing collapses.
 - Foundations grow legs down to sloped ground.
+- A blueprint cannot overlap a standing tree. Placing a foundation removes any stump under it for good.
+- The player can take down any blueprint or building piece and get back every material in it. A piece cannot be taken down while another piece stands on it.
+- A roof overhead stops rain from draining warmth. Sleeping under a roof restores fatigue faster.
 - A building can have up to two **storeys**.
 - There is no limit on a building's size. A large single-storey house is allowed.
 - Windows have wooden shutters. There is no glass.
@@ -147,7 +152,7 @@ The camera looks down at the player from above at an angle, like an isometric ga
 
 - A **journal** suggests goals such as a first fire, a first shelter, and a first cabin.
 - Following the journal is optional.
-- The game never ends.
+- The game never ends. The long-term goal is to build a home the player loves.
 
 ## Sound
 
@@ -193,6 +198,17 @@ The camera looks down at the player from above at an angle, like an isometric ga
 - A debug overlay is off by default.
 - It shows fps, entity count, and the seed.
 - It can skip time forward.
+
+## Milestone order
+
+After the first playable, settling-in, and forest floor, milestones come in this order. Each one gets its own spec in `.scratch/`.
+
+1. Shelter: lean-to, debarking, and the first cabin pieces. See `.scratch/shelter/spec.md`.
+2. Crafting and tools: work stations, the saw, planks, floors, stone, and clay.
+3. Hunting and fishing: snare, bow, fishing rod, and cooking.
+4. Interiors: furniture, storage, the fireplace, torches, and doors.
+5. Journal.
+6. Sound.
 
 ## Not planned
 

@@ -130,7 +130,7 @@ The camera looks down at the player from above at an angle, like an isometric ga
 
 - The player crafts **furniture** and places it freely. Furniture does not snap to the grid.
 - Furniture can be rotated and sits on the floor.
-- Chests and shelves store materials.
+- Chests and shelves store materials. The chest comes first, in the Storage milestone.
 - Furniture cannot be placed on top of other furniture yet.
 
 ## Weather and time
@@ -204,11 +204,12 @@ The camera looks down at the player from above at an angle, like an isometric ga
 After the first playable, settling-in, and forest floor, milestones come in this order. Each one gets its own spec in `.scratch/`.
 
 1. Shelter: lean-to, debarking, and the first cabin pieces. See `.scratch/shelter/spec.md`.
-2. Crafting and tools: work stations, the saw, planks, floors, stone, and clay.
-3. Hunting and fishing: snare, bow, fishing rod, and cooking.
-4. Interiors: furniture, storage, the fireplace, torches, and doors.
-5. Journal.
-6. Sound.
+2. Storage: dropping things, piles, the chest, and the woodpile. See `.scratch/storage/spec.md`.
+3. Crafting and tools: work stations, the saw, planks, floors, stone, and clay.
+4. Hunting and fishing: snare, bow, fishing rod, and cooking.
+5. Interiors: more furniture, shelves, the fireplace, torches, and doors.
+6. Journal.
+7. Sound.
 
 ## Not planned
 

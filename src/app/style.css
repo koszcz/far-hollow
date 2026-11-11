@@ -1,12 +1,22 @@
 html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
 #scene { display: block; width: 100vw; height: 100vh; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
-/* The HUD, the "hud" asset in asset-manifest.json: a woodland panel of dark bark with warm text. Approved by the owner. */
-.hud { position: absolute; top: 12px; left: 12px; width: 260px; color: #f3e6d3; font-size: 13px; line-height: 1.35; }
+/* The HUD, the "hud" asset in asset-manifest.json: woodland panels of dark bark with warm text. Approved by the owner. */
+/* The HUD is split into separate panels, each in its own corner: needs top left, pause and build bottom left, backpack bottom right. */
+.hud { position: absolute; color: #f3e6d3; font-size: 13px; line-height: 1.35; }
+.hud-needs-dock { top: 12px; left: 12px; width: 220px; }
+.hud-needs-dock .hud-meter:last-child { margin-bottom: 0; }
+.hud-toolbar { bottom: 12px; left: 12px; }
+.hud-toolbar .hud-panel { padding: 6px; }
+.hud-toolbar .hud-buttons { margin: 0; }
+/* An open chest stacks above the backpack, so the pair never reaches the context dock in the bottom centre. */
+.hud-inventory { right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 8px; width: 260px; }
+.hud-panel > .hud-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .hud-panel { padding: 10px 12px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-radius: 10px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.35); pointer-events: auto; }
 /* Banners and the context dock sit apart from the HUD panel, so the panel never jumps when they come and go. */
 .hud-banners { position: absolute; top: 12px; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: min(420px, calc(100% - 24px)); transform: translateX(-50%); }
-.hud-context { position: absolute; bottom: 12px; left: 50%; width: min(300px, calc(100% - 24px)); color: #f3e6d3; font-size: 13px; line-height: 1.35; transform: translateX(-50%); }
+/* The context dock sits in the bottom centre. On a narrow screen it moves left, so it stays clear of the backpack in the bottom right. */
+.hud-context { position: absolute; bottom: 12px; left: clamp(12px, calc(50% - 150px), calc(100% - 584px)); width: min(300px, calc(100% - 24px)); color: #f3e6d3; font-size: 13px; line-height: 1.35; }
 .hud-context .hud-panel > :first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .hud-banner { margin: 0; padding: 6px 10px; color: #f3e6d3; font-size: 13px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-left: 3px solid #e8833a; border-radius: 0; }
 .hud-notice { font-weight: 600; }

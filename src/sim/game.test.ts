@@ -21,9 +21,9 @@ describe("createGame", () => {
     }));
     const byPlace = (a: { x: number; z: number }, b: { x: number; z: number }) => a.x - b.x || a.z - b.z;
     expect(trees.map((tree) => tree.position).sort(byPlace)).toEqual(expected.sort(byPlace));
-    // Every entity is a tree, a stick, a berry bush, a mushroom patch, or the player.
+    // Every entity is a tree, a stick, a berry bush, a mushroom patch, the player, or the valley's weather.
     const { sticks, berryBushes, mushrooms } = game.valley;
-    expect(game.client.getView().entityCount).toBe(trees.length + sticks.length + berryBushes.length + mushrooms.length + 1);
+    expect(game.client.getView().entityCount).toBe(trees.length + sticks.length + berryBushes.length + mushrooms.length + 2);
   });
 });
 

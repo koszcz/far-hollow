@@ -126,6 +126,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
   return (
     <div class="hud">
       {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
+      {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
       {view.notice !== null && (
         <p class="hud-banner hud-notice" role="status">
           {strings.notices[view.notice]}

@@ -14,6 +14,7 @@ import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
+import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
 import type { LogShape } from "./log-shape";
 import type { StumpShape } from "./stump-model";
@@ -216,6 +217,26 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(-2, 1.5, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
     },
   },
+  rain: {
+    radius: 6,
+    focus: { x: 0, y: 1.5, z: 0 },
+    shots: [
+      { label: "midday", yaw: 200, pitch: 10, hour: NOON, seconds: 0 },
+      { label: "midday, from above", yaw: 40, pitch: 45, hour: NOON, seconds: 0.4 },
+      { label: "dusk, by a campfire", yaw: 70, pitch: 10, hour: 19, seconds: 0.8 },
+      { label: "night, by a campfire", yaw: 200, pitch: 10, hour: NIGHT, seconds: 1.2 },
+    ],
+    build({ place }) {
+      place(0, 0, { rain: { falling: true, changeAtMinutes: Infinity, changes: 1 } });
+      for (const [x, z] of [[-4, -3], [3, -5], [5, 1]] as const) place(x, z, { tree: true });
+      place(-1.5, 1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
+    },
+    // Rain falls all the time, so it plays live in the afternoon.
+    play: {
+      shot: { label: "rain falling", yaw: 200, pitch: 10, hour: 15 },
+      pose: () => undefined,
+    },
+  },
   "campfire-build-animation": {
     radius: 1.1,
     focus: { x: 0, y: 0.3, z: 0 },
@@ -381,7 +402,9 @@ export function showAsset(
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   const forage = createForageMeshes(store);
   forage.update();
-  scene.add(forest.group, campfires.group, forage.group);
+  // Rain shows only where the stage has rain falling.
+  const rain: RainEffect = createRainEffect(store);
+  scene.add(forest.group, campfires.group, forage.group, rain.group);
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(forest.group, campfires.group, forage.group, player.group, props);
 
@@ -397,6 +420,7 @@ export function showAsset(
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
+    rain.update(seconds, focus);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
@@ -442,6 +466,7 @@ export function showAsset(
       forest.dispose();
       campfires.dispose();
       forage.dispose();
+      rain.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();
       ground.dispose();

@@ -10,6 +10,9 @@ export const FULL_NEED = 1;
 export const WARMTH_DRAIN_PER_HOUR = 0.25;
 /** How much hunger the player loses per game hour, all day and night. Full hunger lasts two days. */
 export const HUNGER_DRAIN_PER_HOUR = 1 / 48;
+
+/** How much warmth the player loses per game hour out in the rain, away from a lit campfire. It adds to the night's drain. */
+export const RAIN_WARMTH_DRAIN_PER_HOUR = 0.25;
 /** How much warmth the player gains per game hour within a lit campfire's warmth range. */
 export const WARMTH_RECOVERY_PER_HOUR = 1;
 /** How much thirst the player loses per game hour, by day and by night. Full thirst lasts one day. */
@@ -52,6 +55,8 @@ export interface NeedConditions {
   warmedByCampfire: boolean;
   /** Whether the player is sick. */
   sick: boolean;
+  /** Whether rain falls on the player. No roofs exist yet, so rain falls on the player everywhere. Missing means dry. */
+  inRain?: boolean;
 }
 
 /** Changes every need for this many game minutes spent in these conditions. */
@@ -78,7 +83,8 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
   switch (kind) {
     case "warmth":
       if (conditions.warmedByCampfire) return WARMTH_RECOVERY_PER_HOUR;
-      return conditions.night ? -WARMTH_DRAIN_PER_HOUR : 0;
+      // Rain chills the player on top of the night's cold.
+      return -((conditions.night ? WARMTH_DRAIN_PER_HOUR : 0) + (conditions.inRain === true ? RAIN_WARMTH_DRAIN_PER_HOUR : 0));
     case "thirst":
       return -THIRST_DRAIN_PER_HOUR;
     case "hunger":

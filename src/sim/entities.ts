@@ -1,6 +1,7 @@
 import { World } from "miniplex";
 import type { Backpack, Food } from "./backpack";
 import type { Needs } from "./needs";
+import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
 
@@ -75,6 +76,8 @@ export interface Entity {
   drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
+  /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
+  rain?: Rain;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */
@@ -172,4 +175,9 @@ export function playerEntities(store: EntityStore) {
 /** Everything that stops the player walking near it. */
 export function walkBlockerEntities(store: EntityStore) {
   return store.with("blocksWalking", "position");
+}
+
+/** The valley's weather. There is only ever one. */
+export function rainEntities(store: EntityStore) {
+  return store.with("rain");
 }

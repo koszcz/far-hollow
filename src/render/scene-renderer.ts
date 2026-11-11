@@ -9,6 +9,7 @@ import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
+import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
 import type { TreeShape } from "./tree-model";
@@ -91,6 +92,8 @@ export function createSceneRenderer(
   scene.add(campfireMeshes.group);
   const forageMeshes = createForageMeshes(entities);
   scene.add(forageMeshes.group);
+  const rainEffect = createRainEffect(entities);
+  scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group);
   const hoverOutline = createHoverOutline(scene);
@@ -192,6 +195,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
+      rainEffect.update(nowSeconds, cameraRig.view().focus);
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
     },
@@ -226,6 +230,7 @@ export function createSceneRenderer(
       forestMeshes.dispose();
       campfireMeshes.dispose();
       forageMeshes.dispose();
+      rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();
     },

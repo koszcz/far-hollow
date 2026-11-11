@@ -112,6 +112,30 @@ describe("needs", () => {
   });
 });
 
+describe("warmth in the rain", () => {
+  it("drains during the day", () => {
+    const needs = createNeeds();
+    passNeedsTime(needs, 60, { night: false, warmedByCampfire: false, sick: false, inRain: true });
+    expect(needs.warmth.level).toBeCloseTo(0.75, 5);
+  });
+
+  it("drains faster at night than night alone", () => {
+    const dry = createNeeds();
+    const wet = createNeeds();
+    passNeedsTime(dry, 60, { night: true, warmedByCampfire: false, sick: false, inRain: false });
+    passNeedsTime(wet, 60, { night: true, warmedByCampfire: false, sick: false, inRain: true });
+    expect(dry.warmth.level).toBeCloseTo(0.75, 5);
+    expect(wet.warmth.level).toBeCloseTo(0.5, 5);
+  });
+
+  it("still recovers within a lit campfire's warmth range", () => {
+    const needs = createNeeds();
+    needs.warmth.level = 0.2;
+    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, sick: false, inRain: true });
+    expect(needs.warmth.level).toBeCloseTo(0.7, 5);
+  });
+});
+
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();

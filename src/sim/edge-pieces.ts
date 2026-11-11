@@ -57,6 +57,37 @@ export function foundationsBeside(entities: EntityStore, edge: GroundPoint, side
   return foundationEntities(entities).entities.filter((foundation) => squares.some((square) => isOnGridSquare(foundation.position, square)));
 }
 
+/** The two ends of the edge with this middle, for a piece facing `turns`. Each end is a corner of the building grid. */
+export function edgeEnds(edge: GroundPoint, turns: QuarterTurns): [GroundPoint, GroundPoint] {
+  const half = turnOffset({ x: BUILD_GRID_METRES / 2, z: 0 }, turns);
+  return [
+    { x: edge.x - half.x, z: edge.z - half.z },
+    { x: edge.x + half.x, z: edge.z + half.z },
+  ];
+}
+
+/**
+ * Whether a piece of this kind on this edge would meet a door frame at a corner, or be a door frame meeting a wall or
+ * door frame there. Two pieces meet at a corner when they run different ways and an end of one is at an end of the other.
+ * A door frame never stands at a corner, because a log cabin's corner needs crossed logs on both sides.
+ * Blueprints count, so it does not matter which piece the player places first.
+ */
+export function meetsDoorAtCorner(entities: EntityStore, kind: EdgePieceKind, edge: GroundPoint, turns: QuarterTurns): boolean {
+  const ends = edgeEnds(edge, turns);
+  const pieces: { kind: EdgePieceKind; position: GroundPoint; turns: QuarterTurns }[] = [];
+  for (const piece of edgePieceEntities(entities)) pieces.push({ kind: piece.edgePiece, position: piece.position, turns: piece.facing?.turns ?? 0 });
+  for (const blueprint of blueprintEntities(entities)) {
+    const piece = blueprint.blueprint.piece;
+    if (isEdgePiece(piece)) pieces.push({ kind: piece, position: blueprint.position, turns: blueprint.facing?.turns ?? 0 });
+  }
+  return pieces.some(
+    (piece) =>
+      (kind === "doorFrame" || piece.kind === "doorFrame") &&
+      (piece.turns - turns) % 2 !== 0 &&
+      edgeEnds(piece.position, piece.turns).some((end) => ends.some((own) => isSameEdge(end, own))),
+  );
+}
+
 /** Whether a structure stands on the edge of a foundation square, rather than covering ground. */
 export function isEdgePiece(kind: string): kind is EdgePieceKind {
   return kind === "logWall" || kind === "doorFrame";

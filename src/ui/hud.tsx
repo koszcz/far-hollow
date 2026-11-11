@@ -78,6 +78,7 @@ function HudButton({ icon, label, disabled = false, onClick }: { icon?: HudIconN
 function CampfirePanel({ client, view, campfire }: { client: GameClient; view: GameView; campfire: CampfireView }) {
   const hasSticks = (view.backpack.stick ?? 0) > 0;
   const hasFirewood = (view.backpack.firewood ?? 0) > 0;
+  const hasFullPot = (view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0;
   return (
     <section class="hud-section hud-campfire" aria-label={strings.campfire}>
       <h2>
@@ -98,7 +99,26 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
               client.send({ type: "lightCampfire", campfireId: campfire.id });
             }} />
         )}
+        {campfire.pot === null && (
+          <HudButton icon="droplet" label={strings.putPotOnFire} disabled={!campfire.lit || !hasFullPot} onClick={() => {
+              client.send({ type: "putPotOnFire", campfireId: campfire.id });
+            }} />
+        )}
       </div>
+      {campfire.pot !== null && (
+        <>
+          {campfire.pot.water === "boiled" ? (
+            <p class="hud-hint">{strings.potBoiled}</p>
+          ) : (
+            <Meter icon="droplet" label={strings.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
+          )}
+          <div class="hud-buttons">
+            <HudButton icon="backpack" label={strings.takePotOffFire} onClick={() => {
+                client.send({ type: "takePotOffFire", campfireId: campfire.id });
+              }} />
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -213,6 +233,18 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
               </li>
             ))}
           </ul>
+          <div class="hud-buttons">
+            {(view.backpack.pot ?? 0) > 0 && (
+              <HudButton icon="droplet" label={strings.fillPot} onClick={() => {
+                  client.send({ type: "fillPot" });
+                }} />
+            )}
+            {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
+              <HudButton icon="droplet" label={strings.drinkFromPot} onClick={() => {
+                  client.send({ type: "drinkFromPot" });
+                }} />
+            )}
+          </div>
         </section>
         <label class="hud-setting">
           <input

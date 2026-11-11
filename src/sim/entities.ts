@@ -1,6 +1,7 @@
 import { World } from "miniplex";
 import type { Backpack, Food } from "./backpack";
 import type { Needs } from "./needs";
+import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
@@ -80,6 +81,10 @@ export interface Entity {
   drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
+  /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
+  fillPotTask?: GroundPoint;
+  /** The full pot sitting on this campfire. Only campfires have one. */
+  potOnFire?: PotOnFire;
   /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
   rain?: Rain;
 }

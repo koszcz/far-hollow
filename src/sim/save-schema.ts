@@ -68,6 +68,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   respawnPoint: point,
   drinkTask: point,
   sickness: shape({ minutesLeft: finite }),
+  fillPotTask: point,
+  potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
 };
 

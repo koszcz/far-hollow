@@ -4,8 +4,10 @@
 // A blueprint grows stick by stick with the code-built "campfire-build-animation".
 // A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, a wide glow, and a brighter pool of light that
 // marks how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
+// A campfire with a pot on it shows the code-built "pot" (draft) from pot-shape.ts on top of its sticks, steaming while lit.
 import * as THREE from "three";
 import { createFireMaker, type Fire } from "./fire-effect";
+import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import { CAMPFIRE_STICK_COST } from "../sim/building";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
@@ -64,6 +66,9 @@ const WARMTH_POOL_REACH_METRES = Math.hypot(CAMPFIRE_WARMTH_RADIUS_METRES, WARMT
 const FLICKER_PER_SECOND = 9;
 const FLICKER_AMOUNT = 0.12;
 
+/** A pot on the fire rests on the tips of the sticks, this high above the ground. */
+const POT_HEIGHT_METRES = 0.72;
+
 /** Clicks on a campfire or blueprint hit an invisible cylinder this wide and tall, in metres. */
 const PICK_RADIUS_METRES = 0.8;
 const PICK_HEIGHT_METRES = 0.8;
@@ -95,6 +100,8 @@ interface Drawn {
   readonly glow: THREE.PointLight;
   /** Lights the ground out to the warmth range. */
   readonly warmthPool: THREE.PointLight;
+  /** The pot sitting on the fire. Hidden while there is none. */
+  readonly pot: PotMesh;
 }
 
 export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
@@ -113,6 +120,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   });
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
   const fireMaker = createFireMaker();
+  const potMaker = createPotMaker();
 
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
@@ -160,13 +168,17 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     warmthPool.position.set(0, WARMTH_POOL_HEIGHT_METRES, 0);
     root.add(warmthPool);
     root.add(fire.group);
+    const pot = potMaker.make();
+    pot.group.position.y = POT_HEIGHT_METRES;
+    pot.group.visible = false;
+    root.add(pot.group);
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
     group.add(root);
-    const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, glow, warmthPool };
+    const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, glow, warmthPool, pot };
     drawn.set(entity, result);
     return result;
   }
@@ -233,6 +245,8 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
         const item = draw(campfire);
         showProgress(item, 1);
         showFire(item, campfire.campfire, nowSeconds, campfire.position.x * 3.1 + campfire.position.z * 1.7);
+        item.pot.group.visible = campfire.potOnFire !== undefined;
+        if (campfire.potOnFire !== undefined) item.pot.show(campfire.campfire.lit ? "steaming" : "full", nowSeconds);
         seen.add(campfire);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -265,6 +279,7 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
         item.dispose();
       }
       fireMaker.dispose();
+      potMaker.dispose();
     },
   };
 }

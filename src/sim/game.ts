@@ -16,6 +16,8 @@ import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTim
 import { createDrinking } from "./drinking";
 import { createRain, passRainTime } from "./rain";
 import { passSicknessTime } from "./sickness";
+import { createPot } from "./pot";
+import { boilProgress } from "./pot-state";
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -93,6 +95,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);
   const drinking = createDrinking(entities, walking, valley);
+  const pot = createPot(entities, walking, valley, campfires);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -153,6 +156,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       fuelLeft: campfire.campfire.fuelMinutes / CAMPFIRE_FUEL_LIMIT_MINUTES,
       fuelMinutes: campfire.campfire.fuelMinutes,
       canLight: campfires.canLight(id),
+      pot: campfire.potOnFire === undefined ? null : Object.freeze({ water: campfire.potOnFire.water, boilProgress: boilProgress(campfire.potOnFire) }),
     });
   }
 
@@ -183,11 +187,12 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     building.cancel();
     bedrolls.cancel();
     drinking.cancel();
+    pot.cancel();
   }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
-    return player.walkPath === undefined && player.drinkTask === undefined && currentAction() === null;
+    return player.walkPath === undefined && player.drinkTask === undefined && player.fillPotTask === undefined && currentAction() === null;
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
@@ -263,6 +268,20 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       cancelTasks();
       drinking.drinkFromRiver({ x: command.x, z: command.z });
     },
+    putPotOnFire: (command) => {
+      pot.putOnFire(command.campfireId);
+    },
+    takePotOffFire: (command) => {
+      const refusal = pot.takeOffFire(command.campfireId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    drinkFromPot: () => {
+      pot.drink();
+    },
+    fillPot: () => {
+      cancelTasks();
+      pot.fill();
+    },
     skipTime: (command) => {
       // Time only moves forward. Ignore a negative or broken amount.
       if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
@@ -290,6 +309,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       // Rain does not put out campfires.
       campfires.burn(minutes);
       foraging.grow(minutes);
+      pot.heat(minutes);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
@@ -328,6 +348,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
     campfires.burn(asleepMinutes);
     foraging.grow(asleepMinutes);
+    pot.heat(asleepMinutes);
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
     Object.assign(player.previousPosition, player.position);
@@ -375,6 +396,8 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const reachedBedroll = bedrolls.step();
       if (reachedBedroll !== undefined) sleepOn(reachedBedroll);
       drinking.step();
+      const potRefusal = pot.step();
+      if (potRefusal !== undefined) showNotice(potRefusal);
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }

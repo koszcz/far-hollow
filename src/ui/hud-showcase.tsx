@@ -45,7 +45,7 @@ const STATES: readonly { view: GameView; placingCampfire: boolean }[] = [
       ...BASE_VIEW,
       backpack: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, firewood: 2 },
       carrying: "log",
-      nearbyCampfire: { id: 1, lit: true, fuelLeft: 0.6, fuelMinutes: 90, canLight: false },
+      nearbyCampfire: { id: 1, lit: true, fuelLeft: 0.6, fuelMinutes: 90, canLight: false, pot: null },
       warmth: 0.55,
     },
     placingCampfire: false,

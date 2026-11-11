@@ -42,9 +42,9 @@ describe("fatigue", () => {
 });
 
 describe("the bedroll", () => {
-  it("is in a new game's backpack, along with the axe, knife, and fire striker", () => {
+  it("is in a new game's backpack, along with the axe, knife, fire striker, and pot", () => {
     const view = createGame({ seed: 42 }).client.getView();
-    expect(view.backpack).toEqual({ axe: 1, knife: 1, fireStriker: 1, bedroll: 1 });
+    expect(view.backpack).toEqual({ axe: 1, knife: 1, fireStriker: 1, bedroll: 1, pot: 1 });
   });
 
   it("can be laid on the ground at the player's feet, and picked up again", () => {

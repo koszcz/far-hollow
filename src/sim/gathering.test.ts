@@ -24,8 +24,8 @@ describe("picking up sticks", () => {
     expect(Math.hypot(player.position.x - stick.position.x, player.position.z - stick.position.z)).toBeLessThan(2);
     expect(game.client.getView().backpack.stick).toBe(1);
     expect(game.entities.with("stick").size).toBe(stickCount - 1);
-    // The view shows the backpack's weight: the starting tools plus one stick.
-    expect(game.client.getView().backpackWeight).toBeCloseTo(3.4 + 0.5);
+    // The view shows the backpack's weight: the starting tools, bedroll, and empty pot, plus one stick.
+    expect(game.client.getView().backpackWeight).toBeCloseTo(4.4 + 0.5);
     expect(game.client.getView().backpackWeightLimit).toBe(BACKPACK_WEIGHT_LIMIT_KG);
   });
 
@@ -97,10 +97,10 @@ describe("splitting a log into firewood", () => {
   it("keeps the log whole when the backpack has no room for its firewood", () => {
     const game = createGame({ seed: 42 });
     fellNearestTree(game);
-    // 30 sticks weigh 15 kg, which with the 3.4 kg of tools and bedroll leaves room for only 1 of the 4 pieces of firewood.
+    // 28 sticks weigh 14 kg, which with the 4.4 kg of tools, bedroll, and pot leaves room for only 1 of the 4 pieces of firewood.
     const backpack = onlyPlayer(game).backpack;
     if (backpack === undefined) throw new Error("No backpack");
-    backpack.contents.stick = 30;
+    backpack.contents.stick = 28;
 
     game.client.send({ type: "splitLog" });
     game.step();
@@ -138,8 +138,10 @@ function fellNearestTree(game: Game): void {
 function fillBackpack(game: Game): void {
   const backpack = onlyPlayer(game).backpack;
   if (backpack === undefined) throw new Error("No backpack");
-  // 11 pieces of firewood weigh 16.5 kg, which with the 3.4 kg of tools and bedroll leaves less room than one stick needs.
-  backpack.contents.firewood = 11;
+  // 10 pieces of firewood weigh 15 kg. With the tools, bedroll, pot, and two spare fire strikers, that makes 19.6 kg,
+  // which leaves less room than one stick needs.
+  backpack.contents.firewood = 10;
+  backpack.contents.fireStriker = 3;
 }
 
 function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): number {

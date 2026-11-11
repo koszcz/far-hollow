@@ -290,12 +290,34 @@ function createValueNoise(random: Random, latticeSize: number): (u: number, v: n
   };
 }
 
+/** The spot on the middle line of the river nearest to a point. */
+export function nearestRiverPoint(river: River, point: GroundPoint): GroundPoint {
+  let best = river.path[0] ?? point;
+  let bestDistance = Infinity;
+  for (let i = 1; i < river.path.length; i += 1) {
+    const a = river.path[i - 1];
+    const b = river.path[i];
+    if (a === undefined || b === undefined) continue;
+    const nearest = nearestOnSegment(point, a, b);
+    const distance = groundDistance(point, nearest);
+    if (distance < bestDistance) {
+      best = nearest;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
 function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): number {
+  return groundDistance(point, nearestOnSegment(point, a, b));
+}
+
+function nearestOnSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): GroundPoint {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const lengthSquared = dx * dx + dz * dz;
   const t = lengthSquared === 0 ? 0 : clamp(((point.x - a.x) * dx + (point.z - a.z) * dz) / lengthSquared, 0, 1);
-  return Math.hypot(point.x - (a.x + t * dx), point.z - (a.z + t * dz));
+  return { x: a.x + t * dx, z: a.z + t * dz };
 }
 
 function lerp(from: number, to: number, amount: number): number {

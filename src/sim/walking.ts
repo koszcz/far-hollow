@@ -88,14 +88,16 @@ function blockRiver(walkMap: WalkMap, valley: Valley): void {
   }
 }
 
-/** Where the player starts: on open ground at the valley's west edge, which the river never reaches. */
+/** Where the player starts: on open ground on the river's west bank, halfway down the valley. */
 export function playerStartSpot(walking: Walking, valley: Valley): GroundPoint {
-  const edgeSpot = { x: -valley.size / 2 + PLAYER_START_INSET_METRES, z: 0 };
-  return nearestWalkableSpot(walking.walkMap, edgeSpot) ?? edgeSpot;
+  const { path, width } = valley.river;
+  const middle = path[Math.floor(path.length / 2)] ?? { x: 0, z: 0 };
+  const bankSpot = { x: middle.x - width / 2 - PLAYER_START_FROM_WATER_METRES, z: middle.z };
+  return nearestWalkableSpot(walking.walkMap, bankSpot) ?? bankSpot;
 }
 
-/** How far inside the valley's edge the player starts. */
-const PLAYER_START_INSET_METRES = 2;
+/** How far from the water's edge the player starts, in metres. Far enough to stand above the sloping riverbank. */
+const PLAYER_START_FROM_WATER_METRES = 10;
 
 /** Blocks the cells around each blocker entity, now and whenever one is added or removed later. */
 function trackBlockers(walkMap: WalkMap, entities: EntityStore): void {

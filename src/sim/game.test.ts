@@ -27,14 +27,13 @@ describe("createGame", () => {
 });
 
 describe("the player", () => {
-  it("starts at the edge of the valley, standing on open ground", () => {
+  it("starts near the river, standing on open ground", () => {
     for (const seed of [1, 2, 42]) {
       const game = createGame({ seed });
       const player = onlyPlayer(game);
-      const half = game.valley.size / 2;
-      const fromEdge = half - Math.max(Math.abs(player.position.x), Math.abs(player.position.z));
-      expect(fromEdge).toBeGreaterThanOrEqual(0);
-      expect(fromEdge).toBeLessThan(10);
+      expect(distanceToWater(game, player.position)).toBeLessThan(20);
+      // Halfway down the valley, far from its edges.
+      expect(Math.abs(player.position.z)).toBeLessThan(game.valley.size / 4);
       expect(player.position.y).toBeCloseTo(terrainHeightAt(game.valley.terrain, player.position.x, player.position.z));
       expect(distanceToNearestTree(game, player.position)).toBeGreaterThan(TRUNK_CLEARANCE);
       expect(distanceToWater(game, player.position)).toBeGreaterThan(0);
@@ -44,7 +43,7 @@ describe("the player", () => {
   it("walks to a clicked spot without walking through trees", () => {
     const game = createGame({ seed: 42 });
     const player = onlyPlayer(game);
-    const target = openSpotNear(game, { x: player.position.x + 60, z: player.position.z + 20 });
+    const target = openSpotNear(game, { x: player.position.x - 60, z: player.position.z + 20 });
 
     game.client.send({ type: "walkTo", x: target.x, z: target.z });
     const walk = stepUntilStill(game);

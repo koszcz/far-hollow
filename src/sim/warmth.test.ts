@@ -84,12 +84,12 @@ describe("a collapse from the cold", () => {
     expect(game.client.getView().notice).toBeNull();
   });
 
-  it("happens after a long while with no warmth, and the player wakes at the valley edge the next morning", () => {
+  it("happens after a long while with no warmth, and the player wakes where they started the next morning", () => {
     const game = createGame({ seed: 42 });
     const player = onlyPlayer(game);
     const start = { ...player.position };
     const backpack = { ...game.client.getView().backpack };
-    walkTo(game, { x: start.x + 20, z: start.z });
+    walkTo(game, { x: start.x - 20, z: start.z });
     expect(Math.hypot(player.position.x - start.x, player.position.z - start.z)).toBeGreaterThan(10);
 
     send(game, { type: "skipTime", hours: 16 }); // Midnight: no warmth left.
@@ -177,11 +177,11 @@ function walkTo(game: Game, to: { x: number; z: number }): void {
   }
 }
 
-/** Sends the player walking along the valley edge and returns how far they got in one real second. */
+/** Sends the player walking away from the river and returns how far they got in one real second. */
 function distanceWalkedInOneSecond(game: Game): number {
   const player = onlyPlayer(game);
   const start = { ...player.position };
-  send(game, { type: "walkTo", x: start.x + 30, z: start.z });
+  send(game, { type: "walkTo", x: start.x - 30, z: start.z });
   const afterFirstStep = { ...player.position };
   for (let i = 0; i < STEPS_PER_SECOND; i += 1) game.step();
   return Math.hypot(player.position.x - afterFirstStep.x, player.position.z - afterFirstStep.z);

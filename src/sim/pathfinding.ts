@@ -1,12 +1,12 @@
 import { groundDistance, type GroundPoint } from "./valley";
-import { cellCentre, cellIndexAt, isWalkable, nearestCellWhere, type WalkMap } from "./walk-map";
+import { canStep, cellCentre, cellIndexAt, isWalkable, nearestCellWhere, type WalkMap } from "./walk-map";
 
 /** How far apart line-of-sight checks sample a straight walk, as a share of one cell. */
 const LINE_OF_SIGHT_STEP_CELLS = 0.1;
 
 /**
  * Finds the spots the player walks through, in order, to get from `from` to `to`.
- * The path goes around blocked cells. It does not include `from`.
+ * The path goes around blocked cells and blocked edges between cells. It does not include `from`.
  * If `to` cannot be reached, the path ends at the closest spot to it that can. If the player already stands there, the path is empty.
  */
 export function findPath(map: WalkMap, from: GroundPoint, to: GroundPoint): GroundPoint[] {
@@ -56,7 +56,7 @@ function regionsOf(map: WalkMap): Int32Array {
       const cell = stack.pop() ?? 0;
       const column = cell % side;
       const visit = (next: number) => {
-        if (labels[next] === BLOCKED_REGION && map.blockerCounts[next] === 0) {
+        if (labels[next] === BLOCKED_REGION && canStep(map, cell, next)) {
           labels[next] = region;
           stack.push(next);
         }
@@ -71,12 +71,17 @@ function regionsOf(map: WalkMap): Int32Array {
   return labels;
 }
 
-/** True if a straight walk between two spots crosses only walkable cells. */
+/** True if a straight walk between two spots crosses only walkable cells, and no blocked edge between them. */
 function hasLineOfSight(map: WalkMap, a: GroundPoint, b: GroundPoint): boolean {
   const steps = Math.ceil(groundDistance(b, a) / (map.cellSize * LINE_OF_SIGHT_STEP_CELLS));
+  let cell = cellIndexAt(map, a);
   for (let s = 0; s <= steps; s += 1) {
     const amount = steps === 0 ? 0 : s / steps;
-    if (!isWalkable(map, { x: a.x + (b.x - a.x) * amount, z: a.z + (b.z - a.z) * amount })) return false;
+    const spot = { x: a.x + (b.x - a.x) * amount, z: a.z + (b.z - a.z) * amount };
+    if (!isWalkable(map, spot)) return false;
+    const next = cellIndexAt(map, spot);
+    if (cell !== undefined && next !== undefined && next !== cell && !canStep(map, cell, next)) return false;
+    cell = next;
   }
   return true;
 }
@@ -139,7 +144,7 @@ const NEIGHBOURS: readonly (readonly [number, number])[] = [
 ];
 
 /**
- * A* search over the grid. Moves go to any of the 8 neighbouring cells, but never cut the corner of a blocked cell.
+ * A* search over the grid. Moves go to any of the 8 neighbouring cells, but never cross a blocked edge or cut a blocked corner.
  * Returns the cells from just after the start up to the goal, or nothing if the goal cannot be reached.
  */
 function searchCells(map: WalkMap, startCell: number, goalCell: number): number[] {
@@ -151,7 +156,6 @@ function searchCells(map: WalkMap, startCell: number, goalCell: number): number[
   const goalColumn = goalCell % side;
   const goalRow = Math.floor(goalCell / side);
   const open = new MinHeap();
-  const walkable = (cell: number) => map.blockerCounts[cell] === 0;
 
   function estimate(cell: number): number {
     const dx = Math.abs((cell % side) - goalColumn);
@@ -177,9 +181,8 @@ function searchCells(map: WalkMap, startCell: number, goalCell: number): number[
       const nextRow = row + dz;
       if (nextColumn < 0 || nextRow < 0 || nextColumn >= side || nextRow >= side) continue;
       const next = nextRow * side + nextColumn;
-      if (!walkable(next) || closedInSearch[next] === search) continue;
+      if (closedInSearch[next] === search || !canStep(map, cell, next)) continue;
       const diagonal = dx !== 0 && dz !== 0;
-      if (diagonal && (!walkable(row * side + nextColumn) || !walkable(nextRow * side + column))) continue;
       const nextDistance = here + (diagonal ? Math.SQRT2 : 1);
       if (searchOf[next] === search && nextDistance >= (distance[next] ?? Infinity)) continue;
       searchOf[next] = search;

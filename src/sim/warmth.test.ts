@@ -163,6 +163,7 @@ describe("surviving the first night", () => {
     putCampfireBesidePlayer(game, { lit: true, fuelMinutes: 48 * 60 });
 
     send(game, { type: "skipTime", hours: 23 }); // 07:00 on day 2.
+    quenchThirst(game); // So thirst does not cause a collapse during the second skip.
     send(game, { type: "skipTime", hours: 23 }); // 06:00 on day 3.
 
     expect(game.client.getView().notice).toBeNull();
@@ -214,6 +215,13 @@ function putCampfireBesidePlayer(game: Game, { lit, fuelMinutes = 8 * 60 }: { li
     campfire: { lit, fuelMinutes },
     position: { x: player.position.x + 2, y: player.position.y, z: player.position.z },
   });
+}
+
+/** Fills the player's thirst, as if they had drunk safe water. */
+function quenchThirst(game: Game): void {
+  const player = game.entities.with("player", "needs").first;
+  if (player === undefined) throw new Error("No player");
+  player.needs.thirst.level = 1;
 }
 
 function onlyPlayer(game: Game) {

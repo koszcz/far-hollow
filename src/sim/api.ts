@@ -5,6 +5,9 @@ import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { GroundPoint } from "./valley";
 
+/** The new-game screen uses it to turn typed text into a seed. */
+export { seedFromText } from "./seed";
+
 // The only part of game logic the UI may import (ADR 0005).
 // The UI reads a GameView and changes the game only by sending a Command.
 
@@ -41,6 +44,11 @@ export type Command =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
+  /**
+   * Walk the player to the riverbank nearest a spot on the river, given in metres, and drink there.
+   * River water is not boiled, so drinking it fills thirst but makes the player sick.
+   */
+  | ({ type: "drinkFromRiver" } & GroundPoint)
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number };
 
@@ -73,6 +81,8 @@ export interface GameView {
   readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
   /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
   readonly warmth: number;
+  /** Whether the player is sick, so their needs drain faster. */
+  readonly sick: boolean;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: GameNotice | null;
 }
@@ -85,6 +95,16 @@ export interface GameView {
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  */
 export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "saveBroken";
+
+/**
+ * What one save slot holds, as the start screen shows it.
+ * `empty`: nothing is saved there. `broken`: the save cannot be loaded.
+ * `filled`: a game the player can continue, with its seed and the day it reached.
+ */
+export type SaveSlotSummary =
+  | { readonly state: "empty" }
+  | { readonly state: "broken" }
+  | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
 /** The kinds of fuel the player can put on a campfire. */
 export type CampfireFuel = "stick" | "firewood";

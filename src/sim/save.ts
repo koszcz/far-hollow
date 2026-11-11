@@ -1,4 +1,6 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
+import type { SaveSlotSummary } from "./api";
+import { readClock } from "./clock";
 import type { SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import { createGame, type Game, type GameProgress } from "./game";
@@ -52,6 +54,15 @@ export function continueOrStartGame(stored: unknown, newSeed: number): Game {
   if (stored === undefined) return createGame({ seed: newSeed });
   const loaded = readSave(stored);
   return loaded.ok ? loaded.game : createGame({ seed: newSeed, startNotice: "saveBroken" });
+}
+
+/** Says what a save slot holds, for the start screen: nothing, a save that cannot be loaded, or a game's seed and day. */
+export function describeSave(stored: unknown): SaveSlotSummary {
+  if (stored === undefined) return { state: "empty" };
+  const save = upgradeSave(stored);
+  if (!isValidSave(save)) return { state: "broken" };
+  const { seed, clockMinutes } = save as unknown as SaveFile;
+  return { state: "filled", seed, day: readClock(clockMinutes).day };
 }
 
 /**

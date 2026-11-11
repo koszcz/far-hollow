@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { continueOrStartGame, readSave,SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
+import { continueOrStartGame, describeSave, readSave, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
 import { isWalkable } from "./walk-map";
 
 describe("saving and loading a game", () => {
@@ -143,6 +143,28 @@ describe("continuing or starting a game when the page loads", () => {
     expect(game.client.getView().seed).toBe(99);
     expect(game.client.getView().stepCount).toBe(0);
     expect(game.client.getView().notice).toBe("saveBroken");
+  });
+});
+
+describe("describing a save slot on the start screen", () => {
+  it("calls a slot with nothing stored empty", () => {
+    expect(describeSave(undefined)).toEqual({ state: "empty" });
+  });
+
+  it("shows a filled slot's seed and the day it reached", () => {
+    const game = createGame({ seed: 4321 });
+    game.client.send({ type: "skipTime", hours: 20 });
+    game.step();
+    expect(describeSave(throughStorage(writeSave(game)))).toEqual({ state: "filled", seed: 4321, day: 2 });
+  });
+
+  it("shows a new game's slot on day 1", () => {
+    expect(describeSave(throughStorage(writeSave(createGame({ seed: 8 }))))).toEqual({ state: "filled", seed: 8, day: 1 });
+  });
+
+  it("calls a slot broken when its save cannot be loaded", () => {
+    expect(describeSave({ version: SAVE_VERSION, seed: "broken" })).toEqual({ state: "broken" });
+    expect(describeSave("far hollow")).toEqual({ state: "broken" });
   });
 });
 

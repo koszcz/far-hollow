@@ -139,7 +139,7 @@ describe("eating", () => {
     expect(game.client.getView().needs.hunger).toBeCloseTo(0.6, 3);
   });
 
-  it("fills more hunger with a mushroom, and leaves the other needs alone", () => {
+  it("fills more hunger with a mushroom, leaves the other needs alone, and does not make the player sick", () => {
     const game = createGame({ seed: 42 });
     give(game, "mushroom", 1);
     onlyPlayer(game).needs.hunger.level = 0.5;
@@ -149,8 +149,11 @@ describe("eating", () => {
 
     const after = game.client.getView().needs;
     expect(after.hunger).toBeCloseTo(0.65, 3);
-    expect(after).toMatchObject({ thirst: before.thirst, warmth: before.warmth, fatigue: before.fatigue });
+    // One logic step passes, so thirst drains by a hair.
+    expect(after.thirst).toBeCloseTo(before.thirst, 3);
+    expect(after).toMatchObject({ warmth: before.warmth, fatigue: before.fatigue });
     expect(game.client.getView().backpack.mushroom).toBe(0);
+    expect(game.client.getView().sick).toBe(false);
   });
 
   it("never fills hunger past full", () => {

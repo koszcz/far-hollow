@@ -1,4 +1,4 @@
-// The player's four needs: hunger, thirst, warmth, and fatigue. Only hunger and warmth change for now.
+// The player's four needs: hunger, thirst, warmth, and fatigue. Only fatigue holds steady for now.
 
 /** The four body states the player must keep up. */
 export const NEED_KINDS = ["hunger", "thirst", "warmth", "fatigue"] as const;
@@ -12,6 +12,10 @@ export const WARMTH_DRAIN_PER_HOUR = 0.25;
 export const HUNGER_DRAIN_PER_HOUR = 1 / 48;
 /** How much warmth the player gains per game hour within a lit campfire's warmth range. */
 export const WARMTH_RECOVERY_PER_HOUR = 1;
+/** How much thirst the player loses per game hour, by day and by night. Full thirst lasts one day. */
+export const THIRST_DRAIN_PER_HOUR = 1 / 24;
+/** While the player is sick, every need drains this many times faster. Needs that recover do so at the usual speed. */
+export const SICK_DRAIN_FACTOR = 2;
 
 /** Below this level, a need makes the player move and work more slowly. */
 export const LOW_NEED = 0.3;
@@ -46,6 +50,8 @@ export interface NeedConditions {
   night: boolean;
   /** Whether the player stands within a lit campfire's warmth range. */
   warmedByCampfire: boolean;
+  /** Whether the player is sick. */
+  sick: boolean;
 }
 
 /** Changes every need for this many game minutes spent in these conditions. */
@@ -60,13 +66,26 @@ export function passNeedsTime(needs: Needs, gameMinutes: number, conditions: Nee
   }
 }
 
-/** How much a need changes per game minute in these conditions. Thirst and fatigue hold steady for now. */
+/** How much a need changes per game minute in these conditions. Sickness makes a draining need drain faster. */
 function needChangePerMinute(kind: NeedKind, conditions: NeedConditions): number {
-  if (kind === "hunger") return -HUNGER_DRAIN_PER_HOUR / 60;
-  if (kind !== "warmth") return 0;
-  if (conditions.warmedByCampfire) return WARMTH_RECOVERY_PER_HOUR / 60;
-  if (conditions.night) return -WARMTH_DRAIN_PER_HOUR / 60;
-  return 0;
+  const changePerHour = needChangePerHour(kind, conditions);
+  const sickFactor = conditions.sick && changePerHour < 0 ? SICK_DRAIN_FACTOR : 1;
+  return (changePerHour * sickFactor) / 60;
+}
+
+/** How much a need changes per game hour for a player who is not sick. Fatigue holds steady for now. */
+function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
+  switch (kind) {
+    case "warmth":
+      if (conditions.warmedByCampfire) return WARMTH_RECOVERY_PER_HOUR;
+      return conditions.night ? -WARMTH_DRAIN_PER_HOUR : 0;
+    case "thirst":
+      return -THIRST_DRAIN_PER_HOUR;
+    case "hunger":
+      return -HUNGER_DRAIN_PER_HOUR;
+    case "fatigue":
+      return 0;
+  }
 }
 
 /** Whether any one need has been empty for too long, so the player has a collapse. */

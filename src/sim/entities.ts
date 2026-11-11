@@ -1,6 +1,7 @@
 import { World } from "miniplex";
 import type { Backpack, Food } from "./backpack";
 import type { Needs } from "./needs";
+import type { Sickness } from "./sickness";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -70,6 +71,10 @@ export interface Entity {
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
+  /** The player is walking to the riverbank to drink. The spot is where they clicked on the river. */
+  drinkTask?: GroundPoint;
+  /** The player is sick, so their needs drain faster. Missing when they are well. */
+  sickness?: Sickness;
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */

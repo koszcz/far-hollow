@@ -1,17 +1,19 @@
 // Loads the shapes of the "grass", "ferns", "flowers", and "pebbles" assets in asset-manifest.json.
-// "ferns", "flowers", and "pebbles" are drafts. Each of their files packs several of Kenney's Nature Kit models (CC0),
+// "ferns" and "pebbles" are drafts. Each of their files packs several of Kenney's Nature Kit models (CC0),
 // unchanged. The files' colours are replaced in code with the game's own, so the undergrowth matches the ground.
-// "grass" is approved and has no file: grass-shape.ts builds it in code. undergrowth-meshes.ts draws the shapes.
+// "grass" and "flowers" have no file: grass-shape.ts and flower-shape.ts build them in code.
+// undergrowth-meshes.ts draws the shapes.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { buildFlowerClumps } from "./flower-shape";
 import { buildGrassTufts } from "./grass-shape";
 
 /** The four undergrowth assets. */
 export const UNDERGROWTH_ASSETS = ["grass", "ferns", "flowers", "pebbles"] as const;
 export type UndergrowthAsset = (typeof UNDERGROWTH_ASSETS)[number];
 /** The undergrowth assets loaded from files, each one file in public/assets/<id>/<id>.glb. */
-const FILE_ASSETS = ["ferns", "flowers", "pebbles"] as const satisfies readonly UndergrowthAsset[];
+const FILE_ASSETS = ["ferns", "pebbles"] as const satisfies readonly UndergrowthAsset[];
 
 /** How many metres one model unit is. A fern then stands about 0.4 m tall. */
 const METRES_PER_MODEL_UNIT = 1.6;
@@ -21,10 +23,6 @@ const COLOUR_BY_MATERIAL: Readonly<Record<string, number>> = {
   leafsGreen: 0x3f6b2a,
   dirt: 0x6e6658,
   stone: 0x8a8780,
-  colorRed: 0xc2453b,
-  colorPurple: 0x8a5cc2,
-  colorYellow: 0xe0c040,
-  colorWhite: 0xeee8d8,
 };
 const OTHER_COLOUR = 0x8a8780;
 
@@ -42,7 +40,7 @@ export interface UndergrowthShape {
   readonly ownNormals?: boolean;
 }
 
-/** Loads every model in the undergrowth files, and builds the grass. */
+/** Loads every model in the undergrowth files, and builds the grass and the flowers. */
 export async function loadUndergrowthShapes(): Promise<UndergrowthShape[]> {
   const loader = new GLTFLoader();
   const files = await Promise.all(
@@ -54,7 +52,8 @@ export async function loadUndergrowthShapes(): Promise<UndergrowthShape[]> {
     return gltf.scene.children.map((root) => readShape(root, asset));
   });
   const grass = buildGrassTufts().map((tuft): UndergrowthShape => ({ ...tuft, asset: "grass", ownNormals: true }));
-  return [...grass, ...loaded];
+  const flowers = buildFlowerClumps().map((clump): UndergrowthShape => ({ ...clump, asset: "flowers", ownNormals: true }));
+  return [...grass, ...flowers, ...loaded];
 }
 
 /** Reads one model: every mesh under the root, merged into one geometry with vertex colours. */

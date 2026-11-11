@@ -1,6 +1,18 @@
 import type { CameraRig } from "../render/camera-rig";
-import type { GameClient } from "../sim/api";
-import type { GroundPoint } from "../sim/valley";
+import type { ScenePick } from "../render/scene-renderer";
+import type { Command, GameClient } from "../sim/api";
+
+/** The command a left-click sends for what it landed on. */
+export function mainActionFor(pick: ScenePick): Command {
+  switch (pick.kind) {
+    case "ground":
+      return { type: "walkTo", x: pick.spot.x, z: pick.spot.z };
+    case "tree":
+      return { type: "chopTree", treeId: pick.id };
+    case "log":
+      return { type: "pickUpLog", logId: pick.id };
+  }
+}
 
 const LEFT_BUTTON = 0;
 /** A left-button press that moves further than this is a drag, not a click. */
@@ -10,16 +22,17 @@ export interface WalkInputOptions {
   readonly canvas: HTMLCanvasElement;
   readonly client: GameClient;
   readonly rig: CameraRig;
-  /** The spot on the ground under a point on the screen, if any. */
-  readonly groundSpotAt: (clientX: number, clientY: number) => GroundPoint | undefined;
+  /** What is under a point on the screen, if anything. */
+  readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
 }
 
 /**
- * Left-clicking the ground sends a walkTo command.
+ * Left-clicking does the main action for what is under the pointer:
+ * walk to a spot on the ground, chop a tree, or pick up a log.
  * Space snaps the camera back to the player.
  * Returns a function that removes the listeners.
  */
-export function attachWalkInput({ canvas, client, rig, groundSpotAt }: WalkInputOptions): () => void {
+export function attachWalkInput({ canvas, client, rig, pickAt }: WalkInputOptions): () => void {
   let press: { x: number; y: number } | null = null;
 
   function onPointerDown(event: PointerEvent): void {
@@ -31,8 +44,9 @@ export function attachWalkInput({ canvas, client, rig, groundSpotAt }: WalkInput
     const travelled = Math.hypot(event.clientX - press.x, event.clientY - press.y);
     press = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS) return;
-    const spot = groundSpotAt(event.clientX, event.clientY);
-    if (spot !== undefined) client.send({ type: "walkTo", x: spot.x, z: spot.z });
+    const pick = pickAt(event.clientX, event.clientY);
+    if (pick === undefined) return;
+    client.send(mainActionFor(pick));
   }
 
   function onKeyDown(event: KeyboardEvent): void {

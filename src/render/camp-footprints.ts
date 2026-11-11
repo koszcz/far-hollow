@@ -4,7 +4,9 @@
 // so a new piece cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { bedrollEntities, blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
+import {
+  bedrollEntities, blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, leanToEntities, woodpileEntities, type Entity, type EntityStore,
+} from "../sim/entities";
 import { structureOf } from "../sim/structures";
 import type { QuarterTurns } from "../sim/structure-kind";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
@@ -39,6 +41,10 @@ const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, tu
   doorFrame: (x, z, turns) => edgePieceFootprint(x, z, turns),
   // A roof is built over a foundation, which already hides the undergrowth under it.
   roof: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
+  woodpile: (x, z, turns) => {
+    const { min, max } = structureOf("woodpile").footprint({ x, z }, turns);
+    return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
+  },
 };
 
 /** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */
@@ -68,6 +74,9 @@ export function campFootprints(entities: EntityStore): CampFootprint[] {
   }
   for (const { edgePiece, position, facing } of edgePieceEntities(entities)) {
     footprints.push(PIECE_FOOTPRINTS[edgePiece](position.x, position.z, facing?.turns ?? 0));
+  }
+  for (const { position, facing } of woodpileEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS.woodpile(position.x, position.z, facing?.turns ?? 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

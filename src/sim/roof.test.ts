@@ -12,7 +12,8 @@ describe("the roof in the build menu", () => {
   it("lists the roof after the door frame, with its cost in debarked logs and bark", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().buildMenu.at(-1)).toEqual({
+    const menu = game.client.getView().buildMenu;
+    expect(menu[menu.findIndex(({ structure }) => structure === "doorFrame") + 1]).toEqual({
       structure: "roof",
       cost: [{ material: "debarkedLog", count: ROOF_LOG_COST }, { material: "bark", count: ROOF_BARK_COST }],
     });

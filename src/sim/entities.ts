@@ -16,6 +16,9 @@ export interface Vec3 {
 /** The kinds of log the player can carry on their shoulder. */
 export type CarriedLog = "log" | "debarkedLog";
 
+/** The kinds of wood a woodpile holds: logs and debarked logs from the shoulder, and firewood from the backpack. */
+export type WoodpileWood = CarriedLog | "firewood";
+
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {
   /** Where the entity is after the latest logic step, in metres. */
@@ -113,6 +116,11 @@ export interface Entity {
    * A lit campfire on a foundation in a room warms the whole room. Missing for a campfire on the ground.
    */
   onFoundation?: GroundPoint;
+  /**
+   * Marks a finished woodpile, with how many of each kind of wood are stacked on it. Its position is the middle of the pile.
+   * It holds up to WOODPILE_CAPACITY pieces in all, in any mix.
+   */
+  woodpile?: Record<WoodpileWood, number>;
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
@@ -278,6 +286,11 @@ export function walkBlockerEdgeEntities(store: EntityStore) {
 /** Everything with a roof. */
 export function roofEntities(store: EntityStore) {
   return store.with("roof");
+}
+
+/** Finished woodpiles. */
+export function woodpileEntities(store: EntityStore) {
+  return store.with("woodpile", "position");
 }
 
 /** Finished lean-tos. */

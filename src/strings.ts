@@ -39,6 +39,7 @@ export const strings = {
       logWall: "Log wall",
       doorFrame: "Door frame",
       roof: "Roof",
+      woodpile: "Woodpile",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
@@ -79,6 +80,27 @@ export const strings = {
   potBoiled: "The water has boiled.",
   fillPot: "Fill the pot at the river",
   drinkFromPot: "Drink from the pot",
+  woodpile: {
+    title: "Woodpile",
+    fill: "Stacked",
+    count: (total: number, capacity: number) => `${total} of ${capacity}`,
+    contents: {
+      log: (count: number) => (count === 1 ? "1 log" : `${count} logs`),
+      debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
+      firewood: (count: number) => (count === 1 ? "1 piece of firewood" : `${count} pieces of firewood`),
+    },
+    stack: {
+      log: "Stack the log",
+      debarkedLog: "Stack the debarked log",
+      firewood: "Stack firewood",
+    },
+    take: {
+      log: "Take a log",
+      debarkedLog: "Take a debarked log",
+      firewood: "Take firewood",
+    },
+    stackAllHint: "Shift-click Stack firewood to stack all the firewood that fits.",
+  },
   warmth: "Warmth",
   needs: "Needs",
   hunger: "Hunger",

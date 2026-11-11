@@ -185,6 +185,11 @@ function needsMore(blueprint: Blueprint, material: DeliveredMaterial): boolean {
 function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stepSeconds: number): boolean {
   const structure = structureOf(blueprint.piece);
   const stages = stageMaterials(structure.cost);
+  // A structure that costs nothing, such as a woodpile, is one stage of work with nothing to spend.
+  if (stages.length === 0) {
+    blueprint.progress = Math.min(1, blueprint.progress + stepSeconds / structure.buildSeconds);
+    return true;
+  }
   if (blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
     const material = stages[blueprint.materialsSpent];
     if (material === undefined) return false;

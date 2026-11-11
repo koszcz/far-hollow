@@ -2,9 +2,9 @@ import type { BackpackContents, Food } from "./backpack";
 
 export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
-import type { CarriedLog, Vec3 } from "./entities";
+import type { CarriedLog, Vec3, WoodpileWood } from "./entities";
 
-export type { CarriedLog } from "./entities";
+export type { CarriedLog, WoodpileWood } from "./entities";
 import type { PotWater } from "./pot-state";
 import type { DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
@@ -67,6 +67,18 @@ export type Command =
   | { type: "tendCampfire"; campfireId: number }
   /** Put one stick, piece of firewood, or piece of bark from the backpack on a campfire within the player's reach. */
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
+  /** Walk the player beside a finished woodpile, given by its entity id, so they can stack wood on it or take wood off. */
+  | { type: "tendWoodpile"; woodpileId: number }
+  /**
+   * Stack wood on a woodpile within the player's reach. A log or debarked log comes off the player's shoulder, one at a time.
+   * Firewood comes out of the backpack: one piece, or with `all` as many as the woodpile has room for.
+   */
+  | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
+  /**
+   * Take wood off a woodpile within the player's reach. A log or debarked log goes on the player's shoulder, if it is free.
+   * Firewood goes in the backpack, as much as fits.
+   */
+  | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
   /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
@@ -124,6 +136,8 @@ export interface GameView {
   readonly nearbyCampfire: CampfireView | null;
   /** The laid bedroll within the player's reach, or null if none is. */
   readonly nearbyBedroll: BedrollView | null;
+  /** The woodpile within the player's reach, or null if none is. */
+  readonly nearbyWoodpile: WoodpileView | null;
   /** The blueprint nearest the player within reach, or null if none is. */
   readonly nearbyBlueprint: BlueprintView | null;
   /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
@@ -202,6 +216,18 @@ export interface RoomView {
   readonly squares: readonly GroundPoint[];
   /** Whether a lit campfire in the room warms all of it. */
   readonly heated: boolean;
+}
+
+/** A woodpile, with how much of each kind of wood is stacked on it. */
+export interface WoodpileView {
+  /** The woodpile's entity id. */
+  readonly id: number;
+  /** How many of each kind of wood are stacked on it. */
+  readonly contents: Readonly<Record<WoodpileWood, number>>;
+  /** How many pieces of wood it holds in all. */
+  readonly total: number;
+  /** The most pieces of wood it holds in all, in any mix. */
+  readonly capacity: number;
 }
 
 export interface BedrollView {

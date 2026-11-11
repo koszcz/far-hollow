@@ -75,6 +75,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
   leanTo: exactly(true),
+  woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),
   forageSpot: shape({ food: exactly("berries", "mushroom") }),
   regrowing: shape({ minutesLeft: finite }),

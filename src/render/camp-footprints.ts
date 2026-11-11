@@ -3,7 +3,8 @@
 // A blueprint covers the same ground as the piece it will become. PIECE_FOOTPRINTS gives that ground for each piece,
 // so a new piece cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
-import { bedrollEntities, blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
+import { BUILD_GRID_METRES } from "../sim/build-grid";
+import { bedrollEntities, blueprintEntities, campfireEntities, foundationEntities, type Entity, type EntityStore } from "../sim/entities";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
 import { STONE_RING_RADIUS_METRES } from "./campfire-meshes";
 
@@ -26,6 +27,8 @@ const BEDROLL_MARGIN_METRES = 0.15;
 /** The ground each building piece covers, centred on (x, z). A blueprint and its finished piece both use this. */
 const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number) => CampFootprint>> = {
   campfire: (x, z) => ({ x, z, radius: STONE_RING_RADIUS_METRES + CAMPFIRE_MARGIN_METRES }),
+  // Undergrowth hides under the whole square, so no leaves poke up through the deck.
+  foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
 };
 
 /** The patches of ground covered by everything the player has placed. */
@@ -36,6 +39,9 @@ export function campFootprints(entities: EntityStore): CampFootprint[] {
   }
   for (const { position } of campfireEntities(entities)) {
     footprints.push(PIECE_FOOTPRINTS.campfire(position.x, position.z));
+  }
+  for (const { position } of foundationEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS.foundation(position.x, position.z));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

@@ -35,6 +35,9 @@ const point = shape({ x: finite, z: finite });
 const vec3 = shape({ x: finite, y: finite, z: finite });
 const backpackContents: Check = (value) =>
   shape(Object.fromEntries(Object.keys(CONTENT_WEIGHT_KG).map((content) => [content, count])), Object.keys(CONTENT_WEIGHT_KG))(value);
+/** Every material any structure costs. */
+const BUILD_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.map(({ material }) => material)))];
+const materialCounts: Check = shape(Object.fromEntries(BUILD_MATERIALS.map((material) => [material, count])), BUILD_MATERIALS);
 
 /**
  * How each entity component must look in a save.
@@ -59,9 +62,11 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   stick: exactly(true),
   stickPickUpTask: shape({ stickId: count }),
   splitTask: shape({ secondsDone: finite }),
-  blueprint: shape({ piece: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, sticksSpent: count }),
+  blueprint: shape({ piece: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, spent: materialCounts, delivered: materialCounts }),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
+  deliverTask: shape({ blueprintId: count }),
+  foundation: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   forageSpot: shape({ food: exactly("berries", "mushroom") }),
   regrowing: shape({ minutesLeft: finite }),

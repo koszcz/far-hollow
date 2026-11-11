@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { strings } from "../strings";
-import { cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";
+import { blueprintPressFor, cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";
+
+describe("pressing on a blueprint", () => {
+  const foundation = (has: number) => ({ id: 3, structure: "foundation" as const, progress: 0, deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }] });
+
+  it("adds the debarked log on the player's shoulder while the blueprint still needs one", () => {
+    expect(blueprintPressFor(foundation(1), "debarkedLog")).toEqual({ type: "deliverToBlueprint", blueprintId: 3 });
+  });
+
+  it("builds it otherwise", () => {
+    expect(blueprintPressFor(foundation(4), "debarkedLog")).toEqual({ type: "build", blueprintId: 3 });
+    expect(blueprintPressFor(foundation(1), null)).toEqual({ type: "build", blueprintId: 3 });
+    expect(blueprintPressFor(foundation(1), "log")).toEqual({ type: "build", blueprintId: 3 });
+    expect(blueprintPressFor({ id: 5, structure: "campfire", progress: 0, deliveries: [] }, "debarkedLog")).toEqual({ type: "build", blueprintId: 5 });
+  });
+});
 
 describe("right-clicking a log", () => {
   it("offers to debark it", () => {

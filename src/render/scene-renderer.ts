@@ -7,6 +7,7 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createForageMeshes } from "./forage-meshes";
+import { createFoundationMeshes } from "./foundation-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline } from "./hover-outline";
@@ -105,6 +106,8 @@ export function createSceneRenderer(
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
+  const foundationMeshes = createFoundationMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
+  scene.add(foundationMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
@@ -112,7 +115,7 @@ export function createSceneRenderer(
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
-  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, forageMeshes.group, bedrollMeshes.group);
+  skyLighting.addShadowCasters(forestMeshes.group, campfireMeshes.group, foundationMeshes.group, forageMeshes.group, bedrollMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
@@ -125,6 +128,7 @@ export function createSceneRenderer(
     }
     const { kind, entity } = hovered;
     if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
+    else if (kind === "blueprint" && entity.blueprint?.piece === "foundation") hoverOutline.show(foundationMeshes.outlineOf({ kind, entity }));
     else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
     else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
     else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
@@ -206,6 +210,7 @@ export function createSceneRenderer(
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       campfireMeshes.update(nowSeconds);
+      foundationMeshes.update();
       forageMeshes.update();
       bedrollMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
@@ -229,7 +234,10 @@ export function createSceneRenderer(
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
-      const candidates = [forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), forageMeshes.pick(raycaster), bedrollMeshes.pick(raycaster)];
+      const candidates = [
+        forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), foundationMeshes.pick(raycaster), forageMeshes.pick(raycaster),
+        bedrollMeshes.pick(raycaster),
+      ];
       let nearest: (typeof candidates)[number];
       for (const candidate of candidates) {
         if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
@@ -251,6 +259,7 @@ export function createSceneRenderer(
     setPlacementPreview(preview) {
       // Each structure draws its own blueprint. Later structures add a branch here.
       campfireMeshes.showPreview(preview?.structure === "campfire" ? preview : undefined);
+      foundationMeshes.showPreview(preview?.structure === "foundation" ? preview : undefined);
     },
     dispose() {
       hoverOutline.dispose();
@@ -259,6 +268,7 @@ export function createSceneRenderer(
       riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();
+      foundationMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
       rainEffect.dispose();

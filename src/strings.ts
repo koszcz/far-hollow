@@ -33,12 +33,22 @@ export const strings = {
     close: "Press B or Escape to close.",
     structures: {
       campfire: "Campfire",
+      foundation: "Foundation",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
+      debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),
     placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
+  },
+  blueprint: {
+    title: (structure: string) => `Blueprint: ${structure}`,
+    deliveries: {
+      debarkedLog: (has: number, needs: number) => `Debarked logs: ${has} of ${needs}`,
+    },
+    deliverHint: "Carry a debarked log here and click the blueprint to add it.",
+    buildHint: "Hold the mouse button on the blueprint to build it.",
   },
   carryingLog: "Carrying a log",
   carryingDebarkedLog: "Carrying a debarked log",

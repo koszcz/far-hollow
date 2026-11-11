@@ -5,7 +5,7 @@ import { campFootprints, isUnderCamp, sameFootprints } from "./camp-footprints";
 describe("undergrowth under the camp", () => {
   it("hides under a blueprint as soon as it is placed", () => {
     const entities = createEntityStore();
-    entities.add({ blueprint: { piece: "campfire", progress: 0, sticksSpent: 0 }, position: { x: 10, y: 0, z: -4 } });
+    entities.add({ blueprint: { piece: "campfire", progress: 0, spent: {}, delivered: {} }, position: { x: 10, y: 0, z: -4 } });
     const footprints = campFootprints(entities);
     expect(isUnderCamp(footprints, 10.3, -4.2)).toBe(true);
     expect(isUnderCamp(footprints, 12, -4)).toBe(false);
@@ -53,7 +53,7 @@ describe("undergrowth under the camp", () => {
 
   it("hides the same ground under a blueprint as under the finished piece", () => {
     const planned = createEntityStore();
-    planned.add({ blueprint: { piece: "campfire", progress: 0, sticksSpent: 0 }, position: { x: 0, y: 0, z: 0 } });
+    planned.add({ blueprint: { piece: "campfire", progress: 0, spent: {}, delivered: {} }, position: { x: 0, y: 0, z: 0 } });
     const built = createEntityStore();
     built.add({ campfire: { lit: false, fuelMinutes: 0 }, position: { x: 0, y: 0, z: 0 } });
     expect(campFootprints(planned)).toEqual(campFootprints(built));

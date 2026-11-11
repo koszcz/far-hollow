@@ -1,6 +1,7 @@
 import { playerEntities, setComponent, walkBlockerEntities, type Entity, type EntityStore } from "./entities";
 import { findPath } from "./pathfinding";
-import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { standingHeightAt } from "./foundations";
+import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
 import { blockCircle, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, type WalkMap } from "./walk-map";
 
 /** How fast the player walks, in metres per second. */
@@ -41,14 +42,14 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
       const stepDistance = WALK_SPEED_METRES_PER_SECOND * stepSeconds;
       // Copy the list first, because entities that arrive leave the query while it is being walked.
       for (const walker of [...walkers]) {
-        if (walkAlong(walker, stepDistance, valley)) entities.removeComponent(walker, "walkPath");
+        if (walkAlong(walker, stepDistance, entities, valley)) entities.removeComponent(walker, "walkPath");
       }
     },
   };
 }
 
 /** Moves an entity up to `distance` metres along its path. Returns true once it has reached the end. */
-function walkAlong(walker: Entity & Required<Pick<Entity, "walkPath" | "position">>, distance: number, valley: Valley): boolean {
+function walkAlong(walker: Entity & Required<Pick<Entity, "walkPath" | "position">>, distance: number, entities: EntityStore, valley: Valley): boolean {
   let left = distance;
   const { position, walkPath } = walker;
   while (left > 0) {
@@ -68,7 +69,8 @@ function walkAlong(walker: Entity & Required<Pick<Entity, "walkPath" | "position
       left = 0;
     }
   }
-  position.y = terrainHeightAt(valley.terrain, position.x, position.z);
+  // On a finished foundation the walker stands on its deck.
+  position.y = standingHeightAt(entities, valley.terrain, position);
   return walkPath.length === 0;
 }
 

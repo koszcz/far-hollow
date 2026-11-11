@@ -1,6 +1,6 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { PlacementPreview, ScenePick } from "../render/scene-renderer";
-import type { Command, GameClient, StructureKind } from "../sim/api";
+import type { BlueprintView, CarriedLog, Command, GameClient, StructureKind } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { strings } from "../strings";
 
@@ -27,6 +27,15 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
     case "blueprint":
       return undefined;
   }
+}
+
+/**
+ * The command a press on a blueprint sends. If the player carries a material the blueprint still needs, such as a debarked log,
+ * the press adds it. Otherwise it builds the blueprint for as long as the button is held.
+ */
+export function blueprintPressFor(blueprint: BlueprintView, carrying: CarriedLog | null): Command {
+  const needsCarried = blueprint.deliveries.some(({ material, has, needs }) => material === carrying && has < needs);
+  return needsCarried ? { type: "deliverToBlueprint", blueprintId: blueprint.id } : { type: "build", blueprintId: blueprint.id };
 }
 
 /** One choice in the menu a right-click opens: its text, and the command it sends. */
@@ -107,7 +116,7 @@ export interface WalkInput {
  * Left-clicking does the main action for what is under the pointer:
  * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, forage a bush or mushrooms,
  * walk over to tend a campfire, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
- * Holding the left button on a blueprint builds it. Letting go stops building.
+ * Holding the left button on a blueprint builds it. Letting go stops building. Clicking a blueprint while carrying a debarked log it needs adds the log.
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
  * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
@@ -179,9 +188,12 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     if (event.button !== LEFT_BUTTON) return;
     if (mode.placing === null) {
       const pick = pickAt(event.clientX, event.clientY);
-      if (pick?.kind === "blueprint") {
-        holdingBuild = true;
-        client.send({ type: "build", blueprintId: pick.id });
+      const blueprint = pick?.kind === "blueprint" ? client.describeBlueprint(pick.id) : null;
+      if (blueprint !== null) {
+        const command = blueprintPressFor(blueprint, client.getView().carrying);
+        // Adding a material is one click. Only building goes on while the button is held.
+        holdingBuild = command.type === "build";
+        client.send(command);
         return;
       }
     }

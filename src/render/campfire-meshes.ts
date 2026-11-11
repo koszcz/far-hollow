@@ -317,6 +317,8 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     update(nowSeconds) {
       const seen = new Set<Entity>();
       for (const blueprint of blueprints) {
+        // Other structures draw their own blueprints.
+        if (blueprint.blueprint.piece !== "campfire") continue;
         showProgress(draw(blueprint), blueprint.blueprint.progress);
         seen.add(blueprint);
       }

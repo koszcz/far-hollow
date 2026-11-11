@@ -59,8 +59,6 @@ export interface CameraInputOptions {
   readonly rig: CameraRig;
   /** The camera's vertical field of view, so a left-drag moves the ground with the pointer. */
   readonly fieldOfViewDegrees: number;
-  /** True while the left button is busy with something else, such as building, so a left-drag must not pan. */
-  readonly isLeftButtonBusy?: () => boolean;
 }
 
 /**
@@ -68,7 +66,7 @@ export interface CameraInputOptions {
  * Left-drag pans the camera. Right-drag turns and tilts it.
  * It only moves the camera. It never sends commands to the game.
  */
-export function attachCameraInput({ canvas, rig, fieldOfViewDegrees, isLeftButtonBusy }: CameraInputOptions): CameraInput {
+export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInputOptions): CameraInput {
   const heldKeys = new Set<string>();
   let pointer: PointerPosition | null = null;
   let press: { button: number; lastX: number; lastY: number; travelled: number; dragging: boolean } | null = null;
@@ -99,7 +97,7 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees, isLeftButto
     if (press.button === RIGHT_BUTTON) {
       rig.rotate(-dx * DRAG_ROTATE_RADIANS_PER_PIXEL);
       rig.tilt(dy * DRAG_TILT_RADIANS_PER_PIXEL);
-    } else if (isLeftButtonBusy?.() !== true) {
+    } else {
       // The ground follows the pointer, as if the player grabbed it.
       const metres = groundMetresPerPixel();
       rig.pan(-dx * metres, dy * metres);

@@ -14,6 +14,10 @@ export type Command =
   | { type: "chopTree"; treeId: number }
   /** Walk the player to a log on the ground and shoulder it. The player carries one log at a time. */
   | { type: "pickUpLog"; logId: number }
+  /** Walk the player to a stick on the ground and put it in the backpack, if it fits. The stick is given by its entity id. */
+  | { type: "pickUpStick"; stickId: number }
+  /** Split the log the player carries into firewood with the axe. The firewood goes in the backpack, if it all fits. */
+  | { type: "splitLog" }
   /** Lay the log the player carries on the ground at their feet. */
   | { type: "dropLog" }
   /** Jumps the valley's clock forward. The debug overlay sends it. */
@@ -32,6 +36,10 @@ export interface GameView {
   readonly time: TimeOfDay;
   /** How many of each tool and material the player's backpack holds. */
   readonly backpack: Readonly<BackpackContents>;
+  /** How much the backpack's contents weigh, in kilograms. */
+  readonly backpackWeight: number;
+  /** The most the backpack can hold, in kilograms. */
+  readonly backpackWeightLimit: number;
   /** The timed work the player is doing right now, or null if none. Walking to the work does not count. */
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
@@ -39,7 +47,8 @@ export interface GameView {
 }
 
 export interface PlayerAction {
-  readonly kind: "chop";
+  /** Chopping a tree, or splitting a log into firewood. */
+  readonly kind: "chop" | "split";
   /** How far along the work is, from 0 to 1. */
   readonly progress: number;
 }

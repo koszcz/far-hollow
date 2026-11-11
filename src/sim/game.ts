@@ -1,8 +1,9 @@
 import type { Command, GameClient, GameView, PlayerAction } from "./api";
-import { createStartingBackpack } from "./backpack";
+import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { createCarrying } from "./carrying";
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { createClock, readClock, type ClockStart } from "./clock";
+import { createGathering, SPLIT_SECONDS } from "./gathering";
 import { createEntityStore, movingEntities, type EntityStore } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import { createWalking, playerStartSpot } from "./walking";
@@ -44,6 +45,9 @@ export function createGame({ seed }: GameOptions): Game {
       blocksWalking: { radius: TREE_WALK_BLOCK_RADIUS_METRES },
     });
   }
+  for (const stick of valley.sticks) {
+    entities.add({ stick: true, position: { x: stick.x, y: terrainHeightAt(valley.terrain, stick.x, stick.z), z: stick.z } });
+  }
   const walking = createWalking(entities, valley);
   const start = playerStartSpot(walking, valley);
   const startPosition = { x: start.x, y: terrainHeightAt(valley.terrain, start.x, start.z), z: start.z };
@@ -55,6 +59,7 @@ export function createGame({ seed }: GameOptions): Game {
   });
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
+  const gathering = createGathering(entities, walking);
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -72,14 +77,26 @@ export function createGame({ seed }: GameOptions): Game {
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
       backpack: Object.freeze({ ...player.backpack.contents }),
+      backpackWeight: backpackWeight(player.backpack),
+      backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
       action: currentAction(),
       carrying: player.carrying ?? null,
     });
   }
 
   function currentAction(): PlayerAction | null {
+    if (player.splitTask !== undefined) {
+      return Object.freeze({ kind: "split", progress: Math.min(1, player.splitTask.secondsDone / SPLIT_SECONDS) });
+    }
     if (player.chopTask === undefined || player.walkPath !== undefined) return null;
     return Object.freeze({ kind: "chop", progress: Math.min(1, player.chopTask.secondsDone / CHOP_SECONDS) });
+  }
+
+  /** Stops whatever the player was walking to do, before they start something else. */
+  function cancelTasks(): void {
+    chopping.cancel();
+    carrying.cancel();
+    gathering.cancel();
   }
 
   const commandHandlers: { [Type in Command["type"]]: (command: Extract<Command, { type: Type }>) => void } = {
@@ -87,17 +104,24 @@ export function createGame({ seed }: GameOptions): Game {
       paused = command.paused;
     },
     walkTo: (command) => {
-      chopping.cancel();
-      carrying.cancel();
+      cancelTasks();
       walking.walkTo({ x: command.x, z: command.z });
     },
     chopTree: (command) => {
-      carrying.cancel();
+      cancelTasks();
       chopping.start(command.treeId);
     },
     pickUpLog: (command) => {
-      chopping.cancel();
+      cancelTasks();
       carrying.pickUp(command.logId);
+    },
+    pickUpStick: (command) => {
+      cancelTasks();
+      gathering.pickUpStick(command.stickId);
+    },
+    splitLog: () => {
+      cancelTasks();
+      gathering.splitLog();
     },
     dropLog: () => {
       carrying.drop();
@@ -123,6 +147,7 @@ export function createGame({ seed }: GameOptions): Game {
       walking.step(STEP_MS / 1000);
       chopping.step(STEP_MS / 1000);
       carrying.step();
+      gathering.step(STEP_MS / 1000);
       clock.advance(STEP_MS);
       stepCount += 1;
     }

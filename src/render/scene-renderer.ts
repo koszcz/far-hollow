@@ -14,11 +14,12 @@ const CAMERA_FAR_METRES = 4000;
 /** The player turns to face where they walk only when they move further than this in one frame, in metres. */
 const TURN_MIN_TRAVEL_METRES = 0.001;
 
-/** What is under a point on the screen. Trees and logs are given by their entity id. */
+/** What is under a point on the screen. Trees, logs, and sticks are given by their entity id. */
 export type ScenePick =
   | { kind: "ground"; spot: GroundPoint }
   | { kind: "tree"; id: number }
-  | { kind: "log"; id: number };
+  | { kind: "log"; id: number }
+  | { kind: "stick"; id: number };
 
 export interface SceneRenderer {
   /** Draws one frame. alpha says how far the frame is between the last two logic steps. */
@@ -92,11 +93,16 @@ export function createSceneRenderer(
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
-  /** Shows what the player is doing: which way they face, whether they carry a log, and whether they chop. */
+  /** Shows what the player is doing: which way they face, whether they carry a log, and whether they chop or split. */
   function posePlayer(nowSeconds: number): void {
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying === "log");
+    if (player.splitTask !== undefined) {
+      // Splitting uses the same swing as chopping, aimed where the player already faces.
+      playerMesh.setChopping(nowSeconds);
+      return;
+    }
     const tree = player.chopTask && player.walkPath === undefined ? entities.entity(player.chopTask.treeId) : undefined;
     if (tree?.position !== undefined) {
       playerMesh.setHeading(Math.atan2(tree.position.x - playerDrawn.x, tree.position.z - playerDrawn.z));

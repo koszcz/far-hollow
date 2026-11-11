@@ -4,13 +4,13 @@
 
 **Blocked by:** 07 (Gather fuel)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The player can choose to place a campfire blueprint. The blueprint is see-through and shows its progress.
-- [ ] A campfire costs sticks.
-- [ ] Holding the build action builds the campfire in stages, with an animation.
-- [ ] Sticks leave the backpack as construction goes on, not all at once.
-- [ ] Construction pauses when the player runs out of sticks or stops holding the action.
-- [ ] The player can walk away and resume later. Progress stays.
-- [ ] A finished campfire is unlit and blocks walking.
-- [ ] Unit tests cover placing, partial construction, resuming, and the stick cost.
+- [x] The player can choose to place a campfire blueprint. The blueprint is see-through and shows its progress.
+- [x] A campfire costs sticks.
+- [x] Holding the build action builds the campfire in stages, with an animation.
+- [x] Sticks leave the backpack as construction goes on, not all at once.
+- [x] Construction pauses when the player runs out of sticks or stops holding the action.
+- [x] The player can walk away and resume later. Progress stays.
+- [x] A finished campfire is unlit and blocks walking.
+- [x] Unit tests cover placing, partial construction, resuming, and the stick cost.

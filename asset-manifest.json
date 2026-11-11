@@ -161,12 +161,13 @@
         "src/ui/hud.tsx",
         "src/ui/hud-showcase.tsx"
       ],
-      "description": "Bark: a HUD line icon of two curled strips, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
+      "description": "Bark: a HUD line icon of one peeled strip with its end rolled into a curl, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/01-drawknife-and-debarking.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -183,6 +184,36 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "log-wall",
+      "kind": "code",
+      "code": [
+        "src/render/edge-piece-meshes.ts",
+        "src/sim/edge-pieces.ts"
+      ],
+      "description": "The log wall: a 2 m stack of debarked logs laid along one edge of a foundation square. Each delivered log is cut in two, so each build stage lays two courses. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the courses from the bottom up. A finished wall between the camera and the player fades out.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/05-log-walls-and-door-frames.md"
+      }
+    },
+    {
+      "id": "door-frame",
+      "kind": "code",
+      "code": [
+        "src/render/edge-piece-meshes.ts",
+        "src/sim/edge-pieces.ts"
+      ],
+      "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel. A finished frame between the camera and the player fades out.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/05-log-walls-and-door-frames.md"
       }
     },
     {

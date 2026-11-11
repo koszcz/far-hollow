@@ -1,18 +1,19 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 import type { BackpackContent } from "./backpack";
-import { snapToGridSquare } from "./build-grid";
+import { BUILD_GRID_METRES, snapToGridSquare } from "./build-grid";
+import { edgeMiddle, foundationsBeside, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, campfireEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
+  blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
 } from "./entities";
 import { foundationDeckTop } from "./foundations";
-import { distanceToRiver, groundDistance, type GroundPoint, type Terrain, type Valley } from "./valley";
+import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
-  isInRect, rectsOverlap, turnedRect, turnOffset, type DeliveredMaterial, type GroundRect, type QuarterTurns, type StructureKind,
+  isInRect, rectsOverlap, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type QuarterTurns, type StructureKind,
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type { DeliveredMaterial, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+export type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
@@ -45,10 +46,10 @@ export interface StructureDefinition {
   canPlace(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): boolean;
   /** The components a finished structure gets in place of its blueprint, at `spot` facing `turns`. */
   finish(spot: GroundPoint, turns: QuarterTurns): Entity;
-  /** The building-grid spot a blueprint placed near `at` snaps to. Without this, it snaps to the nearest grid point. */
-  snap?(at: GroundPoint): GroundPoint;
+  /** The building-grid spot a blueprint placed near `at`, facing `turns`, snaps to. Without this, it snaps to the nearest grid point. */
+  snap?(at: GroundPoint, turns: QuarterTurns): GroundPoint;
   /** How high its position sits at a snapped spot, in metres. Without this, it sits on the ground. */
-  heightAt?(terrain: Terrain, spot: GroundPoint): number;
+  heightAt?(site: PlacementSite, spot: GroundPoint): number;
   /** Clears the ground for a blueprint just placed at `spot`, if the structure needs it. */
   clearSite?(entities: EntityStore, spot: GroundPoint): void;
 }
@@ -141,7 +142,7 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   buildSeconds: FOUNDATION_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
   snap: snapToGridSquare,
-  heightAt: foundationDeckTop,
+  heightAt: ({ valley }, spot) => foundationDeckTop(valley.terrain, spot),
   canPlace({ entities, walkMap, valley }, spot, turns) {
     const rect = foundation.footprint(spot, turns);
     // Stumps block walking, but a foundation goes over them, so this checks the map's edge and the river instead.
@@ -164,8 +165,53 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   finish: () => ({ foundation: true }),
 };
 
+/** How many debarked logs a log wall costs. Construction spends one at the start of each stage. */
+export const LOG_WALL_LOG_COST = 4;
+/** How long the player holds the build action to build a log wall, in seconds. */
+export const LOG_WALL_BUILD_SECONDS = 12;
+/** How many debarked logs a door frame costs: fewer than a wall, since the doorway is left open. */
+export const DOOR_FRAME_LOG_COST = 3;
+/** How long the player holds the build action to build a door frame, in seconds. */
+export const DOOR_FRAME_BUILD_SECONDS = 10;
+
+/**
+ * A log wall or a door frame. Each stands on one edge of a finished foundation's square, along the line to the square beside it.
+ * R picks the edge: facing `turns`, it snaps to the edge that `edgeMiddle` gives for the square under the mouse.
+ * Its ground is that line, so it never overlaps the squares on either side, and foundations can sit right beside it.
+ */
+function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buildSeconds: number): StructureDefinition & { readonly kind: Kind } {
+  const footprint = (spot: GroundPoint, turns: QuarterTurns) => turnedRect(spot, BUILD_GRID_METRES / 2, 0, turns);
+  return {
+    kind,
+    cost: [{ material: "debarkedLog", count: logCost }],
+    buildSeconds,
+    footprint,
+    snap: (at, turns) => edgeMiddle(snapToGridSquare(at), turns),
+    heightAt({ entities, valley }, spot) {
+      // Facing 0 or 1 covers both kinds of edge. Only the one that matches the spot finds foundations.
+      const decks = ([0, 1] as const).flatMap((turns) => foundationsBeside(entities, spot, turns)).map(({ position }) => position.y);
+      return decks.length > 0 ? Math.max(...decks) : terrainHeightAt(valley.terrain, spot.x, spot.z);
+    },
+    canPlace({ entities }, spot, turns) {
+      if (foundationsBeside(entities, spot, turns).length === 0) return false;
+      if (isEdgeTaken(entities, spot)) return false;
+      return isClearOfTreesAndPlans(entities, footprint(spot, turns));
+    },
+    finish(spot, turns) {
+      const [inside, beyond] = squaresBeside(spot, turns);
+      // A door frame leaves the doorway open, so it blocks nothing.
+      return kind === "logWall" ? { edgePiece: kind, blocksWalkingEdges: [{ from: inside, to: beyond }] } : { edgePiece: kind };
+    },
+  };
+}
+
+const logWall = edgePiece("logWall", LOG_WALL_LOG_COST, LOG_WALL_BUILD_SECONDS);
+const doorFrame = edgePiece("doorFrame", DOOR_FRAME_LOG_COST, DOOR_FRAME_BUILD_SECONDS);
+
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
-const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = { campfire, leanTo, foundation };
+const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
+  campfire, leanTo, foundation, logWall, doorFrame,
+};
 
 /** Every structure the player can build, in the order the build menu lists them. */
 export const STRUCTURES: readonly StructureDefinition[] = Object.values(STRUCTURE_BY_KIND);
@@ -191,7 +237,10 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
   return isClearOfTreesAndPlans(entities, rect);
 }
 
-/** Whether `rect` keeps clear of standing trees, and is not over another blueprint or a finished roof. */
+/**
+ * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, or a finished wall or door frame.
+ * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
+ */
 function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
@@ -203,6 +252,9 @@ function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect): boolea
     if (rectsOverlap(rect, other)) return false;
   }
   for (const roofed of roofEntities(entities)) if (rectsOverlap(rect, roofed.roof)) return false;
+  for (const piece of edgePieceEntities(entities)) {
+    if (rectsOverlap(rect, structureOf(piece.edgePiece).footprint(piece.position, piece.facing?.turns ?? 0))) return false;
+  }
   return true;
 }
 

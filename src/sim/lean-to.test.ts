@@ -16,6 +16,8 @@ describe("the lean-to in the build menu", () => {
       { structure: "campfire", cost: [{ material: "stick", count: 5 }] },
       { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }] },
       { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }] },
+      { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }] },
+      { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }] },
     ]);
   });
 });

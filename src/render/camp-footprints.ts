@@ -3,7 +3,8 @@
 // A blueprint covers the same ground as the piece it will become. PIECE_FOOTPRINTS gives that ground for each piece,
 // so a new piece cannot be added without saying how much ground it covers.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
-import { bedrollEntities, blueprintEntities, campfireEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
+import { BUILD_GRID_METRES } from "../sim/build-grid";
+import { bedrollEntities, blueprintEntities, campfireEntities, foundationEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureOf } from "../sim/structures";
 import type { QuarterTurns } from "../sim/structure-kind";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
@@ -32,6 +33,8 @@ const PIECE_FOOTPRINTS: Readonly<Record<BuildingPiece, (x: number, z: number, tu
     const { min, max } = structureOf("leanTo").footprint({ x, z }, turns);
     return { x, z, halfX: (max.x - min.x) / 2, halfZ: (max.z - min.z) / 2 };
   },
+  // Undergrowth hides under the whole square, so no leaves poke up through the deck.
+  foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
 };
 
 /** The patches of ground covered by everything the player has placed. */
@@ -45,6 +48,9 @@ export function campFootprints(entities: EntityStore): CampFootprint[] {
   }
   for (const { position, facing } of leanToEntities(entities)) {
     footprints.push(PIECE_FOOTPRINTS.leanTo(position.x, position.z, facing?.turns ?? 0));
+  }
+  for (const { position } of foundationEntities(entities)) {
+    footprints.push(PIECE_FOOTPRINTS.foundation(position.x, position.z, 0));
   }
   for (const { position } of bedrollEntities(entities)) {
     footprints.push({

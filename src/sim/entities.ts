@@ -4,7 +4,7 @@ import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
-import type { GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+import type { DeliveredMaterial, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -68,12 +68,20 @@ export interface Entity {
   /**
    * Marks a building piece the player has placed but not finished. Its position is the piece's centre.
    * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.
+   * `delivered` counts the materials the player has carried to it, such as debarked logs, including any already spent.
    */
-  blueprint?: { piece: StructureKind; progress: number; materialsSpent: number };
+  blueprint?: { piece: StructureKind; progress: number; materialsSpent: number; delivered: Partial<Record<DeliveredMaterial, number>> };
   /** Which way a blueprint, or the structure built from it, faces. */
   facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
+  /** The blueprint the player is walking to, to add the material on their shoulder to it, given by its entity id. */
+  deliverTask?: { blueprintId: number };
+  /**
+   * Marks a finished foundation: a deck of logs covering one building-grid square, on legs down to the ground.
+   * Its position is the middle of the top of the deck. The player can walk onto it and across it.
+   */
+  foundation?: true;
   /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
@@ -194,6 +202,11 @@ export function forageSpotEntities(store: EntityStore) {
 /** Building pieces placed but not finished. */
 export function blueprintEntities(store: EntityStore) {
   return store.with("blueprint", "position");
+}
+
+/** Finished foundations. */
+export function foundationEntities(store: EntityStore) {
+  return store.with("foundation", "position");
 }
 
 /** Finished campfires. */

@@ -2,10 +2,16 @@
 import type { GroundPoint } from "./valley";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
-export type StructureKind = "campfire" | "leanTo";
+export type StructureKind = "campfire" | "leanTo" | "foundation";
 
 /** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
 export type QuarterTurns = 0 | 1 | 2 | 3;
+
+/**
+ * The materials the player carries to a blueprint on their shoulder, one at a time, such as a debarked log.
+ * They are too big for the backpack, so construction spends them from what was carried to the blueprint.
+ */
+export type DeliveredMaterial = "debarkedLog";
 
 /** A rectangle of ground with sides along x and z, from its `min` corner to its `max` corner, in metres. */
 export interface GroundRect {

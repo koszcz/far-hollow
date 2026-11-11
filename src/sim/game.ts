@@ -138,6 +138,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       carrying: player.carrying ?? null,
       nearbyCampfire: nearbyCampfire(),
       nearbyBedroll: nearbyBedroll(),
+      nearbyBlueprint: building.nearby() ?? null,
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
         thirst: player.needs.thirst.level,
@@ -256,6 +257,10 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     build: (command) => {
       cancelTasks();
       building.build(command.blueprintId);
+    },
+    deliverToBlueprint: (command) => {
+      cancelTasks();
+      building.deliver(command.blueprintId);
     },
     stopBuilding: () => {
       building.cancel();
@@ -429,6 +434,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const client: GameClient = {
     getView: () => view,
     checkPlacement: (structure, at, turns) => building.checkPlacement(structure, at, turns),
+    describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
     send: (command) => {
       pendingCommands.push(command);
     },

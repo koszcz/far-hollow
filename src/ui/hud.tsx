@@ -1,7 +1,7 @@
 // The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, BedrollView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
+import type { BackpackContent, BedrollView, BlueprintView, CampfireView, Food, GameClient, GameView, StructureKind } from "../sim/api";
 import { strings } from "../strings";
 import { HudIcon, type HudIconName } from "./hud-icons";
 
@@ -177,6 +177,26 @@ function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: Bedrol
   );
 }
 
+/** Shows the blueprint beside the player: how many of each carried material it has and needs, and how to go on. */
+function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
+  const name = strings.buildMenu.structures[blueprint.structure];
+  const waiting = blueprint.deliveries.some(({ has, needs }) => has < needs);
+  return (
+    <section class="hud-section hud-blueprint" aria-label={strings.blueprint.title(name)}>
+      <h2>
+        <HudIcon name="place" />
+        {strings.blueprint.title(name)}
+      </h2>
+      <ul>
+        {blueprint.deliveries.map(({ material, has, needs }) => (
+          <li key={material}>{strings.blueprint.deliveries[material](has, needs)}</li>
+        ))}
+      </ul>
+      <p class="hud-hint">{waiting ? strings.blueprint.deliverHint : strings.blueprint.buildHint}</p>
+    </section>
+  );
+}
+
 const actionLabels = {
   chop: strings.chopping,
   split: strings.splitting,
@@ -256,6 +276,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         )}
         {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
         {view.nearbyBedroll !== null && <BedrollPanel client={client} bedroll={view.nearbyBedroll} />}
+        {view.nearbyBlueprint !== null && <BlueprintPanel blueprint={view.nearbyBlueprint} />}
         <section class="hud-section hud-backpack" aria-label={strings.backpack}>
           <h2>
             <HudIcon name="backpack" />

@@ -13,7 +13,7 @@ describe("placing a campfire blueprint", () => {
     game.step();
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, materialsSpent: 0 });
+    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position.x).toBe(spot.x);
     expect(blueprint.position.z).toBe(spot.z);
     // A blueprint does not block walking, so the player can stand at it while building.

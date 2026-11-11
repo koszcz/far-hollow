@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_LOG_COST } from "./building";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { continueOrStartGame, describeSave, readSave, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
@@ -133,7 +133,64 @@ describe("upgrading an older save", () => {
 
     expect(loaded.game.client.getView().backpack.drawknife).toBe(1);
   });
+
+  it("gives a blueprint saved before materials could be carried to it nothing carried", () => {
+    const game = playedGame();
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Record<string, unknown> }[] };
+    save.version = 6;
+    for (const { components } of save.entities) {
+      const blueprint = components.blueprint as { delivered?: unknown } | undefined;
+      if (blueprint !== undefined) delete blueprint.delivered;
+    }
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(writeSave(loaded.game)).toEqual(writeSave(game));
+  });
 });
+
+describe("saving foundations", () => {
+  it("restores foundation blueprints, the logs delivered to them, a delivery under way, and finished foundations", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    const finished = foundationAt(game, openSpotNearPlayer(game, 3));
+    for (let i = 0; i < FOUNDATION_LOG_COST; i += 1) deliver(game, finished);
+    send(game, { type: "build", blueprintId: idOf(game, finished) });
+    stepUntil(game, () => finished.foundation === true);
+    const unfinished = foundationAt(game, openSpotNearPlayer(game, 6));
+    deliver(game, unfinished);
+    const away = openSpotNearPlayer(game, 10);
+    send(game, { type: "walkTo", x: away.x, z: away.z });
+    stepUntil(game, () => player.walkPath === undefined);
+    game.entities.addComponent(player, "carrying", "debarkedLog");
+    send(game, { type: "deliverToBlueprint", blueprintId: idOf(game, unfinished) });
+
+    const saved = writeSave(game);
+    const components = saved.entities.map((entity) => entity.components);
+    expect(components.some((entity) => entity.foundation)).toBe(true);
+    expect(components.some((entity) => entity.blueprint?.delivered.debarkedLog === 1)).toBe(true);
+    expect(components.some((entity) => entity.deliverTask !== undefined)).toBe(true);
+    const loaded = readSave(throughStorage(saved));
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(writeSave(loaded.game)).toEqual(saved);
+    expect(loaded.game.client.getView()).toEqual(game.client.getView());
+  });
+});
+
+function foundationAt(game: Game, spot: { x: number; z: number }): Entity {
+  send(game, { type: "placeBlueprint", structure: "foundation", turns: 0, x: spot.x + 0.5, z: spot.z + 0.5 });
+  const placed = game.entities.with("blueprint", "position").entities.at(-1);
+  if (placed === undefined) throw new Error("No blueprint");
+  return placed;
+}
+
+function deliver(game: Game, blueprint: Entity): void {
+  game.entities.addComponent(onlyPlayer(game), "carrying", "debarkedLog");
+  send(game, { type: "deliverToBlueprint", blueprintId: idOf(game, blueprint) });
+  stepUntil(game, () => game.client.getView().carrying === null);
+}
 
 describe("rejecting a broken save", () => {
   type Breakage = (save: SaveFile) => unknown;

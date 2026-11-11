@@ -6,10 +6,10 @@ import type { CarriedLog, Vec3 } from "./entities";
 
 export type { CarriedLog } from "./entities";
 import type { PotWater } from "./pot-state";
-import type { MaterialCost, QuarterTurns, StructureKind } from "./structures";
+import type { DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
-export type { BuildMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
+export type { BuildMaterial, DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -47,9 +47,14 @@ export type Command =
   | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns } & GroundPoint)
   /**
    * Start holding the build action on a blueprint, given by its entity id. The player walks to it first if needed.
-   * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of sticks.
+   * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of materials.
    */
   | { type: "build"; blueprintId: number }
+  /**
+   * Walk the player to a blueprint, given by its entity id, and add the debarked log on their shoulder to it.
+   * Nothing is added if the blueprint already has all the debarked logs it needs.
+   */
+  | { type: "deliverToBlueprint"; blueprintId: number }
   /** Let go of the build action. The blueprint keeps its progress. */
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
@@ -113,6 +118,8 @@ export interface GameView {
   readonly nearbyCampfire: CampfireView | null;
   /** The laid bedroll within the player's reach, or null if none is. */
   readonly nearbyBedroll: BedrollView | null;
+  /** The blueprint nearest the player within reach, or null if none is. */
+  readonly nearbyBlueprint: BlueprintView | null;
   /** How full each of the player's needs is, from 0 (empty) to 1 (full). */
   readonly needs: Readonly<Record<"hunger" | "thirst" | "warmth" | "fatigue", number>>;
   /** How warm the player is, from 0 (frozen) to 1 (fully warm). The same as `needs.warmth`. The HUD shows it. */
@@ -171,6 +178,17 @@ export interface BuildMenuEntry {
   readonly cost: readonly MaterialCost[];
 }
 
+/** A blueprint, with how far it has been built and the materials carried to it. */
+export interface BlueprintView {
+  /** The blueprint's entity id. */
+  readonly id: number;
+  readonly structure: StructureKind;
+  /** How far construction has gone, from 0 to 1. */
+  readonly progress: number;
+  /** For each material the player carries to it, such as debarked logs: how many it has had and how many it needs. */
+  readonly deliveries: readonly { readonly material: DeliveredMaterial; readonly has: number; readonly needs: number }[];
+}
+
 export interface BedrollView {
   /** The bedroll's entity id. */
   readonly id: number;
@@ -197,6 +215,8 @@ export interface GameClient {
    * It only reads game state, so the blueprint under the mouse can follow it before the player clicks.
    */
   checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck;
+  /** What a blueprint, given by its entity id, has and needs, or null if it is not a blueprint. It only reads game state. */
+  describeBlueprint(blueprintId: number): BlueprintView | null;
   send(command: Command): void;
   /** Calls the listener after each logic step. Returns a function that stops listening. */
   subscribe(listener: () => void): () => void;

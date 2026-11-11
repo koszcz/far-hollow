@@ -19,6 +19,7 @@ const BASE_VIEW: GameView = {
   carrying: null,
   nearbyCampfire: null,
   nearbyBedroll: null,
+  nearbyBlueprint: null,
   warmth: 0.9,
   needs: { hunger: 1, thirst: 0.8, warmth: 0.9, fatigue: 1 },
   sick: false,
@@ -96,6 +97,7 @@ function stillClient(view: GameView): GameClient {
   return {
     getView: () => view,
     checkPlacement: () => ({ spot: { x: 0, y: 0, z: 0 }, allowed: true }),
+    describeBlueprint: () => null,
     send() {},
     subscribe: () => () => {},
   };

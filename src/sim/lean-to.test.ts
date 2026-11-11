@@ -15,6 +15,7 @@ describe("the lean-to in the build menu", () => {
     expect(game.client.getView().buildMenu).toEqual([
       { structure: "campfire", cost: [{ material: "stick", count: 5 }] },
       { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }] },
+      { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }] },
     ]);
   });
 });
@@ -27,7 +28,7 @@ describe("placing a lean-to blueprint", () => {
     send(game, { type: "placeBlueprint", structure: "leanTo", turns: 1, x: spot.x + 0.3, z: spot.z - 0.2 });
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toEqual({ piece: "leanTo", progress: 0, materialsSpent: 0 });
+    expect(blueprint.blueprint).toEqual({ piece: "leanTo", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: spot.x, z: spot.z });
     expect(blueprint.facing).toEqual({ turns: 1 });
   });
@@ -245,7 +246,7 @@ describe("saving lean-tos", () => {
 
     const upgraded = upgradeSave(save) as { entities: { components: Entity }[] };
 
-    expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ piece: "campfire", progress: 0.4, materialsSpent: 2 });
+    expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ piece: "campfire", progress: 0.4, materialsSpent: 2, delivered: {} });
     expect(readSave(save).ok).toBe(true);
   });
 });

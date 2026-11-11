@@ -20,6 +20,9 @@ import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
 import { daylightAt } from "./daylight";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
+import { createFoundationMeshes } from "./foundation-meshes";
+import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
+import { FOUNDATION_LOG_COST } from "../sim/structures";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -218,6 +221,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       player.setCarryingLog("debarkedLog");
     },
   },
+  foundation: {
+    radius: 1.4,
+    focus: { x: 0, y: 0.2, z: 0 },
+    // A blueprint with two logs delivered, the third log being laid, then the finished foundation from two sides.
+    shots: [
+      { label: "blueprint, 2 of 4 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "3rd log above its place", yaw: 30, pitch: 30, seconds: (2 + BUILD_FADE_SHARE) / FOUNDATION_LOG_COST },
+      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, from above", yaw: 40, pitch: 60, seconds: 1 },
+    ],
+    build({ place }) {
+      const blueprint = place(0, 0, { blueprint: { piece: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
+      if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
   firewood: {
     radius: 0.9,
     focus: { x: 0, y: 0.12, z: 0 },
@@ -254,7 +275,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from behind", yaw: 200, pitch: 25, seconds: 1 },
     ],
     build({ place, movePlayer }) {
-      place(0, 0, { blueprint: { piece: "leanTo", progress: 0, materialsSpent: 0 }, facing: { turns: 0 } });
+      place(0, 0, { blueprint: { piece: "leanTo", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
       movePlayer(-2.6, 1.2, Math.PI / 2);
     },
     pose({ store }, shot) {
@@ -404,7 +425,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built", progress: 1 },
     ].map(({ label, progress }) => ({ label, yaw: 30, pitch: 25, seconds: progress })),
     build({ place }) {
-      place(0, 0, { blueprint: { piece: "campfire", progress: 0, materialsSpent: 0 } });
+      place(0, 0, { blueprint: { piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} } });
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -591,14 +612,15 @@ export function showAsset(
   const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.stump, shapes.log);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
   const leanTos = createLeanToMeshes(store);
+  const foundations = createFoundationMeshes(store, groundAt);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, campfires.group, leanTos.group, forage.group, bedrolls.group, rain.group);
+  scene.add(forest.group, campfires.group, leanTos.group, foundations.group, forage.group, bedrolls.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, forage.group, bedrolls.group, player.group, props);
+  sky.addShadowCasters(forest.group, campfires.group, leanTos.group, foundations.group, forage.group, bedrolls.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -609,6 +631,7 @@ export function showAsset(
     forest.update(seconds);
     campfires.update(seconds);
     leanTos.update();
+    foundations.update();
     bedrolls.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
@@ -661,6 +684,7 @@ export function showAsset(
       forest.dispose();
       campfires.dispose();
       leanTos.dispose();
+      foundations.dispose();
       potMaker.dispose();
       forage.dispose();
       bedrolls.dispose();

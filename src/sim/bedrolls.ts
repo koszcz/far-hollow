@@ -1,6 +1,7 @@
 import { addToBackpack, fitsInBackpack, removeFromBackpack } from "./backpack";
 import { bedrollEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
-import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { standingHeightAt } from "./foundations";
+import { groundDistance, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can pick up or lie down on a bedroll from this far from its middle, in metres. */
@@ -69,7 +70,7 @@ export function createBedrolls(entities: EntityStore, walking: Walking, valley: 
       for (const player of players) {
         if (player.backpack === undefined || !removeFromBackpack(player.backpack, "bedroll", 1)) continue;
         const { x, z } = player.position;
-        entities.add({ bedroll: true, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } });
+        entities.add({ bedroll: true, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
       }
     },
     pickUp(bedrollId) {

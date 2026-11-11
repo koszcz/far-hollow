@@ -46,7 +46,7 @@ export function edgePieceOn(entities: EntityStore, square: GroundPoint, side: Qu
 export function isEdgeTaken(entities: EntityStore, edge: GroundPoint): boolean {
   for (const piece of edgePieceEntities(entities)) if (isSameEdge(piece.position, edge)) return true;
   for (const blueprint of blueprintEntities(entities)) {
-    if (isEdgePiece(blueprint.blueprint.piece) && isSameEdge(blueprint.position, edge)) return true;
+    if (isEdgePiece(blueprint.blueprint.structure) && isSameEdge(blueprint.position, edge)) return true;
   }
   return false;
 }
@@ -77,7 +77,7 @@ export function meetsDoorAtCorner(entities: EntityStore, kind: EdgePieceKind, ed
   const pieces: { kind: EdgePieceKind; position: GroundPoint; turns: QuarterTurns }[] = [];
   for (const piece of edgePieceEntities(entities)) pieces.push({ kind: piece.edgePiece, position: piece.position, turns: piece.facing?.turns ?? 0 });
   for (const blueprint of blueprintEntities(entities)) {
-    const piece = blueprint.blueprint.piece;
+    const piece = blueprint.blueprint.structure;
     if (isEdgePiece(piece)) pieces.push({ kind: piece, position: blueprint.position, turns: blueprint.facing?.turns ?? 0 });
   }
   return pieces.some(

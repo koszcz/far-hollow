@@ -24,14 +24,13 @@ import { EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { BARK_COLOURS, barkStrip, seededRandom } from "./lean-to-meshes";
+import { NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 /** A delivered log waiting in its place is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 const RAFTER_RADIUS_METRES = 0.07;
 /** A rafter is this much thinner at one end than the other, in metres, like a log from a young tree. */
 const RAFTER_TAPER_METRES = 0.012;
@@ -84,7 +83,7 @@ export interface RoofMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: RoofHit): OutlinePart[];
   /** Shows a roof blueprint under the mouse over the deck at `spot`, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: Vec3; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -238,12 +237,12 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
     });
   }
 
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewParts = addParts(preview);
-  const previewFill = new THREE.Mesh(fillFor(ALONE), blueprintMaterial);
-  preview.add(previewFill);
-  group.add(preview);
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingParts = addParts(placingBlueprint);
+  const placingFill = new THREE.Mesh(fillFor(ALONE), blueprintMaterial);
+  placingBlueprint.add(placingFill);
+  group.add(placingBlueprint);
 
   function draw(entity: Entity & { position: Vec3 }): Drawn {
     const existing = drawn.get(entity);
@@ -327,7 +326,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
     group,
     update(view) {
       const seen = new Set<Entity>();
-      const roofBlueprints = [...blueprints].filter((entity) => entity.blueprint.piece === "roof");
+      const roofBlueprints = [...blueprints].filter((entity) => entity.blueprint.structure === "roof");
       const places = slopePlaces([...roofBlueprints, ...finished]);
       for (const entity of roofBlueprints) {
         const item = draw(entity);
@@ -357,14 +356,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       return undefined;
     },
     pickFinished(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity !== undefined && entity.blueprint === undefined && isShown(hit.object)) return { entity, distance: hit.distance };
-      }
-      return undefined;
+      return pickFinished(raycaster, pickers, isShown);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);
@@ -372,12 +364,12 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       item.root.updateMatrixWorld(true);
       return item.parts.map(({ mesh }) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(shown) {
-      preview.visible = shown !== undefined;
+    showPlacingBlueprint(shown) {
+      placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of [...previewParts.map(({ mesh }) => mesh), previewFill]) mesh.material = material;
-      preview.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
+      for (const mesh of [...placingParts.map(({ mesh }) => mesh), placingFill]) mesh.material = material;
+      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
     },
     dispose() {
       for (const item of [
@@ -388,7 +380,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       }
       grain?.dispose();
       for (const item of drawn.values()) for (const { fading } of item.parts) fading.dispose();
-      for (const { fading } of previewParts) fading.dispose();
+      for (const { fading } of placingParts) fading.dispose();
     },
   };
 }

@@ -10,6 +10,9 @@ export type EdgePieceKind = "logWall" | "doorFrame";
 /** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
 export type QuarterTurns = 0 | 1 | 2 | 3;
 
+/** The four sides of a grid square, as `edgeMiddle` in edge-pieces.ts numbers them. */
+export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
+
 /**
  * The materials the player carries to a blueprint on their shoulder, one at a time, such as a debarked log.
  * They are too big for the backpack, so construction spends them from what was carried to the blueprint.

@@ -1,5 +1,6 @@
 import { playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
-import { groundDistance, terrainHeightAt, type Valley } from "./valley";
+import { standingHeightAt } from "./foundations";
+import { groundDistance, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can pick up a log from this far away, in metres. */
@@ -43,7 +44,7 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
         if (carried === undefined) continue;
         entities.removeComponent(player, "carrying");
         const { x, z } = player.position;
-        entities.add({ [carried]: { heading: 0 }, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } });
+        entities.add({ [carried]: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
       }
     },
     step() {

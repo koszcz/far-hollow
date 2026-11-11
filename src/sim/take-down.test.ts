@@ -151,16 +151,39 @@ describe("giving back materials when the backpack is full", () => {
     expect(game.entities.with("stick").size).toBe(sticksBefore + LEAN_TO_STICK_COST - 2);
   });
 
-  it("refuses, with a notice, when the bark would not fit", () => {
+  it("lays the bark that does not fit on the ground, where the player can pick it up again", () => {
     const game = createGame({ seed: 42 });
     const leanTo = finishedLeanTo(game);
-    fillBackpackUntilFree(game, BACKPACK_WEIGHT_LIMIT_KG - (LEAN_TO_BARK_COST - 1) * CONTENT_WEIGHT_KG.bark);
+    // Room for all but two pieces of bark, and no sticks.
+    fillBackpackUntilFree(game, BACKPACK_WEIGHT_LIMIT_KG - (LEAN_TO_BARK_COST - 2) * CONTENT_WEIGHT_KG.bark);
 
     send(game, { type: "takeDown", pieceId: idOf(game, leanTo) });
-    expect(game.client.getView().notice).toBe("backpackFull");
-    runSeconds(game, LEAN_TO_BUILD_SECONDS);
+    stepUntil(game, () => !game.entities.has(leanTo));
 
-    expect(game.entities.has(leanTo)).toBe(true);
+    expect(onlyPlayer(game).backpack.contents.bark).toBe(LEAN_TO_BARK_COST - 2);
+    const lyingBark = game.entities.with("bark", "position").entities;
+    expect(lyingBark).toHaveLength(2);
+
+    // With room again, a click on the bark puts it back in the backpack.
+    onlyPlayer(game).backpack.contents.firewood = 0;
+    for (const bark of [...lyingBark]) {
+      send(game, { type: "pickUpBark", barkId: idOf(game, bark) });
+      stepUntil(game, () => !game.entities.has(bark));
+    }
+    expect(onlyPlayer(game).backpack.contents.bark).toBe(LEAN_TO_BARK_COST);
+  });
+
+  it("keeps bark it cannot pick up on the ground, with a notice", () => {
+    const game = createGame({ seed: 42 });
+    const { position } = onlyPlayer(game);
+    const bark = game.entities.add({ bark: true, position: { x: position.x + 1, y: position.y, z: position.z } });
+    fillBackpackUntilFree(game, BACKPACK_WEIGHT_LIMIT_KG);
+
+    send(game, { type: "pickUpBark", barkId: idOf(game, bark) });
+    runSeconds(game, 2);
+
+    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.entities.has(bark)).toBe(true);
   });
 });
 
@@ -260,11 +283,35 @@ describe("what holds up what", () => {
   });
 });
 
+describe("where given-back materials land", () => {
+  it("stays on the player's side of a wall, on ground they can walk on", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    finishedFoundationAt(game, square);
+    finishedPieceAt(game, "logWall", square, 3);
+    send(game, place("logWall", square, 1));
+    const blueprint = onlyBlueprint(game);
+    for (let i = 0; i < LOG_WALL_LOG_COST; i += 1) deliverLog(game, blueprint);
+    // Stand inside, close to the finished wall on the +x edge.
+    walkTo(game, { x: square.x + 0.3, z: square.z });
+
+    send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
+    stepUntil(game, () => !game.entities.has(blueprint));
+
+    const logs = game.entities.with("debarkedLog", "position").entities;
+    expect(logs).toHaveLength(LOG_WALL_LOG_COST);
+    for (const { position } of logs) {
+      expect(isWalkable(game.walkMap, position)).toBe(true);
+      expect(position.x).toBeLessThan(square.x + 0.5);
+    }
+  });
+});
+
 /** Places a wall or door frame blueprint and builds it through to the end, delivering every debarked log it needs. */
 function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: QuarterTurns): Entity {
   send(game, place(structure, square, turns));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== structure) throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== structure) throw new Error("The blueprint was not placed");
   const cost = structure === "logWall" ? LOG_WALL_LOG_COST : DOOR_FRAME_LOG_COST;
   for (let i = 0; i < cost; i += 1) deliverLog(game, blueprint);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
@@ -277,7 +324,7 @@ function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square:
 function finishedRoofAt(game: Game, square: { x: number; z: number }): Entity {
   send(game, place("roof", square, 0));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== "roof") throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== "roof") throw new Error("The blueprint was not placed");
   for (let i = 0; i < ROOF_LOG_COST; i += 1) deliverLog(game, blueprint);
   give(game, "bark", ROOF_BARK_COST);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });

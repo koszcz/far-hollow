@@ -67,7 +67,7 @@ describe("placing a blueprint", () => {
     game.step();
 
     const blueprint = game.entities.with("blueprint", "position").first;
-    expect(blueprint?.blueprint.piece).toBe("campfire");
+    expect(blueprint?.blueprint.structure).toBe("campfire");
     expect(blueprint?.facing).toEqual({ turns: 1 });
     expect(blueprint?.position).toMatchObject({ x: spot.x, z: spot.z });
   });

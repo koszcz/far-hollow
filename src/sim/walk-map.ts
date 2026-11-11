@@ -160,6 +160,30 @@ export function nearestWalkableSpot(map: WalkMap, spot: GroundPoint): GroundPoin
   return cell === undefined ? undefined : cellCentre(map, cell);
 }
 
+/**
+ * Up to `limit` cells the player can walk to from the cell that holds `from`, nearest in steps first, starting with that cell.
+ * Steps go only side by side, never across a blocked edge such as a log wall, so every cell is on the same side of any wall.
+ */
+export function reachableCells(map: WalkMap, from: GroundPoint, limit: number): number[] {
+  const start = cellIndexAt(map, from);
+  if (start === undefined || limit <= 0) return [];
+  const side = map.cellsPerSide;
+  const found = [start];
+  const seen = new Set(found);
+  for (let i = 0; i < found.length && found.length < limit; i += 1) {
+    const cell = found[i] ?? start;
+    const column = cell % side;
+    const neighbours = [column > 0 ? cell - 1 : -1, column < side - 1 ? cell + 1 : -1, cell - side, cell + side];
+    for (const next of neighbours) {
+      if (next < 0 || next >= side * side || seen.has(next) || !canStep(map, cell, next)) continue;
+      seen.add(next);
+      found.push(next);
+      if (found.length >= limit) break;
+    }
+  }
+  return found;
+}
+
 function changeCircle(map: WalkMap, centre: GroundPoint, radius: number, change: 1 | -1): void {
   const min = { x: centre.x - radius, z: centre.z - radius };
   const max = { x: centre.x + radius, z: centre.z + radius };

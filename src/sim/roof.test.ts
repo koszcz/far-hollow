@@ -46,7 +46,7 @@ describe("where a roof can go", () => {
     send(game, place("logWall", square, 2));
     expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
     send(game, place("roof", square, 0));
-    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.piece === "logWall")).toBe(true);
+    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.structure === "logWall")).toBe(true);
   });
 
   it("accepts a door frame on any edge, even one placed from the square beside it", () => {
@@ -71,7 +71,7 @@ describe("where a roof can go", () => {
 
     send(game, place("roof", square, 0));
 
-    expect(onlyBlueprint(game).blueprint).toMatchObject({ piece: "roof", progress: 0, delivered: {} });
+    expect(onlyBlueprint(game).blueprint).toMatchObject({ structure: "roof", progress: 0, delivered: {} });
     expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
   });
 });
@@ -207,7 +207,7 @@ describe("saving roofs", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(onlyBlueprint(loaded.game).blueprint).toMatchObject({ piece: "roof", delivered: { debarkedLog: 1 } });
+    expect(onlyBlueprint(loaded.game).blueprint).toMatchObject({ structure: "roof", delivered: { debarkedLog: 1 } });
     expect(cabinRoofOn(loaded.game.entities, square)).toBeDefined();
     expect(isUnderRoof(loaded.game.entities, square)).toBe(true);
   });
@@ -244,7 +244,7 @@ function startRain(game: Game): void {
 function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: QuarterTurns): Entity {
   send(game, place(structure, square, turns));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== structure) throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== structure) throw new Error("The blueprint was not placed");
   const cost = structure === "logWall" ? LOG_WALL_LOG_COST : DOOR_FRAME_LOG_COST;
   for (let i = 0; i < cost; i += 1) deliverLog(game, blueprint);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });

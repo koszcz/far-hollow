@@ -4,13 +4,14 @@ import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
+  blueprintEntities, cabinRoofEntities, campfireEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, stumpEntities, treeEntities,
+  type Entity, type EntityStore,
 } from "./entities";
 import { foundationDeckTop, foundationOn } from "./foundations";
 import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
-  isInRect, rectsOverlap, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type QuarterTurns, type StructureKind,
+  isInRect, rectsOverlap, SIDES, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type QuarterTurns, type StructureKind,
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
@@ -93,10 +94,15 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
     return foundationOn(entities, square) === undefined ? snapToGridPoint(at) : square;
   },
   heightAt: ({ entities, valley }, spot) => foundationUnderCampfire(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
-  canPlace({ entities, walkMap }, spot) {
+  canPlace({ entities, walkMap }, spot, turns) {
     if (!isWalkable(walkMap, spot)) return false;
-    // On a foundation, a campfire goes only inside a room.
-    if (foundationUnderCampfire(entities, spot) !== undefined && roomAround(entities, spot) === undefined) return false;
+    if (foundationUnderCampfire(entities, spot) === undefined) {
+      // On open ground, a campfire keeps clear of every foundation, wall, door frame, and roof section, finished or as a blueprint.
+      if (overlapsCabinPiece(entities, campfire.footprint(spot, turns))) return false;
+    } else if (roomAround(entities, spot) === undefined) {
+      // On a foundation, a campfire goes only inside a room.
+      return false;
+    }
     for (const other of [...campfireEntities(entities), ...blueprintEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
@@ -174,11 +180,12 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
       if (cellIndexAt(walkMap, corner) === undefined) return false;
       if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
     }
-    if (!isClearOfTreesAndPlans(entities, rect)) return false;
+    if (!isClearOfTreesAndStructures(entities, rect)) return false;
     // Foundations can sit side by side, but not overlap a finished foundation or campfire.
     for (const other of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(other.position, 0))) return false;
     for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
-    return true;
+    // Logs, sticks, bark, and bedrolls would end up under the deck. The player moves them first.
+    return !hasThingsLyingOn(entities, rect);
   },
   clearSite(entities, spot) {
     // The stump is removed for good, so it never regrows into a tree.
@@ -219,7 +226,8 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
       if (foundationsBeside(entities, spot, turns).length === 0) return false;
       if (isEdgeTaken(entities, spot)) return false;
       if (meetsDoorAtCorner(entities, kind, spot, turns)) return false;
-      return isClearOfTreesAndPlans(entities, footprint(spot, turns));
+      if (overlapsOpenGroundCampfire(entities, footprint(spot, turns))) return false;
+      return isClearOfTreesAndStructures(entities, footprint(spot, turns));
     },
     finish(spot, turns) {
       const [inside, beyond] = squaresBeside(spot, turns);
@@ -239,9 +247,6 @@ export const ROOF_BARK_COST = 4;
 /** How long the player holds the build action to build a roof section, in seconds. */
 export const ROOF_BUILD_SECONDS = 15;
 
-/** The four sides of a grid square, as `edgeMiddle` numbers them. */
-const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
-
 /**
  * A roof section over one foundation square. It rests on the log walls and door frames on the square's edges, so it needs at least one.
  * A finished section is a roof overhead for the whole square, like a lean-to's roof.
@@ -260,8 +265,9 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
     if (foundationOn(entities, spot) === undefined) return false;
     // The roof rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
     if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
-    // A roof already over the square, finished or planned, is in the way.
-    return isClearOfTreesAndPlans(entities, roof.footprint(spot, turns));
+    // Logs, sticks, bark, and bedrolls on the deck are in the way, as is a roof already over the square, finished or as a blueprint.
+    const rect = roof.footprint(spot, turns);
+    return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect);
   },
   finish: (spot) => ({ cabinRoof: true, roof: roof.footprint(spot, 0) }),
 };
@@ -284,7 +290,7 @@ const TREE_CLEARANCE_METRES = 0.5;
 
 /**
  * Whether a structure covering `rect` fits there: on ground the player can walk on, clear of standing trees,
- * and not over another blueprint or a finished roof.
+ * and not over another blueprint, a finished roof, or a finished foundation.
  */
 function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boolean {
   for (let x = rect.min.x + 0.5; x < rect.max.x; x += 1) {
@@ -292,31 +298,92 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
       if (!isWalkable(walkMap, { x, z })) return false;
     }
   }
-  return isClearOfTreesAndPlans(entities, rect);
+  // A foundation is walkable, but a lean-to stands on the ground, not on a deck.
+  for (const built of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(built.position, 0))) return false;
+  return isClearOfTreesAndStructures(entities, rect);
+}
+
+/**
+ * Whether `rect` overlaps any foundation, log wall, door frame, or roof section, finished or as a blueprint.
+ * A wall or door frame covers only the line it stands on, so it overlaps only a rectangle that reaches across that line.
+ */
+function overlapsCabinPiece(entities: EntityStore, rect: GroundRect): boolean {
+  for (const built of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(built.position, 0))) return true;
+  for (const piece of edgePieceEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(piece))) return true;
+  for (const section of cabinRoofEntities(entities)) if (rectsOverlap(rect, section.roof)) return true;
+  for (const blueprint of blueprintEntities(entities)) {
+    if (blueprint.blueprint.structure !== "campfire" && blueprint.blueprint.structure !== "leanTo" && rectsOverlap(rect, footprintOfEntity(blueprint))) return true;
+  }
+  return false;
+}
+
+/**
+ * Whether a campfire on open ground, finished or as a blueprint, reaches across `rect`.
+ * A campfire in the middle of a foundation square, in a room, is left out: it sits clear of the walls round its square.
+ */
+function overlapsOpenGroundCampfire(entities: EntityStore, rect: GroundRect): boolean {
+  const fires = [...campfireEntities(entities), ...blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "campfire")];
+  return fires.some((fire) => foundationUnderCampfire(entities, fire.position) === undefined && rectsOverlap(rect, campfire.footprint(fire.position, 0)));
+}
+
+/** Whether a log, debarked log, stick, piece of bark, or bedroll lies on `rect`, edges included. */
+function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
+  return lyingThings(entities).some(({ position }) => isInRect(rect, position));
 }
 
 /**
  * Whether `rect` keeps clear of standing trees, and is not over another blueprint, a finished roof, or a finished wall or door frame.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  */
-function isClearOfTreesAndPlans(entities: EntityStore, rect: GroundRect): boolean {
+function isClearOfTreesAndStructures(entities: EntityStore, rect: GroundRect): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
     max: { x: rect.max.x + TREE_CLEARANCE_METRES, z: rect.max.z + TREE_CLEARANCE_METRES },
   };
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
-  for (const blueprint of blueprintEntities(entities)) {
-    const other = structureOf(blueprint.blueprint.piece).footprint(blueprint.position, blueprint.facing?.turns ?? 0);
-    if (rectsOverlap(rect, other)) return false;
-  }
+  for (const blueprint of blueprintEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(blueprint))) return false;
   for (const roofed of roofEntities(entities)) if (rectsOverlap(rect, roofed.roof)) return false;
-  for (const piece of edgePieceEntities(entities)) {
-    if (rectsOverlap(rect, structureOf(piece.edgePiece).footprint(piece.position, piece.facing?.turns ?? 0))) return false;
-  }
+  for (const piece of edgePieceEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(piece))) return false;
   return true;
 }
 
 /** Whether a material is carried to a blueprint on the player's shoulder, rather than taken from the backpack. */
 export function isDelivered(material: BuildMaterial): material is DeliveredMaterial {
   return material === "debarkedLog";
+}
+
+/**
+ * What kind of structure an entity is: a blueprint of any structure, or a finished campfire, lean-to, foundation,
+ * log wall, door frame, or roof section. Undefined for anything else.
+ */
+export function structureKindOf(entity: Entity): StructureKind | undefined {
+  if (entity.blueprint !== undefined) return entity.blueprint.structure;
+  if (entity.campfire !== undefined) return "campfire";
+  if (entity.leanTo === true) return "leanTo";
+  if (entity.foundation === true) return "foundation";
+  if (entity.edgePiece !== undefined) return entity.edgePiece;
+  if (entity.cabinRoof === true) return "roof";
+  return undefined;
+}
+
+/** An entity that is a blueprint or a finished structure, standing somewhere. */
+export type PlacedStructure = Entity & { position: GroundPoint } & (
+  | Required<Pick<Entity, "blueprint">>
+  | Required<Pick<Entity, "campfire">>
+  | Required<Pick<Entity, "leanTo">>
+  | Required<Pick<Entity, "foundation">>
+  | Required<Pick<Entity, "edgePiece">>
+  | Required<Pick<Entity, "cabinRoof">>
+);
+
+/** Whether an entity is a blueprint or a finished structure, standing somewhere. */
+export function isPlacedStructure(entity: Entity): entity is PlacedStructure {
+  return structureKindOf(entity) !== undefined && entity.position !== undefined;
+}
+
+/** The ground a blueprint or finished structure covers where it stands, facing the way it faces. */
+export function footprintOfEntity(entity: PlacedStructure): GroundRect {
+  const kind = structureKindOf(entity);
+  if (kind === undefined) throw new Error("Not a structure");
+  return structureOf(kind).footprint({ x: entity.position.x, z: entity.position.z }, entity.facing?.turns ?? 0);
 }

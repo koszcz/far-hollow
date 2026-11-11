@@ -2,7 +2,7 @@
 // Any entity with a `roof` component counts as a roof overhead: a lean-to, or a cabin roof section.
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-grid";
 import { cabinRoofEntities, roofEntities, type Entity, type EntityStore } from "./entities";
-import { isInRect, turnOffset } from "./structure-kind";
+import { isInRect, SIDES, turnOffset } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 /** Whether a spot on the ground is under any roof, so rain does not fall on it. */
@@ -38,5 +38,3 @@ export function roofAbove(entities: EntityStore, spot: GroundPoint): Entity[] {
   return [...joined];
 }
 
-/** The four sides of a grid square. */
-const SIDES = [0, 1, 2, 3] as const;

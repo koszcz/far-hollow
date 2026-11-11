@@ -100,7 +100,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved recolouring the log on the player's shoulder pale when it is a debarked log."
+      ]
     },
     {
       "id": "walk-animation",
@@ -158,18 +161,22 @@
       "id": "bark",
       "kind": "code",
       "code": [
+        "src/render/bark-meshes.ts",
         "src/ui/hud-icons.tsx",
         "src/ui/hud.tsx",
         "src/ui/hud-showcase.tsx"
       ],
-      "description": "Bark: a HUD line icon of one peeled strip with its end rolled into a curl, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
+      "description": "Bark: a HUD line icon of one peeled strip with its end rolled into a curl, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. On the ground, a piece of bark is a peeled strip curved like the trunk it came off, dark outside and pale inside, with one end rolled into a tight curl, like the icon.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved adding a ground form, so bark can lie on the ground when taking down a building piece gives back more bark than the backpack holds. The HUD icon is unchanged."
+      ]
     },
     {
       "id": "foundation",
@@ -213,7 +220,11 @@
       "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel. A finished frame between the camera and the player fades out.",
       "source": "Built in code in this project",
       "license": "Project code",
-      "approval": { "status": "approved", "by": "owner", "date": "2026-11-11" }
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      }
     },
     {
       "id": "roof",
@@ -260,7 +271,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the shelter build menu's changes: a see-through blueprint copy that follows the mouse, a red colour for a spot where it is not allowed, and turning the blueprint the way it faces."
+      ]
     },
     {
       "id": "lean-to",
@@ -374,7 +388,10 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles."
+      ]
     },
     {
       "id": "backpack-icons",

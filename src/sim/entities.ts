@@ -69,20 +69,24 @@ export interface Entity {
   stick?: true;
   /** The stick on the ground the player is walking to pick up, given by its entity id. */
   stickPickUpTask?: { stickId: number };
+  /** Marks a piece of bark lying on the ground. Its position is the middle of the bark. Bark in the backpack is not an entity. */
+  bark?: true;
+  /** The piece of bark on the ground the player is walking to pick up, given by its entity id. */
+  barkPickUpTask?: { barkId: number };
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
   /**
-   * Marks a building piece the player has placed but not finished. Its position is the piece's centre.
+   * Marks a structure the player has placed but not finished. Its position is the structure's centre.
    * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.
    * `delivered` counts the materials the player has carried to it, such as debarked logs, including any already spent.
    */
-  blueprint?: { piece: StructureKind; progress: number; materialsSpent: number; delivered: Partial<Record<DeliveredMaterial, number>> };
+  blueprint?: { structure: StructureKind; progress: number; materialsSpent: number; delivered: Partial<Record<DeliveredMaterial, number>> };
   /** Which way a blueprint, or the structure built from it, faces. */
   facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
   /**
-   * The blueprint or finished building piece the player is walking to or taking down, given by its entity id.
+   * The blueprint or finished structure the player is walking to or taking down, given by its entity id.
    * `secondsDone` counts only the time spent taking it down, not walking.
    */
   takeDownTask?: { pieceId: number; secondsDone: number };
@@ -220,12 +224,23 @@ export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
 }
 
+/** Pieces of bark lying on the ground. Bark in the backpack is not an entity. */
+export function barkEntities(store: EntityStore) {
+  return store.with("bark", "position");
+}
+
+/** Everything lying loose on the ground that the player can pick up: logs, debarked logs, sticks, bark, and bedrolls. */
+export function lyingThings(store: EntityStore): (Entity & { position: Vec3 })[] {
+  const queries = [logEntities, debarkedLogEntities, stickEntities, barkEntities, bedrollEntities];
+  return queries.flatMap((query): (Entity & { position: Vec3 })[] => [...query(store)]);
+}
+
 /** Berry bushes and mushroom patches, with food or growing back. */
 export function forageSpotEntities(store: EntityStore) {
   return store.with("forageSpot", "position");
 }
 
-/** Building pieces placed but not finished. */
+/** Structures placed but not finished. */
 export function blueprintEntities(store: EntityStore) {
   return store.with("blueprint", "position");
 }

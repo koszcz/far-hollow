@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { QuarterTurns, StructureKind } from "../sim/api";
 import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
+import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
@@ -12,7 +13,7 @@ import { createFoundationMeshes } from "./foundation-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
-import { createHoverOutline } from "./hover-outline";
+import { createHoverOutline, type OutlinePart } from "./hover-outline";
 import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
@@ -30,7 +31,7 @@ const TURN_MIN_TRAVEL_METRES = 0.001;
 
 /**
  * What is under a point on the screen. Everything but the ground and the river is given by its entity id.
- * A finished building piece, such as a lean-to, a foundation, a wall, or a roof section, is a `structure`.
+ * A finished lean-to, foundation, log wall, door frame, or roof section is a `structure`.
  * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
  */
 export type ScenePick =
@@ -41,13 +42,14 @@ export type ScenePick =
   | { kind: "log"; id: number }
   | { kind: "debarkedLog"; id: number }
   | { kind: "stick"; id: number }
+  | { kind: "bark"; id: number }
   | { kind: "forage"; id: number }
   | { kind: "blueprint"; id: number }
   | { kind: "campfire"; id: number }
   | { kind: "bedroll"; id: number };
 
 /** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
-export interface PlacementPreview {
+export interface PlacingBlueprint {
   readonly structure: StructureKind;
   /** The building-grid spot it snaps to, on the ground, in metres. */
   readonly spot: Readonly<Vec3>;
@@ -56,10 +58,10 @@ export interface PlacementPreview {
   readonly allowed: boolean;
 }
 
-/** A pick that landed on anything but a finished building piece. */
+/** A pick that landed on anything but a finished structure. */
 export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
 
-/** A pick that landed on an entity, other than a finished building piece. Those are never outlined. */
+/** A pick that landed on an entity, other than a finished structure. Those are never outlined. */
 type EntityPick = Extract<GroundOrThingPick, { id: number }>;
 
 export interface SceneRenderer {
@@ -72,7 +74,7 @@ export interface SceneRenderer {
   /** Outlines the thing this pick landed on, from the next frame on. Undefined, the ground, or the river outlines nothing. */
   setHovered(pick: ScenePick | undefined): void;
   /** Shows the blueprint under the mouse while the player places one. Undefined hides it. */
-  setPlacementPreview(preview: PlacementPreview | undefined): void;
+  showPlacingBlueprint(placing: PlacingBlueprint | undefined): void;
   dispose(): void;
 }
 
@@ -129,35 +131,67 @@ export function createSceneRenderer(
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);
+  const barkMeshes = createBarkMeshes(entities);
+  scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group,
+    forageMeshes.group, bedrollMeshes.group, barkMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
 
+  /** The shapes to outline for a blueprint of each structure. */
+  const blueprintOutlines: { readonly [Kind in StructureKind]: (entity: Entity) => OutlinePart[] } = {
+    campfire: (entity) => campfireMeshes.outlineOf({ kind: "blueprint", entity }),
+    leanTo: (entity) => leanToMeshes.outlineOf(entity),
+    foundation: (entity) => foundationMeshes.outlineOf({ kind: "blueprint", entity }),
+    logWall: (entity) => edgePieceMeshes.outlineOf({ kind: "blueprint", entity }),
+    doorFrame: (entity) => edgePieceMeshes.outlineOf({ kind: "blueprint", entity }),
+    roof: (entity) => roofMeshes.outlineOf({ kind: "blueprint", entity }),
+  };
+  /** The shapes to outline for each kind of thing the player can click. */
+  const outlines: { readonly [Kind in EntityPick["kind"]]: (entity: Entity) => OutlinePart[] } = {
+    tree: (entity) => forestMeshes.outlineOf({ kind: "tree", entity }),
+    log: (entity) => forestMeshes.outlineOf({ kind: "log", entity }),
+    debarkedLog: (entity) => forestMeshes.outlineOf({ kind: "debarkedLog", entity }),
+    stick: (entity) => forestMeshes.outlineOf({ kind: "stick", entity }),
+    bark: (entity) => barkMeshes.outlineOf(entity),
+    forage: (entity) => forageMeshes.outlineOf({ kind: "forage", entity }),
+    blueprint: (entity) => (entity.blueprint === undefined ? [] : blueprintOutlines[entity.blueprint.structure](entity)),
+    campfire: (entity) => campfireMeshes.outlineOf({ kind: "campfire", entity }),
+    bedroll: (entity) => bedrollMeshes.outlineOf(entity),
+  };
+
   /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */
   function outlineHovered(): void {
-    if (hovered === undefined) {
-      hoverOutline.show([]);
-      return;
-    }
-    const { kind, entity } = hovered;
-    if (kind === "bedroll") hoverOutline.show(bedrollMeshes.outlineOf(entity));
-    else if (kind === "blueprint" && entity.blueprint?.piece === "leanTo") hoverOutline.show(leanToMeshes.outlineOf(entity));
-    else if (kind === "blueprint" && entity.blueprint?.piece === "foundation") hoverOutline.show(foundationMeshes.outlineOf({ kind, entity }));
-    else if (kind === "blueprint" && (entity.blueprint?.piece === "logWall" || entity.blueprint?.piece === "doorFrame")) {
-      hoverOutline.show(edgePieceMeshes.outlineOf({ kind, entity }));
-    }
-    else if (kind === "blueprint" && entity.blueprint?.piece === "roof") hoverOutline.show(roofMeshes.outlineOf({ kind, entity }));
-    else if (kind === "blueprint" || kind === "campfire") hoverOutline.show(campfireMeshes.outlineOf({ kind, entity }));
-    else if (kind === "forage") hoverOutline.show(forageMeshes.outlineOf({ kind, entity }));
-    else hoverOutline.show(forestMeshes.outlineOf({ kind, entity }));
+    hoverOutline.show(hovered === undefined ? [] : outlines[hovered.kind](hovered.entity));
   }
+
+  /** Shows or hides the blueprint each structure draws under the mouse while the player places one. */
+  const placingBlueprints: { readonly [Kind in StructureKind]: (placing: PlacingBlueprint | undefined) => void } = {
+    campfire: (placing) => {
+      campfireMeshes.showPlacingBlueprint(placing);
+    },
+    leanTo: (placing) => {
+      leanToMeshes.showPlacingBlueprint(placing);
+    },
+    foundation: (placing) => {
+      foundationMeshes.showPlacingBlueprint(placing);
+    },
+    logWall: (placing) => {
+      edgePieceMeshes.showPlacingBlueprint(placing && { ...placing, structure: "logWall" });
+    },
+    doorFrame: (placing) => {
+      edgePieceMeshes.showPlacingBlueprint(placing && { ...placing, structure: "doorFrame" });
+    },
+    roof: (placing) => {
+      roofMeshes.showPlacingBlueprint(placing);
+    },
+  };
 
   let drawnWidth = 0;
   let drawnHeight = 0;
@@ -227,16 +261,17 @@ export function createSceneRenderer(
   }
 
   /**
-   * What the ray from the camera through the pointer meets first, with how far away it is, looking through finished building pieces.
+   * What the ray from the camera through the pointer meets first, with how far away it is, looking through finished structures.
    * Set the ray before calling it.
    */
-  function pickThroughFinishedPieces(): { pick: GroundOrThingPick; distance: number } | undefined {
+  function pickThroughFinishedStructures(): { pick: GroundOrThingPick; distance: number } | undefined {
     const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
     const candidates = [
       forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
       edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
       forageMeshes.pick(raycaster),
       bedrollMeshes.pick(raycaster),
+      barkMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {
@@ -266,6 +301,7 @@ export function createSceneRenderer(
       foundationMeshes.update();
       forageMeshes.update();
       bedrollMeshes.update();
+      barkMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -290,7 +326,7 @@ export function createSceneRenderer(
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((clientX - bounds.left) / bounds.width) * 2 - 1, -((clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
-      const under = pickThroughFinishedPieces();
+      const under = pickThroughFinishedStructures();
       let nearest: { entity: Entity; distance: number } | undefined;
       for (const meshes of [leanToMeshes, foundationMeshes, edgePieceMeshes, roofMeshes]) {
         const candidate = meshes.pickFinished(raycaster);
@@ -305,13 +341,10 @@ export function createSceneRenderer(
       const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
     },
-    setPlacementPreview(preview) {
-      // Each structure draws its own blueprint. Later structures add a line here.
-      campfireMeshes.showPreview(preview?.structure === "campfire" ? preview : undefined);
-      leanToMeshes.showPreview(preview?.structure === "leanTo" ? preview : undefined);
-      foundationMeshes.showPreview(preview?.structure === "foundation" ? preview : undefined);
-      edgePieceMeshes.showPreview(preview?.structure === "logWall" || preview?.structure === "doorFrame" ? { ...preview, structure: preview.structure } : undefined);
-      roofMeshes.showPreview(preview?.structure === "roof" ? preview : undefined);
+    showPlacingBlueprint(placing) {
+      // Each structure draws its own blueprint. Hide them all, then show the one being placed.
+      for (const show of Object.values(placingBlueprints)) show(undefined);
+      if (placing !== undefined) placingBlueprints[placing.structure](placing);
     },
     dispose() {
       hoverOutline.dispose();
@@ -326,6 +359,7 @@ export function createSceneRenderer(
       roofMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();
+      barkMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();

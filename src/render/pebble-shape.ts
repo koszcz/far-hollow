@@ -3,7 +3,7 @@
 // and undergrowth-meshes.ts draws them in batches. It picks models by name:
 // - "rock_small…" are the lumpy grey rocks on the forest floor. Some have moss on top.
 // - "stone_small…" are the rounder, lighter stones that lie rarely in clearings.
-// - "stone_smallFlat…" are clusters of flat, dark, wet-looking pebbles on the river bank.
+// - "stone_smallFlat…" are clusters of flat, pale pebbles on the river bank, coloured like the pebbles painted on its ground.
 // Each stone is a low-poly ball, pushed out into lumps and squashed, then cut flat at the foot and sunk a little into
 // the ground, so it never seems to float. Each face has one colour: light on top, darker at the foot.
 // Every face's normal is bent towards straight up, so the stone's shady side never turns black.
@@ -33,7 +33,7 @@ interface ModelRecipe {
 }
 
 /** How much bigger each pebble cluster is than the numbers in its recipe. */
-const PEBBLE_CLUSTER_SCALE = 1.5;
+const PEBBLE_CLUSTER_SCALE = 2.3;
 /** How far each face's normal is bent towards straight up. 0 keeps the true normal. 1 points it halfway up. */
 const NORMAL_UP_BEND = 0.7;
 /** The share of a stone's height that is below the ground. */
@@ -49,9 +49,9 @@ const ROCK_WARM = 0x8e8678;
 const MOSS = 0x5b7234;
 const STONE_LIGHT = 0xaea99d;
 const STONE_PALE = 0xa3a198;
-const PEBBLE_DARK = 0x635e56;
-const PEBBLE_SLATE = 0x5c6062;
-const PEBBLE_BROWN = 0x75695a;
+const PEBBLE_GREY = 0x9e988c;
+const PEBBLE_SLATE = 0x8d9190;
+const PEBBLE_SAND = 0xb2a690;
 
 function rock(size: StoneRecipe["size"], colour: number, moss: number): StoneRecipe & { x: number; z: number } {
   return { size, lumpiness: 0.38, colour, moss, x: 0, z: 0 };
@@ -80,26 +80,26 @@ const RECIPES: readonly ModelRecipe[] = [
   {
     name: "stone_smallFlatA",
     seed: 307,
-    stones: [pebble(0, 0, 0.36, PEBBLE_DARK), pebble(0.24, 0.1, 0.18, PEBBLE_SLATE), pebble(-0.12, -0.2, 0.15, PEBBLE_BROWN)],
+    stones: [pebble(0, 0, 0.36, PEBBLE_GREY), pebble(0.24, 0.1, 0.18, PEBBLE_SLATE), pebble(-0.12, -0.2, 0.15, PEBBLE_SAND)],
   },
   {
     name: "stone_smallFlatB",
     seed: 311,
-    stones: [pebble(0, 0, 0.3, PEBBLE_SLATE), pebble(-0.2, 0.12, 0.22, PEBBLE_BROWN), pebble(0.16, -0.16, 0.12, PEBBLE_DARK)],
+    stones: [pebble(0, 0, 0.3, PEBBLE_SLATE), pebble(-0.2, 0.12, 0.22, PEBBLE_SAND), pebble(0.16, -0.16, 0.12, PEBBLE_GREY)],
   },
   {
     name: "stone_smallFlatC",
     seed: 317,
-    stones: [pebble(0, 0, 0.42, PEBBLE_BROWN), pebble(0.26, -0.14, 0.14, PEBBLE_DARK)],
+    stones: [pebble(0, 0, 0.42, PEBBLE_SAND), pebble(0.26, -0.14, 0.14, PEBBLE_GREY)],
   },
   {
     name: "stone_smallFlatD",
     seed: 331,
     stones: [
-      pebble(-0.1, 0, 0.24, PEBBLE_DARK),
+      pebble(-0.1, 0, 0.24, PEBBLE_GREY),
       pebble(0.14, 0.08, 0.2, PEBBLE_SLATE),
-      pebble(0.02, -0.18, 0.16, PEBBLE_BROWN),
-      pebble(0.2, -0.12, 0.1, PEBBLE_DARK),
+      pebble(0.02, -0.18, 0.16, PEBBLE_SAND),
+      pebble(0.2, -0.12, 0.1, PEBBLE_GREY),
     ],
   },
 ];

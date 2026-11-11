@@ -26,6 +26,8 @@ export const strings = {
   debarking: "Debarking",
   debark: "Debark",
   building: "Building",
+  takingDown: "Taking down",
+  takeDown: "Take down",
   buildMenu: {
     open: "Build (B)",
     title: "Build",
@@ -95,6 +97,7 @@ export const strings = {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
+    holdsUpPiece: "Something stands on this. Take that down first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
   },
   backpack: "Backpack",

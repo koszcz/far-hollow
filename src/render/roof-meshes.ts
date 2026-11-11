@@ -46,6 +46,8 @@ export interface RoofMeshes {
   /** What a ray from the camera hits first among roof blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: RoofHit; distance: number } | undefined;
   /** The parts of a roof blueprint, placed in the world. Empty once it is gone. */
+  /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The right-click menu uses it. */
+  pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: RoofHit): OutlinePart[];
   /** Shows a roof blueprint under the mouse over the deck at `spot`, red where it is not allowed. Undefined hides it. */
   showPreview(preview: { spot: Vec3; allowed: boolean } | undefined): void;
@@ -207,6 +209,16 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       }
       return undefined;
     },
+    pickFinished(raycaster) {
+      hits.length = 0;
+      raycaster.intersectObjects(pickers, false, hits);
+      hits.sort((a, b) => a.distance - b.distance);
+      for (const hit of hits) {
+        const entity = hit.object.userData.entity as Entity | undefined;
+        if (entity !== undefined && entity.blueprint === undefined && isShown(hit.object)) return { entity, distance: hit.distance };
+      }
+      return undefined;
+    },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);
       if (item === undefined) return [];
@@ -231,4 +243,10 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       for (const { fading } of previewParts) fading.dispose();
     },
   };
+}
+
+/** Whether a picker and everything holding it are shown. The roof hidden over the player cannot be picked. */
+function isShown(object: THREE.Object3D): boolean {
+  for (let at: THREE.Object3D | null = object.parent; at !== null; at = at.parent) if (!at.visible) return false;
+  return true;
 }

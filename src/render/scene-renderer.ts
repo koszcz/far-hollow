@@ -135,7 +135,7 @@ export function createSceneRenderer(
   scene.add(roofMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
-  const woodpileMeshes = createWoodpileMeshes(entities);
+  const woodpileMeshes = createWoodpileMeshes(entities, shapes.log);
   scene.add(woodpileMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);

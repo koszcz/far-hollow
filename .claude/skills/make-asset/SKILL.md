@@ -8,11 +8,30 @@ disable-model-invocation: true
 
 One session makes exactly one asset in the asset catalogue, `asset-manifest.json`: a draft asset to polish, or a new asset. The owner decides at every gate. The rules behind this are in `docs/adr/0006-tickets-add-draft-assets-owner-approves-final.md`. The terms are in the Assets section of `GLOSSARY.md`.
 
+## Work alongside other sessions
+
+The owner may run several make-asset sessions at once, each in its own worktree. They share a session board: one small file per running session, kept in the main checkout at `.claude/asset-sessions/`. Git ignores it, so you never push or pull to see what other sessions do. Use `sessions.sh` in this skill's folder to read and write the board:
+
+```sh
+s="$(git rev-parse --show-toplevel)/.claude/skills/make-asset/sessions.sh"
+"$s" list                     # show running sessions; drops entries whose worktree is gone
+"$s" claim <id>               # claim an asset; fails if another session holds it
+"$s" step <id> "<n> <name>"   # record your current step, for example "5 build"
+"$s" files <id> <file>...     # record the shared files you edit
+"$s" release <id>             # remove your entry
+```
+
+Record your step with `step` each time you start a new step. Other sessions see only the board, not your chat.
+
+All worktrees share one local `main` branch. To get another session's finished asset, merge local `main`. You do not need to fetch from `origin`.
+
 ## Steps
 
 ### 1. Pick the asset
 
-If the owner named an asset id, use it. Otherwise run `make drafts` and ask the owner which draft to polish. For a new asset, agree its id, a one-line description, and what in the game will use it.
+Run `"$s" list` first. Never pick an asset that another session holds.
+
+If the owner named an asset id, use it. If another session holds it, tell the owner which worktree holds it and stop. Otherwise run `make drafts`, leave out the drafts on the board, and ask the owner which draft to polish. For a new asset, agree its id, a one-line description, and what in the game will use it.
 
 Then rename the session after the asset, so the owner can tell sessions apart. Use the title `Asset: <id>`, for example `Asset: pot`. In the Claude desktop app, call the `set_session_title` tool. If no tool can rename the session, skip this and tell the owner.
 
@@ -20,9 +39,9 @@ Done when one catalogue id is fixed for this session and the session is named af
 
 ### 2. Open a branch
 
-Work in a worktree on the branch `asset/<id>`.
+Work in a worktree on the branch `asset/<id>`. From that worktree, run `"$s" claim <id>`. The board records the worktree you claim from, so claim only after you are in it. If the claim fails, another session took the asset first. Tell the owner and go back to step 1.
 
-Done when you are on that branch.
+Done when you are on that branch and hold the claim.
 
 ### 3. Learn how the asset is used
 
@@ -30,7 +49,9 @@ Read the entry's ticket, if it is a draft. Then read the comment at the top of e
 
 If the asset is an animation, read `animation.md` in this skill's folder now. Plan and build the animation by its rules.
 
-Done when you can name every place that builds, loads, or draws the asset.
+Then record the shared files you will edit with `"$s" files <id> ...`. A shared file builds more than this asset, such as `forest-meshes.ts`, `player-mesh.ts`, or `asset-showcase.ts`. Leave out `asset-manifest.json`, because every session edits it. Run `"$s" list` and compare. If another session lists the same file, tell the owner which session and which file. Edit only the parts of that file that belong to your asset.
+
+Done when you can name every place that builds, loads, or draws the asset, and the board lists your shared files.
 
 ### 4. Propose options
 
@@ -72,7 +93,7 @@ Done when the owner has seen the asset in the running game.
 
 - **Approved**: set `approval` to `{ "status": "approved", "by": "owner", "date": "<today, YYYY-MM-DD>" }`.
 - **Changes wanted**: go back to step 5, or to step 4 for a different option.
-- **Rejected**: put the draft back as it was and record nothing new.
+- **Rejected**: put the draft back as it was and record nothing new. Run `"$s" release <id>`.
 
 Only the owner's words in chat approve an asset.
 
@@ -80,6 +101,11 @@ Done when the owner has approved the asset or rejected it.
 
 ### 8. Finish
 
-Update the comments at the top of the `code` files so they call the asset approved, not a draft. Run `make check`. Commit, merge the branch into `main`, and push.
+1. Update the comments at the top of the `code` files so they call the asset approved, not a draft.
+2. Commit on `asset/<id>`.
+3. Merge local `main` into your branch, so other sessions' finished assets are in it. Resolve any conflict in `asset-manifest.json` by keeping every entry from both sides.
+4. Run `make check`.
+5. Merge the branch into `main`, and push `main`.
+6. Run `"$s" release <id>`.
 
-Done when `main` is pushed with the approved asset.
+Done when `main` is pushed with the approved asset and the board no longer lists your session.

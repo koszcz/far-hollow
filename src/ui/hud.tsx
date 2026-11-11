@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackContent, CampfireView, GameClient, GameView } from "../sim/api";
+import type { BackpackContent, CampfireView, Food, GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -10,6 +10,13 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
     if (count > 0) contents.push([content, count]);
   }
   return contents;
+}
+
+/** Backpack contents the player can eat. */
+const FOODS: readonly BackpackContent[] = ["berries", "mushroom"] satisfies Food[];
+
+function isFood(content: BackpackContent): content is Food {
+  return FOODS.includes(content);
 }
 
 export interface HudProps {
@@ -84,6 +91,9 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
       <label class="hud-warmth">
         {strings.warmth} <progress max={1} value={view.warmth} />
       </label>
+      <label class="hud-hunger">
+        {strings.hunger} <progress max={1} value={view.needs.hunger} />
+      </label>
       <button type="button" onClick={() => {
           client.send({ type: "setPaused", paused: !view.paused });
         }}>
@@ -135,7 +145,19 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         <p class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</p>
         <ul>
           {backpackContents(view.backpack).map(([content, count]) => (
-            <li key={content}>{strings.backpackContentCount(strings.backpackContents[content], count)}</li>
+            <li key={content}>
+              {strings.backpackContentCount(strings.backpackContents[content], count)}
+              {isFood(content) && (
+                <>
+                  {" "}
+                  <button type="button" onClick={() => {
+                      client.send({ type: "eat", food: content });
+                    }}>
+                    {strings.eat}
+                  </button>
+                </>
+              )}
+            </li>
           ))}
         </ul>
       </section>

@@ -9,6 +9,7 @@ import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createCampfireMeshes, type CampfireMeshes } from "./campfire-meshes";
 import { daylightAt } from "./daylight";
+import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -104,6 +105,24 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES,
     build({ place }) {
       for (const [x, z] of [[-0.6, 0], [0.5, -0.4], [0.3, 0.6]] as const) place(x, z, { stick: true });
+    },
+  },
+  "berry-bush": {
+    radius: 1.5,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      // With berries on the left, foraged and growing back on the right.
+      place(-0.8, 0, { forageSpot: { food: "berries" } });
+      place(0.8, 0, { forageSpot: { food: "berries" }, regrowing: { minutesLeft: 60 } });
+    },
+  },
+  mushrooms: {
+    radius: 0.4,
+    focus: { x: 0, y: 0.08, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      place(0, 0, { forageSpot: { food: "mushroom" } });
     },
   },
   logs: {
@@ -309,9 +328,11 @@ export function showAsset(
 
   const forest: ForestMeshes = createForestMeshes(store, treeShapes, stumpShape);
   const campfires: CampfireMeshes = createCampfireMeshes(store);
-  scene.add(forest.group, campfires.group);
+  const forage = createForageMeshes(store);
+  forage.update();
+  scene.add(forest.group, campfires.group, forage.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, campfires.group, player.group);
+  sky.addShadowCasters(forest.group, campfires.group, forage.group, player.group);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -369,6 +390,7 @@ export function showAsset(
       if (frame !== undefined) cancelAnimationFrame(frame);
       forest.dispose();
       campfires.dispose();
+      forage.dispose();
       player.dispose();
       ground.dispose();
       river?.dispose();

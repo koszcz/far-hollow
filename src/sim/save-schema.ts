@@ -59,6 +59,9 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blueprint: shape({ piece: exactly("campfire"), progress: finite, sticksSpent: count }),
   buildTask: shape({ blueprintId: count }),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
+  forageSpot: shape({ food: exactly("berries", "mushroom") }),
+  regrowing: shape({ minutesLeft: finite }),
+  forageTask: shape({ spotId: count }),
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
 };

@@ -1,6 +1,6 @@
-import type { BackpackContents } from "./backpack";
+import type { BackpackContents, Food } from "./backpack";
 
-export type { BackpackContent } from "./backpack";
+export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { GroundPoint } from "./valley";
@@ -18,6 +18,10 @@ export type Command =
   | { type: "pickUpLog"; logId: number }
   /** Walk the player to a stick on the ground and put it in the backpack, if it fits. The stick is given by its entity id. */
   | { type: "pickUpStick"; stickId: number }
+  /** Walk the player to a berry bush or mushroom patch, given by its entity id, and put its food in the backpack, if it all fits. */
+  | { type: "forage"; spotId: number }
+  /** Eat one of this food from the backpack. It fills hunger. */
+  | { type: "eat"; food: Food }
   /** Split the log the player carries into firewood with the axe. The firewood goes in the backpack, if it all fits. */
   | { type: "splitLog" }
   /** Lay the log the player carries on the ground at their feet. */

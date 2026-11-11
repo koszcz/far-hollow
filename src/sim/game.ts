@@ -5,6 +5,7 @@ import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { CHOP_SECONDS, createChopping } from "./chopping";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
+import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
 import { createEntityStore, movingEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
@@ -83,6 +84,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
   const gathering = createGathering(entities, walking);
+  const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const moving = movingEntities(entities);
@@ -160,6 +162,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     chopping.cancel();
     carrying.cancel();
     gathering.cancel();
+    foraging.cancel();
     building.cancel();
   }
 
@@ -183,6 +186,14 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       cancelTasks();
       const refusal = gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
+    },
+    forage: (command) => {
+      cancelTasks();
+      const refusal = foraging.forage(command.spotId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
+    eat: (command) => {
+      foraging.eat(command.food);
     },
     splitLog: () => {
       cancelTasks();
@@ -228,6 +239,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
       campfires.burn(minutes);
+      foraging.grow(minutes);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
@@ -256,6 +268,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
     campfires.burn(asleepMinutes);
+    foraging.grow(asleepMinutes);
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
     Object.assign(player.previousPosition, player.position);
@@ -282,6 +295,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       chopping.step(playerSeconds);
       carrying.step();
       gathering.step(playerSeconds);
+      foraging.step();
       building.step(playerSeconds);
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
@@ -315,7 +329,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress };
 }
 
-/** Adds the valley's starting trees and sticks. */
+/** Adds the valley's starting trees, sticks, berry bushes, and mushrooms. */
 function addValleyEntities(entities: EntityStore, valley: Valley): void {
   for (const tree of valley.trees) {
     entities.add({
@@ -327,6 +341,7 @@ function addValleyEntities(entities: EntityStore, valley: Valley): void {
   for (const stick of valley.sticks) {
     entities.add({ stick: true, position: { x: stick.x, y: terrainHeightAt(valley.terrain, stick.x, stick.z), z: stick.z } });
   }
+  for (const spot of valleyForageSpots(valley)) entities.add(spot);
 }
 
 /** Adds a new game's player near the river, with a starting backpack. */

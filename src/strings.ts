@@ -1,6 +1,23 @@
 // All player-facing text lives here, so the game can be translated later.
 export const strings = {
   gameTitle: "Far Hollow",
+  startScreen: {
+    slots: "Saved games",
+    slot: (number: number) => `Slot ${number}`,
+    empty: "Empty",
+    broken: "This saved game cannot be loaded.",
+    summary: (day: number, seed: number) => `Day ${day} · Seed ${seed}`,
+    continueGame: "Continue",
+    newGame: "New game",
+    seed: "Seed",
+    randomSeed: "Random",
+    seedHint: "Leave blank for a random valley, or type a number or word.",
+    start: "Start",
+    replaceWarning: (slot: number) => `This replaces the saved game in slot ${slot}.`,
+    replace: "Replace saved game",
+    cancel: "Cancel",
+    cannotSave: "This browser cannot save games, so your progress will be lost when you close the page.",
+  },
   pause: "Pause",
   resume: "Resume",
   paused: "Paused",

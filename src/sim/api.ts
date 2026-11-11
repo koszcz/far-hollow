@@ -5,6 +5,9 @@ import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { GroundPoint } from "./valley";
 
+/** The new-game screen uses it to turn typed text into a seed. */
+export { seedFromText } from "./seed";
+
 // The only part of game logic the UI may import (ADR 0005).
 // The UI reads a GameView and changes the game only by sending a Command.
 
@@ -81,6 +84,16 @@ export interface GameView {
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  */
 export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "saveBroken";
+
+/**
+ * What one save slot holds, as the start screen shows it.
+ * `empty`: nothing is saved there. `broken`: the save cannot be loaded.
+ * `filled`: a game the player can continue, with its seed and the day it reached.
+ */
+export type SaveSlotSummary =
+  | { readonly state: "empty" }
+  | { readonly state: "broken" }
+  | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
 /** The kinds of fuel the player can put on a campfire. */
 export type CampfireFuel = "stick" | "firewood";

@@ -1,5 +1,6 @@
-// Draws chests and chest blueprints: the draft "chest" asset in asset-manifest.json, built in code.
-// A chest is a rough box hewn from debarked logs: a body of thick planks, with a lid of planks on top.
+// Draws chests and chest blueprints: the approved "chest" asset in asset-manifest.json, built in code.
+// A chest is a rough box hewn from debarked logs: corner posts with three stacked planks in each wall, a grip on each end,
+// and a lid of planks held by two battens.
 // Its front faces +z when it faces the default way.
 // Construction has one stage per debarked log. The first builds the body, and the second puts on the lid.
 // Each part fades in above its place and is set down, like the sticks of a campfire.
@@ -20,14 +21,42 @@ const BLUEPRINT_OPACITY = 0.35;
 const DELIVERED_OPACITY = 0.7;
 /** How tall the body of the chest is, in metres. */
 const BODY_HEIGHT_METRES = 0.45;
-/** How thick the planks of the body and the lid are, in metres. */
+/** How thick the planks of the floor and the lid are, in metres. */
 const PLANK_METRES = 0.06;
+/** How thick the wall planks are, in metres. */
+const WALL_PLANK_METRES = 0.045;
+/** How many planks are stacked in each wall, from the ground up. */
+const WALL_PLANKS = 3;
+/** The gap between two stacked wall planks, in metres. */
+const WALL_GAP_METRES = 0.008;
+/** How wide the square corner posts are, in metres. */
+const POST_METRES = 0.075;
+/** The end walls sit this far in from the ends of the posts, to make room for the grips. */
+const END_INSET_METRES = 0.03;
+/** The size of the wooden grip on each end: how far it sticks out, how tall, and how long. */
+const GRIP_METRES: [number, number, number] = [END_INSET_METRES, 0.05, 0.2];
 /** The lid reaches this far past the body on every side, in metres. */
 const LID_OVERHANG_METRES = 0.02;
 /** How many planks lie side by side in the lid, from front to back. */
 const LID_PLANKS = 3;
 /** The gap between two lid planks, in metres. */
 const LID_GAP_METRES = 0.008;
+/** The battens across the top of the lid: how wide, how tall, and how far from the middle. */
+const BATTEN_WIDTH_METRES = 0.06;
+const BATTEN_HEIGHT_METRES = 0.03;
+const BATTEN_OFFSET_METRES = 0.27;
+/** How much darker or lighter one plank is than the next, as a share of the wood colour. */
+const PLANK_SHADES = [1, 0.9, 1.05, 0.94, 0.86, 1.02, 0.97, 0.91];
+
+/** Which way the grain of a part runs. Its two cut ends face along this axis. */
+type Grain = "x" | "y" | "z";
+
+/** One wooden part: its size, the middle of it, and the way its grain runs. */
+interface Part {
+  readonly size: [number, number, number];
+  readonly at: [number, number, number];
+  readonly grain: Grain;
+}
 
 /** What a click on a chest or chest blueprint landed on. */
 export type ChestHit = { kind: "blueprint"; entity: Entity } | { kind: "chest"; entity: Entity };
@@ -49,7 +78,10 @@ export interface ChestMeshes {
 interface Stage {
   readonly root: THREE.Group;
   readonly meshes: THREE.Mesh[];
+  /** The see-through wood of this stage, for disposing. */
   readonly fading: THREE.MeshStandardMaterial[];
+  /** The face materials of each mesh while it fades in. */
+  readonly fadingFaces: THREE.MeshStandardMaterial[][];
 }
 
 interface Drawn {
@@ -62,28 +94,72 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
   const group = new THREE.Group();
   const width = CHEST_WIDTH_METRES;
   const depth = CHEST_DEPTH_METRES;
-  const bodyBoxes: { size: [number, number, number]; at: [number, number, number] }[] = [
-    // The floor, then the front and back, then the two ends between them.
-    { size: [width, PLANK_METRES, depth], at: [0, PLANK_METRES / 2, 0] },
-    { size: [width, BODY_HEIGHT_METRES, PLANK_METRES], at: [0, BODY_HEIGHT_METRES / 2, depth / 2 - PLANK_METRES / 2] },
-    { size: [width, BODY_HEIGHT_METRES, PLANK_METRES], at: [0, BODY_HEIGHT_METRES / 2, -depth / 2 + PLANK_METRES / 2] },
-    { size: [PLANK_METRES, BODY_HEIGHT_METRES, depth - 2 * PLANK_METRES], at: [width / 2 - PLANK_METRES / 2, BODY_HEIGHT_METRES / 2, 0] },
-    { size: [PLANK_METRES, BODY_HEIGHT_METRES, depth - 2 * PLANK_METRES], at: [-width / 2 + PLANK_METRES / 2, BODY_HEIGHT_METRES / 2, 0] },
+  // The body: a floor, a square post at each corner, three stacked planks in each wall between the posts, and a grip on each end.
+  const postX = width / 2 - POST_METRES / 2;
+  const postZ = depth / 2 - POST_METRES / 2;
+  const wallPlankHeight = (BODY_HEIGHT_METRES - (WALL_PLANKS - 1) * WALL_GAP_METRES) / WALL_PLANKS;
+  const wallPlankY = (i: number) => wallPlankHeight / 2 + i * (wallPlankHeight + WALL_GAP_METRES);
+  const sideLength = width - 2 * POST_METRES + 0.01;
+  const endLength = depth - 2 * POST_METRES + 0.01;
+  const endX = width / 2 - END_INSET_METRES - WALL_PLANK_METRES / 2;
+  const bodyParts: Part[] = [
+    { size: [width - 0.04, PLANK_METRES, depth - 0.04], at: [0, PLANK_METRES / 2, 0], grain: "x" },
+    ...[-1, 1].flatMap((sx) =>
+      [-1, 1].map((sz): Part => ({ size: [POST_METRES, BODY_HEIGHT_METRES, POST_METRES], at: [sx * postX, BODY_HEIGHT_METRES / 2, sz * postZ], grain: "y" })),
+    ),
+    ...[-1, 1].flatMap((sz) =>
+      Array.from({ length: WALL_PLANKS }, (_, i): Part => ({
+        size: [sideLength, wallPlankHeight, WALL_PLANK_METRES],
+        at: [0, wallPlankY(i), sz * (depth / 2 - 0.012 - WALL_PLANK_METRES / 2)],
+        grain: "x",
+      })),
+    ),
+    ...[-1, 1].flatMap((sx) =>
+      Array.from({ length: WALL_PLANKS }, (_, i): Part => ({ size: [WALL_PLANK_METRES, wallPlankHeight, endLength], at: [sx * endX, wallPlankY(i), 0], grain: "z" })),
+    ),
+    ...[-1, 1].map((sx): Part => ({
+      size: GRIP_METRES,
+      at: [sx * (width / 2 - END_INSET_METRES / 2), wallPlankY(WALL_PLANKS - 1), 0],
+      grain: "z",
+    })),
   ];
+  // The lid: planks side by side with a small overhang, held together by two battens across the top.
   const lidDepth = depth + 2 * LID_OVERHANG_METRES;
   const lidPlankDepth = (lidDepth - (LID_PLANKS - 1) * LID_GAP_METRES) / LID_PLANKS;
-  const lidBoxes = Array.from({ length: LID_PLANKS }, (_, i) => ({
-    size: [width + 2 * LID_OVERHANG_METRES, PLANK_METRES, lidPlankDepth] as [number, number, number],
-    at: [0, BODY_HEIGHT_METRES + PLANK_METRES / 2, -lidDepth / 2 + lidPlankDepth / 2 + i * (lidPlankDepth + LID_GAP_METRES)] as [number, number, number],
-  }));
-  const stageBoxes = [bodyBoxes, lidBoxes];
-  const geometries = stageBoxes.map((boxes) => boxes.map(({ size }) => new THREE.BoxGeometry(...size)));
+  const lidParts: Part[] = [
+    ...Array.from({ length: LID_PLANKS }, (_, i): Part => ({
+      size: [width + 2 * LID_OVERHANG_METRES, PLANK_METRES, lidPlankDepth],
+      at: [0, BODY_HEIGHT_METRES + PLANK_METRES / 2, -lidDepth / 2 + lidPlankDepth / 2 + i * (lidPlankDepth + LID_GAP_METRES)],
+      grain: "x",
+    })),
+    ...[-1, 1].map((sx): Part => ({
+      size: [BATTEN_WIDTH_METRES, BATTEN_HEIGHT_METRES, lidDepth - 0.03],
+      at: [sx * BATTEN_OFFSET_METRES, BODY_HEIGHT_METRES + PLANK_METRES + BATTEN_HEIGHT_METRES / 2, 0],
+      grain: "z",
+    })),
+  ];
+  const stageParts = [bodyParts, lidParts];
+  let shadeIndex = 0;
+  /** A box for one part, coloured a little lighter or darker than its neighbours so the planks read apart. */
+  function partGeometry({ size }: Part): THREE.BoxGeometry {
+    const geometry = new THREE.BoxGeometry(...size);
+    const shade = PLANK_SHADES[shadeIndex++ % PLANK_SHADES.length] ?? 1;
+    const count = geometry.getAttribute("position").count;
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(new Array<number>(count * 3).fill(shade), 3));
+    return geometry;
+  }
+  const geometries = stageParts.map((parts) => parts.map(partGeometry));
   const pickGeometry = new THREE.BoxGeometry(width, BODY_HEIGHT_METRES + PLANK_METRES, depth).translate(0, (BODY_HEIGHT_METRES + PLANK_METRES) / 2, 0);
 
-  // Box groups are +x, -x, +y, -y, +z, -z. The planks show their pale cut ends along x and their sides elsewhere.
-  const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
-  const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
-  const plankMaterials = [cutMaterial, cutMaterial, woodMaterial, woodMaterial, woodMaterial, woodMaterial];
+  // Box groups are +x, -x, +y, -y, +z, -z. Each part shows its pale cut ends along its grain and its sides elsewhere.
+  const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true, vertexColors: true });
+  const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true, vertexColors: true });
+  /** The six face materials of a part whose grain runs along `grain`. */
+  function faceMaterials<M>(grain: Grain, side: M, cut: M): M[] {
+    const axis = { x: 0, y: 1, z: 2 }[grain];
+    return [0, 1, 2].flatMap((a) => (a === axis ? [cut, cut] : [side, side]));
+  }
+  const solidMaterials = stageParts.map((parts) => parts.map(({ grain }) => faceMaterials(grain, woodMaterial, cutMaterial)));
   const see = (color: number, opacity: number) => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
   const blueprintMaterial = see(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = see(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
@@ -95,23 +171,25 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
   const blueprints = blueprintEntities(entities);
   const chests = chestEntities(entities);
 
-  /** Adds the planks of every stage to `root`, all in one material. */
+  /** Adds the parts of every stage to `root`, all in one material. */
   function addStages(root: THREE.Group): Stage[] {
-    return stageBoxes.map((boxes, stage) => {
+    return stageParts.map((parts, stage) => {
       const stageRoot = new THREE.Group();
       root.add(stageRoot);
       const side = woodMaterial.clone();
       const cut = cutMaterial.clone();
       side.transparent = true;
       cut.transparent = true;
-      const meshes = boxes.map(({ at }, i) => {
+      const meshes = parts.map(({ at }, i) => {
         const mesh = new THREE.Mesh(geometries[stage]?.[i], blueprintMaterial);
         mesh.position.set(...at);
         mesh.castShadow = true;
+        mesh.receiveShadow = true;
         stageRoot.add(mesh);
         return mesh;
       });
-      return { root: stageRoot, meshes, fading: [cut, cut, side, side, side, side] };
+      const fadingFaces = parts.map(({ grain }) => faceMaterials(grain, side, cut));
+      return { root: stageRoot, meshes, fading: [side, cut], fadingFaces };
     });
   }
 
@@ -152,7 +230,9 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       }
       const opacity = Math.min(1, share / BUILD_FADE_SHARE);
       for (const material of stage.fading) material.opacity = opacity;
-      for (const mesh of stage.meshes) mesh.material = opacity < 1 ? stage.fading : plankMaterials;
+      stage.meshes.forEach((mesh, i) => {
+        mesh.material = (opacity < 1 ? stage.fadingFaces[i] : solidMaterials[index]?.[i]) ?? blueprintMaterial;
+      });
       stage.root.position.y = buildLift(share);
     });
   }

@@ -55,7 +55,7 @@ export type Command =
    */
   | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns } & GroundPoint)
   /**
-   * Start holding the build action on a blueprint, given by its entity id. The player walks to it first if needed.
+   * Start building a blueprint, given by its entity id. The player walks to it first if needed.
    * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of materials.
    */
   | { type: "build"; blueprintId: number }
@@ -71,7 +71,7 @@ export type Command =
    * Nothing happens if another structure stands on it.
    */
   | { type: "takeDown"; pieceId: number }
-  /** Let go of the build action. The blueprint keeps its progress. */
+  /** Stop building. The blueprint keeps its progress. */
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
   | { type: "tendCampfire"; campfireId: number }

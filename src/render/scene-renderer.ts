@@ -1,21 +1,20 @@
 import * as THREE from "three";
 import { movingEntities, type EntityStore } from "../sim/entities";
-import type { Valley } from "../sim/valley";
+import { terrainHeightAt, type Valley } from "../sim/valley";
 import { blendPosition } from "./blend";
+import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createSkyLighting } from "./sky-lighting";
 import { createValleyMeshes } from "./valley-meshes";
 
-const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
+export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
 const CAMERA_NEAR_METRES = 0.1;
 const CAMERA_FAR_METRES = 4000;
-/** Until camera controls exist, a fixed camera looks at the valley's centre from far enough away to show all of it. */
-const CAMERA_DISTANCE_METRES = 1250;
-/** How steeply the camera looks down. The spec allows about 30° to 75°. */
-const CAMERA_DOWN_ANGLE_DEGREES = 45;
 
 export interface SceneRenderer {
   /** Draws one frame. alpha says how far the frame is between the last two logic steps. */
   render(alpha: number): void;
+  /** Where the camera looks. Camera input and camera follow change it. It never changes game state. */
+  readonly cameraRig: CameraRig;
   dispose(): void;
 }
 
@@ -40,14 +39,12 @@ export function createSceneRenderer(
     CAMERA_NEAR_METRES,
     CAMERA_FAR_METRES,
   );
-  const downAngle = THREE.MathUtils.degToRad(CAMERA_DOWN_ANGLE_DEGREES);
-  const groundDistance = CAMERA_DISTANCE_METRES * Math.cos(downAngle);
-  camera.position.set(
-    groundDistance * Math.SQRT1_2,
-    CAMERA_DISTANCE_METRES * Math.sin(downAngle),
-    groundDistance * Math.SQRT1_2,
-  );
-  camera.lookAt(0, 0, 0);
+  const cameraRig = createCameraRig({ groundHeightAt: (x, z) => terrainHeightAt(valley.terrain, x, z) });
+  function placeCamera(): void {
+    const { eye, focus } = cameraRig.view();
+    camera.position.set(eye.x, eye.y, eye.z);
+    camera.lookAt(focus.x, focus.y, focus.z);
+  }
 
   const valleyMeshes = createValleyMeshes(valley, entities);
   scene.add(valleyMeshes.group);
@@ -73,6 +70,7 @@ export function createSceneRenderer(
   const blended = { x: 0, y: 0, z: 0 };
 
   return {
+    cameraRig,
     render(alpha) {
       matchCanvasSize();
       skyLighting.update(readHourOfDay());
@@ -80,6 +78,7 @@ export function createSceneRenderer(
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
         // Later tickets copy `blended` onto the entity's mesh here.
       }
+      placeCamera();
       renderer.render(scene, camera);
     },
     dispose() {

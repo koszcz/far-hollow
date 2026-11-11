@@ -4,6 +4,7 @@ export const strings = {
   pause: "Pause",
   resume: "Resume",
   paused: "Paused",
+  cameraFollow: "Camera follows player",
   debugFps: "FPS",
   debugEntities: "Entities",
   debugSeed: "Seed",

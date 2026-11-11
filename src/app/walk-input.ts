@@ -180,7 +180,8 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   function placingBlueprintFor(pick: ScenePick | undefined): PlacingBlueprint | undefined {
     if (mode.placing === null || pick?.kind !== "ground") return undefined;
     const { structure, turns } = mode.placing;
-    return { structure, turns, ...client.checkPlacement(structure, pick.spot, turns) };
+    // A roof takes the turn of the frame under it, so the placement check says which turn to show.
+    return { structure, ...client.checkPlacement(structure, pick.spot, turns) };
   }
 
   /** Picking is a raycast, so the cursor updates at most once per frame. */

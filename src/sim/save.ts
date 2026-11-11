@@ -4,7 +4,7 @@ import { readClock } from "./clock";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import { droppedStickSpot } from "./piles";
-import { CHEST_WALK_BLOCK_RADIUS_METRES, WOODPILE_WALK_BLOCK_RADIUS_METRES } from "./structures";
+import { CHEST_WALK_BLOCK_RADIUS_METRES, ROOF_FRAME_LOG_COST, WOODPILE_WALK_BLOCK_RADIUS_METRES } from "./structures";
 import { createGame, type Game, type GameProgress } from "./game";
 import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
@@ -38,6 +38,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addSawhorses,
   giveSawBlade,
   addPlanks,
+  addRoofFrames,
 ];
 
 /** The version of the save format this code writes. */
@@ -59,6 +60,8 @@ export const SAWHORSES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSawhorses) + 2;
 export const CRAFTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveSawBlade) + 2;
 /** The first save version that can hold planks. */
 export const PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanks) + 2;
+/** The first save version in which every roof section is laid on a roof frame. */
+export const ROOF_FRAMES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRoofFrames) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -302,6 +305,54 @@ function giveSawBlade(save: Readonly<Record<string, unknown>>): Record<string, u
 /** Version 18 to 19: the player can cut planks. A save from before then has none, so it carries over unchanged. */
 function addPlanks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/** Before roof frames, a roof section cost this many debarked logs, spent first, then its bark. */
+const OLD_ROOF_LOG_COST = 3;
+/** Before roof frames, a roof section had this many stages: one per debarked log, then one per piece of bark. */
+const OLD_ROOF_STAGES = 7;
+
+/**
+ * Version 19 to 20: a roof section is laid on a roof frame, which holds the rafters, so the roof is only bark.
+ * Every finished roof gets a finished frame under it, with the roof's turn, for free.
+ * Every roof blueprint becomes a frame blueprint with the same turn, keeping its delivered logs and the work done with them.
+ * Any bark already spent on it goes back in the player's backpack, so nothing is lost.
+ */
+function addRoofFrames(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const saved = save.entities as unknown[];
+  const ids = saved.map((entity) => (entity as { id?: unknown } | null)?.id).filter((id): id is number => typeof id === "number");
+  let nextId = Math.max(-1, ...ids) + 1;
+  let barkBack = 0;
+  const entities: unknown[] = [];
+  for (const entity of saved) {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (components?.cabinRoof === true && components.position !== undefined) {
+      entities.push(entity, { id: nextId++, components: { roofFrame: true, facing: components.facing ?? { turns: 0 }, position: { ...components.position } } });
+    } else if (blueprint?.structure === "roof" && typeof blueprint.materialsSpent === "number" && typeof blueprint.progress === "number") {
+      const logsSpent = Math.min(blueprint.materialsSpent, OLD_ROOF_LOG_COST);
+      barkBack += blueprint.materialsSpent - logsSpent;
+      const stagesDone = Math.min(blueprint.progress * OLD_ROOF_STAGES, OLD_ROOF_LOG_COST);
+      const frame = { ...blueprint, structure: "roofFrame", progress: stagesDone / ROOF_FRAME_LOG_COST, materialsSpent: logsSpent };
+      entities.push({ ...(entity as object), components: { ...components, blueprint: frame } });
+    } else {
+      entities.push(entity);
+    }
+  }
+  return giveBack({ ...save, entities }, "bark", barkBack);
+}
+
+/** Puts `count` of a material into the saved player's backpack, on top of what they hold. */
+function giveBack(save: Record<string, unknown>, material: "bark", count: number): Record<string, unknown> {
+  if (count === 0 || !Array.isArray(save.entities)) return save;
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const contents = components?.backpack?.contents;
+    if (components?.player !== true || typeof contents !== "object") return entity;
+    return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [material]: (contents[material] ?? 0) + count } } } };
+  });
+  return { ...save, entities };
 }
 
 /**

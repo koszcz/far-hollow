@@ -6,7 +6,7 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import {
   DOOR_FRAME_LOG_COST, FOUNDATION_BUILD_SECONDS, LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST, LOG_WALL_BUILD_SECONDS, LOG_WALL_LOG_COST,
-  ROOF_BARK_COST, ROOF_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
+  ROOF_BARK_COST, ROOF_FRAME_LOG_COST, roofFrameOn, type QuarterTurns, type StructureKind } from "./structures";
 import { edgePieceOn } from "./edge-pieces";
 import { cabinRoofOn, isUnderRoof } from "./roofs";
 import { readSave, writeSave } from "./save";
@@ -229,27 +229,27 @@ describe("what holds up what", () => {
     expect(game.entities.has(foundation)).toBe(true);
   });
 
-  it("keeps a wall while a roof rests on it, and lets it come down once the roof is gone", () => {
+  it("keeps a wall while a roof frame rests on it, and lets it come down once the frame is gone", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     finishedFoundationAt(game, square);
     const wall = finishedPieceAt(game, "logWall", square, 2);
-    send(game, place("roof", square, 0));
-    const roof = onlyBlueprint(game);
+    send(game, place("roofFrame", square, 0));
+    const frame = onlyBlueprint(game);
 
-    // Even a roof that is still a blueprint rests on the wall.
+    // Even a frame that is still a blueprint rests on the wall.
     send(game, { type: "takeDown", pieceId: idOf(game, wall) });
     expect(game.client.getView().notice).toBe("holdsUpPiece");
     runSeconds(game, LOG_WALL_BUILD_SECONDS);
     expect(game.entities.has(wall)).toBe(true);
 
-    send(game, { type: "takeDown", pieceId: idOf(game, roof) });
-    stepUntil(game, () => !game.entities.has(roof));
+    send(game, { type: "takeDown", pieceId: idOf(game, frame) });
+    stepUntil(game, () => !game.entities.has(frame));
     send(game, { type: "takeDown", pieceId: idOf(game, wall) });
     stepUntil(game, () => !game.entities.has(wall));
   });
 
-  it("lets a roof come down, giving back its debarked logs and bark", () => {
+  it("lets a roof come down, giving back its bark and leaving its frame", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     finishedFoundationAt(game, square);
@@ -260,8 +260,9 @@ describe("what holds up what", () => {
     send(game, { type: "takeDown", pieceId: idOf(game, roof) });
     stepUntil(game, () => !game.entities.has(roof));
 
-    expect(debarkedLogsOnGround(game)).toBe(logsBefore + ROOF_LOG_COST);
+    expect(debarkedLogsOnGround(game)).toBe(logsBefore);
     expect(onlyPlayer(game).backpack.contents.bark).toBe(ROOF_BARK_COST);
+    expect(roofFrameOn(game.entities, square)).toBeDefined();
     expect(cabinRoofOn(game.entities, square)).toBeUndefined();
   });
 
@@ -320,12 +321,18 @@ function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square:
   return blueprint;
 }
 
-/** Places a roof blueprint over a square and builds it through to the end. */
+/** Places a roof frame blueprint over a square, then a roof on it, and builds both through to the end. */
 function finishedRoofAt(game: Game, square: { x: number; z: number }): Entity {
+  send(game, place("roofFrame", square, 0));
+  const frame = game.entities.with("blueprint", "position").entities.at(-1);
+  if (frame?.blueprint.structure !== "roofFrame") throw new Error("The frame was not placed");
+  for (let i = 0; i < ROOF_FRAME_LOG_COST; i += 1) deliverLog(game, frame);
+  send(game, { type: "build", blueprintId: idOf(game, frame) });
+  const framed: Entity = frame;
+  stepUntil(game, () => framed.blueprint === undefined);
   send(game, place("roof", square, 0));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
   if (blueprint?.blueprint.structure !== "roof") throw new Error("The blueprint was not placed");
-  for (let i = 0; i < ROOF_LOG_COST; i += 1) deliverLog(game, blueprint);
   give(game, "bark", ROOF_BARK_COST);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   const built: Entity = blueprint;

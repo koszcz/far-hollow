@@ -77,7 +77,7 @@ describe("a campfire beside a cabin", () => {
   });
 });
 
-describe("things lying where a foundation or roof section would go", () => {
+describe("things lying where a foundation or roof frame would go", () => {
   it("keep a foundation off their square", () => {
     for (const thing of lyingThings()) {
       const game = createGame({ seed: 42 });
@@ -88,16 +88,16 @@ describe("things lying where a foundation or roof section would go", () => {
     }
   });
 
-  it("keep a roof section off the square they lie on", () => {
+  it("keep a roof frame off the square they lie on", () => {
     for (const thing of lyingThings()) {
       const game = createGame({ seed: 42 });
       const square = openSquareNearPlayer(game);
       const foundation = finishedFoundationAt(game, square);
       finishedEdge(game, "logWall", square, 2);
-      expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(true);
+      expect(game.client.checkPlacement("roofFrame", square, 0).allowed).toBe(true);
       game.entities.add({ ...thing, position: { x: square.x + 0.2, y: foundation.position.y, z: square.z } });
 
-      expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
+      expect(game.client.checkPlacement("roofFrame", square, 0).allowed).toBe(false);
     }
   });
 });

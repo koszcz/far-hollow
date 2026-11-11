@@ -134,7 +134,8 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }] },
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }] },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }] },
-  { structure: "roof", cost: [{ material: "debarkedLog", count: 3 }, { material: "bark", count: 4 }] },
+  { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }] },
+  { structure: "roof", cost: [{ material: "bark", count: 4 }] },
   { structure: "woodpile", cost: [] },
   { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe" },
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }] },
@@ -160,7 +161,7 @@ const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
 function stillClient(view: GameView): GameClient {
   return {
     getView: () => view,
-    checkPlacement: () => ({ spot: { x: 0, y: 0, z: 0 }, allowed: true }),
+    checkPlacement: (_structure, _at, turns) => ({ spot: { x: 0, y: 0, z: 0 }, turns, allowed: true }),
     describeBlueprint: () => null,
     describeRooms: () => [],
     send() {},

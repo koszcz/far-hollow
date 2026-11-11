@@ -179,7 +179,7 @@ describe("saving planks", () => {
     give(game, { plank: 4 });
     const saved = writeSave(game);
     expect(saved.version).toBe(SAVE_VERSION);
-    expect(PLANKS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(PLANKS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     expect(PLANKS_SAVE_VERSION).toBeGreaterThan(CRAFTING_SAVE_VERSION);
 
     const loaded = readSave(JSON.parse(JSON.stringify(saved)));

@@ -2,7 +2,7 @@
 import type { GroundPoint } from "./valley";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
-export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roof" | "woodpile" | FurnitureKind | WorkStationKind;
+export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "woodpile" | FurnitureKind | WorkStationKind;
 
 /** The work stations the build menu can list. A work station is a built object where the player does one kind of processing. */
 export type WorkStationKind = "sawhorse";

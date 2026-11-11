@@ -40,7 +40,8 @@ const STRUCTURE_FOOTPRINTS: Readonly<Record<StructureKind, (x: number, z: number
   foundation: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
   logWall: (x, z, turns) => edgePieceFootprint(x, z, turns),
   doorFrame: (x, z, turns) => edgePieceFootprint(x, z, turns),
-  // A roof is built over a foundation, which already hides the undergrowth under it.
+  // A roof frame and a roof are built over a foundation, which already hides the undergrowth under it.
+  roofFrame: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
   roof: (x, z) => ({ x, z, halfX: BUILD_GRID_METRES / 2, halfZ: BUILD_GRID_METRES / 2 }),
   woodpile: (x, z, turns) => structureFootprint("woodpile", x, z, turns),
   chest: (x, z, turns) => structureFootprint("chest", x, z, turns),

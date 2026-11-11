@@ -84,6 +84,7 @@ export const strings = {
       foundation: "Foundation",
       logWall: "Log wall",
       doorFrame: "Door frame",
+      roofFrame: "Roof frame",
       roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
@@ -107,7 +108,9 @@ export const strings = {
       onEdge: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
       overWalls: (structure: string) =>
-        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
+        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press R to turn the way it slopes down, or Escape to cancel.`,
+      onFrame: (structure: string) =>
+        `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does. Press Escape to cancel.`,
     },
   },
   blueprint: {

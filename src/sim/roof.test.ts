@@ -3,29 +3,18 @@ import type { Command } from "./api";
 import { createEntityStore, type Entity, type EntityStore } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_BUILD_SECONDS, ROOF_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
+import {
+  DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_BUILD_SECONDS, ROOF_FRAME_LOG_COST, type QuarterTurns, type StructureKind,
+} from "./structures";
 import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
 import { readSave, ROOFS_FACE_SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
 
-describe("the roof in the build menu", () => {
-  it("lists the roof after the door frame, with its cost in debarked logs and bark", () => {
-    const game = createGame({ seed: 42 });
-
-    const menu = game.client.getView().buildMenu;
-    expect(menu[menu.findIndex(({ structure }) => structure === "doorFrame") + 1]).toEqual({
-      structure: "roof",
-      cost: [{ material: "debarkedLog", count: ROOF_LOG_COST }, { material: "bark", count: ROOF_BARK_COST }],
-    });
-  });
-});
-
 describe("where a roof can go", () => {
-  it("snaps to the foundation square under the mouse, at the height of its deck", () => {
+  it("snaps to the framed square under the mouse, at the height of its deck", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
-    const foundation = finishedFoundationAt(game, square);
-    finishedPieceAt(game, "logWall", square, 0);
+    const foundation = framedSquare(game, square, 0);
 
     const check = game.client.checkPlacement("roof", { x: square.x + 0.3, z: square.z - 0.2 }, 0);
 
@@ -34,23 +23,7 @@ describe("where a roof can go", () => {
     expect(check.spot.y).toBeCloseTo(foundation.position.y, 5);
   });
 
-  it("needs a finished foundation with at least one finished wall or door frame on its edges", () => {
-    const game = createGame({ seed: 42 });
-    const square = openSquareNearPlayer(game);
-
-    // Open ground.
-    expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
-    // A bare foundation.
-    finishedFoundationAt(game, square);
-    expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
-    // A wall that is still a blueprint is not enough.
-    send(game, place("logWall", square, 2));
-    expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
-    send(game, place("roof", square, 0));
-    expect(game.entities.with("blueprint").entities.every(({ blueprint }) => blueprint.structure === "logWall")).toBe(true);
-  });
-
-  it("accepts a door frame on any edge, even one placed from the square beside it", () => {
+  it("lets a frame rest on a door frame on any edge, even one placed from the square beside it", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     const beside = { x: square.x + 1, z: square.z };
@@ -60,40 +33,26 @@ describe("where a roof can go", () => {
     // The -x edge of the square beside is the +x edge of the first square.
     finishedPieceAt(game, "doorFrame", beside, 1);
 
-    expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(true);
-    expect(game.client.checkPlacement("roof", beside, 0).allowed).toBe(true);
-  });
-
-  it("allows one roof on each square", () => {
-    const game = createGame({ seed: 42 });
-    const square = openSquareNearPlayer(game);
-    finishedFoundationAt(game, square);
-    finishedPieceAt(game, "logWall", square, 0);
-
-    send(game, place("roof", square, 0));
-
-    expect(onlyBlueprint(game).blueprint).toMatchObject({ structure: "roof", progress: 0, delivered: {} });
-    expect(game.client.checkPlacement("roof", square, 0).allowed).toBe(false);
+    expect(game.client.checkPlacement("roofFrame", square, 0).allowed).toBe(true);
+    expect(game.client.checkPlacement("roofFrame", beside, 0).allowed).toBe(true);
   });
 });
 
 describe("building a roof", () => {
-  it("spends delivered debarked logs first, then bark from the backpack, and finishes over the square", () => {
+  it("spends bark from the backpack, and finishes over the square", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
-    finishedFoundationAt(game, square);
-    finishedPieceAt(game, "logWall", square, 0);
+    framedSquare(game, square, 0);
     send(game, place("roof", square, 0));
-    const blueprint = onlyBlueprint(game);
+    const blueprint = onlyRoofBlueprint(game);
     const id = idOf(game, blueprint);
     give(game, "bark", ROOF_BARK_COST);
-
-    for (let i = 0; i < ROOF_LOG_COST; i += 1) deliverLog(game, blueprint);
-    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "debarkedLog", has: ROOF_LOG_COST, needs: ROOF_LOG_COST }]);
+    // Nothing is carried to a roof: it costs only bark.
+    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([]);
 
     send(game, { type: "build", blueprintId: id });
-    // Halfway, the logs are laid but most of the bark is still in the backpack.
-    runSeconds(game, ROOF_BUILD_SECONDS / 2);
+    // Halfway, most of the bark is still in the backpack.
+    runSeconds(game, ROOF_BUILD_SECONDS / 2 - 1);
     expect(game.client.getView().backpack.bark).toBeGreaterThan(1);
     runSeconds(game, ROOF_BUILD_SECONDS / 2 + 2);
 
@@ -106,18 +65,16 @@ describe("building a roof", () => {
   it("pauses when the bark runs out, and carries on once the player has more", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
-    finishedFoundationAt(game, square);
-    finishedPieceAt(game, "logWall", square, 0);
+    framedSquare(game, square, 0);
     send(game, place("roof", square, 0));
-    const blueprint = onlyBlueprint(game);
+    const blueprint = onlyRoofBlueprint(game);
     const id = idOf(game, blueprint);
-    for (let i = 0; i < ROOF_LOG_COST; i += 1) deliverLog(game, blueprint);
     give(game, "bark", 1);
 
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, ROOF_BUILD_SECONDS + 1);
     expect(game.client.getView().action).toBeNull();
-    expect(blueprint.blueprint?.materialsSpent).toBe(ROOF_LOG_COST + 1);
+    expect(blueprint.blueprint?.materialsSpent).toBe(1);
 
     give(game, "bark", ROOF_BARK_COST - 1);
     send(game, { type: "build", blueprintId: id });
@@ -131,12 +88,11 @@ describe("a finished cabin roof", () => {
   it("is a roof overhead over its whole square, but not as a blueprint", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
-    finishedFoundationAt(game, square);
-    finishedPieceAt(game, "logWall", square, 0);
+    framedSquare(game, square, 0);
     send(game, place("roof", square, 0));
     expect(isUnderRoof(game.entities, square)).toBe(false);
 
-    finish(game, onlyBlueprint(game));
+    finish(game, onlyRoofBlueprint(game));
 
     expect(isUnderRoof(game.entities, square)).toBe(true);
     expect(isUnderRoof(game.entities, { x: square.x + 0.45, z: square.z - 0.45 })).toBe(true);
@@ -146,10 +102,9 @@ describe("a finished cabin roof", () => {
   it("keeps the rain from draining the warmth of a player under it", () => {
     const sheltered = createGame({ seed: 42 });
     const square = openSquareNearPlayer(sheltered);
-    finishedFoundationAt(sheltered, square);
-    finishedPieceAt(sheltered, "logWall", square, 0);
+    framedSquare(sheltered, square, 0);
     send(sheltered, place("roof", square, 0));
-    finish(sheltered, onlyBlueprint(sheltered));
+    finish(sheltered, onlyRoofBlueprint(sheltered));
     walkTo(sheltered, square);
     const exposed = createGame({ seed: 42 });
     for (const game of [sheltered, exposed]) startRain(game);
@@ -191,37 +146,38 @@ describe("the roof above the player", () => {
 });
 
 describe("saving roofs", () => {
-  it("restores roof blueprints with their delivered logs, and finished roofs that still keep the rain off", () => {
+  it("restores roof blueprints with the bark spent on them, and finished roofs that still keep the rain off", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     const beside = { x: square.x + 1, z: square.z };
-    finishedFoundationAt(game, square);
-    finishedFoundationAt(game, beside);
-    finishedPieceAt(game, "doorFrame", square, 3);
+    framedSquare(game, square, 0);
+    framedSquare(game, beside, 0);
     send(game, place("roof", square, 0));
-    finish(game, onlyBlueprint(game));
+    finish(game, onlyRoofBlueprint(game));
     send(game, place("roof", beside, 0));
-    deliverLog(game, onlyBlueprint(game));
+    const blueprint = onlyRoofBlueprint(game);
+    give(game, "bark", 1);
+    send(game, { type: "build", blueprintId: idOf(game, blueprint) });
+    runSeconds(game, ROOF_BUILD_SECONDS);
 
     const saved = writeSave(game);
     const loaded = readSave(structuredClone(saved));
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(onlyBlueprint(loaded.game).blueprint).toMatchObject({ structure: "roof", delivered: { debarkedLog: 1 } });
+    expect(onlyRoofBlueprint(loaded.game).blueprint).toMatchObject({ structure: "roof", materialsSpent: 1 });
     expect(cabinRoofOn(loaded.game.entities, square)).toBeDefined();
     expect(isUnderRoof(loaded.game.entities, square)).toBe(true);
   });
 });
 
 describe("the way a roof faces", () => {
-  it("keeps the turn its blueprint was placed with when finished, and in a save", () => {
+  it("keeps the turn of the frame under it when finished, and in a save", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
-    finishedFoundationAt(game, square);
-    finishedPieceAt(game, "logWall", square, 0);
-    send(game, place("roof", square, 1));
-    const blueprint = onlyBlueprint(game);
+    framedSquare(game, square, 1);
+    send(game, place("roof", square, 0));
+    const blueprint = onlyRoofBlueprint(game);
     expect(blueprint.facing).toEqual({ turns: 1 });
 
     finish(game, blueprint);
@@ -239,16 +195,15 @@ describe("the way a roof faces", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     const beside = { x: square.x + 1, z: square.z };
-    finishedFoundationAt(game, square);
+    const foundation = finishedFoundationAt(game, square);
     finishedFoundationAt(game, beside);
     finishedPieceAt(game, "logWall", square, 0);
     finishedPieceAt(game, "logWall", beside, 0);
-    // Back then, the blueprint kept whatever turn R gave it, though the roof ignored it.
-    send(game, place("roof", square, 2));
-    finish(game, onlyBlueprint(game));
-    send(game, place("roof", beside, 3));
-    const saved = writeSave(game);
-    const old = { ...saved, version: ROOFS_FACE_SAVE_VERSION - 1 };
+    // Back then, roofs sat straight on the walls, and a blueprint kept whatever turn R gave it, though the roof ignored it.
+    const rect = { min: { x: square.x - 0.5, z: square.z - 0.5 }, max: { x: square.x + 0.5, z: square.z + 0.5 } };
+    game.entities.add({ cabinRoof: true, roof: rect, facing: { turns: 2 }, position: { ...foundation.position } });
+    game.entities.add({ blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 3 }, position: { x: beside.x, y: 0, z: beside.z } });
+    const old = { ...writeSave(game), version: ROOFS_FACE_SAVE_VERSION - 1 };
 
     const loaded = readSave(structuredClone(old));
     if (!loaded.ok) throw new Error("The save was rejected");
@@ -272,12 +227,31 @@ describe("the way a roof faces", () => {
   });
 });
 
-/** Delivers every debarked log a roof blueprint needs, gives the player its bark, and builds it to the end. */
+/** Gives the player a roof section's bark and builds a roof blueprint to the end. */
 function finish(game: Game, blueprint: Entity): void {
-  for (let i = 0; i < ROOF_LOG_COST; i += 1) deliverLog(game, blueprint);
   give(game, "bark", ROOF_BARK_COST);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   stepUntil(game, () => blueprint.blueprint === undefined);
+}
+
+/** Puts a finished foundation on a square, a finished log wall on its +z edge, and a finished roof frame facing `turns` over it. */
+function framedSquare(game: Game, square: { x: number; z: number }, turns: QuarterTurns) {
+  const foundation = finishedFoundationAt(game, square);
+  finishedPieceAt(game, "logWall", square, 0);
+  send(game, place("roofFrame", square, turns));
+  const frame = game.entities.with("blueprint", "position").entities.at(-1);
+  if (frame?.blueprint.structure !== "roofFrame") throw new Error("The frame was not placed");
+  for (let i = 0; i < ROOF_FRAME_LOG_COST; i += 1) deliverLog(game, frame);
+  send(game, { type: "build", blueprintId: idOf(game, frame) });
+  const built: Entity = frame;
+  stepUntil(game, () => built.blueprint === undefined);
+  return foundation;
+}
+
+function onlyRoofBlueprint(game: Game): Entity & { position: NonNullable<Entity["position"]> } {
+  const blueprint = game.entities.with("blueprint", "position").entities.find(({ blueprint }) => blueprint.structure === "roof");
+  if (blueprint === undefined) throw new Error("No roof blueprint");
+  return blueprint;
 }
 
 function give(game: Game, content: "bark", count: number): void {

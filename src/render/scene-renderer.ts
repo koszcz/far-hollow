@@ -13,6 +13,7 @@ import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createForageMeshes } from "./forage-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
+import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
@@ -35,7 +36,7 @@ const TURN_MIN_TRAVEL_METRES = 0.001;
 
 /**
  * What is under a point on the screen. Everything but the ground and the river is given by its entity id.
- * A finished lean-to, foundation, log wall, door frame, or roof section is a `structure`.
+ * A finished lean-to, foundation, log wall, door frame, roof frame, or roof section is a `structure`.
  * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
  */
 export type ScenePick =
@@ -133,6 +134,8 @@ export function createSceneRenderer(
   scene.add(foundationMeshes.group);
   const edgePieceMeshes = createEdgePieceMeshes(entities);
   scene.add(edgePieceMeshes.group);
+  const roofFrameMeshes = createRoofFrameMeshes(entities);
+  scene.add(roofFrameMeshes.group);
   const roofMeshes = createRoofMeshes(entities);
   scene.add(roofMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
@@ -153,7 +156,7 @@ export function createSceneRenderer(
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
-    forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
+    forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofFrameMeshes.group, roofMeshes.group,
     forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, sawhorseMeshes.group, pileMeshes.group, barkMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
@@ -167,6 +170,7 @@ export function createSceneRenderer(
     foundation: (entity) => foundationMeshes.outlineOf({ kind: "blueprint", entity }),
     logWall: (entity) => edgePieceMeshes.outlineOf({ kind: "blueprint", entity }),
     doorFrame: (entity) => edgePieceMeshes.outlineOf({ kind: "blueprint", entity }),
+    roofFrame: (entity) => roofFrameMeshes.outlineOf({ kind: "blueprint", entity }),
     roof: (entity) => roofMeshes.outlineOf({ kind: "blueprint", entity }),
     woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "blueprint", entity }),
     chest: (entity) => chestMeshes.outlineOf({ kind: "blueprint", entity }),
@@ -210,6 +214,9 @@ export function createSceneRenderer(
     },
     doorFrame: (placing) => {
       edgePieceMeshes.showPlacingBlueprint(placing && { ...placing, structure: "doorFrame" });
+    },
+    roofFrame: (placing) => {
+      roofFrameMeshes.showPlacingBlueprint(placing);
     },
     roof: (placing) => {
       roofMeshes.showPlacingBlueprint(placing);
@@ -305,7 +312,7 @@ export function createSceneRenderer(
     const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
     const candidates = [
       forestMeshes.pick(raycaster), campfireMeshes.pick(raycaster), leanToMeshes.pick(raycaster), foundationMeshes.pick(raycaster),
-      edgePieceMeshes.pick(raycaster), roofMeshes.pick(raycaster),
+      edgePieceMeshes.pick(raycaster), roofFrameMeshes.pick(raycaster), roofMeshes.pick(raycaster),
       forageMeshes.pick(raycaster),
       bedrollMeshes.pick(raycaster),
       pileMeshes.pick(raycaster),
@@ -360,7 +367,8 @@ export function createSceneRenderer(
       placeCamera();
       // Walls between the camera and the player fade out, so the player stays in view.
       edgePieceMeshes.update({ camera: cameraRig.view().eye, player: playerDrawn });
-      // The roof above the player hides, so the player stays in view inside a cabin.
+      // The roof above the player, and the frames under it, hide, so the player stays in view inside a cabin.
+      roofFrameMeshes.update({ player: playerDrawn });
       roofMeshes.update({ player: playerDrawn });
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
@@ -373,7 +381,7 @@ export function createSceneRenderer(
       raycaster.setFromCamera(pointer, camera);
       const under = pickThroughFinishedStructures();
       let nearest: { entity: Entity; distance: number } | undefined;
-      for (const meshes of [leanToMeshes, foundationMeshes, edgePieceMeshes, roofMeshes]) {
+      for (const meshes of [leanToMeshes, foundationMeshes, edgePieceMeshes, roofFrameMeshes, roofMeshes]) {
         const candidate = meshes.pickFinished(raycaster);
         if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
       }
@@ -401,6 +409,7 @@ export function createSceneRenderer(
       leanToMeshes.dispose();
       foundationMeshes.dispose();
       edgePieceMeshes.dispose();
+      roofFrameMeshes.dispose();
       roofMeshes.dispose();
       forageMeshes.dispose();
       bedrollMeshes.dispose();

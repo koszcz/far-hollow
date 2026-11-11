@@ -113,9 +113,16 @@ export interface Entity {
    */
   edgePiece?: EdgePieceKind;
   /**
-   * Marks a finished cabin roof section. It covers one foundation square, resting on the walls and door frames on its edges.
+   * Marks a finished roof frame: the timber skeleton of one foundation square, level beams on the wall tops and sloped rafters on them.
+   * It rests on the log walls and door frames on its square's edges. A cabin roof section is laid on it.
+   * Its position is the middle of that square, at the height of the foundation's deck. Its `facing` says which way it slopes down.
+   * It is no roof overhead: only the roof laid on it keeps the rain off.
+   */
+  roofFrame?: true;
+  /**
+   * Marks a finished cabin roof section: bark laid on the finished roof frame of one foundation square.
    * Its position is the middle of that square, at the height of the foundation's deck. Its `roof` is that square.
-   * Its `facing` says which way it slopes down. A section facing the default way slopes down to +z.
+   * Its `facing` is the frame's, and says which way it slopes down. A section facing the default way slopes down to +z.
    */
   cabinRoof?: true;
   /**
@@ -304,6 +311,11 @@ export function foundationEntities(store: EntityStore) {
 /** Finished log walls and door frames. */
 export function edgePieceEntities(store: EntityStore) {
   return store.with("edgePiece", "position");
+}
+
+/** Finished roof frames. */
+export function roofFrameEntities(store: EntityStore) {
+  return store.with("roofFrame", "position");
 }
 
 /** Finished cabin roof sections. */

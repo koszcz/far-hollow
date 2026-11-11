@@ -336,6 +336,8 @@ export interface PlayerAction {
 export interface PlacementCheck {
   /** The building-grid spot it snaps to, on the ground, in metres. */
   readonly spot: Readonly<Vec3>;
+  /** The turn it takes there. This is the turn asked for, except for a roof, which takes the turn of the frame under it. */
+  readonly turns: QuarterTurns;
   readonly allowed: boolean;
 }
 

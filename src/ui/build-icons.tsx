@@ -75,6 +75,15 @@ const STRUCTURE_DRAWINGS: Readonly<Record<StructureKind, IconDrawing>> = {
       { d: "M2.5 21.5h19", as: "line", colour: "#6b8a4a" },
     ],
   },
+  /** A bare roof frame: two sloped rafters on a level beam, with no bark on them yet. */
+  roofFrame: {
+    colour: WOOD,
+    parts: [
+      { d: "M3 16.5L12 5.5l9 11", as: "line", colour: DARK_WOOD },
+      { d: "M7.5 11h9", as: "line", colour: DARK_WOOD },
+      ...sideLog(3, 21, 18, 2.5),
+    ],
+  },
   /** A pitched roof of red-brown shingles, with rows cut across it. */
   roof: {
     colour: "#a5513a",

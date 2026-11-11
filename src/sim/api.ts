@@ -58,10 +58,10 @@ export type Command =
    */
   | { type: "deliverToBlueprint"; blueprintId: number }
   /**
-   * Walk the player to a blueprint or finished building piece, such as a lean-to or a log wall, given by its entity id, and take it down.
-   * A blueprint comes down at once. A finished piece takes timed work. The player gets back every material spent on it or carried to it.
+   * Walk the player to a blueprint or finished structure, such as a lean-to or a log wall, given by its entity id, and take it down.
+   * A blueprint comes down at once. A finished structure takes timed work. The player gets back every material spent on it or carried to it.
    * Debarked logs, and any sticks or bark that do not fit in the backpack, are laid on the ground near the player, on their side of any wall.
-   * Nothing happens if another piece stands on it.
+   * Nothing happens if another structure stands on it.
    */
   | { type: "takeDown"; pieceId: number }
   /** Let go of the build action. The blueprint keeps its progress. */

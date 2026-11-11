@@ -67,7 +67,7 @@ describe("a campfire beside a cabin", () => {
       const onEdge = { x: square.x + 0.5, z: square.z + 0.5 };
       const y = foundationDeckTop(game.valley.terrain, square);
       if (kind === "finished") game.entities.add({ campfire: { lit: false, fuelMinutes: 0 }, position: { ...onEdge, y } });
-      else game.entities.add({ blueprint: { piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 }, position: { ...onEdge, y } });
+      else game.entities.add({ blueprint: { structure: "campfire", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 }, position: { ...onEdge, y } });
 
       expect(game.client.checkPlacement("logWall", square, 0).allowed).toBe(false);
       expect(game.client.checkPlacement("doorFrame", square, 3).allowed).toBe(false);

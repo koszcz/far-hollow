@@ -38,7 +38,7 @@ export const strings = {
       foundation: "Foundation",
       logWall: "Log wall",
       doorFrame: "Door frame",
-      roof: "Roof",
+      roof: "Roof section",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
@@ -46,11 +46,14 @@ export const strings = {
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),
-    placing: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
-    placingOnEdge: (structure: string) =>
-      `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
-    placingRoof: (structure: string) =>
-      `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
+    /** What to do while placing each kind of structure, given its name. */
+    placing: {
+      onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
+      onEdge: (structure: string) =>
+        `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
+      overWalls: (structure: string) =>
+        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
+    },
   },
   blueprint: {
     title: (structure: string) => `Blueprint: ${structure}`,

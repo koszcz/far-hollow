@@ -23,14 +23,13 @@ import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
 import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
+import { facingRadians, NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 /** A delivered log waiting in its place is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 /** A wall or door frame between the camera and the player is this solid, from 0 (invisible) to 1 (solid). */
 const FADED_OPACITY = 0.2;
 
@@ -107,7 +106,7 @@ export interface EdgePieceMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: EdgePieceHit): OutlinePart[];
   /** Shows a blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { structure: EdgePieceKind; spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { structure: EdgePieceKind; spot: Vec3; turns: number; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -167,11 +166,6 @@ interface Drawn {
   /** The parts each stage of construction adds, in order. Each part has its own see-through copy of the wood for fading in. */
   readonly stages: Part[][];
   readonly picker: THREE.Mesh;
-}
-
-/** How far round a piece facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
 }
 
 /**
@@ -293,12 +287,12 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   /** Every log wall, finished or a blueprint, as of the last update. A wall under the mouse reaches toward these. */
   let walls: WallLine[] = [];
 
-  const previews = new Map<EdgePieceKind, { root: THREE.Group; stages: Drawn["stages"] }>();
+  const placingBlueprints = new Map<EdgePieceKind, { root: THREE.Group; stages: Drawn["stages"] }>();
   for (const kind of ["logWall", "doorFrame"] as const) {
     const root = new THREE.Group();
     root.visible = false;
     group.add(root);
-    previews.set(kind, { root, stages: addParts(root, kind) });
+    placingBlueprints.set(kind, { root, stages: addParts(root, kind) });
   }
 
   function draw(entity: Entity & { position: Vec3 }, kind: EdgePieceKind): Drawn {
@@ -364,11 +358,11 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       const seen = new Set<Entity>();
       walls = [];
       for (const entity of blueprints) {
-        if (entity.blueprint.piece === "logWall") walls.push({ middle: entity.position, turns: entity.facing?.turns ?? 0 });
+        if (entity.blueprint.structure === "logWall") walls.push({ middle: entity.position, turns: entity.facing?.turns ?? 0 });
       }
       for (const entity of finished) if (entity.edgePiece === "logWall") walls.push({ middle: entity.position, turns: entity.facing?.turns ?? 0 });
       for (const entity of blueprints) {
-        const kind = entity.blueprint.piece;
+        const kind = entity.blueprint.structure;
         if (kind !== "logWall" && kind !== "doorFrame") continue;
         const item = draw(entity, kind);
         place(item.root, kind, entity.position, entity.facing?.turns ?? 0);
@@ -398,14 +392,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       return undefined;
     },
     pickFinished(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity !== undefined && entity.blueprint === undefined) return { entity, distance: hit.distance };
-      }
-      return undefined;
+      return pickFinished(raycaster, pickers);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);
@@ -413,14 +400,14 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       item.root.updateMatrixWorld(true);
       return item.stages.flat().map(({ mesh }) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(shown) {
-      for (const [kind, preview] of previews) {
-        preview.root.visible = shown?.structure === kind;
+    showPlacingBlueprint(shown) {
+      for (const [kind, placingBlueprint] of placingBlueprints) {
+        placingBlueprint.root.visible = shown?.structure === kind;
         if (shown?.structure !== kind) continue;
         const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-        for (const { mesh } of preview.stages.flat()) mesh.material = material;
-        place(preview.root, kind, shown.spot, shown.turns);
-        if (kind === "logWall") reachCorners(preview.stages, wallEnds({ middle: shown.spot, turns: shown.turns }, walls));
+        for (const { mesh } of placingBlueprint.stages.flat()) mesh.material = material;
+        place(placingBlueprint.root, kind, shown.spot, shown.turns);
+        if (kind === "logWall") reachCorners(placingBlueprint.stages, wallEnds({ middle: shown.spot, turns: shown.turns }, walls));
       }
     },
     dispose() {
@@ -432,7 +419,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
         item.dispose();
       }
       for (const item of drawn.values()) disposeFading(item.stages);
-      for (const preview of previews.values()) disposeFading(preview.stages);
+      for (const placingBlueprint of placingBlueprints.values()) disposeFading(placingBlueprint.stages);
     },
   };
 }

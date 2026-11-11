@@ -2,7 +2,7 @@ import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameVi
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { createBuilding } from "./building";
-import { createTakingDown, pieceKindOf, takeDownSeconds } from "./taking-down";
+import { createTakingDown, takeDownKindOf, takeDownSeconds } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
@@ -188,7 +188,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     }
     if (player.takeDownTask !== undefined && player.walkPath === undefined) {
       const piece = entities.entity(player.takeDownTask.pieceId);
-      const kind = piece === undefined ? undefined : pieceKindOf(piece);
+      const kind = piece === undefined ? undefined : takeDownKindOf(piece);
       if (piece?.blueprint === undefined && kind !== undefined) {
         return Object.freeze({ kind: "takeDown", progress: Math.min(1, player.takeDownTask.secondsDone / takeDownSeconds(kind)) });
       }

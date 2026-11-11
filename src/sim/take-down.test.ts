@@ -311,7 +311,7 @@ describe("where given-back materials land", () => {
 function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square: { x: number; z: number }, turns: QuarterTurns): Entity {
   send(game, place(structure, square, turns));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== structure) throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== structure) throw new Error("The blueprint was not placed");
   const cost = structure === "logWall" ? LOG_WALL_LOG_COST : DOOR_FRAME_LOG_COST;
   for (let i = 0; i < cost; i += 1) deliverLog(game, blueprint);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
@@ -324,7 +324,7 @@ function finishedPieceAt(game: Game, structure: "logWall" | "doorFrame", square:
 function finishedRoofAt(game: Game, square: { x: number; z: number }): Entity {
   send(game, place("roof", square, 0));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
-  if (blueprint?.blueprint.piece !== "roof") throw new Error("The blueprint was not placed");
+  if (blueprint?.blueprint.structure !== "roof") throw new Error("The blueprint was not placed");
   for (let i = 0; i < ROOF_LOG_COST; i += 1) deliverLog(game, blueprint);
   give(game, "bark", ROOF_BARK_COST);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });

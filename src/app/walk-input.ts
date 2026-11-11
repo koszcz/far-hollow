@@ -1,12 +1,12 @@
 import type { CameraRig } from "../render/camera-rig";
-import type { GroundOrThingPick, PlacementPreview, ScenePick } from "../render/scene-renderer";
+import type { GroundOrThingPick, PlacingBlueprint, ScenePick } from "../render/scene-renderer";
 import type { BlueprintView, CarriedLog, Command, GameClient, StructureKind } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { strings } from "../strings";
 
 /**
  * The command a left-click sends for what it landed on. A blueprint is built only while the button is held, so it has none.
- * A click on a finished building piece acts on what is under it.
+ * A click on a finished structure acts on what is under it.
  */
 export function mainActionFor(pick: ScenePick): Command | undefined {
   switch (pick.kind) {
@@ -74,7 +74,7 @@ export interface MenuRequest {
 /**
  * The CSS cursor to show for what is under the pointer.
  * A hand marks things the player can click. While placing a blueprint, a crosshair shows everywhere.
- * A finished building piece shows the cursor for what is under it, since a left-click acts on that.
+ * A finished structure shows the cursor for what is under it, since a left-click acts on that.
  */
 export function cursorFor(pick: ScenePick | undefined, placing: boolean): string {
   if (placing) return "crosshair";
@@ -109,7 +109,7 @@ export interface WalkInputOptions {
   /** Called when the build menu opens or closes, or placing a blueprint starts, turns, or ends, so the HUD can show it. */
   readonly onBuildModeChange?: (mode: BuildMode) => void;
   /** Called with the blueprint that should follow the mouse while placing, or undefined to hide it. */
-  readonly onPreviewChange?: (preview: PlacementPreview | undefined) => void;
+  readonly onPlacingBlueprintChange?: (placing: PlacingBlueprint | undefined) => void;
   /** Called with the menu a right-click opens, or undefined when it should close. */
   readonly onMenuChange?: (menu: MenuRequest | undefined) => void;
 }
@@ -133,12 +133,12 @@ export interface WalkInput {
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
  * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
- * A right-click without a drag opens a menu of the other actions the thing allows, such as debarking a log or taking down a building piece.
- * Only the right-click menu sees finished building pieces. Other clicks act on what is under them.
+ * A right-click without a drag opens a menu of the other actions the thing allows, such as debarking a log or taking down a structure.
+ * Only the right-click menu sees finished structures. Other clicks act on what is under them.
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
  */
-export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onBuildModeChange, onPreviewChange, onMenuChange }: WalkInputOptions): WalkInput {
+export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onBuildModeChange, onPlacingBlueprintChange, onMenuChange }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let rightPress: { x: number; y: number } | null = null;
   let holdingBuild = false;
@@ -148,7 +148,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   /** The animation frame that will update the cursor, if one is waiting. */
   let cursorFrame: number | null = null;
 
-  /** What a left-click acts on: what is under the pointer, looking through finished building pieces. */
+  /** What a left-click acts on: what is under the pointer, looking through finished structures. */
   function pickThrough(clientX: number, clientY: number): GroundOrThingPick | undefined {
     const pick = pickAt(clientX, clientY);
     return pick?.kind === "structure" ? pick.under : pick;
@@ -158,14 +158,14 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     cursorFrame = null;
     const pick = hover === null ? undefined : pickThrough(hover.x, hover.y);
     const placing = mode.placing !== null;
-    const preview = previewFor(pick);
-    canvas.style.cursor = preview?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
+    const blueprint = placingBlueprintFor(pick);
+    canvas.style.cursor = blueprint?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
     onHoverChange?.(outlineFor(pick, placing));
-    onPreviewChange?.(preview);
+    onPlacingBlueprintChange?.(blueprint);
   }
 
   /** The blueprint to show under the mouse while placing, snapped to the building grid. */
-  function previewFor(pick: ScenePick | undefined): PlacementPreview | undefined {
+  function placingBlueprintFor(pick: ScenePick | undefined): PlacingBlueprint | undefined {
     if (mode.placing === null || pick?.kind !== "ground") return undefined;
     const { structure, turns } = mode.placing;
     return { structure, turns, ...client.checkPlacement(structure, pick.spot, turns) };
@@ -249,7 +249,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     if (pick === undefined) return;
     if (mode.placing !== null) {
       // A click where the blueprint is not allowed does nothing, so the player can try another spot.
-      if (previewFor(pick)?.allowed !== true) return;
+      if (placingBlueprintFor(pick)?.allowed !== true) return;
       const place = placeCommandFor(mode, pick);
       if (place === undefined) return;
       client.send(place);

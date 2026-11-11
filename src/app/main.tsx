@@ -146,8 +146,8 @@ const walkInput = attachWalkInput({
     uiState.buildMode = mode;
     renderUi();
   },
-  onPreviewChange: (preview) => {
-    sceneRenderer.setPlacementPreview(preview);
+  onPlacingBlueprintChange: (placing) => {
+    sceneRenderer.showPlacingBlueprint(placing);
   },
   onMenuChange: (menu) => {
     uiState.menu = menu;

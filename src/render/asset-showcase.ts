@@ -14,7 +14,7 @@ import {
   BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE, BUILD_STONES_SHARE, buildProgressAtStickStage, createCampfireMeshes,
   type CampfireMeshes,
 } from "./campfire-meshes";
-import { CAMPFIRE_BUILD_SECONDS } from "../sim/building";
+import { CAMPFIRE_BUILD_SECONDS } from "../sim/structures";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../sim/structures";
 import { createLeanToMeshes } from "./lean-to-meshes";
 import { createPotMaker, type PotLook, type PotMesh } from "./pot-shape";
@@ -148,7 +148,7 @@ function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Sho
         if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
       };
       deckTop(place(0, 0, { foundation: true }));
-      deckTop(place(0, -0.5, { blueprint: { piece, progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 2 } }));
+      deckTop(place(0, -0.5, { blueprint: { structure: piece, progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 2 } }));
       movePlayer(1.3, 0.2, -0.4);
     },
     pose({ store }, shot) {
@@ -263,7 +263,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from above", yaw: 40, pitch: 60, seconds: 1 },
     ],
     build({ place }) {
-      const blueprint = place(0, 0, { blueprint: { piece: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
+      const blueprint = place(0, 0, { blueprint: { structure: "foundation", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } });
       if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
     },
     pose({ store }, shot) {
@@ -290,7 +290,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       // A wall at the back and a door frame at the left hold the roof up.
       deckTop(place(0, -0.5, { edgePiece: "logWall", facing: { turns: 2 } }));
       deckTop(place(-0.5, 0, { edgePiece: "doorFrame", facing: { turns: 1 } }));
-      deckTop(place(0, 0, { blueprint: { piece: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
+      deckTop(place(0, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -332,7 +332,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built, from behind", yaw: 200, pitch: 25, seconds: 1 },
     ],
     build({ place, movePlayer }) {
-      place(0, 0, { blueprint: { piece: "leanTo", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
+      place(0, 0, { blueprint: { structure: "leanTo", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
       movePlayer(-2.6, 1.2, Math.PI / 2);
     },
     pose({ store }, shot) {
@@ -498,7 +498,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "built", progress: 1 },
     ].map(({ label, progress }) => ({ label, yaw: 30, pitch: 25, seconds: progress })),
     build({ place }) {
-      place(0, 0, { blueprint: { piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} } });
+      place(0, 0, { blueprint: { structure: "campfire", progress: 0, materialsSpent: 0, delivered: {} } });
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;

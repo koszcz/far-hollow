@@ -11,14 +11,13 @@ import { LEAN_TO_BARK_COST, LEAN_TO_DEPTH_METRES, LEAN_TO_STICK_COST, LEAN_TO_WI
 import type { OutlinePart } from "./hover-outline";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createStickSegment, STICK_COLOUR } from "./stick-shape";
+import { facingRadians, NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
 
 /** Bark strips take turns between these two browns, so the roof does not look like one sheet. */
 const BARK_COLOURS = [0x5b3f2c, 0x6b4b34] as const;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 
 /** The front posts and the ridge pole stand this high, in metres. */
 const RIDGE_HEIGHT_METRES = 1.45;
@@ -37,11 +36,6 @@ const BUILD_FADE_SHARE = 0.5;
 /** The front posts and the ridge pole: three of the lean-to's sticks. The rest are rafters. */
 const FRAME_STICKS = 3;
 const RAFTER_COUNT = LEAN_TO_STICK_COST - FRAME_STICKS;
-
-/** How far round a structure facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
-}
 
 /** One part of the lean-to, in the order construction adds it. */
 interface PartShape {
@@ -65,7 +59,7 @@ export interface LeanToMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(entity: Entity): OutlinePart[];
   /** Shows a lean-to blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -111,10 +105,10 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
     });
   }
 
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewParts = addParts(preview, blueprintMaterial);
-  group.add(preview);
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingParts = addParts(placingBlueprint, blueprintMaterial);
+  group.add(placingBlueprint);
 
   function draw(entity: Entity & { position: { x: number; y: number; z: number } }): Drawn {
     const existing = drawn.get(entity);
@@ -180,7 +174,7 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
     update() {
       const seen = new Set<Entity>();
       for (const blueprint of blueprints) {
-        if (blueprint.blueprint.piece !== "leanTo") continue;
+        if (blueprint.blueprint.structure !== "leanTo") continue;
         showProgress(draw(blueprint), blueprint.blueprint.progress);
         seen.add(blueprint);
       }
@@ -201,14 +195,7 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
       return undefined;
     },
     pickFinished(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity !== undefined && entity.blueprint === undefined) return { entity, distance: hit.distance };
-      }
-      return undefined;
+      return pickFinished(raycaster, pickers);
     },
     outlineOf(entity) {
       const item = drawn.get(entity);
@@ -216,13 +203,13 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
       item.root.updateMatrixWorld(true);
       return item.parts.map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(shown) {
-      preview.visible = shown !== undefined;
+    showPlacingBlueprint(shown) {
+      placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
-      preview.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      preview.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
+      placingBlueprint.rotation.y = facingRadians(shown.turns);
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of previewParts) mesh.material = material;
+      for (const mesh of placingParts) mesh.material = material;
     },
     dispose() {
       for (const item of [

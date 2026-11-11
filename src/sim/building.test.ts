@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { isWalkable } from "./walk-map";
@@ -13,7 +13,7 @@ describe("placing a campfire blueprint", () => {
     game.step();
 
     const blueprint = onlyBlueprint(game);
-    expect(blueprint.blueprint).toMatchObject({ piece: "campfire", progress: 0, materialsSpent: 0, delivered: {} });
+    expect(blueprint.blueprint).toMatchObject({ structure: "campfire", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position.x).toBe(spot.x);
     expect(blueprint.position.z).toBe(spot.z);
     // A blueprint does not block walking, so the player can stand at it while building.

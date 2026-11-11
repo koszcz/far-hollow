@@ -15,14 +15,13 @@ import { BUILD_FADE_SHARE, buildLift } from "./campfire-meshes";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import type { OutlinePart } from "./hover-outline";
+import { NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 /** A delivered log waiting in its place is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A blueprint under the mouse shows in this red where its spot is not allowed. */
-const NOT_ALLOWED_COLOUR = 0xe0614f;
 /** The strips of bark take turns between these browns, like the lean-to's bark. */
 const BARK_COLOURS = [0x5b3f2c, 0x6b4b34] as const;
 
@@ -50,7 +49,7 @@ export interface RoofMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: RoofHit): OutlinePart[];
   /** Shows a roof blueprint under the mouse over the deck at `spot`, red where it is not allowed. Undefined hides it. */
-  showPreview(preview: { spot: Vec3; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -126,10 +125,10 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
     });
   }
 
-  const preview = new THREE.Group();
-  preview.visible = false;
-  const previewParts = addParts(preview);
-  group.add(preview);
+  const placingBlueprint = new THREE.Group();
+  placingBlueprint.visible = false;
+  const placingParts = addParts(placingBlueprint);
+  group.add(placingBlueprint);
 
   function draw(entity: Entity & { position: Vec3 }): Drawn {
     const existing = drawn.get(entity);
@@ -182,7 +181,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
     update(view) {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
-        if (entity.blueprint.piece !== "roof") continue;
+        if (entity.blueprint.structure !== "roof") continue;
         const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
         item.root.visible = true;
@@ -210,14 +209,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       return undefined;
     },
     pickFinished(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity !== undefined && entity.blueprint === undefined && isShown(hit.object)) return { entity, distance: hit.distance };
-      }
-      return undefined;
+      return pickFinished(raycaster, pickers, isShown);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);
@@ -225,12 +217,12 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       item.root.updateMatrixWorld(true);
       return item.parts.map(({ mesh }) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
-    showPreview(shown) {
-      preview.visible = shown !== undefined;
+    showPlacingBlueprint(shown) {
+      placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const { mesh } of previewParts) mesh.material = material;
-      preview.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
+      for (const { mesh } of placingParts) mesh.material = material;
+      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
     },
     dispose() {
       for (const item of [
@@ -240,7 +232,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
         item.dispose();
       }
       for (const item of drawn.values()) for (const { fading } of item.parts) fading.dispose();
-      for (const { fading } of previewParts) fading.dispose();
+      for (const { fading } of placingParts) fading.dispose();
     },
   };
 }

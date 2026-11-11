@@ -14,7 +14,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, nameBlueprintStructure];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -140,6 +140,22 @@ function addDeliveredMaterials(save: Readonly<Record<string, unknown>>): Record<
     const blueprint = components?.blueprint;
     if (typeof blueprint !== "object" || blueprint === null || "delivered" in blueprint) return entity;
     return { ...(entity as object), components: { ...components, blueprint: { ...blueprint, delivered: {} } } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * Version 7 to 8: a blueprint names the structure it is a blueprint of in `structure`, not `piece`,
+ * since a campfire or a lean-to is a structure, not a building piece.
+ */
+function nameBlueprintStructure(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (typeof blueprint !== "object" || blueprint === null || !("piece" in blueprint)) return entity;
+    const { piece, ...rest } = blueprint;
+    return { ...(entity as object), components: { ...components, blueprint: { structure: piece, ...rest } } };
   });
   return { ...save, entities };
 }

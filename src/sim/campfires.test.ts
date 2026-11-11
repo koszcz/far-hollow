@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BackpackContent, Command } from "./api";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./building";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
 import { isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

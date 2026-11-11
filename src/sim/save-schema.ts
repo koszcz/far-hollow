@@ -66,7 +66,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   bark: exactly(true),
   barkPickUpTask: shape({ barkId: count }),
   splitTask: shape({ secondsDone: finite }),
-  blueprint: shape({ piece: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
+  blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
   deliverTask: shape({ blueprintId: count }),

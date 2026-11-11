@@ -1,6 +1,7 @@
-// Taking down blueprints and finished building pieces, and giving back the materials in them.
+// Taking down blueprints and finished structures, and giving back the materials in them.
+// Every structure but a finished campfire can come down: a lean-to, or a building piece such as a foundation, wall, or roof section.
 import { addToBackpack } from "./backpack";
-import { BUILD_REACH_METRES, distanceOutside, footprintOf, standSpot } from "./building";
+import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
@@ -8,15 +9,16 @@ import {
 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
-import { rectsOverlap } from "./structure-kind";
+import { rectsOverlap, SIDES } from "./structure-kind";
 import {
-  isDelivered, stageMaterials, structureKindOf, structureOf, type BuildMaterial, type DeliveredMaterial, type QuarterTurns, type StructureKind,
+  footprintOfEntity, isDelivered, isPlacedStructure, stageMaterials, structureKindOf, structureOf, type BuildMaterial, type DeliveredMaterial,
+  type PlacedStructure, type StructureKind,
 } from "./structures";
 import type { GroundPoint, Valley } from "./valley";
 import { cellCentre, reachableCells } from "./walk-map";
 import type { Walking } from "./walking";
 
-/** Taking a finished piece down takes this share of the time building it took. */
+/** Taking a finished structure down takes this share of the time building it took. */
 const TAKE_DOWN_SHARE_OF_BUILD = 0.5;
 /**
  * Materials given back on the ground are laid on the walk-map squares nearest the player, up to three on each,
@@ -25,38 +27,38 @@ const TAKE_DOWN_SHARE_OF_BUILD = 0.5;
  */
 const LAY_OFFSETS_METRES = [0, -0.3, 0.3];
 
-/** The player while taking a piece down. */
+/** The player while taking a structure down. */
 type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
-/** Why the player could not take a piece down: another piece stands on it. */
+/** Why the player could not take a structure down: another structure stands on it. */
 export type TakeDownRefusal = "holdsUpPiece";
 
 export interface TakingDown {
   /**
-   * Sets the player walking to a blueprint or finished building piece to take it down.
-   * Does nothing if the entity is not one, and returns a refusal if the player cannot take it down.
+   * Sets the player walking to a blueprint or finished structure to take it down.
+   * Does nothing if the entity is not one the player can take down, and returns a refusal if another structure stands on it.
    */
-  start(pieceId: number): TakeDownRefusal | undefined;
-  /** Stops the player taking a piece down, or walking to do it. The piece stays as it is. */
+  start(structureId: number): TakeDownRefusal | undefined;
+  /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
   cancel(): void;
   /** Moves taking down on by one logic step. Run it after walking has moved the player. Returns a refusal if the work had to stop. */
   step(stepSeconds: number): TakeDownRefusal | undefined;
 }
 
-/** Lets the player take down blueprints and finished building pieces, and get back what went into them. */
+/** Lets the player take down blueprints and finished structures, and get back what went into them. */
 export function createTakingDown(entities: EntityStore, walking: Walking, valley: Valley): TakingDown {
   const players = playerEntities(entities);
   const workers = entities.with("takeDownTask", "position", "backpack");
 
   /**
-   * Removes a piece and gives back its materials. Bark goes in the backpack first, then sticks.
+   * Removes a structure and gives back its materials. Bark goes in the backpack first, then sticks.
    * Bark and sticks that do not fit, and every debarked log, go on the ground near the worker, on their side of any wall.
    * Anything lying on a foundation's deck drops to the ground under it.
    */
-  function takeDown(worker: Worker, piece: Entity, kind: StructureKind): void {
-    const { delivered, backpack } = materialsIn(piece, kind);
-    entities.remove(piece);
-    if (kind === "foundation" && piece.position !== undefined) dropOffDeck(piece.position);
+  function takeDown(worker: Worker, structure: PlacedStructure, kind: StructureKind): void {
+    const { delivered, backpack } = materialsIn(structure, kind);
+    entities.remove(structure);
+    if (kind === "foundation") dropOffDeck(structure.position);
     const onGround: Entity[] = [];
     const barkFirst = [...backpack].sort((a, b) => Number(b === "bark") - Number(a === "bark"));
     for (const material of barkFirst) {
@@ -86,22 +88,16 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
     }
   }
 
-  /** Whether the worker has walked close enough to the piece to work on it. They may have got only as close as they could. */
-  function isInReach(worker: Worker, position: GroundPoint, piece: Entity, kind: StructureKind): boolean {
-    return distanceOutside(footprintOf(kind, position, piece.facing?.turns ?? 0), worker.position) <= BUILD_REACH_METRES;
-  }
-
   return {
-    start(pieceId) {
-      const piece = entities.entity(pieceId);
-      const kind = piece === undefined ? undefined : pieceKindOf(piece);
-      if (piece?.position === undefined || kind === undefined) return undefined;
-      const footprint = footprintOf(kind, piece.position, piece.facing?.turns ?? 0);
-      if (holdsUpAnother(entities, piece, kind)) return "holdsUpPiece";
+    start(structureId) {
+      const structure = entities.entity(structureId);
+      const kind = structure === undefined ? undefined : takeDownKindOf(structure);
+      if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) return undefined;
+      if (holdsUpAnother(entities, structure, kind)) return "holdsUpPiece";
+      const footprint = footprintOfEntity(structure);
       for (const player of players) {
-        const outside = distanceOutside(footprint, player.position);
-        if (outside > BUILD_REACH_METRES || outside === 0) walking.walkTo(standSpot(footprint, piece.position, player.position));
-        setComponent(entities, player, "takeDownTask", { pieceId, secondsDone: 0 });
+        walkWithinReach(walking, footprint, structure.position, player.position);
+        setComponent(entities, player, "takeDownTask", { pieceId: structureId, secondsDone: 0 });
       }
       return undefined;
     },
@@ -113,39 +109,52 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const worker of [...workers]) {
         if (worker.walkPath) continue;
-        const piece = entities.entity(worker.takeDownTask.pieceId);
-        const kind = piece === undefined ? undefined : pieceKindOf(piece);
-        if (piece?.position === undefined || kind === undefined || !isInReach(worker, piece.position, piece, kind)) {
+        const structure = entities.entity(worker.takeDownTask.pieceId);
+        const kind = structure === undefined ? undefined : takeDownKindOf(structure);
+        // The worker may have got only as close as they could, still out of reach.
+        if (
+          structure === undefined || kind === undefined || !isPlacedStructure(structure) ||
+          distanceOutside(footprintOfEntity(structure), worker.position) > BUILD_REACH_METRES
+        ) {
           entities.removeComponent(worker, "takeDownTask");
           continue;
         }
-        if (piece.blueprint === undefined) {
+        if (structure.blueprint === undefined) {
           worker.takeDownTask.secondsDone += stepSeconds;
           if (worker.takeDownTask.secondsDone < takeDownSeconds(kind)) continue;
         }
         entities.removeComponent(worker, "takeDownTask");
-        // Another piece may have gone onto it since the work started.
-        if (holdsUpAnother(entities, piece, kind)) refusal = "holdsUpPiece";
-        else takeDown(worker, piece, kind);
+        // Another structure may have gone onto it since the work started.
+        if (holdsUpAnother(entities, structure, kind)) refusal = "holdsUpPiece";
+        else takeDown(worker, structure, kind);
       }
       return refusal;
     },
   };
 }
 
-/** How long the player works to take down a finished piece of this kind, in seconds. A blueprint comes down at once. */
+/** How long the player works to take down a finished structure of this kind, in seconds. A blueprint comes down at once. */
 export function takeDownSeconds(kind: StructureKind): number {
   return structureOf(kind).buildSeconds * TAKE_DOWN_SHARE_OF_BUILD;
 }
 
 /**
- * The materials that went into a piece: each delivered material, such as a debarked log, to lay on the ground,
- * and each stick or piece of bark for the backpack.
- * A finished piece holds its whole cost. A blueprint holds every material carried to it and the backpack materials construction has spent.
+ * The kind of a structure the player can take down: a blueprint of any structure, or any finished structure but a campfire.
+ * Undefined for anything else.
  */
-export function materialsIn(piece: Entity, kind: StructureKind): { delivered: DeliveredMaterial[]; backpack: BackpackMaterial[] } {
+export function takeDownKindOf(entity: Entity): StructureKind | undefined {
+  const kind = structureKindOf(entity);
+  return kind === "campfire" && entity.blueprint === undefined ? undefined : kind;
+}
+
+/**
+ * The materials that went into a structure: each delivered material, such as a debarked log, to lay on the ground,
+ * and each stick or piece of bark for the backpack.
+ * A finished structure holds its whole cost. A blueprint holds every material carried to it and the backpack materials construction has spent.
+ */
+export function materialsIn(structure: Entity, kind: StructureKind): { delivered: DeliveredMaterial[]; backpack: BackpackMaterial[] } {
   const stages = stageMaterials(structureOf(kind).cost);
-  const blueprint = piece.blueprint;
+  const blueprint = structure.blueprint;
   const spent = blueprint === undefined ? stages : stages.slice(0, blueprint.materialsSpent);
   const backpack = spent.filter((material): material is BackpackMaterial => !isDelivered(material));
   if (blueprint === undefined) return { delivered: stages.filter(isDelivered), backpack };
@@ -157,18 +166,17 @@ export function materialsIn(piece: Entity, kind: StructureKind): { delivered: De
 type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
- * Whether another piece stands on this one, so it cannot come down yet.
+ * Whether another structure stands on this one, so it cannot come down yet.
  * A log wall, door frame, campfire, roof section, or lean-to, finished or as a blueprint, stands on the foundation under it.
  * A roof section, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
- * Only finished pieces hold anything up, since nothing can be placed on a blueprint.
+ * Only finished structures hold anything up, since nothing can be placed on a blueprint.
  */
-export function holdsUpAnother(entities: EntityStore, piece: Entity, kind: StructureKind): boolean {
-  const { position } = piece;
-  if (piece.blueprint !== undefined || position === undefined) return false;
-  if (kind === "foundation") return standsOnSquare(entities, position);
+export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure, kind: StructureKind): boolean {
+  if (structure.blueprint !== undefined) return false;
+  if (kind === "foundation") return standsOnSquare(entities, structure.position);
   if (isEdgePiece(kind)) {
-    const roofBlueprints = blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.piece === "roof");
-    return squaresBeside(position, piece.facing?.turns ?? 0).some(
+    const roofBlueprints = blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "roof");
+    return squaresBeside(structure.position, structure.facing?.turns ?? 0).some(
       (square) => cabinRoofOn(entities, square) !== undefined || roofBlueprints.some((roof) => isOnGridSquare(square, roof.position)),
     );
   }
@@ -186,22 +194,6 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   return others.some((other) => {
     const kind = structureKindOf(other);
     if (kind === "campfire") return isOnGridSquare(square, other.position);
-    return (kind === "leanTo" || kind === "roof") && rectsOverlap(rect, structureOf(kind).footprint(other.position, other.facing?.turns ?? 0));
+    return (kind === "leanTo" || kind === "roof") && rectsOverlap(rect, footprintOfEntity(other));
   });
-}
-
-/** The four sides of a grid square, as `edgeMiddle` numbers them. */
-const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
-
-/**
- * What kind of structure a piece the player can take down is: a blueprint of any structure, or a finished lean-to, foundation,
- * log wall, door frame, or roof section. Undefined for anything else, such as a finished campfire.
- */
-export function pieceKindOf(piece: Entity): StructureKind | undefined {
-  if (piece.blueprint !== undefined) return piece.blueprint.piece;
-  if (piece.leanTo === true) return "leanTo";
-  if (piece.foundation === true) return "foundation";
-  if (piece.edgePiece !== undefined) return piece.edgePiece;
-  if (piece.cabinRoof === true) return "roof";
-  return undefined;
 }

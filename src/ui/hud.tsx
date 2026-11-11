@@ -207,6 +207,16 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
+/** The hint shown while placing each structure, given its name. Pieces on an edge or over walls snap differently, so they say so. */
+const PLACING_HINTS: { readonly [Kind in StructureKind]: (structure: string) => string } = {
+  campfire: strings.buildMenu.placing.onGround,
+  leanTo: strings.buildMenu.placing.onGround,
+  foundation: strings.buildMenu.placing.onGround,
+  logWall: strings.buildMenu.placing.onEdge,
+  doorFrame: strings.buildMenu.placing.onEdge,
+  roof: strings.buildMenu.placing.overWalls,
+};
+
 export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry }: HudProps) {
   const [view, setView] = useState(client.getView());
   useEffect(
@@ -248,11 +258,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
             {placing !== null && (
               <p class="hud-hint">
-                {placing === "logWall" || placing === "doorFrame"
-                  ? strings.buildMenu.placingOnEdge(strings.buildMenu.structures[placing])
-                  : placing === "roof"
-                    ? strings.buildMenu.placingRoof(strings.buildMenu.structures[placing])
-                    : strings.buildMenu.placing(strings.buildMenu.structures[placing])}
+                {PLACING_HINTS[placing](strings.buildMenu.structures[placing])}
               </p>
             )}
             {view.carrying !== null && (

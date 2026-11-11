@@ -78,14 +78,16 @@
       "id": "player",
       "kind": "code",
       "code": [
-        "src/render/player-mesh.ts"
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts"
       ],
-      "description": "The player.",
+      "description": "The player: a woodcutter with adult proportions, a plaid work shirt, a knit cap, a beard, and an axe. Knees and elbows bend as the legs and arms swing while walking.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/04-click-to-walk.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

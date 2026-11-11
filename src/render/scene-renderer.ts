@@ -116,6 +116,8 @@ export function createSceneRenderer(
   const playerDrawn = { x: 0, y: 0, z: 0 };
   const playerDrawnBefore = { x: 0, y: 0, z: 0 };
   cameraRig.setFollowTarget(playerDrawn);
+  /** Total metres the player has walked, which keeps the legs in step with the ground. */
+  let playerWalkedMetres = 0;
 
   const moving = movingEntities(entities);
   const blended = { x: 0, y: 0, z: 0 };
@@ -141,7 +143,14 @@ export function createSceneRenderer(
     playerMesh.setChopping(undefined);
     const dx = playerDrawn.x - playerDrawnBefore.x;
     const dz = playerDrawn.z - playerDrawnBefore.z;
-    if (Math.hypot(dx, dz) > TURN_MIN_TRAVEL_METRES) playerMesh.setHeading(Math.atan2(dx, dz));
+    const travelled = Math.hypot(dx, dz);
+    if (travelled > TURN_MIN_TRAVEL_METRES) playerMesh.setHeading(Math.atan2(dx, dz));
+    if (player.walkPath === undefined) {
+      playerMesh.setWalking(undefined);
+      return;
+    }
+    playerWalkedMetres += travelled;
+    playerMesh.setWalking(playerWalkedMetres);
   }
 
   return {

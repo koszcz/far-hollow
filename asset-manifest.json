@@ -69,6 +69,7 @@
       "id": "sticks",
       "kind": "code",
       "code": [
+        "src/render/stick-shape.ts",
         "src/render/forest-meshes.ts"
       ],
       "description": "Sticks on the forest floor.",
@@ -142,6 +143,7 @@
       "kind": "code",
       "code": [
         "src/render/player-mesh.ts",
+        "src/render/tree-fall.ts",
         "src/render/forest-meshes.ts"
       ],
       "description": "Chopping motion of the player and the falling motion of a felled tree.",

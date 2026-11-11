@@ -47,11 +47,11 @@ const CARRY_UPPER_ARM_RADIANS = -1.4;
 const CARRY_ELBOW_RADIANS = -2.1;
 
 /** How many times a second the player swings the axe. */
-const CHOP_SWINGS_PER_SECOND = 1.25;
+export const CHOP_SWINGS_PER_SECOND = 1.25;
 /** How far the player leans into each swing, in radians. */
 const CHOP_LEAN_RADIANS = 0.35;
 /** How many times a second the player strikes down at a log when splitting. Slower than chopping, because each strike is a full overhead lift. */
-const SPLIT_STRIKES_PER_SECOND = 0.8;
+export const SPLIT_STRIKES_PER_SECOND = 0.8;
 /** Share of each splitting strike spent lifting the axe overhead. The rest is the fast drop onto the log. */
 const SPLIT_LIFT_SHARE = 0.7;
 /** How far the player leans back with the axe overhead, in radians. */

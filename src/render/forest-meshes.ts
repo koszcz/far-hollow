@@ -1,13 +1,15 @@
-// Draws trees, stumps, logs, and sticks, which are listed in asset-manifest.json as "trees", "stumps", "logs", and "sticks".
-// Trees use Kenney's tree models from tree-model.ts, and stumps use Kenney's stump model from stump-model.ts.
-// The owner approved both. Logs and sticks are code-built drafts. Felled trees fall with the code-built "chop-animation".
+// Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" in asset-manifest.json.
+// Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
+// Felled trees fall with tree-fall.ts, part of "chop-animation".
+// To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { LOGS_PER_TREE } from "../sim/chopping";
 import { logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { OutlinePart } from "./hover-outline";
 import { createLogGeometry, LOG_COLOUR } from "./log-shape";
+import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import type { StumpShape } from "./stump-model";
+import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
 
 const TRUNK_COLOUR = 0x6b4a2b;
@@ -22,8 +24,6 @@ const TREE_TYPE_WEIGHTS: Readonly<Record<string, number>> = {
   tree_pineRoundA: 2,
 };
 const STUMP_TOP_COLOUR = 0xc9a46a;
-/** Lighter than the trunks and the ground, so sticks stand out on the forest floor. */
-const STICK_COLOUR = 0xb08654;
 
 /** A stump never stands taller than this above the ground, before the tree's own size, so wide oaks leave low stumps. */
 const STUMP_MAX_HEIGHT_METRES = 0.6;
@@ -34,17 +34,8 @@ const TREE_MIN_SCALE = 0.8;
 const TREE_MAX_SCALE = 1.25;
 /** Logs lie on the ground, so their middle sits this far above it. */
 const LOG_REST_HEIGHT_METRES = 0.18;
-const STICK_LENGTH_METRES = 0.9;
-const STICK_RADIUS_METRES = 0.05;
-/** Each stick has one short side twig, so it reads as a branch and not a line. */
-const TWIG_LENGTH_METRES = 0.3;
-const TWIG_RADIUS_METRES = 0.03;
-/** Sticks float this far above their spot, so the ground's slope does not swallow them. */
-const STICK_LIFT_METRES = 0.03;
 /** Sticks are thin, so clicks hit an invisible box this wide around each one, in metres. */
 const STICK_PICK_WIDTH_METRES = 0.35;
-/** How long a felled tree takes to hit the ground, in seconds. */
-const FALL_SECONDS = 1.6;
 
 /** What a click on the forest landed on. */
 export type ForestHit = { kind: "tree"; entity: Entity } | { kind: "log"; entity: Entity } | { kind: "stick"; entity: Entity };
@@ -289,11 +280,9 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const fall = falling[i];
         if (fall === undefined) continue;
         fall.startSeconds ??= nowSeconds;
-        const t = Math.min(1, (nowSeconds - fall.startSeconds) / FALL_SECONDS);
-        // Speeds up as it goes, like a real tree toppling.
-        spin.setFromAxisAngle(fall.axis, t * t * (Math.PI / 2));
+        const fallen = tiltForFall(fall.axis, nowSeconds - fall.startSeconds, spin);
         fall.pivot.quaternion.copy(spin);
-        if (t >= 1) {
+        if (fallen) {
           group.remove(fall.pivot);
           falling.splice(i, 1);
         }
@@ -401,21 +390,4 @@ function stumpFit(trunk: THREE.BufferGeometry, stump: StumpShape): THREE.Matrix4
 function lookFor(x: number, z: number): number {
   const value = Math.sin(x * 12.9898 + z * 78.233) * 43_758.5453;
   return value - Math.floor(value);
-}
-
-/** A stick lying along x: a tapered branch with one twig forking off it, resting on y = 0. */
-function createStickGeometry(): THREE.BufferGeometry {
-  const branch = new THREE.CylinderGeometry(STICK_RADIUS_METRES * 0.7, STICK_RADIUS_METRES, STICK_LENGTH_METRES, 6);
-  branch.rotateZ(Math.PI / 2);
-  const twig = new THREE.CylinderGeometry(TWIG_RADIUS_METRES * 0.6, TWIG_RADIUS_METRES, TWIG_LENGTH_METRES, 5);
-  // The twig starts a little past the middle and angles forward and sideways along the ground.
-  twig.translate(0, TWIG_LENGTH_METRES / 2, 0);
-  twig.rotateZ(-Math.PI / 2 + 0.6);
-  twig.rotateX(Math.PI / 2 - 0.15);
-  twig.translate(STICK_LENGTH_METRES * 0.1, 0, 0);
-  const stick = mergeGeometries([branch, twig]);
-  branch.dispose();
-  twig.dispose();
-  stick.translate(0, STICK_RADIUS_METRES + STICK_LIFT_METRES, 0);
-  return stick;
 }

@@ -6,6 +6,8 @@
 
 Issues live as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
 
+Implement one ticket per session. Once a ticket is merged and pushed, end the session and name the next unblocked ticket for the owner to start in a fresh session.
+
 ### Triage labels
 
 Uses the five default triage labels, recorded as a `Status:` line in each issue file. See `docs/agents/triage-labels.md`.

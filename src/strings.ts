@@ -16,6 +16,9 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   pot: () => "An empty pot",
   potOfRiverWater: () => "A pot of river water",
   potOfBoiledWater: () => "A pot of boiled water",
+  sawBlade: (count) => (count === 1 ? "A saw blade" : `${count} saw blades`),
+  saw: (count) => (count === 1 ? "A saw" : `${count} saws`),
+  plank: (count) => (count === 1 ? "1 plank" : `${count} planks`),
 };
 
 export const strings = {
@@ -47,6 +50,30 @@ export const strings = {
   building: "Building",
   takingDown: "Taking down",
   takeDown: "Take down",
+  crafting: "Crafting",
+  craftMenu: {
+    open: "Craft (C)",
+    title: "Craft",
+    close: "Press C or Escape to close.",
+    recipes: {
+      saw: "Saw",
+      planks: "Cut planks",
+    },
+    /** What a station recipe uses from the ground beside its station, such as "1 debarked log by the sawhorse". */
+    besideStation: (materials: string, station: string) => `${materials} by the ${station.toLowerCase()}`,
+    /** Logs and debarked logs a station recipe uses from the ground, by how many. */
+    groundMaterials: {
+      log: (count: number) => (count === 1 ? "1 log" : `${count} logs`),
+      debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
+    },
+    /** What a recipe uses and how long it takes, such as "Saw blade, Stick ×3 · 5 s". */
+    cost: (materials: readonly string[], seconds: number) => `${materials.join(", ")} · ${seconds} s`,
+    /** What the craft menu says about a tool a recipe needs that is not in the backpack, such as "needs the saw". */
+    needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
+    /** What the craft menu says about a work station a recipe needs that does not stand yet, such as "needs a sawhorse". */
+    needsStation: (station: string) => `needs a ${station.toLowerCase()}`,
+    putLogDownFirst: "Put the log down first.",
+  },
   buildMenu: {
     open: "Build (B)",
     title: "Build",
@@ -60,6 +87,7 @@ export const strings = {
       roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
+      sawhorse: "Sawhorse",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
@@ -150,6 +178,8 @@ export const strings = {
     holdsUpPiece: "Something stands on this. Take that down first.",
     stillHoldsSomething: "Something is still in this. Empty it first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
+    putLogDownFirst: "Put the log down first.",
+    noLogBesideStation: "Lay a debarked log within 2 m of the sawhorse first.",
   },
   backpack: "Backpack",
   backpackContents: {
@@ -166,6 +196,9 @@ export const strings = {
     potOfBoiledWater: "Pot of boiled water",
     berries: "Berries",
     mushroom: "Mushroom",
+    sawBlade: "Saw blade",
+    saw: "Saw",
+    plank: "Plank",
   },
   chest: {
     title: "Chest",

@@ -38,6 +38,7 @@ export function mainActionFor(pick: ScenePick): Command | undefined {
     case "pile":
       return { type: "pickUpPile", pileId: pick.id };
     case "blueprint":
+    case "sawhorse":
       return undefined;
   }
 }
@@ -67,6 +68,12 @@ export function menuActionsFor(pick: ScenePick): MenuAction[] {
     case "chest":
     case "woodpile":
       return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
+    // A finished sawhorse offers its recipe. The player walks to it first.
+    case "sawhorse":
+      return [
+        { label: strings.craftMenu.recipes.planks, command: { type: "craft", recipe: "planks", stationId: pick.id } },
+        { label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } },
+      ];
     default:
       return [];
   }

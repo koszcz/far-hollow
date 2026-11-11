@@ -9,6 +9,7 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createChestMeshes } from "./chest-meshes";
+import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createForageMeshes } from "./forage-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
@@ -51,6 +52,7 @@ export type ScenePick =
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
   | { kind: "chest"; id: number }
+  | { kind: "sawhorse"; id: number }
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
@@ -141,7 +143,9 @@ export function createSceneRenderer(
   scene.add(bedrollMeshes.group);
   const chestMeshes = createChestMeshes(entities);
   scene.add(chestMeshes.group);
-  const pileMeshes = createPileMeshes(entities);
+  const sawhorseMeshes = createSawhorseMeshes(entities);
+  scene.add(sawhorseMeshes.group);
+  const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
   scene.add(pileMeshes.group);
   const barkMeshes = createBarkMeshes(entities);
   scene.add(barkMeshes.group);
@@ -150,7 +154,7 @@ export function createSceneRenderer(
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group, campfireMeshes.group, leanToMeshes.group, foundationMeshes.group, edgePieceMeshes.group, roofMeshes.group,
-    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, pileMeshes.group, barkMeshes.group,
+    forageMeshes.group, bedrollMeshes.group, woodpileMeshes.group, chestMeshes.group, sawhorseMeshes.group, pileMeshes.group, barkMeshes.group,
   );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
@@ -166,6 +170,7 @@ export function createSceneRenderer(
     roof: (entity) => roofMeshes.outlineOf({ kind: "blueprint", entity }),
     woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "blueprint", entity }),
     chest: (entity) => chestMeshes.outlineOf({ kind: "blueprint", entity }),
+    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "blueprint", entity }),
   };
   /** The shapes to outline for each kind of thing the player can click. */
   const outlines: { readonly [Kind in EntityPick["kind"]]: (entity: Entity) => OutlinePart[] } = {
@@ -179,6 +184,7 @@ export function createSceneRenderer(
     campfire: (entity) => campfireMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "woodpile", entity }),
     chest: (entity) => chestMeshes.outlineOf({ kind: "chest", entity }),
+    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "sawhorse", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
   };
@@ -213,6 +219,9 @@ export function createSceneRenderer(
     },
     chest: (placing) => {
       chestMeshes.showPlacingBlueprint(placing);
+    },
+    sawhorse: (placing) => {
+      sawhorseMeshes.showPlacingBlueprint(placing);
     },
   };
 
@@ -250,8 +259,8 @@ export function createSceneRenderer(
   const pointer = new THREE.Vector2();
 
   /**
-   * Shows what the player is doing: which way they face, what they carry, and whether they build, chop, split, or debark.
-   * Debarking reuses the chopping swing, aimed at the log.
+   * Shows what the player is doing: which way they face, what they carry, and whether they build, chop, split, debark, or craft.
+   * Debarking reuses the chopping swing, aimed at the log. Crafting reuses it where the player faces.
    */
   function posePlayer(nowSeconds: number): void {
     const player = entities.with("player", "position").first;
@@ -277,6 +286,11 @@ export function createSceneRenderer(
     const target = workTargetId === undefined ? undefined : entities.entity(workTargetId);
     if (target?.position !== undefined) {
       playerMesh.setHeading(Math.atan2(target.position.x - playerDrawn.x, target.position.z - playerDrawn.z));
+      playerMesh.setChopping(nowSeconds);
+      return;
+    }
+    if (player.craftTask !== undefined && player.walkPath === undefined) {
+      // Crafting reuses the chopping swing, aimed where the player already faces.
       playerMesh.setChopping(nowSeconds);
       return;
     }
@@ -307,6 +321,7 @@ export function createSceneRenderer(
       pileMeshes.pick(raycaster),
       woodpileMeshes.pick(raycaster),
       chestMeshes.pick(raycaster),
+      sawhorseMeshes.pick(raycaster),
       barkMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
@@ -340,6 +355,7 @@ export function createSceneRenderer(
       pileMeshes.update();
       woodpileMeshes.update();
       chestMeshes.update();
+      sawhorseMeshes.update();
       barkMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
@@ -401,6 +417,7 @@ export function createSceneRenderer(
       pileMeshes.dispose();
       woodpileMeshes.dispose();
       chestMeshes.dispose();
+      sawhorseMeshes.dispose();
       barkMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();

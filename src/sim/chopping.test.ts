@@ -4,9 +4,9 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 
 describe("the backpack", () => {
-  it("starts with an axe, a knife, a drawknife, a fire striker, a bedroll, and an empty pot", () => {
+  it("starts with an axe, a knife, a drawknife, a fire striker, a bedroll, an empty pot, and a saw blade", () => {
     const game = createGame({ seed: 42 });
-    expect(game.client.getView().backpack).toEqual({ axe: 1, knife: 1, drawknife: 1, fireStriker: 1, bedroll: 1, pot: 1 });
+    expect(game.client.getView().backpack).toEqual({ axe: 1, knife: 1, drawknife: 1, fireStriker: 1, bedroll: 1, pot: 1, sawBlade: 1 });
   });
 });
 

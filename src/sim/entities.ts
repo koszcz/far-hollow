@@ -1,10 +1,11 @@
 import { World } from "miniplex";
 import type { Backpack, BackpackContent, BackpackContents, Food } from "./backpack";
+import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { Sickness } from "./sickness";
-import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind } from "./structure-kind";
+import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -79,6 +80,12 @@ export interface Entity {
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
   /**
+   * The player is crafting `recipe`. `secondsDone` counts the time spent so far.
+   * For a station recipe, `stationId` is the work station the player walks to and works at. A hand recipe has none.
+   * It is never saved, so a loaded game is not crafting.
+   */
+  craftTask?: { recipe: RecipeKind; secondsDone: number; stationId?: number };
+  /**
    * Marks a structure the player has placed but not finished. Its position is the structure's centre.
    * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.
    * `delivered` counts the materials the player has carried to it, such as debarked logs, including any already spent.
@@ -132,6 +139,11 @@ export interface Entity {
    * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
    */
   chest?: { contents: BackpackContents };
+  /**
+   * Marks a finished work station, such as a sawhorse, with its kind. A blueprint of a work station does not have it.
+   * Its position is the middle of the ground it covers. Its `facing` says which way it is turned.
+   */
+  workStation?: WorkStationKind;
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
@@ -182,12 +194,22 @@ export interface SavedEntity {
   components: Entity;
 }
 
-/** Lists every entity with its id, in id order. An entity that had no id yet gets one. */
+/**
+ * Lists every entity with its id, in id order. An entity that had no id yet gets one.
+ * Crafting in progress is left out, because it is never saved.
+ */
 export function saveEntities(store: EntityStore): SavedEntity[] {
   const saved: SavedEntity[] = [];
   for (const entity of store.entities) {
     const id = store.id(entity);
-    if (id !== undefined) saved.push({ id, components: entity });
+    if (id === undefined) continue;
+    if (entity.craftTask === undefined) {
+      saved.push({ id, components: entity });
+      continue;
+    }
+    const components = { ...entity };
+    delete components.craftTask;
+    saved.push({ id, components });
   }
   return saved.sort((a, b) => a.id - b.id);
 }
@@ -332,6 +354,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished chests. */
 export function chestEntities(store: EntityStore) {
   return store.with("chest", "position");
+}
+
+/** Finished work stations, such as sawhorses. Blueprints are not among them. */
+export function workStationEntities(store: EntityStore) {
+  return store.with("workStation", "position");
 }
 
 /** Finished lean-tos. */

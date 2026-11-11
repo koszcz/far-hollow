@@ -66,6 +66,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   bark: exactly(true),
   barkPickUpTask: shape({ barkId: count }),
   splitTask: shape({ secondsDone: finite }),
+  // Crafting in progress is never saved, so no save holds it.
+  craftTask: () => false,
   blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
@@ -77,6 +79,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
   chest: shape({ contents: backpackContents }),
+  workStation: exactly("sawhorse"),
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),
@@ -100,7 +103,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));
 
 /** Every kind of notice. TypeScript reports a missing one. */
-const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, chestFull: true, holdsUpPiece: true, stillHoldsSomething: true, saveBroken: true };
+const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, chestFull: true, holdsUpPiece: true, stillHoldsSomething: true, saveBroken: true, putLogDownFirst: true, noLogBesideStation: true };
 
 /** The components the player always has. */
 const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "needs", "respawnPoint"] as const;

@@ -1,6 +1,9 @@
 import type { BackpackContent, BackpackContents, Food } from "./backpack";
+import type { GroundAmount, RecipeAmount, RecipeKind } from "./crafting";
 
-export type { BackpackContent, Food } from "./backpack";
+export type { GroundAmount, RecipeAmount, RecipeKind } from "./crafting";
+
+export type { BackpackContent, CraftingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { CarriedLog, Vec3, WoodpileWood } from "./entities";
 
@@ -52,8 +55,9 @@ export type Command =
   /**
    * Place a blueprint of a structure from the build menu at the building-grid spot nearest the given spot, in metres,
    * facing `turns` quarter turns. Furniture, such as a chest, goes at the given spot itself. Placing costs nothing. Nothing happens if the structure's placement rule refuses the spot.
+   * With `thenBuild`, the player starts building it at once if they have what the first stage needs, as if they had sent build.
    */
-  | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns } & GroundPoint)
+  | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns; thenBuild?: boolean } & GroundPoint)
   /**
    * Start building a blueprint, given by its entity id. The player walks to it first if needed.
    * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of materials.
@@ -120,6 +124,15 @@ export type Command =
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire within the player's reach and put it back in the backpack. */
   | { type: "takePotOffFire"; campfireId: number }
+  /**
+   * Start crafting a recipe, given by its name. A hand recipe is crafted where the player stands, as timed work.
+   * For a station recipe, the player walks to the finished work station given by `stationId`, or without one to the nearest
+   * finished station of the right kind, and works there. A blueprint is not a station.
+   * Nothing happens if the player lacks its tool, work station, or materials. It is refused while the player carries a log,
+   * if the result would not fit in the backpack once the materials it uses are taken out,
+   * or if the logs a station recipe uses do not lie within 2 m of the station.
+   */
+  | { type: "craft"; recipe: RecipeKind; stationId?: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
@@ -144,6 +157,8 @@ export interface GameView {
   readonly backpackWeightLimit: number;
   /** Every structure the player can build, with its cost, in the order the build menu lists them. */
   readonly buildMenu: readonly BuildMenuEntry[];
+  /** Every recipe, in the order the craft menu lists them, with what the player lacks to follow each one now. */
+  readonly craftMenu: readonly CraftMenuEntry[];
   /** The timed work the player is doing right now, or null if none. Walking to the work does not count. */
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
@@ -181,8 +196,12 @@ export interface GameView {
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
  * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
+ * `putLogDownFirst`: the player tried to craft while carrying a log.
+ * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the station.
  */
-export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken";
+export type GameNotice =
+  | "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst"
+  | "noLogBesideStation";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -223,6 +242,29 @@ export interface BuildMenuEntry {
   readonly tool?: BackpackContent;
   /** True if it is furniture, placed freely rather than on the building grid. Missing for other structures. */
   readonly furniture?: true;
+}
+
+/** One recipe in the craft menu. */
+export interface CraftMenuEntry {
+  readonly recipe: RecipeKind;
+  /** What crafting it uses up, from the backpack. */
+  readonly materials: readonly RecipeAmount[];
+  /** What a station recipe uses up from the ground, lying within 2 m of the station. Missing if it uses nothing from the ground. */
+  readonly besideStation?: readonly GroundAmount[];
+  /** What crafting it makes. It goes in the backpack. */
+  readonly result: { readonly content: BackpackContent; readonly count: number };
+  /** How long crafting it takes, in seconds. */
+  readonly seconds: number;
+  /** The tool it needs in the backpack. Missing if it needs none. Crafting does not use the tool up. */
+  readonly tool?: BackpackContent;
+  /** The work station it is crafted at. Missing for a hand recipe, which is crafted where the player stands. */
+  readonly station?: StructureKind;
+  /** The tool it needs that is not in the backpack. Missing if the player has it, or it needs none. */
+  readonly missingTool?: BackpackContent;
+  /** The work station it needs that does not stand finished in the valley. Missing if one does, or it needs none. */
+  readonly missingStation?: StructureKind;
+  /** True if the backpack holds every material it uses. */
+  readonly hasMaterials: boolean;
 }
 
 /** A blueprint, with how far it has been built and the materials carried to it. */
@@ -284,8 +326,8 @@ export interface PileView {
 }
 
 export interface PlayerAction {
-  /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, or taking down a finished piece. */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown";
+  /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, or crafting. */
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft";
   /** How far along the work is, from 0 to 1. */
   readonly progress: number;
 }

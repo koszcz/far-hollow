@@ -1,5 +1,5 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
-import type { SaveSlotSummary } from "./api";
+import type { BackpackContent, SaveSlotSummary } from "./api";
 import { readClock } from "./clock";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
@@ -35,6 +35,9 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
   renameNotEmptyNotice,
+  addSawhorses,
+  giveSawBlade,
+  addPlanks,
 ];
 
 /** The version of the save format this code writes. */
@@ -50,6 +53,12 @@ export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppe
 export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalkingAtChestsAndWoodpiles) + 2;
 /** The first save version whose notice that a chest or woodpile still holds something is called `stillHoldsSomething`. */
 export const RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameNotEmptyNotice) + 2;
+/** The first save version that can hold sawhorses. */
+export const SAWHORSES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSawhorses) + 2;
+/** The first save version in which the player has a saw blade, for crafting the saw. */
+export const CRAFTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveSawBlade) + 2;
+/** The first save version that can hold planks. */
+export const PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -277,13 +286,39 @@ function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<s
   return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
 }
 
-/** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */
-function giveStartingItem(save: Readonly<Record<string, unknown>>, item: "bedroll" | "pot" | "drawknife"): Record<string, unknown> {
+/** The player can build sawhorses. A save from before then has none, so it carries over unchanged. */
+function addSawhorses(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 17 to 18: a new game now starts with a saw blade, for crafting the saw. A player saved before then gets one too,
+ * unless they already hold a saw.
+ */
+function giveSawBlade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return giveStartingItem(save, "sawBlade", ["saw"]);
+}
+
+/** Version 18 to 19: the player can cut planks. A save from before then has none, so it carries over unchanged. */
+function addPlanks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Puts one of an item a new game starts with into the saved player's backpack,
+ * unless they already have one, or hold anything listed in `madeFrom`, which are things made from it.
+ */
+function giveStartingItem(
+  save: Readonly<Record<string, unknown>>,
+  item: "bedroll" | "pot" | "drawknife" | "sawBlade",
+  madeFrom: readonly BackpackContent[] = [],
+): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
   const entities: unknown[] = save.entities.map((entity: unknown) => {
     const components = (entity as { components?: Entity } | null)?.components;
     const contents = components?.backpack?.contents;
-    if (components?.player !== true || typeof contents !== "object" || (contents[item] ?? 0) > 0) return entity;
+    if (components?.player !== true || typeof contents !== "object") return entity;
+    if ([item, ...madeFrom].some((held) => (contents[held] ?? 0) > 0)) return entity;
     return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [item]: 1 } } } };
   });
   return { ...save, entities };

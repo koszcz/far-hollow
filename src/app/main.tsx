@@ -13,6 +13,7 @@ import { Hud } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
+import { pressCraftKey } from "./craft-menu";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import { attachWalkInput, type MenuRequest } from "./walk-input";
 
@@ -174,8 +175,27 @@ const loop = createFixedStepLoop({
   },
 });
 
-/** Input state the UI shows: the build menu and placing, and the right-click menu, if one is open. */
-const uiState: { buildMode: BuildMode; menu: MenuRequest | undefined } = { buildMode: NOT_BUILDING, menu: undefined };
+/** Input state the UI shows: the build menu and placing, the craft menu, and the right-click menu, if one is open. */
+const uiState: { buildMode: BuildMode; craftMenuOpen: boolean; menu: MenuRequest | undefined } = {
+  buildMode: NOT_BUILDING,
+  craftMenuOpen: false,
+  menu: undefined,
+};
+
+function setCraftMenuOpen(open: boolean): void {
+  if (open === uiState.craftMenuOpen) return;
+  uiState.craftMenuOpen = open;
+  renderUi();
+}
+
+window.addEventListener("keydown", (event) => {
+  if (event.repeat) return;
+  // Let typing keep working in form fields.
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (event.code !== "Escape" && target?.closest("input, textarea, select") != null) return;
+  const open = pressCraftKey(uiState.craftMenuOpen, event.code);
+  if (open !== undefined) setCraftMenuOpen(open);
+});
 
 /** Draws the HUD, the right-click menu, and the debug overlay. Called again when the build mode or the right-click menu changes. */
 function renderUi(): void {
@@ -203,6 +223,10 @@ function renderUi(): void {
         }}
         onPickBuildEntry={(structure) => {
           walkInput.pickBuildEntry(structure);
+        }}
+        craftMenuOpen={uiState.craftMenuOpen}
+        onToggleCraftMenu={() => {
+          setCraftMenuOpen(!uiState.craftMenuOpen);
         }}
       />
       <DebugOverlay client={game.client} />

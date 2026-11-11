@@ -96,7 +96,7 @@ describe("building a campfire", () => {
     expect(game.client.getView().backpack.stick).toBe(2);
     expect(game.entities.with("blueprint").size).toBe(0);
     const campfire = game.entities.with("campfire", "position").first;
-    expect(campfire?.campfire).toEqual({ lit: false });
+    expect(campfire?.campfire).toEqual({ lit: false, fuelMinutes: 0 });
     expect(campfire?.position).toMatchObject({ x, z });
     expect(campfire?.blocksWalking?.radius).toBeGreaterThan(0);
     expect(isWalkable(walkMapOf(game), { x, z })).toBe(false);

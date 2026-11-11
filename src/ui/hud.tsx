@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import type { BackpackItem, GameClient, GameView } from "../sim/api";
+import type { BackpackItem, CampfireView, GameClient, GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -22,6 +22,39 @@ export interface HudProps {
   placingCampfire: boolean;
   /** Called when the player chooses to place a campfire. Placing is input state, not game state, so this is not a command. */
   onPlaceCampfire: () => void;
+}
+
+/** Shows whether the campfire beside the player burns and how much fuel it has, with buttons to fuel and light it. */
+function CampfirePanel({ client, view, campfire }: { client: GameClient; view: GameView; campfire: CampfireView }) {
+  const hasSticks = (view.backpack.stick ?? 0) > 0;
+  const hasFirewood = (view.backpack.firewood ?? 0) > 0;
+  const canLight = !campfire.lit && campfire.fuelMinutes > 0 && (view.backpack.fireStriker ?? 0) > 0;
+  return (
+    <section class="hud-campfire" aria-label={strings.campfire}>
+      <h2>{strings.campfire}</h2>
+      <p>{campfire.lit ? strings.campfireLit : strings.campfireUnlit}</p>
+      <label>
+        {strings.campfireFuel} <progress max={1} value={campfire.fuelLeft} />
+      </label>
+      <button type="button" disabled={!hasSticks} onClick={() => {
+          client.send({ type: "addFuel", campfireId: campfire.id, fuel: "stick" });
+        }}>
+        {strings.addStick}
+      </button>
+      <button type="button" disabled={!hasFirewood} onClick={() => {
+          client.send({ type: "addFuel", campfireId: campfire.id, fuel: "firewood" });
+        }}>
+        {strings.addFirewood}
+      </button>
+      {!campfire.lit && (
+        <button type="button" disabled={!canLight} onClick={() => {
+            client.send({ type: "lightCampfire", campfireId: campfire.id });
+          }}>
+          {strings.lightCampfire}
+        </button>
+      )}
+    </section>
+  );
 }
 
 const actionLabels = {
@@ -89,6 +122,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           </button>
         </p>
       )}
+      {view.nearbyCampfire !== null && <CampfirePanel client={client} view={view} campfire={view.nearbyCampfire} />}
       <section class="hud-backpack" aria-label={strings.backpack}>
         <h2>{strings.backpack}</h2>
         <p class="hud-backpack-weight">{strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}</p>

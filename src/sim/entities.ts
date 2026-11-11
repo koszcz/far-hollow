@@ -54,8 +54,11 @@ export interface Entity {
   blueprint?: { piece: "campfire"; progress: number; sticksSpent: number };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
-  /** Marks a finished campfire. Its position is the centre of the fire. */
-  campfire?: { lit: boolean };
+  /**
+   * Marks a finished campfire. Its position is the centre of the fire.
+   * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
+   */
+  campfire?: { lit: boolean; fuelMinutes: number };
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */

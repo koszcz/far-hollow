@@ -1,7 +1,9 @@
 // Draws campfires and campfire blueprints with the code-built placeholder shape approved in asset-manifest.json as "campfire".
 // A blueprint grows stick by stick with the code-built "campfire-build-animation".
+// A lit campfire has flames and a glow that lights the ground around it, the code-built "fire-effect".
 import * as THREE from "three";
 import { CAMPFIRE_STICK_COST } from "../sim/building";
+import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
 
 const STONE_COLOUR = 0x8c8c86;
@@ -17,6 +19,25 @@ const STICK_LENGTH_METRES = 0.8;
 const STICK_RADIUS_METRES = 0.035;
 /** Sticks lean in toward the centre at this angle from upright, in radians, to make a cone. */
 const STICK_LEAN_RADIANS = 0.5;
+const FLAME_OUTER_COLOUR = 0xff6a1a;
+const FLAME_INNER_COLOUR = 0xffd04a;
+const GLOW_COLOUR = 0xff9a4a;
+const FLAME_HEIGHT_METRES = 0.9;
+const FLAME_RADIUS_METRES = 0.3;
+/** Flames on a campfire with almost no fuel left shrink to this share of their full size. Fuller fires burn bigger. */
+const FLAME_SMALLEST_SCALE = 0.35;
+/** A campfire holding this much fuel, in game minutes, or more, burns at full size. */
+const FLAME_FULL_SIZE_FUEL_MINUTES = CAMPFIRE_FUEL_LIMIT_MINUTES / 4;
+/** How bright the glow is at full size. It lights the ground out to GLOW_REACH_METRES. */
+const GLOW_STRENGTH = 6;
+const GLOW_REACH_METRES = 14;
+/** How far the light falls off with distance. 1 is a gentle, game-like fall-off. */
+const GLOW_FALL_OFF = 1;
+const GLOW_HEIGHT_METRES = 0.8;
+/** How fast and how much the flames and glow flicker. */
+const FLICKER_PER_SECOND = 9;
+const FLICKER_AMOUNT = 0.12;
+
 /** Clicks on a campfire or blueprint hit an invisible cylinder this wide and tall, in metres. */
 const PICK_RADIUS_METRES = 0.8;
 const PICK_HEIGHT_METRES = 0.8;
@@ -27,7 +48,7 @@ export type CampfireHit = { kind: "blueprint"; entity: Entity } | { kind: "campf
 export interface CampfireMeshes {
   readonly group: THREE.Group;
   /** Brings every campfire and blueprint up to date with game state. */
-  update(): void;
+  update(nowSeconds: number): void;
   /** What a ray from the camera hits first among campfires and blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: CampfireHit; distance: number } | undefined;
   dispose(): void;
@@ -39,6 +60,10 @@ interface Drawn {
   /** Each stick's shape starts at its foot, so it grows upward from the ground. */
   readonly sticks: { mesh: THREE.Mesh }[];
   readonly picker: THREE.Mesh;
+  /** Flames and glow. Hidden while the campfire is unlit. */
+  readonly fire: THREE.Group;
+  readonly flames: THREE.Group;
+  readonly glow: THREE.PointLight;
 }
 
 export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
@@ -54,6 +79,13 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
   });
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  const flameGeometry = new THREE.ConeGeometry(FLAME_RADIUS_METRES, FLAME_HEIGHT_METRES, 7, 1, true);
+  flameGeometry.translate(0, FLAME_HEIGHT_METRES / 2, 0);
+  // Flames give off their own light, so they ignore the scene's lights and stay bright at night.
+  const outerFlameMaterial = new THREE.MeshBasicMaterial({
+    color: FLAME_OUTER_COLOUR, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const innerFlameMaterial = new THREE.MeshBasicMaterial({ color: FLAME_INNER_COLOUR, side: THREE.DoubleSide });
 
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
@@ -87,13 +119,26 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       root.add(pivot);
       sticks.push({ mesh });
     }
+    const fire = new THREE.Group();
+    fire.visible = false;
+    const flames = new THREE.Group();
+    const outerFlame = new THREE.Mesh(flameGeometry, outerFlameMaterial);
+    const innerFlame = new THREE.Mesh(flameGeometry, innerFlameMaterial);
+    innerFlame.scale.set(0.55, 0.7, 0.55);
+    flames.add(outerFlame, innerFlame);
+    fire.add(flames);
+    // The glow stays in the scene while unlit, at zero strength, so lighting a fire does not rebuild every material.
+    const glow = new THREE.PointLight(GLOW_COLOUR, 0, GLOW_REACH_METRES, GLOW_FALL_OFF);
+    glow.position.set(0, GLOW_HEIGHT_METRES, 0);
+    root.add(glow);
+    root.add(fire);
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
     group.add(root);
-    const result = { root, stones, sticks, picker };
+    const result = { root, stones, sticks, picker, fire, flames, glow };
     drawn.set(entity, result);
     return result;
   }
@@ -111,6 +156,25 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     for (const stone of item.stones) stone.material = progress >= 1 ? stoneMaterial : ghostMaterial;
   }
 
+  /**
+   * Shows a lit campfire's flames and glow, flickering. The flames burn smaller as the fuel runs low,
+   * so the player can see roughly how much fuel is left.
+   */
+  function showFire(item: Drawn, campfire: { lit: boolean; fuelMinutes: number }, nowSeconds: number, seed: number): void {
+    item.fire.visible = campfire.lit;
+    if (!campfire.lit) {
+      item.glow.intensity = 0;
+      return;
+    }
+    const fullness = Math.min(1, campfire.fuelMinutes / FLAME_FULL_SIZE_FUEL_MINUTES);
+    const size = FLAME_SMALLEST_SCALE + (1 - FLAME_SMALLEST_SCALE) * fullness;
+    const t = nowSeconds * FLICKER_PER_SECOND + seed;
+    const flicker = 1 + FLICKER_AMOUNT * (Math.sin(t) * 0.6 + Math.sin(t * 2.3 + 1.7) * 0.4);
+    item.flames.scale.set(size, size * flicker, size);
+    item.flames.rotation.y = t * 0.1;
+    item.glow.intensity = GLOW_STRENGTH * size * flicker;
+  }
+
   function forget(entity: Entity): void {
     const item = drawn.get(entity);
     if (item === undefined) return;
@@ -123,14 +187,16 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
 
   return {
     group,
-    update() {
+    update(nowSeconds) {
       const seen = new Set<Entity>();
       for (const blueprint of blueprints) {
         showProgress(draw(blueprint), blueprint.blueprint.progress);
         seen.add(blueprint);
       }
       for (const campfire of campfires) {
-        showProgress(draw(campfire), 1);
+        const item = draw(campfire);
+        showProgress(item, 1);
+        showFire(item, campfire.campfire, nowSeconds, campfire.position.x * 3.1 + campfire.position.z * 1.7);
         seen.add(campfire);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -147,7 +213,8 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
       return undefined;
     },
     dispose() {
-      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, ghostMaterial, pickMaterial]) {
+      for (const item of [stoneGeometry, stickGeometry, pickGeometry, stoneMaterial, stickMaterial, ghostMaterial, pickMaterial,
+        flameGeometry, outerFlameMaterial, innerFlameMaterial]) {
         item.dispose();
       }
     },

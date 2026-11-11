@@ -127,7 +127,7 @@ export function createSceneRenderer(
       matchCanvasSize();
       skyLighting.update(readHourOfDay());
       forestMeshes.update(nowSeconds);
-      campfireMeshes.update();
+      campfireMeshes.update(nowSeconds);
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);

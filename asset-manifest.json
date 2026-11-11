@@ -6,15 +6,15 @@
       "kind": "code",
       "code": [
         "src/render/valley-meshes.ts",
-        "src/render/ground-texture.ts"
+        "src/render/ground-texture.ts",
+        "src/sim/ground-types.ts"
       ],
-      "description": "Ground of the valley, including the ground plane in the empty scene.",
+      "description": "Ground of the valley, including the ground plane in the empty scene. It shows three ground types that blend softly: forest floor (brown needle and leaf litter near trees), clearing (brighter grass away from trees), and river bank (mud and pebbles on the slope beside the water).",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/01-ground-types.md"
       }
     },
     {

@@ -73,6 +73,37 @@ export function createEntityStore(): EntityStore {
   return new World<Entity>();
 }
 
+/** An entity's components as stored in a save, with the id that tasks and commands know it by. */
+export interface SavedEntity {
+  id: number;
+  components: Entity;
+}
+
+/** Lists every entity with its id, in id order. An entity that had no id yet gets one. */
+export function saveEntities(store: EntityStore): SavedEntity[] {
+  const saved: SavedEntity[] = [];
+  for (const entity of store.entities) {
+    const id = store.id(entity);
+    if (id !== undefined) saved.push({ id, components: entity });
+  }
+  return saved.sort((a, b) => a.id - b.id);
+}
+
+/**
+ * Adds saved entities to an empty store, giving each one its saved id.
+ * miniplex hands out ids in order, so each unused id goes to a stand-in entity that is removed at once.
+ */
+export function restoreEntities(store: EntityStore, saved: readonly SavedEntity[]): void {
+  const byId = new Map(saved.map((entity) => [entity.id, entity.components]));
+  const lastId = saved.reduce((last, entity) => Math.max(last, entity.id), -1);
+  for (let id = 0; id <= lastId; id += 1) {
+    const components = byId.get(id);
+    const entity = store.add(components ?? {});
+    if (store.id(entity) !== id) throw new Error("Entities can only be restored into an empty store");
+    if (components === undefined) store.remove(entity);
+  }
+}
+
 /**
  * Gives an entity a component, replacing the one it already has.
  * miniplex's addComponent never overwrites, so a new task would otherwise be ignored while an old one is running.

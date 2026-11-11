@@ -4,10 +4,13 @@ import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/sce
 import { loadStumpShape } from "../render/stump-model";
 import { loadTreeShapes } from "../render/tree-model";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
-import { createGame, STEP_MS } from "../sim/game";
+import { createGame, STEP_MS, type Game } from "../sim/game";
+import { continueOrStartGame, writeSave } from "../sim/save";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { Hud } from "../ui/hud";
+import { startAutosave } from "./autosave";
+import { openSaveStorage, type SaveStorage } from "./save-storage";
 import { attachWalkInput } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -22,16 +25,52 @@ function requireElement<T extends Element>(selector: string, type: new () => T):
 document.title = strings.gameTitle;
 
 /**
- * Until the new-game screen exists, each page load picks a random seed.
- * Developers can add `?seed=123` to the address to load the same valley again.
+ * The seed given as `?seed=123` in the address, if any.
+ * Developers use it to start a new game in the same valley again, in place of the saved game.
  */
-function chooseSeed(): number {
+function seedFromAddress(): number | undefined {
   const fromAddress = Number.parseInt(new URLSearchParams(window.location.search).get("seed") ?? "", 10);
-  if (Number.isSafeInteger(fromAddress)) return fromAddress >>> 0;
-  return Math.floor(Math.random() * 2 ** 32);
+  return Number.isSafeInteger(fromAddress) ? fromAddress >>> 0 : undefined;
 }
 
-const game = createGame({ seed: chooseSeed() });
+/** How often the game saves itself while it runs, in real milliseconds. */
+const AUTOSAVE_INTERVAL_MS = 30_000;
+
+/** Opens the save database. Returns undefined if the browser will not store anything, such as in some private windows. */
+async function tryOpenSaveStorage(): Promise<SaveStorage | undefined> {
+  try {
+    return await openSaveStorage();
+  } catch (error) {
+    console.warn("The game cannot be saved in this browser.", error);
+    return undefined;
+  }
+}
+
+/** Continues the saved game, or starts a new one. Until the new-game screen exists, a new game gets a random seed. */
+async function loadGame(storage: SaveStorage | undefined): Promise<Game> {
+  const addressSeed = seedFromAddress();
+  if (addressSeed !== undefined) return createGame({ seed: addressSeed });
+  const stored = await storage?.read().catch((error: unknown) => {
+    console.warn("The saved game could not be read.", error);
+    return null;
+  });
+  return continueOrStartGame(stored, Math.floor(Math.random() * 2 ** 32));
+}
+
+const saveStorage = await tryOpenSaveStorage();
+const game = await loadGame(saveStorage);
+if (saveStorage !== undefined) {
+  startAutosave({
+    save: () => {
+      saveStorage.write(writeSave(game)).catch((error: unknown) => {
+        console.warn("The game could not be saved.", error);
+      });
+    },
+    intervalMs: AUTOSAVE_INTERVAL_MS,
+    page: window,
+    isHidden: () => document.visibilityState === "hidden",
+  });
+}
 const canvas = requireElement("#scene", HTMLCanvasElement);
 const sceneRenderer = createSceneRenderer(
   canvas,

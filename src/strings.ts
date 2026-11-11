@@ -25,6 +25,7 @@ export const strings = {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed from the cold. You woke the next morning.",
     backpackFull: "Your backpack is full.",
+    saveBroken: "Your saved game could not be loaded, so a new game has started.",
   },
   backpack: "Backpack",
   backpackContents: {

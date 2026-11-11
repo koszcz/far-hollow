@@ -1,7 +1,7 @@
 // Types and checks for the asset catalogue, asset-manifest.json.
 // See docs/adr/0006-tickets-add-draft-assets-owner-approves-final.md.
 
-/** A rough asset that a ticket built in code. The owner has not approved it yet. */
+/** A rough asset that a ticket added, built in code or from a third-party file the owner let in. The owner has not approved it yet. */
 export interface DraftStatus {
   status: "draft";
   /** The ticket that added the draft, as a path from the project root. */
@@ -38,12 +38,18 @@ export interface CodeAssetEntry extends AssetEntryBase {
   approval: AssetStatus;
 }
 
-/** An asset stored as a file in the project, such as a model or a sound. A file is never a draft. */
+/**
+ * An asset stored as a file in the project, such as a model or a sound.
+ * A file is a draft only when the owner let the third-party file into the game first, recorded in fileApproval.
+ * Then the file's license is known, and the owner still decides on the asset's look later.
+ */
 export interface FileAssetEntry extends AssetEntryBase {
   kind: "file";
   /** Path from the project root, using forward slashes. */
   file: string;
-  approval: PendingStatus | OwnerDecision;
+  approval: AssetStatus;
+  /** The owner's decision to let a draft's third-party file into the game. Only a draft file has it. */
+  fileApproval?: OwnerDecision;
 }
 
 export type AssetEntry = CodeAssetEntry | FileAssetEntry;
@@ -61,7 +67,9 @@ export interface UnapprovedAsset {
 export function findUnapprovedAssets(files: string[], manifest: AssetManifest): UnapprovedAsset[] {
   const statusByFile = new Map<string, AssetStatus["status"]>();
   for (const entry of manifest.assets) {
-    if (entry.kind === "file") statusByFile.set(entry.file, entry.approval.status);
+    if (entry.kind !== "file") continue;
+    const fileLetIn = entry.approval.status === "draft" && entry.fileApproval?.status === "approved";
+    statusByFile.set(entry.file, fileLetIn ? "approved" : entry.approval.status);
   }
 
   const problems: UnapprovedAsset[] = [];
@@ -81,9 +89,8 @@ export function findBrokenEntries(manifest: AssetManifest, pathExists: (path: st
     if (seenIds.has(entry.id)) problems.push(`${entry.id}: the id is listed more than once`);
     seenIds.add(entry.id);
 
-    const status: string = entry.approval.status;
-    if (entry.kind === "file" && status === "draft") {
-      problems.push(`${entry.id}: a file cannot be a draft, because drafts are built in code`);
+    if (entry.kind === "file" && entry.approval.status === "draft" && entry.fileApproval?.status !== "approved") {
+      problems.push(`${entry.id}: a draft file needs the owner's approval of the file in fileApproval`);
     }
     if (entry.approval.status === "draft" && !pathExists(entry.approval.ticket)) {
       problems.push(`${entry.id}: the draft's ticket ${entry.approval.ticket} does not exist`);
@@ -96,8 +103,6 @@ export function findBrokenEntries(manifest: AssetManifest, pathExists: (path: st
 }
 
 /** Returns every draft asset, in catalogue order. */
-export function listDrafts(manifest: AssetManifest): CodeAssetEntry[] {
-  return manifest.assets.filter(
-    (entry): entry is CodeAssetEntry => entry.kind === "code" && entry.approval.status === "draft",
-  );
+export function listDrafts(manifest: AssetManifest): AssetEntry[] {
+  return manifest.assets.filter((entry) => entry.approval.status === "draft");
 }

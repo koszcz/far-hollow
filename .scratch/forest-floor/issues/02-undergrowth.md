@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Ground types)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Add four drafts: `grass`, `ferns`, `flowers`, and `pebbles`. Each uses Kenney Nature Kit files from `third-party/kenney_nature-kit`, copied into `public/assets/<id>/`. The spec lists the files. The owner approved copying them as drafts in chat on 2026-11-11.
 

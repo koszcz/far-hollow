@@ -21,7 +21,6 @@ export const strings = {
   pause: "Pause",
   resume: "Resume",
   paused: "Paused",
-  cameraFollow: "Camera follows player",
   chopping: "Chopping",
   splitting: "Splitting",
   debarking: "Debarking",

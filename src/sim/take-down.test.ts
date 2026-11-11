@@ -182,7 +182,7 @@ describe("giving back materials when the backpack is full", () => {
     send(game, { type: "pickUpBark", barkId: idOf(game, bark) });
     runSeconds(game, 2);
 
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
     expect(game.entities.has(bark)).toBe(true);
   });
 });
@@ -195,7 +195,7 @@ describe("what holds up what", () => {
     const wall = finishedPieceAt(game, "doorFrame", square, 0);
 
     send(game, { type: "takeDown", pieceId: idOf(game, foundation) });
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice?.kind).toBe("holdsUpPiece");
     runSeconds(game, FOUNDATION_BUILD_SECONDS);
     expect(game.entities.has(foundation)).toBe(true);
 
@@ -239,7 +239,7 @@ describe("what holds up what", () => {
 
     // Even a frame that is still a blueprint rests on the wall.
     send(game, { type: "takeDown", pieceId: idOf(game, wall) });
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice?.kind).toBe("holdsUpPiece");
     runSeconds(game, LOG_WALL_BUILD_SECONDS);
     expect(game.entities.has(wall)).toBe(true);
 

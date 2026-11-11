@@ -34,6 +34,7 @@ import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
+import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_REACHED_SHARE, CROUCH_SETTLED_SHARE } from "./player-build-pose";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createRainEffect, type RainEffect } from "./rain-effect";
@@ -59,6 +60,9 @@ const FIELD_OF_VIEW_DEGREES = 40;
 /** Midday, so colours show as they do in daylight. */
 const NOON = 12;
 const NIGHT = 22;
+/** How many build cycles the "player-build-animation" plays before it stops, mid-press, to show the player standing up. */
+const BUILD_PLAY_CYCLES = 2.5;
+
 /** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
 const CHOP_PLAY_REST_SECONDS = 1.2;
 
@@ -463,7 +467,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   player: { radius: 1.1, focus: { x: 0, y: 0.9, z: 0 }, shots: FOUR_ANGLES, build() {} },
   campfire: {
-    radius: 1.1,
+    radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
@@ -532,15 +536,16 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
     },
   },
-  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Front row: the tools and a pot.
-  // One view shows them all. The others come close to the wood and bark, the tools, and the food.
+  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Then the tools and a pot.
+  // Front row: the crafting draft shapes: a saw blade, a saw, one plank, and several planks.
+  // One view shows them all. The others come close to the wood and bark, the tools and crafting things, and the food.
   pile: {
     radius: 3.2,
-    focus: { x: 0, y: 0.1, z: 0.5 },
+    focus: { x: 0, y: 0.1, z: 1 },
     shots: [
-      { label: "all piles", yaw: 0, pitch: 35 },
+      { label: "all piles", yaw: 0, pitch: 35, radius: 3.8 },
       { label: "firewood and bark, one and many", yaw: 25, pitch: 30, radius: 1.1, focus: { x: -1.35, y: 0.1, z: -0.1 } },
-      { label: "axe, knife, drawknife, fire strikers", yaw: 0, pitch: 55, radius: 0.75, focus: { x: -0.2, y: 0, z: 1.8 } },
+      { label: "tools, saw blade, saw, and planks", yaw: 0, pitch: 55, radius: 1.3, focus: { x: 0, y: 0, z: 2.3 } },
       { label: "berries and mushrooms, one and many", yaw: -20, pitch: 40, radius: 0.85, focus: { x: 0.45, y: 0.05, z: 0.1 } },
     ],
     build({ place }) {
@@ -568,6 +573,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         { content: "fireStriker", count: 2 },
         { content: "pot", count: 1 },
       ], 0.45);
+      row(2.8, [
+        { content: "sawBlade", count: 1 },
+        { content: "saw", count: 1 },
+        { content: "plank", count: 1 },
+        { content: "plank", count: 6 },
+      ], 0.5);
     },
   },
   "fire-effect": {
@@ -636,12 +647,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the full build menu open in each view.
+  // src/ui/hud-showcase.tsx draws every build icon large over the first view, and the HUD with the full build menu open over the others.
   "build-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
-      { label: "HUD: build menu, day", yaw: 20, pitch: 35 },
+      { label: "Build icons, large", yaw: 20, pitch: 35 },
       { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
       { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
       { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
@@ -731,7 +742,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   "campfire-build-animation": {
-    radius: 1.1,
+    radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },
     // Stones half placed, key moments while the third stick is laid, then the finished campfire.
     shots: [
@@ -787,6 +798,37 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         player.setChopping(chopping ? cycle : undefined);
         if (chopping && tree.tree === undefined) store.addComponent(tree, "tree", true);
         if (!chopping && tree.tree !== undefined) store.removeComponent(tree, "tree");
+        return undefined;
+      },
+    },
+  },
+  "player-build-animation": {
+    radius: 1.3,
+    focus: { x: 0, y: 0.55, z: 0.35 },
+    shots: [
+      { label: "crouching", share: CROUCH_REACHED_SHARE / 2 },
+      { label: "piece held above its place", share: CROUCH_HOLD_SHARE },
+      { label: "pressed home", share: CROUCH_PRESSED_SHARE },
+      { label: "standing up", share: (CROUCH_SETTLED_SHARE + 1) / 2 },
+    ].map(({ label, share }) => ({ label, yaw: 90, pitch: 10, seconds: share * CROUCH_CYCLE_SECONDS })),
+    build({ place, movePlayer }) {
+      // A half-built foundation blueprint in front of the player, for size and context.
+      const blueprint = place(0, 0.9, { blueprint: { structure: "foundation", progress: 0.5, materialsSpent: 2, delivered: { debarkedLog: 4 } } });
+      if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      // Start a fresh build at time 0 for each view, so the view shows the cycle `shot.seconds` in.
+      player.setBuilding(undefined);
+      player.setBuilding(0);
+      player.setBuilding(shot.seconds);
+    },
+    // The player builds for two and a half cycles, stops mid-press and stands up, rests, then builds again.
+    play: {
+      shot: { label: "building, stopping mid-press, then a rest", yaw: 70, pitch: 12 },
+      pose({ player }, seconds) {
+        const cycle = seconds % (BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS + BUILD_PLAY_REST_SECONDS);
+        player.setBuilding(cycle < BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS ? cycle : undefined);
         return undefined;
       },
     },
@@ -883,7 +925,7 @@ export function showAsset(
   const store = createEntityStore();
   const player = createPlayerMesh(shapes.player, shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "debarked-log", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud", "log-wall", "door-frame"].includes(id);
+  const showsPlayer = ["player", "logs", "debarked-log", "walk-animation", "chop-animation", "split-animation", "player-build-animation", "sky-lighting", "hud", "log-wall", "door-frame"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;

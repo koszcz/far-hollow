@@ -20,6 +20,8 @@ const PATHS = {
   moon: "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
   /** Bark: one peeled strip with its end rolled into a curl, and a grain line. The "bark" asset. Approved by the owner. */
   bark: "M3 9c4-1.5 8-1.5 12-1M3 15c4-1.5 8-1.5 11-1M3 9v6M15 8a4 4 0 1 1-1 6M15 11.5a1.2 1.2 0 1 1 0 .1M6 12h5",
+  /** The time of day, in daylight. */
+  sun: "M12 8a4 4 0 1 1 0 8a4 4 0 0 1 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
   /** Placing something on the ground. */
   place: "M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10zM12 9v4M10 11h4",
 } as const;

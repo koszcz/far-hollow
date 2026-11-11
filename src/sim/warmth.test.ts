@@ -99,7 +99,7 @@ describe("a collapse from the cold", () => {
     }
 
     const view = game.client.getView();
-    expect(view.notice).toBe("collapsed");
+    expect(view.notice?.kind).toBe("collapsed");
     expect(view.time).toMatchObject({ day: 2, hour: 6, minute: 0 });
     expect(view.playerPosition.x).toBeCloseTo(start.x, 5);
     expect(view.playerPosition.z).toBeCloseTo(start.z, 5);
@@ -113,7 +113,7 @@ describe("a collapse from the cold", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipTime", hours: 40 }); // Would reach 00:00 on day 3.
 
-    expect(game.client.getView().notice).toBe("collapsed");
+    expect(game.client.getView().notice?.kind).toBe("collapsed");
     expect(game.client.getView().time).toMatchObject({ day: 2, hour: 6, minute: 0 });
   });
 
@@ -126,7 +126,7 @@ describe("a collapse from the cold", () => {
 
     send(game, { type: "skipTime", hours: 18 });
 
-    expect(game.client.getView().notice).toBe("collapsed");
+    expect(game.client.getView().notice?.kind).toBe("collapsed");
     expect(game.client.getView().carrying).toBeNull();
     const logs = game.entities.with("log", "position").entities;
     expect(logs).toHaveLength(logsBefore + 1);
@@ -142,7 +142,7 @@ describe("surviving the first night", () => {
     send(game, { type: "skipTime", hours: 21.5 }); // 05:30 on day 2.
     expect(game.client.getView().notice).toBeNull();
     runGameMinutes(game, 31);
-    expect(game.client.getView().notice).toBe("survivedFirstNight");
+    expect(game.client.getView().notice?.kind).toBe("survivedFirstNight");
 
     runGameMinutes(game, 31);
     expect(game.client.getView().notice).toBeNull();
@@ -152,7 +152,7 @@ describe("surviving the first night", () => {
     const game = createGame({ seed: 42 });
 
     send(game, { type: "skipTime", hours: 20 }); // Collapses at about 01:00, then wakes at 06:00.
-    expect(game.client.getView().notice).toBe("collapsed");
+    expect(game.client.getView().notice?.kind).toBe("collapsed");
     runGameMinutes(game, 40);
 
     expect(game.client.getView().notice).toBeNull();

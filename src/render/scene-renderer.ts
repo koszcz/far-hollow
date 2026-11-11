@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { QuarterTurns, StructureKind } from "../sim/api";
+import type { QuarterTurns, StructureKind, WorkStationKind } from "../sim/api";
 import { movingEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
@@ -53,7 +53,7 @@ export type ScenePick =
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
   | { kind: "chest"; id: number }
-  | { kind: "sawhorse"; id: number }
+  | { kind: "workStation"; id: number; station: WorkStationKind }
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
@@ -176,6 +176,10 @@ export function createSceneRenderer(
     chest: (entity) => chestMeshes.outlineOf({ kind: "blueprint", entity }),
     sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "blueprint", entity }),
   };
+  /** The shapes to outline for each kind of finished work station. */
+  const workStationOutlines: { readonly [Kind in WorkStationKind]: (entity: Entity) => OutlinePart[] } = {
+    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "workStation", entity }),
+  };
   /** The shapes to outline for each kind of thing the player can click. */
   const outlines: { readonly [Kind in EntityPick["kind"]]: (entity: Entity) => OutlinePart[] } = {
     tree: (entity) => forestMeshes.outlineOf({ kind: "tree", entity }),
@@ -188,7 +192,7 @@ export function createSceneRenderer(
     campfire: (entity) => campfireMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => woodpileMeshes.outlineOf({ kind: "woodpile", entity }),
     chest: (entity) => chestMeshes.outlineOf({ kind: "chest", entity }),
-    sawhorse: (entity) => sawhorseMeshes.outlineOf({ kind: "sawhorse", entity }),
+    workStation: (entity) => (entity.workStation === undefined ? [] : workStationOutlines[entity.workStation](entity)),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
   };
@@ -266,13 +270,23 @@ export function createSceneRenderer(
   const pointer = new THREE.Vector2();
 
   /**
-   * Shows what the player is doing: which way they face, what they carry, and whether they chop, split, debark, or craft.
+   * Shows what the player is doing: which way they face, what they carry, and whether they build, chop, split, debark, or craft.
    * Debarking reuses the chopping swing, aimed at the log. Crafting reuses it where the player faces.
    */
   function posePlayer(nowSeconds: number): void {
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
+    // Building crouches the player over the blueprint, facing its middle.
+    const blueprint = player.buildTask !== undefined && player.walkPath === undefined ? entities.entity(player.buildTask.blueprintId) : undefined;
+    if (blueprint?.blueprint !== undefined && blueprint.position !== undefined && player.splitTask === undefined) {
+      playerMesh.setSplitting(undefined);
+      playerMesh.setChopping(undefined);
+      playerMesh.setHeading(Math.atan2(blueprint.position.x - playerDrawn.x, blueprint.position.z - playerDrawn.z));
+      playerMesh.setBuilding(nowSeconds);
+      return;
+    }
+    playerMesh.setBuilding(undefined);
     if (player.splitTask !== undefined) {
       // Splitting has its own overhead strike, aimed where the player already faces.
       playerMesh.setSplitting(nowSeconds);
@@ -326,8 +340,12 @@ export function createSceneRenderer(
       if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
     }
     if (nearest !== undefined && (ground === undefined || nearest.distance <= ground.distance)) {
-      const id = entities.id(nearest.hit.entity);
-      if (id !== undefined) return { pick: { kind: nearest.hit.kind, id }, distance: nearest.distance };
+      const { kind, entity } = nearest.hit;
+      const id = entities.id(entity);
+      if (id !== undefined) {
+        if (kind !== "workStation") return { pick: { kind, id }, distance: nearest.distance };
+        if (entity.workStation !== undefined) return { pick: { kind, id, station: entity.workStation }, distance: nearest.distance };
+      }
     }
     if (ground === undefined) return undefined;
     const spot = { x: ground.point.x, z: ground.point.z };

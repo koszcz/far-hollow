@@ -302,7 +302,7 @@ describe("continuing or starting a game when the page loads", () => {
     const game = continueOrStartGame({ version: SAVE_VERSION, seed: "broken" }, 99);
     expect(game.client.getView().seed).toBe(99);
     expect(game.client.getView().stepCount).toBe(0);
-    expect(game.client.getView().notice).toBe("saveBroken");
+    expect(game.client.getView().notice?.kind).toBe("saveBroken");
   });
 });
 

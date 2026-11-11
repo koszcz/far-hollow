@@ -160,7 +160,7 @@ describe("taking down a roof frame", () => {
     const roof = lastBlueprint(game, "roof");
 
     send(game, { type: "takeDown", pieceId: idOf(game, frame) });
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice).toEqual({ kind: "holdsUpPiece" });
     expect(game.entities.has(frame)).toBe(true);
 
     send(game, { type: "takeDown", pieceId: idOf(game, roof) });
@@ -178,7 +178,7 @@ describe("taking down a roof frame", () => {
     const frame = lastBlueprint(game, "roofFrame");
 
     send(game, { type: "takeDown", pieceId: idOf(game, wall) });
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice).toEqual({ kind: "holdsUpPiece" });
     expect(game.entities.has(wall)).toBe(true);
 
     send(game, { type: "takeDown", pieceId: idOf(game, frame) });
@@ -198,7 +198,7 @@ describe("taking down a roof frame", () => {
 
     send(game, { type: "takeDown", pieceId: idOf(game, foundation) });
 
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice).toEqual({ kind: "holdsUpPiece" });
   });
 
   it("gives back the frame's debarked logs", () => {

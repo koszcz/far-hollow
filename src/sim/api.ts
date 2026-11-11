@@ -1,7 +1,7 @@
 import type { BackpackContent, BackpackContents, Food } from "./backpack";
-import type { GroundAmount, RecipeAmount, RecipeKind } from "./crafting";
+import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 
-export type { GroundAmount, RecipeAmount, RecipeKind } from "./crafting";
+export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
 export type { BackpackContent, CraftingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
@@ -9,10 +9,10 @@ import type { CarriedLog, Vec3, WoodpileWood } from "./entities";
 
 export type { CarriedLog, WoodpileWood } from "./entities";
 import type { PotWater } from "./pot-state";
-import type { DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind } from "./structures";
+import type { DeliveredMaterial, MaterialCost, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
-export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, QuarterTurns, StructureKind } from "./structures";
+export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -128,9 +128,9 @@ export type Command =
    * Start crafting a recipe, given by its name. A hand recipe is crafted where the player stands, as timed work.
    * For a station recipe, the player walks to the finished work station given by `stationId`, or without one to the nearest
    * finished station of the right kind, and works there. A blueprint is not a station.
-   * Nothing happens if the player lacks its tool, work station, or materials. It is refused while the player carries a log,
+   * It is refused, with a notice saying why, if the player lacks its tool, work station, or materials, while they carry a log,
    * if the result would not fit in the backpack once the materials it uses are taken out,
-   * or if the logs a station recipe uses do not lie within 2 m of the station.
+   * or if the logs a station recipe uses do not lie within STATION_GROUND_METRES of the station.
    */
   | { type: "craft"; recipe: RecipeKind; stationId?: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
@@ -184,7 +184,7 @@ export interface GameView {
   /** Whether rain is falling in the valley. */
   readonly raining: boolean;
   /** A short message to show the player about something that just happened, or null if there is none. */
-  readonly notice: GameNotice | null;
+  readonly notice: Notice | null;
 }
 
 /**
@@ -197,11 +197,20 @@ export interface GameView {
  * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
- * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the station.
+ * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the `station`.
+ * `cannotCraftYet`: the player tried a recipe while lacking the tool, work station, or materials it needs, listed in `lacks`.
  */
-export type GameNotice =
-  | "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst"
-  | "noLogBesideStation";
+export type Notice =
+  | { readonly kind: PlainNotice }
+  | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind }
+  | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] };
+
+/** The kind of each notice. */
+export type GameNotice = Notice["kind"];
+
+/** A notice that needs nothing more than its kind to say what happened. */
+export type PlainNotice =
+  "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -244,28 +253,11 @@ export interface BuildMenuEntry {
   readonly furniture?: true;
 }
 
-/** One recipe in the craft menu. */
-export interface CraftMenuEntry {
-  readonly recipe: RecipeKind;
-  /** What crafting it uses up, from the backpack. */
-  readonly materials: readonly RecipeAmount[];
-  /** What a station recipe uses up from the ground, lying within 2 m of the station. Missing if it uses nothing from the ground. */
-  readonly besideStation?: readonly GroundAmount[];
-  /** What crafting it makes. It goes in the backpack. */
-  readonly result: { readonly content: BackpackContent; readonly count: number };
-  /** How long crafting it takes, in seconds. */
-  readonly seconds: number;
-  /** The tool it needs in the backpack. Missing if it needs none. Crafting does not use the tool up. */
-  readonly tool?: BackpackContent;
-  /** The work station it is crafted at. Missing for a hand recipe, which is crafted where the player stands. */
-  readonly station?: StructureKind;
-  /** The tool it needs that is not in the backpack. Missing if the player has it, or it needs none. */
-  readonly missingTool?: BackpackContent;
-  /** The work station it needs that does not stand finished in the valley. Missing if one does, or it needs none. */
-  readonly missingStation?: StructureKind;
-  /** True if the backpack holds every material it uses. */
-  readonly hasMaterials: boolean;
-}
+/** One recipe in the craft menu: the recipe, with everything the player lacks to follow it now. */
+export type CraftMenuEntry = Recipe & {
+  /** Everything the player lacks to follow it now, such as its tool or work station. Empty when they can follow it. */
+  readonly lacks: readonly RecipeLack[];
+};
 
 /** A blueprint, with how far it has been built and the materials carried to it. */
 export interface BlueprintView {

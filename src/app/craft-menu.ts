@@ -1,10 +1,13 @@
+/** What a key press does to the craft menu: open it, close it, or nothing. */
+export type CraftKeyResult = "open" | "close" | "ignore";
+
 /**
- * Whether the craft menu is open after a key press, given whether it was open and the key's `KeyboardEvent.code`.
- * C opens and closes it. Escape closes it. Undefined if the key does nothing here.
+ * What a key press does to the craft menu, given whether it is open and the key's `KeyboardEvent.code`.
+ * C opens and closes it. Escape closes it. Other keys do nothing here.
  * The menu is input state, not game state. Only choosing a recipe sends a command.
  */
-export function pressCraftKey(open: boolean, code: string): boolean | undefined {
-  if (code === "KeyC") return !open;
-  if (code === "Escape" && open) return false;
-  return undefined;
+export function pressCraftKey(open: boolean, code: string): CraftKeyResult {
+  if (code === "KeyC") return open ? "close" : "open";
+  if (code === "Escape" && open) return "close";
+  return "ignore";
 }

@@ -233,13 +233,28 @@
         "src/render/roof-meshes.ts",
         "src/sim/roofs.ts"
       ],
-      "description": "The cabin roof section: a sloped roof over one foundation square, resting on the tops of its walls. It slopes 12 degrees down to the front to shed rain, and sections one behind another share one continuous slope. Three faceted debarked-log rafters with pale cut ends rest on the front wall. Where a section has no section beside or behind it, debarked logs stacked on the wall, cut to the slope, fill the gap up to the bark. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie over them like shingles from the front up, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it.",
+      "description": "The cabin roof section: a sloped roof over one foundation square, resting on the tops of its walls. It slopes 12 degrees down to the front to shed rain, and sections one behind another share one continuous slope. Three faceted debarked-log rafters with pale cut ends rest on the front wall. Where a section has no section beside or behind it, debarked logs stacked on the wall, cut to the slope, fill the gap up to the bark. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie over them like shingles from the front up, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it. Each section slopes down the way the player turned it. Its hip and valley corner pieces are the separate draft asset roof-corners.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "roof-corners",
+      "kind": "code",
+      "code": [
+        "src/render/roof-meshes.ts",
+        "src/render/roof-layout.ts"
+      ],
+      "description": "The hip and valley corner pieces of the cabin roof. Where two roofs that slope at right angles meet, the corner section changes shape on its own: an outside corner becomes a hip, where two slopes meet at a ridge, and an inside corner becomes a valley, where they meet in a gutter. Each has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Four rows of bark strips, made like the straight section's, are laid on both slopes from the eaves up, each cut along the meeting line and reaching a little past it, so on a hip each slope laps over the ridge and on a valley each slope tucks under the other. Logs cut to the slope fill any gap above a wall or a lower roof beside it. Construction stages match the straight section's.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/09-roof-facing-and-corners.md"
       }
     },
     {

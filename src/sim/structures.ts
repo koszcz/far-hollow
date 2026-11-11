@@ -250,6 +250,8 @@ export const ROOF_BUILD_SECONDS = 15;
 /**
  * A roof section over one foundation square. It rests on the log walls and door frames on the square's edges, so it needs at least one.
  * A finished section is a roof overhead for the whole square, like a lean-to's roof.
+ * R turns it like a wall: facing `turns`, it slopes down the way `turnOffset` turns +z. The section keeps its turn in `facing`.
+ * The game rules store only that turn. The renderer works out each section's height and corner shape from its neighbours.
  */
 const roof: StructureDefinition & { readonly kind: "roof" } = {
   kind: "roof",
@@ -269,7 +271,7 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
     const rect = roof.footprint(spot, turns);
     return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect);
   },
-  finish: (spot) => ({ cabinRoof: true, roof: roof.footprint(spot, 0) }),
+  finish: (spot, turns) => ({ cabinRoof: true, roof: roof.footprint(spot, turns) }),
 };
 
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */

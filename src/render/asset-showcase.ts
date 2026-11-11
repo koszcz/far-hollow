@@ -24,6 +24,7 @@ import { createForageMeshes } from "./forage-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
 import { DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST } from "../sim/structures";
+import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
@@ -309,6 +310,58 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       }
       deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
       movePlayer(0.6, 1.3, Math.PI);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
+  "roof-corners": {
+    radius: 3,
+    focus: { x: 0, y: 1.6, z: 0 },
+    // A 3 by 2 cabin with a hipped roof: the long sides slope down to the front and back, and the two ends slope out, so each
+    // corner is a hip. Beside it, an L-shaped cabin one square wide whose roofs slope into the L, so its corner is a valley.
+    // The front right hip is a blueprint with two logs delivered, then with its bark half laid, then finished.
+    shots: [
+      { label: `hip blueprint, 2 of ${ROOF_LOG_COST} logs delivered`, yaw: 30, pitch: 40, seconds: 0, radius: 1.8, focus: { x: 1, y: 1.8, z: 0 } },
+      { label: "hip, bark half laid", yaw: 30, pitch: 40, radius: 1.8, focus: { x: 1, y: 1.8, z: 0 },
+        seconds: (ROOF_LOG_COST + ROOF_BARK_COST / 2) / (ROOF_LOG_COST + ROOF_BARK_COST) },
+      { label: "hipped 3 by 2 cabin", yaw: 60, pitch: 15, seconds: 1, radius: 2, focus: { x: 0, y: 1.6, z: -0.5 } },
+      { label: "L cabin, valley", yaw: 45, pitch: 35, seconds: 1, radius: 1.6, focus: { x: -4.5, y: 1.6, z: 0 } },
+    ],
+    build({ place }) {
+      const deckTop = (entity: Entity) => {
+        if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
+        return entity;
+      };
+      /** Builds foundations on these squares, and log walls on every edge with no foundation beyond it. */
+      const cabin = (squares: readonly (readonly [number, number])[]) => {
+        const taken = new Set(squares.map(([x, z]) => `${x},${z}`));
+        for (const [x, z] of squares) {
+          deckTop(place(x, z, { foundation: true }));
+          for (const turns of [0, 1, 2, 3] as const) {
+            const out = turnOffset({ x: 0, z: 1 }, turns);
+            if (taken.has(`${x + out.x},${z + out.z}`)) continue;
+            deckTop(place(x + out.x / 2, z + out.z / 2, { edgePiece: "logWall", facing: { turns } }));
+          }
+        }
+      };
+      const roofOver = (x: number, z: number, turns: QuarterTurns) =>
+        deckTop(place(x, z, { cabinRoof: true, facing: { turns }, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
+      // The hipped cabin. Turns 0 slopes down to +z, 1 to -x, 2 to -z, and 3 to +x.
+      cabin([[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0]]);
+      roofOver(0, 0, 0);
+      roofOver(0, -1, 2);
+      roofOver(-1, 0, 1);
+      roofOver(-1, -1, 1);
+      roofOver(1, -1, 3);
+      deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 3 } }));
+      // The L: an arm along x at the back, and an arm along z down its left side. Both slope into the L.
+      cabin([[-5, -1], [-4, -1], [-3, -1], [-5, 0], [-5, 1]]);
+      roofOver(-4, -1, 0);
+      roofOver(-3, -1, 0);
+      roofOver(-5, -1, 0);
+      roofOver(-5, 0, 3);
+      roofOver(-5, 1, 3);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;

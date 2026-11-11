@@ -14,7 +14,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
  */
-export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, nameBlueprintStructure];
+export const SAVE_UPGRADES: readonly SaveUpgrade[] = [addForageSpots, giveBedroll, givePot, giveDrawknife, countMaterialsSpent, addDeliveredMaterials, nameBlueprintStructure, faceRoofsForward];
 
 /** The version of the save format this code writes. */
 export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
@@ -156,6 +156,21 @@ function nameBlueprintStructure(save: Readonly<Record<string, unknown>>): Record
     if (typeof blueprint !== "object" || blueprint === null || !("piece" in blueprint)) return entity;
     const { piece, ...rest } = blueprint;
     return { ...(entity as object), components: { ...components, blueprint: { structure: piece, ...rest } } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * Turns every roof section, finished or as a blueprint, to slope down to +z. Before roofs faced a direction, every roof
+ * sloped that way, whatever turn the player gave its blueprint, so an older save keeps the roofs it showed.
+ */
+function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const isRoof = components?.cabinRoof === true || components?.blueprint?.structure === "roof";
+    if (!isRoof) return entity;
+    return { ...(entity as object), components: { ...components, facing: { turns: 0 } } };
   });
   return { ...save, entities };
 }

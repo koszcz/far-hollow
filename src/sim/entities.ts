@@ -105,6 +105,7 @@ export interface Entity {
   /**
    * Marks a finished cabin roof section. It covers one foundation square, resting on the walls and door frames on its edges.
    * Its position is the middle of that square, at the height of the foundation's deck. Its `roof` is that square.
+   * Its `facing` says which way it slopes down. A section facing the default way slopes down to +z.
    */
   cabinRoof?: true;
   /**

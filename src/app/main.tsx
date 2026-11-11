@@ -186,10 +186,6 @@ function renderUi(): void {
       )}
       <Hud
         client={game.client}
-        cameraFollow={sceneRenderer.cameraRig.followEnabled}
-        onCameraFollowChange={(enabled) => {
-          sceneRenderer.cameraRig.setFollowEnabled(enabled);
-        }}
         buildMenuOpen={buildMode.menuOpen}
         placing={buildMode.placing?.structure ?? null}
         onToggleBuildMenu={() => {

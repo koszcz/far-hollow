@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isBetweenCameraAndPlayer } from "./edge-piece-meshes";
+import { isBetweenCameraAndPlayer, wallEnds } from "./edge-piece-meshes";
 
 describe("fading walls between the camera and the player", () => {
   // A wall facing the default way, along x, on the line z = 0, with its deck at height 0.
@@ -24,5 +24,30 @@ describe("fading walls between the camera and the player", () => {
   it("fades a wall that runs along z the same way", () => {
     expect(isBetweenCameraAndPlayer(wall, 1, { x: 6, y: 4, z: 0 }, { x: -1, y: 0, z: 0 })).toBe(true);
     expect(isBetweenCameraAndPlayer(wall, 1, { x: 0, y: 4, z: 6 }, { x: 0, y: 0, z: -1 })).toBe(false);
+  });
+});
+
+describe("log wall corners", () => {
+  // A wall on the +z edge of the square at the origin runs along x, from x = -0.5 to x = 0.5.
+  const front = { middle: { x: 0, z: 0.5 }, turns: 0 };
+
+  it("reaches past an end where a wall running the other way meets it", () => {
+    const side = { middle: { x: 0.5, z: 0 }, turns: 3 };
+    expect(wallEnds(front, [front, side])).toEqual({ start: false, end: true });
+  });
+
+  it("reaches past both ends between two side walls", () => {
+    const left = { middle: { x: -0.5, z: 0 }, turns: 1 };
+    const right = { middle: { x: 0.5, z: 1 }, turns: 3 };
+    expect(wallEnds(front, [left, right])).toEqual({ start: true, end: true });
+  });
+
+  it("stays short where a wall carries on in a straight line", () => {
+    const next = { middle: { x: 1, z: 0.5 }, turns: 0 };
+    expect(wallEnds(front, [front, next])).toEqual({ start: false, end: false });
+  });
+
+  it("stays short where no wall meets it", () => {
+    expect(wallEnds(front, [front])).toEqual({ start: false, end: false });
   });
 });

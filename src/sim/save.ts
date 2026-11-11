@@ -37,6 +37,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   renameNotEmptyNotice,
   addSawhorses,
   giveSawBlade,
+  addPlanks,
 ];
 
 /** The version of the save format this code writes. */
@@ -54,6 +55,10 @@ export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalk
 export const RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameNotEmptyNotice) + 2;
 /** The first save version that can hold sawhorses. */
 export const SAWHORSES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSawhorses) + 2;
+/** The first save version in which the player has a saw blade, for crafting the saw. */
+export const CRAFTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveSawBlade) + 2;
+/** The first save version that can hold planks. */
+export const PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -292,6 +297,11 @@ function addSawhorses(save: Readonly<Record<string, unknown>>): Record<string, u
  */
 function giveSawBlade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return giveStartingItem(save, "sawBlade", ["saw"]);
+}
+
+/** Version 18 to 19: the player can cut planks. A save from before then has none, so it carries over unchanged. */
+function addPlanks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }
 
 /**

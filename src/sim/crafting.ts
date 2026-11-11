@@ -1,15 +1,23 @@
-// Crafting: timed work that turns materials in the backpack into something new that goes in the backpack.
+// Crafting: timed work that turns materials into something new that goes in the backpack.
 // Every recipe is listed in RECIPES. A new recipe needs only a new entry there, with its name in the strings file.
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG, countInBackpack, hasInBackpack, type Backpack, type BackpackContent } from "./backpack";
-import { playerEntities, setComponent, type EntityStore } from "./entities";
+import { debarkedLogEntities, logEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
 import { structureKindOf, type StructureKind } from "./structures";
+import { groundDistance, type GroundPoint } from "./valley";
+import { walkBeside, type Walking } from "./walking";
 
 export type { RecipeKind } from "./recipe-kind";
 
 /** How many of one thing a recipe uses or makes. */
 export interface RecipeAmount {
   readonly material: BackpackContent;
+  readonly count: number;
+}
+
+/** How many logs or debarked logs a station recipe uses from the ground beside the station. */
+export interface GroundAmount {
+  readonly material: CarriedLog;
   readonly count: number;
 }
 
@@ -20,8 +28,13 @@ export interface RecipeAmount {
  */
 export interface Recipe {
   readonly kind: RecipeKind;
-  /** What the work uses up. These leave the backpack only when the work finishes. */
+  /** What the work uses up from the backpack. These leave the backpack only when the work finishes. */
   readonly materials: readonly RecipeAmount[];
+  /**
+   * What a station recipe uses up from the ground: logs or debarked logs lying within STATION_GROUND_METRES of the station.
+   * They are gone only when the work finishes. Missing if it uses nothing from the ground.
+   */
+  readonly besideStation?: readonly GroundAmount[];
   /** What the work makes. It goes in the backpack. */
   readonly result: { readonly content: BackpackContent; readonly count: number };
   /** How long the work takes, in seconds. */
@@ -34,6 +47,17 @@ export interface Recipe {
 
 /** How long crafting the saw takes, in seconds. */
 export const SAW_CRAFT_SECONDS = 5;
+/** How long cutting a debarked log into planks takes, in seconds. */
+export const PLANKS_CRAFT_SECONDS = 8;
+/** How many planks one debarked log makes. */
+export const PLANKS_PER_LOG = 4;
+
+/** A station recipe can use logs or debarked logs lying this close to the station, in metres. */
+export const STATION_GROUND_METRES = 2;
+/** The player works at a station from this far from its centre, in metres. */
+const STATION_REACH_METRES = 2;
+/** The player walks to stand this far from a station's centre, in metres. A sawhorse blocks walking within 0.75 m. */
+const STATION_STAND_METRES = 1.2;
 
 /** Each recipe by its name. TypeScript reports a name with no entry. The craft menu lists them in this order. */
 const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind: Kind } } = {
@@ -46,6 +70,16 @@ const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind:
     ],
     result: { content: "saw", count: 1 },
     seconds: SAW_CRAFT_SECONDS,
+  },
+  // Planks: a station recipe. The player saws a debarked log lying beside the sawhorse into planks.
+  planks: {
+    kind: "planks",
+    materials: [],
+    besideStation: [{ material: "debarkedLog", count: 1 }],
+    result: { content: "plank", count: PLANKS_PER_LOG },
+    seconds: PLANKS_CRAFT_SECONDS,
+    tool: "saw",
+    station: "sawhorse",
   },
 };
 
@@ -89,47 +123,102 @@ function resultFits(recipe: Recipe, backpack: Backpack): boolean {
 /**
  * Why the player could not start crafting.
  * `putLogDownFirst`: they carry a log on their shoulder. `backpackFull`: the result would not fit.
+ * `noLogBesideStation`: a station recipe needs a log or debarked log lying beside the station, and none is there.
  */
-export type CraftRefusal = "putLogDownFirst" | "backpackFull";
+export type CraftRefusal = "putLogDownFirst" | "backpackFull" | "noLogBesideStation";
 
 export interface Crafting {
   /**
-   * Starts the player crafting a hand recipe where they stand.
-   * Does nothing if they lack its tool, station, or materials. Refuses if they carry a log or the result would not fit.
+   * Starts the player crafting. A hand recipe is crafted where the player stands.
+   * For a station recipe, the player walks to the finished station given by `stationId`, or to the nearest finished one
+   * of the right kind, then works there.
+   * Does nothing if they lack its tool, station, or materials. Refuses if they carry a log, the result would not fit,
+   * or the logs a station recipe uses do not lie beside the station.
    */
-  start(kind: RecipeKind): CraftRefusal | undefined;
+  start(kind: RecipeKind, stationId?: number): CraftRefusal | undefined;
   /** Stops the player crafting. Nothing is used up, and the work starts again from the beginning next time. */
   cancel(): void;
-  /** Moves crafting on by one logic step. When the work finishes, the materials leave the backpack and the result goes in. */
+  /**
+   * Moves crafting on by one logic step. Run it after walking has moved the player.
+   * When the work finishes, the materials are used up and the result goes in the backpack.
+   */
   step(stepSeconds: number): void;
   /** What the player lacks to follow a recipe now. */
   lacks(kind: RecipeKind): RecipeLacks;
 }
 
-/** Lets the player craft: turn materials in the backpack into something new, by timed work. */
-export function createCrafting(entities: EntityStore): Crafting {
+type Station = Entity & Required<Pick<Entity, "position">>;
+
+/** Lets the player craft: turn materials into something new that goes in the backpack, by timed work. */
+export function createCrafting(entities: EntityStore, walking: Walking): Crafting {
   const players = playerEntities(entities);
-  const crafters = entities.with("craftTask", "backpack");
+  const crafters = entities.with("craftTask", "backpack", "position");
+  const groundLogs: { readonly [Material in CarriedLog]: { readonly entities: readonly Station[] } } = {
+    log: logEntities(entities),
+    debarkedLog: debarkedLogEntities(entities),
+  };
+
+  /** True if `entity` is a finished work station of this kind. A blueprint is not. */
+  function isStation(entity: Entity | undefined, station: StructureKind): entity is Station {
+    return entity?.position !== undefined && entity.blueprint === undefined && structureKindOf(entity) === station;
+  }
 
   function hasStation(station: StructureKind): boolean {
-    // Only a finished station counts. A blueprint does not.
-    return entities.entities.some((entity) => entity.blueprint === undefined && structureKindOf(entity) === station);
+    return entities.entities.some((entity) => isStation(entity, station));
+  }
+
+  /** The finished station of this kind nearest to `from`, if any stands. */
+  function nearestStation(station: StructureKind, from: GroundPoint): Station | undefined {
+    let nearest: Station | undefined;
+    for (const entity of entities.entities) {
+      if (!isStation(entity, station)) continue;
+      if (nearest === undefined || groundDistance(entity.position, from) < groundDistance(nearest.position, from)) nearest = entity;
+    }
+    return nearest;
+  }
+
+  /** The logs or debarked logs a recipe would use from beside `station`, nearest first, or undefined if too few lie there. */
+  function logsBeside(recipe: Recipe, station: Station): Station[] | undefined {
+    const used: Station[] = [];
+    for (const { material, count } of recipe.besideStation ?? []) {
+      const near = groundLogs[material].entities
+        .filter((log) => groundDistance(log.position, station.position) <= STATION_GROUND_METRES)
+        .sort((a, b) => groundDistance(a.position, station.position) - groundDistance(b.position, station.position));
+      if (near.length < count) return undefined;
+      used.push(...near.slice(0, count));
+    }
+    return used;
   }
 
   function lacksAnything(lacks: RecipeLacks): boolean {
     return lacks.tool !== undefined || lacks.station !== undefined || lacks.materials === true;
   }
 
+  /** The station a crafter works at, if their recipe needs one and it still stands finished. */
+  function stationOf(recipe: Recipe, stationId: number | undefined): Station | undefined {
+    if (recipe.station === undefined || stationId === undefined) return undefined;
+    const station = entities.entity(stationId);
+    return isStation(station, recipe.station) ? station : undefined;
+  }
+
   return {
-    start(kind) {
+    start(kind, stationId) {
       const recipe = recipeOf(kind);
-      // Station recipes need the player to walk to the station first, which is not built yet, so they do not start.
-      if (recipe.station !== undefined) return undefined;
       let refusal: CraftRefusal | undefined;
       for (const player of players) {
-        if (player.backpack === undefined || lacksAnything(recipeLacks(recipe, player.backpack, hasStation))) continue;
+        if (player.backpack === undefined) continue;
+        if (lacksAnything(recipeLacks(recipe, player.backpack, hasStation))) continue;
+        let station: Station | undefined;
+        if (recipe.station !== undefined) {
+          station = stationId === undefined ? nearestStation(recipe.station, player.position) : stationOf(recipe, stationId);
+          if (station === undefined) continue;
+        }
         if (player.carrying !== undefined) {
           refusal = "putLogDownFirst";
+          continue;
+        }
+        if (station !== undefined && logsBeside(recipe, station) === undefined) {
+          refusal = "noLogBesideStation";
           continue;
         }
         if (!resultFits(recipe, player.backpack)) {
@@ -137,7 +226,14 @@ export function createCrafting(entities: EntityStore): Crafting {
           continue;
         }
         entities.removeComponent(player, "walkPath");
-        setComponent(entities, player, "craftTask", { recipe: kind, secondsDone: 0 });
+        if (station === undefined) {
+          setComponent(entities, player, "craftTask", { recipe: kind, secondsDone: 0 });
+          continue;
+        }
+        const id = entities.id(station);
+        if (id === undefined) continue;
+        walkBeside(walking, player.position, station.position, STATION_REACH_METRES, STATION_STAND_METRES);
+        setComponent(entities, player, "craftTask", { recipe: kind, secondsDone: 0, stationId: id });
       }
       return refusal;
     },
@@ -147,14 +243,26 @@ export function createCrafting(entities: EntityStore): Crafting {
     step(stepSeconds) {
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const crafter of [...crafters]) {
+        if (crafter.walkPath) continue;
         const recipe = recipeOf(crafter.craftTask.recipe);
-        if (crafter.carrying !== undefined || lacksAnything(recipeLacks(recipe, crafter.backpack, hasStation)) || !resultFits(recipe, crafter.backpack)) {
+        const station = stationOf(recipe, crafter.craftTask.stationId);
+        const atStation =
+          recipe.station === undefined || (station !== undefined && groundDistance(station.position, crafter.position) <= STATION_REACH_METRES);
+        const logs = station === undefined ? [] : logsBeside(recipe, station);
+        if (
+          !atStation ||
+          logs === undefined ||
+          crafter.carrying !== undefined ||
+          lacksAnything(recipeLacks(recipe, crafter.backpack, hasStation)) ||
+          !resultFits(recipe, crafter.backpack)
+        ) {
           entities.removeComponent(crafter, "craftTask");
           continue;
         }
         crafter.craftTask.secondsDone += stepSeconds;
         if (crafter.craftTask.secondsDone < recipe.seconds) continue;
         entities.removeComponent(crafter, "craftTask");
+        for (const log of logs) entities.remove(log);
         for (const { material, count } of recipe.materials) crafter.backpack.contents[material] = countInBackpack(crafter.backpack, material) - count;
         crafter.backpack.contents[recipe.result.content] = countInBackpack(crafter.backpack, recipe.result.content) + recipe.result.count;
       }

@@ -47,8 +47,11 @@ describe("right-clicking a chest or woodpile", () => {
 });
 
 describe("clicking a finished sawhorse", () => {
-  it("offers to take it down on a right-click, and does nothing on a left-click yet", () => {
-    expect(menuActionsFor({ kind: "sawhorse", id: 11 })).toEqual([{ label: strings.takeDown, command: { type: "takeDown", pieceId: 11 } }]);
+  it("offers to cut planks at it or take it down on a right-click, and does nothing on a left-click yet", () => {
+    expect(menuActionsFor({ kind: "sawhorse", id: 11 })).toEqual([
+      { label: strings.craftMenu.recipes.planks, command: { type: "craft", recipe: "planks", stationId: 11 } },
+      { label: strings.takeDown, command: { type: "takeDown", pieceId: 11 } },
+    ]);
     expect(mainActionFor({ kind: "sawhorse", id: 11 })).toBeUndefined();
   });
 });

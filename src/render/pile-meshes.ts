@@ -4,7 +4,7 @@
 // rows of strips, each strip nested in the one below. Everything else spreads around the middle.
 // Firewood reuses the "firewood" shape, bark the ground form of the "bark" asset, mushrooms the "mushrooms" patch, the pot
 // the "pot", and the bedroll lies as the "rolled-bedroll". The tools and berries are built here.
-// The saw blade and the saw are rough draft shapes added by the crafting feature.
+// The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
@@ -285,6 +285,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
       { geometry: track(new THREE.BoxGeometry(0.07, 0.004, 0.45).translate(0, 0, 0.06)), material: steel(KNIFE_BLADE_COLOUR) },
       { geometry: track(new THREE.BoxGeometry(0.04, 0.03, 0.12).translate(0, 0, -0.22)), material: handle },
     ],
+    // The plank: a flat board of pale sawn wood. A rough draft shape.
+    plank: [{ geometry: track(new THREE.BoxGeometry(0.1, 0.025, 0.8).translate(0, 0.0125, 0)), material: material(0xd9b07a) }],
     bedroll: rolledBedroll.parts,
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });
@@ -297,6 +299,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     fireStriker: spread(0.06),
     sawBlade: spread(0.1),
     saw: spread(0.12),
+    plank: spread(0.12),
     berries: spread(0.06),
     mushroom: spread(0.1),
     bedroll: spread(0.3),

@@ -103,7 +103,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));
 
 /** Every kind of notice. TypeScript reports a missing one. */
-const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, chestFull: true, holdsUpPiece: true, stillHoldsSomething: true, saveBroken: true, putLogDownFirst: true };
+const NOTICES: { readonly [Kind in GameNotice]: true } = { collapsed: true, survivedFirstNight: true, backpackFull: true, chestFull: true, holdsUpPiece: true, stillHoldsSomething: true, saveBroken: true, putLogDownFirst: true, noLogBesideStation: true };
 
 /** The components the player always has. */
 const PLAYER_COMPONENTS = ["position", "previousPosition", "backpack", "needs", "respawnPoint"] as const;

@@ -1,6 +1,7 @@
 // The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene. Needs sit top left, the pause and build buttons
 // bottom left, and the backpack bottom right, with an open chest above it. Banners sit top centre and the context dock bottom centre. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
+// The build menu icons, in build-icons.tsx, are the draft "build-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
   BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
@@ -8,6 +9,7 @@ import type {
 } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
+import { MaterialIcon, StructureIcon } from "./build-icons";
 import { HudIcon, type HudIconName } from "./hud-icons";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -91,7 +93,7 @@ function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: Reci
         {strings.craftMenu.title}
       </h2>
       <ul>
-        {view.craftMenu.map(({ recipe, materials, seconds, missingTool, missingStation, hasMaterials }) => (
+        {view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials }) => (
           <li key={recipe}>
             <HudButton
               label={strings.craftMenu.recipes[recipe]}
@@ -102,7 +104,14 @@ function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: Reci
             />
             <span class="hud-build-cost">
               {strings.craftMenu.cost(
-                materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+                [
+                  ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+                  ...(besideStation === undefined || station === undefined
+                    ? []
+                    : besideStation.map(({ material, count }) =>
+                        strings.craftMenu.besideStation(strings.craftMenu.groundMaterials[material](count), strings.buildMenu.structures[station]),
+                      )),
+                ],
                 seconds,
               )}
               {missingTool !== undefined && ` · ${strings.craftMenu.needsTool(strings.backpackContents[missingTool])}`}
@@ -117,7 +126,11 @@ function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: Reci
   );
 }
 
-/** The build menu: every structure the player can build, with its cost. Picking one puts its blueprint under the mouse. */
+/**
+ * The build menu: a grid of tiles, one per structure the player can build. Each tile shows the structure's icon,
+ * and under it the materials it costs as icons with counts, and the tool it needs. Pointing at a tile shows its name.
+ * Picking one puts its blueprint under the mouse.
+ */
 function BuildMenu({ entries, onPick }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void }) {
   return (
     <section class="hud-section hud-build-menu" aria-label={strings.buildMenu.title}>
@@ -126,22 +139,40 @@ function BuildMenu({ entries, onPick }: { entries: GameView["buildMenu"]; onPick
         {strings.buildMenu.title}
       </h2>
       <ul>
-        {entries.map(({ structure, cost, tool }) => (
-          <li key={structure}>
-            <HudButton
-              label={strings.buildMenu.structures[structure]}
-              onClick={() => {
-                onPick(structure);
-              }}
-            />
-            <span class="hud-build-cost">
-              {strings.buildMenu.cost([
-                ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
-                ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
-              ])}
-            </span>
-          </li>
-        ))}
+        {entries.map(({ structure, cost, tool }) => {
+          const name = strings.buildMenu.structures[structure];
+          const costText = strings.buildMenu.cost([
+            ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
+            ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
+          ]);
+          return (
+            <li key={structure} data-tip={name}>
+              <button
+                type="button"
+                class="hud-build-entry"
+                aria-label={strings.buildMenu.entryLabel(name, costText)}
+                onClick={() => {
+                  onPick(structure);
+                }}
+              >
+                <StructureIcon structure={structure} />
+                <span class="hud-build-cost" aria-hidden="true">
+                  {cost.map(({ material, count }) => (
+                    <span key={material} class="hud-build-material">
+                      <MaterialIcon material={material} />
+                      {count}
+                    </span>
+                  ))}
+                  {tool !== undefined && (
+                    <span class="hud-build-material hud-build-tool">
+                      <BackpackIcon content={tool} />
+                    </span>
+                  )}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
       <p class="hud-hint">{strings.buildMenu.close}</p>
     </section>

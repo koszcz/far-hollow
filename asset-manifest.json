@@ -50,16 +50,19 @@
     },
     {
       "id": "stumps",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/stumps/stumps.glb",
       "code": [
+        "src/render/stump-model.ts",
         "src/render/forest-meshes.ts"
       ],
       "description": "Stumps left after a tree is felled.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. stump_roundDetailed.glb, unchanged",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/05-chop-tree-carry-log.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

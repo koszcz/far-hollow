@@ -137,6 +137,11 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place }) {
       place(0, 0, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
     },
+    // The flames, sparks, and smoke move all the time, so the fire burns live at dusk, when both light and glow show.
+    play: {
+      shot: { label: "burning at dusk", yaw: 20, pitch: 14, radius: 2.4, focus: { y: 0.8 }, hour: 20 },
+      pose: () => undefined,
+    },
   },
   "sky-lighting": {
     radius: 9,

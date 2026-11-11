@@ -190,14 +190,16 @@
       "id": "fire-effect",
       "kind": "code",
       "code": [
+        "src/render/fire-effect.ts",
         "src/render/campfire-meshes.ts"
       ],
-      "description": "Flames and glow of a lit campfire.",
+      "description": "Flames, embers, sparks, smoke, and glow of a lit campfire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/first-playable/issues/09-fuel-campfire.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {

@@ -62,6 +62,7 @@ const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   chestFull: 4,
   saveBroken: 10,
   putLogDownFirst: 4,
+  noLogBesideStation: 4,
 };
 /** A new game starts on the morning of day 1. */
 export const GAME_START: ClockStart = { day: 1, hour: 8 };
@@ -116,7 +117,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley);
   const debarking = createDebarking(entities, walking);
-  const crafting = createCrafting(entities);
+  const crafting = createCrafting(entities, walking);
   const gathering = createGathering(entities, walking);
   const foraging = createForaging(entities, walking);
   const building = createBuilding(entities, walking, valley);
@@ -213,11 +214,12 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
   /** Every recipe, with what the player lacks to follow each one now. */
   function craftMenu(): GameView["craftMenu"] {
     return Object.freeze(
-      RECIPES.map(({ kind, materials, result, seconds, tool, station }) => {
+      RECIPES.map(({ kind, materials, besideStation, result, seconds, tool, station }) => {
         const lacks = crafting.lacks(kind);
         return Object.freeze({
           recipe: kind,
           materials: Object.freeze(materials.map((amount) => Object.freeze({ ...amount }))),
+          ...(besideStation === undefined ? {} : { besideStation: Object.freeze(besideStation.map((amount) => Object.freeze({ ...amount }))) }),
           result: Object.freeze({ ...result }),
           seconds,
           ...(tool === undefined ? {} : { tool }),
@@ -300,7 +302,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     },
     craft: (command) => {
       cancelTasks();
-      const refusal = crafting.start(command.recipe);
+      const refusal = crafting.start(command.recipe, command.stationId);
       if (refusal !== undefined) showNotice(refusal);
     },
     pickUpStick: (command) => {

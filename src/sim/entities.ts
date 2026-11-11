@@ -80,10 +80,11 @@ export interface Entity {
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
   /**
-   * The player is crafting `recipe` where they stand. `secondsDone` counts the time spent so far.
+   * The player is crafting `recipe`. `secondsDone` counts the time spent so far.
+   * For a station recipe, `stationId` is the work station the player walks to and works at. A hand recipe has none.
    * It is never saved, so a loaded game is not crafting.
    */
-  craftTask?: { recipe: RecipeKind; secondsDone: number };
+  craftTask?: { recipe: RecipeKind; secondsDone: number; stationId?: number };
   /**
    * Marks a structure the player has placed but not finished. Its position is the structure's centre.
    * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.

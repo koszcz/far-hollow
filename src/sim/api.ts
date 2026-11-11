@@ -1,7 +1,7 @@
 import type { BackpackContent, BackpackContents, Food } from "./backpack";
-import type { RecipeAmount, RecipeKind } from "./crafting";
+import type { GroundAmount, RecipeAmount, RecipeKind } from "./crafting";
 
-export type { RecipeAmount, RecipeKind } from "./crafting";
+export type { GroundAmount, RecipeAmount, RecipeKind } from "./crafting";
 
 export type { BackpackContent, CraftingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
@@ -125,10 +125,13 @@ export type Command =
   | { type: "takePotOffFire"; campfireId: number }
   /**
    * Start crafting a recipe, given by its name. A hand recipe is crafted where the player stands, as timed work.
+   * For a station recipe, the player walks to the finished work station given by `stationId`, or without one to the nearest
+   * finished station of the right kind, and works there. A blueprint is not a station.
    * Nothing happens if the player lacks its tool, work station, or materials. It is refused while the player carries a log,
-   * or if the result would not fit in the backpack once the materials it uses are taken out.
+   * if the result would not fit in the backpack once the materials it uses are taken out,
+   * or if the logs a station recipe uses do not lie within 2 m of the station.
    */
-  | { type: "craft"; recipe: RecipeKind }
+  | { type: "craft"; recipe: RecipeKind; stationId?: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
@@ -193,9 +196,11 @@ export interface GameView {
  * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
+ * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the station.
  */
 export type GameNotice =
-  | "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst";
+  | "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst"
+  | "noLogBesideStation";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -243,6 +248,8 @@ export interface CraftMenuEntry {
   readonly recipe: RecipeKind;
   /** What crafting it uses up, from the backpack. */
   readonly materials: readonly RecipeAmount[];
+  /** What a station recipe uses up from the ground, lying within 2 m of the station. Missing if it uses nothing from the ground. */
+  readonly besideStation?: readonly GroundAmount[];
   /** What crafting it makes. It goes in the backpack. */
   readonly result: { readonly content: BackpackContent; readonly count: number };
   /** How long crafting it takes, in seconds. */

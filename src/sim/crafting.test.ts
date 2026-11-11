@@ -3,7 +3,7 @@ import type { BackpackContent } from "./backpack";
 import { recipeLacks, type Recipe } from "./crafting";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { CRAFTING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
 
 describe("the saw blade in the starting kit", () => {
   it("is in a new game's backpack, along with the rest of the starting kit", () => {
@@ -18,7 +18,7 @@ describe("loading a save from before crafting", () => {
   /** A save of a new game, as written by the version before crafting, with the player's backpack as given. */
   function saveFromBeforeCrafting(backpack: Record<string, number>): unknown {
     const save = JSON.parse(JSON.stringify(writeSave(createGame({ seed: 42 })))) as SaveFile;
-    save.version = SAVE_VERSION - 1;
+    save.version = CRAFTING_SAVE_VERSION - 1;
     for (const { components } of save.entities) if (components.backpack !== undefined) components.backpack.contents = backpack;
     return save;
   }

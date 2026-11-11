@@ -90,7 +90,7 @@ function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: Reci
         {strings.craftMenu.title}
       </h2>
       <ul>
-        {view.craftMenu.map(({ recipe, materials, seconds, missingTool, missingStation, hasMaterials }) => (
+        {view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials }) => (
           <li key={recipe}>
             <HudButton
               label={strings.craftMenu.recipes[recipe]}
@@ -101,7 +101,14 @@ function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: Reci
             />
             <span class="hud-build-cost">
               {strings.craftMenu.cost(
-                materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+                [
+                  ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+                  ...(besideStation === undefined || station === undefined
+                    ? []
+                    : besideStation.map(({ material, count }) =>
+                        strings.craftMenu.besideStation(strings.craftMenu.groundMaterials[material](count), strings.buildMenu.structures[station]),
+                      )),
+                ],
                 seconds,
               )}
               {missingTool !== undefined && ` · ${strings.craftMenu.needsTool(strings.backpackContents[missingTool])}`}

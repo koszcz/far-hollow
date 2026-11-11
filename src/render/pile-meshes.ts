@@ -1,7 +1,7 @@
 // Draws piles the player dropped with the code-built "pile" (draft) in asset-manifest.json.
 // A draft: each pile shows one copy of its kind for each thing it holds, up to MAX_SHOWN, so a pile grows from one to many.
 // Sticks and firewood reuse the "sticks" and "firewood" shapes, the pot reuses the "pot", and the bedroll lies as the "rolled-bedroll".
-// Bark, food, tools, and the saw blade are rough shapes built here. The pivot of each pile is its middle, on the ground.
+// Bark, food, tools, the saw blade, and planks are rough shapes built here. The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { BackpackContent } from "../sim/backpack";
@@ -26,6 +26,7 @@ const MUSHROOM_CAP_COLOUR = 0xa0603a;
 const MUSHROOM_STEM_COLOUR = 0xe8dcc0;
 const HANDLE_COLOUR = 0x8a6440;
 const STEEL_COLOUR = 0x8a9096;
+const PLANK_COLOUR = 0xd9b07a;
 
 /** One part of a thing in a pile: a shape and what it is drawn with. */
 interface Part {
@@ -139,12 +140,15 @@ export function createPileMeshes(entities: EntityStore): PileMeshes {
       { geometry: track(box(0.07, 0.004, 0.45, 0, 0, 0.06)), material: steel },
       { geometry: track(box(0.04, 0.03, 0.12, 0, 0, -0.22)), material: handle },
     ],
+    // A plank: a flat board of pale sawn wood.
+    plank: [{ geometry: track(box(0.1, 0.025, 0.8)), material: material(PLANK_COLOUR) }],
     bedroll: rolledBedroll.parts,
   };
   const LAYOUTS: Readonly<Record<BackpackContent, Layout>> = {
     stick: "stack",
     firewood: "stack",
     bark: "stack",
+    plank: "stack",
     axe: "spread",
     knife: "spread",
     drawknife: "spread",

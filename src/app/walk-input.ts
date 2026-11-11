@@ -67,8 +67,13 @@ export function menuActionsFor(pick: ScenePick): MenuAction[] {
     case "structure":
     case "chest":
     case "woodpile":
-    case "sawhorse":
       return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
+    // A finished sawhorse offers its recipe. The player walks to it first.
+    case "sawhorse":
+      return [
+        { label: strings.craftMenu.recipes.planks, command: { type: "craft", recipe: "planks", stationId: pick.id } },
+        { label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } },
+      ];
     default:
       return [];
   }

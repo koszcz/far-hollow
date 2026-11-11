@@ -160,7 +160,7 @@ const CUT_LINE_WIDTH = 1.8;
  * The shading is lit from the top left: a highlight there fades to a shadow at the bottom right.
  */
 export function BackpackIcon({ content }: { content: BackpackContent }) {
-  const drawing = content === "sawBlade" || content === "saw" ? CRAFTING_DRAWINGS[content] : DRAWINGS[content];
+  const drawing = content === "sawBlade" || content === "saw" || content === "plank" ? CRAFTING_DRAWINGS[content] : DRAWINGS[content];
   const shadeId = `backpack-shade-${useId()}`;
   const painted = drawing.parts.filter((part) => part.as !== "cut" && part.as !== "cutLine" && part.as !== "shine");
   return (

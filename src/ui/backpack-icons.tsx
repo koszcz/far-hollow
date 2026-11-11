@@ -10,18 +10,18 @@ import type { BackpackContent } from "../sim/api";
  * `cut` and `cutLine` draw in the chip's background colour, to carve detail out of a filled shape.
  * `shine` is a thin pale glint, such as the light on a steel edge. It gets no outline.
  */
-interface IconPart {
+export interface IconPart {
   d: string;
   as: "fill" | "line" | "cut" | "cutLine" | "shine";
   colour?: string;
 }
 
-interface BackpackIconDrawing {
+export interface IconDrawing {
   colour: string;
   parts: readonly IconPart[];
 }
 
-/** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` in style.css. */
+/** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` and `.hud-build-entry` in style.css. */
 const CHIP_BACKGROUND = "#3d2b1e";
 
 /** Colours shared by several icons. */
@@ -52,7 +52,7 @@ const POT: readonly IconPart[] = [
 /** A wave across the pot body, showing the water inside. */
 const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
-const DRAWINGS: Readonly<Record<BackpackContent, BackpackIconDrawing>> = {
+const DRAWINGS: Readonly<Record<BackpackContent, IconDrawing>> = {
   /** A steel axe head on a red-painted handle. */
   axe: {
     colour: STEEL,
@@ -169,16 +169,16 @@ const LINE_WIDTH = 2.6;
 const CUT_LINE_WIDTH = 1.8;
 
 /**
- * Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it.
+ * Draws one shaded icon. Screen readers skip it, because a hidden text label always goes with it.
  * It draws in three passes: a dark outline under every part, the parts in their colours, then soft shading over each filled part.
  * The shading is lit from the top left: a highlight there fades to a shadow at the bottom right.
+ * The build menu icons in build-icons.tsx use it too.
  */
-export function BackpackIcon({ content }: { content: BackpackContent }) {
-  const drawing = DRAWINGS[content];
-  const shadeId = `backpack-shade-${useId()}`;
+export function ShadedIcon({ drawing, className }: { drawing: IconDrawing; className: string }) {
+  const shadeId = `icon-shade-${useId()}`;
   const painted = drawing.parts.filter((part) => part.as !== "cut" && part.as !== "cutLine" && part.as !== "shine");
   return (
-    <svg class="backpack-icon" viewBox="-1 -1 26 26" aria-hidden="true" focusable="false">
+    <svg class={className} viewBox="-1 -1 26 26" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id={shadeId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stop-color="#fff" stop-opacity="0.38" />
@@ -207,4 +207,9 @@ export function BackpackIcon({ content }: { content: BackpackContent }) {
       })}
     </svg>
   );
+}
+
+/** Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it. */
+export function BackpackIcon({ content }: { content: BackpackContent }) {
+  return <ShadedIcon drawing={DRAWINGS[content]} className="backpack-icon" />;
 }

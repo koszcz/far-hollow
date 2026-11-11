@@ -67,6 +67,8 @@ export const strings = {
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),
+    /** The full name of a build menu tile, for screen readers, such as "Campfire: 5 sticks". A structure that costs nothing has only its name. */
+    entryLabel: (structure: string, cost: string) => (cost === "" ? structure : `${structure}: ${cost}`),
     /** What the build menu says about the tool a structure needs, such as "needs the axe". */
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
     /** What to do while placing each kind of structure, given its name. */

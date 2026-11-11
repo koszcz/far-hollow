@@ -1,4 +1,4 @@
-// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, or /?asset=backpack-icons, once in each of the four views, each in a
+// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/asset-showcase.ts. Development builds only.
 import { render } from "preact";
 import type { GameClient, GameView, StructureKind } from "../sim/api";
@@ -110,6 +110,26 @@ const BACKPACK_ICON_STATES: readonly { view: GameView; buildMenuOpen: boolean; p
   { view: { ...BASE_VIEW, backpack: { knife: 1, firewood: 1, berries: 1, mushroom: 2, potOfBoiledWater: 1 } }, buildMenuOpen: false, placing: null },
 ];
 
+/** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
+const FULL_BUILD_MENU: GameView["buildMenu"] = [
+  { structure: "campfire", cost: [{ material: "stick", count: 5 }] },
+  { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }] },
+  { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }] },
+  { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }] },
+  { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }] },
+  { structure: "roof", cost: [{ material: "debarkedLog", count: 3 }, { material: "bark", count: 4 }] },
+  { structure: "woodpile", cost: [] },
+  { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe" },
+];
+
+/** The "build-icons" asset: the full build menu open, in four game states. */
+const BUILD_ICON_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
+  { view: { ...BASE_VIEW, buildMenu: FULL_BUILD_MENU }, buildMenuOpen: true, placing: null },
+  { view: { ...BASE_VIEW, buildMenu: FULL_BUILD_MENU, backpack: { axe: 1, stick: 1 } }, buildMenuOpen: true, placing: null },
+  { view: { ...BASE_VIEW, buildMenu: FULL_BUILD_MENU, backpack: { axe: 1, stick: 10, bark: 6 } }, buildMenuOpen: true, placing: null },
+  { view: { ...BASE_VIEW, buildMenu: FULL_BUILD_MENU, paused: true }, buildMenuOpen: true, placing: null },
+];
+
 /** A client that always shows `view` and ignores commands. */
 function stillClient(view: GameView): GameClient {
   return {
@@ -122,9 +142,9 @@ function stillClient(view: GameView): GameClient {
   };
 }
 
-const STATES_BY_ASSET = { hud: STATES, bark: BARK_STATES, "backpack-icons": BACKPACK_ICON_STATES } as const;
+const STATES_BY_ASSET = { hud: STATES, bark: BARK_STATES, "backpack-icons": BACKPACK_ICON_STATES, "build-icons": BUILD_ICON_STATES } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", or "backpack-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", or "build-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing }, index) => {
     const quarter = document.createElement("div");

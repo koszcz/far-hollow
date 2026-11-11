@@ -49,7 +49,14 @@ interface ShowcaseState {
 
 /** One game state per view, with whether the build menu is open and what the player is placing. */
 const STATES: readonly ShowcaseState[] = [
-  { view: BASE_VIEW, buildMenuOpen: true, placing: null },
+  {
+    view: {
+      ...BASE_VIEW,
+      openChest: { id: 3, contents: { stick: 8, firewood: 4, bark: 2, berries: 6, pot: 1 }, weight: 9.4, weightLimit: 60 },
+    },
+    buildMenuOpen: true,
+    placing: null,
+  },
   {
     view: {
       ...BASE_VIEW,

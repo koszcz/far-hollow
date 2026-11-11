@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
-import { foundationLegs } from "./foundations";
+import { FOUNDATION_DECK_LIFT_METRES, foundationDeckTop, foundationLegs } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { terrainHeightAt } from "./valley";
 import { FOUNDATION_BUILD_SECONDS, FOUNDATION_LOG_COST } from "./structures";
@@ -46,6 +46,44 @@ describe("placing a foundation", () => {
       [square.x + 1, square.z],
       [square.x, square.z + 1],
     ]);
+  });
+
+  it("makes foundations side by side one flat floor, even on sloped ground", () => {
+    const game = createGame({ seed: 42 });
+    const { high, low } = slopedPairNearPlayer(game, 0.05);
+
+    send(game, placeFoundation(high.x, high.z));
+    send(game, placeFoundation(low.x, low.z));
+    const [first, second] = game.entities.with("blueprint", "position").entities;
+
+    expect(second?.position.y).toBe(first?.position.y);
+    // On its own, the lower one would sit lower.
+    expect(foundationDeckTop(game.valley.terrain, low)).toBeLessThan(second?.position.y ?? 0);
+  });
+
+  it("refuses a square beside a floor when the ground under it rises too high for the deck", () => {
+    const game = createGame({ seed: 42 });
+    const { high, low } = slopedPairNearPlayer(game, FOUNDATION_DECK_LIFT_METRES);
+
+    send(game, placeFoundation(low.x, low.z));
+
+    expect(game.client.checkPlacement("foundation", high, 0).allowed).toBe(false);
+    send(game, placeFoundation(high.x, high.z));
+    expect(game.entities.with("blueprint").size).toBe(1);
+  });
+
+  it("refuses a square between two floors at different heights", () => {
+    const game = createGame({ seed: 42 });
+    const { high, low } = slopedPairNearPlayer(game, 0.05);
+    // Two separate floors, two squares apart, then a square that would join them.
+    const far = { x: low.x + (low.x - high.x), z: low.z + (low.z - high.z) };
+    send(game, placeFoundation(high.x, high.z));
+    send(game, placeFoundation(far.x, far.z));
+    const heights = game.entities.with("blueprint", "position").entities.map(({ position }) => position.y);
+    expect(heights).toHaveLength(2);
+    expect(heights[0]).not.toBeCloseTo(heights[1] ?? 0, 6);
+
+    expect(game.client.checkPlacement("foundation", low, 0).allowed).toBe(false);
   });
 
   it("refuses a square with a standing tree on it", () => {
@@ -264,6 +302,31 @@ function openSquareNearPlayer(game: Game, from = 3): { x: number; z: number } {
     }
   }
   throw new Error("No open square");
+}
+
+/**
+ * Two open grid squares that share an edge near the player, where the ground under `high` is at least `rise` metres higher than under `low`.
+ * It compares the ground a deck needs to clear: its own deck top, less the lift.
+ */
+function slopedPairNearPlayer(game: Game, rise: number): { high: { x: number; z: number }; low: { x: number; z: number } } {
+  const player = onlyPlayer(game);
+  const terrain = game.valley.terrain;
+  const open = (square: { x: number; z: number }) =>
+    [-1, 0, 1].every((ax) => [-1, 0, 1].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));
+  for (let distance = 3; distance < 60; distance += 1) {
+    for (let dx = -distance; dx <= distance; dx += 1) {
+      for (const dz of [-distance, distance]) {
+        const high = { x: Math.floor(player.position.x + dx) + 0.5, z: Math.floor(player.position.z + dz) + 0.5 };
+        for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          const low = { x: high.x + sx, z: high.z + sz };
+          const far = { x: low.x + sx, z: low.z + sz };
+          if (!open(high) || !open(low) || !open(far)) continue;
+          if (foundationDeckTop(terrain, high) - foundationDeckTop(terrain, low) >= rise) return { high, low };
+        }
+      }
+    }
+  }
+  throw new Error("No sloped pair of squares");
 }
 
 function placeFoundation(x: number, z: number): Command {

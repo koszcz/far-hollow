@@ -7,7 +7,7 @@ import {
   blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, stumpEntities,
   treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore,
 } from "./entities";
-import { foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
+import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
@@ -179,7 +179,7 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   buildSeconds: FOUNDATION_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
   snap: (_site, at) => snapToGridSquare(at),
-  heightAt: ({ valley }, spot) => foundationDeckTop(valley.terrain, spot),
+  heightAt: ({ entities, valley }, spot) => floorDeckTop(entities, valley.terrain, spot) ?? foundationDeckTop(valley.terrain, spot),
   canPlace({ entities, walkMap, valley }, spot, turns) {
     const rect = foundation.footprint(spot, turns);
     // Stumps block walking, but a foundation goes over them, so this checks the map's edge and the river instead.
@@ -189,6 +189,8 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
       if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
     }
     if (!isClearOfTreesAndStructures(entities, rect)) return false;
+    // Foundations side by side make one flat floor, so the deck must be able to sit at the height of those beside it.
+    if (floorDeckTop(entities, valley.terrain, spot) === undefined) return false;
     // Foundations can sit side by side, but not overlap a finished foundation or campfire.
     for (const other of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(other.position, 0))) return false;
     for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;

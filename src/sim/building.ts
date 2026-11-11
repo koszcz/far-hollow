@@ -21,12 +21,14 @@ export interface Building {
   checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck;
   /**
    * Places a blueprint of `structure` facing `turns` at the grid spot nearest to `at`. Placing costs nothing.
-   * Does nothing if the structure's placement rule refuses the spot.
+   * Returns the new blueprint's entity id. Does nothing, and returns undefined, if the structure's placement rule refuses the spot.
    */
-  place(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): void;
+  place(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): number | undefined;
+  /** Whether the player could start building a blueprint now: they have the tool it needs and the material for its next stage. */
+  canStartBuilding(blueprintId: number): boolean;
   /**
    * Starts the player building a blueprint, walking to it first if needed.
-   * Building goes on for as long as the build action is held, until the piece is finished or the next material runs out.
+   * Building goes on until the player stops, the piece is finished, or the next material runs out.
    */
   build(blueprintId: number): void;
   /**
@@ -44,8 +46,11 @@ export interface Building {
   step(stepSeconds: number): void;
 }
 
-/** Lets the player place blueprints, add materials to them, and turn them into finished building pieces. */
-export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley): Building {
+/**
+ * Lets the player place blueprints, add materials to them, and turn them into finished building pieces.
+ * With `freeBuilding`, building spends no materials and needs no tools. The playground uses it.
+ */
+export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley, freeBuilding = false): Building {
   const players = playerEntities(entities);
   const blueprints = blueprintEntities(entities);
   const builders = entities.with("buildTask", "position", "backpack");
@@ -85,8 +90,9 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
   function describe(blueprintId: number): BlueprintView | undefined {
     const blueprint = entities.entity(blueprintId)?.blueprint;
     if (blueprint === undefined) return undefined;
+    // With free building, nothing needs to be carried to a blueprint.
     const deliveries = structureOf(blueprint.structure).cost.flatMap(({ material, count }) =>
-      isDelivered(material) ? [Object.freeze({ material, has: blueprint.delivered[material] ?? 0, needs: count })] : [],
+      isDelivered(material) && !freeBuilding ? [Object.freeze({ material, has: blueprint.delivered[material] ?? 0, needs: count })] : [],
     );
     return Object.freeze({ id: blueprintId, structure: blueprint.structure, progress: blueprint.progress, deliveries: Object.freeze(deliveries) });
   }
@@ -95,13 +101,19 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     checkPlacement,
     place(structure, at, turns) {
       const { spot, allowed } = checkPlacement(structure, at, turns);
-      if (!allowed) return;
+      if (!allowed) return undefined;
       structureOf(structure).clearSite?.(entities, spot);
-      entities.add({
+      const added = entities.add({
         blueprint: { structure, progress: 0, materialsSpent: 0, delivered: {} },
         facing: { turns },
         position: { ...spot },
       });
+      return entities.id(added);
+    },
+    canStartBuilding(blueprintId) {
+      const blueprint = entities.entity(blueprintId)?.blueprint;
+      if (blueprint === undefined) return false;
+      return players.entities.some((player) => player.backpack !== undefined && hasNextStage(blueprint, player.backpack, freeBuilding));
     },
     build(blueprintId) {
       goTo(blueprintId, "buildTask");
@@ -142,7 +154,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       for (const builder of [...builders]) {
         if (builder.walkPath) continue;
         const reached = reachedBlueprint(builder, builder.buildTask.blueprintId);
-        if (reached === undefined || !buildOn(reached.blueprint, builder.backpack, stepSeconds)) {
+        if (reached === undefined || !buildOn(reached.blueprint, builder.backpack, stepSeconds, freeBuilding)) {
           entities.removeComponent(builder, "buildTask");
           continue;
         }
@@ -172,10 +184,11 @@ function needsMore(blueprint: Blueprint, material: DeliveredMaterial): boolean {
  * Works on a blueprint for one step. Each stage spends its material before work on it starts:
  * a backpack material comes out of the backpack, and a delivered one from what was carried to the blueprint.
  * Returns false, changing nothing, when the next stage's material has run out or the player lacks the tool the structure needs.
+ * With `free`, every stage's material counts as spent without taking anything, and no tool is needed.
  */
-function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stepSeconds: number): boolean {
+function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stepSeconds: number, free: boolean): boolean {
   const structure = structureOf(blueprint.structure);
-  if (structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return false;
+  if (!free && structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return false;
   const stages = stageMaterials(structure.cost);
   // A structure that costs nothing, such as a woodpile, is one stage of work with nothing to spend.
   if (stages.length === 0) {
@@ -185,16 +198,32 @@ function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>
   if (blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
     const material = stages[blueprint.materialsSpent];
     if (material === undefined) return false;
-    if (isDelivered(material)) {
-      const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
-      if ((blueprint.delivered[material] ?? 0) <= spent) return false;
-    } else if (!removeFromBackpack(backpack, material, 1)) {
-      return false;
-    }
+    if (!free && !spendStageMaterial(blueprint, backpack, stages, material)) return false;
     blueprint.materialsSpent += 1;
   }
   blueprint.progress = Math.min(blueprint.materialsSpent / stages.length, blueprint.progress + stepSeconds / structure.buildSeconds);
   return true;
+}
+
+/** Whether a blueprint's next stage can be worked on: the player has the tool it needs, and its material is in the backpack or was carried to it. */
+function hasNextStage(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, free: boolean): boolean {
+  if (free) return true;
+  const structure = structureOf(blueprint.structure);
+  if (structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return false;
+  const stages = stageMaterials(structure.cost);
+  if (stages.length === 0) return true;
+  const material = stages[blueprint.materialsSpent];
+  if (material === undefined) return false;
+  if (!isDelivered(material)) return hasInBackpack(backpack, material);
+  const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
+  return (blueprint.delivered[material] ?? 0) > spent;
+}
+
+/** Spends the material for the blueprint's next stage. Returns false, changing nothing, if it has run out. */
+function spendStageMaterial(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stages: readonly BuildMaterial[], material: BuildMaterial): boolean {
+  if (!isDelivered(material)) return removeFromBackpack(backpack, material, 1);
+  const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
+  return (blueprint.delivered[material] ?? 0) > spent;
 }
 
 /** Which stage of construction a blueprint is in, from 0 to one less than its number of stages. */

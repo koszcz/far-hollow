@@ -221,6 +221,61 @@ describe("building a campfire", () => {
   });
 });
 
+describe("placing a blueprint and building it at once", () => {
+  it("starts building when the player has the sticks", () => {
+    const game = createGame({ seed: 42 });
+    giveSticks(game, CAMPFIRE_STICK_COST);
+    const spot = openSpotNearPlayer(game);
+
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z, thenBuild: true });
+    runSeconds(game, CAMPFIRE_BUILD_SECONDS + 10);
+
+    expect(game.entities.with("campfire").size).toBe(1);
+  });
+
+  it("only places the blueprint when the player lacks what the first stage needs", () => {
+    const game = createGame({ seed: 42 });
+    const start = { ...game.client.getView().playerPosition };
+    const spot = openSpotNearPlayer(game);
+
+    game.client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: spot.x, z: spot.z, thenBuild: true });
+    game.step();
+
+    expect(onlyBlueprint(game).blueprint?.progress).toBe(0);
+    expect(game.client.getView().action).toBeNull();
+    expect(game.client.getView().playerPosition).toEqual(start);
+  });
+});
+
+describe("free building, as in the playground", () => {
+  it("finishes a campfire without spending any sticks", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const blueprint = placeBlueprintNearPlayer(game);
+
+    game.client.send({ type: "build", blueprintId: idOf(game, blueprint) });
+    runSeconds(game, CAMPFIRE_BUILD_SECONDS + 10);
+
+    expect(game.entities.with("campfire").size).toBe(1);
+    expect(game.client.getView().backpack.stick).toBeUndefined();
+  });
+
+  it("finishes a foundation without any debarked logs carried to it", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const spot = openSpotNearPlayer(game);
+    game.client.send({ type: "placeBlueprint", structure: "foundation", turns: 0, x: spot.x + 0.5, z: spot.z + 0.5 });
+    game.step();
+    const blueprint = onlyBlueprint(game);
+    const id = idOf(game, blueprint);
+    // Nothing needs to be carried to it, so a click builds it.
+    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([]);
+
+    game.client.send({ type: "build", blueprintId: id });
+    runSeconds(game, 120);
+
+    expect(game.entities.with("foundation").size).toBe(1);
+  });
+});
+
 /** An open spot on the building grid, a few metres from the player. */
 function openSpotNearPlayer(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);

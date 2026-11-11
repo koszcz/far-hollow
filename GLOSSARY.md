@@ -11,6 +11,10 @@ _Avoid_: Map, level, world
 **Seed**:
 The value that decides how a valley is laid out. The same seed always produces the same valley.
 
+**Playground**:
+A test game for developers, opened by adding `?playground` to the address. Building there spends no materials and needs no tools. A playground game is never saved.
+_Avoid_: Sandbox, creative mode
+
 **River**:
 The single source of fresh water and fish in a valley.
 _Avoid_: Stream, creek

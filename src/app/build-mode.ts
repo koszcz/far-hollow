@@ -19,10 +19,13 @@ export function pickBuildEntry(structure: StructureKind): BuildMode {
   return { menuOpen: false, placing: { structure, turns: 0 } };
 }
 
-/** The command a left-click sends while placing a blueprint. Only a click on the ground places one. */
+/**
+ * The command a left-click sends while placing a blueprint. Only a click on the ground places one.
+ * The player then starts building it at once, if they have what its first stage needs.
+ */
 export function placeCommandFor(mode: BuildMode, pick: ScenePick): Command | undefined {
   if (mode.placing === null || pick.kind !== "ground") return undefined;
-  return { type: "placeBlueprint", structure: mode.placing.structure, turns: mode.placing.turns, x: pick.spot.x, z: pick.spot.z };
+  return { type: "placeBlueprint", structure: mode.placing.structure, turns: mode.placing.turns, x: pick.spot.x, z: pick.spot.z, thenBuild: true };
 }
 
 /** What a key press does to build mode, given the key's `KeyboardEvent.code`. Undefined if the key does nothing here. */

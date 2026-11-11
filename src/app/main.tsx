@@ -37,6 +37,14 @@ function seedFromAddress(): number | undefined {
   return Number.isSafeInteger(fromAddress) ? fromAddress >>> 0 : undefined;
 }
 
+/**
+ * True if the address has `?playground`. It starts a new game, skipping the start screen, where building costs nothing.
+ * Developers use it to try out building. Add `&seed=123` to pick the valley. A playground game is never saved.
+ */
+function isPlaygroundAddress(): boolean {
+  return new URLSearchParams(window.location.search).has("playground");
+}
+
 /** How often the game saves itself while it runs, in real milliseconds. */
 const AUTOSAVE_INTERVAL_MS = 30_000;
 
@@ -109,7 +117,11 @@ function setLoadingScreenShown(shown: boolean): void {
 
 const saveStorage = await tryOpenSaveStorage();
 const addressSeed = seedFromAddress();
-const { game, slot } = addressSeed === undefined ? await chooseGame(saveStorage) : { game: createGame({ seed: addressSeed }), slot: undefined };
+const playground = isPlaygroundAddress();
+const { game, slot } =
+  addressSeed === undefined && !playground
+    ? await chooseGame(saveStorage)
+    : { game: createGame({ seed: addressSeed ?? randomSeed(), freeBuilding: playground }), slot: undefined };
 if (saveStorage !== undefined && slot !== undefined) {
   startAutosave({
     save: () => {
@@ -132,8 +144,6 @@ const cameraInput = attachCameraInput({
   canvas,
   rig: sceneRenderer.cameraRig,
   fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
-  // The walk input is attached next. A drag only reads this after both exist.
-  isLeftButtonBusy: () => walkInput.isHoldingBuild(),
 });
 const walkInput = attachWalkInput({
   canvas,

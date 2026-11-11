@@ -1,4 +1,5 @@
-// The HUD, the "hud" asset in asset-manifest.json: a woodland panel over the scene. Built in code. Approved by the owner.
+// The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene. Needs sit top left, the pause and build buttons
+// bottom left, and the backpack bottom right, with an open chest above it. Banners sit top centre and the context dock bottom centre. Built in code. Approved by the owner.
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
@@ -454,7 +455,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           </div>
         </div>
       )}
-      <div class="hud">
+      <div class="hud hud-needs-dock">
         <div class="hud-panel">
           <section class="hud-needs" aria-label={strings.needs}>
             <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
@@ -463,6 +464,10 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
             {view.sick && <p class="hud-hint">{strings.sick}</p>}
           </section>
+        </div>
+      </div>
+      <div class="hud hud-toolbar">
+        <div class="hud-panel">
           <div class="hud-buttons">
             <HudButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
                 client.send({ type: "setPaused", paused: !view.paused });
@@ -470,6 +475,15 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             <HudButton icon="place" label={strings.buildMenu.open} disabled={placing !== null} onClick={onToggleBuildMenu} />
             <HudButton icon="axe" label={strings.craftMenu.open} onClick={onToggleCraftMenu} />
           </div>
+        </div>
+      </div>
+      <div class="hud hud-inventory">
+        {openChest !== null && (
+          <div class="hud-panel">
+            <ChestPanel client={client} chest={openChest} />
+          </div>
+        )}
+        <div class="hud-panel">
           <section class="hud-section hud-backpack" aria-label={strings.backpack}>
             <h2>
               <HudIcon name="backpack" />
@@ -520,7 +534,6 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               )}
             </div>
           </section>
-          {openChest !== null && <ChestPanel client={client} chest={openChest} />}
         </div>
       </div>
     </>
@@ -528,7 +541,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
 }
 
 /**
- * The open chest, beside the backpack: what it holds, as a grid of icons grouped by kind, like the backpack.
+ * The open chest, above the backpack: what it holds, as a grid of icons grouped by kind, like the backpack.
  * A click on an icon takes one of that kind out into the backpack. A shift-click takes all that fit.
  */
 function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView }) {

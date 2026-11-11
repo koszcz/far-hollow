@@ -396,7 +396,7 @@
         "src/ui/hud-icons.tsx",
         "src/app/style.css"
       ],
-      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, over the top left of the scene.",
+      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, in separate panels: needs top left, pause and build bottom left, backpack and open chest bottom right.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -436,7 +436,7 @@
         "src/ui/icon-drawing.ts",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Backpack icons for the things crafting uses or makes, drawn in the same style as backpack-icons: the saw blade, a bare steel blade with teeth and a pin hole at each end, and the saw, the same blade fixed to a wooden handle. Crafting ticket 03 added the plank, a pale board seen end-on at a slant with its grain lines.",
+      "description": "Backpack icons for the things crafting uses or makes, drawn in the same style as backpack-icons: the saw blade, a bare steel blade with teeth and a pin hole at each end, and the saw, the same blade fixed to a wooden handle. Crafting ticket 03 added the plank, a pale sawn board lying at a slant with grain lines along its face.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -603,12 +603,13 @@
       "code": [
         "src/render/chest-meshes.ts"
       ],
-      "description": "The chest: a rough box hewn from debarked logs, 0.9 m wide and 0.55 m deep. Its body is thick pale planks with cut ends showing, and its lid is three planks laid side by side with a small overhang. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction builds the body in the first stage and puts on the lid in the second.",
+      "description": "The chest: a rough box hewn from debarked logs, 0.9 m wide and 0.55 m deep. Its body has a square post at each corner, three stacked planks in each wall with thin gaps between them, and a wooden grip on each end. Its lid is three planks laid side by side with a small overhang, held by two battens across the top. Each plank is a slightly different shade, and cut ends show pale. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction builds the body in the first stage and puts on the lid in the second.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/03-place-and-build-a-chest.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -631,13 +632,17 @@
       "code": [
         "src/render/woodpile-meshes.ts"
       ],
-      "description": "A woodpile: two rails of debarked log on the ground, with logs, debarked logs, and firewood stacked across them, four to a layer, from empty to full at five layers. As a blueprint, the rails show see-through.",
+      "description": "A woodpile: two rails of debarked log on the ground, held in by two stakes at each end, with logs, debarked logs, and firewood stacked across them, four to a layer, from empty to full at five layers. Logs, debarked logs, and firewood use their approved shapes. Each layer rests in the gaps of the one below. As a blueprint, the rails and stakes show see-through.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/02-woodpile.md"
-      }
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the stacked version: approved log, debarked log, and firewood shapes, layers nested in the gaps, debarked rails, and four stakes."
+      ]
     },
     {
       "id": "pile",
@@ -645,12 +650,13 @@
       "code": [
         "src/render/pile-meshes.ts"
       ],
-      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood, bark, and planks lie in a criss-cross stack. Tools, food, the pot, and the bedroll spread around the middle. Firewood and the pot reuse their approved shapes. Dropped sticks never form a pile: they lie as normal sticks. Bark, berries, mushrooms, tools, the saw blade, and planks are rough shapes.",
+      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood lies in a stack of 5, 4, then 3, each layer resting in the gaps of the one below. Bark lies in up to three rows of strips, each strip nested in the one below. Tools, food, the pot, and the bedroll spread around the middle. Firewood, bark, mushrooms, and the pot reuse their approved shapes. The axe has a steel head and a handle painted red at its end, the knife a bright blade, the drawknife a blue-steel blade with two wooden handles, and the fire striker is a flat steel loop. A handful of berries is seven red berries on a leaf. Dropped sticks never form a pile: they lie as normal sticks. The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/01-drop-things-and-pick-up-piles.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     },
     {
@@ -660,12 +666,13 @@
         "src/render/rolled-bedroll-shape.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "The bedroll lying rolled up on the ground after the player drops it: a green roll held by two leather straps.",
+      "description": "The bedroll lying rolled up on the ground after the player drops it: the laid bedroll rolled up, green canvas outside with the red blanket spiralling through each end, a hemmed loose flap, and two leather straps with brass buckles.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/01-drop-things-and-pick-up-piles.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
       }
     }
   ]

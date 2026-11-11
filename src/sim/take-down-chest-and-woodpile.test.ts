@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave } from "./save";
 import { CHEST_BUILD_SECONDS, CHEST_LOG_COST } from "./structures";
 import { isWalkable } from "./walk-map";
 
@@ -24,7 +25,7 @@ describe("taking down a chest", () => {
     chest.chest.contents.knife = 1;
 
     send(game, { type: "takeDown", pieceId: idOf(game, chest) });
-    expect(game.client.getView().notice).toBe("storageNotEmpty");
+    expect(game.client.getView().notice).toBe("stillHoldsSomething");
     runSeconds(game, CHEST_BUILD_SECONDS);
 
     expect(game.entities.has(chest)).toBe(true);
@@ -38,7 +39,7 @@ describe("taking down a chest", () => {
     stepUntil(game, () => game.client.getView().action?.kind === "takeDown");
     chest.chest.contents.firewood = 2;
 
-    stepUntil(game, () => game.client.getView().notice === "storageNotEmpty" || !game.entities.has(chest));
+    stepUntil(game, () => game.client.getView().notice === "stillHoldsSomething" || !game.entities.has(chest));
 
     expect(game.entities.has(chest)).toBe(true);
     expect(game.client.getView().action).toBeNull();
@@ -81,7 +82,7 @@ describe("taking down a woodpile", () => {
     woodpile.woodpile.log = 1;
 
     send(game, { type: "takeDown", pieceId: idOf(game, woodpile) });
-    expect(game.client.getView().notice).toBe("storageNotEmpty");
+    expect(game.client.getView().notice).toBe("stillHoldsSomething");
     runSeconds(game, 10);
 
     expect(game.entities.has(woodpile)).toBe(true);
@@ -98,6 +99,20 @@ describe("taking down a woodpile", () => {
     stepUntil(game, () => !game.entities.has(blueprint));
 
     expect(game.client.getView().action).toBeNull();
+  });
+});
+
+describe("saving the notice that a chest or woodpile still holds something", () => {
+  it("keeps the notice from a save made before it was renamed", () => {
+    const game = createGame({ seed: 42 });
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; notice: unknown };
+    save.version = RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION - 1;
+    save.notice = { kind: "storageNotEmpty", untilMinutes: 10_000 };
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(loaded.game.client.getView().notice).toBe("stillHoldsSomething");
   });
 });
 

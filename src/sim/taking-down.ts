@@ -22,9 +22,9 @@ type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 /**
  * Why the player could not take a piece down.
  * `backpackFull`: the bark in it would not fit in the backpack. `holdsUpPiece`: another piece stands on it.
- * `storageNotEmpty`: it is a chest or woodpile that still holds something.
+ * `stillHoldsSomething`: it is a chest or woodpile that still holds something.
  */
-export type TakeDownRefusal = "backpackFull" | "holdsUpPiece" | "storageNotEmpty";
+export type TakeDownRefusal = "backpackFull" | "holdsUpPiece" | "stillHoldsSomething";
 
 export interface TakingDown {
   /**
@@ -83,7 +83,7 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
       if (piece?.position === undefined || kind === undefined) return undefined;
       const footprint = footprintOf(kind, piece.position, piece.facing?.turns ?? 0);
       if (holdsUpAnother(entities, piece, kind)) return "holdsUpPiece";
-      if (holdsSomething(piece)) return "storageNotEmpty";
+      if (holdsSomething(piece)) return "stillHoldsSomething";
       let refusal: TakeDownRefusal | undefined;
       for (const player of players) {
         if (player.backpack === undefined || !barkFits(player.backpack, piece, kind)) {
@@ -117,7 +117,7 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
         entities.removeComponent(worker, "takeDownTask");
         // Another piece may have gone onto it, or the backpack filled up, since the work started.
         if (holdsUpAnother(entities, piece, kind)) refusal = "holdsUpPiece";
-        else if (holdsSomething(piece)) refusal = "storageNotEmpty";
+        else if (holdsSomething(piece)) refusal = "stillHoldsSomething";
         else if (!barkFits(worker.backpack, piece, kind)) refusal = "backpackFull";
         else takeDown(worker, piece, kind);
       }

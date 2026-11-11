@@ -176,10 +176,10 @@ export interface GameView {
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
  * `chestFull`: the open chest had no room for what the player tried to put in it.
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
- * `storageNotEmpty`: the player tried to take down a chest or woodpile that still holds something.
+ * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  */
-export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "storageNotEmpty" | "saveBroken";
+export type GameNotice = "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken";
 
 /**
  * What one save slot holds, as the start screen shows it.

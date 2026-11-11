@@ -29,6 +29,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   fillChests,
   scatterDroppedSticks,
   blockWalkingAtChestsAndWoodpiles,
+  renameNotEmptyNotice,
 ];
 
 /** The version of the save format this code writes. */
@@ -38,6 +39,8 @@ export const SAVE_VERSION = SAVE_UPGRADES.length + 1;
 export const PILES_SAVE_VERSION = SAVE_UPGRADES.indexOf(allowPiles) + 2;
 /** The first save version in which finished chests and woodpiles block walking. */
 export const CHESTS_BLOCK_WALKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(blockWalkingAtChestsAndWoodpiles) + 2;
+/** The first save version whose notice that a chest or woodpile still holds something is called `stillHoldsSomething`. */
+export const RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameNotEmptyNotice) + 2;
 /** The first save version in which dropped sticks lie on the ground one by one, rather than in a pile. */
 export const STICKS_ON_GROUND_SAVE_VERSION = SAVE_UPGRADES.indexOf(scatterDroppedSticks) + 2;
 
@@ -243,6 +246,13 @@ function blockWalkingAtChestsAndWoodpiles(save: Readonly<Record<string, unknown>
     return entity;
   });
   return { ...save, entities };
+}
+
+/** Version 13 to 14: the notice that a chest or woodpile still holds something is renamed to `stillHoldsSomething`. */
+function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const notice = save.notice as { kind?: unknown } | null | undefined;
+  if (notice?.kind !== "storageNotEmpty") return { ...save };
+  return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
 }
 
 /** Puts one of an item a new game starts with into the saved player's backpack, unless they already have one. */

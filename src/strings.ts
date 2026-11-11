@@ -145,7 +145,7 @@ export const strings = {
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",
     holdsUpPiece: "Something stands on this. Take that down first.",
-    storageNotEmpty: "Something is still in this. Empty it first.",
+    stillHoldsSomething: "Something is still in this. Empty it first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
   },
   backpack: "Backpack",

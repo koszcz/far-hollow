@@ -12,6 +12,7 @@ import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning,
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, SPLIT_SECONDS } from "./gathering";
 import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
+import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
@@ -247,6 +248,11 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
       const refusal = gathering.pickUpStick(command.stickId);
       if (refusal !== undefined) showNotice(refusal);
     },
+    pickUpBark: (command) => {
+      cancelTasks();
+      const refusal = gathering.pickUpBark(command.barkId);
+      if (refusal !== undefined) showNotice(refusal);
+    },
     forage: (command) => {
       cancelTasks();
       const refusal = foraging.forage(command.spotId);
@@ -391,7 +397,7 @@ export function createGame({ seed, progress, startNotice }: GameOptions): Game {
     foraging.grow(asleepMinutes);
     pot.heat(asleepMinutes);
     const { x, z } = player.respawnPoint;
-    Object.assign(player.position, { x, y: terrainHeightAt(valley.terrain, x, z), z });
+    Object.assign(player.position, { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z });
     Object.assign(player.previousPosition, player.position);
     wakeFromCollapse(player.needs);
     showNotice("collapsed");

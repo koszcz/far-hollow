@@ -32,6 +32,8 @@ export type Command =
   | { type: "debarkLog"; logId: number }
   /** Walk the player to a stick on the ground and put it in the backpack, if it fits. The stick is given by its entity id. */
   | { type: "pickUpStick"; stickId: number }
+  /** Walk the player to a piece of bark on the ground and put it in the backpack, if it fits. The bark is given by its entity id. */
+  | { type: "pickUpBark"; barkId: number }
   /** Walk the player to a berry bush or mushroom patch, given by its entity id, and put its food in the backpack, if it all fits. */
   | { type: "forage"; spotId: number }
   /** Eat one of this food from the backpack. It fills hunger. */
@@ -58,7 +60,8 @@ export type Command =
   /**
    * Walk the player to a blueprint or finished building piece, such as a lean-to or a log wall, given by its entity id, and take it down.
    * A blueprint comes down at once. A finished piece takes timed work. The player gets back every material spent on it or carried to it.
-   * Nothing happens if another piece stands on it, or if the bark it gives back would not fit in the backpack.
+   * Debarked logs, and any sticks or bark that do not fit in the backpack, are laid on the ground near the player, on their side of any wall.
+   * Nothing happens if another piece stands on it.
    */
   | { type: "takeDown"; pieceId: number }
   /** Let go of the build action. The blueprint keeps its progress. */

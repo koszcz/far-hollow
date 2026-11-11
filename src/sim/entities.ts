@@ -69,6 +69,10 @@ export interface Entity {
   stick?: true;
   /** The stick on the ground the player is walking to pick up, given by its entity id. */
   stickPickUpTask?: { stickId: number };
+  /** Marks a piece of bark lying on the ground. Its position is the middle of the bark. Bark in the backpack is not an entity. */
+  bark?: true;
+  /** The piece of bark on the ground the player is walking to pick up, given by its entity id. */
+  barkPickUpTask?: { barkId: number };
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
   /**
@@ -218,6 +222,17 @@ export function debarkedLogEntities(store: EntityStore) {
 /** Sticks lying on the forest floor. Sticks in the backpack are not entities. */
 export function stickEntities(store: EntityStore) {
   return store.with("stick", "position");
+}
+
+/** Pieces of bark lying on the ground. Bark in the backpack is not an entity. */
+export function barkEntities(store: EntityStore) {
+  return store.with("bark", "position");
+}
+
+/** Everything lying loose on the ground that the player can pick up: logs, debarked logs, sticks, bark, and bedrolls. */
+export function lyingThings(store: EntityStore): (Entity & { position: Vec3 })[] {
+  const queries = [logEntities, debarkedLogEntities, stickEntities, barkEntities, bedrollEntities];
+  return queries.flatMap((query): (Entity & { position: Vec3 })[] => [...query(store)]);
 }
 
 /** Berry bushes and mushroom patches, with food or growing back. */

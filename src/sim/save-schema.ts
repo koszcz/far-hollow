@@ -63,6 +63,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   carrying: exactly("log", "debarkedLog"),
   stick: exactly(true),
   stickPickUpTask: shape({ stickId: count }),
+  bark: exactly(true),
+  barkPickUpTask: shape({ barkId: count }),
   splitTask: shape({ secondsDone: finite }),
   blueprint: shape({ piece: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),

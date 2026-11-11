@@ -85,7 +85,7 @@ describe("debarking a log", () => {
 
     game.client.send({ type: "debarkLog", logId: idOf(game, log) });
     game.step();
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
     runSeconds(game, DEBARK_SECONDS * 4);
 
     expect(log.log).toBeDefined();

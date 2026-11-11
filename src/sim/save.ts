@@ -38,6 +38,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addSawhorses,
   giveSawBlade,
   addPlanks,
+  nameStationInNotice,
 ];
 
 /** The version of the save format this code writes. */
@@ -59,6 +60,8 @@ export const SAWHORSES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSawhorses) + 2;
 export const CRAFTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveSawBlade) + 2;
 /** The first save version that can hold planks. */
 export const PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanks) + 2;
+/** The first save version whose notice that no log lies beside a work station names the station. */
+export const NOTICES_NAME_STATION_SAVE_VERSION = SAVE_UPGRADES.indexOf(nameStationInNotice) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -286,7 +289,7 @@ function renameNotEmptyNotice(save: Readonly<Record<string, unknown>>): Record<s
   return { ...save, notice: { ...notice, kind: "stillHoldsSomething" } };
 }
 
-/** The player can build sawhorses. A save from before then has none, so it carries over unchanged. */
+/** Version 16 to 17: the player can build sawhorses. A save from before then has none, so it carries over unchanged. */
 function addSawhorses(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }
@@ -302,6 +305,16 @@ function giveSawBlade(save: Readonly<Record<string, unknown>>): Record<string, u
 /** Version 18 to 19: the player can cut planks. A save from before then has none, so it carries over unchanged. */
 function addPlanks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 19 to 20: the notice that no log lies beside a work station now names the station.
+ * The sawhorse was the only work station before then, so an older notice names it.
+ */
+function nameStationInNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const notice = save.notice as { kind?: unknown } | null | undefined;
+  if (notice?.kind !== "noLogBesideStation") return { ...save };
+  return { ...save, notice: { ...notice, station: "sawhorse" } };
 }
 
 /**

@@ -3,7 +3,7 @@
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG, countInBackpack, hasInBackpack, type Backpack, type BackpackContent } from "./backpack";
 import { debarkedLogEntities, logEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
-import { structureKindOf, type StructureKind } from "./structures";
+import { structureKindOf, type WorkStationKind } from "./structures";
 import { groundDistance, type GroundPoint } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 
@@ -42,7 +42,7 @@ export interface Recipe {
   /** The tool the player needs in the backpack. The work does not use it up. Missing if no tool is needed. */
   readonly tool?: BackpackContent;
   /** The work station the player follows it at. Missing for a hand recipe. */
-  readonly station?: StructureKind;
+  readonly station?: WorkStationKind;
 }
 
 /** How long crafting the saw takes, in seconds. */
@@ -91,23 +91,26 @@ export function recipeOf(kind: RecipeKind): Recipe {
   return RECIPE_BY_KIND[kind];
 }
 
-/** What the player lacks to follow a recipe now. Each field is missing when the player has that. */
-export interface RecipeLacks {
-  /** The tool the recipe needs, when it is not in the backpack. */
-  readonly tool?: BackpackContent;
-  /** The work station the recipe needs, when no finished one stands in the valley. */
-  readonly station?: StructureKind;
-  /** True when the backpack does not hold every material the recipe uses. */
-  readonly materials?: true;
-}
+/**
+ * One thing the player lacks to follow a recipe now.
+ * `tool`: the tool it needs is not in the backpack. `station`: no finished work station of its kind stands in the valley.
+ * `materials`: the backpack does not hold every material it uses.
+ */
+export type RecipeLack =
+  | { readonly kind: "tool"; readonly tool: BackpackContent }
+  | { readonly kind: "station"; readonly station: WorkStationKind }
+  | { readonly kind: "materials" };
 
-/** What the player lacks to follow `recipe`, given their backpack and whether a finished station of a kind stands anywhere. */
-export function recipeLacks(recipe: Recipe, backpack: Backpack, hasStation: (station: StructureKind) => boolean): RecipeLacks {
-  return {
-    ...(recipe.tool !== undefined && !hasInBackpack(backpack, recipe.tool) ? { tool: recipe.tool } : {}),
-    ...(recipe.station !== undefined && !hasStation(recipe.station) ? { station: recipe.station } : {}),
-    ...(recipe.materials.some(({ material, count }) => countInBackpack(backpack, material) < count) ? { materials: true as const } : {}),
-  };
+/**
+ * Everything the player lacks to follow `recipe`, given their backpack and whether a finished station of a kind stands anywhere.
+ * Empty when they can follow it. The list is in a fixed order: the tool, then the station, then the materials.
+ */
+export function recipeLacks(recipe: Recipe, backpack: Backpack, hasStation: (station: WorkStationKind) => boolean): readonly RecipeLack[] {
+  const lacks: RecipeLack[] = [];
+  if (recipe.tool !== undefined && !hasInBackpack(backpack, recipe.tool)) lacks.push({ kind: "tool", tool: recipe.tool });
+  if (recipe.station !== undefined && !hasStation(recipe.station)) lacks.push({ kind: "station", station: recipe.station });
+  if (recipe.materials.some(({ material, count }) => countInBackpack(backpack, material) < count)) lacks.push({ kind: "materials" });
+  return lacks;
 }
 
 /**
@@ -121,19 +124,25 @@ function resultFits(recipe: Recipe, backpack: Backpack): boolean {
 }
 
 /**
- * Why the player could not start crafting.
+ * Why the player could not start crafting, or had to stop.
+ * `cannotCraftYet`: they lack the tool, work station, or materials, listed in `lacks`.
  * `putLogDownFirst`: they carry a log on their shoulder. `backpackFull`: the result would not fit.
  * `noLogBesideStation`: a station recipe needs a log or debarked log lying beside the station, and none is there.
  */
-export type CraftRefusal = "putLogDownFirst" | "backpackFull" | "noLogBesideStation";
+export type CraftRefusal =
+  | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] }
+  | { readonly kind: "putLogDownFirst" }
+  | { readonly kind: "backpackFull" }
+  | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind };
 
 export interface Crafting {
   /**
    * Starts the player crafting. A hand recipe is crafted where the player stands.
    * For a station recipe, the player walks to the finished station given by `stationId`, or to the nearest finished one
    * of the right kind, then works there.
-   * Does nothing if they lack its tool, station, or materials. Refuses if they carry a log, the result would not fit,
+   * Refuses if they lack its tool, station, or materials, carry a log, the result would not fit,
    * or the logs a station recipe uses do not lie beside the station.
+   * Does nothing if the station given by `stationId` is not a finished one of the right kind.
    */
   start(kind: RecipeKind, stationId?: number): CraftRefusal | undefined;
   /** Stops the player crafting. Nothing is used up, and the work starts again from the beginning next time. */
@@ -141,35 +150,37 @@ export interface Crafting {
   /**
    * Moves crafting on by one logic step. Run it after walking has moved the player.
    * When the work finishes, the materials are used up and the result goes in the backpack.
+   * Returns why crafting stopped, if the player reached the station and the logs it uses no longer lie beside it.
    */
-  step(stepSeconds: number): void;
-  /** What the player lacks to follow a recipe now. */
-  lacks(kind: RecipeKind): RecipeLacks;
+  step(stepSeconds: number): CraftRefusal | undefined;
+  /** Everything the player lacks to follow a recipe now. Empty when they can follow it. */
+  lacks(kind: RecipeKind): readonly RecipeLack[];
 }
 
-type Station = Entity & Required<Pick<Entity, "position">>;
+/** An entity with a place in the world, such as a work station or a log lying on the ground. */
+type PlacedEntity = Entity & Required<Pick<Entity, "position">>;
 
 /** Lets the player craft: turn materials into something new that goes in the backpack, by timed work. */
 export function createCrafting(entities: EntityStore, walking: Walking): Crafting {
   const players = playerEntities(entities);
   const crafters = entities.with("craftTask", "backpack", "position");
-  const groundLogs: { readonly [Material in CarriedLog]: { readonly entities: readonly Station[] } } = {
+  const groundLogs: { readonly [Material in CarriedLog]: { readonly entities: readonly PlacedEntity[] } } = {
     log: logEntities(entities),
     debarkedLog: debarkedLogEntities(entities),
   };
 
   /** True if `entity` is a finished work station of this kind. A blueprint is not. */
-  function isStation(entity: Entity | undefined, station: StructureKind): entity is Station {
+  function isStation(entity: Entity | undefined, station: WorkStationKind): entity is PlacedEntity {
     return entity?.position !== undefined && entity.blueprint === undefined && structureKindOf(entity) === station;
   }
 
-  function hasStation(station: StructureKind): boolean {
+  function hasStation(station: WorkStationKind): boolean {
     return entities.entities.some((entity) => isStation(entity, station));
   }
 
   /** The finished station of this kind nearest to `from`, if any stands. */
-  function nearestStation(station: StructureKind, from: GroundPoint): Station | undefined {
-    let nearest: Station | undefined;
+  function nearestStation(station: WorkStationKind, from: GroundPoint): PlacedEntity | undefined {
+    let nearest: PlacedEntity | undefined;
     for (const entity of entities.entities) {
       if (!isStation(entity, station)) continue;
       if (nearest === undefined || groundDistance(entity.position, from) < groundDistance(nearest.position, from)) nearest = entity;
@@ -178,8 +189,8 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
   }
 
   /** The logs or debarked logs a recipe would use from beside `station`, nearest first, or undefined if too few lie there. */
-  function logsBeside(recipe: Recipe, station: Station): Station[] | undefined {
-    const used: Station[] = [];
+  function logsBeside(recipe: Recipe, station: PlacedEntity): PlacedEntity[] | undefined {
+    const used: PlacedEntity[] = [];
     for (const { material, count } of recipe.besideStation ?? []) {
       const near = groundLogs[material].entities
         .filter((log) => groundDistance(log.position, station.position) <= STATION_GROUND_METRES)
@@ -190,12 +201,8 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
     return used;
   }
 
-  function lacksAnything(lacks: RecipeLacks): boolean {
-    return lacks.tool !== undefined || lacks.station !== undefined || lacks.materials === true;
-  }
-
   /** The station a crafter works at, if their recipe needs one and it still stands finished. */
-  function stationOf(recipe: Recipe, stationId: number | undefined): Station | undefined {
+  function stationOf(recipe: Recipe, stationId: number | undefined): PlacedEntity | undefined {
     if (recipe.station === undefined || stationId === undefined) return undefined;
     const station = entities.entity(stationId);
     return isStation(station, recipe.station) ? station : undefined;
@@ -207,22 +214,26 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
       let refusal: CraftRefusal | undefined;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        if (lacksAnything(recipeLacks(recipe, player.backpack, hasStation))) continue;
-        let station: Station | undefined;
+        const lacks = recipeLacks(recipe, player.backpack, hasStation);
+        if (lacks.length > 0) {
+          refusal = { kind: "cannotCraftYet", lacks };
+          continue;
+        }
+        let station: PlacedEntity | undefined;
         if (recipe.station !== undefined) {
           station = stationId === undefined ? nearestStation(recipe.station, player.position) : stationOf(recipe, stationId);
           if (station === undefined) continue;
         }
         if (player.carrying !== undefined) {
-          refusal = "putLogDownFirst";
+          refusal = { kind: "putLogDownFirst" };
           continue;
         }
-        if (station !== undefined && logsBeside(recipe, station) === undefined) {
-          refusal = "noLogBesideStation";
+        if (recipe.station !== undefined && station !== undefined && logsBeside(recipe, station) === undefined) {
+          refusal = { kind: "noLogBesideStation", station: recipe.station };
           continue;
         }
         if (!resultFits(recipe, player.backpack)) {
-          refusal = "backpackFull";
+          refusal = { kind: "backpackFull" };
           continue;
         }
         entities.removeComponent(player, "walkPath");
@@ -241,6 +252,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
       for (const player of players) entities.removeComponent(player, "craftTask");
     },
     step(stepSeconds) {
+      let refusal: CraftRefusal | undefined;
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const crafter of [...crafters]) {
         if (crafter.walkPath) continue;
@@ -253,10 +265,12 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
           !atStation ||
           logs === undefined ||
           crafter.carrying !== undefined ||
-          lacksAnything(recipeLacks(recipe, crafter.backpack, hasStation)) ||
+          recipeLacks(recipe, crafter.backpack, hasStation).length > 0 ||
           !resultFits(recipe, crafter.backpack)
         ) {
           entities.removeComponent(crafter, "craftTask");
+          // The player reached the station, but the logs it uses no longer lie beside it.
+          if (atStation && logs === undefined && recipe.station !== undefined) refusal = { kind: "noLogBesideStation", station: recipe.station };
           continue;
         }
         crafter.craftTask.secondsDone += stepSeconds;
@@ -266,10 +280,11 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
         for (const { material, count } of recipe.materials) crafter.backpack.contents[material] = countInBackpack(crafter.backpack, material) - count;
         crafter.backpack.contents[recipe.result.content] = countInBackpack(crafter.backpack, recipe.result.content) + recipe.result.count;
       }
+      return refusal;
     },
     lacks(kind) {
       const player = players.first;
-      return player?.backpack === undefined ? {} : recipeLacks(recipeOf(kind), player.backpack, hasStation);
+      return player?.backpack === undefined ? [] : recipeLacks(recipeOf(kind), player.backpack, hasStation);
     },
   };
 }

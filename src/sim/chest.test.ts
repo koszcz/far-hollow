@@ -191,7 +191,7 @@ describe("a chest on a foundation", () => {
     send(game, place("chest", square.x, square.z, 0));
 
     send(game, { type: "takeDown", pieceId: idOf(game, foundation) });
-    expect(game.client.getView().notice).toBe("holdsUpPiece");
+    expect(game.client.getView().notice?.kind).toBe("holdsUpPiece");
     runSeconds(game, 10);
 
     expect(foundation.foundation).toBe(true);

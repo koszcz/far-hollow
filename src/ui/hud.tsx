@@ -3,7 +3,7 @@
 // Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx. The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset.
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, PileView, RecipeKind, StructureKind, WoodpileView,
+  BackpackContent, BedrollView, BlueprintView, CampfireView, ChestView, Food, GameClient, GameView, Notice, PileView, RecipeKind, RecipeLack, StructureKind, WoodpileView,
   WoodpileWood,
 } from "../sim/api";
 import { strings } from "../strings";
@@ -79,28 +79,52 @@ export interface HudProps {
   onToggleCraftMenu: () => void;
 }
 
+/** Names one thing a recipe lacks, such as "the saw". */
+function lackingText(lack: RecipeLack): string {
+  switch (lack.kind) {
+    case "tool":
+      return strings.craftMenu.lacking.tool(strings.backpackContents[lack.tool]);
+    case "station":
+      return strings.craftMenu.lacking.station(strings.buildMenu.structures[lack.station]);
+    case "materials":
+      return strings.craftMenu.lacking.materials;
+  }
+}
+
+/** The text of a notice. */
+function noticeText(notice: Notice): string {
+  switch (notice.kind) {
+    case "noLogBesideStation":
+      return strings.notices.noLogBesideStation(strings.buildMenu.structures[notice.station]);
+    case "cannotCraftYet":
+      return strings.notices.cannotCraftYet(notice.lacks.map(lackingText));
+    default:
+      return strings.notices[notice.kind];
+  }
+}
+
 /**
  * The craft menu: every recipe, with what it uses and how long it takes. A recipe the player cannot follow yet says
  * which tool or work station it lacks. Choosing a recipe starts crafting it.
  */
 function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: RecipeKind) => void }) {
   return (
-    <section class="hud-section hud-build-menu" aria-label={strings.craftMenu.title}>
+    <section class="hud-section hud-craft-menu" aria-label={strings.craftMenu.title}>
       <h2>
         <HudIcon name="axe" />
         {strings.craftMenu.title}
       </h2>
       <ul>
-        {view.craftMenu.map(({ recipe, materials, besideStation, station, seconds, missingTool, missingStation, hasMaterials }) => (
-          <li key={recipe}>
+        {view.craftMenu.map(({ kind, materials, besideStation, station, seconds, lacks }) => (
+          <li key={kind}>
             <HudButton
-              label={strings.craftMenu.recipes[recipe]}
-              disabled={missingTool !== undefined || missingStation !== undefined || !hasMaterials || view.carrying !== null}
+              label={strings.craftMenu.recipes[kind]}
+              disabled={lacks.length > 0 || view.carrying !== null}
               onClick={() => {
-                onChoose(recipe);
+                onChoose(kind);
               }}
             />
-            <span class="hud-build-cost">
+            <span class="hud-craft-cost">
               {strings.craftMenu.cost(
                 [
                   ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
@@ -112,13 +136,12 @@ function CraftMenu({ view, onChoose }: { view: GameView; onChoose: (recipe: Reci
                 ],
                 seconds,
               )}
-              {missingTool !== undefined && ` · ${strings.craftMenu.needsTool(strings.backpackContents[missingTool])}`}
-              {missingStation !== undefined && ` · ${strings.craftMenu.needsStation(strings.buildMenu.structures[missingStation])}`}
+              {lacks.length > 0 && ` · ${strings.craftMenu.needs(lacks.map(lackingText))}`}
             </span>
           </li>
         ))}
       </ul>
-      {view.carrying !== null && <p class="hud-hint">{strings.craftMenu.putLogDownFirst}</p>}
+      {view.carrying !== null && <p class="hud-hint">{strings.notices.putLogDownFirst}</p>}
       <p class="hud-hint">{strings.craftMenu.close}</p>
     </section>
   );
@@ -406,7 +429,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
           {view.notice !== null && (
             <p class="hud-banner hud-notice" role="status">
-              {strings.notices[view.notice]}
+              {noticeText(view.notice)}
             </p>
           )}
         </div>

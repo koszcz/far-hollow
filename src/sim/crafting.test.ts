@@ -50,7 +50,7 @@ describe("the craft menu", () => {
   it("lists the saw recipe with its materials, result, and time", () => {
     const [saw] = createGame({ seed: 42 }).client.getView().craftMenu;
     expect(saw).toMatchObject({
-      recipe: "saw",
+      kind: "saw",
       materials: [{ material: "sawBlade", count: 1 }, { material: "stick", count: 3 }],
       result: { content: "saw", count: 1 },
       seconds: 5,
@@ -111,9 +111,11 @@ describe("crafting the saw", () => {
     const game = createGame({ seed: 42 });
     give(game, { stick: 2 });
     game.client.send({ type: "craft", recipe: "saw" });
+    game.step();
+    expect(game.client.getView().notice).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "materials" }] });
     runSeconds(game, 6);
     expect(game.client.getView().backpack.saw).toBeUndefined();
-    expect(game.client.getView().craftMenu[0]?.hasMaterials).toBe(false);
+    expect(game.client.getView().craftMenu[0]?.lacks).toEqual([{ kind: "materials" }]);
   });
 
   it("does not start while the player carries a log, and says to put it down first", () => {
@@ -123,7 +125,7 @@ describe("crafting the saw", () => {
     game.client.send({ type: "craft", recipe: "saw" });
     game.step();
     expect(game.client.getView().action).toBeNull();
-    expect(game.client.getView().notice).toBe("putLogDownFirst");
+    expect(game.client.getView().notice?.kind).toBe("putLogDownFirst");
     runSeconds(game, 6);
     expect(game.client.getView().backpack.saw).toBeUndefined();
   });
@@ -146,31 +148,34 @@ describe("crafting the saw", () => {
     game.client.send({ type: "craft", recipe: "saw" });
     game.step();
     expect(game.client.getView().action).toBeNull();
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
   });
 });
 
 describe("what a recipe lacks", () => {
-  // A made-up station recipe that needs the saw at a woodpile, to check tools and stations before real ones exist.
+  // A made-up station recipe that needs the saw and sticks at a sawhorse, to check all three things it can lack.
   const recipe: Recipe = {
     kind: "saw",
     materials: [{ material: "stick", count: 2 }],
     result: { content: "firewood", count: 1 },
     seconds: 1,
     tool: "saw",
-    station: "woodpile",
+    station: "sawhorse",
   };
 
   it("names the tool that is not in the backpack and the station that does not stand", () => {
-    expect(recipeLacks(recipe, { contents: { stick: 2 } }, () => false)).toEqual({ tool: "saw", station: "woodpile" });
+    expect(recipeLacks(recipe, { contents: { stick: 2 } }, () => false)).toEqual([
+      { kind: "tool", tool: "saw" },
+      { kind: "station", station: "sawhorse" },
+    ]);
   });
 
   it("lacks nothing once the player has the tool, the station, and the materials", () => {
-    expect(recipeLacks(recipe, { contents: { saw: 1, stick: 2 } }, (station) => station === "woodpile")).toEqual({});
+    expect(recipeLacks(recipe, { contents: { saw: 1, stick: 2 } }, () => true)).toEqual([]);
   });
 
   it("says when materials are missing", () => {
-    expect(recipeLacks(recipe, { contents: { saw: 1, stick: 1 } }, () => true)).toEqual({ materials: true });
+    expect(recipeLacks(recipe, { contents: { saw: 1, stick: 1 } }, () => true)).toEqual([{ kind: "materials" }]);
   });
 });
 

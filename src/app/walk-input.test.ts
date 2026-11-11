@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createGame } from "../sim/game";
 import { strings } from "../strings";
 import { blueprintPressFor, cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";
 
@@ -46,13 +47,29 @@ describe("right-clicking a chest or woodpile", () => {
   });
 });
 
-describe("clicking a finished sawhorse", () => {
-  it("offers to cut planks at it or take it down on a right-click, and does nothing on a left-click yet", () => {
-    expect(menuActionsFor({ kind: "sawhorse", id: 11 })).toEqual([
+describe("clicking a finished work station", () => {
+  const sawhorse = { kind: "workStation", station: "sawhorse", id: 11 } as const;
+
+  it("offers the recipes crafted at a sawhorse, or taking it down, on a right-click, and does nothing on a left-click yet", () => {
+    const recipes = createGame({ seed: 42 }).client.getView().craftMenu;
+    expect(menuActionsFor(sawhorse, recipes)).toEqual([
       { label: strings.craftMenu.recipes.planks, command: { type: "craft", recipe: "planks", stationId: 11 } },
       { label: strings.takeDown, command: { type: "takeDown", pieceId: 11 } },
     ]);
-    expect(mainActionFor({ kind: "sawhorse", id: 11 })).toBeUndefined();
+    expect(mainActionFor(sawhorse)).toBeUndefined();
+  });
+
+  it("offers only the recipes crafted at that kind of station, in the craft menu's order", () => {
+    const recipes = [
+      { kind: "saw" },
+      { kind: "planks", station: "sawhorse" },
+      { kind: "saw", station: "sawhorse" },
+    ] as const;
+    expect(menuActionsFor(sawhorse, recipes).map(({ command }) => command)).toEqual([
+      { type: "craft", recipe: "planks", stationId: 11 },
+      { type: "craft", recipe: "saw", stationId: 11 },
+      { type: "takeDown", pieceId: 11 },
+    ]);
   });
 });
 

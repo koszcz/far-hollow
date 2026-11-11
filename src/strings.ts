@@ -1,5 +1,6 @@
 // All player-facing text lives here, so the game can be translated later.
 import type { BackpackContent } from "./sim/api";
+import { STATION_GROUND_METRES } from "./sim/crafting";
 
 /** How many of each kind of thing a pile holds, in words. */
 const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> = {
@@ -68,11 +69,16 @@ export const strings = {
     },
     /** What a recipe uses and how long it takes, such as "Saw blade, Stick ×3 · 5 s". */
     cost: (materials: readonly string[], seconds: number) => `${materials.join(", ")} · ${seconds} s`,
-    /** What the craft menu says about a tool a recipe needs that is not in the backpack, such as "needs the saw". */
-    needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
-    /** What the craft menu says about a work station a recipe needs that does not stand yet, such as "needs a sawhorse". */
-    needsStation: (station: string) => `needs a ${station.toLowerCase()}`,
-    putLogDownFirst: "Put the log down first.",
+    /** Each thing a recipe can lack, as the craft menu and notices name it. */
+    lacking: {
+      /** A tool that is not in the backpack, such as "the saw". */
+      tool: (tool: string) => `the ${tool.toLowerCase()}`,
+      /** A work station that does not stand yet, such as "a sawhorse". */
+      station: (station: string) => `a ${station.toLowerCase()}`,
+      materials: "more materials",
+    },
+    /** What the craft menu says a recipe lacks, such as "needs the saw and a sawhorse". */
+    needs: (lacking: readonly string[]) => `needs ${lacking.join(" and ")}`,
   },
   buildMenu: {
     open: "Build (B)",
@@ -179,7 +185,10 @@ export const strings = {
     stillHoldsSomething: "Something is still in this. Empty it first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
     putLogDownFirst: "Put the log down first.",
-    noLogBesideStation: "Lay a debarked log within 2 m of the sawhorse first.",
+    /** The player tried a station recipe with no debarked log beside the station, such as "Lay a debarked log within 2 m of the sawhorse first." */
+    noLogBesideStation: (station: string) => `Lay a debarked log within ${STATION_GROUND_METRES} m of the ${station.toLowerCase()} first.`,
+    /** The player tried a recipe they cannot follow yet, such as "This needs the saw first." */
+    cannotCraftYet: (lacking: readonly string[]) => `This needs ${lacking.join(" and ")} first.`,
   },
   backpack: "Backpack",
   backpackContents: {

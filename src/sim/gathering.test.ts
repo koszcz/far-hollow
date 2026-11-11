@@ -51,7 +51,7 @@ describe("picking up sticks", () => {
     game.client.send({ type: "pickUpStick", stickId: idOf(game, stick) });
     game.step();
 
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
   });
 });
 
@@ -104,7 +104,7 @@ describe("splitting a log into firewood", () => {
 
     game.client.send({ type: "splitLog" });
     game.step();
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
     runSeconds(game, SPLIT_SECONDS * 2);
 
     expect(game.client.getView().carrying).toBe("log");

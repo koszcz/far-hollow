@@ -2,7 +2,9 @@ import type { BackpackContents, Food } from "./backpack";
 
 export type { BackpackContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
-import type { Vec3 } from "./entities";
+import type { CarriedLog, Vec3 } from "./entities";
+
+export type { CarriedLog } from "./entities";
 import type { PotWater } from "./pot-state";
 import type { MaterialCost, QuarterTurns, StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
@@ -21,8 +23,13 @@ export type Command =
   | ({ type: "walkTo" } & GroundPoint)
   /** Walk the player to a standing tree and chop it down. The tree is given by its entity id. */
   | { type: "chopTree"; treeId: number }
-  /** Walk the player to a log on the ground and shoulder it. The player carries one log at a time. */
+  /** Walk the player to a log or debarked log on the ground and shoulder it. The player carries one at a time. */
   | { type: "pickUpLog"; logId: number }
+  /**
+   * Walk the player to a log on the ground and strip its bark with the drawknife.
+   * The log becomes a debarked log, and its bark goes in the backpack, if it all fits.
+   */
+  | { type: "debarkLog"; logId: number }
   /** Walk the player to a stick on the ground and put it in the backpack, if it fits. The stick is given by its entity id. */
   | { type: "pickUpStick"; stickId: number }
   /** Walk the player to a berry bush or mushroom patch, given by its entity id, and put its food in the backpack, if it all fits. */
@@ -31,7 +38,7 @@ export type Command =
   | { type: "eat"; food: Food }
   /** Split the log the player carries into firewood with the axe. The firewood goes in the backpack, if it all fits. */
   | { type: "splitLog" }
-  /** Lay the log the player carries on the ground at their feet. */
+  /** Lay the log or debarked log the player carries on the ground at their feet. */
   | { type: "dropLog" }
   /**
    * Place a blueprint of a structure from the build menu at the building-grid spot nearest the given spot, in metres,
@@ -47,7 +54,7 @@ export type Command =
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
   | { type: "tendCampfire"; campfireId: number }
-  /** Put one stick or piece of firewood from the backpack on a campfire within the player's reach. */
+  /** Put one stick, piece of firewood, or piece of bark from the backpack on a campfire within the player's reach. */
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
   | { type: "lightCampfire"; campfireId: number }
@@ -101,7 +108,7 @@ export interface GameView {
   /** The timed work the player is doing right now, or null if none. Walking to the work does not count. */
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
-  readonly carrying: "log" | null;
+  readonly carrying: CarriedLog | null;
   /** The campfire within the player's reach, or null if none is. */
   readonly nearbyCampfire: CampfireView | null;
   /** The laid bedroll within the player's reach, or null if none is. */
@@ -138,7 +145,7 @@ export type SaveSlotSummary =
   | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
 /** The kinds of fuel the player can put on a campfire. */
-export type CampfireFuel = "stick" | "firewood";
+export type CampfireFuel = "stick" | "firewood" | "bark";
 
 export interface CampfireView {
   /** The campfire's entity id. */
@@ -170,8 +177,8 @@ export interface BedrollView {
 }
 
 export interface PlayerAction {
-  /** Chopping a tree, splitting a log into firewood, or building a blueprint. */
-  readonly kind: "chop" | "split" | "build";
+  /** Chopping a tree, splitting a log into firewood, debarking a log, or building a blueprint. */
+  readonly kind: "chop" | "split" | "debark" | "build";
   /** How far along the work is, from 0 to 1. */
   readonly progress: number;
 }

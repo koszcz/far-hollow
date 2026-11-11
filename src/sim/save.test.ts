@@ -23,6 +23,33 @@ describe("saving and loading a game", () => {
     expect(loaded.game.client.getView()).toEqual(game.client.getView());
   });
 
+  it("restores debarked logs, bark, a debarked log on the shoulder, and debarking under way", () => {
+    const game = createGame({ seed: 7 });
+    const tree = nearestTo(game, game.entities.with("tree", "position").entities);
+    send(game, { type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => tree.stump === true);
+    send(game, { type: "dropLog" });
+    const [first, second] = game.entities.with("log", "position").entities;
+    if (first === undefined || second === undefined) throw new Error("Too few logs");
+    send(game, { type: "debarkLog", logId: idOf(game, first) });
+    stepUntil(game, () => first.debarkedLog !== undefined);
+    send(game, { type: "pickUpLog", logId: idOf(game, first) });
+    stepUntil(game, () => game.client.getView().carrying === "debarkedLog");
+    send(game, { type: "debarkLog", logId: idOf(game, second) });
+    stepUntil(game, () => game.client.getView().action?.kind === "debark");
+    runSeconds(game, 1);
+
+    const saved = writeSave(game);
+    expect(saved.version).toBe(5);
+    expect(saved.entities.some((entity) => entity.components.debarkTask !== undefined)).toBe(true);
+    const loaded = readSave(throughStorage(saved));
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(writeSave(loaded.game)).toEqual(saved);
+    expect(loaded.game.client.getView()).toEqual(game.client.getView());
+    expect(loaded.game.client.getView().backpack.bark).toBeGreaterThan(0);
+  });
+
   it("carries on exactly as the saved game would have", () => {
     const game = playedGame();
     const loaded = readSave(throughStorage(writeSave(game)));
@@ -94,6 +121,17 @@ describe("upgrading an older save", () => {
     expect(loaded.game.entities.with("forageSpot").size).toBe(game.entities.with("forageSpot").size);
     expect(loaded.game.client.getView().backpack.bedroll).toBe(1);
     expect(loaded.game.client.getView().backpack.pot).toBe(1);
+  });
+
+  it("gives a drawknife to a player saved before drawknives existed", () => {
+    const save = JSON.parse(JSON.stringify(writeSave(createGame({ seed: 42 })))) as { version: number; entities: { components: Entity }[] };
+    save.version = 4;
+    for (const { components } of save.entities) delete components.backpack?.contents.drawknife;
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save was rejected");
+
+    expect(loaded.game.client.getView().backpack.drawknife).toBe(1);
   });
 });
 

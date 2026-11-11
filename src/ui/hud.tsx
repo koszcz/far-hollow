@@ -108,6 +108,7 @@ function HudButton({ icon, label, disabled = false, onClick }: { icon?: HudIconN
 function CampfirePanel({ client, view, campfire }: { client: GameClient; view: GameView; campfire: CampfireView }) {
   const hasSticks = (view.backpack.stick ?? 0) > 0;
   const hasFirewood = (view.backpack.firewood ?? 0) > 0;
+  const hasBark = (view.backpack.bark ?? 0) > 0;
   const hasFullPot = (view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0;
   return (
     <section class="hud-section hud-campfire" aria-label={strings.campfire}>
@@ -123,6 +124,9 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
           }} />
         <HudButton label={strings.addFirewood} disabled={!hasFirewood} onClick={() => {
             client.send({ type: "addFuel", campfireId: campfire.id, fuel: "firewood" });
+          }} />
+        <HudButton icon="bark" label={strings.addBark} disabled={!hasBark} onClick={() => {
+            client.send({ type: "addFuel", campfireId: campfire.id, fuel: "bark" });
           }} />
         {!campfire.lit && (
           <HudButton icon="flame" label={strings.lightCampfire} disabled={!campfire.canLight} onClick={() => {
@@ -176,10 +180,14 @@ function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: Bedrol
 const actionLabels = {
   chop: strings.chopping,
   split: strings.splitting,
+  debark: strings.debarking,
   build: strings.building,
 } as const;
 
-const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", build: "campfire" };
+const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire" };
+
+/** Backpack contents shown with an icon in front of their name. */
+const CONTENT_ICONS: Partial<Record<BackpackContent, HudIconName>> = { bark: "bark" };
 
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
@@ -228,19 +236,21 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
         </div>
         {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} />}
         {placing !== null && <p class="hud-hint">{strings.buildMenu.placing(strings.buildMenu.structures[placing])}</p>}
-        {view.carrying === "log" && (
-          <section class="hud-section hud-carrying" aria-label={strings.carryingLog}>
+        {view.carrying !== null && (
+          <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
             <h2>
               <HudIcon name="log" />
-              {strings.carryingLog}
+              {view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}
             </h2>
             <div class="hud-buttons">
               <HudButton label={strings.dropLog} onClick={() => {
                   client.send({ type: "dropLog" });
                 }} />
-              <HudButton icon="axe" label={strings.splitLog} onClick={() => {
-                  client.send({ type: "splitLog" });
-                }} />
+              {view.carrying === "log" && (
+                <HudButton icon="axe" label={strings.splitLog} onClick={() => {
+                    client.send({ type: "splitLog" });
+                  }} />
+              )}
             </div>
           </section>
         )}
@@ -255,6 +265,7 @@ export function Hud({ client, cameraFollow: initialCameraFollow, onCameraFollowC
           <ul>
             {backpackContents(view.backpack).map(([content, count]) => (
               <li key={content}>
+                {CONTENT_ICONS[content] !== undefined && <HudIcon name={CONTENT_ICONS[content]} />}
                 {strings.backpackContentCount(strings.backpackContents[content], count)}
                 {isFood(content) && (
                   <HudButton label={strings.eat} onClick={() => {

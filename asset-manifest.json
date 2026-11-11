@@ -138,6 +138,38 @@
       }
     },
     {
+      "id": "debarked-log",
+      "kind": "code",
+      "code": [
+        "src/render/debarked-log-shape.ts",
+        "src/render/forest-meshes.ts",
+        "src/render/player-mesh.ts"
+      ],
+      "description": "A debarked log: the log shape from the \"logs\" asset, drawn pale all over because its bark is gone. Shown lying on the ground and on the player's shoulder.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/01-drawknife-and-debarking.md"
+      }
+    },
+    {
+      "id": "bark",
+      "kind": "code",
+      "code": [
+        "src/ui/hud-icons.tsx",
+        "src/ui/hud.tsx",
+        "src/ui/hud-showcase.tsx"
+      ],
+      "description": "Bark: a HUD line icon of two curled strips, shown beside bark in the backpack, on the \"Add bark\" button, and on the debarking bar. Bark never lies on the ground yet, so it has no 3D shape.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/01-drawknife-and-debarking.md"
+      }
+    },
+    {
       "id": "firewood",
       "kind": "code",
       "code": [

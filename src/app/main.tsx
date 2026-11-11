@@ -8,12 +8,13 @@ import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
+import { ActionMenu } from "../ui/action-menu";
 import { Hud } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
-import { attachWalkInput } from "./walk-input";
+import { attachWalkInput, type MenuRequest } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
 const MAX_STEPS_PER_FRAME = 10;
@@ -141,9 +142,16 @@ const walkInput = attachWalkInput({
   onHoverChange: (pick) => {
     sceneRenderer.setHovered(pick);
   },
-  onBuildModeChange: renderUi,
+  onBuildModeChange: (mode) => {
+    uiState.buildMode = mode;
+    renderUi();
+  },
   onPreviewChange: (preview) => {
     sceneRenderer.setPlacementPreview(preview);
+  },
+  onMenuChange: (menu) => {
+    uiState.menu = menu;
+    renderUi();
   },
 });
 if (import.meta.env.DEV) {
@@ -156,10 +164,26 @@ const loop = createFixedStepLoop({
   },
 });
 
-/** Draws the HUD and debug overlay. Called again when the build menu opens or closes, or placing a blueprint starts or ends. */
-function renderUi(buildMode: BuildMode): void {
+/** Input state the UI shows: the build menu and placing, and the right-click menu, if one is open. */
+const uiState: { buildMode: BuildMode; menu: MenuRequest | undefined } = { buildMode: NOT_BUILDING, menu: undefined };
+
+/** Draws the HUD, the right-click menu, and the debug overlay. Called again when the build mode or the right-click menu changes. */
+function renderUi(): void {
+  const { buildMode, menu } = uiState;
   render(
     <>
+      {menu !== undefined && (
+        <ActionMenu
+          client={game.client}
+          x={menu.x}
+          y={menu.y}
+          actions={menu.actions}
+          onClose={() => {
+            uiState.menu = undefined;
+            renderUi();
+          }}
+        />
+      )}
       <Hud
         client={game.client}
         cameraFollow={sceneRenderer.cameraRig.followEnabled}
@@ -180,7 +204,7 @@ function renderUi(buildMode: BuildMode): void {
     requireElement("#ui", HTMLDivElement),
   );
 }
-renderUi(NOT_BUILDING);
+renderUi();
 
 /** How long the loading screen takes to fade out. Matches the transition in style.css. */
 const LOADING_FADE_MS = 400;

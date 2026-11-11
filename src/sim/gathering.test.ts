@@ -25,7 +25,7 @@ describe("picking up sticks", () => {
     expect(game.client.getView().backpack.stick).toBe(1);
     expect(game.entities.with("stick").size).toBe(stickCount - 1);
     // The view shows the backpack's weight: the starting tools, bedroll, and empty pot, plus one stick.
-    expect(game.client.getView().backpackWeight).toBeCloseTo(4.4 + 0.5);
+    expect(game.client.getView().backpackWeight).toBeCloseTo(4.9 + 0.5);
     expect(game.client.getView().backpackWeightLimit).toBe(BACKPACK_WEIGHT_LIMIT_KG);
   });
 

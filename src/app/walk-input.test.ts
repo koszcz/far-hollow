@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { cursorFor, mainActionFor, outlineFor } from "./walk-input";
+import { strings } from "../strings";
+import { cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";
+
+describe("right-clicking a log", () => {
+  it("offers to debark it", () => {
+    expect(menuActionsFor({ kind: "log", id: 4 })).toEqual([{ label: strings.debark, command: { type: "debarkLog", logId: 4 } }]);
+  });
+
+  it("offers nothing for things with no extra actions", () => {
+    expect(menuActionsFor({ kind: "ground", spot: { x: 0, z: 0 } })).toEqual([]);
+    expect(menuActionsFor({ kind: "debarkedLog", id: 4 })).toEqual([]);
+  });
+});
+
+describe("clicking a debarked log", () => {
+  it("walks the player to it and shoulders it, like a log", () => {
+    expect(mainActionFor({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });
+    expect(cursorFor({ kind: "debarkedLog", id: 5 }, false)).toBe("pointer");
+  });
+});
 
 describe("clicking a campfire", () => {
   it("walks the player over to tend it", () => {

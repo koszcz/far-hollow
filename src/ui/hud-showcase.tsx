@@ -1,5 +1,5 @@
-// Draws the real HUD over the asset showcase at /?asset=hud, once in each of the four views, each in a different game
-// state. The states match the order of the "hud" views in src/render/asset-showcase.ts. Development builds only.
+// Draws the real HUD over the asset showcase at /?asset=hud or /?asset=bark, once in each of the four views, each in a
+// different game state. The states match the order of the views in src/render/asset-showcase.ts. Development builds only.
 import { render } from "preact";
 import type { GameClient, GameView, StructureKind } from "../sim/api";
 import { Hud } from "./hud";
@@ -67,6 +67,30 @@ const STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: Struct
   },
 ];
 
+/** The "bark" draft: bark in the backpack, debarking under way, bark offered as fuel, and a debarked log on the shoulder. */
+const BARK_STATES: readonly { view: GameView; buildMenuOpen: boolean; placing: StructureKind | null }[] = [
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 4 } }, buildMenuOpen: false, placing: null },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 2 }, action: { kind: "debark", progress: 0.6 } },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  {
+    view: {
+      ...BASE_VIEW,
+      backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 6 },
+      nearbyCampfire: { id: 1, lit: true, fuelLeft: 0.3, fuelMinutes: 40, canLight: false, pot: null },
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 2 }, carrying: "debarkedLog" },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
 /** A client that always shows `view` and ignores commands. */
 function stillClient(view: GameView): GameClient {
   return {
@@ -77,9 +101,9 @@ function stillClient(view: GameView): GameClient {
   };
 }
 
-/** Draws one HUD in each quarter of `ui`. */
-export function renderHudShowcase(ui: HTMLElement): void {
-  STATES.forEach(({ view, buildMenuOpen, placing }, index) => {
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud" or "bark" showcase. */
+export function renderHudShowcase(ui: HTMLElement, asset: "hud" | "bark"): void {
+  (asset === "bark" ? BARK_STATES : STATES).forEach(({ view, buildMenuOpen, placing }, index) => {
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);

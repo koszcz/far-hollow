@@ -4,7 +4,7 @@
  */
 
 /** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in CONTENT_WEIGHT_KG. */
-export type BackpackContent = "axe" | "knife" | "fireStriker" | "bedroll" | "stick" | "firewood" | Food | PotContent;
+export type BackpackContent = "axe" | "knife" | "drawknife" | "fireStriker" | "bedroll" | "stick" | "firewood" | "bark" | Food | PotContent;
 
 /** Wild food the player forages and eats. One "berries" is a handful of berries. */
 export type Food = "berries" | "mushroom";
@@ -29,10 +29,12 @@ export const BACKPACK_WEIGHT_LIMIT_KG = 20;
 export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   axe: 1.5,
   knife: 0.3,
+  drawknife: 0.5,
   fireStriker: 0.1,
   bedroll: 1.5,
   stick: 0.5,
   firewood: 1.5,
+  bark: 0.3,
   berries: 0.1,
   mushroom: 0.1,
   pot: 1,
@@ -43,7 +45,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
 
 /** What the player starts a new game with. */
 export function createStartingBackpack(): Backpack {
-  return { contents: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, pot: 1 } };
+  return { contents: { axe: 1, knife: 1, drawknife: 1, fireStriker: 1, bedroll: 1, pot: 1 } };
 }
 
 export function countInBackpack(backpack: Backpack, content: BackpackContent): number {

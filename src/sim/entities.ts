@@ -103,6 +103,11 @@ export interface Entity {
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
   campfire?: { lit: boolean; fuelMinutes: number };
+  /**
+   * Marks a campfire built on a foundation, with the middle of that foundation's grid square.
+   * A lit campfire on a foundation in a room warms the whole room. Missing for a campfire on the ground.
+   */
+  onFoundation?: GroundPoint;
   /** Marks a finished lean-to. Its position is the middle of the ground it covers. */
   leanTo?: true;
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */

@@ -98,6 +98,7 @@ function stillClient(view: GameView): GameClient {
     getView: () => view,
     checkPlacement: () => ({ spot: { x: 0, y: 0, z: 0 }, allowed: true }),
     describeBlueprint: () => null,
+    describeRooms: () => [],
     send() {},
     subscribe: () => () => {},
   };

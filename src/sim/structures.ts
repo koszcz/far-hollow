@@ -1,12 +1,13 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 import type { BackpackContent } from "./backpack";
-import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-grid";
+import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
   blueprintEntities, campfireEntities, edgePieceEntities, foundationEntities, roofEntities, stumpEntities, treeEntities, type Entity, type EntityStore,
 } from "./entities";
-import { foundationDeckTop } from "./foundations";
+import { foundationDeckTop, foundationOn } from "./foundations";
+import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
   isInRect, rectsOverlap, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type QuarterTurns, type StructureKind,
@@ -44,10 +45,10 @@ export interface StructureDefinition {
   footprint(spot: GroundPoint, turns: QuarterTurns): GroundRect;
   /** Whether a blueprint of this structure may go at `spot`, a building-grid spot, facing `turns`. */
   canPlace(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): boolean;
-  /** The components a finished structure gets in place of its blueprint, at `spot` facing `turns`. */
-  finish(spot: GroundPoint, turns: QuarterTurns): Entity;
+  /** The components a finished structure gets in place of its blueprint, at `spot` facing `turns`, among `entities`. */
+  finish(spot: GroundPoint, turns: QuarterTurns, entities: EntityStore): Entity;
   /** The building-grid spot a blueprint placed near `at`, facing `turns`, snaps to. Without this, it snaps to the nearest grid point. */
-  snap?(at: GroundPoint, turns: QuarterTurns): GroundPoint;
+  snap?(site: PlacementSite, at: GroundPoint, turns: QuarterTurns): GroundPoint;
   /** How high its position sits at a snapped spot, in metres. Without this, it sits on the ground. */
   heightAt?(site: PlacementSite, spot: GroundPoint): number;
   /** Clears the ground for a blueprint just placed at `spot`, if the structure needs it. */
@@ -71,19 +72,41 @@ const CAMPFIRE_MIN_SPACING_METRES = 2;
 /** A finished campfire stops the player walking within this many metres of its centre. */
 const CAMPFIRE_WALK_BLOCK_RADIUS_METRES = 0.8;
 
+/** The finished foundation a campfire at `spot` would stand on: one whose square has `spot` as its middle. */
+function foundationUnderCampfire(entities: EntityStore, spot: GroundPoint) {
+  const foundation = foundationOn(entities, spot);
+  if (foundation === undefined) return undefined;
+  return foundation.position.x === spot.x && foundation.position.z === spot.z ? foundation : undefined;
+}
+
+/**
+ * A campfire. On open ground it sits on a grid point.
+ * Inside a room it stands on a foundation, in the middle of the square, so it can warm the whole room.
+ */
 const campfire: StructureDefinition & { readonly kind: "campfire" } = {
   kind: "campfire",
   cost: [{ material: "stick", count: CAMPFIRE_STICK_COST }],
   buildSeconds: CAMPFIRE_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, CAMPFIRE_WALK_BLOCK_RADIUS_METRES, CAMPFIRE_WALK_BLOCK_RADIUS_METRES, turns),
+  snap({ entities }, at) {
+    const square = snapToGridSquare(at);
+    return foundationOn(entities, square) === undefined ? snapToGridPoint(at) : square;
+  },
+  heightAt: ({ entities, valley }, spot) => foundationUnderCampfire(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities, walkMap }, spot) {
     if (!isWalkable(walkMap, spot)) return false;
+    // On a foundation, a campfire goes only inside a room.
+    if (foundationUnderCampfire(entities, spot) !== undefined && roomAround(entities, spot) === undefined) return false;
     for (const other of [...campfireEntities(entities), ...blueprintEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
     return true;
   },
-  finish: () => ({ campfire: { lit: false, fuelMinutes: 0 }, blocksWalking: { radius: CAMPFIRE_WALK_BLOCK_RADIUS_METRES } }),
+  finish(spot, _turns, entities) {
+    const finished: Entity = { campfire: { lit: false, fuelMinutes: 0 }, blocksWalking: { radius: CAMPFIRE_WALK_BLOCK_RADIUS_METRES } };
+    if (foundationUnderCampfire(entities, spot) !== undefined) finished.onFoundation = { x: spot.x, z: spot.z };
+    return finished;
+  },
 };
 
 /** How many sticks a lean-to's frame costs. */
@@ -141,7 +164,7 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   cost: [{ material: "debarkedLog", count: FOUNDATION_LOG_COST }],
   buildSeconds: FOUNDATION_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
-  snap: snapToGridSquare,
+  snap: (_site, at) => snapToGridSquare(at),
   heightAt: ({ valley }, spot) => foundationDeckTop(valley.terrain, spot),
   canPlace({ entities, walkMap, valley }, spot, turns) {
     const rect = foundation.footprint(spot, turns);
@@ -186,7 +209,7 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
     cost: [{ material: "debarkedLog", count: logCost }],
     buildSeconds,
     footprint,
-    snap: (at, turns) => edgeMiddle(snapToGridSquare(at), turns),
+    snap: (_site, at, turns) => edgeMiddle(snapToGridSquare(at), turns),
     heightAt({ entities, valley }, spot) {
       // Facing 0 or 1 covers both kinds of edge. Only the one that matches the spot finds foundations.
       const decks = ([0, 1] as const).flatMap((turns) => foundationsBeside(entities, spot, turns)).map(({ position }) => position.y);
@@ -218,11 +241,6 @@ export const ROOF_BUILD_SECONDS = 15;
 /** The four sides of a grid square, as `edgeMiddle` numbers them. */
 const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
 
-/** The finished foundation on the grid square with this middle, if any. */
-function foundationOn(entities: EntityStore, square: GroundPoint) {
-  return foundationEntities(entities).entities.find((built) => isOnGridSquare(square, built.position));
-}
-
 /**
  * A roof section over one foundation square. It rests on the log walls and door frames on the square's edges, so it needs at least one.
  * A finished section is a roof overhead for the whole square, like a lean-to's roof.
@@ -235,7 +253,7 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   ],
   buildSeconds: ROOF_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
-  snap: snapToGridSquare,
+  snap: (_site, at) => snapToGridSquare(at),
   heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities }, spot, turns) {
     if (foundationOn(entities, spot) === undefined) return false;

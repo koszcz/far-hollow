@@ -32,7 +32,8 @@ const BLUEPRINT_COLOUR = 0xbfe3ff;
 const BLUEPRINT_OPACITY = 0.35;
 
 const STONE_COUNT = 10;
-const STONE_RING_RADIUS_METRES = 0.55;
+/** The stones sit this far from the campfire's centre, in metres. Camp footprints use it too. */
+export const STONE_RING_RADIUS_METRES = 0.55;
 /** Each stone's size is picked between these, in metres. */
 const STONE_SMALLEST_METRES = 0.11;
 const STONE_LARGEST_METRES = 0.18;

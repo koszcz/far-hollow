@@ -3,14 +3,14 @@
 // - Each model is one batch (an instanced mesh), so thousands of plants cost a few dozen draw calls.
 // - Only patches near where the camera looks are grown and drawn. Plants shrink into the ground as they near the edge
 //   of the drawn area, so they never pop in or out.
-// - Plants under anything the player has placed are not drawn. undergrowth-clearing.ts decides which spots are covered.
+// - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
 import type { EntityStore, Vec3 } from "../sim/entities";
 import { createGroundMap, type GroundMap } from "../sim/ground-types";
 import { terrainHeightAt, type Valley } from "../sim/valley";
-import { campFootprints, isUnderCamp, type CampFootprint } from "./undergrowth-clearing";
-import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, type UndergrowthPlant } from "./undergrowth-layout";
+import { campFootprints, isUnderCamp, sameFootprints, type CampFootprint } from "./camp-footprints";
+import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, type UndergrowthItem } from "./undergrowth-layout";
 import type { UndergrowthShape } from "./undergrowth-models";
 
 /** Undergrowth is drawn out to this distance from where the camera looks, in metres. */
@@ -79,11 +79,10 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   }
 
   /** Patches grown so far, by column and row. Patches far from the focus are dropped. */
-  const grown = new Map<number, UndergrowthPlant[]>();
+  const grown = new Map<number, UndergrowthItem[]>();
   let drawnPatch: number | undefined;
-  /** What the player had placed when the undergrowth was last drawn, and the same written as text to spot changes. */
+  /** What the player had placed when the undergrowth was last drawn. */
   let footprints: CampFootprint[] = [];
-  let drawnFootprints = "";
   const matrix = new THREE.Matrix4();
   const turn = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
@@ -94,7 +93,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   function drawAround(column: number, row: number): void {
     // A plant within the draw distance of any spot in the focus's patch lies in a patch this many patches away, or nearer.
     const reach = Math.ceil(UNDERGROWTH_DRAW_METRES / UNDERGROWTH_PATCH_METRES) + 1;
-    const near = new Map<number, UndergrowthPlant[]>();
+    const near = new Map<number, UndergrowthItem[]>();
     for (let r = Math.max(0, row - reach); r <= Math.min(patchesPerSide - 1, row + reach); r += 1) {
       for (let c = Math.max(0, column - reach); c <= Math.min(patchesPerSide - 1, column + reach); c += 1) {
         if (Math.hypot(c - column, r - row) > reach) continue;
@@ -117,7 +116,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   }
 
   /** Adds one plant to its model's batch, unless it lies under something the player has placed. */
-  function addPlant(plant: UndergrowthPlant): void {
+  function addPlant(plant: UndergrowthItem): void {
     const choices = batchesByKind.get(plant.kind) ?? [];
     const batch = choices[Math.min(choices.length - 1, Math.floor(plant.look * choices.length))];
     if (batch === undefined || isUnderCamp(footprints, plant.x, plant.z)) return;
@@ -145,11 +144,9 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
       const row = Math.floor((focus.z + half) / UNDERGROWTH_PATCH_METRES);
       const patch = row * patchesPerSide + column;
       const nowFootprints = campFootprints(entities);
-      const nowFootprintsText = JSON.stringify(nowFootprints);
-      if (patch === drawnPatch && nowFootprintsText === drawnFootprints) return;
+      if (patch === drawnPatch && sameFootprints(nowFootprints, footprints)) return;
       drawnPatch = patch;
       footprints = nowFootprints;
-      drawnFootprints = nowFootprintsText;
       drawAround(column, row);
     },
     dispose() {

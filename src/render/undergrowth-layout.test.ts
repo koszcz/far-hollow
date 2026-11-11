@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createGroundMap } from "../sim/ground-types";
 import type { GroundPoint, River } from "../sim/valley";
-import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthPlant } from "./undergrowth-layout";
+import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthItem } from "./undergrowth-layout";
 
 /** A straight river along x = 0, 8 m wide, so its water ends 4 m from its middle. */
 const straightRiver: River = {
@@ -31,16 +31,16 @@ function patchAt(spot: GroundPoint): { column: number; row: number } {
 }
 
 /** Grows a square of patches around a spot, so each test sees plenty of plants. */
-function growAround(seed: number, map: ReturnType<typeof mapWith>, spot: GroundPoint, patches = 3): UndergrowthPlant[] {
+function growAround(seed: number, map: ReturnType<typeof mapWith>, spot: GroundPoint, patches = 3): UndergrowthItem[] {
   const { column, row } = patchAt(spot);
-  const plants: UndergrowthPlant[] = [];
+  const plants: UndergrowthItem[] = [];
   for (let r = row - 1; r < row - 1 + patches; r += 1) {
     for (let c = column - 1; c < column - 1 + patches; c += 1) plants.push(...growUndergrowthPatch(seed, map, c, r));
   }
   return plants;
 }
 
-function kindsOf(plants: readonly UndergrowthPlant[]): string[] {
+function kindsOf(plants: readonly UndergrowthItem[]): string[] {
   return [...new Set(plants.map((plant) => plant.kind))].sort();
 }
 

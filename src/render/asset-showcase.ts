@@ -240,14 +240,14 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   "debarked-log": {
-    radius: 2.2,
-    focus: { x: 0, y: 0.7, z: 0 },
+    radius: 1.6,
+    focus: { x: 0, y: 0.5, z: 0 },
     shots: FOUR_ANGLES,
     build({ place, player }) {
       // A log beside the debarked ones, so the two compare in one view.
       place(-0.8, 0.8, { debarkedLog: { heading: 0.3 } });
       place(0.9, 0.6, { log: { heading: 1.8 } });
-      place(0.2, 1.4, { debarkedLog: { heading: 1.2 } });
+      place(0.3, -0.9, { debarkedLog: { heading: 1.2 } });
       player.setCarryingLog("debarkedLog");
     },
   },
@@ -637,7 +637,7 @@ export function showAsset(
   const store = createEntityStore();
   const player = createPlayerMesh(shapes.player, shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud", "log-wall", "door-frame"].includes(id);
+  const showsPlayer = ["player", "logs", "debarked-log", "walk-animation", "chop-animation", "split-animation", "sky-lighting", "hud", "log-wall", "door-frame"].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;

@@ -91,6 +91,16 @@ export function recipeOf(kind: RecipeKind): Recipe {
   return RECIPE_BY_KIND[kind];
 }
 
+/**
+ * How far the player is through crafting, from 0 to 1, and the work station they craft at, if any.
+ * Undefined if they are not crafting now. Walking to the station does not count.
+ */
+export function craftingNow(player: Entity): { progress: number; targetId?: number } | undefined {
+  if (player.craftTask === undefined || player.walkPath !== undefined) return undefined;
+  const { recipe, secondsDone, stationId } = player.craftTask;
+  return { progress: Math.min(1, secondsDone / recipeOf(recipe).seconds), ...(stationId === undefined ? {} : { targetId: stationId }) };
+}
+
 /** What the player lacks to follow a recipe now. Each field is missing when the player has that. */
 export interface RecipeLacks {
   /** The tool the recipe needs, when it is not in the backpack. */
@@ -142,7 +152,7 @@ export interface Crafting {
    * Moves crafting on by one logic step. Run it after walking has moved the player.
    * When the work finishes, the materials are used up and the result goes in the backpack.
    */
-  step(stepSeconds: number): void;
+  step(stepSeconds: number): undefined;
   /** What the player lacks to follow a recipe now. */
   lacks(kind: RecipeKind): RecipeLacks;
 }

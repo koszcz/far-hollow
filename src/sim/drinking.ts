@@ -19,7 +19,7 @@ export interface Drinking {
   /** Stops the player walking to drink. */
   cancel(): void;
   /** Drinks once the player has reached the bank. */
-  step(): void;
+  step(): undefined;
 }
 
 /** Lets the player drink from the river. River water is not boiled, so drinking it makes the player sick. */

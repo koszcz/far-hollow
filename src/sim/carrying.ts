@@ -17,7 +17,7 @@ export interface Carrying {
   /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
   drop(): void;
   /** Picks up logs the player has reached. Run it after walking has moved the player. */
-  step(): void;
+  step(): undefined;
 }
 
 /** Keeps track of what the player carries on their shoulder. One log or debarked log fits at a time. */

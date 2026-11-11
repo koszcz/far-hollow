@@ -28,7 +28,7 @@ export interface Foraging {
   /** Stops the player walking to forage. */
   cancel(): void;
   /** Forages the spots the player has reached. Run it after walking has moved the player. */
-  step(): void;
+  step(): undefined;
   /** Grows foraged spots back by this many game minutes. */
   grow(gameMinutes: number): void;
 }

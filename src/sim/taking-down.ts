@@ -141,6 +141,18 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
 }
 
 /** How long the player works to take down a finished structure of this kind, in seconds. A blueprint comes down at once. */
+/**
+ * How far the player is through taking down a finished structure, from 0 to 1, and the structure.
+ * Undefined if they are not taking one down now. Walking there does not count, and a blueprint is taken down at once.
+ */
+export function takingDownNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
+  if (player.takeDownTask === undefined || player.walkPath !== undefined) return undefined;
+  const piece = entities.entity(player.takeDownTask.pieceId);
+  const kind = piece === undefined ? undefined : takeDownKindOf(piece);
+  if (piece?.blueprint !== undefined || kind === undefined) return undefined;
+  return { progress: Math.min(1, player.takeDownTask.secondsDone / takeDownSeconds(kind)), targetId: player.takeDownTask.pieceId };
+}
+
 export function takeDownSeconds(kind: StructureKind): number {
   return structureOf(kind).buildSeconds * TAKE_DOWN_SHARE_OF_BUILD;
 }

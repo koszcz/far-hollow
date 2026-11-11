@@ -23,7 +23,7 @@ export interface Chests {
    * Closes the open chest once the player is out of its reach: after they have stood at it and left,
    * or when they stop walking without reaching it. Run it after walking has moved the player.
    */
-  step(): void;
+  step(): undefined;
   /** The chest the player has open, as the HUD shows it. Undefined while none is open, or while the player walks. */
   opened(): ChestView | undefined;
   /**

@@ -1,17 +1,18 @@
 import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, PileView, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
+import { playerActivity, type Activity } from "./activity";
 import { createBuilding } from "./building";
-import { createTakingDown, takeDownKindOf, takeDownSeconds } from "./taking-down";
+import { createTakingDown } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
-import { CHOP_SECONDS, createChopping } from "./chopping";
-import { createDebarking, DEBARK_SECONDS } from "./debarking";
-import { createCrafting, RECIPES, recipeOf } from "./crafting";
+import { createChopping } from "./chopping";
+import { createDebarking } from "./debarking";
+import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
-import { createGathering, SPLIT_SECONDS } from "./gathering";
+import { createGathering } from "./gathering";
 import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
@@ -131,6 +132,20 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const piles = createPiles(entities, walking, valley);
+  /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
+  const activities: readonly Activity[] = [
+    chopping, carrying, debarking, crafting, gathering, foraging, building, takingDown,
+    {
+      cancel: () => {
+        bedrolls.cancel();
+      },
+      step: () => {
+        const reached = bedrolls.step();
+        if (reached !== undefined) sleepOn(reached);
+      },
+    },
+    drinking, pot, chests, piles,
+  ];
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
@@ -235,45 +250,25 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   function currentAction(): PlayerAction | null {
-    if (player.craftTask !== undefined && player.walkPath === undefined) {
-      return Object.freeze({ kind: "craft", progress: Math.min(1, player.craftTask.secondsDone / recipeOf(player.craftTask.recipe).seconds) });
-    }
-    if (player.buildTask !== undefined && player.walkPath === undefined) {
-      const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
-      if (blueprint !== undefined) return Object.freeze({ kind: "build", progress: blueprint.progress });
-    }
-    if (player.takeDownTask !== undefined && player.walkPath === undefined) {
-      const piece = entities.entity(player.takeDownTask.pieceId);
-      const kind = piece === undefined ? undefined : takeDownKindOf(piece);
-      if (piece?.blueprint === undefined && kind !== undefined) {
-        return Object.freeze({ kind: "takeDown", progress: Math.min(1, player.takeDownTask.secondsDone / takeDownSeconds(kind)) });
-      }
-    }
-    if (player.debarkTask !== undefined && player.walkPath === undefined) {
-      return Object.freeze({ kind: "debark", progress: Math.min(1, player.debarkTask.secondsDone / DEBARK_SECONDS) });
-    }
-    if (player.splitTask !== undefined) {
-      return Object.freeze({ kind: "split", progress: Math.min(1, player.splitTask.secondsDone / SPLIT_SECONDS) });
-    }
-    if (player.chopTask === undefined || player.walkPath !== undefined) return null;
-    return Object.freeze({ kind: "chop", progress: Math.min(1, player.chopTask.secondsDone / CHOP_SECONDS) });
+    const activity = playerActivity(entities, player);
+    return activity === undefined ? null : Object.freeze({ kind: activity.kind, progress: activity.progress });
   }
 
   /** Stops whatever the player was walking to do, before they start something else. */
   function cancelTasks(): void {
-    chopping.cancel();
-    carrying.cancel();
-    debarking.cancel();
-    crafting.cancel();
-    gathering.cancel();
-    foraging.cancel();
-    building.cancel();
-    takingDown.cancel();
-    bedrolls.cancel();
-    drinking.cancel();
-    pot.cancel();
-    chests.cancel();
-    piles.cancel();
+    for (const activity of activities) activity.cancel();
+  }
+
+  /** Starts something new in place of whatever the player was doing, and shows the notice if it is refused. */
+  function startNew(start: () => GameNotice | undefined): void {
+    cancelTasks();
+    const refusal = start();
+    if (refusal !== undefined) showNotice(refusal);
+  }
+
+  /** Shows the notice if what the player tried was refused. */
+  function refuseWith(refusal: GameNotice | undefined): void {
+    if (refusal !== undefined) showNotice(refusal);
   }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
@@ -298,37 +293,25 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       carrying.pickUp(command.logId);
     },
     debarkLog: (command) => {
-      cancelTasks();
-      const refusal = debarking.start(command.logId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => debarking.start(command.logId));
     },
     craft: (command) => {
-      cancelTasks();
-      const refusal = crafting.start(command.recipe, command.stationId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => crafting.start(command.recipe, command.stationId));
     },
     pickUpStick: (command) => {
-      cancelTasks();
-      const refusal = gathering.pickUpStick(command.stickId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => gathering.pickUpStick(command.stickId));
     },
     pickUpBark: (command) => {
-      cancelTasks();
-      const refusal = gathering.pickUpBark(command.barkId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => gathering.pickUpBark(command.barkId));
     },
     forage: (command) => {
-      cancelTasks();
-      const refusal = foraging.forage(command.spotId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => foraging.forage(command.spotId));
     },
     eat: (command) => {
       foraging.eat(command.food);
     },
     splitLog: () => {
-      cancelTasks();
-      const refusal = gathering.splitLog();
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => gathering.splitLog());
     },
     dropLog: () => {
       carrying.drop();
@@ -337,9 +320,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       piles.drop(command.content);
     },
     pickUpPile: (command) => {
-      cancelTasks();
-      const refusal = piles.pickUp(command.pileId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => piles.pickUp(command.pileId));
     },
     placeBlueprint: (command) => {
       const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
@@ -356,9 +337,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       building.deliver(command.blueprintId);
     },
     takeDown: (command) => {
-      cancelTasks();
-      const refusal = takingDown.start(command.pieceId);
-      if (refusal !== undefined) showNotice(refusal);
+      startNew(() => takingDown.start(command.pieceId));
     },
     stopBuilding: () => {
       building.cancel();
@@ -378,20 +357,17 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       woodpiles.stack(command.woodpileId, command.wood, command.all);
     },
     takeFromWoodpile: (command) => {
-      const refusal = woodpiles.take(command.woodpileId, command.wood);
-      if (refusal !== undefined) showNotice(refusal);
+      refuseWith(woodpiles.take(command.woodpileId, command.wood));
     },
     openChest: (command) => {
       cancelTasks();
       chests.open(command.chestId);
     },
     putInChest: (command) => {
-      const refusal = chests.put(command.chestId, command.content, command.all);
-      if (refusal !== undefined) showNotice(refusal);
+      refuseWith(chests.put(command.chestId, command.content, command.all));
     },
     takeFromChest: (command) => {
-      const refusal = chests.take(command.chestId, command.content, command.all);
-      if (refusal !== undefined) showNotice(refusal);
+      refuseWith(chests.take(command.chestId, command.content, command.all));
     },
     lightCampfire: (command) => {
       campfires.light(command.campfireId);
@@ -416,8 +392,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       pot.putOnFire(command.campfireId);
     },
     takePotOffFire: (command) => {
-      const refusal = pot.takeOffFire(command.campfireId);
-      if (refusal !== undefined) showNotice(refusal);
+      refuseWith(pot.takeOffFire(command.campfireId));
     },
     drinkFromPot: () => {
       pot.drink();
@@ -533,23 +508,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       // A player with a low need moves and works more slowly, as if less time passed for them.
       const playerSeconds = (STEP_MS / 1000) * needsSpeed(player.needs);
       walking.step(playerSeconds);
-      chopping.step(playerSeconds);
-      carrying.step();
-      debarking.step(playerSeconds);
-      crafting.step(playerSeconds);
-      gathering.step(playerSeconds);
-      foraging.step();
-      building.step(playerSeconds);
-      const takeDownRefusal = takingDown.step(playerSeconds);
-      if (takeDownRefusal !== undefined) showNotice(takeDownRefusal);
-      const reachedBedroll = bedrolls.step();
-      if (reachedBedroll !== undefined) sleepOn(reachedBedroll);
-      drinking.step();
-      const potRefusal = pot.step();
-      if (potRefusal !== undefined) showNotice(potRefusal);
-      chests.step();
-      const pileRefusal = piles.step();
-      if (pileRefusal !== undefined) showNotice(pileRefusal);
+      for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;
     }

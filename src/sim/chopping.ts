@@ -7,6 +7,12 @@ import type { Walking } from "./walking";
 /** How long the player chops at a tree before it falls, in seconds. */
 export const CHOP_SECONDS = 4;
 
+/** How far the player is through chopping, from 0 to 1, and the tree they chop, or undefined if they are not chopping now. Walking there does not count. */
+export function choppingNow(player: Entity): { progress: number; targetId: number } | undefined {
+  if (player.chopTask === undefined || player.walkPath !== undefined) return undefined;
+  return { progress: Math.min(1, player.chopTask.secondsDone / CHOP_SECONDS), targetId: player.chopTask.treeId };
+}
+
 /** How many logs a felled tree gives. */
 export const LOGS_PER_TREE = 3;
 /** The felled trunk lies from the stump outward. These place the middle of each log along it, in metres. */
@@ -22,7 +28,7 @@ export interface Chopping {
   /** Stops the player chopping, or walking to chop. The tree keeps standing. */
   cancel(): void;
   /** Moves every chop on by one logic step. Run it after walking has moved the player. */
-  step(stepSeconds: number): void;
+  step(stepSeconds: number): undefined;
 }
 
 export function createChopping(entities: EntityStore, walking: Walking, valley: Valley): Chopping {

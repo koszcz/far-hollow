@@ -8,6 +8,12 @@ const PICK_UP_REACH_METRES = 2;
 
 /** How long the player takes to split a log into firewood, in seconds. */
 export const SPLIT_SECONDS = 3;
+
+/** How far the player is through splitting the log on their shoulder, from 0 to 1, or undefined if they are not splitting now. */
+export function splittingNow(player: Entity): { progress: number } | undefined {
+  if (player.splitTask === undefined) return undefined;
+  return { progress: Math.min(1, player.splitTask.secondsDone / SPLIT_SECONDS) };
+}
 /** How many pieces of firewood one log splits into. */
 export const FIREWOOD_PER_LOG = 4;
 
@@ -32,7 +38,7 @@ export interface Gathering {
   /** Stops the player walking to pick up a stick or piece of bark, or splitting a log. */
   cancel(): void;
   /** Picks up sticks and bark the player has reached and moves splitting on by one logic step. Run it after walking has moved the player. */
-  step(stepSeconds: number): void;
+  step(stepSeconds: number): undefined;
 }
 
 /** A material that lies on the ground as its own entity, and that the player picks up into the backpack. */

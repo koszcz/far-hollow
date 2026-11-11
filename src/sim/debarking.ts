@@ -1,10 +1,16 @@
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
-import { playerEntities, setComponent, type EntityStore } from "./entities";
+import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { groundDistance } from "./valley";
 import type { Walking } from "./walking";
 
 /** How long the player works at a log with the drawknife to strip its bark, in seconds. */
 export const DEBARK_SECONDS = 4;
+
+/** How far the player is through debarking, from 0 to 1, and the log they debark, or undefined if they are not debarking now. Walking there does not count. */
+export function debarkingNow(player: Entity): { progress: number; targetId: number } | undefined {
+  if (player.debarkTask === undefined || player.walkPath !== undefined) return undefined;
+  return { progress: Math.min(1, player.debarkTask.secondsDone / DEBARK_SECONDS), targetId: player.debarkTask.logId };
+}
 /** How much bark one log gives. */
 export const BARK_PER_LOG = 2;
 
@@ -24,7 +30,7 @@ export interface Debarking {
   /** Stops the player debarking, or walking to debark. The log keeps its bark. */
   cancel(): void;
   /** Moves every debarking on by one logic step. Run it after walking has moved the player. */
-  step(stepSeconds: number): void;
+  step(stepSeconds: number): undefined;
 }
 
 /** Lets the player strip the bark off logs on the ground. Each log becomes a debarked log, and its bark goes in the backpack. */

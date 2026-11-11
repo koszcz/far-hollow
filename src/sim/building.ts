@@ -43,7 +43,7 @@ export interface Building {
   /** The blueprint nearest the player within reach, or undefined if none is. */
   nearby(): BlueprintView | undefined;
   /** Moves construction and deliveries on by one logic step. Run it after walking has moved the player. */
-  step(stepSeconds: number): void;
+  step(stepSeconds: number): undefined;
 }
 
 /**
@@ -227,6 +227,13 @@ function spendStageMaterial(blueprint: Blueprint, backpack: NonNullable<Entity["
 }
 
 /** Which stage of construction a blueprint is in, from 0 to one less than its number of stages. */
+/** How far the blueprint the player builds has got, from 0 to 1, and the blueprint, or undefined if they are not building now. Walking there does not count. */
+export function buildingNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
+  if (player.buildTask === undefined || player.walkPath !== undefined) return undefined;
+  const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
+  return blueprint === undefined ? undefined : { progress: blueprint.progress, targetId: player.buildTask.blueprintId };
+}
+
 export function stageOf(progress: number, stages: number): number {
   // The small allowance stops rounding errors from holding a stage back at its very end.
   return Math.min(stages - 1, Math.floor(progress * stages + 1e-9));

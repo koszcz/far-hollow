@@ -2,6 +2,8 @@ import type { BackpackContents } from "./backpack";
 
 export type { BackpackContent } from "./backpack";
 import type { TimeOfDay } from "./clock";
+import type { Vec3 } from "./entities";
+import type { GroundPoint } from "./valley";
 
 // The only part of game logic the UI may import (ADR 0005).
 // The UI reads a GameView and changes the game only by sending a Command.
@@ -9,7 +11,7 @@ import type { TimeOfDay } from "./clock";
 export type Command =
   | { type: "setPaused"; paused: boolean }
   /** Walk the player to a spot on the ground, given in metres from the valley's centre. */
-  | { type: "walkTo"; x: number; z: number }
+  | ({ type: "walkTo" } & GroundPoint)
   /** Walk the player to a standing tree and chop it down. The tree is given by its entity id. */
   | { type: "chopTree"; treeId: number }
   /** Walk the player to a log on the ground and shoulder it. The player carries one log at a time. */
@@ -21,7 +23,7 @@ export type Command =
   /** Lay the log the player carries on the ground at their feet. */
   | { type: "dropLog" }
   /** Place a campfire blueprint at the building-grid spot nearest the given spot, in metres. Placing costs nothing. */
-  | { type: "placeCampfire"; x: number; z: number }
+  | ({ type: "placeCampfire" } & GroundPoint)
   /**
    * Start holding the build action on a blueprint, given by its entity id. The player walks to it first if needed.
    * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of sticks.
@@ -46,7 +48,7 @@ export interface GameView {
   readonly stepCount: number;
   readonly entityCount: number;
   /** Where the player stands after the latest logic step, in metres. */
-  readonly playerPosition: Readonly<{ x: number; y: number; z: number }>;
+  readonly playerPosition: Readonly<Vec3>;
   /** The valley's clock: which day it is and the time of day. */
   readonly time: TimeOfDay;
   /** How many of each tool and material the player's backpack holds. */

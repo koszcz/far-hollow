@@ -15,6 +15,22 @@ The value that decides how a valley is laid out. The same seed always produces t
 The single source of fresh water and fish in a valley.
 _Avoid_: Stream, creek
 
+**Forest floor**:
+The ground under and between the trees, covered in fallen needles and leaves.
+_Avoid_: Forest ground, woodland floor
+
+**Clearing**:
+Open, grassy ground away from the trees.
+_Avoid_: Meadow, field, glade
+
+**River bank**:
+The muddy, pebbly strip of ground that slopes down to the river's water.
+_Avoid_: Shore, riverside, bank
+
+**Undergrowth**:
+The small plants and stones that grow or lie on the valley's ground, such as grass, ferns, flowers, and pebbles. The player cannot pick up undergrowth, and it does not block the way. The same seed always grows the same undergrowth.
+_Avoid_: Foliage, ground cover, props, decoration
+
 ## The player
 
 **Player**:

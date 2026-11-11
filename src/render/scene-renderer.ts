@@ -13,11 +13,8 @@ import { createPlayerMesh } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
-import type { TreeShape } from "./tree-model";
-import type { LogShape } from "./log-shape";
-import type { StumpShape } from "./stump-model";
-import type { BerryBushShape } from "./berry-bush-model";
-import type { MushroomsShape } from "./mushrooms-model";
+import type { ModelShapes } from "./model-shapes";
+import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -56,20 +53,14 @@ export interface SceneRenderer {
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
- * treeShapes are the loaded tree types, from loadTreeShapes. stumpShape is the loaded stump, from loadStumpShape.
- * logShape is the loaded log, from loadLogShape. bushShape is the loaded berry bush, from loadBerryBushShape.
- * mushroomsShape is the loaded mushroom patch, from loadMushroomsShape.
+ * shapes are the loaded models, from loadModelShapes.
  */
 export function createSceneRenderer(
   canvas: HTMLCanvasElement,
   valley: Valley,
   entities: EntityStore,
   readHourOfDay: () => number,
-  treeShapes: readonly TreeShape[],
-  stumpShape: StumpShape,
-  logShape: LogShape,
-  bushShape: BerryBushShape,
-  mushroomsShape: MushroomsShape,
+  shapes: ModelShapes,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -93,11 +84,14 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
-  const forestMeshes = createForestMeshes(entities, treeShapes, stumpShape, logShape);
+  // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
+  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities);
+  scene.add(undergrowthMeshes.group);
+  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.stump, shapes.log);
   scene.add(forestMeshes.group);
   const campfireMeshes = createCampfireMeshes(entities);
   scene.add(campfireMeshes.group);
-  const forageMeshes = createForageMeshes(entities, bushShape, mushroomsShape);
+  const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities);
   scene.add(bedrollMeshes.group);
@@ -140,7 +134,7 @@ export function createSceneRenderer(
     hoverOutline.setViewSize(width, height);
   }
 
-  const playerMesh = createPlayerMesh(logShape);
+  const playerMesh = createPlayerMesh(shapes.log);
   scene.add(playerMesh.group);
   skyLighting.addShadowCasters(playerMesh.group);
   /** Where the player is drawn this frame. The camera follows it. */
@@ -206,6 +200,7 @@ export function createSceneRenderer(
       posePlayer(nowSeconds);
       outlineHovered();
       placeCamera();
+      undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       renderer.render(scene, camera);
@@ -237,6 +232,7 @@ export function createSceneRenderer(
     dispose() {
       hoverOutline.dispose();
       valleyMeshes.dispose();
+      undergrowthMeshes.dispose();
       riverMeshes.dispose();
       forestMeshes.dispose();
       campfireMeshes.dispose();

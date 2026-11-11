@@ -13,8 +13,12 @@ const ROLL_COLOUR = 0x8a3b2e;
 const SPIRAL_COLOUR = 0x5a2219;
 const STRAP_COLOUR = 0x5a3a22;
 const BUCKLE_COLOUR = 0xb08d3c;
-const MAT_LENGTH_METRES = 1.9;
-const MAT_WIDTH_METRES = 0.7;
+/** A laid bedroll's mat lies along z and is this long, in metres. */
+export const BEDROLL_LENGTH_METRES = 1.9;
+/** A laid bedroll's mat is this wide, along x, in metres. */
+export const BEDROLL_WIDTH_METRES = 0.7;
+const MAT_LENGTH_METRES = BEDROLL_LENGTH_METRES;
+const MAT_WIDTH_METRES = BEDROLL_WIDTH_METRES;
 const MAT_THICKNESS_METRES = 0.04;
 const MAT_BEVEL_METRES = 0.012;
 const MAT_CORNER_METRES = 0.06;

@@ -602,13 +602,17 @@
       "code": [
         "src/render/woodpile-meshes.ts"
       ],
-      "description": "A woodpile: two rails of debarked log on the ground, with logs, debarked logs, and firewood stacked across them, four to a layer, from empty to full at five layers. As a blueprint, the rails show see-through.",
+      "description": "A woodpile: two rails of debarked log on the ground, held in by two stakes at each end, with logs, debarked logs, and firewood stacked across them, four to a layer, from empty to full at five layers. Logs, debarked logs, and firewood use their approved shapes. Each layer rests in the gaps of the one below. As a blueprint, the rails and stakes show see-through.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/storage/issues/02-woodpile.md"
-      }
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-11"
+      },
+      "approvalNotes": [
+        "2026-11-11: The owner approved the stacked version: approved log, debarked log, and firewood shapes, layers nested in the gaps, debarked rails, and four stakes."
+      ]
     },
     {
       "id": "pile",

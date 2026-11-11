@@ -441,10 +441,16 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   // From left to right: a blueprint, an empty woodpile, one half full of mixed wood, and a full one. The player stands behind for size.
+  // One view shows all four. The others come close to the full one, the half-full one, and the empty one.
   woodpile: {
     radius: 2.6,
     focus: { x: 0, y: 0.4, z: 0 },
-    shots: FOUR_ANGLES,
+    shots: [
+      { label: "all four: blueprint, empty, half full, full", yaw: 0, pitch: 14 },
+      { label: "full, front three-quarter", yaw: 35, pitch: 18, radius: 1.4, focus: { x: 2.4, y: 0.5, z: 0 } },
+      { label: "half full, back three-quarter", yaw: 215, pitch: 22, radius: 1.4, focus: { x: 0.8, y: 0.35, z: 0 } },
+      { label: "blueprint and empty, from above", yaw: -20, pitch: 50, radius: 1.5, focus: { x: -1.6, y: 0.2, z: 0 } },
+    ],
     build({ place, movePlayer }) {
       place(-2.4, 0, { blueprint: { structure: "woodpile", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
       place(-0.8, 0, { woodpile: { log: 0, debarkedLog: 0, firewood: 0 } });
@@ -826,7 +832,7 @@ export function showAsset(
   forage.update();
   const bedrolls = createBedrollMeshes(store);
   const bark = createBarkMeshes(store);
-  const woodpiles = createWoodpileMeshes(store);
+  const woodpiles = createWoodpileMeshes(store, shapes.log);
   const chests = createChestMeshes(store);
   const piles = createPileMeshes(store);
   // Rain shows only where the stage has rain falling.

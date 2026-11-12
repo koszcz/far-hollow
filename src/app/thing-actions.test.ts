@@ -245,6 +245,12 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(scene({ kind: "ground", spot: { x: 1, z: 2 } }), readerWith({})))).toEqual(["walk main"]);
   });
 
+  it("walks over the ground, or drops the carried log there", () => {
+    const actions = actionsFor(scene({ kind: "ground", spot: { x: 1, z: 2 } }), readerWith({ carrying: "debarkedLog" }));
+    expect(summary(actions)).toEqual(["walk main", "dropHere"]);
+    expect(actions[1]?.command).toEqual({ type: "dropLogAt", x: 1, z: 2 });
+  });
+
   it("chops a tree, and says it needs the axe without one", () => {
     expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({ backpack: { axe: 1 } })))).toEqual(["chop main"]);
     expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({})))).toEqual(["chop main off: needs the axe"]);

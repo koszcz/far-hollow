@@ -153,10 +153,6 @@ _Avoid_: Feed, refuel, manage
 The ring of every action a thing offers, which opens when the player clicks the thing. The main action sits at the top, at 12 o'clock, and the rest follow clockwise. The ring has no background: only the options show. An action the player cannot do yet shows greyed, with the reason.
 _Avoid_: Right-click menu, context menu, radial menu, pie menu
 
-**Cursor prompt**:
-The small label beside the cursor that names the thing under it and the action at the top of its action menu.
-_Avoid_: Tooltip, hint, hover label
-
 **Hotbar**:
 The row at the bottom of the screen that shows the backpack contents, anything on the shoulder, and the sled the player drags.
 _Avoid_: Inventory bar, toolbar, quick bar

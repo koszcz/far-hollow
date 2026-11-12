@@ -141,6 +141,10 @@ describe("clicking a thing", () => {
   it("opens no ring on plain ground, where a click walks", () => {
     expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({}))).toBeUndefined();
   });
+
+  it("opens a ring on plain ground to walk or drop the log, while the player carries one", () => {
+    expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({ carrying: "log" }))?.map(({ id }) => id)).toEqual(["walk", "dropHere"]);
+  });
 });
 
 describe("the river", () => {

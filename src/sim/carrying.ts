@@ -1,6 +1,6 @@
 import { playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
-import { groundDistance, type Valley } from "./valley";
+import { groundDistance, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can pick up a log from this far away, in metres. */
@@ -12,11 +12,16 @@ export interface Carrying {
    * Does nothing if the entity is not one of those or the player already carries one.
    */
   pickUp(logId: number): void;
-  /** Stops the player walking to pick up a log. */
+  /** Stops the player walking to pick up or drop a log. */
   cancel(): void;
   /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
   drop(): void;
-  /** Picks up logs the player has reached. Run it after walking has moved the player. */
+  /**
+   * Sets the player walking to a spot to lay the carried log there. The log goes down when they stop within reach of the spot.
+   * Does nothing if the player carries nothing.
+   */
+  dropAt(spot: GroundPoint): void;
+  /** Picks up logs the player has reached, and drops logs at spots they have reached. Run it after walking has moved the player. */
   step(): undefined;
 }
 
@@ -24,6 +29,15 @@ export interface Carrying {
 export function createCarrying(entities: EntityStore, walking: Walking, valley: Valley): Carrying {
   const players = playerEntities(entities);
   const pickers = entities.with("logPickUpTask", "position");
+  const droppers = entities.with("logDropTask", "position");
+
+  function dropFrom(player: Entity & { position: { x: number; z: number } }): void {
+    const carried = player.carrying;
+    if (carried === undefined) return;
+    entities.removeComponent(player, "carrying");
+    const { x, z } = player.position;
+    entities.add({ [carried]: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
+  }
 
   return {
     pickUp(logId) {
@@ -36,18 +50,28 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       }
     },
     cancel() {
-      for (const player of players) entities.removeComponent(player, "logPickUpTask");
+      for (const player of players) {
+        entities.removeComponent(player, "logPickUpTask");
+        entities.removeComponent(player, "logDropTask");
+      }
     },
     drop() {
+      for (const player of players) dropFrom(player);
+    },
+    dropAt(spot) {
       for (const player of players) {
-        const carried = player.carrying;
-        if (carried === undefined) continue;
-        entities.removeComponent(player, "carrying");
-        const { x, z } = player.position;
-        entities.add({ [carried]: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
+        if (player.carrying === undefined) continue;
+        walking.walkTo(spot);
+        setComponent(entities, player, "logDropTask", { x: spot.x, z: spot.z });
       }
     },
     step() {
+      for (const dropper of [...droppers]) {
+        if (dropper.walkPath) continue;
+        const spot = dropper.logDropTask;
+        entities.removeComponent(dropper, "logDropTask");
+        if (groundDistance(spot, dropper.position) <= PICK_UP_REACH_METRES) dropFrom(dropper);
+      }
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const picker of [...pickers]) {
         if (picker.walkPath) continue;

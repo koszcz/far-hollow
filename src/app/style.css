@@ -105,19 +105,20 @@ body {
 }
 /* A hotbar cell is larger than a chest cell. It shows its icon, its name under it, a count, and its number key. */
 .hud-backpack .hud-hotbar-cells li {
-  width: 64px;
-  height: 58px;
+  width: 84px;
+  height: 88px;
 }
-.hud-hotbar-cell {
+/* Two classes, so this padding beats the zero padding of .hud-content-move further down. */
+.hud-content-move.hud-hotbar-cell {
   grid-template-rows: 1fr auto;
   gap: 2px;
-  padding: 6px 2px 4px;
+  padding: 6px 3px 9px;
   box-sizing: border-box;
 }
 .hud-hotbar-cell .backpack-icon,
 .hud-hotbar-cell .hud-icon {
-  width: 26px;
-  height: 26px;
+  width: 48px;
+  height: 48px;
 }
 .hud-hotbar-name {
   max-width: 100%;
@@ -164,8 +165,8 @@ body {
   margin: 0;
 }
 .hud-button.hud-tool-button .hud-icon {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
 }
 .hud-tool-button[aria-pressed="true"] {
   background: #82593a;
@@ -206,8 +207,8 @@ body {
   position: relative;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 54px;
+  height: 54px;
   background: #3d2b1e;
   border: 1px solid #5a3f2a;
   border-radius: 6px;
@@ -229,13 +230,13 @@ body {
 }
 .hud-icon-button {
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  height: 42px;
   padding: 0;
 }
 .hud-icon-button .hud-icon {
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 26px;
 }
 .hud-icon-button[aria-pressed="true"] {
   background: #82593a;
@@ -392,8 +393,8 @@ body {
   font-weight: 600;
 }
 .hud-icon {
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 26px;
   flex: none;
   fill: none;
   stroke: currentColor;
@@ -468,8 +469,8 @@ body {
   cursor: default;
 }
 .hud-button .hud-icon {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
 }
 .hud-hint {
   margin: 8px 0 0;
@@ -505,8 +506,8 @@ body {
 }
 /* The build menu is a grid of tiles. Each tile shows a structure's icon over its cost, and its name when the player points at it. */
 .build-icon {
-  width: 36px;
-  height: 36px;
+  width: 60px;
+  height: 60px;
   flex: none;
 }
 .hud-build-cost {
@@ -525,17 +526,17 @@ body {
   align-items: center;
 }
 .hud-build-material .backpack-icon {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
 }
 .backpack-icon {
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
   flex: none;
 }
 .hud-button .backpack-icon {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
 }
 /* A backpack or chest cell is a button that fills the cell. A click drops or moves that kind. */
 .hud-content-move {
@@ -556,8 +557,8 @@ body {
   background: #5a3f2a;
 }
 .hud-pile h2 .backpack-icon {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
 }
 /* The name of a chest content, shown at once when the player points at its grid cell. Hotbar cells show the cursor prompt instead. */
 .hud-backpack li[data-tip]:hover::after {

@@ -826,8 +826,8 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: [
       { label: "HUD: saw blade and the craft menu", yaw: 20, pitch: 35 },
       { label: "HUD: crafting the saw", yaw: -20, pitch: 35 },
-      { label: "HUD: the saw, made", yaw: 40, pitch: 35 },
-      { label: "HUD: several of each", yaw: 20, pitch: 35 },
+      { label: "HUD: the saw, made, with blades and planks", yaw: 40, pitch: 35 },
+      { label: "Icons, large", yaw: 20, pitch: 35 },
     ],
     build({ movePlayer }) {
       movePlayer(0, 0, 0);

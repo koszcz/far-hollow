@@ -37,7 +37,7 @@ const POT: readonly IconPart[] = [
 /** A wave across the pot body, showing the water inside. */
 const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
-/** The approved drawings. Things that crafting uses or makes are drawn in the draft "crafting-icons" asset instead. */
+/** The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead. */
 const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent>, BackpackIconDrawing>> = {
   /** A steel axe head on a red-painted handle. */
   axe: {

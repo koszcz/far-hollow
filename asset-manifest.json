@@ -501,7 +501,8 @@
       "approvalNotes": [
         "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles.",
         "2026-11-11: The owner chose the hotbar and wheel layout from four mockups and approved the change in chat. See .scratch/hud-redesign/issues/01-hotbar-and-wheel.md.",
-        "2026-11-12: The owner asked in chat for the HUD redesign: labelled build and craft buttons with key labels, named need bars, and a placing hint that names its keys. See .scratch/hud-redesign/issues/06-labelled-build-craft-and-needs.md."
+        "2026-11-12: The owner asked in chat for the HUD redesign: labelled build and craft buttons with key labels, named need bars, and a placing hint that names its keys. See .scratch/hud-redesign/issues/06-labelled-build-craft-and-needs.md.",
+        "2026-11-12: The owner asked in chat for bigger icons across the HUD and more space under the hotbar names, and approved the result."
       ]
     },
     {
@@ -549,12 +550,13 @@
         "src/ui/icon-drawing.ts",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Backpack icons for the things crafting uses or makes, drawn in the same style as backpack-icons: the saw blade, a bare steel blade with teeth and a pin hole at each end, and the saw, the same blade fixed to a wooden handle. Crafting ticket 03 added the plank, a pale sawn board lying at a slant with grain lines along its face.",
+      "description": "Backpack icons for the things crafting uses or makes, drawn in the same style as backpack-icons: the saw blade, a long thin steel blade lying at a slant with big teeth and a pin hole at each end; the saw, a bow saw with the blade strung across the ends of a bent stick and lashed on with twine; and the plank, a pale sawn board lying at a slant with grain lines along its face.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/crafting/issues/01-craft-menu-and-saw.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {

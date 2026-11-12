@@ -18,6 +18,8 @@ import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
+import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
+import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 
@@ -152,7 +154,7 @@ export function createSceneRenderer(
   function matchCanvasSize(): void {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
-    const pixelRatio = window.devicePixelRatio;
+    const pixelRatio = pixelRatioWithinBudget(width, height, window.devicePixelRatio);
     if (width === drawnWidth && height === drawnHeight && pixelRatio === drawnPixelRatio) return;
     drawnWidth = width;
     drawnHeight = height;
@@ -177,6 +179,7 @@ export function createSceneRenderer(
   const moving = movingEntities(entities);
   const blended = { x: 0, y: 0, z: 0 };
   const raycaster = new THREE.Raycaster();
+  const viewFrustum = new THREE.Frustum();
   const pointer = new THREE.Vector2();
 
   /**
@@ -275,6 +278,11 @@ export function createSceneRenderer(
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
+      // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
+      const views = { view: frustumOf(camera, viewFrustum), shadow: skyLighting.shadowFrustum() };
+      forestMeshes.cull(views);
+      forageMeshes.cull(views);
+      undergrowthMeshes.cull(views.view);
       renderer.render(scene, camera);
     },
     pickAt(clientX, clientY) {

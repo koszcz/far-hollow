@@ -7,6 +7,7 @@
 // - Haze thickens and changes colour with the hour: morning mist, clear midday, golden dusk, blue night.
 import * as THREE from "three";
 import { MORNING_HOUR, NIGHT_START_HOUR } from "../sim/clock";
+import { SHADOW_ONLY_LAYER } from "./culled-batch";
 import { daylightAt } from "./daylight";
 import { GROUND_COLOUR } from "./valley-meshes";
 
@@ -77,6 +78,11 @@ export interface SkyLighting {
    * shadows. See-through meshes, such as flames and blueprints, do not.
    */
   addShadowCasters(...groups: THREE.Object3D[]): void;
+  /**
+   * What the sun's shadow box covers this frame, or null while the sun casts no shadows.
+   * Call it after update.
+   */
+  shadowFrustum(): THREE.Frustum | null;
   /** Things that only catch shadows, such as the ground. */
   addShadowReceivers(...groups: THREE.Object3D[]): void;
   dispose(): void;
@@ -111,6 +117,8 @@ export function createSkyLighting(scene: THREE.Scene, renderer: THREE.WebGLRende
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.04;
   sun.shadow.radius = 3;
+  // Batches that cull their own shadows draw them on this layer, which only the sun's shadow camera sees.
+  sun.shadow.camera.layers.enable(SHADOW_ONLY_LAYER);
   scene.add(sun, sun.target);
 
   const moon = new THREE.DirectionalLight(MOON_COLOUR, 0);
@@ -127,7 +135,8 @@ export function createSkyLighting(scene: THREE.Scene, renderer: THREE.WebGLRende
   function markCasters(): void {
     for (const group of casters) {
       group.traverse((object) => {
-        if (!(object instanceof THREE.Mesh)) return;
+        // Culled batches cast shadows from a separate copy. See culled-batch.ts.
+        if (!(object instanceof THREE.Mesh) || object.userData.castsShadowSeparately === true) return;
         const solid = materialsOf(object as THREE.Mesh).every((material) => !material.transparent && material.visible);
         object.castShadow = solid;
         object.receiveShadow = solid;
@@ -175,6 +184,13 @@ export function createSkyLighting(scene: THREE.Scene, renderer: THREE.WebGLRende
 
       dome.set(zenith, horizon, sunDirection, lowSun, daylight, lowness);
       markCasters();
+    },
+    shadowFrustum() {
+      if (!sun.castShadow) return null;
+      sun.updateMatrixWorld();
+      sun.target.updateMatrixWorld();
+      sun.shadow.updateMatrices(sun);
+      return sun.shadow.getFrustum();
     },
     addShadowCasters(...groups) {
       casters.push(...groups);

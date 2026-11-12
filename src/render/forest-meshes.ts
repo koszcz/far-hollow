@@ -16,6 +16,7 @@ import {
   type EntityStore,
   type Vec3,
 } from "../sim/entities";
+import { createCulledBatch, type CulledBatch, type CullViews } from "./culled-batch";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
@@ -57,6 +58,8 @@ export interface ForestMeshes {
   readonly group: THREE.Group;
   /** Brings stumps, logs, and falling trees up to date. `nowSeconds` is a steady real-time clock. */
   update(nowSeconds: number): void;
+  /** Draws only the standing trees each camera can see. Call it once the cameras have moved for this frame. */
+  cull(views: CullViews): void;
   /** What a ray from the camera hits first among standing trees, logs, debarked logs, and sticks, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
   /** The shapes that draw a tree, log, or stick, placed in the world. Empty once it is gone. */
@@ -72,7 +75,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     return item;
   }
 
-  // Trees: for each type, one batch for its trunks and one for its crowns, so thousands of trees take a few draw calls.
+  // Trees: one culled batch per type, drawing its trunks and crowns, so thousands of trees take a few draw calls.
+  // Each batch draws only the trees the camera sees, and casts shadows only from the trees inside the sun's shadow box.
   const trees = [...treeEntities(entities)];
   const trunkMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
     dark: track(new THREE.MeshStandardMaterial({ color: TRUNK_COLOUR, flatShading: true })),
@@ -97,28 +101,23 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   }
   const matrix = new THREE.Matrix4();
   const instanceOf = new Map<Entity, number>();
-  /** The trees each batch draws, in instance order, so a click on a batch can find its tree. */
-  const treesOfBatch = new Map<THREE.Object3D, Tree[]>();
+  /** The batch and trees behind each drawn mesh, so a click on a mesh can find its tree. */
+  const treesOfMesh = new Map<THREE.Object3D, { batch: CulledBatch; trees: Tree[] }>();
   const treeBatches = treeShapes.map((shape, type) => {
     const ofType = treesOfType[type] ?? [];
-    const trunks = track(new THREE.InstancedMesh(shape.trunk, trunkMaterials[shape.trunkTone], Math.max(1, ofType.length)));
-    const crowns = track(new THREE.InstancedMesh(shape.crown, crownMaterials[shape.crownTone], Math.max(1, ofType.length)));
-    trunks.count = ofType.length;
-    crowns.count = ofType.length;
+    const trunk = { geometry: shape.trunk, material: trunkMaterials[shape.trunkTone] };
+    const crown = { geometry: shape.crown, material: crownMaterials[shape.crownTone] };
+    const batch = track(createCulledBatch([trunk, crown], ofType.length, true));
     ofType.forEach((tree, index) => {
       instanceOf.set(tree, index);
-      treeMatrix(tree.position, matrix);
-      trunks.setMatrixAt(index, matrix);
-      crowns.setMatrixAt(index, matrix);
+      batch.set(index, treeMatrix(tree.position, matrix));
     });
-    trunks.computeBoundingSphere();
-    crowns.computeBoundingSphere();
-    treesOfBatch.set(trunks, ofType);
-    treesOfBatch.set(crowns, ofType);
-    group.add(trunks, crowns);
-    return { trunks, crowns };
+    batch.cull();
+    for (const mesh of batch.viewMeshes) treesOfMesh.set(mesh, { batch, trees: ofType });
+    group.add(...batch.meshes);
+    return { batch, trunk, crown };
   });
-  const treePickTargets = treeBatches.flatMap(({ trunks, crowns }) => [trunks, crowns]);
+  const treePickTargets = treeBatches.flatMap(({ batch }) => batch.viewMeshes);
 
   // Stumps: one batch per bark tone. A tree's stump keeps the tree's size and turn, and its foot is as wide as the trunk's.
   const stumpGeometry = track(stumpShape.geometry);
@@ -183,11 +182,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     const batch = type === undefined ? undefined : treeBatches[type];
     if (index === undefined || type === undefined || batch === undefined) return;
     // Hide this tree in its batch. Its falling copy takes over.
-    matrix.makeScale(0, 0, 0);
-    batch.trunks.setMatrixAt(index, matrix);
-    batch.crowns.setMatrixAt(index, matrix);
-    batch.trunks.instanceMatrix.needsUpdate = true;
-    batch.crowns.instanceMatrix.needsUpdate = true;
+    batch.batch.set(index, undefined);
     startFall(tree.position, type);
   });
   // A tree that stands again, such as in the asset showcase's looping chop, shows again in its batch.
@@ -196,11 +191,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     const type = typeOf.get(tree);
     const batch = type === undefined ? undefined : treeBatches[type];
     if (index === undefined || batch === undefined) return;
-    treeMatrix(tree.position, matrix);
-    batch.trunks.setMatrixAt(index, matrix);
-    batch.crowns.setMatrixAt(index, matrix);
-    batch.trunks.instanceMatrix.needsUpdate = true;
-    batch.crowns.instanceMatrix.needsUpdate = true;
+    batch.batch.set(index, treeMatrix(tree.position, matrix));
   });
   const stumpQuery = stumpEntities(entities).connect();
   const logQuery = logEntities(entities).connect();
@@ -243,8 +234,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     treeMatrix({ x: 0, y: 0, z: 0, look: lookFor(at.x, at.z) }, matrix);
     tree.applyMatrix4(matrix);
     const batch = treeBatches[type];
-    if (batch !== undefined)
-      tree.add(new THREE.Mesh(batch.trunks.geometry, batch.trunks.material), new THREE.Mesh(batch.crowns.geometry, batch.crowns.material));
+    if (batch !== undefined) tree.add(new THREE.Mesh(batch.trunk.geometry, batch.trunk.material), new THREE.Mesh(batch.crown.geometry, batch.crown.material));
     pivot.add(tree);
     group.add(pivot);
     falling.push({ pivot, axis, startSeconds: undefined });
@@ -353,6 +343,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       if (logsDirty) rebuildLogs();
       if (debarkedLogsDirty) rebuildDebarkedLogs();
       if (sticksDirty) rebuildSticks();
+      for (const { batch } of treeBatches) batch.cull();
       stumpsDirty = false;
       logsDirty = false;
       debarkedLogsDirty = false;
@@ -368,6 +359,9 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
           falling.splice(i, 1);
         }
       }
+    },
+    cull(views) {
+      for (const { batch } of treeBatches) batch.cull(views);
     },
     pick(raycaster) {
       hits.length = 0;
@@ -390,7 +384,9 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
           if (stick?.stick === true) return { hit: { kind: "stick", entity: stick }, distance: hit.distance };
           continue;
         }
-        const tree = treesOfBatch.get(hit.object)?.[hit.instanceId];
+        const drawn = treesOfMesh.get(hit.object);
+        const index = drawn?.batch.instanceHit(hit.instanceId);
+        const tree = index === undefined ? undefined : drawn?.trees[index];
         if (tree?.tree === true) return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
       }
       return undefined;
@@ -405,11 +401,11 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const index = instanceOf.get(hit.entity);
         const type = typeOf.get(hit.entity);
         const batch = type === undefined ? undefined : treeBatches[type];
-        if (hit.entity.tree !== true || index === undefined || batch === undefined) return [];
-        const at = placed(batch.trunks, index);
+        if (hit.entity.tree !== true || index === undefined || batch === undefined || !batch.batch.matrixAt(index, matrix)) return [];
+        const at = new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
         return [
-          { geometry: batch.trunks.geometry, matrix: at },
-          { geometry: batch.crowns.geometry, matrix: at },
+          { geometry: batch.trunk.geometry, matrix: at },
+          { geometry: batch.crown.geometry, matrix: at },
         ];
       }
       if (hit.kind === "log") {

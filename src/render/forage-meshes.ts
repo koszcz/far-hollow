@@ -4,6 +4,7 @@
 import * as THREE from "three";
 import { forageSpotEntities, type Entity, type EntityStore } from "../sim/entities";
 import type { BerryBushShape } from "./berry-bush-model";
+import { createCulledBatch, type CullViews } from "./culled-batch";
 import type { MushroomsShape } from "./mushrooms-model";
 import type { OutlinePart } from "./hover-outline";
 
@@ -27,6 +28,8 @@ export interface ForageMeshes {
   readonly group: THREE.Group;
   /** Brings every bush and mushroom patch up to date with game state. */
   update(): void;
+  /** Draws only the plants each camera can see. Call it once the cameras have moved for this frame. */
+  cull(views: CullViews): void;
   /** What a ray from the camera hits first among bushes and mushroom patches, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: ForageHit; distance: number } | undefined;
   /** The shapes that draw a bush or mushroom patch, placed in the world. Empty when nothing is drawn there. */
@@ -61,10 +64,12 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
     mesh.frustumCulled = false;
     return mesh;
   };
-  const bushes = batch(bushGeometry, leafMaterial);
-  const berries = batch(berriesGeometry, berryMaterial);
-  const mushrooms = batch(mushroomsGeometry, mushroomMaterial);
-  group.add(bushes, berries, mushrooms);
+  // The drawn plants: each batch draws only what the camera sees, and casts shadows only inside the sun's shadow box.
+  const bushes = createCulledBatch([{ geometry: bushGeometry, material: leafMaterial }], capacity, true);
+  const berries = createCulledBatch([{ geometry: berriesGeometry, material: berryMaterial }], capacity, true);
+  const mushrooms = createCulledBatch([{ geometry: mushroomsGeometry, material: mushroomMaterial }], capacity, true);
+  const drawnBatches = [bushes, berries, mushrooms];
+  for (const drawn of drawnBatches) group.add(...drawn.meshes);
   // Invisible boxes that clicks are tested against. They are never added to the scene, so they never draw.
   const bushPickers = batch(bushPickGeometry, pickMaterial);
   const mushroomPickers = batch(mushroomPickGeometry, pickMaterial);
@@ -103,25 +108,25 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
       matrix.compose(position, rotation, scale);
       const hasFood = spot.regrowing === undefined;
       if (spot.forageSpot.food === "berries") {
-        bushes.setMatrixAt(bushesDrawn.length, matrix);
+        bushes.set(bushesDrawn.length, matrix);
         bushPickers.setMatrixAt(bushesDrawn.length, matrix);
         bushesDrawn.push(spot);
         if (hasFood) {
-          berries.setMatrixAt(berriesDrawn.length, matrix);
+          berries.set(berriesDrawn.length, matrix);
           berriesDrawn.push(spot);
         }
       } else if (hasFood) {
-        mushrooms.setMatrixAt(mushroomsDrawn.length, matrix);
+        mushrooms.set(mushroomsDrawn.length, matrix);
         mushroomPickers.setMatrixAt(mushroomsDrawn.length, matrix);
         mushroomsDrawn.push(spot);
       }
     }
-    bushes.count = bushesDrawn.length;
+    for (let index = bushesDrawn.length; index < capacity; index += 1) bushes.set(index, undefined);
+    for (let index = berriesDrawn.length; index < capacity; index += 1) berries.set(index, undefined);
+    for (let index = mushroomsDrawn.length; index < capacity; index += 1) mushrooms.set(index, undefined);
     bushPickers.count = bushesDrawn.length;
-    berries.count = berriesDrawn.length;
-    mushrooms.count = mushroomsDrawn.length;
     mushroomPickers.count = mushroomsDrawn.length;
-    for (const mesh of [bushes, berries, mushrooms, bushPickers, mushroomPickers]) mesh.instanceMatrix.needsUpdate = true;
+    for (const mesh of [bushPickers, mushroomPickers]) mesh.instanceMatrix.needsUpdate = true;
     // Clicks test these spheres first, so they must cover the plants as they are drawn now.
     bushPickers.computeBoundingSphere();
     mushroomPickers.computeBoundingSphere();
@@ -134,6 +139,10 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
     update() {
       if (dirty) rebuild();
       dirty = false;
+      for (const drawn of drawnBatches) drawn.cull();
+    },
+    cull(views) {
+      for (const drawn of drawnBatches) drawn.cull(views);
     },
     pick(raycaster) {
       hits.length = 0;
@@ -148,17 +157,13 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
     },
     outlineOf(hit) {
       group.updateMatrixWorld();
-      const placed = (mesh: THREE.InstancedMesh, index: number): THREE.Matrix4 => {
-        mesh.getMatrixAt(index, matrix);
-        return new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
-      };
       const parts: OutlinePart[] = [];
-      const bush = bushesDrawn.indexOf(hit.entity);
-      if (bush >= 0) parts.push({ geometry: bushGeometry, matrix: placed(bushes, bush) });
-      const berry = berriesDrawn.indexOf(hit.entity);
-      if (berry >= 0) parts.push({ geometry: berriesGeometry, matrix: placed(berries, berry) });
-      const mushroom = mushroomsDrawn.indexOf(hit.entity);
-      if (mushroom >= 0) parts.push({ geometry: mushroomsGeometry, matrix: placed(mushrooms, mushroom) });
+      const outline = (drawn: typeof bushes, index: number, geometry: THREE.BufferGeometry): void => {
+        if (index >= 0 && drawn.matrixAt(index, matrix)) parts.push({ geometry, matrix: new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix) });
+      };
+      outline(bushes, bushesDrawn.indexOf(hit.entity), bushGeometry);
+      outline(berries, berriesDrawn.indexOf(hit.entity), berriesGeometry);
+      outline(mushrooms, mushroomsDrawn.indexOf(hit.entity), mushroomsGeometry);
       return parts;
     },
     dispose() {

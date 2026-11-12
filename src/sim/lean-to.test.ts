@@ -34,6 +34,15 @@ describe("the lean-to in the build menu", () => {
       { structure: "woodpile", cost: [], placement: "onGround" },
       { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" },
       { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
+      {
+        structure: "sled",
+        cost: [
+          { material: "log", count: 2 },
+          { material: "stick", count: 4 },
+        ],
+        tool: "axe",
+        placement: "anywhere",
+      },
     ]);
   });
 });

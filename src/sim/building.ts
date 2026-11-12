@@ -1,7 +1,7 @@
 import type { BlueprintView, PlacementCheck } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridPoint } from "./build-grid";
-import { blueprintEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import {
   footprintOfEntity,
   isDelivered,
@@ -156,7 +156,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         const reached = reachedBlueprint(deliverer, deliverer.deliverTask.blueprintId);
         entities.removeComponent(deliverer, "deliverTask");
         const carried = deliverer.carrying;
-        if (reached === undefined || carried === undefined || !isBuildMaterial(carried) || !needsMore(reached.blueprint, carried)) continue;
+        // Everything carried on the shoulder, a log or a debarked log, is a material some structure is built from.
+        if (reached === undefined || carried === undefined || !needsMore(reached.blueprint, carried)) continue;
         entities.removeComponent(deliverer, "carrying");
         reached.blueprint.delivered[carried] = (reached.blueprint.delivered[carried] ?? 0) + 1;
       }
@@ -176,11 +177,6 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       }
     },
   };
-}
-
-/** Whether something the player carries on their shoulder is a material a structure is built from. A log with its bark on is not. */
-function isBuildMaterial(carried: CarriedLog): carried is DeliveredMaterial {
-  return isDelivered(carried as BuildMaterial);
 }
 
 /** Whether a blueprint still needs more of a material carried to it. */

@@ -151,6 +151,11 @@ export interface Entity {
    */
   chest?: { contents: BackpackContents };
   /**
+   * Marks a finished sled, with how many logs and debarked logs lie on it. Its position is the middle of the ground it covers.
+   * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
+   */
+  sled?: Record<CarriedLog, number>;
+  /**
    * Marks a finished work station, such as a sawhorse, with its kind. A blueprint of a work station does not have it.
    * Its position is the middle of the ground it covers. Its `facing` says which way it is turned.
    */
@@ -372,6 +377,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished chests. */
 export function chestEntities(store: EntityStore) {
   return store.with("chest", "position");
+}
+
+/** Finished sleds. */
+export function sledEntities(store: EntityStore) {
+  return store.with("sled", "position");
 }
 
 /** Finished work stations, such as sawhorses. Blueprints are not among them. */

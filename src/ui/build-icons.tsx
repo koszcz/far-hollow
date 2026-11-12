@@ -6,6 +6,7 @@
 import type { BuildMaterial, StructureKind } from "../sim/api";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import type { BackpackIconDrawing as IconDrawing, IconPart } from "./icon-drawing";
+import { LOG_DRAWING, SLED_DRAWING } from "./sled-icons";
 
 /** The pale wood of a debarked log, its paler cut end, and the darker grain and growth rings on it. */
 const DEBARKED = "#e3c38f";
@@ -70,7 +71,8 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
   return { d: `M${left(yTop)} ${yTop}H${right(yTop)}${edge}z`, as: "fill", colour };
 }
 
-const STRUCTURE_DRAWINGS: Readonly<Record<StructureKind, IconDrawing>> = {
+/** The sled's icon is the draft "sled-icon" asset, drawn in sled-icons.tsx, so it is not listed here. */
+const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled">, IconDrawing>> = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {
     colour: "#ff8a3c",
@@ -202,8 +204,8 @@ const STRUCTURE_DRAWINGS: Readonly<Record<StructureKind, IconDrawing>> = {
   },
 };
 
-/** Build materials that are not backpack contents, so they have no backpack icon. */
-type DeliveredOnlyMaterial = Exclude<BuildMaterial, "stick" | "bark">;
+/** Build materials that are not backpack contents, so they have no backpack icon. The log's icon is in sled-icons.tsx. */
+type DeliveredOnlyMaterial = Exclude<BuildMaterial, "stick" | "bark" | "log">;
 
 const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = {
   /** A pale, peeled log on its side, with grain lines and growth rings on its cut end. */
@@ -220,11 +222,12 @@ const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = 
 
 /** Draws the icon for one structure in the build menu. Screen readers skip it, because a text label always goes with it. */
 export function StructureIcon({ structure }: { structure: StructureKind }) {
-  return <ShadedIcon drawing={STRUCTURE_DRAWINGS[structure]} className="build-icon" />;
+  return <ShadedIcon drawing={structure === "sled" ? SLED_DRAWING : STRUCTURE_DRAWINGS[structure]} className="build-icon" />;
 }
 
 /** Draws the icon for one build material. Sticks and bark reuse their backpack icons. */
 export function MaterialIcon({ material }: { material: BuildMaterial }) {
   if (material === "stick" || material === "bark") return <BackpackIcon content={material} />;
+  if (material === "log") return <ShadedIcon drawing={LOG_DRAWING} className="backpack-icon" />;
   return <ShadedIcon drawing={MATERIAL_DRAWINGS[material]} className="backpack-icon" />;
 }

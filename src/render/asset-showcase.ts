@@ -29,8 +29,13 @@ import {
   ROOF_BARK_COST,
   ROOF_FRAME_LOG_COST,
   SAWHORSE_LOG_COST,
+  SLED_LOG_COST,
+  SLED_STICK_COST,
 } from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
+
+/** A sled is built in one stage per log and one per stick. */
+const SLED_STAGES = SLED_LOG_COST + SLED_STICK_COST;
 import { createForestMeshes, TREE_COLOURS, type ForestMeshes } from "./forest-meshes";
 import { createFarTreeShape } from "./tree-far-shape";
 import type { TreeShape } from "./tree-model";
@@ -410,6 +415,25 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
     },
   },
+  sled: {
+    radius: 1.8,
+    focus: { x: 0, y: 0.15, z: 0 },
+    // A blueprint with one log delivered, the second runner being set down, a cross piece being laid,
+    // then the finished, empty sled from above.
+    shots: [
+      { label: "blueprint, 1 of 2 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "second runner above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / SLED_STAGES },
+      { label: "a cross piece above its place", yaw: 30, pitch: 30, seconds: (3 + BUILD_FADE_SHARE) / SLED_STAGES },
+      { label: "built, from above", yaw: 140, pitch: 50, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { structure: "sled", progress: 0, materialsSpent: 0, delivered: { log: 1 } }, facing: { turns: 0 } });
+      movePlayer(0.3, 1, Math.PI);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
   "roof-frame": {
@@ -738,6 +762,21 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         [2.4, 0.9],
       ] as const)
         place(x, z, { bark: true });
+      movePlayer(0, 0, 0);
+    },
+  },
+  // src/ui/hud-showcase.tsx draws the sled and log icons large, among every build icon, over the first view,
+  // and the HUD with the full build menu open over the others.
+  "sled-icon": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Build icons, large", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
+      { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
       movePlayer(0, 0, 0);
     },
   },

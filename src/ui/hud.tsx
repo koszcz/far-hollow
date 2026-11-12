@@ -106,7 +106,7 @@ function HotbarGrid({
       {hotbarCells(view).map(({ target, name, count, key }) => (
         <li
           key={target.kind === "backpackContent" ? target.content : target.kind}
-          class={target.kind === "backpackContent" ? undefined : "hud-hotbar-shoulder"}
+          class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : target.kind === "sled" ? "hud-hotbar-sled" : undefined}
           data-prompt-content={target.kind === "backpackContent" ? target.content : undefined}
           data-prompt-shoulder={target.kind === "shoulder" ? "" : undefined}
           data-prompt-sled={target.kind === "sled" ? "" : undefined}

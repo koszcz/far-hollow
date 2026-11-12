@@ -123,6 +123,14 @@ _Avoid_: Cart, wagon, wheelbarrow
 To pull a sled behind the player as they walk. The player drags one sled at a time.
 _Avoid_: Pull, tow, push
 
+**Parked**:
+Said of a sled that no one drags. The player can load, take from, and tip out only a parked sled, and a work station can use the logs on a parked sled next to it.
+_Avoid_: Stopped, idle, left
+
+**Tip out**:
+To unload every log and debarked log from a parked sled at once. If a woodpile is next to the sled, the logs go on the woodpile as far as it has room. The rest lie on the ground beside the sled.
+_Avoid_: Unload, empty, dump
+
 ## Acting
 
 **Main action**:
@@ -138,7 +146,7 @@ How close the player must stand to act on a thing. If the player is out of reach
 _Avoid_: Range, interaction distance
 
 **Tend**:
-To add fuel to a campfire, or to stack things on or take things off a woodpile.
+To add fuel to a campfire, to stack things on or take things off a woodpile, or to load, take from, or tip out a sled.
 _Avoid_: Feed, refuel, manage
 
 **Action menu**:
@@ -150,7 +158,7 @@ The small label beside the cursor that names the thing under it and says what ea
 _Avoid_: Tooltip, hint, hover label
 
 **Hotbar**:
-The row at the bottom of the screen that shows the backpack contents and anything on the shoulder.
+The row at the bottom of the screen that shows the backpack contents, anything on the shoulder, and the sled the player drags.
 _Avoid_: Inventory bar, toolbar, quick bar
 
 **Panel**:

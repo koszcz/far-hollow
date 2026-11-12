@@ -71,7 +71,7 @@ export interface StructureDefinition {
   readonly cost: readonly MaterialCost[];
   /** The tool the player needs in the backpack to build it, if any. Building does not use it up. */
   readonly tool?: BackpackContent;
-  /** How its blueprint follows the mouse. Furniture goes "anywhere": off the building grid, so it can stand on a foundation inside a room. */
+  /** How its blueprint follows the mouse. Furniture and the sled go "anywhere": off the building grid, so it can stand on a foundation inside a room. */
   readonly placement: Placement;
   /**
    * The component that marks it finished, the one `finish` gives it.
@@ -87,7 +87,7 @@ export interface StructureDefinition {
   /** The components a finished structure gets in place of its blueprint, at `spot` facing `turns`, among `entities`. */
   finish(spot: GroundPoint, turns: QuarterTurns, entities: EntityStore): Entity;
   /**
-   * The spot a blueprint placed near `at`, facing `turns`, goes to: a building-grid spot, or `at` itself for furniture.
+   * The spot a blueprint placed near `at`, facing `turns`, goes to: a building-grid spot, or `at` itself for a structure placed freely.
    * Without this, it snaps to the nearest grid point.
    */
   snap?(site: PlacementSite, at: GroundPoint, turns: QuarterTurns): GroundPoint;
@@ -151,11 +151,11 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
       // On a foundation, a campfire goes only inside a room.
       return false;
     }
-    const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isFurniture(blueprint.structure));
+    const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isPlacedFreely(blueprint.structure));
     for (const other of [...campfireEntities(entities), ...plans, ...woodpileEntities(entities), ...workStationEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
-    return isClearOfFurniture(entities, campfire.footprint(spot, 0));
+    return isClearOfFreelyPlaced(entities, campfire.footprint(spot, 0));
   },
   finish(spot, _turns, entities) {
     const finished: Entity = { campfire: { lit: false, fuelMinutes: 0 }, blocksWalking: { radius: CAMPFIRE_WALK_BLOCK_RADIUS_METRES } };
@@ -333,9 +333,9 @@ const roofFrame: StructureDefinition & { readonly kind: "roofFrame" } = {
     // The frame rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
     if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
     // Logs, sticks, bark, and bedrolls on the deck are in the way, as is a frame or roof already over the square, finished or as a blueprint.
-    // Furniture under it is not.
+    // Furniture and sleds under it are not.
     const rect = roofFrame.footprint(spot, turns);
-    return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreFurniture: true });
+    return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreFreelyPlaced: true });
   },
   finish: () => ({ roofFrame: true }),
 };
@@ -362,8 +362,8 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities }, spot, turns) {
     if (roofFrameOn(entities, spot) === undefined) return false;
-    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it and furniture are not.
-    return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFurniture: true, ignoreRoofFrames: true });
+    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it, furniture, and sleds are not.
+    return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFreelyPlaced: true, ignoreRoofFrames: true });
   },
   finish: (spot, turns) => ({ cabinRoof: true, roof: roof.footprint(spot, turns) }),
 };
@@ -623,7 +623,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
  * Whether `rect` keeps clear of standing trees and of every structure: any blueprint, a finished roof, a finished woodpile,
  * a finished wall or door frame, a chest, a sled, or a finished work station such as a sawhorse.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
- * `ignoreFurniture` lets it go over furniture and sleds, and their blueprints, as a roof does.
+ * `ignoreFreelyPlaced` lets it go over furniture and sleds, and their blueprints, as a roof does.
  * `ignoreCabinRoofs` lets it go under a finished cabin roof or roof frame, or a blueprint of either, as furniture does. A lean-to is still in the way.
  * `ignoreRoofFrames` lets it go over a finished roof frame, as a roof does.
  */
@@ -631,10 +631,10 @@ function isClearOfTreesAndStructures(
   entities: EntityStore,
   rect: GroundRect,
   {
-    ignoreFurniture = false,
+    ignoreFreelyPlaced = false,
     ignoreCabinRoofs = false,
     ignoreRoofFrames = false,
-  }: { ignoreFurniture?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean } = {},
+  }: { ignoreFreelyPlaced?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean } = {},
 ): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
@@ -643,7 +643,7 @@ function isClearOfTreesAndStructures(
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
-    if ((ignoreFurniture && isFurniture(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
+    if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
     if (rectsOverlap(rect, footprintOfEntity(blueprint))) return false;
   }
   for (const roofed of roofEntities(entities)) {
@@ -654,10 +654,10 @@ function isClearOfTreesAndStructures(
   if (!ignoreCabinRoofs && !ignoreRoofFrames) {
     for (const frame of roofFrameEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(frame))) return false;
   }
-  if (!ignoreFurniture && !isClearOfFurniture(entities, rect)) return false;
+  if (!ignoreFreelyPlaced && !isClearOfFreelyPlaced(entities, rect)) return false;
   // Every other finished structure is in the way, so a new kind of structure is in the way unless it says otherwise.
   for (const { entity, kind } of finishedStructures(entities)) {
-    if (CHECKED_APART.has(kind) || isFurniture(kind)) continue;
+    if (CHECKED_APART.has(kind) || isPlacedFreely(kind)) continue;
     if (rectsOverlap(rect, footprintOfEntity(entity))) return false;
   }
   return true;
@@ -670,17 +670,17 @@ function isClearOfTreesAndStructures(
 const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "campfire", "leanTo", "roofFrame", "roof"]);
 
 /** Whether `rect` keeps clear of every finished chest and sled, and every blueprint of one. */
-function isClearOfFurniture(entities: EntityStore, rect: GroundRect): boolean {
+function isClearOfFreelyPlaced(entities: EntityStore, rect: GroundRect): boolean {
   for (const placed of chestEntities(entities)) if (rectsOverlap(rect, chest.footprint(placed.position, placed.facing?.turns ?? 0))) return false;
   for (const placed of sledEntities(entities)) if (rectsOverlap(rect, sled.footprint(placed.position, placed.facing?.turns ?? 0))) return false;
   for (const { blueprint, position, facing } of blueprintEntities(entities)) {
-    if (isFurniture(blueprint.structure) && rectsOverlap(rect, structureOf(blueprint.structure).footprint(position, facing?.turns ?? 0))) return false;
+    if (isPlacedFreely(blueprint.structure) && rectsOverlap(rect, structureOf(blueprint.structure).footprint(position, facing?.turns ?? 0))) return false;
   }
   return true;
 }
 
-/** Whether a structure is placed freely rather than on the building grid: a piece of furniture, such as a chest, or a sled. */
-export function isFurniture(kind: StructureKind): boolean {
+/** Whether a structure is placed freely rather than on the building grid: furniture, such as a chest, and the sled. */
+export function isPlacedFreely(kind: StructureKind): boolean {
   return structureOf(kind).placement === "anywhere";
 }
 

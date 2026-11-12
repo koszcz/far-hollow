@@ -14,7 +14,7 @@ import {
   type EntityStore,
 } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
-import { isParked } from "./sleds";
+import { isParked, takeOffSled } from "./sleds";
 import type { WorkStationKind } from "./structure-kind";
 import { footprintOfEntity } from "./structures";
 import { groundDistance, type GroundPoint } from "./valley";
@@ -229,7 +229,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
         .map((log) => () => entities.remove(log));
       const onSleds = sleds.flatMap(({ sled }) =>
         Array.from({ length: sled.sled[material] }, () => () => {
-          sled.sled[material] -= 1;
+          takeOffSled(sled, material);
         }),
       );
       const available = [...near, ...onSleds];

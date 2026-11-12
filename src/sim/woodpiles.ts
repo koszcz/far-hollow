@@ -41,6 +41,13 @@ export function woodpileTotal(contents: Readonly<Record<WoodpileWood, number>>):
   return contents.log + contents.debarkedLog + contents.firewood;
 }
 
+/** Stacks up to `count` of one wood on a woodpile, as far as it has room. Returns how many it stacked. */
+export function stackOnWoodpile(woodpile: Pick<WoodpileEntity, "woodpile">, wood: WoodpileWood, count: number): number {
+  const stacked = Math.max(0, Math.min(count, WOODPILE_CAPACITY - woodpileTotal(woodpile.woodpile)));
+  woodpile.woodpile[wood] += stacked;
+  return stacked;
+}
+
 /** Lets the player keep logs and firewood on woodpiles. */
 export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpiles {
   const players = playerEntities(entities);

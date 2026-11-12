@@ -1,5 +1,5 @@
-// Loading logs and debarked logs on a parked sled, taking them off one at a time, and tipping them all out. Added by sled ticket 02.
-// Dragging a sled behind the player, and letting go of it. Added by sled ticket 03.
+// Loading logs and debarked logs on a parked sled, taking them off one at a time, and tipping them all out.
+// Dragging a sled behind the player, and letting go of it.
 import type { SledView } from "./api";
 import { distanceOutside } from "./building";
 import { entityWith, playerEntities, setComponent, woodpileEntities, type CarriedLog, type Entity, type EntityStore, type Vec3 } from "./entities";
@@ -9,7 +9,8 @@ import type { QuarterTurns } from "./structure-kind";
 import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
 import type { Valley } from "./valley";
 import { walkBeside, type Walking } from "./walking";
-import { WOODPILE_CAPACITY, woodpileTotal } from "./woodpiles";
+import { CARRIED_LOGS } from "./wood-and-fuel";
+import { stackOnWoodpile } from "./woodpiles";
 
 /** A sled holds up to this many logs and debarked logs in all, in any mix. */
 export const SLED_CAPACITY = 6;
@@ -19,12 +20,12 @@ const SLED_STAND_METRES = 1.3;
 const TIPPED_LOG_SPACING_METRES = 0.35;
 /** While dragging a sled, the player walks at this fraction of their normal speed. It stacks with the slowdown from neglected needs. */
 export const DRAG_SPEED = 0.7;
-/** A dragged sled's middle stays this far behind the player, in metres: half its length, and a short pull rope. */
+/** A dragged sled's middle stays this far behind the player, in metres: half its length, and a short rope. */
 const DRAG_ROPE_METRES = SLED_LENGTH_METRES / 2 + 0.5;
 /** A woodpile is next to a sled if its centre is within this many metres of the sled's edge. Tipping out then stacks the logs on it. */
 const WOODPILE_NEXT_TO_SLED_METRES = 1.5;
 
-type SledEntity = Entity & Required<Pick<Entity, "sled" | "position">>;
+export type SledEntity = Entity & Required<Pick<Entity, "sled" | "position">>;
 
 export interface Sleds {
   /** Walks the player beside a sled, if they are not already within reach of it. */
@@ -48,8 +49,13 @@ export interface Sleds {
   letGo(): void;
   /** The sled the player drags, as the HUD shows it, or undefined if they drag none. */
   dragged(): SledView | undefined;
-  /** Pulls the dragged sled after the player, so it trails behind them. Run it after the player moves. */
+  /** Drags the dragged sled after the player, so it trails behind them. Run it after the player moves. */
   follow(): void;
+}
+
+/** Whether an entity is a finished sled. */
+export function isSled(entity: Entity): entity is SledEntity {
+  return entity.sled !== undefined && entity.position !== undefined;
 }
 
 /** Whether a sled is parked: no player drags it. A dragged sled is not parked. */
@@ -60,14 +66,19 @@ export function isParked(entities: EntityStore, sled: Entity): boolean {
 
 /** How many logs and debarked logs a sled holds in all. */
 export function sledTotal(contents: Readonly<Record<CarriedLog, number>>): number {
-  return contents.log + contents.debarkedLog;
+  return CARRIED_LOGS.reduce((total, log) => total + contents[log], 0);
+}
+
+/** Takes one log or debarked log off a sled, if it holds one. */
+export function takeOffSled(sled: Pick<SledEntity, "sled">, log: CarriedLog): void {
+  if (sled.sled[log] > 0) sled.sled[log] -= 1;
 }
 
 /**
  * Lays every log and debarked log on a sled on the ground beside it, each on its own, and leaves the sled empty.
  * They alternate sides and work outwards. Tipping out and taking a sled down both use it.
  */
-export function layLoadBeside(entities: EntityStore, valley: Valley, sled: Entity & Required<Pick<Entity, "sled" | "position">>): void {
+export function layLoadBeside(entities: EntityStore, valley: Valley, sled: SledEntity): void {
   const logs: CarriedLog[] = [...Array<CarriedLog>(sled.sled.log).fill("log"), ...Array<CarriedLog>(sled.sled.debarkedLog).fill("debarkedLog")];
   sled.sled.log = 0;
   sled.sled.debarkedLog = 0;
@@ -145,11 +156,7 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       if (sled === undefined || userOf(sled) === undefined) return;
       const woodpile = woodpileNextTo(sled);
       if (woodpile !== undefined) {
-        for (const kind of ["log", "debarkedLog"] as const) {
-          const moved = Math.min(sled.sled[kind], WOODPILE_CAPACITY - woodpileTotal(woodpile.woodpile));
-          sled.sled[kind] -= moved;
-          woodpile.woodpile[kind] += moved;
-        }
+        for (const kind of CARRIED_LOGS) sled.sled[kind] -= stackOnWoodpile(woodpile, kind, sled.sled[kind]);
       }
       layLoadBeside(entities, valley, sled);
     },
@@ -171,28 +178,32 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       for (const player of [...players]) entities.removeComponent(player, "dragging");
     },
     dragged() {
-      for (const player of players) {
-        const sled = player.dragging === undefined ? undefined : sledById(player.dragging.sledId);
-        if (sled !== undefined) return describe(sled);
-      }
-      return undefined;
+      const dragged = draggedSled();
+      return dragged === undefined ? undefined : describe(dragged.sled);
     },
     follow() {
-      for (const player of players) {
-        const sled = player.dragging === undefined ? undefined : sledById(player.dragging.sledId);
-        if (sled !== undefined) pullAfter(sled, player.position);
-      }
+      const dragged = draggedSled();
+      if (dragged !== undefined) dragAfter(dragged.sled, dragged.player.position);
     },
   };
 
-  /** Pulls the sled straight towards `puller` until its middle is DRAG_ROPE_METRES away, turning its runners to point at them. */
-  function pullAfter(sled: SledEntity, puller: Vec3): void {
-    const dx = puller.x - sled.position.x;
-    const dz = puller.z - sled.position.z;
+  /** The sled the player drags, and the player, or undefined if they drag none. */
+  function draggedSled() {
+    for (const player of players) {
+      const sled = player.dragging === undefined ? undefined : sledById(player.dragging.sledId);
+      if (sled !== undefined) return { sled, player };
+    }
+    return undefined;
+  }
+
+  /** Drags the sled straight towards `dragger` until its middle is DRAG_ROPE_METRES away, turning its runners to point at them. */
+  function dragAfter(sled: SledEntity, dragger: Vec3): void {
+    const dx = dragger.x - sled.position.x;
+    const dz = dragger.z - sled.position.z;
     const distance = Math.hypot(dx, dz);
     if (distance <= DRAG_ROPE_METRES) return;
-    const x = puller.x - (dx / distance) * DRAG_ROPE_METRES;
-    const z = puller.z - (dz / distance) * DRAG_ROPE_METRES;
+    const x = dragger.x - (dx / distance) * DRAG_ROPE_METRES;
+    const z = dragger.z - (dz / distance) * DRAG_ROPE_METRES;
     Object.assign(sled.position, { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z });
     // Turned by θ, the runners run along (cos θ, -sin θ), as for facing.
     const heading = Math.atan2(-dz, dx);

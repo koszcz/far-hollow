@@ -20,12 +20,12 @@ import {
 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
-import { layLoadBeside } from "./sleds";
+import { isSled, layLoadBeside } from "./sleds";
 import { rectsOverlap, SIDES } from "./structure-kind";
 import {
   footprintOfEntity,
   isDelivered,
-  isFurniture,
+  isPlacedFreely,
   isPlacedStructure,
   roofFrameOn,
   stageMaterials,
@@ -83,7 +83,7 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
    */
   function takeDown(worker: Worker, structure: PlacedStructure, kind: StructureKind): void {
     const { delivered, backpack } = materialsIn(structure, kind);
-    if (structure.sled !== undefined) layLoadBeside(entities, valley, { ...structure, sled: structure.sled });
+    if (isSled(structure)) layLoadBeside(entities, valley, structure);
     entities.remove(structure);
     if (kind === "foundation") dropOffDeck(structure.position);
     const onGround: Entity[] = [];
@@ -240,8 +240,8 @@ export function holdsSomething(structure: Entity): boolean {
 
 /**
  * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
- * a log wall or door frame on one of its edges, a campfire whose centre is on it, or a roof frame, roof section, lean-to, or piece of furniture
- * over any of it. Furniture, such as a chest, stands on every foundation its base reaches over.
+ * a log wall or door frame on one of its edges, a campfire whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
+ * over any of it. A structure placed freely, such as a chest, stands on every foundation its base reaches over.
  */
 function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(square, side)))) return true;
@@ -258,6 +258,6 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
     const kind = structureKindOf(other);
     if (kind === undefined) return false;
     if (kind === "campfire") return isOnGridSquare(square, other.position);
-    return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isFurniture(kind)) && rectsOverlap(rect, footprintOfEntity(other));
+    return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
   });
 }

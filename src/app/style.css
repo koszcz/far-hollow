@@ -141,8 +141,9 @@ body {
   top: 2px;
   bottom: auto;
 }
-/* The log on the shoulder sits apart from the backpack contents. */
-.hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder {
+/* The log on the shoulder and the dragged sled sit apart from the backpack contents. */
+.hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder,
+.hud-backpack .hud-hotbar-cells .hud-hotbar-sled {
   margin-right: 6px;
   border-color: #82593a;
 }

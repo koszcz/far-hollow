@@ -23,16 +23,16 @@ export function createTending(
   const walkers = entities.with("player", "tendTask");
 
   /** The campfire, woodpile, or sled the work is on, by its entity id, with the module that can reach it and walk the player beside it. */
-  function placeOf(command: TendTask): { readonly places: Pick<Campfires, "inReach" | "tend">; readonly id: number } {
-    if ("campfireId" in command) return { places: places.campfires, id: command.campfireId };
-    if ("woodpileId" in command) return { places: places.woodpiles, id: command.woodpileId };
-    return { places: places.sleds, id: command.sledId };
+  function placeOf(command: TendTask): { readonly module: Pick<Campfires, "inReach" | "tend">; readonly id: number } {
+    if ("campfireId" in command) return { module: places.campfires, id: command.campfireId };
+    if ("woodpileId" in command) return { module: places.woodpiles, id: command.woodpileId };
+    return { module: places.sleds, id: command.sledId };
   }
 
   return {
     inReach(command) {
       const place = placeOf(command);
-      return place.places.inReach(place.id);
+      return place.module.inReach(place.id);
     },
     walkThen(command) {
       for (const player of players) {
@@ -41,7 +41,7 @@ export function createTending(
         setComponent(entities, player, "tendTask", command);
       }
       const place = placeOf(command);
-      place.places.tend(place.id);
+      place.module.tend(place.id);
     },
     cancel() {
       for (const player of [...walkers]) entities.removeComponent(player, "tendTask");

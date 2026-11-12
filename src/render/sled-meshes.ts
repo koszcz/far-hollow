@@ -1,5 +1,4 @@
-// Draws sleds and sled blueprints: the draft "sled" asset in asset-manifest.json, built in code. Added by sled ticket 01.
-// Sled ticket 02 added the logs lying on a finished sled.
+// Draws sleds and sled blueprints: the draft "sled" asset in asset-manifest.json, built in code.
 // A sled is two log runners with their bark on, lying side by side, and four sticks laid across them.
 // Its runners run along x when it faces the default way.
 // Construction has one stage per material: a runner for each log, then a cross piece for each stick.
@@ -9,7 +8,7 @@
 // A finished sled shows the logs and debarked logs lying on it, along the runners, from empty to full:
 // logs first, then debarked logs, stacked in a pyramid: three side by side on the cross pieces, two in the gaps above, and one on top.
 // They use the approved shapes from log-shape.ts and debarked-log-shape.ts, the "logs" and "debarked-log" assets.
-// Sled ticket 03 added dragging: a sled the player has dragged points the way it was last pulled, and a dragged sled
+// A sled the player has dragged points the way it was last dragged, and a dragged sled
 // moves smoothly between logic steps with the player.
 import * as THREE from "three";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";

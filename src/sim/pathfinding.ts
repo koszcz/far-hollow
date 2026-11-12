@@ -31,43 +31,69 @@ export function findPath(map: WalkMap, from: GroundPoint, to: GroundPoint): Grou
 const BLOCKED_REGION = 0;
 
 interface Regions {
-  readonly version: number;
+  version: number;
   /** For each cell, a number shared by every walkable cell that can reach it. Blocked cells are 0. */
   readonly labels: Int32Array;
+  /** Cells waiting to be labelled. Kept between splits, so a split allocates nothing. */
+  readonly stack: Int32Array;
 }
 
 const regionsByMap = new WeakMap<WalkMap, Regions>();
 
-/** Splits the map's walkable cells into regions the player can walk between. Reuses the last split until a cell changes. */
+/**
+ * Splits the map's walkable cells into regions the player can walk between. Reuses the last split until a cell changes.
+ * A split visits every cell of the map, so it is written for speed: typed arrays and no function call per cell.
+ * A step between side-by-side cells is open when the cell it enters is walkable and no wall stands on the edge between
+ * them, the same rule as canStep.
+ */
 function regionsOf(map: WalkMap): Int32Array {
-  const cached = regionsByMap.get(map);
-  if (cached?.version === map.version) return cached.labels;
+  const cellCount = map.blockerCounts.length;
+  let regions = regionsByMap.get(map);
+  if (regions?.version === map.version) return regions.labels;
+  if (regions === undefined) {
+    regions = { version: map.version, labels: new Int32Array(cellCount), stack: new Int32Array(cellCount) };
+    regionsByMap.set(map, regions);
+  }
+  regions.version = map.version;
+  const { labels, stack } = regions;
+  labels.fill(BLOCKED_REGION);
 
   const side = map.cellsPerSide;
-  const labels = new Int32Array(map.blockerCounts.length);
-  const stack: number[] = [];
+  const blockers = map.blockerCounts;
+  // The edge between a cell and the next one along x is at cell * 2. The edge to the next one along z is at cell * 2 + 1.
+  const edges = map.edgeBlockerCounts;
   let region = BLOCKED_REGION;
-  for (let first = 0; first < labels.length; first += 1) {
-    if (labels[first] !== BLOCKED_REGION || map.blockerCounts[first] !== 0) continue;
+  for (let first = 0; first < cellCount; first += 1) {
+    if (labels[first] !== BLOCKED_REGION || blockers[first] !== 0) continue;
     region += 1;
     labels[first] = region;
-    stack.push(first);
-    while (stack.length > 0) {
-      const cell = stack.pop() ?? 0;
+    let size = 0;
+    stack[size++] = first;
+    while (size > 0) {
+      const cell = stack[--size] ?? 0;
       const column = cell % side;
-      const visit = (next: number) => {
-        if (labels[next] === BLOCKED_REGION && canStep(map, cell, next)) {
-          labels[next] = region;
-          stack.push(next);
-        }
-      };
-      if (column > 0) visit(cell - 1);
-      if (column < side - 1) visit(cell + 1);
-      if (cell >= side) visit(cell - side);
-      if (cell + side < labels.length) visit(cell + side);
+      let next = cell - 1;
+      if (column > 0 && labels[next] === BLOCKED_REGION && blockers[next] === 0 && edges[next * 2] === 0) {
+        labels[next] = region;
+        stack[size++] = next;
+      }
+      next = cell + 1;
+      if (column < side - 1 && labels[next] === BLOCKED_REGION && blockers[next] === 0 && edges[cell * 2] === 0) {
+        labels[next] = region;
+        stack[size++] = next;
+      }
+      next = cell - side;
+      if (next >= 0 && labels[next] === BLOCKED_REGION && blockers[next] === 0 && edges[next * 2 + 1] === 0) {
+        labels[next] = region;
+        stack[size++] = next;
+      }
+      next = cell + side;
+      if (next < cellCount && labels[next] === BLOCKED_REGION && blockers[next] === 0 && edges[cell * 2 + 1] === 0) {
+        labels[next] = region;
+        stack[size++] = next;
+      }
     }
   }
-  regionsByMap.set(map, { version: map.version, labels });
   return labels;
 }
 

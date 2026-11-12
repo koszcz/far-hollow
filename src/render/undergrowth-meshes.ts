@@ -91,9 +91,12 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
     );
   }
 
-  /** Patches grown so far, by column and row. Patches far from the focus are dropped. */
-  const grown = new Map<number, UndergrowthItem[]>();
-  /** Each grown patch's plants, placed and sorted by batch, with a box around them. */
+  /**
+   * Patches grown and placed so far, by column and row, or null for a patch with no plants. Patches far from the focus
+   * are dropped. Moving the focus into the next patch only grows the patches that come into reach.
+   */
+  const grown = new Map<number, PlacedPatch | null>();
+  /** The grown patches that have plants. */
   let placedPatches: PlacedPatch[] = [];
   /** The patches drawn now, in placedPatches order. Undefined means every grown patch. */
   let drawnPatches: PlacedPatch[] | undefined;
@@ -111,34 +114,37 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   function drawAround(column: number, row: number): void {
     // A plant within the draw distance of any spot in the focus's patch lies in a patch this many patches away, or nearer.
     const reach = Math.ceil(UNDERGROWTH_DRAW_METRES / UNDERGROWTH_PATCH_METRES) + 1;
-    const near = new Map<number, UndergrowthItem[]>();
+    const near = new Map<number, PlacedPatch | null>();
     for (let r = Math.max(0, row - reach); r <= Math.min(patchesPerSide - 1, row + reach); r += 1) {
       for (let c = Math.max(0, column - reach); c <= Math.min(patchesPerSide - 1, column + reach); c += 1) {
         if (Math.hypot(c - column, r - row) > reach) continue;
         const key = r * patchesPerSide + c;
-        near.set(key, grown.get(key) ?? growUndergrowthPatch(valley.seed, groundMap, c, r));
+        const known = grown.get(key);
+        near.set(key, known === undefined ? growAndPlace(c, r) : known);
       }
     }
     grown.clear();
-    for (const [key, plants] of near) grown.set(key, plants);
-
     placedPatches = [];
-    for (const [key, plants] of near) {
-      const patch: PlacedPatch = { box: new THREE.Box3(), matrices: batches.map(() => []) };
-      for (const plant of plants) placePlant(plant, patch);
-      if (patch.box.isEmpty()) continue;
-      const column = key % patchesPerSide;
-      const row = Math.floor(key / patchesPerSide);
-      const half = valley.size / 2;
-      patch.box.min.x = Math.min(patch.box.min.x, column * UNDERGROWTH_PATCH_METRES - half - PLANT_REACH_METRES);
-      patch.box.min.z = Math.min(patch.box.min.z, row * UNDERGROWTH_PATCH_METRES - half - PLANT_REACH_METRES);
-      patch.box.max.x = Math.max(patch.box.max.x, (column + 1) * UNDERGROWTH_PATCH_METRES - half + PLANT_REACH_METRES);
-      patch.box.max.z = Math.max(patch.box.max.z, (row + 1) * UNDERGROWTH_PATCH_METRES - half + PLANT_REACH_METRES);
-      patch.box.max.y += PLANT_REACH_METRES;
-      placedPatches.push(patch);
+    for (const [key, patch] of near) {
+      grown.set(key, patch);
+      if (patch !== null) placedPatches.push(patch);
     }
     drawnPatches = undefined;
     drawPatches(lastView === undefined ? placedPatches : visiblePatches(lastView));
+  }
+
+  /** Grows one patch and places its plants. Null if no plant in it is drawn. */
+  function growAndPlace(column: number, row: number): PlacedPatch | null {
+    const patch: PlacedPatch = { box: new THREE.Box3(), matrices: batches.map(() => []) };
+    for (const plant of growUndergrowthPatch(valley.seed, groundMap, column, row)) placePlant(plant, patch);
+    if (patch.box.isEmpty()) return null;
+    const half = valley.size / 2;
+    patch.box.min.x = Math.min(patch.box.min.x, column * UNDERGROWTH_PATCH_METRES - half - PLANT_REACH_METRES);
+    patch.box.min.z = Math.min(patch.box.min.z, row * UNDERGROWTH_PATCH_METRES - half - PLANT_REACH_METRES);
+    patch.box.max.x = Math.max(patch.box.max.x, (column + 1) * UNDERGROWTH_PATCH_METRES - half + PLANT_REACH_METRES);
+    patch.box.max.z = Math.max(patch.box.max.z, (row + 1) * UNDERGROWTH_PATCH_METRES - half + PLANT_REACH_METRES);
+    patch.box.max.y += PLANT_REACH_METRES;
+    return patch;
   }
 
   /** Places one plant in its patch, sorted by its model's batch, unless it lies under something the player has placed. */
@@ -200,7 +206,10 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
       const row = Math.floor((focus.z + half) / UNDERGROWTH_PATCH_METRES);
       const patch = row * patchesPerSide + column;
       const nowFootprints = campFootprints(entities);
-      if (patch === drawnPatch && sameFootprints(nowFootprints, footprints)) return;
+      const campChanged = !sameFootprints(nowFootprints, footprints);
+      if (patch === drawnPatch && !campChanged) return;
+      // Plants under the camp are left out when a patch is placed, so a changed camp places every patch again.
+      if (campChanged) grown.clear();
       drawnPatch = patch;
       footprints = nowFootprints;
       drawAround(column, row);

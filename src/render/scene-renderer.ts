@@ -110,7 +110,7 @@ export function createSceneRenderer(
   scene.add(structureMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
-  const bedrollMeshes = createBedrollMeshes(entities);
+  const bedrollMeshes = createBedrollMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(bedrollMeshes.group);
   const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
   scene.add(pileMeshes.group);

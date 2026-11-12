@@ -62,7 +62,7 @@ interface KindDrawing {
 
 /** `groundAt` gives the height of the ground. `logShape` is the loaded log model, which woodpiles stack. */
 export function createStructureMeshes(entities: EntityStore, groundAt: (x: number, z: number) => number, logShape: LogShape): StructureMeshes {
-  const campfires = createCampfireMeshes(entities);
+  const campfires = createCampfireMeshes(entities, groundAt);
   const leanTos = createLeanToMeshes(entities);
   const foundations = createFoundationMeshes(entities, groundAt);
   const edgePieces = createEdgePieceMeshes(entities);

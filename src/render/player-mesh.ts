@@ -3,7 +3,7 @@
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
 // While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
-// The backpack on the back is the draft "backpack" asset, built by backpack-shape.ts.
+// The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";

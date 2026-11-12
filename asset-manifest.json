@@ -113,12 +113,13 @@
         "src/render/backpack-shape.ts",
         "src/render/player-mesh.ts"
       ],
-      "description": "The backpack the player wears: an olive canvas bag on the back, about 0.34 m wide, 0.42 m tall, and 0.18 m deep, with a leather flap and a brass buckle, a front pocket below the flap, and two leather shoulder straps that run over the shoulders and down the chest. It moves with the chest in every pose. While the hands are busy, the axe hangs on its outside.",
+      "description": "The backpack the player wears: a rounded olive canvas rucksack on the back, about 0.34 m wide, 0.42 m tall, and 0.18 m deep, with a leather flap and a brass buckle, a front pocket, a side pocket on the left, and a rolled blanket strapped across the top. Two leather shoulder straps arch over the shoulders and run down the chest, each with a brass buckle. It moves with the chest in every pose. While the hands are busy, the axe hangs on its outside.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/player-backpack/issues/01-backpack-on-player.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {

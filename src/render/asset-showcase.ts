@@ -499,14 +499,17 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   player: { radius: 1.1, focus: { x: 0, y: 0.9, z: 0 }, shots: FOUR_ANGLES, build() {} },
+  // Close up and with empty hands, so nothing covers the backpack. The "logs" showcase shows the axe hanging on it.
   backpack: {
-    radius: 1.1,
-    focus: { x: 0, y: 0.9, z: 0 },
-    shots: FOUR_ANGLES,
-    build({ player }) {
-      // With a log on the shoulder, so the axe hangs on the backpack too.
-      player.setCarryingLog("log");
-    },
+    radius: 0.85,
+    focus: { x: 0, y: 0.85, z: 0 },
+    shots: [
+      { label: "front", yaw: 0, pitch: 12 },
+      { label: "back", yaw: 180, pitch: 15 },
+      { label: "back three-quarter", yaw: 215, pitch: 25 },
+      { label: "side", yaw: 90, pitch: 12 },
+    ],
+    build() {},
   },
   campfire: {
     radius: 1.3,

@@ -8,6 +8,10 @@ import type { Vec3 } from "../sim/entities";
 export const SEE_THROUGH_INNER_METRES = 2.5;
 /** A tree starts to fade when its trunk stands this close to that line, in metres. */
 export const SEE_THROUGH_OUTER_METRES = 5;
+/** A tree this close to the player, measured towards the camera, stays solid, so the player sees the tree they work on. */
+export const SEE_THROUGH_SOLID_NEAR_PLAYER_METRES = 3;
+/** A tree fades fully once it stands this much closer to the camera than the player, in metres. */
+export const SEE_THROUGH_FULL_FROM_PLAYER_METRES = 5;
 /** The share of a fully faded tree's pixels that still draw, so the player can tell where the trees are. */
 export const SEE_THROUGH_LEFT_SHOWING = 0.2;
 
@@ -19,16 +23,21 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 /**
  * How much a tree standing at `foot` fades, from 0 (solid) to 1 (fully faded).
  * It measures, seen from above, how far the foot is from the line between the camera and the player.
- * Trees beyond the player, seen from the camera, do not fade, except those right next to the player.
+ * Only trees between the camera and the player fade. Trees next to the player stay solid, such as the one being chopped.
  * The tree shader works this out the same way.
  */
 export function seeThroughAmount(foot: Readonly<Vec3>, eye: Readonly<Vec3>, player: Readonly<Vec3>): number {
   const lineX = player.x - eye.x;
   const lineZ = player.z - eye.z;
-  const lengthSquared = lineX * lineX + lineZ * lineZ;
-  const along = lengthSquared === 0 ? 1 : Math.min(1, Math.max(0, ((foot.x - eye.x) * lineX + (foot.z - eye.z) * lineZ) / lengthSquared));
+  const length = Math.hypot(lineX, lineZ);
+  if (length === 0) return 0;
+  /** How far along the line from the camera the foot stands, in metres. */
+  const alongMetres = ((foot.x - eye.x) * lineX + (foot.z - eye.z) * lineZ) / length;
+  const along = Math.min(1, Math.max(0, alongMetres / length));
   const away = Math.hypot(foot.x - (eye.x + lineX * along), foot.z - (eye.z + lineZ * along));
-  return 1 - smoothstep(SEE_THROUGH_INNER_METRES, SEE_THROUGH_OUTER_METRES, away);
+  const nearLine = 1 - smoothstep(SEE_THROUGH_INNER_METRES, SEE_THROUGH_OUTER_METRES, away);
+  const inFrontOfPlayer = smoothstep(SEE_THROUGH_SOLID_NEAR_PLAYER_METRES, SEE_THROUGH_FULL_FROM_PLAYER_METRES, length - alongMetres);
+  return nearLine * inFrontOfPlayer;
 }
 
 export interface TreeSeeThrough {
@@ -57,10 +66,14 @@ export function addTreeSeeThrough(materials: readonly THREE.Material[]): TreeSee
             "vec2 seeThroughFoot = ( modelMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
             "#endif",
             "vec2 seeThroughLine = seeThroughPlayer.xz - cameraPosition.xz;",
-            "float seeThroughLength = dot( seeThroughLine, seeThroughLine );",
-            "float seeThroughAlong = seeThroughLength == 0.0 ? 1.0 : clamp( dot( seeThroughFoot - cameraPosition.xz, seeThroughLine ) / seeThroughLength, 0.0, 1.0 );",
+            "float seeThroughLength = length( seeThroughLine );",
+            "float seeThroughAlongMetres = seeThroughLength == 0.0 ? 0.0 : dot( seeThroughFoot - cameraPosition.xz, seeThroughLine ) / seeThroughLength;",
+            "float seeThroughAlong = seeThroughLength == 0.0 ? 1.0 : clamp( seeThroughAlongMetres / seeThroughLength, 0.0, 1.0 );",
             "float seeThroughAway = distance( seeThroughFoot, cameraPosition.xz + seeThroughLine * seeThroughAlong );",
-            `seeThroughFade = seeThroughEnabled * ( 1.0 - smoothstep( ${SEE_THROUGH_INNER_METRES.toFixed(2)}, ${SEE_THROUGH_OUTER_METRES.toFixed(2)}, seeThroughAway ) );`,
+            `float seeThroughNearLine = 1.0 - smoothstep( ${SEE_THROUGH_INNER_METRES.toFixed(2)}, ${SEE_THROUGH_OUTER_METRES.toFixed(2)}, seeThroughAway );`,
+            // Trees next to the player stay solid, such as the one being chopped.
+            `float seeThroughInFront = smoothstep( ${SEE_THROUGH_SOLID_NEAR_PLAYER_METRES.toFixed(2)}, ${SEE_THROUGH_FULL_FROM_PLAYER_METRES.toFixed(2)}, seeThroughLength - seeThroughAlongMetres );`,
+            "seeThroughFade = seeThroughEnabled * seeThroughNearLine * seeThroughInFront;",
           ].join("\n"),
         );
       shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nvarying float seeThroughFade;").replace(

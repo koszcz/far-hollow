@@ -23,7 +23,9 @@ describe("tree see-through", () => {
     expect(seeThroughAmount({ x: 0, y: 0, z: -20 }, eye, player)).toBe(0);
   });
 
-  it("fades a tree right next to the player, whichever side it stands", () => {
-    expect(seeThroughAmount({ x: 0, y: 0, z: -1 }, eye, player)).toBe(1);
+  it("leaves a tree right next to the player solid, such as the one being chopped", () => {
+    expect(seeThroughAmount({ x: 0, y: 0, z: 1.5 }, eye, player)).toBe(0);
+    expect(seeThroughAmount({ x: 1.5, y: 0, z: 0 }, eye, player)).toBe(0);
+    expect(seeThroughAmount({ x: 0, y: 0, z: -1.5 }, eye, player)).toBe(0);
   });
 });

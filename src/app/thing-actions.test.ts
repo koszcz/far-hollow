@@ -1,0 +1,255 @@
+import { describe, expect, it } from "bun:test";
+import type { BackpackContent, CampfireView, GameView, WoodpileView } from "../sim/api";
+import { createGame } from "../sim/game";
+import { actionsFor, mainAction, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
+
+const CAMPFIRE: ActionTarget = { kind: "scene", pick: { kind: "campfire", id: 7 } };
+
+describe("a campfire's actions", () => {
+  it("offers to light an unlit fire with fuel, then each fuel, then the pot, but no taking down, since a finished campfire stays", () => {
+    const reader = readerWith({ backpack: { fireStriker: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
+
+    const actions = actionsFor(CAMPFIRE, reader);
+
+    expect(summary(actions)).toEqual([
+      "light main",
+      "addFuel:firewood off: no firewood",
+      "addFuel:stick",
+      "addFuel:bark off: no bark",
+      "putPotOn off: light the fire first",
+    ]);
+    expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: 7 });
+    expect(actions.find(({ id }) => id === "addFuel:stick")?.command).toEqual({ type: "addFuel", campfireId: 7, fuel: "stick" });
+  });
+
+  it("adds the first fuel the player has to an unlit fire with no fuel, and says why lighting is off", () => {
+    const reader = readerWith({ backpack: { fireStriker: 1, bark: 1 }, campfire: {} });
+
+    expect(summary(actionsFor(CAMPFIRE, reader))).toEqual([
+      "addFuel:bark main",
+      "light off: no fuel",
+      "addFuel:firewood off: no firewood",
+      "addFuel:stick off: no sticks",
+      "putPotOn off: light the fire first",
+    ]);
+  });
+
+  it("says lighting needs the fire striker", () => {
+    const reader = readerWith({ backpack: { stick: 1 }, campfire: { fuelMinutes: 20 } });
+
+    expect(mainAction(actionsFor(CAMPFIRE, reader))).toMatchObject({ id: "light", enabled: false, reason: "needs the fire striker" });
+  });
+
+  it("feeds a lit fire firewood first, then a stick, then bark, and offers no lighting", () => {
+    const lit = { lit: true, fuelMinutes: 60 };
+    const main = (backpack: Partial<Record<BackpackContent, number>>) => mainAction(actionsFor(CAMPFIRE, readerWith({ backpack, campfire: lit })))?.id;
+
+    expect(main({ firewood: 1, stick: 1, bark: 1 })).toBe("addFuel:firewood");
+    expect(main({ stick: 1, bark: 1 })).toBe("addFuel:stick");
+    expect(main({ bark: 1 })).toBe("addFuel:bark");
+    expect(main({})).toBe("addFuel:firewood");
+    expect(actionsFor(CAMPFIRE, readerWith({ campfire: lit })).some(({ id }) => id === "light")).toBe(false);
+  });
+
+  it("says the fire is full for fuel that no longer fits, and skips to fuel that does", () => {
+    const reader = readerWith({
+      backpack: { firewood: 1, stick: 1 },
+      campfire: { lit: true, fuelMinutes: 460, fits: { firewood: false, stick: true, bark: true } },
+    });
+
+    const actions = actionsFor(CAMPFIRE, reader);
+
+    expect(summary(actions).slice(0, 2)).toEqual(["addFuel:stick main", "addFuel:firewood off: the fire is full"]);
+  });
+
+  it("puts a full pot on a lit fire, and takes a pot off when one is on", () => {
+    const lit = { lit: true, fuelMinutes: 60 };
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { potOfRiverWater: 1 }, campfire: lit })), "putPotOn")).toMatchObject({
+      enabled: true,
+      command: { type: "putPotOnFire", campfireId: 7 },
+    });
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { pot: 1 }, campfire: lit })), "putPotOn")?.reason).toBe("no pot of water");
+
+    const potOn = actionsFor(CAMPFIRE, readerWith({ campfire: { ...lit, pot: { water: "river", boilProgress: 0.5 } } }));
+    expect(find(potOn, "putPotOn")).toBeUndefined();
+    expect(find(potOn, "takePotOff")).toMatchObject({ enabled: true, command: { type: "takePotOffFire", campfireId: 7 } });
+  });
+
+  it("gives every entry an icon and a name", () => {
+    for (const action of actionsFor(CAMPFIRE, readerWith({ campfire: {} }))) {
+      expect(action.label.length).toBeGreaterThan(0);
+      expect(action.icon).toBeDefined();
+    }
+  });
+});
+
+const WOODPILE: ActionTarget = { kind: "scene", pick: { kind: "woodpile", id: 8 } };
+
+describe("a woodpile's actions", () => {
+  it("stacks the log on the player's shoulder first, then lists firewood, each wood to take, and taking it down", () => {
+    const reader = readerWith({ carrying: "log", backpack: { firewood: 2 }, woodpile: { contents: { log: 1, debarkedLog: 0, firewood: 3 }, total: 4 } });
+
+    expect(summary(actionsFor(WOODPILE, reader))).toEqual([
+      "stack:log main",
+      "stack:firewood",
+      "stack:firewood:all",
+      "take:log off: your shoulder is full",
+      "take:debarkedLog off: nothing to take",
+      "take:firewood",
+      "takeDown off: empty it first",
+    ]);
+  });
+
+  it("takes firewood when the player carries nothing, and stacks all firewood with its own entry", () => {
+    const reader = readerWith({ backpack: { firewood: 2 }, woodpile: { contents: { log: 0, debarkedLog: 2, firewood: 1 }, total: 3 } });
+
+    const actions = actionsFor(WOODPILE, reader);
+
+    expect(summary(actions)).toEqual([
+      "take:firewood main",
+      "stack:firewood",
+      "stack:firewood:all",
+      "take:log off: nothing to take",
+      "take:debarkedLog",
+      "takeDown off: empty it first",
+    ]);
+    expect(find(actions, "stack:firewood:all")).toMatchObject({
+      label: "Stack all firewood",
+      command: { type: "stackOnWoodpile", woodpileId: 8, wood: "firewood", all: true },
+    });
+    expect(find(actions, "take:debarkedLog")?.command).toEqual({ type: "takeFromWoodpile", woodpileId: 8, wood: "debarkedLog" });
+  });
+
+  it("says the woodpile is full, and that the player has no firewood", () => {
+    const full = readerWith({
+      carrying: "debarkedLog",
+      backpack: { firewood: 1 },
+      woodpile: { contents: { log: 20, debarkedLog: 0, firewood: 0 }, total: 20 },
+    });
+    expect(summary(actionsFor(WOODPILE, full)).slice(0, 3)).toEqual([
+      "stack:debarkedLog main off: the woodpile is full",
+      "stack:firewood off: the woodpile is full",
+      "stack:firewood:all off: the woodpile is full",
+    ]);
+
+    const empty = readerWith({ woodpile: {} });
+    expect(find(actionsFor(WOODPILE, empty), "stack:firewood")?.reason).toBe("no firewood");
+    expect(find(actionsFor(WOODPILE, empty), "takeDown")?.enabled).toBe(true);
+  });
+});
+
+describe("other things' actions", () => {
+  const scene = (pick: Extract<ActionTarget, { kind: "scene" }>["pick"]): ActionTarget => ({ kind: "scene", pick });
+
+  it("walks over the ground, with nothing else", () => {
+    expect(summary(actionsFor(scene({ kind: "ground", spot: { x: 1, z: 2 } }), readerWith({})))).toEqual(["walk main"]);
+  });
+
+  it("chops a tree, and says it needs the axe without one", () => {
+    expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({ backpack: { axe: 1 } })))).toEqual(["chop main"]);
+    expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({})))).toEqual(["chop main off: needs the axe"]);
+  });
+
+  it("picks up a log, then debarks it", () => {
+    expect(summary(actionsFor(scene({ kind: "log", id: 4 }), readerWith({ backpack: { drawknife: 1 } })))).toEqual(["pickUp main", "debark"]);
+    expect(summary(actionsFor(scene({ kind: "log", id: 4 }), readerWith({ carrying: "log" })))).toEqual([
+      "pickUp main off: your shoulder is full",
+      "debark off: needs the drawknife",
+    ]);
+  });
+
+  it("sleeps on a laid bedroll, or picks it up", () => {
+    expect(summary(actionsFor(scene({ kind: "bedroll", id: 5 }), readerWith({})))).toEqual(["sleep main", "pickUp"]);
+  });
+
+  it("opens a chest, or takes it down", () => {
+    expect(summary(actionsFor(scene({ kind: "chest", id: 6 }), readerWith({})))).toEqual(["open main", "takeDown"]);
+  });
+
+  it("builds a blueprint, adds a carried debarked log it needs first, and takes it down", () => {
+    const blueprint = { id: 9, structure: "foundation" as const, progress: 0, deliveries: [{ material: "debarkedLog" as const, has: 1, needs: 4 }] };
+    const reader = (carrying: GameView["carrying"]): ActionReader => ({ ...readerWith({ carrying }), describeBlueprint: () => blueprint });
+
+    expect(summary(actionsFor(scene({ kind: "blueprint", id: 9 }), reader("debarkedLog")))).toEqual(["deliver:debarkedLog main", "build", "takeDown"]);
+    expect(summary(actionsFor(scene({ kind: "blueprint", id: 9 }), reader(null)))).toEqual(["build main", "takeDown"]);
+  });
+
+  it("opens a work station's menu, lists the recipes made there, then takes it down", () => {
+    const actions = actionsFor(scene({ kind: "workStation", id: 10, station: "sawhorse" }), readerWith({}));
+
+    expect(actions.map(({ id }) => id)).toEqual(["openMenu", "craft:planks", "takeDown"]);
+    expect(mainAction(actions)?.command).toBeUndefined();
+    expect(find(actions, "craft:planks")).toMatchObject({
+      enabled: false,
+      reason: "needs the saw and a sawhorse",
+      command: { type: "craft", recipe: "planks", stationId: 10 },
+    });
+  });
+
+  it("acts on what is under a finished structure, then takes the structure down", () => {
+    const actions = actionsFor(scene({ kind: "structure", id: 11, under: { kind: "ground", spot: { x: 0, z: 0 } } }), readerWith({}));
+
+    expect(summary(actions)).toEqual(["walk main", "takeDownStructure"]);
+    expect(find(actions, "takeDownStructure")?.command).toEqual({ type: "takeDown", pieceId: 11 });
+  });
+
+  it("eats food from the hotbar, then drops it, and puts it in an open chest first", () => {
+    expect(summary(actionsFor({ kind: "item", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
+    expect(summary(actionsFor({ kind: "item", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
+
+    const chest = { id: 12, contents: {}, weight: 0, weightLimit: 30 };
+    const withChest = readerWith({ backpack: { berries: 2 } });
+    const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
+    const actions = actionsFor({ kind: "item", content: "berries" }, chestReader);
+    expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
+    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
+  });
+
+  it("drops the log on the shoulder, or splits it with the axe", () => {
+    expect(summary(actionsFor({ kind: "shoulder", log: "log" }, readerWith({ carrying: "log" })))).toEqual(["drop main", "split off: needs the axe"]);
+    expect(summary(actionsFor({ kind: "shoulder", log: "debarkedLog" }, readerWith({ carrying: "debarkedLog" })))).toEqual(["drop main"]);
+  });
+});
+
+function find(actions: readonly ThingAction[], id: string): ThingAction | undefined {
+  return actions.find((action) => action.id === id);
+}
+
+/** Each action as one short line: its id, "main" if it is the main action, and why it is off. */
+function summary(actions: readonly ThingAction[]): string[] {
+  return actions.map(({ id, isMain, enabled, reason }) => [id, isMain ? "main" : "", enabled ? "" : `off: ${reason}`].filter(Boolean).join(" "));
+}
+
+const START_VIEW = createGame({ seed: 42 }).client.getView();
+
+/** A reader whose view has this backpack and shoulder, and which describes campfire 7 and woodpile 8 as given. */
+function readerWith({
+  backpack = {},
+  carrying = null,
+  campfire,
+  woodpile,
+}: {
+  backpack?: Partial<Record<BackpackContent, number>>;
+  carrying?: GameView["carrying"];
+  campfire?: Partial<CampfireView>;
+  woodpile?: Partial<WoodpileView>;
+}): ActionReader {
+  const view: GameView = { ...START_VIEW, backpack, carrying };
+  const fullCampfire: CampfireView = {
+    id: 7,
+    lit: false,
+    fuelLeft: 0,
+    fuelMinutes: 0,
+    canLight: false,
+    fits: { stick: true, firewood: true, bark: true },
+    pot: null,
+    ...campfire,
+  };
+  const fullWoodpile: WoodpileView = { id: 8, contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20, ...woodpile };
+  return {
+    getView: () => view,
+    describeBlueprint: () => null,
+    describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
+    describeWoodpile: (id) => (id === 8 && woodpile !== undefined ? fullWoodpile : null),
+  };
+}

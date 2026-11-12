@@ -1,8 +1,8 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { GroundOrThingPick, PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import type { BlueprintView, CarriedLog, Command, GameClient, Recipe, StructureKind } from "../sim/api";
+import type { BlueprintView, CarriedLog, Command, GameClient, StructureKind } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
-import { strings } from "../strings";
+import { actionsFor, type ThingAction } from "./thing-actions";
 
 /**
  * The command a left-click sends for what it landed on. A blueprint needs to know what the player carries, so `blueprintPressFor` decides it instead.
@@ -52,43 +52,12 @@ export function blueprintPressFor(blueprint: BlueprintView, carrying: CarriedLog
   return needsCarried ? { type: "deliverToBlueprint", blueprintId: blueprint.id } : { type: "build", blueprintId: blueprint.id };
 }
 
-/** One choice in the menu a right-click opens: its text, and the command it sends. */
-export interface MenuAction {
-  readonly label: string;
-  readonly command: Command;
-}
-
-/**
- * The choices a right-click on this thing offers, beyond what a left-click does. Empty if it offers none.
- * A work station offers each of `recipes` crafted at its kind of station, in the order given, then taking it down.
- */
-export function menuActionsFor(pick: ScenePick, recipes: readonly Pick<Recipe, "kind" | "station">[] = []): MenuAction[] {
-  switch (pick.kind) {
-    case "log":
-      return [{ label: strings.debark, command: { type: "debarkLog", logId: pick.id } }];
-    case "blueprint":
-    case "structure":
-    case "chest":
-    case "woodpile":
-      return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
-    // A finished work station offers the recipes crafted at it. The player walks to it first.
-    case "workStation":
-      return [
-        ...recipes
-          .filter(({ station }) => station === pick.station)
-          .map(({ kind }): MenuAction => ({ label: strings.craftMenu.recipes[kind], command: { type: "craft", recipe: kind, stationId: pick.id } })),
-        { label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } },
-      ];
-    default:
-      return [];
-  }
-}
-
 /** A right-click menu to show at a point on the page, in page pixels. */
 export interface MenuRequest {
   readonly x: number;
   readonly y: number;
-  readonly actions: readonly MenuAction[];
+  /** Every action the thing offers, main first. */
+  readonly actions: readonly ThingAction[];
 }
 
 /**
@@ -151,7 +120,8 @@ export interface WalkInput {
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
  * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
- * A right-click without a drag opens a menu of the other actions the thing allows, such as debarking a log or taking down a structure.
+ * A right-click without a drag opens a menu of every action the thing offers, such as debarking a log or taking down a structure.
+ * It opens only for things that offer more than their main action.
  * Only the right-click menu sees finished structures. Other clicks act on what is under them.
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
@@ -237,8 +207,9 @@ export function attachWalkInput({
     rightPress = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS || mode.placing !== null) return;
     const pick = pickAt(event.clientX, event.clientY);
-    const actions = pick === undefined ? [] : menuActionsFor(pick, client.getView().craftMenu);
-    if (actions.length > 0) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
+    const actions = pick === undefined ? [] : actionsFor({ kind: "scene", pick }, client);
+    // The menu opens only for a thing that offers more than its main action, such as a log that can be debarked too.
+    if (actions.length > 1) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
   }
 
   function onPointerUp(event: PointerEvent): void {

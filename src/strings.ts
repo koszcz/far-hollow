@@ -148,8 +148,6 @@ export const strings = {
   campfireFuel: "Fuel",
   potBoiling: "Boiling",
   potBoiled: "The water has boiled.",
-  fillPot: "Fill the pot at the river",
-  drinkFromPot: "Drink from the pot",
   woodpile: {
     title: "Woodpile",
     fill: "Stacked",
@@ -165,12 +163,8 @@ export const strings = {
   hunger: "Hunger",
   raining: "It is raining. The rain chills you.",
   thirst: "Thirst",
-  eat: "Eat",
-  /** The full name of an eat button, for screen readers. */
-  eatFood: (food: string) => `Eat ${food.toLowerCase()}`,
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   fatigue: "Rest",
-  layBedroll: "Lay out bedroll",
   notices: {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed. You woke the next morning.",
@@ -207,8 +201,6 @@ export const strings = {
   chest: {
     title: "Chest",
     empty: "The chest is empty.",
-    /** The full name of a backpack cell while a chest is open, for screen readers. */
-    put: (name: string) => `Put ${name.toLowerCase()} in the chest`,
     /** The tip shown when the player points at a chest cell. */
     takeTip: (name: string) => `${name}. Click to take one.`,
     /** The full name of a chest cell, for screen readers. */
@@ -219,13 +211,23 @@ export const strings = {
     title: "Pile",
     /** What a pile holds, such as "7 sticks". */
     holds: (content: BackpackContent, count: number) => PILE_HOLDS[content](count),
-    /** The full name of a backpack cell's drop button, for screen readers. */
-    drop: (name: string) => `Drop ${name.toLowerCase()}`,
   },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
   backpackCountBadge: (count: number) => `${count}`,
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
+  /** The hotbar's cells: the backpack items and the log on the shoulder. */
+  hotbar: {
+    /** The number key that uses a cell, shown in its corner. */
+    key: (number: number) => `${number}`,
+    /** The full name of a cell, for screen readers, such as "Berries ×3, key 2". */
+    cell: (name: string, count: number, key: string | undefined) => {
+      const what = count === 1 ? name : `${name} ×${count}`;
+      return key === undefined ? what : `${what}, key ${key}`;
+    },
+    /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
+    shoulder: (name: string) => `On your shoulder: ${name}`,
+  },
   /** What the player can do to a thing, as the right-click menu and the cursor prompt name it. */
   actions: {
     walk: "Walk here",
@@ -272,6 +274,7 @@ export const strings = {
     shoulderFull: "your shoulder is full",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
+    potOnFire: "take the pot off first",
   },
   /** The label beside the cursor that says what each mouse button does to the thing under it. */
   prompt: {

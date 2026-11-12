@@ -1,7 +1,7 @@
 // Draws the cursor prompt beside the cursor. src/app/cursor-prompt.ts decides its words.
 // It is plain DOM, not Preact, so following the cursor costs one style change per pointer move.
 // The scene reports what the cursor is over through setSceneTarget. HUD elements mark themselves with
-// data-prompt-item (a backpack content) or data-prompt-button ("build" or "craft"), and the overlay finds them itself.
+// data-prompt-item (a backpack content, or "shoulder" for the carried log) or data-prompt-button ("build" or "craft"), and the overlay finds them itself.
 import type { ScenePick } from "../render/scene-renderer";
 import type { BackpackContent, GameClient } from "../sim/api";
 import { strings } from "../strings";
@@ -46,6 +46,10 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
 
   function hudPrompt(source: HTMLElement): CursorPrompt | undefined {
     const item = source.dataset.promptItem;
+    if (item === "shoulder") {
+      const log = client.getView().carrying;
+      return log === null ? undefined : promptFor({ kind: "shoulder", log }, client);
+    }
     if (item !== undefined && item in strings.backpackContents) return promptFor({ kind: "item", content: item as BackpackContent }, client);
     const button = source.dataset.promptButton;
     if (button === "build" || button === "craft") return promptForButton(button satisfies PromptButton, source.getAttribute("aria-pressed") === "true");

@@ -46,7 +46,7 @@ export interface StructureMeshes {
   update(frame: StructureFrame): void;
   /** What a ray from the camera hits first among blueprints and finished structures the player can act on, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined;
-  /** The finished lean-to, foundation, wall, door frame, roof frame, or roof section a ray meets first. The right-click menu uses it. */
+  /** The finished lean-to, foundation, wall, door frame, roof frame, or roof section a ray meets first. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of what a click landed on, placed in the world. Empty once it is gone. */
   outlineOf(hit: StructureHit): OutlinePart[];

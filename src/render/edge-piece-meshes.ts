@@ -101,7 +101,7 @@ export interface EdgePieceMeshes {
   /** What a ray from the camera hits first among wall and door frame blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: EdgePieceHit; distance: number } | undefined;
   /** The parts of a wall or door frame blueprint, placed in the world. Empty once it is gone. */
-  /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The right-click menu uses it. */
+  /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: EdgePieceHit): OutlinePart[];
   /** Shows a blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */

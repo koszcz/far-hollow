@@ -11,8 +11,8 @@ export type { CursorPrompt, PromptButton, PromptLine } from "../ui/cursor-prompt
  * The prompt for what the cursor is over, or undefined when there should be none.
  * Plain ground shows none, because a click there only walks.
  * A finished structure, such as a wall, is named with what is behind it when that is a thing, since a left-click acts on that.
- * Its right-click menu always offers to take it down, so it always shows "More actions".
- * The right-click line shows whenever the right-click menu would open.
+ * Its action menu always offers to take it down, so it always shows "More actions".
+ * The right-click line shows whenever the action menu would open.
  * `nearest` is the thing nearest the player within reach. Over it, the left-click line shows E too, since E does the same.
  */
 export function promptFor(target: ActionTarget, reader: ActionReader, nearest: ThingInReach | null = null): CursorPrompt | undefined {
@@ -31,7 +31,7 @@ export function promptFor(target: ActionTarget, reader: ActionReader, nearest: T
 /** The prompt for the build or craft button. `open` says whether its wheel is open now. */
 export function promptForButton(button: PromptButton, open: boolean): CursorPrompt {
   const title = button === "build" ? strings.buildMenu.open : strings.craftMenu.open;
-  const text = open ? strings.prompt.closeWheel[button] : strings.prompt.openWheel[button];
+  const text = open ? strings.prompt.closeToolMenu[button] : strings.prompt.openToolMenu[button];
   return { title, lines: [{ button: strings.prompt.leftClick, text, enabled: true }] };
 }
 

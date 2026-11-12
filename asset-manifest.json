@@ -490,7 +490,7 @@
         "src/ui/placing-hint.ts",
         "src/app/style.css"
       ],
-      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight and item buttons. The build and craft buttons sit at the right end of the hotbar, apart from the items. They are larger buttons that show an icon, a name, and their key: \"Build B\" and \"Craft C\". Need bars sit above the hotbar, each with its name beside its icon. A low need pulses. The context panels and open chest sit above them. While placing, the hint names its keys, such as \"R to rotate · Esc to cancel\". The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
+      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight. The build and craft buttons sit at the right end of the hotbar, apart from the backpack contents. They are larger buttons that show an icon, a name, and their key: \"Build B\" and \"Craft C\". Need bars sit above the hotbar, each with its name beside its icon. A low need pulses. The panels and open chest sit above them. While placing, the hint names its keys, such as \"R to rotate · Esc to cancel\". The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

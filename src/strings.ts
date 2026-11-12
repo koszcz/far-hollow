@@ -55,7 +55,7 @@ export const strings = {
   craftMenu: {
     open: "Craft",
     title: "Craft",
-    /** What the craft wheel's centre says before the player points at a recipe. */
+    /** What the craft menu's centre says before the player points at a recipe. */
     pick: "Pick a recipe",
     recipes: {
       saw: "Saw",
@@ -86,7 +86,7 @@ export const strings = {
   buildMenu: {
     open: "Build",
     title: "Build",
-    /** What the build wheel's centre says before the player points at a structure. */
+    /** What the build menu's centre says before the player points at a structure. */
     pick: "Pick a structure",
     structures: {
       campfire: "Campfire",
@@ -122,9 +122,9 @@ export const strings = {
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */
   hudLabels: {
-    /** The key that opens the build wheel, shown on its button. */
+    /** The key that opens the build menu, shown on its button. */
     buildKey: "B",
-    /** The key that opens the craft wheel, shown on its button. */
+    /** The key that opens the craft menu, shown on its button. */
     craftKey: "C",
     /** The keys that work while placing a structure, shown after the placing hint. */
     placingKeys: {
@@ -210,7 +210,7 @@ export const strings = {
     takeTip: (name: string) => `${name}. Click to take one.`,
     /** The full name of a chest cell, for screen readers. */
     take: (name: string) => `Take ${name.toLowerCase()} from the chest`,
-    hint: "Click a backpack item to put one in the chest. Click a chest item to take one out. Shift-click moves all that fit.",
+    hint: "Click something in the backpack to put one in the chest. Click something in the chest to take one out. Shift-click moves all that fit.",
   },
   pile: {
     title: "Pile",
@@ -221,7 +221,7 @@ export const strings = {
   /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
   backpackCountBadge: (count: number) => `${count}`,
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
-  /** The hotbar's cells: the backpack items and the log on the shoulder. */
+  /** The hotbar's cells: the backpack contents and the log on the shoulder. */
   hotbar: {
     /** The number key that uses a cell, shown in its corner. */
     key: (number: number) => `${number}`,
@@ -230,7 +230,7 @@ export const strings = {
     /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
     shoulder: (name: string) => `On your shoulder: ${name}`,
   },
-  /** What the player can do to a thing, as the right-click menu and the cursor prompt name it. */
+  /** What the player can do to a thing, as the action menu and the cursor prompt name it. */
   actions: {
     walk: "Walk here",
     drink: "Drink",
@@ -289,11 +289,11 @@ export const strings = {
     /** The key that does the main action of the thing nearest the player. */
     useKey: "E",
     moreActions: "More actions",
-    /** The left-click line of a hotbar item that a click does nothing to. */
+    /** The left-click line of a backpack content that a click does nothing to. */
     noUse: "No use",
     /** The left-click line of the build and craft buttons. */
-    openWheel: { build: "Open the build wheel", craft: "Open the craft wheel" },
-    closeWheel: { build: "Close the build wheel", craft: "Close the craft wheel" },
+    openToolMenu: { build: "Open the build menu", craft: "Open the craft menu" },
+    closeToolMenu: { build: "Close the build menu", craft: "Close the craft menu" },
   },
   /** The names of things the player can act on, as the cursor prompt shows them. */
   things: {

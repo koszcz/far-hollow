@@ -7,7 +7,7 @@ import { actionsFor, hasMoreActions, leftClickAction, mainAction, type ActionRea
 /**
  * What a left-click on a thing does: its main action, if the player can do it now.
  * A click on a finished structure acts on what is under it. A disabled main action does nothing, since the cursor prompt already says why.
- * A work station's main action, opening its menu, has no command. The caller opens the right-click menu for it instead.
+ * A work station's main action, opening its menu, has no command. The caller opens the action menu for it instead.
  */
 export function leftClickFor(pick: ScenePick, reader: ActionReader): ThingAction | undefined {
   const target = pick.kind === "structure" ? pick.under : pick;
@@ -31,7 +31,7 @@ export function useKeyFor(
 }
 
 /**
- * The actions a right-click menu lists for a thing, main first, or undefined if the menu should not open.
+ * The actions an action menu lists for a thing, main first, or undefined if the menu should not open.
  * It opens whenever the thing offers an action a left-click does not do, such as taking down a lone wall.
  */
 export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAction[] | undefined {
@@ -40,7 +40,7 @@ export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAc
   return hasMoreActions(actions, leftClickAction(target, reader)) ? actions : undefined;
 }
 
-/** A right-click menu to show at a point on the page, in page pixels. */
+/** An action menu to show at a point on the page, in page pixels. */
 export interface MenuRequest {
   readonly x: number;
   readonly y: number;
@@ -112,7 +112,7 @@ export interface WalkInput {
  * A left-drag pans the camera instead, so it never counts as a click.
  * A right-click without a drag opens a menu of every action the thing offers, such as debarking a log or taking down a structure.
  * It opens for things that offer any action a left-click does not do.
- * Only the right-click menu sees finished structures. Other clicks act on what is under them.
+ * Only the action menu sees finished structures. Other clicks act on what is under them.
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
  * E does the main action on the thing nearest the player within reach.

@@ -55,7 +55,7 @@ export interface LeanToMeshes {
   /** What a ray from the camera hits first among lean-to blueprints, and how far away. A finished lean-to is not clicked. */
   pick(raycaster: THREE.Raycaster): { hit: { kind: "blueprint"; entity: Entity }; distance: number } | undefined;
   /** The parts of a lean-to or its blueprint, placed in the world. Empty once it is gone. */
-  /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The right-click menu uses it. */
+  /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(entity: Entity): OutlinePart[];
   /** Shows a lean-to blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */

@@ -142,9 +142,9 @@ describe("the cursor prompt over a hotbar cell", () => {
 
 describe("the cursor prompt over the build and craft buttons", () => {
   it("says what each button opens and closes", () => {
-    expect(text(promptForButton("build", false))).toEqual(["Build", "Left-click: Open the build wheel"]);
-    expect(text(promptForButton("build", true))).toEqual(["Build", "Left-click: Close the build wheel"]);
-    expect(text(promptForButton("craft", false))).toEqual(["Craft", "Left-click: Open the craft wheel"]);
+    expect(text(promptForButton("build", false))).toEqual(["Build", "Left-click: Open the build menu"]);
+    expect(text(promptForButton("build", true))).toEqual(["Build", "Left-click: Close the build menu"]);
+    expect(text(promptForButton("craft", false))).toEqual(["Craft", "Left-click: Open the craft menu"]);
   });
 });
 

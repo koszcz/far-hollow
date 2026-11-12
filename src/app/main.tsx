@@ -179,7 +179,7 @@ const loop = createFixedStepLoop({
   },
 });
 
-/** Input state the UI shows: the build menu and placing, the craft menu, and the right-click menu, if one is open. */
+/** Input state the UI shows: the build menu and placing, the craft menu, and the action menu, if one is open. */
 const uiState: { buildMode: BuildMode; craftMenuOpen: boolean; menu: MenuRequest | undefined } = {
   buildMode: NOT_BUILDING,
   craftMenuOpen: false,
@@ -204,7 +204,7 @@ window.addEventListener("keydown", (event) => {
   if (result !== "ignore") setCraftMenuOpen(result === "open");
 });
 
-/** Draws the HUD, the right-click menu, and the debug overlay. Called again when the build mode or the right-click menu changes. */
+/** Draws the HUD, the action menu, and the debug overlay. Called again when the build mode or the action menu changes. */
 function renderUi(): void {
   const { buildMode, menu } = uiState;
   render(

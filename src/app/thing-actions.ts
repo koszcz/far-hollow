@@ -1,5 +1,5 @@
 // Every action a thing offers the player: a thing in the world, a backpack content in the hotbar, or the log on their shoulder.
-// The right-click menu lists them all. The cursor prompt, a left-click, and the E key use the main one.
+// The action menu lists them all. The cursor prompt, a left-click, and the E key use the main one.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
@@ -60,7 +60,7 @@ export function leftClickAction(target: ActionTarget, reader: ActionReader): Thi
 }
 
 /**
- * Whether the target's actions include one a left-click does not do. Only then does the right-click menu open,
+ * Whether the target's actions include one a left-click does not do. Only then does the action menu open,
  * and only then does the cursor prompt say "More actions".
  */
 export function hasMoreActions(actions: readonly ThingAction[], left: ThingAction | undefined): boolean {

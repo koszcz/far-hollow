@@ -2,6 +2,7 @@
 // different game state. The states match the order of the views in src/render/asset-showcase.ts. Development builds only.
 import { render } from "preact";
 import type { GameClient, GameView, StructureKind } from "../sim/api";
+import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
 import { Hud } from "./hud";
 
@@ -176,12 +177,13 @@ const BUILD_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, buildMenu: FULL_BUILD_MENU, paused: true }, buildMenuOpen: true, placing: null },
 ];
 
-/** The "crafting-icons" asset: the saw blade and the saw in the backpack, with the craft menu and crafting under way. */
+/** The "crafting-icons" asset: the saw blade, the saw, and the plank in the backpack, with the craft menu and crafting under way. The last view is the icon sheet. */
 const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { axe: 1, sawBlade: 1, stick: 3 } }, buildMenuOpen: false, placing: null, craftMenuOpen: true },
   { view: { ...BASE_VIEW, backpack: { axe: 1, sawBlade: 1, stick: 3 }, action: { kind: "craft", progress: 0.6 } }, buildMenuOpen: false, placing: null },
-  { view: { ...BASE_VIEW, backpack: { axe: 1, saw: 1, stick: 1 } }, buildMenuOpen: false, placing: null },
-  { view: { ...BASE_VIEW, backpack: { sawBlade: 3, saw: 2 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { saw: 1, sawBlade: 3, plank: 4, stick: 1 } }, buildMenuOpen: false, placing: null },
+  // CraftingIconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
 ];
 
 /** The "build-icons" first view: every build icon drawn large, with its name, so the owner can judge the drawings. */
@@ -213,6 +215,35 @@ function BuildIconSheet() {
             <MaterialIcon material={material} />
           </span>
           {material}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The "crafting-icons" last view: each crafting icon drawn large, with its name, so the owner can judge the drawings. */
+function CraftingIconSheet() {
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+      {(["sawBlade", "saw", "plank"] as const).map((content) => (
+        <div
+          key={content}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "2px",
+            padding: "6px",
+            background: "#3d2b1e",
+            borderRadius: "6px",
+            color: "#cdb898",
+            fontSize: "11px",
+          }}
+        >
+          <span style={{ width: "96px", height: "96px", display: "grid" }} class="showcase-big-icon">
+            <BackpackIcon content={content} />
+          </span>
+          {content}
         </div>
       ))}
     </div>
@@ -258,6 +289,10 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         render(<BuildIconSheet />, quarter);
         return;
       }
+    }
+    if (asset === "crafting-icons" && index === CRAFTING_ICON_STATES.length - 1) {
+      render(<CraftingIconSheet />, quarter);
+      return;
     }
     render(
       <Hud

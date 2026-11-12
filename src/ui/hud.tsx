@@ -156,7 +156,7 @@ function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key:
   }
 }
 
-/** A backpack content's icon, the log icon for the shoulder, or the draft "sled-icon" for the sled the player drags. */
+/** A backpack content's icon, the log icon for the shoulder, or the approved "sled-icon" for the sled the player drags. */
 function HotbarCellIcon({ target }: { target: HotbarTarget }) {
   switch (target.kind) {
     case "backpackContent":

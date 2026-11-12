@@ -490,7 +490,7 @@
         "src/ui/placing-hint.ts",
         "src/app/style.css"
       ],
-      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight. The build and craft buttons sit at the right end of the hotbar, apart from the backpack contents. They are larger buttons, stacked one above the other so the hotbar stays one row high. Each shows an icon, a name, and its key: \"Build B\" and \"Craft C\". Need bars sit above the hotbar, each with its name beside its icon. A low need pulses. The panels and open chest sit above them. While placing, the hint names its keys, such as \"R to rotate · Esc to cancel\". The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
+      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight. The build and craft buttons sit at the right end of the hotbar, apart from the backpack contents. They are larger buttons, stacked one above the other so the hotbar stays one row high. Each shows an icon, a name, and its key: \"Build B\" and \"Craft C\". Need bars sit above the hotbar, each with its name beside its icon. A low need pulses. The panels and open chest sit above them. While placing, the hint names its keys, such as \"R to rotate · Esc to cancel\". The clock is top left and the pause button top right. Build and craft open as lists above their buttons. A build row shows the structure's icon, name, and cost. A craft row shows the result's icon, the recipe name, its cost and time, and what it lacks.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -503,7 +503,8 @@
         "2026-11-11: The owner chose the hotbar and wheel layout from four mockups and approved the change in chat. See .scratch/hud-redesign/issues/01-hotbar-and-wheel.md.",
         "2026-11-12: The owner asked in chat for the HUD redesign: labelled build and craft buttons with key labels, named need bars, and a placing hint that names its keys. See .scratch/hud-redesign/issues/06-labelled-build-craft-and-needs.md.",
         "2026-11-12: The owner asked in chat for bigger icons across the HUD and more space under the hotbar names, and approved the result.",
-        "2026-11-12: The owner asked in chat for a more compact hotbar with the same icon sizes: smaller cells and the build and craft buttons stacked."
+        "2026-11-12: The owner asked in chat for a more compact hotbar with the same icon sizes: smaller cells and the build and craft buttons stacked.",
+        "2026-11-12: The owner asked in chat to replace the build and craft wheels with lists that open above their buttons."
       ]
     },
     {

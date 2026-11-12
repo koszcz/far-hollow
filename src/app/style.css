@@ -62,7 +62,7 @@ body {
 }
 .hud-needs {
   display: grid;
-  grid-template-columns: repeat(2, 150px);
+  grid-template-columns: repeat(2, 180px);
   gap: 4px 18px;
   padding: 5px 10px;
   background: rgb(42 29 20 / 0.6);
@@ -75,6 +75,11 @@ body {
 }
 .hud-needs .hud-meter progress {
   height: 6px;
+}
+/* Each need bar names its need beside its icon. */
+.hud-needs .hud-meter-label {
+  width: 52px;
+  font-size: 12px;
 }
 .hud-needs .hud-hint {
   grid-column: 1 / -1;
@@ -107,6 +112,53 @@ body {
 }
 .hud-hotbar-buttons:empty {
   display: none;
+}
+/* The build and craft buttons sit at the right end of the hotbar, apart from the items. */
+.hud-hotbar-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 10px;
+  border-left: 1px solid #6b4a2f;
+}
+.hud-button.hud-tool-button {
+  gap: 7px;
+  height: 38px;
+  padding: 0 8px 0 10px;
+  font-size: 14px;
+  margin: 0;
+}
+.hud-button.hud-tool-button .hud-icon {
+  width: 18px;
+  height: 18px;
+}
+.hud-tool-button[aria-pressed="true"] {
+  background: #82593a;
+  border-color: #e8833a;
+}
+/* The key that does the same as a button, such as "B" on the build button. */
+.hud-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  color: #f3e6d3;
+  background: #1f150e;
+  border: 1px solid #6b4a2f;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+/* The keys that work while placing, on a line of their own under the hint. */
+.hud-placing-keys {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
 }
 .hud-backpack ul {
   display: flex;
@@ -159,7 +211,7 @@ body {
   position: relative;
 }
 .hud-icon-button[data-tip]:hover::after,
-.hud-needs [data-tip]:hover::after {
+.hud-tool-button[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 4px);

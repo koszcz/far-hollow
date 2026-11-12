@@ -4,7 +4,7 @@
 // Trees, stumps, and logs are drawn in forest-meshes.ts.
 import * as THREE from "three";
 import type { Valley } from "../sim/valley";
-import { createGroundMap, type GroundType } from "../sim/ground-types";
+import { createGroundMap } from "../sim/ground-types";
 import { bakeGroundTypeWeights, createGroundTypeTextures, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 
 /** Spots across each side of the baked ground-type map. About 1 m apart in a 1 km valley, close enough to ring each tree. */
@@ -15,20 +15,10 @@ const GROUND_TYPE_MAP_TEXELS = 1024;
  * The sky light uses it as the colour bounced up from the ground.
  */
 export const GROUND_COLOUR = 0x62683a;
-/**
- * The textures the ground is painted with, so land beyond the valley can carry on its look.
- * `weights` is the baked ground-type map. See bakeGroundTypeWeights.
- */
-export interface GroundLook {
-  readonly textures: Readonly<Record<GroundType, THREE.Texture>>;
-  readonly weights: THREE.DataTexture;
-}
-
 export interface ValleyMeshes {
   readonly group: THREE.Group;
   /** The terrain mesh, so clicks can find the spot on the ground under the pointer. */
   readonly ground: THREE.Mesh;
-  readonly look: GroundLook;
   dispose(): void;
 }
 
@@ -50,15 +40,13 @@ export function createValleyMeshes(valley: Valley): ValleyMeshes {
     groundPositions.setY(index, height);
   });
   groundGeometry.computeVertexNormals();
-  const { material: groundMaterial, look } = createGroundMaterial(valley, track);
-  track(groundMaterial);
+  const groundMaterial = track(createGroundMaterial(valley, track));
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   group.add(ground);
 
   return {
     group,
     ground,
-    look,
     dispose() {
       for (const item of disposables) item.dispose();
     },
@@ -70,10 +58,7 @@ export function createValleyMeshes(valley: Valley): ValleyMeshes {
  * and adds large light and dark patches so the repeating textures do not show a pattern.
  * Ground types come from the valley's starting trees, so felling a tree never changes the ground.
  */
-function createGroundMaterial(
-  valley: Valley,
-  track: <T extends { dispose(): void }>(item: T) => T,
-): { material: THREE.MeshStandardMaterial; look: GroundLook } {
+function createGroundMaterial(valley: Valley, track: <T extends { dispose(): void }>(item: T) => T): THREE.MeshStandardMaterial {
   const textures = createGroundTypeTextures();
   const repeat = valley.size / GROUND_TEXTURE_TILE_METRES;
   for (const texture of Object.values(textures)) {
@@ -124,5 +109,5 @@ function createGroundMaterial(
         ].join("\n"),
       );
   };
-  return { material, look: { textures, weights } };
+  return material;
 }

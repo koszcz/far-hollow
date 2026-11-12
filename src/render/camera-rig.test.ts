@@ -171,37 +171,3 @@ describe("camera follow", () => {
     expect(Math.hypot(focus.x, focus.z)).toBeCloseTo(5);
   });
 });
-
-describe("camera pan limit", () => {
-  it("stops the free focus at the edge of the valley, and pans back from there at once", () => {
-    const rig = createCameraRig({ focusLimit: 150 });
-    rig.setFollowEnabled(false);
-    rig.rotate(-Math.PI / 4);
-    // The camera now faces north, towards z = -150.
-    rig.pan(0, 1000);
-    expect(rig.view().focus.z).toBeCloseTo(-150);
-    rig.pan(0, -10);
-    expect(rig.view().focus.z).toBeCloseTo(-140);
-  });
-
-  it("stops a dragged offset while following where the focus reaches the edge", () => {
-    const rig = createCameraRig({ focusLimit: 150 });
-    rig.setFollowTarget({ x: 140, y: 0, z: 0 });
-    rig.rotate(-Math.PI / 4);
-    // Right is east, towards x = 150.
-    rig.pan(500, 0);
-    expect(rig.view().focus.x).toBeCloseTo(150);
-    rig.pan(-5, 0);
-    expect(rig.view().focus.x).toBeCloseTo(145);
-  });
-
-  it("keeps the eye above the ground under it", () => {
-    const rig = createCameraRig({ groundHeightAt: (x) => (x > 20 ? 100 : 0) });
-    rig.setFollowEnabled(false);
-    rig.rotate(Math.PI / 4);
-    // The eye now sits east of the focus, over the high ground.
-    const { eye } = rig.view();
-    expect(eye.x).toBeGreaterThan(20);
-    expect(eye.y).toBeGreaterThanOrEqual(102);
-  });
-});

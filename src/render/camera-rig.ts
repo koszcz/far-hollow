@@ -9,8 +9,6 @@ const MAX_DISTANCE_METRES = 400;
 const START_DISTANCE_METRES = 40;
 /** The camera starts south-east of the point it looks at. */
 const START_YAW = Math.PI / 4;
-/** The eye stays at least this far above the ground under it, so it never looks out from inside a hill. */
-const EYE_CLEARANCE_METRES = 2;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -65,14 +63,9 @@ export interface CameraRig {
 export interface CameraRigOptions {
   /** Height of the ground at a point. The camera looks at the ground when it follows nothing. Flat by default. */
   readonly groundHeightAt?: (x: number, z: number) => number;
-  /**
-   * How far the focus may move from the middle along x and z, in metres, such as half the valley's width.
-   * Panning stops at this edge. No limit by default.
-   */
-  readonly focusLimit?: number;
 }
 
-export function createCameraRig({ groundHeightAt = () => 0, focusLimit = Infinity }: CameraRigOptions = {}): CameraRig {
+export function createCameraRig({ groundHeightAt = () => 0 }: CameraRigOptions = {}): CameraRig {
   let pitch = START_PITCH;
   let distance = START_DISTANCE_METRES;
   let yaw = START_YAW;
@@ -83,11 +76,13 @@ export function createCameraRig({ groundHeightAt = () => 0, focusLimit = Infinit
   /** How far a right-drag has moved the view away from the follow target. */
   const followOffset = { x: 0, z: 0 };
 
-  const limit = (value: number) => clamp(value, -focusLimit, focusLimit);
+  function isFollowing(): boolean {
+    return followEnabled && followTarget !== null;
+  }
 
   function currentFocus(): Vec3 {
     if (followEnabled && followTarget !== null) {
-      return { x: limit(followTarget.x + followOffset.x), y: followTarget.y, z: limit(followTarget.z + followOffset.z) };
+      return { x: followTarget.x + followOffset.x, y: followTarget.y, z: followTarget.z + followOffset.z };
     }
     return { x: freeFocus.x, y: groundHeightAt(freeFocus.x, freeFocus.z), z: freeFocus.z };
   }
@@ -100,16 +95,9 @@ export function createCameraRig({ groundHeightAt = () => 0, focusLimit = Infinit
   function pan(rightMetres: number, forwardMetres: number): void {
     const sin = Math.sin(yaw);
     const cos = Math.cos(yaw);
-    const dx = rightMetres * cos - forwardMetres * sin;
-    const dz = -rightMetres * sin - forwardMetres * cos;
-    if (followEnabled && followTarget !== null) {
-      // The offset stops where the focus meets the edge, so panning back moves the view at once.
-      followOffset.x = limit(followTarget.x + followOffset.x + dx) - followTarget.x;
-      followOffset.z = limit(followTarget.z + followOffset.z + dz) - followTarget.z;
-      return;
-    }
-    freeFocus.x = limit(freeFocus.x + dx);
-    freeFocus.z = limit(freeFocus.z + dz);
+    const moved = isFollowing() ? followOffset : freeFocus;
+    moved.x += rightMetres * cos - forwardMetres * sin;
+    moved.z += -rightMetres * sin - forwardMetres * cos;
   }
 
   return {
@@ -135,10 +123,14 @@ export function createCameraRig({ groundHeightAt = () => 0, focusLimit = Infinit
     view() {
       const focus = currentFocus();
       const groundDistance = distance * Math.cos(pitch);
-      const x = focus.x + groundDistance * Math.sin(yaw);
-      const z = focus.z + groundDistance * Math.cos(yaw);
-      const y = Math.max(focus.y + distance * Math.sin(pitch), groundHeightAt(x, z) + EYE_CLEARANCE_METRES);
-      return { eye: { x, y, z }, focus };
+      return {
+        eye: {
+          x: focus.x + groundDistance * Math.sin(yaw),
+          y: focus.y + distance * Math.sin(pitch),
+          z: focus.z + groundDistance * Math.cos(yaw),
+        },
+        focus,
+      };
     },
     get followEnabled() {
       return followEnabled;

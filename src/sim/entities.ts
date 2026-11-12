@@ -1,4 +1,5 @@
 import { World } from "miniplex";
+import type { Command } from "./api";
 import type { Backpack, BackpackContent, BackpackContents, Food } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
@@ -19,6 +20,9 @@ export type CarriedLog = "log" | "debarkedLog";
 
 /** The kinds of wood a woodpile holds: logs and debarked logs from the shoulder, and firewood from the backpack. */
 export type WoodpileWood = CarriedLog | "firewood";
+
+/** The commands that act on a campfire or woodpile and need the player within its reach. Out of reach, the player walks there first. */
+export type TendCommand = Extract<Command, { type: "addFuel" | "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "stackOnWoodpile" | "takeFromWoodpile" }>;
 
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {
@@ -165,6 +169,8 @@ export interface Entity {
   bedroll?: true;
   /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
+  /** The campfire or woodpile command the player is walking to carry out. They carry it out once they stop beside it. */
+  tendTask?: TendCommand;
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */

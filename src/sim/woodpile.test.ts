@@ -106,18 +106,6 @@ describe("stacking wood on a woodpile", () => {
     expect(woodpile.woodpile.firewood).toBe(5);
     expect(game.client.getView().backpack.firewood).toBe(0);
   });
-
-  it("does nothing when the player is out of reach", () => {
-    const game = createGame({ seed: 42 });
-    const woodpile = buildWoodpile(game);
-    give(game, "firewood", 2);
-    walkAway(game);
-
-    send(game, { type: "stackOnWoodpile", woodpileId: idOf(game, woodpile), wood: "firewood", all: true });
-
-    expect(woodpile.woodpile.firewood).toBe(0);
-    expect(game.client.getView().backpack.firewood).toBe(2);
-  });
 });
 
 describe("the woodpile's limit", () => {

@@ -40,6 +40,15 @@ const backpackContents: Check = (value) =>
 const DELIVERED_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.flatMap(({ material }) => (isDelivered(material) ? [material] : []))))];
 const deliveredCounts: Check = shape(Object.fromEntries(DELIVERED_MATERIALS.map((material) => [material, count])), DELIVERED_MATERIALS);
 
+const fuel = exactly("stick", "firewood", "bark");
+const wood = exactly("log", "debarkedLog", "firewood");
+/** A campfire or woodpile command the player is walking to carry out. */
+const tendCommand: Check = (value) =>
+  shape({ type: exactly("addFuel"), campfireId: count, fuel })(value) ||
+  shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire"), campfireId: count })(value) ||
+  shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
+  shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value);
+
 /**
  * How each entity component must look in a save.
  * Every component of an entity needs an entry here. TypeScript reports a missing one,
@@ -90,6 +99,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   forageTask: shape({ spotId: count }),
   bedroll: exactly(true),
   bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
+  tendTask: tendCommand,
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
   drinkTask: point,

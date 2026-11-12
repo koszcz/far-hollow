@@ -71,18 +71,6 @@ describe("lighting a campfire", () => {
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
     expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
   });
-
-  it("does nothing when the player is out of reach", () => {
-    const { game, campfire } = gameWithCampfire();
-    give(game, "stick", 1);
-    walkAway(game);
-
-    send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
-    send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
-
-    expect(campfire.campfire).toEqual({ lit: false, fuelMinutes: 0 });
-    expect(game.client.getView().backpack.stick).toBe(1);
-  });
 });
 
 describe("fuelling a campfire", () => {

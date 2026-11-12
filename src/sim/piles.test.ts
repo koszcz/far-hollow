@@ -2,9 +2,12 @@ import { describe, expect, it } from "bun:test";
 import { nearbyOf } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { PILES_SAVE_VERSION, readSave, SAVE_VERSION, STICKS_ON_GROUND_SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, PILES_SAVE_VERSION, readSave, SAVE_VERSION, STICKS_ON_GROUND_SAVE_VERSION, writeSave } from "./save";
 import { snapToGridSquare } from "./build-grid";
 import { groundDistance, terrainHeightAt } from "./valley";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("dropping things from the backpack", () => {
   it("drops all of a kind at the player's feet as one pile", () => {
@@ -184,7 +187,7 @@ describe("dropping sticks", () => {
       components: { pile: { content: "stick", count: 4 }, position: { ...player.position } },
     });
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(pilesOf(loaded.game)).toHaveLength(0);
@@ -314,7 +317,7 @@ describe("saving piles", () => {
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = PILES_SAVE_VERSION - 1;
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
     expect(writeSave(loaded.game).version).toBe(SAVE_VERSION);
     expect(pilesOf(loaded.game)).toHaveLength(0);

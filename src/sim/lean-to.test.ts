@@ -5,9 +5,12 @@ import { createEntityStore, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, passNeedsTime, type NeedConditions } from "./needs";
 import { isUnderRoof } from "./roofs";
-import { readSave, upgradeSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST, type QuarterTurns } from "./structures";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the lean-to in the build menu", () => {
   it("is listed after the campfire, costing sticks and bark", () => {
@@ -259,10 +262,10 @@ describe("saving lean-tos", () => {
     save.version = 5;
     save.entities.push({ id: 99_999, components: { blueprint: { piece: "campfire", progress: 0.4, sticksSpent: 2 }, position: { x: 0, y: 0, z: 0 } } });
 
-    const upgraded = upgradeSave(save) as { entities: { components: Entity }[] };
+    const upgraded = upgradeSave(save, LARGE_VALLEY_UPGRADES) as { entities: { components: Entity }[] };
 
     expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ structure: "campfire", progress: 0.4, materialsSpent: 2, delivered: {} });
-    expect(readSave(save).ok).toBe(true);
+    expect(readLargeValleySave(save).ok).toBe(true);
   });
 
   it("upgrades a blueprint from a save that named its structure a piece", () => {
@@ -271,10 +274,10 @@ describe("saving lean-tos", () => {
     const blueprint = { piece: "leanTo", progress: 0.25, materialsSpent: 4, delivered: {} };
     save.entities.push({ id: 99_999, components: { blueprint, facing: { turns: 1 }, position: { x: 0, y: 0, z: 0 } } });
 
-    const upgraded = upgradeSave(save) as { entities: { components: Entity }[] };
+    const upgraded = upgradeSave(save, LARGE_VALLEY_UPGRADES) as { entities: { components: Entity }[] };
 
     expect(upgraded.entities.at(-1)?.components.blueprint).toEqual({ structure: "leanTo", progress: 0.25, materialsSpent: 4, delivered: {} });
-    expect(readSave(save).ok).toBe(true);
+    expect(readLargeValleySave(save).ok).toBe(true);
   });
 });
 

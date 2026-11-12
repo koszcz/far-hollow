@@ -4,8 +4,11 @@ import { nearbyOf } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("building a woodpile", () => {
   it("is in the build menu, costs nothing, and takes a short construction", () => {
@@ -269,7 +272,7 @@ describe("saving woodpiles", () => {
     // Version 9 is the last save version before woodpiles.
     save.version = 9;
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(SAVE_VERSION).toBeGreaterThan(9);

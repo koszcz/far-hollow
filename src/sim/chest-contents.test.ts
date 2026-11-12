@@ -3,8 +3,11 @@ import type { BackpackContent, Command } from "./api";
 import { nearbyOf } from "./api";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
-import { readSave, SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("opening a chest", () => {
   it("walks the player to a chest they click and opens it, empty at first", () => {
@@ -199,7 +202,7 @@ describe("saving what a chest holds", () => {
     for (const { components } of save.entities) if ("chest" in components) components.chest = {};
     save.version = 12;
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(SAVE_VERSION).toBeGreaterThan(12);

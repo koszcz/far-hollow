@@ -1,7 +1,7 @@
 import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
 import { findPath } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
-import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
+import { distanceToRiver, startSpotBeside, type GroundPoint, type Valley } from "./valley";
 import {
   blockCircle,
   blockEdges,
@@ -116,14 +116,9 @@ function blockRiver(walkMap: WalkMap, valley: Valley): void {
 
 /** Where the player starts: on open ground on the river's west bank, halfway down the valley. */
 export function playerStartSpot(walking: Walking, valley: Valley): GroundPoint {
-  const { path, width } = valley.river;
-  const middle = path[Math.floor(path.length / 2)] ?? { x: 0, z: 0 };
-  const bankSpot = { x: middle.x - width / 2 - PLAYER_START_FROM_WATER_METRES, z: middle.z };
+  const bankSpot = startSpotBeside(valley.river);
   return nearestWalkableSpot(walking.walkMap, bankSpot) ?? bankSpot;
 }
-
-/** How far from the water's edge the player starts, in metres. Far enough to stand above the sloping riverbank. */
-const PLAYER_START_FROM_WATER_METRES = 10;
 
 /** Blocks the cells around each blocker entity, now and whenever one is added or removed later. */
 function trackBlockers(walkMap: WalkMap, entities: EntityStore): void {

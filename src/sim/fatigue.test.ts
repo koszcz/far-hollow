@@ -3,7 +3,10 @@ import type { Command } from "./api";
 import { nearbyOf } from "./api";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, needsSpeed } from "./needs";
-import { readSave, SAVE_VERSION, upgradeSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("fatigue", () => {
   it("drains while the player is awake", () => {
@@ -204,9 +207,9 @@ describe("saving fatigue and the bedroll", () => {
     delete player.backpack.contents.bedroll;
 
     // Version 2 saves have the valley's food but no bedroll. Version 3 added the bedroll.
-    const upgraded = upgradeSave({ ...save, version: 2 });
-    expect(upgraded?.version).toBe(SAVE_VERSION);
-    const loaded = readSave(upgraded);
+    const upgraded = upgradeSave({ ...save, version: 2 }, LARGE_VALLEY_UPGRADES);
+    expect(upgraded?.version).toBe(LARGE_VALLEY_UPGRADES.length + 1);
+    const loaded = readLargeValleySave(upgraded);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(loaded.game.client.getView().backpack.bedroll).toBe(1);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { generateValley, terrainHeightAt, type GroundPoint } from "./valley";
+import { generateValley, startSpotBeside, terrainHeightAt, type GroundPoint } from "./valley";
 
 /** Shortest distance from a point to a path made of straight segments. Written here so the test does not trust the code under test. */
 function distanceToPath(point: GroundPoint, path: readonly GroundPoint[]): number {
@@ -22,11 +22,36 @@ describe("generateValley", () => {
     expect(generateValley(1234)).toEqual(generateValley(1234));
   });
 
-  it("is a bounded square of about 1 km²", () => {
-    const valley = generateValley(1234);
-    const areaSquareMetres = valley.size * valley.size;
-    expect(areaSquareMetres).toBeGreaterThanOrEqual(900_000);
-    expect(areaSquareMetres).toBeLessThanOrEqual(1_100_000);
+  it("is a square 300 m on each side", () => {
+    expect(generateValley(1234).size).toBe(300);
+  });
+
+  it("packs trees into dense groves, with open clearings between them", () => {
+    for (const seed of [1, 2, 1234]) {
+      const { trees, size } = generateValley(seed);
+      // Count trees in 15 m squares. Groves hold many trees, clearings hold none.
+      const square = 15;
+      const perSide = Math.ceil(size / square);
+      const counts = new Array<number>(perSide * perSide).fill(0);
+      for (const tree of trees) {
+        const column = Math.min(perSide - 1, Math.floor((tree.x + size / 2) / square));
+        const row = Math.min(perSide - 1, Math.floor((tree.z + size / 2) / square));
+        counts[row * perSide + column] = (counts[row * perSide + column] ?? 0) + 1;
+      }
+      const empty = counts.filter((count) => count === 0).length;
+      const busiest = Math.max(...counts);
+      // A 15 m square in a grove, with trees about 4 to 5 m apart, holds 9 or more.
+      expect(busiest).toBeGreaterThanOrEqual(9);
+      expect(empty / counts.length).toBeGreaterThan(0.1);
+    }
+  });
+
+  it("leaves open ground where the player starts", () => {
+    for (const seed of [1, 2, 3, 1234]) {
+      const { trees, river } = generateValley(seed);
+      const start = startSpotBeside(river);
+      for (const tree of trees) expect(Math.hypot(tree.x - start.x, tree.z - start.z)).toBeGreaterThanOrEqual(16);
+    }
   });
 
   it("holds thousands of trees, all inside the valley", () => {
@@ -85,7 +110,7 @@ describe("generateValley", () => {
     expect(generateValley(1234).sticks).toEqual(generateValley(1234).sticks);
     expect(generateValley(1).sticks).not.toEqual(generateValley(2).sticks);
     const { sticks, size } = generateValley(1234);
-    expect(sticks.length).toBeGreaterThanOrEqual(1000);
+    expect(sticks.length).toBeGreaterThanOrEqual(500);
     for (const stick of sticks) {
       expect(Math.abs(stick.x)).toBeLessThanOrEqual(size / 2);
       expect(Math.abs(stick.z)).toBeLessThanOrEqual(size / 2);

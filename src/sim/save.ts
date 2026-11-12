@@ -40,6 +40,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addPlanks,
   nameStationInNotice,
   addRoofFrames,
+  turnAwayLargeValley,
 ];
 
 /** The version of the save format this code writes. */
@@ -63,6 +64,15 @@ export const CRAFTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveSawBlade) + 2;
 export const PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanks) + 2;
 /** The first save version whose notice that no log lies beside a work station names the station. */
 export const NOTICES_NAME_STATION_SAVE_VERSION = SAVE_UPGRADES.indexOf(nameStationInNotice) + 2;
+/** The first save version made in the 300 m valley. Older saves cannot be loaded. */
+export const SMALL_VALLEY_SAVE_VERSION = SAVE_UPGRADES.indexOf(turnAwayLargeValley) + 2;
+
+/**
+ * Every upgrade before the valley shrank. A save from the 1 km valley can no longer be loaded, but tests still load older
+ * saves through these, to check what each older upgrade does.
+ */
+export const LARGE_VALLEY_UPGRADES: readonly SaveUpgrade[] = SAVE_UPGRADES.slice(0, SMALL_VALLEY_SAVE_VERSION - 2);
+
 /** The first save version in which every roof section is laid on a roof frame. */
 export const ROOF_FRAMES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRoofFrames) + 2;
 
@@ -115,9 +125,10 @@ export function describeSave(stored: unknown): SaveSlotSummary {
 /**
  * Turns stored data back into a game, upgrading an older save first.
  * Returns `ok: false` if the data is not a save this game can load.
+ * `upgrades` defaults to every upgrade. Tests pass fewer, to load a save the way an older game did.
  */
-export function readSave(data: unknown): ReadSaveResult {
-  const save = upgradeSave(data);
+export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_UPGRADES): ReadSaveResult {
+  const save = upgradeSave(data, upgrades);
   if (!isValidSave(save)) return { ok: false };
   const { seed, clockMinutes, stepCount, firstNightOver, notice, entities } = save as unknown as SaveFile;
   try {
@@ -409,4 +420,13 @@ function giveStartingItem(
     return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [item]: 1 } } } };
   });
   return { ...save, entities };
+}
+
+/**
+ * Version 21 to 22: the valley shrank from 1 km to 300 m on each side, with denser forest. An older save holds trees,
+ * sticks, and buildings where the new valley has other ground, or none at all, so it cannot be carried over.
+ * This upgrade empties the save, so the shape check turns it away and its slot shows as broken.
+ */
+function turnAwayLargeValley(): Record<string, unknown> {
+  return {};
 }

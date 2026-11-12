@@ -1,12 +1,12 @@
-// The code-built shape listed in asset-manifest.json as "sticks" (approved). forest-meshes.ts places one on each stick's spot.
-// The approved "campfire" in campfire-meshes.ts stands these sticks up, so changing this shape changes the campfire too.
-// The approved "lean-to" in lean-to-meshes.ts builds its poles from createStickSegment, so changing that changes the lean-to too.
+// The code-built shape listed in asset-manifest.json as "sticks" (draft). forest-meshes.ts places one on each stick's spot.
+// The approved "campfire" in campfire-meshes.ts stands these sticks up, so changing this shape or colour changes the campfire too.
+// The approved "lean-to" in lean-to-meshes.ts builds its poles from createStickSegment in STICK_COLOUR, so changing either changes the lean-to too.
 // Each stick is a crooked branch: three tapered segments with small bends, two side twigs, and pale cut ends.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
-/** The bark colour. Still lighter than the trunks, so sticks stand out on the forest floor. */
-export const STICK_COLOUR = 0x8a6440;
+/** The bark colour: pale grey-tan, like weathered dead wood. Much lighter than the brown forest floor and the trunks, so sticks stand out. */
+export const STICK_COLOUR = 0xa89a84;
 /** The two cut ends show pale wood. */
 const CUT_END_COLOUR = 0xd8b88a;
 export const STICK_LENGTH_METRES = 0.9;
@@ -20,16 +20,16 @@ const TWIG_SIDES = 5;
  * Each point's height equals its radius, so the whole branch rests on y = 0.
  */
 const BRANCH_POINTS: readonly { x: number; z: number; radius: number }[] = [
-  { x: -0.45, z: 0, radius: 0.05 },
-  { x: -0.14, z: 0.05, radius: 0.043 },
-  { x: 0.16, z: -0.02, radius: 0.036 },
-  { x: 0.45, z: 0.04, radius: 0.026 },
+  { x: -0.45, z: 0, radius: 0.0625 },
+  { x: -0.14, z: 0.05, radius: 0.054 },
+  { x: 0.16, z: -0.02, radius: 0.045 },
+  { x: 0.45, z: 0.04, radius: 0.0325 },
 ];
 
 /** Side twigs. Each starts part-way along one branch segment and points mostly forward and to the side. */
 const TWIGS: readonly { segment: number; along: number; direction: THREE.Vector3; length: number; radius: number }[] = [
-  { segment: 1, along: 0.4, direction: new THREE.Vector3(0.6, 0.12, 0.75).normalize(), length: 0.28, radius: 0.024 },
-  { segment: 2, along: 0.5, direction: new THREE.Vector3(0.7, 0.08, -0.7).normalize(), length: 0.18, radius: 0.018 },
+  { segment: 1, along: 0.4, direction: new THREE.Vector3(0.6, 0.12, 0.75).normalize(), length: 0.28, radius: 0.029 },
+  { segment: 2, along: 0.5, direction: new THREE.Vector3(0.7, 0.08, -0.7).normalize(), length: 0.18, radius: 0.022 },
 ];
 
 /**
@@ -69,6 +69,7 @@ export function createStickGeometry(): THREE.BufferGeometry {
 /**
  * A tapered cylinder from `from` to `to`, with bark-coloured sides and optionally pale cut ends.
  * The lean-to in lean-to-meshes.ts builds its crooked posts and ridge pole from these.
+ * Draw it in a material coloured `barkColour`. The sled in sled-meshes.ts passes its own bark colour.
  */
 export function createStickSegment(
   from: THREE.Vector3,
@@ -78,12 +79,13 @@ export function createStickSegment(
   sides: number,
   paleFrom: boolean,
   paleTo: boolean,
+  barkColour: number = STICK_COLOUR,
 ): THREE.BufferGeometry {
   const direction = to.clone().sub(from);
   const length = direction.length();
   const geometry = new THREE.CylinderGeometry(toRadius, fromRadius, length, sides);
   // Vertex colours multiply the material colour, so the cut-end colour is divided by the bark colour first.
-  const bark = new THREE.Color(STICK_COLOUR);
+  const bark = new THREE.Color(barkColour);
   const cut = new THREE.Color(CUT_END_COLOUR);
   const pale = new THREE.Color(cut.r / bark.r, cut.g / bark.g, cut.b / bark.b);
   const normals = geometry.getAttribute("normal");

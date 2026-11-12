@@ -174,7 +174,7 @@ export function createSceneRenderer(
 
   /**
    * Shows what the player is doing: which way they face, what they carry, and whether they build, chop, split, debark, or craft.
-   * Debarking reuses the chopping swing, aimed at the log. Crafting reuses it where the player faces.
+   * Debarking bends the player over the log with the drawknife. Crafting reuses the chopping swing where the player faces.
    * Game logic decides which work the player is doing, the same way the HUD shows it.
    */
   function posePlayer(nowSeconds: number): void {
@@ -190,8 +190,10 @@ export function createSceneRenderer(
     playerMesh.setBuilding(activity?.kind === "build" ? nowSeconds : undefined);
     // Splitting has its own overhead strike, aimed where the player already faces.
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
-    // Chopping and debarking swing at the tree or log. Crafting swings where the player already faces.
-    const swinging = activity?.kind === "chop" || activity?.kind === "debark" || activity?.kind === "craft";
+    // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
+    playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
+    // Chopping swings at the tree. Crafting swings where the player already faces.
+    const swinging = activity?.kind === "chop" || activity?.kind === "craft";
     playerMesh.setChopping(swinging ? nowSeconds : undefined);
     if (activity?.kind === "build" || activity?.kind === "chop" || activity?.kind === "debark") faceTarget();
     if (activity !== undefined && activity.kind !== "takeDown") return;

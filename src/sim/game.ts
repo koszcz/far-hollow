@@ -37,6 +37,7 @@ import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { NOTICE_MINUTES } from "./notices";
 import { createPiles } from "./piles";
+import { createSleds } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
 import { createTending } from "./tending";
@@ -129,11 +130,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley);
   const woodpiles = createWoodpiles(entities, walking);
+  const sleds = createSleds(entities, walking, valley);
   const chests = createChests(entities, walking);
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const piles = createPiles(entities, walking, valley);
-  const tending = createTending(entities, campfires, woodpiles, tendNow);
+  const tending = createTending(entities, { campfires, woodpiles, sleds }, tendNow);
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
     chopping,
@@ -297,6 +299,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         return undefined;
       case "takeFromWoodpile":
         return woodpiles.take(command.woodpileId, command.wood);
+      case "loadSled":
+        sleds.load(command.sledId);
+        return undefined;
+      case "takeFromSled":
+        sleds.take(command.sledId, command.log);
+        return undefined;
+      case "tipOutSled":
+        sleds.tipOut(command.sledId);
+        return undefined;
     }
   }
 
@@ -394,6 +405,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     stackOnWoodpile: tend,
     takeFromWoodpile: tend,
+    loadSled: tend,
+    takeFromSled: tend,
+    tipOutSled: tend,
     openChest: (command) => {
       cancelTasks();
       chests.open(command.chestId);
@@ -552,6 +566,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
     describeCampfire: (campfireId) => campfires.describe(campfireId) ?? null,
     describeWoodpile: (woodpileId) => woodpiles.describe(woodpileId) ?? null,
+    describeSled: (sledId) => sleds.describe(sledId) ?? null,
     nearestInReach: () => nearestInReach(entities, player.position),
     describeRooms: () =>
       Object.freeze(

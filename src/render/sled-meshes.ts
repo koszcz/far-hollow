@@ -1,16 +1,21 @@
 // Draws sleds and sled blueprints: the draft "sled" asset in asset-manifest.json, built in code. Added by sled ticket 01.
+// Sled ticket 02 added the logs lying on a finished sled.
 // A sled is two log runners with their bark on, lying side by side, and four sticks laid across them.
 // Its runners run along x when it faces the default way.
 // Construction has one stage per material: a runner for each log, then a cross piece for each stick.
 // Each part fades in above its place and is set down, like the sticks of a campfire.
 // A blueprint shows the parts see-through. A runner whose log has been delivered shows pale and half solid.
 // While the player places a sled from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
-// It draws an empty sled. The logs it carries come later.
+// A finished sled shows the logs and debarked logs lying on it, along the runners, from empty to full:
+// logs first, then debarked logs, stacked in a pyramid: three side by side on the cross pieces, two in the gaps above, and one on top.
+// They use the approved shapes from log-shape.ts and debarked-log-shape.ts, the "logs" and "debarked-log" assets.
 import * as THREE from "three";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
-import { blueprintEntities, sledEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
+import { blueprintEntities, sledEntities, type CarriedLog, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { SLED_CAPACITY } from "../sim/sleds";
 import { SLED_LENGTH_METRES, SLED_LOG_COST, SLED_STICK_COST, SLED_WIDTH_METRES } from "../sim/structures";
-import { LOG_COLOUR, LOG_CUT_COLOUR } from "./log-shape";
+import { createDebarkedLogGeometry } from "./debarked-log-shape";
+import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { STICK_COLOUR } from "./stick-shape";
 import type { OutlinePart } from "./hover-outline";
 
@@ -29,18 +34,24 @@ const CROSS_RADIUS_METRES = 0.03;
 const CROSS_SIDES = 5;
 /** The cross pieces stand this far in from the ends of the runners, in metres. */
 const CROSS_INSET_METRES = 0.3;
+/** The bottom layer of the load holds this many logs side by side. Each layer above rests in the gaps, one fewer. */
+const LOGS_PER_BOTTOM_LAYER = 3;
+/** Logs in a layer sit this much further apart than they are thick, in metres, so they do not overlap. */
+const LOG_GAP_METRES = 0.01;
+/** Logs roll about their length by these angles, in radians, one per place, so their branch stubs do not line up. */
+const LOG_ROLLS: readonly number[] = [0, 2.1, 4.3, 1.2, 3.4, 5.5];
+/** Logs sit this far along their length from the middle, in metres, one per place, so their ends are uneven. */
+const END_JITTER_METRES: readonly number[] = [0.03, -0.04, 0.01, -0.02, 0.04, -0.01];
 
-/** What a click on a sled blueprint landed on. A finished sled is found by `pickFinished`. */
-export type SledHit = { kind: "blueprint"; entity: Entity };
+/** What a click on a sled or a sled blueprint landed on. */
+export type SledHit = { kind: "blueprint"; entity: Entity } | { kind: "sled"; entity: Entity };
 
 export interface SledMeshes {
   readonly group: THREE.Group;
   /** Brings every sled and sled blueprint up to date with game state. */
   update(): void;
-  /** What a ray from the camera hits first among sled blueprints, and how far away. */
+  /** What a ray from the camera hits first among sleds and sled blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: SledHit; distance: number } | undefined;
-  /** The finished sled a ray meets first. The right-click menu uses it. */
-  pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of a sled or sled blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: SledHit): OutlinePart[];
   /** Shows a sled blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
@@ -68,6 +79,9 @@ interface Drawn {
   readonly root: THREE.Group;
   readonly stages: Stage[];
   readonly picker: THREE.Mesh;
+  /** The logs lying on a finished sled, and the load they show, such as "2,1". */
+  readonly load: THREE.Group;
+  loadKey: string;
 }
 
 /** The parts in the order construction lays them: a runner for each log, then a cross piece for each stick. */
@@ -92,7 +106,8 @@ function sledParts(): Part[] {
   return [...runners, ...crosses];
 }
 
-export function createSledMeshes(entities: EntityStore): SledMeshes {
+/** `logShape` is the loaded log model, which the logs lying on a sled use. */
+export function createSledMeshes(entities: EntityStore, logShape: LogShape): SledMeshes {
   const group = new THREE.Group();
   const parts = sledParts();
   const geometries = parts.map(({ radius, length, sides, alongZ }) => {
@@ -114,6 +129,55 @@ export function createSledMeshes(entities: EntityStore): SledMeshes {
   const deliveredMaterial = seeThrough(LOG_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
+
+  // The log shape lies along z. On a sled the logs lie along the runners, along x.
+  const logGeometry = logShape.geometry.clone().rotateY(Math.PI / 2);
+  const debarkedLogGeometry = createDebarkedLogGeometry(logShape.geometry).rotateY(Math.PI / 2);
+  const logMaterials = [
+    new THREE.MeshStandardMaterial({ color: LOG_COLOUR, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: LOG_CUT_COLOUR, flatShading: true }),
+  ];
+  const debarkedLogMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
+  const logRadius = logShape.restHeight;
+  const logSpacing = 2 * logRadius + LOG_GAP_METRES;
+  /** The middle of the bottom layer of logs, above the ground: resting on the cross pieces. */
+  const bottomLayerHeight = 2 * RUNNER_RADIUS_METRES + 2 * CROSS_RADIUS_METRES + logRadius;
+  /** How far each layer sits above the one below, resting in its gaps. */
+  const layerSpacing = (logSpacing * Math.sqrt(3)) / 2;
+
+  /** Where the log in each place lies, as an offset from the sled's middle: the bottom layer first, then each layer above. */
+  function loadPlace(index: number): THREE.Vector3 {
+    let layer = 0;
+    let inLayer = index;
+    while (inLayer >= LOGS_PER_BOTTOM_LAYER - layer && LOGS_PER_BOTTOM_LAYER - layer > 1) {
+      inLayer -= LOGS_PER_BOTTOM_LAYER - layer;
+      layer += 1;
+    }
+    const across = LOGS_PER_BOTTOM_LAYER - layer;
+    const z = (inLayer - (across - 1) / 2) * logSpacing;
+    return new THREE.Vector3(END_JITTER_METRES[index] ?? 0, bottomLayerHeight + layer * layerSpacing, z);
+  }
+
+  /** Shows the logs and debarked logs lying on a finished sled: logs first, then debarked logs. */
+  function showLoad(item: Drawn, contents: Readonly<Record<CarriedLog, number>> | undefined): void {
+    const key = contents === undefined ? "" : `${contents.log},${contents.debarkedLog}`;
+    if (key === item.loadKey) return;
+    item.loadKey = key;
+    item.load.clear();
+    if (contents === undefined) return;
+    const kinds: CarriedLog[] = [
+      ...Array.from({ length: contents.log }, (): CarriedLog => "log"),
+      ...Array.from({ length: contents.debarkedLog }, (): CarriedLog => "debarkedLog"),
+    ].slice(0, SLED_CAPACITY);
+    kinds.forEach((kind, index) => {
+      const log = kind === "log" ? new THREE.Mesh(logGeometry, logMaterials) : new THREE.Mesh(debarkedLogGeometry, debarkedLogMaterial);
+      log.position.copy(loadPlace(index));
+      log.rotation.x = LOG_ROLLS[index] ?? 0;
+      log.castShadow = true;
+      log.receiveShadow = true;
+      item.load.add(log);
+    });
+  }
 
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
@@ -152,8 +216,10 @@ export function createSledMeshes(entities: EntityStore): SledMeshes {
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
+    const load = new THREE.Group();
+    root.add(load);
     group.add(root);
-    const result = { root, stages, picker };
+    const result = { root, stages, picker, load, loadKey: "" };
     drawn.set(entity, result);
     return result;
   }
@@ -201,11 +267,15 @@ export function createSledMeshes(entities: EntityStore): SledMeshes {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "sled") continue;
-        showProgress(draw(entity), entity, entity.blueprint.progress, entity.blueprint.delivered.log ?? 0);
+        const item = draw(entity);
+        showProgress(item, entity, entity.blueprint.progress, entity.blueprint.delivered.log ?? 0);
+        showLoad(item, undefined);
         seen.add(entity);
       }
       for (const entity of sleds) {
-        showProgress(draw(entity), entity, 1, SLED_LOG_COST);
+        const item = draw(entity);
+        showProgress(item, entity, 1, SLED_LOG_COST);
+        showLoad(item, entity.sled);
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -217,17 +287,16 @@ export function createSledMeshes(entities: EntityStore): SledMeshes {
       for (const hit of hits) {
         const entity = hit.object.userData.entity as Entity | undefined;
         if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
+        if (entity?.sled !== undefined) return { hit: { kind: "sled", entity }, distance: hit.distance };
       }
       return undefined;
-    },
-    pickFinished(raycaster) {
-      return pickFinished(raycaster, pickers);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);
       if (item === undefined) return [];
       item.root.updateMatrixWorld(true);
-      return item.stages.map(({ mesh }) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
+      const loaded = item.load.children.filter((child): child is THREE.Mesh => child instanceof THREE.Mesh);
+      return [...item.stages.map(({ mesh }) => mesh), ...loaded].map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
     showPlacingBlueprint(shown) {
       placingBlueprint.visible = shown !== undefined;
@@ -251,6 +320,10 @@ export function createSledMeshes(entities: EntityStore): SledMeshes {
         deliveredMaterial,
         notAllowedMaterial,
         pickMaterial,
+        logGeometry,
+        debarkedLogGeometry,
+        ...logMaterials,
+        debarkedLogMaterial,
       ]) {
         item.dispose();
       }

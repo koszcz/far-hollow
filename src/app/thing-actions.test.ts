@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, CampfireView, GameView, WoodpileView } from "../sim/api";
+import type { BackpackContent, CampfireView, GameView, SledView, WoodpileView } from "../sim/api";
 import { createGame } from "../sim/game";
 import { actionsFor, mainAction, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
@@ -148,6 +148,44 @@ describe("a woodpile's actions", () => {
   });
 });
 
+const SLED: ActionTarget = { kind: "scene", pick: { kind: "sled", id: 9 } };
+
+describe("a sled's actions", () => {
+  it("puts the log on the player's shoulder on the sled, then lists each kind to take, tipping out, and taking it down", () => {
+    const reader = readerWith({ carrying: "debarkedLog", sled: { contents: { log: 2, debarkedLog: 1 }, total: 3 } });
+
+    const actions = actionsFor(SLED, reader);
+
+    expect(summary(actions)).toEqual([
+      "load:debarkedLog main",
+      "take:log off: your shoulder is full",
+      "take:debarkedLog off: your shoulder is full",
+      "tipOut",
+      "takeDown off: empty it first",
+    ]);
+    expect(find(actions, "load:debarkedLog")).toMatchObject({ label: "Put the debarked log on the sled", command: { type: "loadSled", sledId: 9 } });
+    expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out every log", command: { type: "tipOutSled", sledId: 9 } });
+  });
+
+  it("takes one log when the player carries nothing, offering only the kinds the sled holds", () => {
+    const logsOnly = readerWith({ sled: { contents: { log: 2, debarkedLog: 0 }, total: 2 } });
+    expect(summary(actionsFor(SLED, logsOnly))).toEqual(["take:log main", "tipOut", "takeDown off: empty it first"]);
+
+    const empty = readerWith({ sled: { contents: { log: 0, debarkedLog: 0 }, total: 0 } });
+    expect(summary(actionsFor(SLED, empty))).toEqual(["take:log main off: nothing to take", "tipOut off: nothing to take", "takeDown"]);
+
+    const mixed = actionsFor(SLED, readerWith({ sled: { contents: { log: 1, debarkedLog: 1 }, total: 2 } }));
+    expect(summary(mixed).slice(0, 2)).toEqual(["take:log main", "take:debarkedLog"]);
+    expect(find(mixed, "take:debarkedLog")?.command).toEqual({ type: "takeFromSled", sledId: 9, log: "debarkedLog" });
+  });
+
+  it("says the sled is full", () => {
+    const full = readerWith({ carrying: "log", sled: { contents: { log: 6, debarkedLog: 0 }, total: 6 } });
+
+    expect(summary(actionsFor(SLED, full))[0]).toBe("load:log main off: the sled is full");
+  });
+});
+
 describe("other things' actions", () => {
   const scene = (pick: Extract<ActionTarget, { kind: "scene" }>["pick"]): ActionTarget => ({ kind: "scene", pick });
 
@@ -244,11 +282,13 @@ function readerWith({
   carrying = null,
   campfire,
   woodpile,
+  sled,
 }: {
   backpack?: Partial<Record<BackpackContent, number>>;
   carrying?: GameView["carrying"];
   campfire?: Partial<CampfireView>;
   woodpile?: Partial<WoodpileView>;
+  sled?: Partial<SledView>;
 }): ActionReader {
   const view: GameView = { ...START_VIEW, backpack, carrying };
   const fullCampfire: CampfireView = {
@@ -267,5 +307,6 @@ function readerWith({
     describeBlueprint: () => null,
     describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
     describeWoodpile: (id) => (id === 8 && woodpile !== undefined ? fullWoodpile : null),
+    describeSled: (id) => (id === 9 && sled !== undefined ? { id: 9, contents: { log: 0, debarkedLog: 0 }, total: 0, capacity: 6, ...sled } : null),
   };
 }

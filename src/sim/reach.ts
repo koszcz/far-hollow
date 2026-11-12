@@ -46,6 +46,7 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   if (entity.campfire !== undefined) return { kind: "campfire", id };
   if (entity.woodpile !== undefined) return { kind: "woodpile", id };
   if (entity.chest !== undefined) return { kind: "chest", id };
+  if (entity.sled !== undefined) return { kind: "sled", id };
   if (entity.bedroll === true) return { kind: "bedroll", id };
   if (entity.pile !== undefined) return { kind: "pile", id };
   return undefined;

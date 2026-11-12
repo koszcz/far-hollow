@@ -94,6 +94,12 @@ export type Command =
    * Firewood goes in the backpack, as much as fits.
    */
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
+  /** Put the log or debarked log on the player's shoulder on a parked sled, if it has room. The player walks beside it first if needed. */
+  | { type: "loadSled"; sledId: number }
+  /** Take one log or debarked log off a parked sled onto the player's free shoulder. The player walks beside it first if needed. */
+  | { type: "takeFromSled"; sledId: number; log: CarriedLog }
+  /** Lay every log on a parked sled on the ground beside it, each on its own. The player walks beside it first if needed. */
+  | { type: "tipOutSled"; sledId: number }
   /** Walk the player beside a finished chest, given by its entity id, and open it. It stays open until the player walks away or does something else. */
   | { type: "openChest"; chestId: number }
   /** Move one of a kind from the backpack into the open chest, or with `all` as many of that kind as fit. Logs never go in a chest. */
@@ -298,6 +304,18 @@ export interface BedrollView {
   readonly id: number;
 }
 
+/** A parked sled, with how many logs and debarked logs lie on it. */
+export interface SledView {
+  /** The sled's entity id. */
+  readonly id: number;
+  /** How many of each kind of log lie on it. */
+  readonly contents: Readonly<Record<CarriedLog, number>>;
+  /** How many logs it holds in all. */
+  readonly total: number;
+  /** The most logs it holds in all, in any mix. */
+  readonly capacity: number;
+}
+
 /** A pile of things the player dropped on the ground. */
 export interface PileView {
   /** The pile's entity id. */
@@ -337,7 +355,8 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
  */
 export type ThingInReach =
   | {
-      readonly kind: "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | "chest" | "bedroll" | "pile";
+      readonly kind:
+        "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | "chest" | "bedroll" | "pile" | "sled";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };
@@ -371,6 +390,8 @@ export interface GameClient {
   describeCampfire(campfireId: number): CampfireView | null;
   /** A finished woodpile, given by its entity id, near or far, or null if it is not one. It only reads game state. */
   describeWoodpile(woodpileId: number): WoodpileView | null;
+  /** A finished sled, given by its entity id, near or far, or null if it is not one. It only reads game state. */
+  describeSled(sledId: number): SledView | null;
   /** The thing nearest the player within the reach of E, or null if nothing is in reach. It only reads game state. */
   nearestInReach(): ThingInReach | null;
   /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */

@@ -43,12 +43,14 @@ const deliveredCounts: Check = shape(Object.fromEntries(DELIVERED_MATERIALS.map(
 
 const fuel = exactly(...CAMPFIRE_FUELS);
 const wood = exactly(...WOODPILE_WOODS);
-/** A campfire or woodpile command the player is walking to carry out. */
+/** A campfire, woodpile, or sled command the player is walking to carry out. */
 const tendCommand: Check = (value) =>
   shape({ type: exactly("addFuel"), campfireId: count, fuel })(value) ||
   shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire"), campfireId: count })(value) ||
   shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
-  shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value);
+  shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value) ||
+  shape({ type: exactly("loadSled", "tipOutSled"), sledId: count })(value) ||
+  shape({ type: exactly("takeFromSled"), sledId: count, log: exactly(...CARRIED_LOGS) })(value);
 
 /**
  * How each entity component must look in a save.

@@ -2,8 +2,8 @@
 // The right-click menu lists them all. The cursor prompt, a left-click, and the E key use the main one.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
-import { CAMPFIRE_FUELS, WOODPILE_WOODS } from "../sim/api";
-import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, RecipeLack, WoodpileView, WoodpileWood } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
+import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, RecipeLack, SledView, WoodpileView, WoodpileWood } from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
@@ -14,7 +14,7 @@ export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } | HotbarTarget;
 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */
-export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile">;
+export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled">;
 
 /** An action before it is known whether it is the main one. */
 type Offer = Omit<ThingAction, "isMain">;
@@ -146,6 +146,10 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       const woodpile = reader.describeWoodpile(pick.id);
       return woodpile === null ? withMain([takeDown(pick.id)], undefined) : woodpileActions(woodpile, view);
     }
+    case "sled": {
+      const sled = reader.describeSled(pick.id);
+      return sled === null ? withMain([takeDown(pick.id)], undefined) : sledActions(sled, view);
+    }
     case "chest":
       return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(pick.id)], "open");
     case "bedroll":
@@ -260,6 +264,50 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
   );
   const offers = [...stackLog, ...stackFirewood, ...take, takeDown(woodpileId, woodpile.total > 0 ? reasons.emptyFirst : undefined)];
   return withMain(offers, view.carrying === null ? "take:firewood" : `stack:${view.carrying}`);
+}
+
+/**
+ * Put the log on the shoulder on the sled, take one of each kind the sled holds, tip out every log, then take it down.
+ * Main: put the log on the shoulder on the sled, or take a log if the player carries nothing.
+ */
+function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
+  const sledId = sled.id;
+  const reasons = strings.actionReasons;
+  const load =
+    view.carrying === null
+      ? []
+      : [
+          offerUnless(
+            sled.total >= sled.capacity ? reasons.sledFull : undefined,
+            `load:${view.carrying}`,
+            strings.actions.loadSled[view.carrying],
+            { hud: "log" },
+            {
+              type: "loadSled",
+              sledId,
+            },
+          ),
+        ];
+  // Only the kinds the sled holds are offered. An empty sled still shows taking a log, greyed, so the player learns they can.
+  const held = CARRIED_LOGS.filter((log) => sled.contents[log] > 0);
+  const take = (held.length === 0 ? (["log"] as const) : held).map((log) =>
+    offerUnless(
+      sled.contents[log] <= 0 ? reasons.nothingToTake : view.carrying !== null ? reasons.shoulderFull : undefined,
+      `take:${log}`,
+      strings.actions.take[log],
+      { hud: "log" },
+      { type: "takeFromSled", sledId, log },
+    ),
+  );
+  const tipOut = offerUnless(
+    sled.total <= 0 ? reasons.nothingToTake : undefined,
+    "tipOut",
+    strings.actions.tipOut,
+    { hud: "log" },
+    { type: "tipOutSled", sledId },
+  );
+  const offers = [...load, ...take, tipOut, takeDown(sledId, sled.total > 0 ? reasons.emptyFirst : undefined)];
+  return withMain(offers, view.carrying === null ? take[0]?.id : `load:${view.carrying}`);
 }
 
 /** Main: add the carried material if the blueprint still needs it, otherwise build. Then taking it down. */

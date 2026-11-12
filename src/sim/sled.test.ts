@@ -183,6 +183,23 @@ describe("saving sleds", () => {
     );
   });
 
+  it("keeps what each sled holds, and a sled command the player is walking to carry out", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sled.sled = { log: 3, debarkedLog: 2 };
+    send(game, { type: "walkTo", x: sled.position.x + 10, z: sled.position.z });
+    stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
+    send(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
+    expect(onlyPlayer(game).tendTask).toEqual({ type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
+
+    const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
+    if (!loaded.ok) throw new Error("The save did not load");
+    const loadedSled = loaded.game.entities.with("sled").first;
+    expect(loadedSled?.sled).toEqual({ log: 3, debarkedLog: 2 });
+    stepUntil(loaded.game, () => loaded.game.client.getView().carrying !== null);
+    expect(loadedSled?.sled).toEqual({ log: 3, debarkedLog: 1 });
+  });
+
   it("raises the save version, and upgrades an older save when it is loaded", () => {
     const game = createGame({ seed: 42 });
     const save = { ...writeSave(game), version: SLEDS_SAVE_VERSION - 1 };
@@ -206,6 +223,140 @@ describe("saving sleds", () => {
     expect(readSave(save).ok).toBe(false);
   });
 });
+
+describe("loading a sled", () => {
+  it("puts the log or debarked log on the player's shoulder on the sled, walking the player to it first", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+
+    shoulder(game, "log");
+    sendAndSettle(game, { type: "loadSled", sledId: idOf(game, sled) });
+    shoulder(game, "debarkedLog");
+    sendAndSettle(game, { type: "loadSled", sledId: idOf(game, sled) });
+
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 1 });
+    expect(game.client.getView().carrying).toBeNull();
+    expect(game.client.describeSled(idOf(game, sled))).toEqual({ id: idOf(game, sled), contents: { log: 1, debarkedLog: 1 }, total: 2, capacity: 6 });
+  });
+});
+
+describe("the sled's limit", () => {
+  it("holds up to 6 logs and debarked logs in any mix, and keeps the seventh on the player's shoulder", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    const sledId = idOf(game, sled);
+
+    for (const log of ["log", "debarkedLog", "log", "debarkedLog", "log", "log", "debarkedLog"] as const) {
+      shoulder(game, log);
+      sendAndSettle(game, { type: "loadSled", sledId });
+    }
+
+    expect(sled.sled).toEqual({ log: 4, debarkedLog: 2 });
+    expect(game.client.getView().carrying).toBe("debarkedLog");
+  });
+});
+
+describe("taking a log off a sled", () => {
+  it("puts one log of the kind asked for on the player's free shoulder", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sled.sled = { log: 2, debarkedLog: 1 };
+
+    sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
+    expect(game.client.getView().carrying).toBe("debarkedLog");
+    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0 });
+
+    // The shoulder is full now, so the next log stays on the sled.
+    sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "log" });
+    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0 });
+
+    send(game, { type: "dropLog" });
+    sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "log" });
+    expect(game.client.getView().carrying).toBe("log");
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+  });
+
+  it("takes nothing of a kind the sled does not hold", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sled.sled = { log: 1, debarkedLog: 0 };
+
+    sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
+
+    expect(game.client.getView().carrying).toBeNull();
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+  });
+});
+
+describe("tipping out a sled", () => {
+  it("lays every log on the ground beside the sled, each on its own, and leaves the sled empty", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sled.sled = { log: 4, debarkedLog: 2 };
+    const logsBefore = game.entities.with("log").size;
+    const debarkedBefore = game.entities.with("debarkedLog").size;
+
+    sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
+
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0 });
+    expect(game.entities.with("log").size).toBe(logsBefore + 4);
+    expect(game.entities.with("debarkedLog").size).toBe(debarkedBefore + 2);
+    const tipped = [...game.entities.with("position").entities].filter(
+      (entity) =>
+        (entity.log !== undefined || entity.debarkedLog !== undefined) &&
+        Math.hypot(entity.position.x - sled.position.x, entity.position.z - sled.position.z) < 2.5,
+    );
+    expect(tipped).toHaveLength(6);
+    // Each lies on its own spot, off the sled, and on the ground.
+    const spots = new Set(tipped.map(({ position }) => `${position.x.toFixed(2)},${position.z.toFixed(2)}`));
+    expect(spots.size).toBe(6);
+    for (const { position } of tipped) {
+      expect(Math.abs(position.z - sled.position.z)).toBeGreaterThan(0.4);
+      expect(position.y).toBeCloseTo(terrainHeightAt(game.valley.terrain, position.x, position.z), 5);
+    }
+  });
+});
+
+describe("taking down a loaded sled", () => {
+  it("is refused until the sled is tipped out, so no log is lost", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sled.sled = { log: 1, debarkedLog: 0 };
+
+    send(game, { type: "takeDown", pieceId: idOf(game, sled) });
+
+    expect(game.client.getView().notice).toEqual({ kind: "stillHoldsSomething" });
+    expect(game.entities.with("sled").size).toBe(1);
+  });
+});
+
+describe("a sled within reach of E", () => {
+  it("is what E reaches when the player stands beside it", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
+
+    expect(game.client.nearestInReach()).toEqual({ kind: "sled", id: idOf(game, sled) });
+  });
+});
+
+/** Builds a finished, empty sled on open ground a few metres from the player. */
+function finishedSledNearPlayer(game: Game) {
+  const blueprint = sledBlueprintNearPlayer(game);
+  buildFully(game, blueprint);
+  return blueprint;
+}
+
+/** Puts a log or debarked log straight on the player's shoulder. */
+function shoulder(game: Game, log: "log" | "debarkedLog"): void {
+  game.entities.addComponent(onlyPlayer(game), "carrying", log);
+}
+
+/** Sends a command, then lets the player walk to where they carry it out. */
+function sendAndSettle(game: Game, command: Command): void {
+  send(game, command);
+  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).tendTask === undefined);
+}
 
 /** Places a sled blueprint on open ground near the player. */
 function sledBlueprintNearPlayer(game: Game) {

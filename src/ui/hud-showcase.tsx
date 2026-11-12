@@ -226,6 +226,7 @@ function stillClient(view: GameView): GameClient {
     describeBlueprint: () => null,
     describeCampfire: () => null,
     describeWoodpile: () => null,
+    describeSled: () => null,
     nearestInReach: () => null,
     describeRooms: () => [],
     send() {},

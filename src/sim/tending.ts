@@ -1,8 +1,9 @@
-// Acting on a campfire or woodpile from out of reach: the player walks beside it first, then acts.
+// Acting on a campfire, woodpile, or sled from out of reach: the player walks beside it first, then acts.
 import type { Activity } from "./activity";
 import type { PlainNotice } from "./api";
 import type { Campfires } from "./campfires";
 import { playerEntities, setComponent, type EntityStore, type TendTask } from "./entities";
+import type { Sleds } from "./sleds";
 import type { Woodpiles } from "./woodpiles";
 
 export interface Tending extends Activity {
@@ -13,19 +14,25 @@ export interface Tending extends Activity {
 }
 
 /** `act` carries out a command on a campfire or woodpile within reach. It may return a notice, such as a full backpack. */
-export function createTending(entities: EntityStore, campfires: Campfires, woodpiles: Woodpiles, act: (command: TendTask) => PlainNotice | undefined): Tending {
+export function createTending(
+  entities: EntityStore,
+  places: { readonly campfires: Campfires; readonly woodpiles: Woodpiles; readonly sleds: Sleds },
+  act: (command: TendTask) => PlainNotice | undefined,
+): Tending {
   const players = playerEntities(entities);
   const walkers = entities.with("player", "tendTask");
 
-  /** The campfire or woodpile the work is on, by its entity id, with the campfires or woodpiles that can reach it and walk the player beside it. */
-  function placeOf(command: TendTask): { readonly places: Pick<Campfires & Woodpiles, "inReach" | "tend">; readonly id: number } {
-    return "campfireId" in command ? { places: campfires, id: command.campfireId } : { places: woodpiles, id: command.woodpileId };
+  /** The campfire, woodpile, or sled the work is on, by its entity id, with the module that can reach it and walk the player beside it. */
+  function placeOf(command: TendTask): { readonly places: Pick<Campfires, "inReach" | "tend">; readonly id: number } {
+    if ("campfireId" in command) return { places: places.campfires, id: command.campfireId };
+    if ("woodpileId" in command) return { places: places.woodpiles, id: command.woodpileId };
+    return { places: places.sleds, id: command.sledId };
   }
 
   return {
     inReach(command) {
-      const { places, id } = placeOf(command);
-      return places.inReach(id);
+      const place = placeOf(command);
+      return place.places.inReach(place.id);
     },
     walkThen(command) {
       for (const player of players) {
@@ -33,8 +40,8 @@ export function createTending(entities: EntityStore, campfires: Campfires, woodp
         entities.removeComponent(player, "walkPath");
         setComponent(entities, player, "tendTask", command);
       }
-      const { places, id } = placeOf(command);
-      places.tend(id);
+      const place = placeOf(command);
+      place.places.tend(place.id);
     },
     cancel() {
       for (const player of [...walkers]) entities.removeComponent(player, "tendTask");

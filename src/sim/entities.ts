@@ -18,14 +18,16 @@ export interface Vec3 {
 export type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 /**
- * Work on a campfire or woodpile that needs the player within its reach. Out of reach, the player walks there first.
+ * Work on a campfire, woodpile, or sled that needs the player within its reach. Out of reach, the player walks there first.
  * Each kind has the shape of the command in api.ts that asks for it, so the command can be stored as it is.
  */
 export type TendTask =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire"; campfireId: number }
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
-  | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood };
+  | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
+  | { type: "loadSled" | "tipOutSled"; sledId: number }
+  | { type: "takeFromSled"; sledId: number; log: CarriedLog };
 
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {

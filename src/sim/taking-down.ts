@@ -226,12 +226,12 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
 }
 
 /**
- * Whether a structure is a chest or woodpile with anything in it, or a campfire with a pot on it.
+ * Whether a structure is a chest, woodpile, or sled with anything in it, or a campfire with a pot on it.
  * It must be emptied before it comes down, so nothing in it is lost.
  */
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined) return true;
-  const counts = [...Object.values(structure.chest?.contents ?? {}), ...Object.values(structure.woodpile ?? {})];
+  const counts = [...Object.values(structure.chest?.contents ?? {}), ...Object.values(structure.woodpile ?? {}), ...Object.values(structure.sled ?? {})];
   return counts.some((count) => count > 0);
 }
 

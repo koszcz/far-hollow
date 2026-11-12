@@ -183,5 +183,6 @@ function readerWith({
     describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
     describeWoodpile: (id) =>
       id === 8 && woodpile !== undefined ? { id: 8, contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20, ...woodpile } : null,
+    describeSled: () => null,
   };
 }

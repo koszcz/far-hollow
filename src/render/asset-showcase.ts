@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { CHOP_SECONDS } from "../sim/chopping";
 import { DEBARK_SECONDS } from "../sim/debarking";
-import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { createEntityStore, setComponent, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
 import { createBarkMeshes } from "./bark-meshes";
@@ -419,19 +419,30 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 1.8,
     focus: { x: 0, y: 0.15, z: 0 },
     // A blueprint with one log delivered, the second runner being set down, a cross piece being laid,
-    // then the finished, empty sled from above.
+    // then the finished sled from above, loaded with 4 logs and 2 debarked logs.
     shots: [
       { label: "blueprint, 1 of 2 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
       { label: "second runner above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / SLED_STAGES },
       { label: "a cross piece above its place", yaw: 30, pitch: 30, seconds: (3 + BUILD_FADE_SHARE) / SLED_STAGES },
-      { label: "built, from above", yaw: 140, pitch: 50, seconds: 1 },
+      { label: "built, with 4 logs and 2 debarked logs, from above", yaw: 140, pitch: 50, seconds: 1 },
     ],
     build({ place, movePlayer }) {
       place(0, 0, { blueprint: { structure: "sled", progress: 0, materialsSpent: 0, delivered: { log: 1 } }, facing: { turns: 0 } });
       movePlayer(0.3, 1, Math.PI);
     },
     pose({ store }, shot) {
-      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+      const progress = shot.seconds ?? 0;
+      for (const entity of [...store.with("facing").entities]) {
+        if (entity.blueprint?.structure !== "sled" && entity.sled === undefined) continue;
+        // A finished sled shows its load. Before then it is a blueprint being built.
+        if (progress >= 1) {
+          store.removeComponent(entity, "blueprint");
+          setComponent(store, entity, "sled", { log: 4, debarkedLog: 2 });
+        } else {
+          store.removeComponent(entity, "sled");
+          setComponent(store, entity, "blueprint", { structure: "sled", progress, materialsSpent: 0, delivered: { log: 1 } });
+        }
+      }
     },
   },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),

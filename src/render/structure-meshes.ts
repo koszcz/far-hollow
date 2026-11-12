@@ -18,7 +18,7 @@ import { createSledMeshes } from "./sled-meshes";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
-export type StructureHit = { kind: "blueprint" | "campfire" | "woodpile" | "chest" | "workStation"; entity: Entity };
+export type StructureHit = { kind: "blueprint" | "campfire" | "woodpile" | "chest" | "workStation" | "sled"; entity: Entity };
 
 /** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
 export interface PlacingBlueprint {
@@ -46,7 +46,7 @@ export interface StructureMeshes {
   update(frame: StructureFrame): void;
   /** What a ray from the camera hits first among blueprints and finished structures the player can act on, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined;
-  /** The finished lean-to, foundation, wall, door frame, roof frame, roof section, or sled a ray meets first. The right-click menu uses it. */
+  /** The finished lean-to, foundation, wall, door frame, roof frame, or roof section a ray meets first. The right-click menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of what a click landed on, placed in the world. Empty once it is gone. */
   outlineOf(hit: StructureHit): OutlinePart[];
@@ -72,9 +72,9 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const woodpiles = createWoodpileMeshes(entities, logShape);
   const chests = createChestMeshes(entities);
   const sawhorses = createSawhorseMeshes(entities);
-  const sleds = createSledMeshes(entities);
+  const sleds = createSledMeshes(entities, logShape);
   const all = [campfires, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses, sleds];
-  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs, sleds];
+  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
 
   const group = new THREE.Group();
   group.add(...all.map((meshes) => meshes.group));
@@ -198,6 +198,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
           return woodpiles.outlineOf({ kind, entity });
         case "chest":
           return chests.outlineOf({ kind, entity });
+        case "sled":
+          return sleds.outlineOf({ kind, entity });
         case "workStation":
           // The sawhorse is the only work station so far. A later kind of station adds its meshes here.
           return sawhorses.outlineOf({ kind, entity });

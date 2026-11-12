@@ -205,5 +205,6 @@ function readerWith({ backpack = {}, carrying = null, campfire, woodpile, bluepr
     describeBlueprint: (id) => (blueprint?.id === id ? blueprint : null),
     describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
     describeWoodpile: (id) => (id === 8 && woodpile !== undefined ? fullWoodpile : null),
+    describeSled: () => null,
   };
 }

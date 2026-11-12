@@ -79,6 +79,8 @@ type FallOutcome = "laid" | "notNeeded" | "noRoom";
  */
 export function createStickFallSystem(entities: EntityStore, valley: Valley): StickFallSystem {
   const fall = (stickFallEntities(entities).first ?? entities.add({ stickFall: createStickFallState() })).stickFall;
+  // A game saved before falls were owed has no `owed` count, so it starts with none owed.
+  if (!Number.isSafeInteger(fall.owed)) fall.owed = 0;
   const inValley = stickSpotCheck(valley);
   const limit = valley.sticks.length;
   const sticks = stickEntities(entities);

@@ -204,4 +204,19 @@ describe("sticks falling after a load", () => {
     skipHours(loaded, 24);
     expect(stickCount(loaded)).toBeGreaterThan(before);
   });
+
+  it("loads a game saved before falls that found no room were owed", () => {
+    const played = createGame({ seed: 42 });
+    clearSticks(played, 300);
+    const progress = played.progress();
+    const withoutOwed = progress.entities.map((entity) => {
+      if (entity.components.stickFall === undefined) return entity;
+      const { owed: _owed, ...stickFall } = entity.components.stickFall;
+      return { ...entity, components: { ...entity.components, stickFall } };
+    });
+    const loaded = createGame({ seed: 42, progress: { ...progress, entities: withoutOwed } as typeof progress });
+    const before = stickCount(loaded);
+    skipHours(loaded, 24);
+    expect(stickCount(loaded)).toBeGreaterThan(before);
+  });
 });

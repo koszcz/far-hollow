@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent, GameView } from "../sim/api";
 import { createGame } from "../sim/game";
-import { clickHotbarCell, pressHotbarKey } from "./hotbar";
+import { mainHotbarCommand, pressHotbarKey } from "./hotbar";
 import type { ActionReader } from "./thing-actions";
 
-describe("a click on a hotbar cell", () => {
+describe("a hotbar cell's main action", () => {
   it("uses the backpack content", () => {
     const reader = readerWith({ backpack: { berries: 1, mushroom: 1, bedroll: 1, pot: 1, potOfRiverWater: 1, potOfBoiledWater: 1 } });
-    const click = (content: BackpackContent) => clickHotbarCell({ kind: "backpackContent", content }, reader, false);
+    const click = (content: BackpackContent) => mainHotbarCommand({ kind: "backpackContent", content }, reader);
 
     expect(click("berries")).toEqual({ type: "eat", food: "berries" });
     expect(click("mushroom")).toEqual({ type: "eat", food: "mushroom" });
@@ -18,32 +18,26 @@ describe("a click on a hotbar cell", () => {
   });
 
   it("does nothing for a backpack content with no use", () => {
-    expect(clickHotbarCell({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 3 } }), false)).toBeUndefined();
+    expect(mainHotbarCommand({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 3 } }))).toBeUndefined();
   });
 
-  it("puts one in an open chest, or all with shift held", () => {
+  it("puts one in an open chest", () => {
     const reader = readerWith({ backpack: { berries: 3 }, openChestId: 12 });
 
-    expect(clickHotbarCell({ kind: "backpackContent", content: "berries" }, reader, false)).toEqual({
+    expect(mainHotbarCommand({ kind: "backpackContent", content: "berries" }, reader)).toEqual({
       type: "putInChest",
       chestId: 12,
       content: "berries",
       all: false,
     });
-    expect(clickHotbarCell({ kind: "backpackContent", content: "berries" }, reader, true)).toEqual({
-      type: "putInChest",
-      chestId: 12,
-      content: "berries",
-      all: true,
-    });
   });
 
   it("drops the log on the shoulder", () => {
-    expect(clickHotbarCell({ kind: "shoulder", log: "log" }, readerWith({ carrying: "log" }), false)).toEqual({ type: "dropLog" });
+    expect(mainHotbarCommand({ kind: "shoulder", log: "log" }, readerWith({ carrying: "log" }))).toEqual({ type: "dropLog" });
   });
 
   it("lets go of the sled the player drags", () => {
-    expect(clickHotbarCell({ kind: "sled", sledId: 9 }, readerWith({ draggingSledId: 9 }), false)).toEqual({ type: "letGoOfSled" });
+    expect(mainHotbarCommand({ kind: "sled", sledId: 9 }, readerWith({ draggingSledId: 9 }))).toEqual({ type: "letGoOfSled" });
   });
 });
 

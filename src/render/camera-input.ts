@@ -105,7 +105,6 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
 
   function onPointerUp(event: PointerEvent): void {
     if (press === null || event.button !== press.button) return;
-    // A right-click without a drag opens the action menu. walk-input.ts handles that.
     press = null;
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   }

@@ -10,7 +10,7 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
-import type { DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
+import type { BuildMaterial, DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
 export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
@@ -272,7 +272,12 @@ export interface BlueprintView {
   readonly progress: number;
   /** For each material the player carries to it, such as debarked logs: how many it has had and how many it needs. */
   readonly deliveries: readonly { readonly material: DeliveredMaterial; readonly has: number; readonly needs: number }[];
+  /** What the player lacks to build the next stage, or null if they can build it now. */
+  readonly lacks: BuildLack | null;
 }
+
+/** Why the player cannot build a blueprint's next stage: a tool not in the backpack, or a material not in the backpack or not yet brought. */
+export type BuildLack = { readonly kind: "tool"; readonly tool: BackpackContent } | { readonly kind: "material"; readonly material: BuildMaterial };
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {

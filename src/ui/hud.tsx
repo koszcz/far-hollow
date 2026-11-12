@@ -492,7 +492,7 @@ function PilePanel({ pile }: { pile: PileView }) {
 /** Shows the blueprint beside the player: how many of each carried material it has and needs, and how to go on. */
 function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
   const name = strings.buildMenu.structures[blueprint.structure];
-  const waiting = blueprint.deliveries.some(({ has, needs }) => has < needs);
+  const waiting = blueprint.deliveries.find(({ has, needs }) => has < needs);
   return (
     <section class="hud-section hud-blueprint" aria-label={strings.blueprint.title(name)}>
       <h2>
@@ -504,7 +504,7 @@ function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
           <li key={material}>{strings.blueprint.deliveries[material](has, needs)}</li>
         ))}
       </ul>
-      <p class="hud-hint">{waiting ? strings.blueprint.deliverHint : strings.blueprint.buildHint}</p>
+      <p class="hud-hint">{waiting === undefined ? strings.blueprint.buildHint : strings.blueprint.deliverHint[waiting.material]}</p>
     </section>
   );
 }

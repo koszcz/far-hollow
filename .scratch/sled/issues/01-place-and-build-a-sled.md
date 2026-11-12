@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player`. Add draft `sled` (empty, with build stages and a see-through blueprint).
 

@@ -99,10 +99,12 @@ export const strings = {
       woodpile: "Woodpile",
       chest: "Chest",
       sawhorse: "Sawhorse",
+      sled: "Sled",
     },
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
       bark: (count: number) => `${count} bark`,
+      log: (count: number) => (count === 1 ? "1 log" : `${count} logs`),
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),
@@ -134,9 +136,14 @@ export const strings = {
   blueprint: {
     title: (structure: string) => `Blueprint: ${structure}`,
     deliveries: {
+      log: (has: number, needs: number) => `Logs: ${has} of ${needs}`,
       debarkedLog: (has: number, needs: number) => `Debarked logs: ${has} of ${needs}`,
     },
-    deliverHint: "Carry a debarked log here and click the blueprint to add it.",
+    /** How to add the material the blueprint still waits for. */
+    deliverHint: {
+      log: "Carry a log here and click the blueprint to add it.",
+      debarkedLog: "Carry a debarked log here and click the blueprint to add it.",
+    },
     buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",
   },
   actionMenu: "Actions",
@@ -241,7 +248,7 @@ export const strings = {
     open: "Open",
     sleep: "Sleep",
     build: "Build",
-    deliver: { debarkedLog: "Add the debarked log" },
+    deliver: { log: "Add the log", debarkedLog: "Add the debarked log" },
     openMenu: "Open its menu",
     takeDown: "Take down",
     eat: "Eat",

@@ -92,6 +92,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   onFoundation: point,
   chest: shape({ contents: backpackContents }),
   workStation: exactly(...WORK_STATION_KINDS),
+  sled: shape({ log: count, debarkedLog: count }),
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),

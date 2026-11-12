@@ -41,6 +41,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   nameStationInNotice,
   addRoofFrames,
   turnAwayLargeValley,
+  addSleds,
 ];
 
 /** The version of the save format this code writes. */
@@ -75,6 +76,8 @@ export const LARGE_VALLEY_UPGRADES: readonly SaveUpgrade[] = SAVE_UPGRADES.slice
 
 /** The first save version in which every roof section is laid on a roof frame. */
 export const ROOF_FRAMES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRoofFrames) + 2;
+/** The first save version that can hold sleds. */
+export const SLEDS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSleds) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -235,7 +238,7 @@ function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<strin
 
 /**
  * For a version that added something older saves never hold, such as a new kind of structure. The save carries over unchanged.
- * Versions 10, 11, 12, 17, and 19 did this. New kinds no longer need a version of their own.
+ * Versions 10, 11, 12, 17, 19, and 23 did this. New kinds no longer need a version of their own.
  */
 function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
@@ -429,4 +432,12 @@ function giveStartingItem(
  */
 function turnAwayLargeValley(): Record<string, unknown> {
   return {};
+}
+
+/**
+ * Version 22 to 23: the player can build sleds, and a blueprint can hold logs carried to it. A save from before then has
+ * neither, so it carries over unchanged.
+ */
+function addSleds(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

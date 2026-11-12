@@ -156,6 +156,15 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "woodpile", cost: [], placement: "onGround" },
   { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" },
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
+  {
+    structure: "sled",
+    cost: [
+      { material: "log", count: 2 },
+      { material: "stick", count: 4 },
+    ],
+    tool: "axe",
+    placement: "anywhere",
+  },
 ];
 
 /** The "build-icons" asset: the full build menu open, in four game states. */
@@ -197,12 +206,14 @@ function BuildIconSheet() {
           {structure}
         </div>
       ))}
-      <div style={cell}>
-        <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon">
-          <MaterialIcon material="debarkedLog" />
-        </span>
-        debarkedLog
-      </div>
+      {(["log", "debarkedLog"] as const).map((material) => (
+        <div key={material} style={cell}>
+          <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon">
+            <MaterialIcon material={material} />
+          </span>
+          {material}
+        </div>
+      ))}
     </div>
   );
 }
@@ -228,15 +239,17 @@ const STATES_BY_ASSET = {
   "backpack-icons": BACKPACK_ICON_STATES,
   "crafting-icons": CRAFTING_ICON_STATES,
   "build-icons": BUILD_ICON_STATES,
+  // The sled's icons show in the build menu, so the "sled-icon" showcase is the build menu's.
+  "sled-icon": BUILD_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", or "build-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", "build-icons", or "sled-icon" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
-    if (asset === "build-icons") {
+    if (asset === "build-icons" || asset === "sled-icon") {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {

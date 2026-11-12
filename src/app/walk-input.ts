@@ -1,4 +1,4 @@
-import type { CameraRig } from "../render/camera-rig";
+import type { CameraRig, CameraView } from "../render/camera-rig";
 import type { PlacingBlueprint, ScenePick } from "../render/scene-renderer";
 import type { GameClient, StructureKind, ThingInReach } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
@@ -72,6 +72,14 @@ export function outlineFor(pick: ScenePick | undefined, placing: boolean): Scene
   return cursorFor(pick, placing) === "pointer" ? pick : undefined;
 }
 
+function copyView(view: CameraView): CameraView {
+  return { eye: { ...view.eye }, focus: { ...view.focus } };
+}
+
+function sameView(a: CameraView, b: CameraView): boolean {
+  return a.eye.x === b.eye.x && a.eye.y === b.eye.y && a.eye.z === b.eye.z && a.focus.x === b.focus.x && a.focus.y === b.focus.y && a.focus.z === b.focus.z;
+}
+
 const LEFT_BUTTON = 0;
 /** A left-button press that moves further than this is a drag, not a click. */
 const CLICK_MAX_TRAVEL_PIXELS = 4;
@@ -131,9 +139,17 @@ export function attachWalkInput({
   let hover: { x: number; y: number } | null = null;
   /** The animation frame that will update the cursor, if one is waiting. */
   let cursorFrame: number | null = null;
+  /** The animation frame that checks for a moved camera or a changed game under a still pointer, while the pointer is over the canvas. */
+  let watchFrame: number | null = null;
+  /** Where the camera was when the cursor last updated. */
+  let viewPicked: CameraView | null = null;
+  /** Whether the game has changed since the cursor last updated, such as a thing being built or taken away. */
+  let gameChanged = false;
 
   function updateCursor(): void {
     cursorFrame = null;
+    viewPicked = copyView(rig.view());
+    gameChanged = false;
     const seen = hover === null ? undefined : pickAt(hover.x, hover.y);
     // The cursor and outline show what is under a finished structure.
     const pick = seen?.kind === "structure" ? seen.under : seen;
@@ -158,9 +174,21 @@ export function attachWalkInput({
     if (cursorFrame === null) cursorFrame = requestAnimationFrame(updateCursor);
   }
 
+  /**
+   * The world can change under a still pointer: the camera pans or zooms, or the thing under it is built or taken away.
+   * Each frame, this re-picks if either happened, so the cursor prompt always names what a click would act on.
+   */
+  function watchUnderPointer(): void {
+    watchFrame = null;
+    if (hover === null) return;
+    if (gameChanged || viewPicked === null || !sameView(viewPicked, rig.view())) queueCursorUpdate();
+    watchFrame = requestAnimationFrame(watchUnderPointer);
+  }
+
   function onPointerMove(event: PointerEvent): void {
     hover = { x: event.clientX, y: event.clientY };
     queueCursorUpdate();
+    watchFrame ??= requestAnimationFrame(watchUnderPointer);
   }
 
   function onPointerLeave(): void {
@@ -244,6 +272,9 @@ export function attachWalkInput({
     rig.snapToFollowTarget();
   }
 
+  const unsubscribe = client.subscribe(() => {
+    gameChanged = true;
+  });
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointerup", onPointerUp);
   canvas.addEventListener("pointermove", onPointerMove);
@@ -262,6 +293,8 @@ export function attachWalkInput({
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerleave", onPointerLeave);
       if (cursorFrame !== null) cancelAnimationFrame(cursorFrame);
+      if (watchFrame !== null) cancelAnimationFrame(watchFrame);
+      unsubscribe();
       window.removeEventListener("keydown", onKeyDown);
     },
   };

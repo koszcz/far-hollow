@@ -163,6 +163,7 @@ const walkInput = attachWalkInput({
   },
   onMenuChange: (menu) => {
     uiState.menu = menu;
+    menuCameraView = menu === undefined ? null : cameraViewKey();
     cursorPrompt.setHidden(menu !== undefined);
     renderUi();
   },
@@ -177,6 +178,35 @@ const loop = createFixedStepLoop({
   step: () => {
     game.step();
   },
+});
+
+/**
+ * Where the camera was when an action menu opened on a thing in the scene, or null if none is open.
+ * The menu closes once the camera moves, since it would no longer sit beside its thing.
+ */
+let menuCameraView: string | null = null;
+
+function cameraViewKey(): string {
+  return JSON.stringify(sceneRenderer.cameraRig.view());
+}
+
+/** Closes the action menu, if one is open. */
+function closeMenu(): void {
+  if (uiState.menu === undefined) return;
+  uiState.menu = undefined;
+  menuCameraView = null;
+  cursorPrompt.setHidden(false);
+  renderUi();
+}
+
+// The action menu sits at a fixed spot on the page, so it closes when the window resizes.
+window.addEventListener("resize", closeMenu);
+
+// A HUD button clicked with the mouse lets go of focus, so Space and Enter go back to the game instead of pressing it again.
+// Buttons pressed from the keyboard keep focus, so keyboard players can carry on.
+document.addEventListener("click", (event) => {
+  const button = event.target instanceof Element ? event.target.closest("button") : null;
+  if (event.detail > 0 && button instanceof HTMLButtonElement) button.blur();
 });
 
 /** Input state the UI shows: the build menu and placing, the craft menu, and the action menu, if one is open. */
@@ -209,20 +239,7 @@ function renderUi(): void {
   const { buildMode, menu } = uiState;
   render(
     <>
-      {menu !== undefined && (
-        <ActionMenu
-          client={game.client}
-          x={menu.x}
-          y={menu.y}
-          above={menu.above ?? false}
-          actions={menu.actions}
-          onClose={() => {
-            uiState.menu = undefined;
-            cursorPrompt.setHidden(false);
-            renderUi();
-          }}
-        />
-      )}
+      {menu !== undefined && <ActionMenu client={game.client} x={menu.x} y={menu.y} above={menu.above ?? false} actions={menu.actions} onClose={closeMenu} />}
       <Hud
         client={game.client}
         buildMenuOpen={buildMode.menuOpen}
@@ -240,6 +257,8 @@ function renderUi(): void {
         onOpenHotbarMenu={(target, x, y) => {
           uiState.menu = { x, y, above: true, actions: menuActions(target, game.client) };
           cursorPrompt.setHidden(true);
+          // A hotbar menu sits on the HUD, which stays put when the camera moves.
+          menuCameraView = null;
           renderUi();
         }}
       />
@@ -274,6 +293,7 @@ function frame(nowMs: number): void {
   lastFrameMs = nowMs;
   cameraInput.update(elapsedMs / 1000);
   sceneRenderer.render(alpha);
+  if (menuCameraView !== null && cameraViewKey() !== menuCameraView) closeMenu();
   if (isFirstFrame) hideLoadingScreen();
   requestAnimationFrame(frame);
 }

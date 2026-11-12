@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent, CampfireView, GameView, WoodpileView } from "../sim/api";
 import { createGame } from "../sim/game";
-import { promptFor, promptForButton, type CursorPrompt } from "./cursor-prompt";
+import { promptFor, promptForButton, promptForChestContent, type CursorPrompt } from "./cursor-prompt";
 import type { ActionReader } from "./thing-actions";
 
 const START_VIEW = createGame({ seed: 42 }).client.getView();
@@ -174,3 +174,9 @@ function readerWith({
     describeSled: () => null,
   };
 }
+
+describe("the cursor prompt over a cell of the open chest", () => {
+  it("names the content and says a click takes one and a Shift-click takes all that fit", () => {
+    expect(text(promptForChestContent("stick"))).toEqual(["Stick", "Click: Take one", "Shift-click: Take all that fit"]);
+  });
+});

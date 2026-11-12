@@ -40,9 +40,19 @@ export function seeThroughAmount(foot: Readonly<Vec3>, eye: Readonly<Vec3>, play
   return nearLine * inFrontOfPlayer;
 }
 
+/** A tree faded at least this much lets clicks pass through it, to whatever lies behind. By then the player can clearly see through it. */
+export const SEE_THROUGH_CLICK_THROUGH_FROM = 0.25;
+
+/** Whether clicks pass through a tree standing at `foot`, because it has faded to let the player be seen. */
+export function clicksPassThrough(foot: Readonly<Vec3>, eye: Readonly<Vec3>, player: Readonly<Vec3>): boolean {
+  return seeThroughAmount(foot, eye, player) >= SEE_THROUGH_CLICK_THROUGH_FROM;
+}
+
 export interface TreeSeeThrough {
   /** Sets where the player is drawn this frame. The camera's position comes from the camera itself. */
   setPlayer(player: Readonly<Vec3> | null): void;
+  /** Whether clicks from a camera at `eye` pass through the faded tree standing at `foot`. False while there is no player. */
+  clicksPassThrough(foot: Readonly<Vec3>, eye: Readonly<Vec3>): boolean;
 }
 
 /** Makes trees drawn with `materials` fade when they stand between the camera and the player. */
@@ -95,6 +105,9 @@ export function addTreeSeeThrough(materials: readonly THREE.Material[]): TreeSee
     setPlayer(player) {
       enabledUniform.value = player === null ? 0 : 1;
       if (player !== null) playerUniform.value.set(player.x, player.y, player.z);
+    },
+    clicksPassThrough(foot, eye) {
+      return enabledUniform.value === 1 && clicksPassThrough(foot, eye, playerUniform.value);
     },
   };
 }

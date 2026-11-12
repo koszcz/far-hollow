@@ -49,12 +49,10 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
  */
 function ContentGrid({
   contents,
-  tip,
   label,
   onClick,
 }: {
   contents: GameView["backpack"];
-  tip: (name: string) => string;
   label: (name: string) => string;
   onClick: (content: BackpackContent, shiftKey: boolean) => void;
 }) {
@@ -63,10 +61,11 @@ function ContentGrid({
       {backpackContents(contents).map(([content, count]) => {
         const name = strings.backpackContents[content];
         return (
-          <li key={content} data-tip={tip(name)}>
+          <li key={content}>
             <button
               type="button"
               class="hud-content-move"
+              data-prompt-chest-content={content}
               aria-label={label(strings.backpackContentCount(name, count))}
               onClick={(event) => {
                 onClick(content, event.shiftKey);
@@ -689,7 +688,6 @@ function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView })
       ) : (
         <ContentGrid
           contents={chest.contents}
-          tip={strings.chest.takeTip}
           label={strings.chest.take}
           onClick={(content, all) => {
             client.send({ type: "takeFromChest", chestId: chest.id, content, all });

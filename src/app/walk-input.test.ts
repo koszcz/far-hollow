@@ -57,6 +57,7 @@ describe("the main action on a blueprint", () => {
     structure: "foundation" as const,
     progress: 0,
     deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }],
+    lacks: null,
   });
 
   it("adds the debarked log on the player's shoulder while the blueprint still needs one", () => {

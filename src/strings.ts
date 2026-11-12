@@ -203,8 +203,9 @@ export const strings = {
   chest: {
     title: "Chest",
     empty: "The chest is empty.",
-    /** The tip shown when the player points at a chest cell. */
-    takeTip: (name: string) => `${name}. Click to take one.`,
+    /** The cursor prompt lines of a chest cell. */
+    takeOne: "Take one",
+    takeAll: "Take all that fit",
     /** The full name of a chest cell, for screen readers. */
     take: (name: string) => `Take ${name.toLowerCase()} from the chest`,
     hint: "Click something in the backpack to put one in the chest. Click something in the chest to take one out. Shift-click moves all that fit.",
@@ -285,10 +286,13 @@ export const strings = {
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
     potOnFire: "take the pot off first",
+    /** A delivered material the blueprint needs before the next stage can be built. */
+    bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },
   /** The label beside the cursor that says what each mouse button does to the thing under it. */
   prompt: {
     click: "Click",
+    shiftClick: "Shift-click",
     /** The key that does the main action of the thing nearest the player. */
     useKey: "E",
     /** The click line of the build and craft buttons. */

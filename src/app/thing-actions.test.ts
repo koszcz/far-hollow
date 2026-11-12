@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, CampfireView, GameView, SledView, WoodpileView } from "../sim/api";
+import type { BackpackContent, BlueprintView, CampfireView, GameView, SledView, WoodpileView } from "../sim/api";
 import { createGame } from "../sim/game";
 import { actionsFor, mainAction, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
@@ -146,6 +146,21 @@ describe("a woodpile's actions", () => {
     expect(find(actionsFor(WOODPILE, empty), "stack:firewood")?.reason).toBe("no firewood");
     expect(find(actionsFor(WOODPILE, empty), "takeDown")?.enabled).toBe(true);
   });
+
+  it("takes a log when the player carries nothing and the woodpile holds no firewood", () => {
+    const reader = readerWith({ woodpile: { contents: { log: 2, debarkedLog: 0, firewood: 0 }, total: 2 } });
+    expect(mainAction(actionsFor(WOODPILE, reader))?.id).toBe("take:log");
+  });
+
+  it("stacks firewood when the player carries no log and the woodpile has nothing to take", () => {
+    const reader = readerWith({ backpack: { firewood: 2 }, woodpile: {} });
+    expect(mainAction(actionsFor(WOODPILE, reader))?.id).toBe("stack:firewood");
+  });
+
+  it("still names taking firewood, greyed, when the player can do nothing at the woodpile", () => {
+    const reader = readerWith({ woodpile: {} });
+    expect(summary(actionsFor(WOODPILE, reader))[0]).toBe("take:firewood main off: nothing to take");
+  });
 });
 
 const SLED: ActionTarget = { kind: "scene", pick: { kind: "sled", id: 9 } };
@@ -252,11 +267,29 @@ describe("other things' actions", () => {
   });
 
   it("builds a blueprint, adds a carried debarked log it needs first, and takes it down", () => {
-    const blueprint = { id: 9, structure: "foundation" as const, progress: 0, deliveries: [{ material: "debarkedLog" as const, has: 1, needs: 4 }] };
+    const blueprint = {
+      id: 9,
+      structure: "foundation" as const,
+      progress: 0,
+      deliveries: [{ material: "debarkedLog" as const, has: 1, needs: 4 }],
+      lacks: null,
+    };
     const reader = (carrying: GameView["carrying"]): ActionReader => ({ ...readerWith({ carrying }), describeBlueprint: () => blueprint });
 
     expect(summary(actionsFor(scene({ kind: "blueprint", id: 9 }), reader("debarkedLog")))).toEqual(["deliver:debarkedLog main", "build", "takeDown"]);
     expect(summary(actionsFor(scene({ kind: "blueprint", id: 9 }), reader(null)))).toEqual(["build main", "takeDown"]);
+  });
+
+  it("greys out building, with why, when the player lacks a tool or material", () => {
+    const lacking = (lacks: BlueprintView["lacks"]): ActionReader => ({
+      ...readerWith({}),
+      describeBlueprint: () => ({ id: 9, structure: "campfire", progress: 0, deliveries: [], lacks }),
+    });
+    const build = (lacks: BlueprintView["lacks"]) => mainAction(actionsFor(scene({ kind: "blueprint", id: 9 }), lacking(lacks)));
+
+    expect(build({ kind: "material", material: "stick" })).toMatchObject({ id: "build", enabled: false, reason: "no sticks" });
+    expect(build({ kind: "material", material: "debarkedLog" })).toMatchObject({ enabled: false, reason: "bring a debarked log first" });
+    expect(build({ kind: "tool", tool: "axe" })).toMatchObject({ enabled: false, reason: "needs the axe" });
   });
 
   it("opens a work station's menu, lists the recipes made there, then takes it down", () => {

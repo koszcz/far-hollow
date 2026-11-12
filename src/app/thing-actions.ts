@@ -3,7 +3,19 @@
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, needsFreeHands, WOODPILE_WOODS } from "../sim/api";
-import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, RecipeLack, SledView, WoodpileView, WoodpileWood } from "../sim/api";
+import type {
+  BackpackContent,
+  BuildLack,
+  CampfireView,
+  CarriedLog,
+  Command,
+  GameClient,
+  GameView,
+  RecipeLack,
+  SledView,
+  WoodpileView,
+  WoodpileWood,
+} from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
@@ -272,7 +284,20 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
     ),
   );
   const offers = [...stackLog, ...stackFirewood, ...take, takeDown(woodpileId, woodpile.total > 0 ? reasons.emptyFirst : undefined)];
-  return withMain(offers, view.carrying === null ? "take:firewood" : `stack:${view.carrying}`);
+  return withMain(
+    offers,
+    view.carrying === null
+      ? woodpileMainWithoutLog([...take.filter(({ id }) => id === "take:firewood"), ...take.filter(({ id }) => id !== "take:firewood"), stackFirewood[0]])
+      : `stack:${view.carrying}`,
+  );
+}
+
+/**
+ * The woodpile's main action when the player carries no log: the first of `choices` they can do now.
+ * That takes firewood, then a log, then stacks firewood from the backpack. With none possible, it names taking firewood, greyed.
+ */
+function woodpileMainWithoutLog(choices: readonly (Offer | undefined)[]): ActionId {
+  return choices.find((choice) => choice?.enabled === true)?.id ?? "take:firewood";
 }
 
 /**
@@ -326,13 +351,28 @@ function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
 /** Main: add the carried material if the blueprint still needs it, otherwise build. Then taking it down. */
 function blueprintActions(blueprintId: number, reader: ActionReader, view: GameView): readonly ThingAction[] {
   const blueprint = reader.describeBlueprint(blueprintId);
-  const build = offer("build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
+  const build = offerUnless(buildLackReason(blueprint?.lacks ?? null), "build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
   const needed = blueprint?.deliveries.find(({ material, has: delivered, needs }) => material === view.carrying && delivered < needs);
   const deliver =
     needed === undefined
       ? []
       : [offer(`deliver:${needed.material}`, strings.actions.deliver[needed.material], { hud: "log" }, { type: "deliverToBlueprint", blueprintId })];
   return withMain([...deliver, build, takeDown(blueprintId)], deliver[0]?.id ?? "build");
+}
+
+/** Why the player cannot build a blueprint's next stage, or undefined if they can. */
+function buildLackReason(lacks: BuildLack | null): string | undefined {
+  if (lacks === null) return undefined;
+  const reasons = strings.actionReasons;
+  if (lacks.kind === "tool") return reasons.needsTool(strings.backpackContents[lacks.tool]);
+  switch (lacks.material) {
+    case "stick":
+    case "bark":
+      return reasons.noContent[lacks.material];
+    case "log":
+    case "debarkedLog":
+      return reasons.bringFirst[lacks.material];
+  }
 }
 
 /** What using a backpack content does, if it has a use. */

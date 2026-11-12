@@ -440,12 +440,6 @@ body {
     opacity: 0.45;
   }
 }
-.hud-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0 0;
-}
 .hud-button {
   display: inline-flex;
   gap: 5px;

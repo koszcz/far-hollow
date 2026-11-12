@@ -121,9 +121,16 @@ class Faces {
   private readonly colours: number[] = [];
 
   /** Adds a triangle with both faces. `facing` is the way its front points; its normals lean that way from straight up. */
-  triangle(corners: readonly [THREE.Vector3, THREE.Vector3, THREE.Vector3], colours: readonly [THREE.Color, THREE.Color, THREE.Color], facing: THREE.Vector3): void {
+  triangle(
+    corners: readonly [THREE.Vector3, THREE.Vector3, THREE.Vector3],
+    colours: readonly [THREE.Color, THREE.Color, THREE.Color],
+    facing: THREE.Vector3,
+  ): void {
     const normal = new THREE.Vector3(facing.x * NORMAL_LEAN, 1, facing.z * NORMAL_LEAN).normalize();
-    for (const order of [[0, 1, 2], [0, 2, 1]] as const) {
+    for (const order of [
+      [0, 1, 2],
+      [0, 2, 1],
+    ] as const) {
       for (const i of order) {
         this.positions.push(corners[i].x, corners[i].y, corners[i].z);
         this.normals.push(normal.x, normal.y, normal.z);
@@ -173,7 +180,12 @@ function addFlower(faces: Faces, kind: FlowerKind, random: Random, root: THREE.V
   const points: THREE.Vector3[] = [];
   for (let s = 0; s <= 3; s += 1) {
     const t = s / 3;
-    points.push(root.clone().addScaledVector(out, lean * t * t).setY(height * t));
+    points.push(
+      root
+        .clone()
+        .addScaledVector(out, lean * t * t)
+        .setY(height * t),
+    );
   }
   // Two crossed strips, so the stem shows from every side.
   const stemRoot = new THREE.Color(STEM_ROOT);
@@ -214,9 +226,26 @@ function addHead(faces: Faces, kind: FlowerKind, random: Random, top: THREE.Vect
     // A kite: narrow at the middle, widest just past halfway, round-ish at the tip. Each petal sits a hair higher
     // than the last, so overlapping petals do not flicker.
     const lift = new THREE.Vector3(0, 0.0004 * p, 0);
-    const foot = place(along.clone().multiplyScalar(length * 0.15).add(lift));
-    const left = place(along.clone().multiplyScalar(length * 0.6).addScaledVector(across, -halfWidth).add(lift));
-    const right = place(along.clone().multiplyScalar(length * 0.6).addScaledVector(across, halfWidth).add(lift));
+    const foot = place(
+      along
+        .clone()
+        .multiplyScalar(length * 0.15)
+        .add(lift),
+    );
+    const left = place(
+      along
+        .clone()
+        .multiplyScalar(length * 0.6)
+        .addScaledVector(across, -halfWidth)
+        .add(lift),
+    );
+    const right = place(
+      along
+        .clone()
+        .multiplyScalar(length * 0.6)
+        .addScaledVector(across, halfWidth)
+        .add(lift),
+    );
     const end = place(along.clone().multiplyScalar(length).add(lift));
     const middle = new THREE.Color().lerpColors(base, tip, 0.6);
     const facing = along.clone().applyQuaternion(tilt);
@@ -254,7 +283,10 @@ function addLeaf(faces: Faces, random: Random, spread: number, index: number, co
   for (let s = 0; s <= segments; s += 1) {
     const t = s / segments;
     // Rises steeply, then arches over.
-    const centre = root.clone().addScaledVector(out, length * t).setY(length * 0.9 * Math.sin(t * Math.PI * 0.75));
+    const centre = root
+      .clone()
+      .addScaledVector(out, length * t)
+      .setY(length * 0.9 * Math.sin(t * Math.PI * 0.75));
     const halfWidth = (width / 2) * Math.sin(Math.PI * Math.min(1, 0.2 + t * 0.8));
     points.push({ centre, halfWidth, colour: new THREE.Color().lerpColors(rootColour, tipColour, t) });
   }

@@ -124,7 +124,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const piles = createPiles(entities, walking, valley);
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
-    chopping, carrying, debarking, crafting, gathering, foraging, building, takingDown,
+    chopping,
+    carrying,
+    debarking,
+    crafting,
+    gathering,
+    foraging,
+    building,
+    takingDown,
     {
       cancel: () => {
         bedrolls.cancel();
@@ -134,7 +141,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         if (reached !== undefined) sleepOn(reached);
       },
     },
-    drinking, pot, chests, piles,
+    drinking,
+    pot,
+    chests,
+    piles,
   ];
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
@@ -515,7 +525,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
     describeRooms: () =>
       Object.freeze(
-        findRooms(entities).map((room) => Object.freeze({ squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))), heated: isRoomHeated(entities, room) })),
+        findRooms(entities).map((room) =>
+          Object.freeze({ squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))), heated: isRoomHeated(entities, room) }),
+        ),
       ),
     send: (command) => {
       pendingCommands.push(command);

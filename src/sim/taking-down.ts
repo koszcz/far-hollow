@@ -5,15 +5,34 @@ import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, leanToEntities, lyingThings, playerEntities, roofFrameEntities, setComponent,
-  type Entity, type EntityStore,
+  blueprintEntities,
+  cabinRoofEntities,
+  campfireEntities,
+  chestEntities,
+  leanToEntities,
+  lyingThings,
+  playerEntities,
+  roofFrameEntities,
+  setComponent,
+  type Entity,
+  type EntityStore,
 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { rectsOverlap, SIDES } from "./structure-kind";
 import {
-  footprintOfEntity, isDelivered, isFurniture, isPlacedStructure, roofFrameOn, stageMaterials, structureKindOf, structureOf, type BuildMaterial, type DeliveredMaterial,
-  type PlacedStructure, type StructureKind,
+  footprintOfEntity,
+  isDelivered,
+  isFurniture,
+  isPlacedStructure,
+  roofFrameOn,
+  stageMaterials,
+  structureKindOf,
+  structureOf,
+  type BuildMaterial,
+  type DeliveredMaterial,
+  type PlacedStructure,
+  type StructureKind,
 } from "./structures";
 import type { GroundPoint, Valley } from "./valley";
 import { cellCentre, reachableCells } from "./walk-map";
@@ -119,7 +138,9 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
         const kind = structure === undefined ? undefined : takeDownKindOf(structure);
         // The worker may have got only as close as they could, still out of reach.
         if (
-          structure === undefined || kind === undefined || !isPlacedStructure(structure) ||
+          structure === undefined ||
+          kind === undefined ||
+          !isPlacedStructure(structure) ||
           distanceOutside(footprintOfEntity(structure), worker.position) > BUILD_REACH_METRES
         ) {
           entities.removeComponent(worker, "takeDownTask");
@@ -222,7 +243,11 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(square, side)))) return true;
   const rect = structureOf("foundation").footprint(square, 0);
   const others = [
-    ...campfireEntities(entities), ...leanToEntities(entities), ...roofFrameEntities(entities), ...cabinRoofEntities(entities), ...chestEntities(entities),
+    ...campfireEntities(entities),
+    ...leanToEntities(entities),
+    ...roofFrameEntities(entities),
+    ...cabinRoofEntities(entities),
+    ...chestEntities(entities),
     ...blueprintEntities(entities),
   ];
   return others.some((other) => {

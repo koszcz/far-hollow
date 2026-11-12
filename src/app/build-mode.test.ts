@@ -9,9 +9,13 @@ function openSpotNear(game: Game): { x: number; z: number } {
   if (player === undefined) throw new Error("No player");
   for (let distance = 3; distance < 20; distance += 1) {
     const spot = { x: Math.round(player.position.x + distance), z: Math.round(player.position.z) };
-    const around = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([ax = 0, az = 0]) =>
-      isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }),
-    );
+    const around = [
+      [0, 0],
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ].every(([ax = 0, az = 0]) => isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }));
     if (around) return spot;
   }
   throw new Error("No open spot");

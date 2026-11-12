@@ -165,8 +165,7 @@ function onlyPlayer(game: Game) {
 function nearestToPlayer(game: Game, kind: "stick" | "tree") {
   const player = onlyPlayer(game);
   const candidates = [...game.entities.with(kind, "position")];
-  const distance = (entity: (typeof candidates)[number]) =>
-    Math.hypot(entity.position.x - player.position.x, entity.position.z - player.position.z);
+  const distance = (entity: (typeof candidates)[number]) => Math.hypot(entity.position.x - player.position.x, entity.position.z - player.position.z);
   const nearest = candidates.sort((a, b) => distance(a) - distance(b))[0];
   if (nearest === undefined) throw new Error(`No ${kind}`);
   return nearest;

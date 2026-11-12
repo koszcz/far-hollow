@@ -32,10 +32,13 @@ test("the game loads and the player walks where the ground is clicked", async ({
   await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.75);
 
   await expect
-    .poll(async () => {
-      const now = await playerPosition(page);
-      return Math.hypot(now.x - start.x, now.z - start.z);
-    }, { timeout: 10_000 })
+    .poll(
+      async () => {
+        const now = await playerPosition(page);
+        return Math.hypot(now.x - start.x, now.z - start.z);
+      },
+      { timeout: 10_000 },
+    )
     .toBeGreaterThan(2);
   expect(errors).toEqual([]);
 });

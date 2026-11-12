@@ -102,7 +102,10 @@ export function createDebarkedLogGeometry(logGeometry: THREE.BufferGeometry): TH
 
 /** The part of a flat polygon between two heights along z, as a polygon with the same winding. */
 function clipToBand(polygon: readonly THREE.Vector3[], from: number, to: number): THREE.Vector3[] {
-  return clipAgainst(clipAgainst(polygon, (point) => point.z - from), (point) => to - point.z);
+  return clipAgainst(
+    clipAgainst(polygon, (point) => point.z - from),
+    (point) => to - point.z,
+  );
 }
 
 /** Keeps the part of a polygon where `inside` is zero or more, cutting edges where it crosses zero. */
@@ -113,7 +116,7 @@ function clipAgainst(polygon: readonly THREE.Vector3[], inside: (point: THREE.Ve
     const here = inside(point);
     const there = inside(next);
     if (here >= 0) kept.push(point);
-    if ((here >= 0) !== (there >= 0)) kept.push(point.clone().lerp(next, here / (here - there)));
+    if (here >= 0 !== there >= 0) kept.push(point.clone().lerp(next, here / (here - there)));
   });
   return kept;
 }

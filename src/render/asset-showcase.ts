@@ -21,12 +21,27 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
 import {
-  CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_FRAME_LOG_COST, SAWHORSE_LOG_COST,
+  CHEST_LOG_COST,
+  DOOR_FRAME_LOG_COST,
+  FOUNDATION_LOG_COST,
+  LOG_WALL_LOG_COST,
+  ROOF_BARK_COST,
+  ROOF_FRAME_LOG_COST,
+  SAWHORSE_LOG_COST,
 } from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_REACHED_SHARE, CROUCH_SETTLED_SHARE } from "./player-build-pose";
-import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, createPlayerMesh, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES, type PlayerMesh } from "./player-mesh";
+import {
+  CHOP_RAISED_SHARE,
+  CHOP_STRIKE_SHARE,
+  CHOP_SWING_SHARE,
+  CHOP_SWINGS_PER_SECOND,
+  createPlayerMesh,
+  SPLIT_STRIKES_PER_SECOND,
+  STRIDE_METRES,
+  type PlayerMesh,
+} from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
@@ -224,7 +239,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 3, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
-      for (const [x, z] of [[-4, 0], [0, -1], [4, 0.5]] as const) place(x, z, { tree: true });
+      for (const [x, z] of [
+        [-4, 0],
+        [0, -1],
+        [4, 0.5],
+      ] as const)
+        place(x, z, { tree: true });
     },
   },
   stumps: {
@@ -232,7 +252,11 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 0.25, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
-      for (const [x, z] of [[-0.9, 0], [0.9, 0.2]] as const) place(x, z, { stump: true });
+      for (const [x, z] of [
+        [-0.9, 0],
+        [0.9, 0.2],
+      ] as const)
+        place(x, z, { stump: true });
     },
   },
   sticks: {
@@ -240,7 +264,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 0.05, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
-      for (const [x, z] of [[-0.6, 0], [0.5, -0.4], [0.3, 0.6]] as const) place(x, z, { stick: true });
+      for (const [x, z] of [
+        [-0.6, 0],
+        [0.5, -0.4],
+        [0.3, 0.6],
+      ] as const)
+        place(x, z, { stick: true });
     },
   },
   "berry-bush": {
@@ -420,7 +449,14 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         deckTop(place(x, z, { cabinRoof: true, facing: { turns }, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
       };
       // The hipped cabin. Turns 0 slopes down to +z, 1 to -x, 2 to -z, and 3 to +x.
-      cabin([[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0]]);
+      cabin([
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+      ]);
       roofOver(0, 0, 0);
       roofOver(0, -1, 2);
       roofOver(-1, 0, 1);
@@ -429,7 +465,13 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       deckTop(place(1, 0, { roofFrame: true, facing: { turns: 3 } }));
       deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 3 } }));
       // The L: an arm along x at the back, and an arm along z down its left side. Both slope into the L.
-      cabin([[-5, -1], [-4, -1], [-3, -1], [-5, 0], [-5, 1]]);
+      cabin([
+        [-5, -1],
+        [-4, -1],
+        [-3, -1],
+        [-5, 0],
+        [-5, 1],
+      ]);
       roofOver(-4, -1, 0);
       roofOver(-3, -1, 0);
       roofOver(-5, -1, 0);
@@ -557,19 +599,27 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         { content: "mushroom", count: 5 },
         { content: "bark", count: 4 },
       ]);
-      row(1.8, [
-        { content: "axe", count: 1 },
-        { content: "knife", count: 1 },
-        { content: "drawknife", count: 1 },
-        { content: "fireStriker", count: 2 },
-        { content: "pot", count: 1 },
-      ], 0.45);
-      row(2.8, [
-        { content: "sawBlade", count: 1 },
-        { content: "saw", count: 1 },
-        { content: "plank", count: 1 },
-        { content: "plank", count: 6 },
-      ], 0.5);
+      row(
+        1.8,
+        [
+          { content: "axe", count: 1 },
+          { content: "knife", count: 1 },
+          { content: "drawknife", count: 1 },
+          { content: "fireStriker", count: 2 },
+          { content: "pot", count: 1 },
+        ],
+        0.45,
+      );
+      row(
+        2.8,
+        [
+          { content: "sawBlade", count: 1 },
+          { content: "saw", count: 1 },
+          { content: "plank", count: 1 },
+          { content: "plank", count: 6 },
+        ],
+        0.5,
+      );
     },
   },
   "fire-effect": {
@@ -601,11 +651,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     ],
     build({ place, placePot }) {
       showcasePots.length = 0;
-      showcasePots.push(
-        { pot: placePot(-0.5, 0), look: "empty" },
-        { pot: placePot(0, 0), look: "full" },
-        { pot: placePot(0.5, 0), look: "steaming" },
-      );
+      showcasePots.push({ pot: placePot(-0.5, 0), look: "empty" }, { pot: placePot(0, 0), look: "full" }, { pot: placePot(0.5, 0), look: "steaming" });
       place(0, -2, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES }, potOnFire: { water: "river", minutesBoiling: 0 } });
     },
     pose(_stage, shot) {
@@ -634,7 +680,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
       place(-1.5, 0.5, { log: { heading: 0.4 } });
-      for (const [x, z] of [[2.6, 0.3], [3, 0.7], [2.4, 0.9]] as const) place(x, z, { bark: true });
+      for (const [x, z] of [
+        [2.6, 0.3],
+        [3, 0.7],
+        [2.4, 0.9],
+      ] as const)
+        place(x, z, { bark: true });
       movePlayer(0, 0, 0);
     },
   },
@@ -691,7 +742,13 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "HUD: cold at night, paused, placing", yaw: 20, pitch: 35, hour: NIGHT },
     ],
     build({ place, movePlayer }) {
-      for (const [x, z] of [[-6, -4], [0, -7], [6, -3], [-3, -9]] as const) place(x, z, { tree: true });
+      for (const [x, z] of [
+        [-6, -4],
+        [0, -7],
+        [6, -3],
+        [-3, -9],
+      ] as const)
+        place(x, z, { tree: true });
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
       place(-1.2, 0.6, { chest: { contents: {} }, facing: { turns: 0 } });
       movePlayer(0, 0, 0);
@@ -707,7 +764,13 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "night, 23:00", yaw: 200, pitch: 8, hour: 23 },
     ],
     build({ place }) {
-      for (const [x, z] of [[-5, -3], [0, -6], [5, -2], [-3, 4]] as const) place(x, z, { tree: true });
+      for (const [x, z] of [
+        [-5, -3],
+        [0, -6],
+        [5, -2],
+        [-3, 4],
+      ] as const)
+        place(x, z, { tree: true });
       place(2, 1, { log: { heading: 0.6 } });
       place(-2, 1.5, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
     },
@@ -723,7 +786,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     ],
     build({ place }) {
       place(0, 0, { rain: { falling: true, changeAtMinutes: Infinity, changes: 1 } });
-      for (const [x, z] of [[-4, -3], [3, -5], [5, 1]] as const) place(x, z, { tree: true });
+      for (const [x, z] of [
+        [-4, -3],
+        [3, -5],
+        [5, 1],
+      ] as const)
+        place(x, z, { tree: true });
       place(-1.5, 1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
     },
     // Rain falls all the time, so it plays live in the afternoon.
@@ -916,7 +984,19 @@ export function showAsset(
   const store = createEntityStore();
   const player = createPlayerMesh(shapes.player, shapes.log);
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
-  const showsPlayer = ["player", "logs", "debarked-log", "walk-animation", "chop-animation", "split-animation", "player-build-animation", "sky-lighting", "hud", "log-wall", "door-frame"].includes(id);
+  const showsPlayer = [
+    "player",
+    "logs",
+    "debarked-log",
+    "walk-animation",
+    "chop-animation",
+    "split-animation",
+    "player-build-animation",
+    "sky-lighting",
+    "hud",
+    "log-wall",
+    "door-frame",
+  ].includes(id);
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
   player.group.visible = showsPlayer;
@@ -967,13 +1047,9 @@ export function showAsset(
   const piles = createPileMeshes(store, shapes.mushrooms);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(
-    forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, rain.group,
-  );
+  scene.add(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(
-    forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, player.group, props,
-  );
+  sky.addShadowCasters(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, player.group, props);
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -1026,7 +1102,12 @@ export function showAsset(
     showcase.shots.slice(0, 4).forEach((shot, index) => {
       showcase.pose?.(stage, shot);
       // three.js counts viewport rows from the bottom, so the first view takes the top left.
-      drawView(shot, shot.seconds ?? 0, {}, { left: (index % 2) * halfWidth, bottom: index < 2 ? height - halfHeight : 0, width: halfWidth, height: halfHeight });
+      drawView(
+        shot,
+        shot.seconds ?? 0,
+        {},
+        { left: (index % 2) * halfWidth, bottom: index < 2 ? height - halfHeight : 0, width: halfWidth, height: halfHeight },
+      );
     });
   }
 

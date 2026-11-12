@@ -11,7 +11,6 @@ import { nearestRiverPoint, type Valley } from "./valley";
 import { nearestWalkableSpot } from "./walk-map";
 import type { Walking } from "./walking";
 
-
 /** The backpack content for a full pot of each kind of water. */
 const FULL_POT: Readonly<Record<PotWater, PotContent>> = {
   river: "potOfRiverWater",

@@ -78,10 +78,16 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
   const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true });
   const barkMaterials = BARK_COLOURS.map((color) => new THREE.MeshStandardMaterial({ color, flatShading: true, vertexColors: true }));
   const blueprintMaterial = new THREE.MeshStandardMaterial({
-    color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
+    color: BLUEPRINT_COLOUR,
+    transparent: true,
+    opacity: BLUEPRINT_OPACITY,
+    depthWrite: false,
   });
   const notAllowedMaterial = new THREE.MeshStandardMaterial({
-    color: NOT_ALLOWED_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
+    color: NOT_ALLOWED_COLOUR,
+    transparent: true,
+    opacity: BLUEPRINT_OPACITY,
+    depthWrite: false,
   });
   const pickGeometry = new THREE.BoxGeometry(LEAN_TO_WIDTH_METRES, PICK_HEIGHT_METRES, LEAN_TO_DEPTH_METRES);
   pickGeometry.translate(0, PICK_HEIGHT_METRES / 2, 0);
@@ -213,8 +219,13 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
     },
     dispose() {
       for (const item of [
-        ...shapes.map(({ geometry }) => geometry), stickMaterial, ...barkMaterials, blueprintMaterial, notAllowedMaterial,
-        pickGeometry, pickMaterial,
+        ...shapes.map(({ geometry }) => geometry),
+        stickMaterial,
+        ...barkMaterials,
+        blueprintMaterial,
+        notAllowedMaterial,
+        pickGeometry,
+        pickMaterial,
       ]) {
         item.dispose();
       }
@@ -243,11 +254,16 @@ function createPartShapes(): PartShape[] {
 
   // Each front post ends in a fork. The ridge pole rests in the crotch, between the two arms.
   for (const side of [-1, 1]) stick(forkedPost(new THREE.Vector3(side * postX, 0, frontZ), jitter));
-  stick(crookedPole(
-    new THREE.Vector3(-halfWidth - RIDGE_OVERHANG_METRES, RIDGE_HEIGHT_METRES, frontZ),
-    new THREE.Vector3(halfWidth + RIDGE_OVERHANG_METRES, RIDGE_HEIGHT_METRES + jitter(0.03), frontZ),
-    RIDGE_RADIUS_METRES, RIDGE_RADIUS_METRES * 0.75, 5, jitter,
-  ));
+  stick(
+    crookedPole(
+      new THREE.Vector3(-halfWidth - RIDGE_OVERHANG_METRES, RIDGE_HEIGHT_METRES, frontZ),
+      new THREE.Vector3(halfWidth + RIDGE_OVERHANG_METRES, RIDGE_HEIGHT_METRES + jitter(0.03), frontZ),
+      RIDGE_RADIUS_METRES,
+      RIDGE_RADIUS_METRES * 0.75,
+      5,
+      jitter,
+    ),
+  );
   // Each rafter runs from the ground at the back up over the ridge pole.
   for (let i = 0; i < RAFTER_COUNT; i += 1) {
     const x = -postX + (i / (RAFTER_COUNT - 1)) * 2 * postX + jitter(0.06);
@@ -306,7 +322,12 @@ export function seededRandom(seed: number): () => number {
 
 /** A pole from one point to another, bent a little at each of its joints, with a pale cut end at `from` and, unless told not to, at `to`. */
 function crookedPole(
-  from: THREE.Vector3, to: THREE.Vector3, fromRadius: number, toRadius: number, joints: number, jitter: (size: number) => number,
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  fromRadius: number,
+  toRadius: number,
+  joints: number,
+  jitter: (size: number) => number,
   paleTo = true,
 ): THREE.BufferGeometry {
   const points = [from];
@@ -363,7 +384,10 @@ function rafter(foot: THREE.Vector3, tip: THREE.Vector3, jitter: (size: number) 
  * `shape` can make the curl, the fray of the lower edge, and the waver smaller than the lean-to's, in metres.
  */
 export function barkStrip(
-  width: number, length: number, shade: number, jitter: (size: number) => number,
+  width: number,
+  length: number,
+  shade: number,
+  jitter: (size: number) => number,
   shape: { curl: number; fray: number; waver: number } = { curl: BARK_CURL_METRES, fray: BARK_FRAY_METRES, waver: BARK_WAVER_METRES },
 ): THREE.BufferGeometry {
   const geometry = new THREE.BoxGeometry(width, BARK_THICKNESS_METRES, length, BARK_COLUMNS, 1, 4);
@@ -375,7 +399,7 @@ export function barkStrip(
   for (let i = 0; i < positions.count; i += 1) {
     const x = positions.getX(i);
     let z = positions.getZ(i);
-    const column = Math.round(((x / width) + 0.5) * BARK_COLUMNS);
+    const column = Math.round((x / width + 0.5) * BARK_COLUMNS);
     if (z < -length / 2 + 0.001) z += (fray[column] ?? 0) * shape.fray;
     const across = z / (length / 2);
     const curl = shape.curl * across * across + shape.waver * Math.sin(x * 1.6 + wave);

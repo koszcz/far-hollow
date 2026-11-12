@@ -133,13 +133,7 @@ if (saveStorage !== undefined && slot !== undefined) {
   });
 }
 const canvas = requireElement("#scene", HTMLCanvasElement);
-const sceneRenderer = createSceneRenderer(
-  canvas,
-  game.valley,
-  game.entities,
-  () => game.client.getView().time.hourOfDay,
-  await loadModelShapes(),
-);
+const sceneRenderer = createSceneRenderer(canvas, game.valley, game.entities, () => game.client.getView().time.hourOfDay, await loadModelShapes());
 const cameraInput = attachCameraInput({
   canvas,
   rig: sceneRenderer.cameraRig,
@@ -170,7 +164,9 @@ if (import.meta.env.DEV) {
   Object.assign(window, { farHollow: { client: game.client } });
 }
 const loop = createFixedStepLoop({
-  stepMs: STEP_MS, maxStepsPerAdvance: MAX_STEPS_PER_FRAME, step: () => {
+  stepMs: STEP_MS,
+  maxStepsPerAdvance: MAX_STEPS_PER_FRAME,
+  step: () => {
     game.step();
   },
 });

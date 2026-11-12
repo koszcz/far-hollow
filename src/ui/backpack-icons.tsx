@@ -174,8 +174,15 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
         </linearGradient>
       </defs>
       {painted.map(({ d, as }, index) => (
-        <path key={`outline-${index}`} d={d} fill={as === "fill" ? OUTLINE : "none"} stroke={OUTLINE}
-          stroke-width={as === "fill" ? OUTLINE_WIDTH : LINE_WIDTH + OUTLINE_WIDTH} stroke-linecap="round" stroke-linejoin="round" />
+        <path
+          key={`outline-${index}`}
+          d={d}
+          fill={as === "fill" ? OUTLINE : "none"}
+          stroke={OUTLINE}
+          stroke-width={as === "fill" ? OUTLINE_WIDTH : LINE_WIDTH + OUTLINE_WIDTH}
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       ))}
       {drawing.parts.map(({ d, as, colour }, index) => {
         if (as === "shine") {
@@ -188,7 +195,15 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
             {as === "fill" && <path d={d} fill={`url(#${shadeId})`} fill-rule="evenodd" />}
           </g>
         ) : (
-          <path key={index} d={d} fill="none" stroke={paint} stroke-width={as === "line" ? LINE_WIDTH : CUT_LINE_WIDTH} stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            key={index}
+            d={d}
+            fill="none"
+            stroke={paint}
+            stroke-width={as === "line" ? LINE_WIDTH : CUT_LINE_WIDTH}
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         );
       })}
     </svg>

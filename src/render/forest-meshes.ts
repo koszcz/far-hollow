@@ -5,7 +5,17 @@
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
-import { debarkedLogEntities, logEntities, playerEntities, stickEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import {
+  debarkedLogEntities,
+  logEntities,
+  playerEntities,
+  stickEntities,
+  stumpEntities,
+  treeEntities,
+  type Entity,
+  type EntityStore,
+  type Vec3,
+} from "../sim/entities";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
@@ -41,10 +51,7 @@ const STICK_SHADE_SPREAD = 0.08;
 
 /** What a click on the forest landed on. */
 export type ForestHit =
-  | { kind: "tree"; entity: Entity }
-  | { kind: "log"; entity: Entity }
-  | { kind: "debarkedLog"; entity: Entity }
-  | { kind: "stick"; entity: Entity };
+  { kind: "tree"; entity: Entity } | { kind: "log"; entity: Entity } | { kind: "debarkedLog"; entity: Entity } | { kind: "stick"; entity: Entity };
 
 export interface ForestMeshes {
   readonly group: THREE.Group;
@@ -236,7 +243,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     treeMatrix({ x: 0, y: 0, z: 0, look: lookFor(at.x, at.z) }, matrix);
     tree.applyMatrix4(matrix);
     const batch = treeBatches[type];
-    if (batch !== undefined) tree.add(new THREE.Mesh(batch.trunks.geometry, batch.trunks.material), new THREE.Mesh(batch.crowns.geometry, batch.crowns.material));
+    if (batch !== undefined)
+      tree.add(new THREE.Mesh(batch.trunks.geometry, batch.trunks.material), new THREE.Mesh(batch.crowns.geometry, batch.crowns.material));
     pivot.add(tree);
     group.add(pivot);
     falling.push({ pivot, axis, startSeconds: undefined });
@@ -284,7 +292,10 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   }
 
   function rebuildLogs(): void {
-    logsDrawn = rebuildLogBatch(logs, [...logQuery].map((log) => ({ entity: log, heading: log.log.heading, position: log.position })));
+    logsDrawn = rebuildLogBatch(
+      logs,
+      [...logQuery].map((log) => ({ entity: log, heading: log.log.heading, position: log.position })),
+    );
   }
 
   function rebuildDebarkedLogs(): void {
@@ -396,7 +407,10 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const batch = type === undefined ? undefined : treeBatches[type];
         if (hit.entity.tree !== true || index === undefined || batch === undefined) return [];
         const at = placed(batch.trunks, index);
-        return [{ geometry: batch.trunks.geometry, matrix: at }, { geometry: batch.crowns.geometry, matrix: at }];
+        return [
+          { geometry: batch.trunks.geometry, matrix: at },
+          { geometry: batch.crowns.geometry, matrix: at },
+        ];
       }
       if (hit.kind === "log") {
         const index = logsDrawn.indexOf(hit.entity);

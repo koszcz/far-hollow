@@ -51,7 +51,10 @@ describe("the craft menu", () => {
     const [saw] = createGame({ seed: 42 }).client.getView().craftMenu;
     expect(saw).toMatchObject({
       kind: "saw",
-      materials: [{ material: "sawBlade", count: 1 }, { material: "stick", count: 3 }],
+      materials: [
+        { material: "sawBlade", count: 1 },
+        { material: "stick", count: 3 },
+      ],
       result: { content: "saw", count: 1 },
       seconds: 5,
     });

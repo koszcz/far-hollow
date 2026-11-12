@@ -90,5 +90,10 @@ export function foundationOn(entities: EntityStore, square: GroundPoint) {
 
 function legSpots(middle: GroundPoint): GroundPoint[] {
   const out = BUILD_GRID_METRES / 2 - LEG_INSET_METRES;
-  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([dx = 0, dz = 0]) => ({ x: middle.x + dx * out, z: middle.z + dz * out }));
+  return [
+    [-1, -1],
+    [1, -1],
+    [1, 1],
+    [-1, 1],
+  ].map(([dx = 0, dz = 0]) => ({ x: middle.x + dx * out, z: middle.z + dz * out }));
 }

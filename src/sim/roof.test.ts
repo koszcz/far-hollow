@@ -4,7 +4,13 @@ import { createEntityStore, type Entity, type EntityStore } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import {
-  DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_BUILD_SECONDS, ROOF_FRAME_LOG_COST, type QuarterTurns, type StructureKind,
+  DOOR_FRAME_LOG_COST,
+  LOG_WALL_LOG_COST,
+  ROOF_BARK_COST,
+  ROOF_BUILD_SECONDS,
+  ROOF_FRAME_LOG_COST,
+  type QuarterTurns,
+  type StructureKind,
 } from "./structures";
 import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
 import { readSave, ROOFS_FACE_SAVE_VERSION, writeSave } from "./save";
@@ -202,7 +208,11 @@ describe("the way a roof faces", () => {
     // Back then, roofs sat straight on the walls, and a blueprint kept whatever turn R gave it, though the roof ignored it.
     const rect = { min: { x: square.x - 0.5, z: square.z - 0.5 }, max: { x: square.x + 0.5, z: square.z + 0.5 } };
     game.entities.add({ cabinRoof: true, roof: rect, facing: { turns: 2 }, position: { ...foundation.position } });
-    game.entities.add({ blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 3 }, position: { x: beside.x, y: 0, z: beside.z } });
+    game.entities.add({
+      blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} },
+      facing: { turns: 3 },
+      position: { x: beside.x, y: 0, z: beside.z },
+    });
     const old = { ...writeSave(game), version: ROOFS_FACE_SAVE_VERSION - 1 };
 
     const loaded = readSave(structuredClone(old));
@@ -222,7 +232,9 @@ describe("the way a roof faces", () => {
     const loaded = readSave(structuredClone(old));
     if (!loaded.ok) throw new Error("The save was rejected");
 
-    const loadedWall = loaded.game.entities.with("edgePiece", "position").entities.find(({ position }) => position.x === wall.position?.x && position.z === wall.position.z);
+    const loadedWall = loaded.game.entities
+      .with("edgePiece", "position")
+      .entities.find(({ position }) => position.x === wall.position?.x && position.z === wall.position.z);
     expect(loadedWall?.facing).toEqual({ turns: 3 });
   });
 });
@@ -303,7 +315,14 @@ function finishedFoundationAt(game: Game, square: { x: number; z: number }) {
 function openSquareNearPlayer(game: Game, from = 4): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const reach = [-2, -1, 0, 1, 2];
       const open = reach.every((ax) => reach.every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));

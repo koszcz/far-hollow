@@ -235,9 +235,7 @@ function stretchAbove(from: number, to: number, height: (t: number) => number): 
  * A fill log resting at height `bottom`, running along `axis` from `from` to `to`, its middle at `across` on the other axis.
  * Its top is cut down to the bark's underside, so the top log of a stack fills the gap under the slope exactly.
  */
-function cutLog(
-  bottom: number, from: number, to: number, axis: "x" | "z", across: number, ceiling: (x: number, z: number) => number,
-): THREE.BufferGeometry {
+function cutLog(bottom: number, from: number, to: number, axis: "x" | "z", across: number, ceiling: (x: number, z: number) => number): THREE.BufferGeometry {
   const geometry = new THREE.CylinderGeometry(FILL_RADIUS_METRES, FILL_RADIUS_METRES, to - from, LOG_SIDES, FILL_LENGTHS);
   // The cylinder stands along y. Lay it along its axis.
   if (axis === "x") geometry.rotateZ(Math.PI / 2);

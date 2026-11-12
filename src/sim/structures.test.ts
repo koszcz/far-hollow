@@ -33,7 +33,11 @@ describe.each(STRUCTURES.map((definition) => [definition.kind, definition] as co
     const entities = createEntityStore();
     const position = { x: SPOT.x, y: 0, z: SPOT.z };
     const finished = entities.add({ ...definition.finish(SPOT, 1, entities), position, facing: { turns: 1 } }) as PlacedStructure;
-    const blueprint = entities.add({ blueprint: { structure: kind, progress: 0, materialsSpent: 0, delivered: {} }, position, facing: { turns: 1 } }) as PlacedStructure;
+    const blueprint = entities.add({
+      blueprint: { structure: kind, progress: 0, materialsSpent: 0, delivered: {} },
+      position,
+      facing: { turns: 1 },
+    }) as PlacedStructure;
 
     expect(footprintOfEntity(finished)).toEqual(footprintOfEntity(blueprint));
     expect(footprintOfEntity(finished)).toEqual(definition.footprint(SPOT, 1));
@@ -43,7 +47,11 @@ describe.each(STRUCTURES.map((definition) => [definition.kind, definition] as co
     const game = createGame({ seed: 42 });
     const position = { x: SPOT.x, y: 0, z: SPOT.z };
     game.entities.add({ ...definition.finish(SPOT, 1, game.entities), position, facing: { turns: 1 } });
-    game.entities.add({ blueprint: { structure: kind, progress: 0.5, materialsSpent: 0, delivered: {} }, position: { ...position, x: position.x + 3 }, facing: { turns: 2 } });
+    game.entities.add({
+      blueprint: { structure: kind, progress: 0.5, materialsSpent: 0, delivered: {} },
+      position: { ...position, x: position.x + 3 },
+      facing: { turns: 2 },
+    });
 
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
 

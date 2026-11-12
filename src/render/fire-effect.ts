@@ -114,7 +114,12 @@ export function createFireMaker(): FireMaker {
   // Their materials count as see-through, even fully opaque ones, so sky-lighting.ts does not let them cast shadows.
   // They skip tone mapping, which would wash their colours out toward white.
   const flameMaterial = new THREE.MeshBasicMaterial({
-    vertexColors: true, transparent: true, opacity: 0.92, toneMapped: false, depthWrite: false, side: THREE.DoubleSide,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.92,
+    toneMapped: false,
+    depthWrite: false,
+    side: THREE.DoubleSide,
   });
   const coreMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, toneMapped: false, side: THREE.DoubleSide });
   const emberGeometry = new THREE.DodecahedronGeometry(EMBER_SIZE_METRES, 0);
@@ -124,7 +129,11 @@ export function createFireMaker(): FireMaker {
   const smokeGeometry = new THREE.DodecahedronGeometry(SMOKE_SIZE_METRES, 0);
   // Smoke catches the scene's light, so it shows grey by day and takes the fire's glow at night.
   const smokeMaterial = new THREE.MeshStandardMaterial({
-    color: SMOKE_COLOUR, transparent: true, opacity: SMOKE_OPACITY, depthWrite: false, flatShading: true,
+    color: SMOKE_COLOUR,
+    transparent: true,
+    opacity: SMOKE_OPACITY,
+    depthWrite: false,
+    flatShading: true,
   });
   const emberMaterials: THREE.MeshBasicMaterial[] = [];
 
@@ -175,11 +184,7 @@ export function createFireMaker(): FireMaker {
           const t = nowSeconds * SWAY_PER_SECOND + seed + index * 1.9;
           const swayX = Math.sin(t) * 0.6 + Math.sin(t * 2.7 + 0.4) * 0.4;
           const swayZ = Math.sin(t * 1.3 + 2.1) * 0.6 + Math.sin(t * 3.1) * 0.4;
-          pivot.rotation.set(
-            Math.cos(tongue.heading) * tongue.lean + swayX * SWAY_RADIANS,
-            0,
-            Math.sin(tongue.heading) * tongue.lean + swayZ * SWAY_RADIANS,
-          );
+          pivot.rotation.set(Math.cos(tongue.heading) * tongue.lean + swayX * SWAY_RADIANS, 0, Math.sin(tongue.heading) * tongue.lean + swayZ * SWAY_RADIANS);
           const stretch = 1 + STRETCH_AMOUNT * (Math.sin(t * 1.7 + 0.8) * 0.7 + Math.sin(t * 4.3) * 0.3);
           mesh.scale.y = tongue.height * stretch;
           mesh.rotation.y = nowSeconds * TWIST_PER_SECOND * (index % 2 === 0 ? 1 : -1) + index;
@@ -194,11 +199,7 @@ export function createFireMaker(): FireMaker {
           const round = Math.floor(nowSeconds / SPARK_LIFE_SECONDS + index / SPARK_COUNT + seed * 0.37);
           const heading = index * 2.4 + round * 1.7;
           const drift = SPARK_DRIFT_METRES * life * (0.5 + 0.5 * Math.sin(round + index));
-          spark.position.set(
-            Math.sin(heading) * drift + Math.sin(life * 9 + index) * 0.03,
-            0.25 + life * SPARK_RISE_METRES,
-            Math.cos(heading) * drift,
-          );
+          spark.position.set(Math.sin(heading) * drift + Math.sin(life * 9 + index) * 0.03, 0.25 + life * SPARK_RISE_METRES, Math.cos(heading) * drift);
           spark.scale.setScalar(Math.max(0.01, 1 - life));
           spark.rotation.set(life * 6, life * 4, 0);
         }
@@ -223,8 +224,18 @@ export function createFireMaker(): FireMaker {
   return {
     make,
     dispose() {
-      for (const item of [flameGeometry, coreGeometry, flameMaterial, coreMaterial, emberGeometry, sparkGeometry, sparkMaterial,
-        smokeGeometry, smokeMaterial, ...emberMaterials]) {
+      for (const item of [
+        flameGeometry,
+        coreGeometry,
+        flameMaterial,
+        coreMaterial,
+        emberGeometry,
+        sparkGeometry,
+        sparkMaterial,
+        smokeGeometry,
+        smokeMaterial,
+        ...emberMaterials,
+      ]) {
         item.dispose();
       }
     },

@@ -152,11 +152,7 @@ export function createPotMaker(): PotMaker {
             const startOut = WATER_RADIUS_METRES * 0.5;
             const curl = startAngle + share * 2.2;
             const out = startOut * (1 - share * 0.6);
-            mesh.position.set(
-              Math.cos(curl) * out + share * 0.06,
-              WATER_HEIGHT_METRES + share * STEAM_RISE_METRES,
-              Math.sin(curl) * out,
-            );
+            mesh.position.set(Math.cos(curl) * out + share * 0.06, WATER_HEIGHT_METRES + share * STEAM_RISE_METRES, Math.sin(curl) * out);
             mesh.scale.setScalar(0.5 + share * 2.2);
             material.opacity = STEAM_OPACITY * Math.sin(share * Math.PI) ** 1.5;
           });

@@ -90,8 +90,7 @@ export function groundTypeAt(map: GroundMap, spot: GroundPoint): GroundType {
 
 /** How much of each ground type shows at a spot. Weights change smoothly from spot to spot, so ground types blend softly. */
 export function groundTypeWeightsAt(map: GroundMap, spot: GroundPoint): GroundTypeWeights {
-  const wobble = (offset: number) =>
-    EDGE_WOBBLE_METRES * smoothNoise(spot.x / EDGE_WOBBLE_SPACING_METRES + offset, spot.z / EDGE_WOBBLE_SPACING_METRES);
+  const wobble = (offset: number) => EDGE_WOBBLE_METRES * smoothNoise(spot.x / EDGE_WOBBLE_SPACING_METRES + offset, spot.z / EDGE_WOBBLE_SPACING_METRES);
   const fromWater = distanceToRiverNear(map, spot) - map.river.width / 2 + wobble(0);
   const riverBank = 1 - smoothstep((fromWater - RIVER_BANK_FULL_METRES) / (RIVER_BANK_EDGE_METRES - RIVER_BANK_FULL_METRES));
   const fromTree = distanceToNearestTree(map, spot) + wobble(57.3);

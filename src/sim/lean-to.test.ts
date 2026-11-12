@@ -15,7 +15,14 @@ describe("the lean-to in the build menu", () => {
 
     expect(game.client.getView().buildMenu).toEqual([
       { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
-      { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }], placement: "onGround" },
+      {
+        structure: "leanTo",
+        cost: [
+          { material: "stick", count: 10 },
+          { material: "bark", count: 6 },
+        ],
+        placement: "onGround",
+      },
       { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
       { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
       { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
@@ -275,13 +282,26 @@ describe("saving lean-tos", () => {
 function openLeanToSpot(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = 4; distance < 40; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ] as const) {
       const spot = { x: Math.round(player.position.x + dx * distance), z: Math.round(player.position.z + dz * distance) };
       const turns = [0, 1, 2, 3] as const;
       // Leave room around it, so the player can walk round to its front.
-      const roomy = [[0, 0], [3, 0], [-3, 0], [0, 3], [0, -3]].every(([ax = 0, az = 0]) =>
-        turns.every((turn) => game.client.checkPlacement("leanTo", { x: spot.x + ax, z: spot.z + az }, turn).allowed),
-      );
+      const roomy = [
+        [0, 0],
+        [3, 0],
+        [-3, 0],
+        [0, 3],
+        [0, -3],
+      ].every(([ax = 0, az = 0]) => turns.every((turn) => game.client.checkPlacement("leanTo", { x: spot.x + ax, z: spot.z + az }, turn).allowed));
       if (roomy) return spot;
     }
   }

@@ -266,8 +266,17 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
     },
     dispose() {
       for (const item of [
-        logGeometry, beamGeometry, legGeometry, pickGeometry, woodMaterial, cutMaterial, legMaterial,
-        blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial,
+        logGeometry,
+        beamGeometry,
+        legGeometry,
+        pickGeometry,
+        woodMaterial,
+        cutMaterial,
+        legMaterial,
+        blueprintMaterial,
+        deliveredMaterial,
+        notAllowedMaterial,
+        pickMaterial,
       ]) {
         item.dispose();
       }

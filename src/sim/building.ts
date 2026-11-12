@@ -3,7 +3,15 @@ import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridPoint } from "./build-grid";
 import { blueprintEntities, playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import {
-  footprintOfEntity, isDelivered, isPlacedStructure, stageMaterials, structureOf, type BuildMaterial, type DeliveredMaterial, type GroundRect, type QuarterTurns,
+  footprintOfEntity,
+  isDelivered,
+  isPlacedStructure,
+  stageMaterials,
+  structureOf,
+  type BuildMaterial,
+  type DeliveredMaterial,
+  type GroundRect,
+  type QuarterTurns,
   type StructureKind,
 } from "./structures";
 import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
@@ -221,7 +229,12 @@ function hasNextStage(blueprint: Blueprint, backpack: NonNullable<Entity["backpa
 }
 
 /** Spends the material for the blueprint's next stage. Returns false, changing nothing, if it has run out. */
-function spendStageMaterial(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, stages: readonly BuildMaterial[], material: BuildMaterial): boolean {
+function spendStageMaterial(
+  blueprint: Blueprint,
+  backpack: NonNullable<Entity["backpack"]>,
+  stages: readonly BuildMaterial[],
+  material: BuildMaterial,
+): boolean {
   if (!isDelivered(material)) return removeFromBackpack(backpack, material, 1);
   const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
   return (blueprint.delivered[material] ?? 0) > spent;

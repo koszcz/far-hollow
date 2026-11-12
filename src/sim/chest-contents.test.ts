@@ -250,7 +250,14 @@ function walkAway(game: Game): void {
 function openSquareNearPlayer(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = 3; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const open = [-2, -1, 0, 1, 2].every((ax) => [-2, -1, 0, 1, 2].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));
       if (open) return square;

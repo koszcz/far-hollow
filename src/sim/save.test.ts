@@ -70,10 +70,7 @@ describe("saving and loading a game", () => {
 
 describe("upgrading an older save", () => {
   // These use made-up upgrades to versions 2 and 3, so they test the upgrade steps apart from the game's real ones.
-  const upgrades: SaveUpgrade[] = [
-    (save) => ({ ...save, hunger: 1 }),
-    (save) => ({ ...save, needs: { hunger: save.hunger, thirst: 1 }, hunger: undefined }),
-  ];
+  const upgrades: SaveUpgrade[] = [(save) => ({ ...save, hunger: 1 }), (save) => ({ ...save, needs: { hunger: save.hunger, thirst: 1 }, hunger: undefined })];
 
   it("upgrades one version at a time, in order, up to the newest", () => {
     expect(upgradeSave({ version: 1, seed: 3 }, upgrades)).toEqual({
@@ -393,11 +390,22 @@ function give(game: Game, content: "stick", count: number): void {
 function openSpotNearPlayer(game: Game, from: number): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const spot = { x: Math.round(player.position.x + dx * distance), z: Math.round(player.position.z + dz * distance) };
-      const around = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([ax = 0, az = 0]) =>
-        isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }),
-      );
+      const around = [
+        [0, 0],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].every(([ax = 0, az = 0]) => isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }));
       if (around) return spot;
     }
   }

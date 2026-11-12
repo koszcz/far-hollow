@@ -222,7 +222,7 @@ function minutesBurnt(fuel: "stick" | "firewood"): number {
   return minutes;
 }
 
-type Campfire =Entity & { position: NonNullable<Entity["position"]>; campfire: NonNullable<Entity["campfire"]> };
+type Campfire = Entity & { position: NonNullable<Entity["position"]>; campfire: NonNullable<Entity["campfire"]> };
 
 /** A new game with one finished, unlit campfire beside the player, and nothing left in the backpack but tools. */
 function gameWithCampfire(): { game: Game; campfire: Campfire } {
@@ -270,11 +270,21 @@ function give(game: Game, content: BackpackContent, count: number): void {
 function openSpotNearPlayer(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = 3; distance < 20; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const spot = { x: Math.round(player.position.x + dx * distance), z: Math.round(player.position.z + dz * distance) };
-      const around = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([ax = 0, az = 0]) =>
-        isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }),
-      );
+      const around = [
+        [0, 0],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].every(([ax = 0, az = 0]) => isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }));
       if (around) return spot;
     }
   }

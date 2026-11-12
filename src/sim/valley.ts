@@ -187,7 +187,7 @@ function generateTerrain(random: Random, river: River): Terrain {
       let hills = 0;
       for (const layer of hillLayers) {
         const bump = layer.noise((point.x + half) / layer.spacing, (point.z + half) / layer.spacing);
-        hills += layer.height * (bump + 1) / 2;
+        hills += (layer.height * (bump + 1)) / 2;
       }
       let height = hills * smoothstep(fromRiver / HILL_FADE_METRES);
       // The ground rises away from the river, so the river runs along the valley floor.
@@ -238,14 +238,7 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
  * Scatters `count` spots in a ring from `minFromTree` to `maxFromTree` metres around random trees, such as where sticks fall.
  * A spot is never in the water or closer than `minFromTree` to any trunk, so the player can reach it.
  */
-function placeNearTrees(
-  random: Random,
-  river: River,
-  trees: readonly GroundPoint[],
-  count: number,
-  minFromTree: number,
-  maxFromTree: number,
-): GroundPoint[] {
+function placeNearTrees(random: Random, river: River, trees: readonly GroundPoint[], count: number, minFromTree: number, maxFromTree: number): GroundPoint[] {
   const half = VALLEY_SIZE_METRES / 2;
   const cellSize = minFromTree;
   const cellsPerSide = Math.ceil(VALLEY_SIZE_METRES / cellSize);

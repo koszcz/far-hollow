@@ -237,8 +237,13 @@ function strikerGeometry(): THREE.BufferGeometry {
 /** A handful of berries: seven red berries on one leaf. */
 function berriesParts(berry: THREE.Material, leaf: THREE.Material): Part[] {
   const spots: readonly (readonly [number, number, number])[] = [
-    [0, 0, 0.016], [0.026, 0.008, 0.014], [-0.022, 0.012, 0.015], [0.006, 0.03, 0.013],
-    [-0.008, -0.024, 0.014], [0.022, -0.02, 0.012], [0.004, 0.006, 0.013],
+    [0, 0, 0.016],
+    [0.026, 0.008, 0.014],
+    [-0.022, 0.012, 0.015],
+    [0.006, 0.03, 0.013],
+    [-0.008, -0.024, 0.014],
+    [0.022, -0.02, 0.012],
+    [0.004, 0.006, 0.013],
   ];
   const berries = spots.map(([x, z, radius], index) =>
     // The last berry rests on top of the others.

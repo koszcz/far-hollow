@@ -15,11 +15,40 @@ const SKIPPED_FOLDERS = new Set(["node_modules", "dist", ".git"]);
 const SKIPPED_PATHS = new Set([".claude/worktrees", "third-party"]);
 const ASSET_EXTENSIONS = new Set([
   // Models and animations
-  ".glb", ".gltf", ".bin", ".fbx", ".obj", ".mtl", ".dae", ".blend", ".usdz", ".vrm",
+  ".glb",
+  ".gltf",
+  ".bin",
+  ".fbx",
+  ".obj",
+  ".mtl",
+  ".dae",
+  ".blend",
+  ".usdz",
+  ".vrm",
   // Textures and images
-  ".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg", ".ktx2", ".basis", ".dds", ".tga", ".hdr", ".exr",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".avif",
+  ".gif",
+  ".svg",
+  ".ktx2",
+  ".basis",
+  ".dds",
+  ".tga",
+  ".hdr",
+  ".exr",
   // Sounds
-  ".mp3", ".ogg", ".oga", ".opus", ".wav", ".m4a", ".aac", ".flac", ".webm",
+  ".mp3",
+  ".ogg",
+  ".oga",
+  ".opus",
+  ".wav",
+  ".m4a",
+  ".aac",
+  ".flac",
+  ".webm",
 ]);
 
 /** Lists every asset file under a folder, as paths from the project root with forward slashes. */

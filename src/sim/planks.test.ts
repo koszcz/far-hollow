@@ -154,7 +154,10 @@ describe("cutting planks in the craft menu", () => {
       seconds: 8,
       tool: "saw",
       station: "sawhorse",
-      lacks: [{ kind: "tool", tool: "saw" }, { kind: "station", station: "sawhorse" }],
+      lacks: [
+        { kind: "tool", tool: "saw" },
+        { kind: "station", station: "sawhorse" },
+      ],
     });
 
     give(game, { saw: 1 });
@@ -286,9 +289,18 @@ function buildFully(game: Game, blueprint: Entity): void {
 function openSquareNearPlayer(game: Game, from: number): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
-      const open = [-3, -2, -1, 0, 1, 2, 3].every((ax) => [-3, -2, -1, 0, 1, 2, 3].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));
+      const open = [-3, -2, -1, 0, 1, 2, 3].every((ax) =>
+        [-3, -2, -1, 0, 1, 2, 3].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })),
+      );
       if (open) return square;
     }
   }

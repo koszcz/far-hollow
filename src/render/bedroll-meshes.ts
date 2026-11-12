@@ -57,11 +57,7 @@ interface BedrollShape {
   readonly material: THREE.Material;
 }
 
-const rollCentre = new THREE.Vector3(
-  0,
-  MAT_THICKNESS_METRES + ROLL_RADIUS_METRES * ROLL_SQUASH,
-  -MAT_LENGTH_METRES / 2 + ROLL_RADIUS_METRES * 1.4,
-);
+const rollCentre = new THREE.Vector3(0, MAT_THICKNESS_METRES + ROLL_RADIUS_METRES * ROLL_SQUASH, -MAT_LENGTH_METRES / 2 + ROLL_RADIUS_METRES * 1.4);
 
 function roundedRectangle(width: number, length: number, corner: number): THREE.Shape {
   const x = width / 2;
@@ -80,11 +76,7 @@ function roundedRectangle(width: number, length: number, corner: number): THREE.
 }
 
 function matGeometry(): THREE.BufferGeometry {
-  const shape = roundedRectangle(
-    MAT_WIDTH_METRES - 2 * MAT_BEVEL_METRES,
-    MAT_LENGTH_METRES - 2 * MAT_BEVEL_METRES,
-    MAT_CORNER_METRES,
-  );
+  const shape = roundedRectangle(MAT_WIDTH_METRES - 2 * MAT_BEVEL_METRES, MAT_LENGTH_METRES - 2 * MAT_BEVEL_METRES, MAT_CORNER_METRES);
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: MAT_THICKNESS_METRES - 2 * MAT_BEVEL_METRES,
     bevelEnabled: true,
@@ -141,9 +133,7 @@ function spiralGeometry(): THREE.BufferGeometry {
 
 function strapGeometry(): THREE.BufferGeometry {
   const offset = (ROLL_LENGTH_METRES / 2) * STRAP_OFFSET;
-  return mergeGeometries(
-    [-offset, offset].map((x) => acrossRoll(ROLL_RADIUS_METRES * 1.06, STRAP_WIDTH_METRES, x)),
-  );
+  return mergeGeometries([-offset, offset].map((x) => acrossRoll(ROLL_RADIUS_METRES * 1.06, STRAP_WIDTH_METRES, x)));
 }
 
 function buckleGeometry(): THREE.BufferGeometry {
@@ -159,8 +149,7 @@ function buckleGeometry(): THREE.BufferGeometry {
 }
 
 function bedrollShapes(): BedrollShape[] {
-  const material = (color: number, roughness = 0.9) =>
-    new THREE.MeshStandardMaterial({ color, roughness, flatShading: true });
+  const material = (color: number, roughness = 0.9) => new THREE.MeshStandardMaterial({ color, roughness, flatShading: true });
   return [
     { geometry: matGeometry(), material: material(MAT_COLOUR) },
     { geometry: seamGeometry(), material: material(SEAM_COLOUR) },

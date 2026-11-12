@@ -36,7 +36,12 @@ describe("a finished woodpile", () => {
     walkAway(game);
 
     // A woodpile sits on a grid point, where four walk-map cells meet. It covers a corner of each.
-    for (const [dx, dz] of [[0.25, 0.25], [-0.25, 0.25], [0.25, -0.25], [-0.25, -0.25]] as const) {
+    for (const [dx, dz] of [
+      [0.25, 0.25],
+      [-0.25, 0.25],
+      [0.25, -0.25],
+      [-0.25, -0.25],
+    ] as const) {
       expect(isWalkable(game.walkMap, { x: woodpile.position.x + dx, z: woodpile.position.z + dz })).toBe(false);
     }
   });
@@ -52,7 +57,10 @@ describe("stacking wood on a woodpile", () => {
     tend(game, woodpile);
 
     expect(nearbyOf(game.client.getView(), "woodpile")).toEqual({
-      id: idOf(game, woodpile), contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20,
+      id: idOf(game, woodpile),
+      contents: { log: 0, debarkedLog: 0, firewood: 0 },
+      total: 0,
+      capacity: 20,
     });
   });
 
@@ -305,11 +313,21 @@ function shoulder(game: Game, log: CarriedLog): void {
 function openSpotNearPlayer(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = 3; distance < 20; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const spot = { x: Math.round(player.position.x + dx * distance), z: Math.round(player.position.z + dz * distance) };
-      const around = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([ax = 0, az = 0]) =>
-        isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }),
-      );
+      const around = [
+        [0, 0],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].every(([ax = 0, az = 0]) => isWalkable(game.walkMap, { x: spot.x + ax, z: spot.z + az }));
       if (around) return spot;
     }
   }

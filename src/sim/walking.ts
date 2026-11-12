@@ -1,12 +1,19 @@
-import {
-  playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore,
-} from "./entities";
+import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
 import { findPath } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
 import {
-  blockCircle, blockEdges, blockSpots, blockWhere, createWalkMap, nearestWalkableSpot, unblockCircle, unblockEdges, unblockSpots,
-  type WalkEdge, type WalkMap,
+  blockCircle,
+  blockEdges,
+  blockSpots,
+  blockWhere,
+  createWalkMap,
+  nearestWalkableSpot,
+  unblockCircle,
+  unblockEdges,
+  unblockSpots,
+  type WalkEdge,
+  type WalkMap,
 } from "./walk-map";
 
 /** How fast the player walks, in metres per second. */

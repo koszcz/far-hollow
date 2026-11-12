@@ -28,8 +28,24 @@ import type { OutlinePart } from "./hover-outline";
 import { seededRandom } from "./lean-to-meshes";
 import { roofTopAt, type RoofPlace, type RoofShape } from "./roof-layout";
 import {
-  BARK_THICKNESS_METRES, BEAM_RADIUS_METRES, debarkedLog, EDGES, fillFloors, fillLogs, FRAME_TOP_METRES, frameLayout, isShown, neighboursOf,
-  RAFTER_RADIUS_METRES, rafterLog, raisedBy, ROOF_SEED, ROOF_SLOPE_RADIANS, SECTION_RISE_METRES, type FrameLayout, type Section,
+  BARK_THICKNESS_METRES,
+  BEAM_RADIUS_METRES,
+  debarkedLog,
+  EDGES,
+  fillFloors,
+  fillLogs,
+  FRAME_TOP_METRES,
+  frameLayout,
+  isShown,
+  neighboursOf,
+  RAFTER_RADIUS_METRES,
+  rafterLog,
+  raisedBy,
+  ROOF_SEED,
+  ROOF_SLOPE_RADIANS,
+  SECTION_RISE_METRES,
+  type FrameLayout,
+  type Section,
 } from "./roof-parts";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
@@ -239,7 +255,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       const beside = neighbours[edge];
       if (beside === undefined) return wallUnder(section, place, edge) ? FRAME_TOP_METRES : Number.POSITIVE_INFINITY;
       const besidePlace = layout.placeAt(beside.position);
-      const barkTop = FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + BARK_THICKNESS_METRES + roofTopAt(besidePlace, beside.position, world(x, z)) * SECTION_RISE_METRES;
+      const barkTop =
+        FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + BARK_THICKNESS_METRES + roofTopAt(besidePlace, beside.position, world(x, z)) * SECTION_RISE_METRES;
       // `roofTopAt` already counts the rises of the sections in front of it, so only the lift of odd columns is added.
       const lift = raisedBy(besidePlace) - besidePlace.inFront * SECTION_RISE_METRES;
       return beside.position.y - section.position.y + lift + barkTop;
@@ -259,7 +276,11 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   }
 
   /** The fill of a frame alone, resting on beams on every side. */
-  const aloneFill = () => fillFor("straight", fillFloors("straight", 0, () => FRAME_TOP_METRES));
+  const aloneFill = () =>
+    fillFor(
+      "straight",
+      fillFloors("straight", 0, () => FRAME_TOP_METRES),
+    );
 
   /** Adds a frame's parts to `root` and `turned`, see-through: its two beam stages, then its rafters. */
   function addParts(root: THREE.Group, turned: THREE.Group, shape: RoofShape): Drawn["parts"] {
@@ -360,7 +381,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         const place = layout.placeAt(entity.position);
         const item = draw(entity, place.shape);
         item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-        item.root.visible = entity.blueprint !== undefined || !hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
+        item.root.visible =
+          entity.blueprint !== undefined || !hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
         item.turned.position.y = raisedBy(place);
         item.turned.rotation.y = facingRadians(place.drawTurns);
         const beams = beamPlans(layout, entity);
@@ -406,8 +428,16 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     },
     dispose() {
       for (const item of [
-        ...[...raftersByShape.values()].flatMap((rafters) => rafters.map(({ geometry }) => geometry)), ...beamGeometries.values(), ...fills.values(),
-        empty, pickGeometry, wood, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial,
+        ...[...raftersByShape.values()].flatMap((rafters) => rafters.map(({ geometry }) => geometry)),
+        ...beamGeometries.values(),
+        ...fills.values(),
+        empty,
+        pickGeometry,
+        wood,
+        blueprintMaterial,
+        deliveredMaterial,
+        notAllowedMaterial,
+        pickMaterial,
       ]) {
         item.dispose();
       }

@@ -67,7 +67,12 @@ describe("a campfire beside a cabin", () => {
       const onEdge = { x: square.x + 0.5, z: square.z + 0.5 };
       const y = foundationDeckTop(game.valley.terrain, square);
       if (kind === "finished") game.entities.add({ campfire: { lit: false, fuelMinutes: 0 }, position: { ...onEdge, y } });
-      else game.entities.add({ blueprint: { structure: "campfire", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 }, position: { ...onEdge, y } });
+      else
+        game.entities.add({
+          blueprint: { structure: "campfire", progress: 0, materialsSpent: 0, delivered: {} },
+          facing: { turns: 0 },
+          position: { ...onEdge, y },
+        });
 
       expect(game.client.checkPlacement("logWall", square, 0).allowed).toBe(false);
       expect(game.client.checkPlacement("doorFrame", square, 3).allowed).toBe(false);
@@ -167,12 +172,25 @@ function foundationOn(game: Game, square: GroundPoint): Entity {
 function openLeanToSpot(game: Game): GroundPoint {
   const player = onlyPlayer(game);
   for (let distance = 4; distance < 40; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ] as const) {
       const spot = { x: Math.round(player.position.x + dx * distance), z: Math.round(player.position.z + dz * distance) };
       const turns = [0, 1, 2, 3] as const;
-      const roomy = [[0, 0], [3, 0], [-3, 0], [0, 3], [0, -3]].every(([ax = 0, az = 0]) =>
-        turns.every((turn) => game.client.checkPlacement("leanTo", { x: spot.x + ax, z: spot.z + az }, turn).allowed),
-      );
+      const roomy = [
+        [0, 0],
+        [3, 0],
+        [-3, 0],
+        [0, 3],
+        [0, -3],
+      ].every(([ax = 0, az = 0]) => turns.every((turn) => game.client.checkPlacement("leanTo", { x: spot.x + ax, z: spot.z + az }, turn).allowed));
       if (roomy) return spot;
     }
   }
@@ -183,7 +201,14 @@ function openLeanToSpot(game: Game): GroundPoint {
 function openSquareNearPlayer(game: Game, from = 4): GroundPoint {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const reach = [-2, -1, 0, 1, 2];
       const open = reach.every((ax) => reach.every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));

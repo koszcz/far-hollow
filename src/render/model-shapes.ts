@@ -29,7 +29,13 @@ export interface ModelShapes {
 /** Loads every model shape at the same time. */
 export async function loadModelShapes(): Promise<ModelShapes> {
   const [trees, stump, log, berryBush, mushrooms, undergrowth, player] = await Promise.all([
-    loadTreeShapes(), loadStumpShape(), loadLogShape(), loadBerryBushShape(), loadMushroomsShape(), loadUndergrowthShapes(), loadPlayerModel(),
+    loadTreeShapes(),
+    loadStumpShape(),
+    loadLogShape(),
+    loadBerryBushShape(),
+    loadMushroomsShape(),
+    loadUndergrowthShapes(),
+    loadPlayerModel(),
   ]);
   return { trees, stump, log, berryBush, mushrooms, undergrowth, player };
 }

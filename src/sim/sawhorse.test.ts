@@ -96,7 +96,12 @@ describe("building a sawhorse", () => {
     buildFully(game, blueprint);
     const { x, z } = blueprint.position;
 
-    for (const [dx, dz] of [[0.5, 0.2], [-0.5, 0.2], [0.5, -0.2], [-0.5, -0.2]] as const) {
+    for (const [dx, dz] of [
+      [0.5, 0.2],
+      [-0.5, 0.2],
+      [0.5, -0.2],
+      [-0.5, -0.2],
+    ] as const) {
       expect(isWalkable(game.walkMap, { x: x + dx, z: z + dz })).toBe(false);
     }
     for (const structure of ["campfire", "woodpile", "sawhorse"] as const) {
@@ -204,7 +209,14 @@ function deliverLogs(game: Game, blueprint: Entity, count: number): void {
 function openSquareNearPlayer(game: Game, from = 3): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const open = [-2, -1, 0, 1, 2].every((ax) => [-2, -1, 0, 1, 2].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));
       if (open) return square;

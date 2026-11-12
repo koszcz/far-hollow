@@ -5,8 +5,19 @@ import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import {
-  DOOR_FRAME_LOG_COST, FOUNDATION_BUILD_SECONDS, LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST, LOG_WALL_BUILD_SECONDS, LOG_WALL_LOG_COST,
-  ROOF_BARK_COST, ROOF_FRAME_LOG_COST, roofFrameOn, type QuarterTurns, type StructureKind } from "./structures";
+  DOOR_FRAME_LOG_COST,
+  FOUNDATION_BUILD_SECONDS,
+  LEAN_TO_BARK_COST,
+  LEAN_TO_BUILD_SECONDS,
+  LEAN_TO_STICK_COST,
+  LOG_WALL_BUILD_SECONDS,
+  LOG_WALL_LOG_COST,
+  ROOF_BARK_COST,
+  ROOF_FRAME_LOG_COST,
+  roofFrameOn,
+  type QuarterTurns,
+  type StructureKind,
+} from "./structures";
 import { edgePieceOn } from "./edge-pieces";
 import { cabinRoofOn, isUnderRoof } from "./roofs";
 import { readSave, writeSave } from "./save";
@@ -378,12 +389,25 @@ function fillBackpackUntilFree(game: Game, kilograms: number): void {
 function openLeanToSpot(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = 4; distance < 40; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ] as const) {
       const spot = { x: Math.round(player.position.x + dx * distance), z: Math.round(player.position.z + dz * distance) };
       const turns = [0, 1, 2, 3] as const;
-      const roomy = [[0, 0], [3, 0], [-3, 0], [0, 3], [0, -3]].every(([ax = 0, az = 0]) =>
-        turns.every((turn) => game.client.checkPlacement("leanTo", { x: spot.x + ax, z: spot.z + az }, turn).allowed),
-      );
+      const roomy = [
+        [0, 0],
+        [3, 0],
+        [-3, 0],
+        [0, 3],
+        [0, -3],
+      ].every(([ax = 0, az = 0]) => turns.every((turn) => game.client.checkPlacement("leanTo", { x: spot.x + ax, z: spot.z + az }, turn).allowed));
       if (roomy) return spot;
     }
   }
@@ -417,7 +441,14 @@ function finishedFoundationAt(game: Game, square: { x: number; z: number }) {
 function openSquareNearPlayer(game: Game, from = 4): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const reach = [-2, -1, 0, 1, 2];
       const open = reach.every((ax) => reach.every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));

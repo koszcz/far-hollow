@@ -35,7 +35,10 @@ describe("finding rooms", () => {
 
   it("finds no room when one square has no roof", () => {
     const entities = createEntityStore();
-    const squares = [{ x: 0.5, z: 0.5 }, { x: 1.5, z: 0.5 }];
+    const squares = [
+      { x: 0.5, z: 0.5 },
+      { x: 1.5, z: 0.5 },
+    ];
     cabin(entities, squares);
     const roof = entities.with("cabinRoof", "position").entities.find(({ position }) => position.x === 1.5);
     if (roof === undefined) throw new Error("No roof");
@@ -46,7 +49,11 @@ describe("finding rooms", () => {
 
   it("joins squares with no wall between them into one room", () => {
     const entities = createEntityStore();
-    const squares = [{ x: 0.5, z: 0.5 }, { x: 1.5, z: 0.5 }, { x: 1.5, z: 1.5 }];
+    const squares = [
+      { x: 0.5, z: 0.5 },
+      { x: 1.5, z: 0.5 },
+      { x: 1.5, z: 1.5 },
+    ];
     cabin(entities, squares);
 
     const rooms = findRooms(entities);
@@ -154,7 +161,8 @@ describe("warmth in a room", () => {
 /** Adds a finished campfire. One on the middle of a foundation's square stands on that foundation, as a built one does. */
 function campfireAt(entities: EntityStore, at: GroundPoint, lit: boolean): void {
   const foundation = foundationOn(entities, at);
-  const onFoundation = foundation !== undefined && foundation.position.x === at.x && foundation.position.z === at.z ? { onFoundation: { x: at.x, z: at.z } } : {};
+  const onFoundation =
+    foundation !== undefined && foundation.position.x === at.x && foundation.position.z === at.z ? { onFoundation: { x: at.x, z: at.z } } : {};
   entities.add({ campfire: { lit, fuelMinutes: lit ? 60 : 0 }, position: { x: at.x, y: 1, z: at.z }, ...onFoundation });
 }
 
@@ -187,7 +195,9 @@ function pieceAt(entities: EntityStore, kind: EdgePieceKind, square: GroundPoint
 
 function removePiece(entities: EntityStore, square: GroundPoint, side: QuarterTurns): void {
   const edge = edgeMiddle(square, side);
-  const piece = entities.with("edgePiece", "position").entities.find(({ position }) => Math.abs(position.x - edge.x) < 1e-6 && Math.abs(position.z - edge.z) < 1e-6);
+  const piece = entities
+    .with("edgePiece", "position")
+    .entities.find(({ position }) => Math.abs(position.x - edge.x) < 1e-6 && Math.abs(position.z - edge.z) < 1e-6);
   if (piece === undefined) throw new Error("No piece on that edge");
   entities.remove(piece);
 }

@@ -37,4 +37,3 @@ export function roofAbove(entities: EntityStore, spot: GroundPoint): Entity[] {
   }
   return [...joined];
 }
-

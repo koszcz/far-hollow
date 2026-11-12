@@ -12,7 +12,11 @@ describe("the foundation in the build menu", () => {
   it("lists the foundation with its cost in debarked logs", () => {
     const game = createGame({ seed: 42 });
 
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "foundation", cost: [{ material: "debarkedLog", count: FOUNDATION_LOG_COST }], placement: "onGround" });
+    expect(game.client.getView().buildMenu).toContainEqual({
+      structure: "foundation",
+      cost: [{ material: "debarkedLog", count: FOUNDATION_LOG_COST }],
+      placement: "onGround",
+    });
     expect(FOUNDATION_LOG_COST).toBeGreaterThan(1);
   });
 });
@@ -27,9 +31,7 @@ describe("placing a foundation", () => {
     const blueprint = onlyBlueprint(game);
     expect(blueprint.blueprint).toMatchObject({ structure: "foundation", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.position).toMatchObject({ x: square.x, z: square.z });
-    expect(game.client.describeBlueprint(idOf(game, blueprint))?.deliveries).toEqual([
-      { material: "debarkedLog", has: 0, needs: FOUNDATION_LOG_COST },
-    ]);
+    expect(game.client.describeBlueprint(idOf(game, blueprint))?.deliveries).toEqual([{ material: "debarkedLog", has: 0, needs: FOUNDATION_LOG_COST }]);
   });
 
   it("lets foundations sit side by side, but not two on one square", () => {
@@ -296,7 +298,14 @@ function deliverLogs(game: Game, blueprint: Entity, count: number): void {
 function openSquareNearPlayer(game: Game, from = 3): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const open = [-1, 0, 1].every((ax) => [-1, 0, 1].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));
       if (open) return square;
@@ -318,7 +327,12 @@ function slopedPairNearPlayer(game: Game, rise: number): { high: { x: number; z:
     for (let dx = -distance; dx <= distance; dx += 1) {
       for (const dz of [-distance, distance]) {
         const high = { x: Math.floor(player.position.x + dx) + 0.5, z: Math.floor(player.position.z + dz) + 0.5 };
-        for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        for (const [sx, sz] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ] as const) {
           const low = { x: high.x + sx, z: high.z + sz };
           const far = { x: low.x + sx, z: low.z + sz };
           if (!open(high) || !open(low) || !open(far)) continue;
@@ -376,4 +390,3 @@ function idOf(game: Game, entity: Entity): number {
   if (id === undefined) throw new Error("Entity is not in the store");
   return id;
 }
-

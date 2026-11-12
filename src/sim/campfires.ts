@@ -6,7 +6,6 @@ import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 
-
 /** How many game minutes one of each kind of fuel keeps a campfire burning. Bark burns like sticks. Firewood burns longer. */
 export const FUEL_BURN_MINUTES: Readonly<Record<CampfireFuel, number>> = {
   stick: 20,

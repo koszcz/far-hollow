@@ -111,7 +111,10 @@ describe("findPath with walls on the lines between squares", () => {
     const map = createWalkMap({ size: 100 });
     const inside = { x: 10.5, z: 10.5 };
     // Every side but the one facing +z.
-    blockEdges(map, edgesAround(inside).filter((edge) => edge.to.z <= inside.z));
+    blockEdges(
+      map,
+      edgesAround(inside).filter((edge) => edge.to.z <= inside.z),
+    );
     const outside = { x: 0.5, z: 0.5 };
 
     const path = findPath(map, outside, inside);
@@ -132,7 +135,12 @@ function wallAlongX1(fromZ: number, toZ: number): WalkEdge[] {
 
 /** The four edges around the 1 m square with this middle. */
 function edgesAround(middle: GroundPoint): WalkEdge[] {
-  return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx = 0, dz = 0]) => ({ from: middle, to: { x: middle.x + dx, z: middle.z + dz } }));
+  return [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ].map(([dx = 0, dz = 0]) => ({ from: middle, to: { x: middle.x + dx, z: middle.z + dz } }));
 }
 
 /** The z of each spot where a walk along a path crosses the line x = 1. */

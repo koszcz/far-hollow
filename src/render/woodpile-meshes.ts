@@ -168,10 +168,7 @@ export function createWoodpileMeshes(entities: EntityStore, logShape: LogShape):
         }
         return;
       }
-      const log: THREE.Mesh =
-        kind === "log"
-          ? new THREE.Mesh(logShape.geometry, logMaterials)
-          : new THREE.Mesh(debarkedLogGeometry, debarkedLogMaterial);
+      const log: THREE.Mesh = kind === "log" ? new THREE.Mesh(logShape.geometry, logMaterials) : new THREE.Mesh(debarkedLogGeometry, debarkedLogMaterial);
       log.position.set(place.x, place.y, jitter);
       log.rotation.z = LOG_ROLLS[index % LOG_ROLLS.length] ?? 0;
       root.add(log);

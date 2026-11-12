@@ -211,9 +211,7 @@ export type PlainNotice =
  * `filled`: a game the player can continue, with its seed and the day it reached.
  */
 export type SaveSlotSummary =
-  | { readonly state: "empty" }
-  | { readonly state: "broken" }
-  | { readonly state: "filled"; readonly seed: number; readonly day: number };
+  { readonly state: "empty" } | { readonly state: "broken" } | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
 /** The kinds of fuel the player can put on a campfire. */
 export type CampfireFuel = "stick" | "firewood" | "bark";

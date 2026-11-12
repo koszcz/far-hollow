@@ -114,7 +114,11 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       })),
     ),
     ...[-1, 1].flatMap((sx) =>
-      Array.from({ length: WALL_PLANKS }, (_, i): Part => ({ size: [WALL_PLANK_METRES, wallPlankHeight, endLength], at: [sx * endX, wallPlankY(i), 0], grain: "z" })),
+      Array.from({ length: WALL_PLANKS }, (_, i): Part => ({
+        size: [WALL_PLANK_METRES, wallPlankHeight, endLength],
+        at: [sx * endX, wallPlankY(i), 0],
+        grain: "z",
+      })),
     ),
     ...[-1, 1].map((sx): Part => ({
       size: GRIP_METRES,
@@ -294,7 +298,16 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       placingBlueprint.rotation.y = facingRadians(shown.turns);
     },
     dispose() {
-      for (const item of [...geometries.flat(), pickGeometry, woodMaterial, cutMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
+      for (const item of [
+        ...geometries.flat(),
+        pickGeometry,
+        woodMaterial,
+        cutMaterial,
+        blueprintMaterial,
+        deliveredMaterial,
+        notAllowedMaterial,
+        pickMaterial,
+      ]) {
         item.dispose();
       }
       disposeFading(placingStages);

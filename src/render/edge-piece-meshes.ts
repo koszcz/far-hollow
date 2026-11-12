@@ -198,7 +198,9 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   const rightPostGeometry = doorLogGeometry(POST_TOP_RADIUS_METRES, POST_FOOT_RADIUS_METRES, postHeight).rotateZ(RIGHT_POST_LEAN_RADIANS);
   const lintelLength = BUILD_GRID_METRES + 2 * LINTEL_OVERHANG_METRES;
   // Turned a little about its length, so its flat sides do not line up with the posts'.
-  const lintelGeometry = doorLogGeometry(LINTEL_RADIUS_METRES, LINTEL_RADIUS_METRES, lintelLength).rotateY(0.3).rotateZ(Math.PI / 2);
+  const lintelGeometry = doorLogGeometry(LINTEL_RADIUS_METRES, LINTEL_RADIUS_METRES, lintelLength)
+    .rotateY(0.3)
+    .rotateZ(Math.PI / 2);
   const doorWoodMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, EDGE_PIECE_HEIGHT_METRES, PICK_THICKNESS_METRES).translate(0, EDGE_PIECE_HEIGHT_METRES / 2, 0);
   const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
@@ -410,9 +412,19 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
     },
     dispose() {
       for (const item of [
-        courseGeometry, leftPostGeometry, rightPostGeometry, lintelGeometry, pickGeometry, woodMaterial, cutMaterial, doorWoodMaterial,
-        blueprintMaterial, deliveredMaterial, notAllowedMaterial,
-        fadedMaterial, pickMaterial,
+        courseGeometry,
+        leftPostGeometry,
+        rightPostGeometry,
+        lintelGeometry,
+        pickGeometry,
+        woodMaterial,
+        cutMaterial,
+        doorWoodMaterial,
+        blueprintMaterial,
+        deliveredMaterial,
+        notAllowedMaterial,
+        fadedMaterial,
+        pickMaterial,
       ]) {
         item.dispose();
       }
@@ -451,8 +463,7 @@ function endsOf(wall: WallLine): [{ x: number; z: number }, { x: number; z: numb
  */
 export function wallEnds(wall: WallLine, walls: readonly WallLine[]): WallEnds {
   const [start, end] = endsOf(wall);
-  const same = (a: { x: number; z: number }, b: { x: number; z: number }) =>
-    Math.abs(a.x - b.x) < SAME_POINT_METRES && Math.abs(a.z - b.z) < SAME_POINT_METRES;
+  const same = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.abs(a.x - b.x) < SAME_POINT_METRES && Math.abs(a.z - b.z) < SAME_POINT_METRES;
   const crossing = walls.filter((other) => Math.abs(other.turns - wall.turns) % 2 === 1).flatMap(endsOf);
   return { start: crossing.some((point) => same(point, start)), end: crossing.some((point) => same(point, end)) };
 }

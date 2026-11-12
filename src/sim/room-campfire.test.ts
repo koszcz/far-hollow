@@ -119,7 +119,9 @@ function finishedEdge(game: Game, kind: EdgePieceKind, square: GroundPoint, side
 
 function wallOn(game: Game, square: GroundPoint, side: QuarterTurns): Entity {
   const edge = edgeMiddle(square, side);
-  const wall = game.entities.with("edgePiece", "position").entities.find(({ position }) => Math.abs(position.x - edge.x) < 1e-6 && Math.abs(position.z - edge.z) < 1e-6);
+  const wall = game.entities
+    .with("edgePiece", "position")
+    .entities.find(({ position }) => Math.abs(position.x - edge.x) < 1e-6 && Math.abs(position.z - edge.z) < 1e-6);
   if (wall === undefined) throw new Error("No wall there");
   return wall;
 }
@@ -157,11 +159,18 @@ function buildCampfire(game: Game, square: GroundPoint): Entity {
 function openRowNearPlayer(game: Game, length: number): GroundPoint {
   const player = onlyPlayer(game);
   for (let distance = 4; distance < 40; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+    ] as const) {
       const start = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const xs = Array.from({ length: length + 2 }, (_, i) => start.x - 1 + i);
       const open = xs.every((x) => [-1, 0, 1].every((az) => isWalkable(game.walkMap, { x, z: start.z + az })));
-      const placeable = Array.from({ length }, (_, i) => ({ x: start.x + i, z: start.z })).every((square) => game.client.checkPlacement("foundation", square, 0).allowed);
+      const placeable = Array.from({ length }, (_, i) => ({ x: start.x + i, z: start.z })).every(
+        (square) => game.client.checkPlacement("foundation", square, 0).allowed,
+      );
       if (open && placeable) return start;
     }
   }

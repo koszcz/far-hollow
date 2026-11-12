@@ -135,11 +135,17 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
   const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true });
   const ashMaterial = new THREE.MeshStandardMaterial({ color: ASH_COLOUR, flatShading: true });
   const blueprintMaterial = new THREE.MeshStandardMaterial({
-    color: BLUEPRINT_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
+    color: BLUEPRINT_COLOUR,
+    transparent: true,
+    opacity: BLUEPRINT_OPACITY,
+    depthWrite: false,
   });
   /** A blueprint under the mouse turns this colour where it cannot be placed. */
   const notAllowedMaterial = new THREE.MeshStandardMaterial({
-    color: NOT_ALLOWED_COLOUR, transparent: true, opacity: BLUEPRINT_OPACITY, depthWrite: false,
+    color: NOT_ALLOWED_COLOUR,
+    transparent: true,
+    opacity: BLUEPRINT_OPACITY,
+    depthWrite: false,
   });
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
   const fireMaker = createFireMaker();
@@ -344,8 +350,17 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     },
     dispose() {
       for (const item of [
-        ...stones.map(({ geometry }) => geometry), ...stoneMaterials, stickGeometry, charredStickGeometry, ashGeometry,
-        pickGeometry, stickMaterial, ashMaterial, blueprintMaterial, notAllowedMaterial, pickMaterial,
+        ...stones.map(({ geometry }) => geometry),
+        ...stoneMaterials,
+        stickGeometry,
+        charredStickGeometry,
+        ashGeometry,
+        pickGeometry,
+        stickMaterial,
+        ashMaterial,
+        blueprintMaterial,
+        notAllowedMaterial,
+        pickMaterial,
       ]) {
         item.dispose();
       }
@@ -360,7 +375,6 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
 export function buildProgressAtStickStage(stages: number): number {
   return BUILD_STONES_SHARE + ((1 - BUILD_STONES_SHARE) * stages) / CAMPFIRE_STICK_COST;
 }
-
 
 /** One stone of the ring: its own lumpy shape, where it sits, and how far it is turned. */
 interface PlacedStone {

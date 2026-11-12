@@ -71,7 +71,13 @@ export function createStickGeometry(): THREE.BufferGeometry {
  * The lean-to in lean-to-meshes.ts builds its crooked posts and ridge pole from these.
  */
 export function createStickSegment(
-  from: THREE.Vector3, to: THREE.Vector3, fromRadius: number, toRadius: number, sides: number, paleFrom: boolean, paleTo: boolean,
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  fromRadius: number,
+  toRadius: number,
+  sides: number,
+  paleFrom: boolean,
+  paleTo: boolean,
 ): THREE.BufferGeometry {
   const direction = to.clone().sub(from);
   const length = direction.length();

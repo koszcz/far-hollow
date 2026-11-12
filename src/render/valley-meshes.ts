@@ -79,13 +79,11 @@ function createGroundMaterial(valley: Valley, track: <T extends { dispose(): voi
     shader.uniforms.riverBankMap = { value: textures.riverBank };
     shader.uniforms.groundTypeWeights = { value: weights };
     shader.uniforms.valleySize = { value: valley.size };
-    shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", "#include <common>\nuniform float valleySize;\nvarying vec2 vGroundTypeUv;")
-      .replace(
-        "#include <begin_vertex>",
-        // Row 0 of the baked map is the edge at z = -size / 2, which is texture coordinate 0.
-        "#include <begin_vertex>\nvGroundTypeUv = position.xz / valleySize + 0.5;",
-      );
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform float valleySize;\nvarying vec2 vGroundTypeUv;").replace(
+      "#include <begin_vertex>",
+      // Row 0 of the baked map is the edge at z = -size / 2, which is texture coordinate 0.
+      "#include <begin_vertex>\nvGroundTypeUv = position.xz / valleySize + 0.5;",
+    );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",

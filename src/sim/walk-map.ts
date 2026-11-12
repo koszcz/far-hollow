@@ -68,8 +68,12 @@ export function canStep(map: WalkMap, from: number, to: number): boolean {
   const besideX = from + dx;
   const besideZ = from + dz * side;
   return (
-    map.blockerCounts[besideX] === 0 && map.blockerCounts[besideZ] === 0
-    && isEdgeOpen(map, from, besideX) && isEdgeOpen(map, besideX, to) && isEdgeOpen(map, from, besideZ) && isEdgeOpen(map, besideZ, to)
+    map.blockerCounts[besideX] === 0 &&
+    map.blockerCounts[besideZ] === 0 &&
+    isEdgeOpen(map, from, besideX) &&
+    isEdgeOpen(map, besideX, to) &&
+    isEdgeOpen(map, from, besideZ) &&
+    isEdgeOpen(map, besideZ, to)
   );
 }
 

@@ -79,19 +79,35 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
 
   /** How each structure kind is outlined as a blueprint and shown under the mouse. TypeScript reports a kind with no entry. */
   const drawings: { readonly [Kind in StructureKind]: KindDrawing } = {
-    campfire: { outlineBlueprint: (entity) => campfires.outlineOf({ kind: "blueprint", entity }), showPlacing: (placing) => { campfires.showPlacingBlueprint(placing); } },
-    leanTo: { outlineBlueprint: (entity) => leanTos.outlineOf(entity), showPlacing: (placing) => { leanTos.showPlacingBlueprint(placing); } },
+    campfire: {
+      outlineBlueprint: (entity) => campfires.outlineOf({ kind: "blueprint", entity }),
+      showPlacing: (placing) => {
+        campfires.showPlacingBlueprint(placing);
+      },
+    },
+    leanTo: {
+      outlineBlueprint: (entity) => leanTos.outlineOf(entity),
+      showPlacing: (placing) => {
+        leanTos.showPlacingBlueprint(placing);
+      },
+    },
     foundation: {
       outlineBlueprint: (entity) => foundations.outlineOf({ kind: "blueprint", entity }),
-      showPlacing: (placing) => { foundations.showPlacingBlueprint(placing); },
+      showPlacing: (placing) => {
+        foundations.showPlacingBlueprint(placing);
+      },
     },
     logWall: {
       outlineBlueprint: (entity) => edgePieces.outlineOf({ kind: "blueprint", entity }),
-      showPlacing: (placing) => { edgePieces.showPlacingBlueprint(placing && { ...placing, structure: "logWall" }); },
+      showPlacing: (placing) => {
+        edgePieces.showPlacingBlueprint(placing && { ...placing, structure: "logWall" });
+      },
     },
     doorFrame: {
       outlineBlueprint: (entity) => edgePieces.outlineOf({ kind: "blueprint", entity }),
-      showPlacing: (placing) => { edgePieces.showPlacingBlueprint(placing && { ...placing, structure: "doorFrame" }); },
+      showPlacing: (placing) => {
+        edgePieces.showPlacingBlueprint(placing && { ...placing, structure: "doorFrame" });
+      },
     },
     roofFrame: {
       outlineBlueprint: (entity) => roofFrames.outlineOf({ kind: "blueprint", entity }),
@@ -99,15 +115,29 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         roofFrames.showPlacingBlueprint(placing);
       },
     },
-    roof: { outlineBlueprint: (entity) => roofs.outlineOf({ kind: "blueprint", entity }), showPlacing: (placing) => { roofs.showPlacingBlueprint(placing); } },
+    roof: {
+      outlineBlueprint: (entity) => roofs.outlineOf({ kind: "blueprint", entity }),
+      showPlacing: (placing) => {
+        roofs.showPlacingBlueprint(placing);
+      },
+    },
     woodpile: {
       outlineBlueprint: (entity) => woodpiles.outlineOf({ kind: "blueprint", entity }),
-      showPlacing: (placing) => { woodpiles.showPlacingBlueprint(placing); },
+      showPlacing: (placing) => {
+        woodpiles.showPlacingBlueprint(placing);
+      },
     },
-    chest: { outlineBlueprint: (entity) => chests.outlineOf({ kind: "blueprint", entity }), showPlacing: (placing) => { chests.showPlacingBlueprint(placing); } },
+    chest: {
+      outlineBlueprint: (entity) => chests.outlineOf({ kind: "blueprint", entity }),
+      showPlacing: (placing) => {
+        chests.showPlacingBlueprint(placing);
+      },
+    },
     sawhorse: {
       outlineBlueprint: (entity) => sawhorses.outlineOf({ kind: "blueprint", entity }),
-      showPlacing: (placing) => { sawhorses.showPlacingBlueprint(placing); },
+      showPlacing: (placing) => {
+        sawhorses.showPlacingBlueprint(placing);
+      },
     },
   };
 
@@ -134,9 +164,15 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([
-        campfires.pick(raycaster), leanTos.pick(raycaster), foundations.pick(raycaster), edgePieces.pick(raycaster), roofFrames.pick(raycaster),
+        campfires.pick(raycaster),
+        leanTos.pick(raycaster),
+        foundations.pick(raycaster),
+        edgePieces.pick(raycaster),
+        roofFrames.pick(raycaster),
         roofs.pick(raycaster),
-        woodpiles.pick(raycaster), chests.pick(raycaster), sawhorses.pick(raycaster),
+        woodpiles.pick(raycaster),
+        chests.pick(raycaster),
+        sawhorses.pick(raycaster),
       ]);
     },
     pickFinished(raycaster) {

@@ -163,8 +163,7 @@ function onlyPlayer(game: Game) {
 function nearestTreeToPlayer(game: Game) {
   const player = onlyPlayer(game);
   const trees = [...game.entities.with("tree", "position")];
-  const distance = (tree: (typeof trees)[number]) =>
-    Math.hypot(tree.position.x - player.position.x, tree.position.z - player.position.z);
+  const distance = (tree: (typeof trees)[number]) => Math.hypot(tree.position.x - player.position.x, tree.position.z - player.position.z);
   const nearest = trees.sort((a, b) => distance(a) - distance(b))[0];
   if (nearest === undefined) throw new Error("No trees");
   return nearest;

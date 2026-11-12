@@ -13,7 +13,7 @@ e2e:
 	bun run test:e2e
 
 check:
-	bun run typecheck && bun run lint && bun run test && bun run check:assets
+	bun run typecheck && bun run format:check && bun run lint && bun run test && bun run check:assets
 
 # Format the code in place.
 fmt:

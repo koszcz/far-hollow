@@ -89,12 +89,7 @@ export function createSceneRenderer(
   const scene = new THREE.Scene();
   const skyLighting = createSkyLighting(scene, renderer);
 
-  const camera = new THREE.PerspectiveCamera(
-    CAMERA_FIELD_OF_VIEW_DEGREES,
-    1,
-    CAMERA_NEAR_METRES,
-    CAMERA_FAR_METRES,
-  );
+  const camera = new THREE.PerspectiveCamera(CAMERA_FIELD_OF_VIEW_DEGREES, 1, CAMERA_NEAR_METRES, CAMERA_FAR_METRES);
   const cameraRig = createCameraRig({ groundHeightAt: (x, z) => terrainHeightAt(valley.terrain, x, z) });
   function placeCamera(): void {
     const { eye, focus } = cameraRig.view();
@@ -124,9 +119,7 @@ export function createSceneRenderer(
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
-  skyLighting.addShadowCasters(
-    forestMeshes.group, structureMeshes.group, forageMeshes.group, bedrollMeshes.group, pileMeshes.group, barkMeshes.group,
-  );
+  skyLighting.addShadowCasters(forestMeshes.group, structureMeshes.group, forageMeshes.group, bedrollMeshes.group, pileMeshes.group, barkMeshes.group);
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
@@ -228,8 +221,12 @@ export function createSceneRenderer(
   function pickThroughFinishedStructures(): { pick: GroundOrThingPick; distance: number } | undefined {
     const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
     const candidates = [
-      forestMeshes.pick(raycaster), structureMeshes.pick(raycaster), forageMeshes.pick(raycaster), bedrollMeshes.pick(raycaster),
-      pileMeshes.pick(raycaster), barkMeshes.pick(raycaster),
+      forestMeshes.pick(raycaster),
+      structureMeshes.pick(raycaster),
+      forageMeshes.pick(raycaster),
+      bedrollMeshes.pick(raycaster),
+      pileMeshes.pick(raycaster),
+      barkMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {

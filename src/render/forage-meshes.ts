@@ -38,11 +38,7 @@ export interface ForageMeshes {
  * bushShape is the loaded berry bush, from loadBerryBushShape. mushroomsShape is the loaded mushroom patch, from
  * loadMushroomsShape. Their geometry is shared, so this never disposes of it.
  */
-export function createForageMeshes(
-  entities: EntityStore,
-  bushShape: BerryBushShape,
-  mushroomsShape: MushroomsShape,
-): ForageMeshes {
+export function createForageMeshes(entities: EntityStore, bushShape: BerryBushShape, mushroomsShape: MushroomsShape): ForageMeshes {
   const group = new THREE.Group();
   const spots = forageSpotEntities(entities);
   const capacity = Math.max(1, spots.size);
@@ -169,10 +165,19 @@ export function createForageMeshes(
       connected.disconnect();
       regrowing.disconnect();
       for (const item of [
-        bushPickGeometry, mushroomPickGeometry,
-        leafMaterial, berryMaterial, mushroomMaterial, pickMaterial,
-        bushes, berries, mushrooms, bushPickers, mushroomPickers,
-      ]) item.dispose();
+        bushPickGeometry,
+        mushroomPickGeometry,
+        leafMaterial,
+        berryMaterial,
+        mushroomMaterial,
+        pickMaterial,
+        bushes,
+        berries,
+        mushrooms,
+        bushPickers,
+        mushroomPickers,
+      ])
+        item.dispose();
     },
   };
 }

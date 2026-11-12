@@ -60,19 +60,17 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   for (const material of [flatMaterial, ownNormalsMaterial]) {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.undergrowthFocus = focusUniform;
-      shader.vertexShader = shader.vertexShader
-        .replace("#include <common>", "#include <common>\nuniform vec2 undergrowthFocus;")
-        .replace(
+      shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform vec2 undergrowthFocus;").replace(
+        "#include <begin_vertex>",
+        [
           "#include <begin_vertex>",
-          [
-            "#include <begin_vertex>",
-            "#ifdef USE_INSTANCING",
-            // Shrink each plant towards its foot as it nears the edge of the drawn area.
-            "vec2 undergrowthSpot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
-            `transformed *= 1.0 - smoothstep( ${FADE_START_METRES.toFixed(1)}, ${UNDERGROWTH_DRAW_METRES.toFixed(1)}, distance( undergrowthSpot, undergrowthFocus ) );`,
-            "#endif",
-          ].join("\n"),
-        );
+          "#ifdef USE_INSTANCING",
+          // Shrink each plant towards its foot as it nears the edge of the drawn area.
+          "vec2 undergrowthSpot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
+          `transformed *= 1.0 - smoothstep( ${FADE_START_METRES.toFixed(1)}, ${UNDERGROWTH_DRAW_METRES.toFixed(1)}, distance( undergrowthSpot, undergrowthFocus ) );`,
+          "#endif",
+        ].join("\n"),
+      );
     };
   }
   const materialFor = (shape: UndergrowthShape) => (shape.ownNormals === true ? ownNormalsMaterial : flatMaterial);
@@ -82,7 +80,10 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   for (const batch of batches) group.add(batch.mesh);
   const batchesByKind = new Map<UndergrowthKind, typeof batches>();
   for (const kind of Object.keys(LOOK_BY_KIND) as UndergrowthKind[]) {
-    batchesByKind.set(kind, batches.filter((batch) => LOOK_BY_KIND[kind].models.test(batch.shape.name)));
+    batchesByKind.set(
+      kind,
+      batches.filter((batch) => LOOK_BY_KIND[kind].models.test(batch.shape.name)),
+    );
   }
 
   /** Patches grown so far, by column and row. Patches far from the focus are dropped. */

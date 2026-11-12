@@ -12,7 +12,12 @@ describe("the chest in the build menu", () => {
     const game = createGame({ seed: 42 });
 
     expect(CHEST_LOG_COST).toBe(2);
-    expect(game.client.getView().buildMenu).toContainEqual({ structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" });
+    expect(game.client.getView().buildMenu).toContainEqual({
+      structure: "chest",
+      cost: [{ material: "debarkedLog", count: 2 }],
+      tool: "axe",
+      placement: "anywhere",
+    });
   });
 });
 
@@ -134,7 +139,13 @@ describe("a finished chest", () => {
     }
 
     for (const chest of game.entities.with("chest", "position")) {
-      for (const [dx, dz] of [[0, 0], [0.4, 0.2], [-0.4, 0.2], [0.4, -0.2], [-0.4, -0.2]] as const) {
+      for (const [dx, dz] of [
+        [0, 0],
+        [0.4, 0.2],
+        [-0.4, 0.2],
+        [0.4, -0.2],
+        [-0.4, -0.2],
+      ] as const) {
         expect(isWalkable(game.walkMap, { x: chest.position.x + dx, z: chest.position.z + dz })).toBe(false);
       }
     }
@@ -283,7 +294,14 @@ function deliverLogs(game: Game, blueprint: Entity, count: number): void {
 function openSquareNearPlayer(game: Game, from = 3): { x: number; z: number } {
   const player = onlyPlayer(game);
   for (let distance = from; distance < 30; distance += 1) {
-    for (const [dx, dz] of [[1, 0], [0, 1], [0, -1], [-1, 0], [1, 1], [1, -1]] as const) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [1, -1],
+    ] as const) {
       const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
       const open = [-2, -1, 0, 1, 2].every((ax) => [-2, -1, 0, 1, 2].every((az) => isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })));
       if (open) return square;

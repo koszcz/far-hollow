@@ -140,7 +140,14 @@ function scratchFor(map: WalkMap): SearchScratch {
 }
 
 const NEIGHBOURS: readonly (readonly [number, number])[] = [
-  [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+  [1, 1],
+  [1, -1],
+  [-1, 1],
+  [-1, -1],
 ];
 
 /**

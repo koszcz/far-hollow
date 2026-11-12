@@ -160,9 +160,7 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
     update(elapsedSeconds) {
       rig.rotate(keyAxis("KeyE", "KeyQ") * KEY_ROTATE_RADIANS_PER_SECOND * elapsedSeconds);
 
-      const edge = press === null
-        ? edgePanDirection(pointer, { width: canvas.clientWidth, height: canvas.clientHeight })
-        : { right: 0, forward: 0 };
+      const edge = press === null ? edgePanDirection(pointer, { width: canvas.clientWidth, height: canvas.clientHeight }) : { right: 0, forward: 0 };
       const right = clampUnit(keyAxis("KeyA", "KeyD") + edge.right);
       const forward = clampUnit(keyAxis("KeyS", "KeyW") + edge.forward);
       if (right === 0 && forward === 0) return;

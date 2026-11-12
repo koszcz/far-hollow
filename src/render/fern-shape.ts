@@ -116,13 +116,18 @@ function buildFrond(recipe: FernRecipe, random: Random, index: number): THREE.Bu
   const foot = new THREE.Color(FOOT_COLOUR).multiplyScalar(shade);
   const middle = new THREE.Color(MIDDLE_COLOUR).multiplyScalar(shade);
   const tip = new THREE.Color(TIP_COLOUR).multiplyScalar(shade);
-  const colourAt = (t: number, out: THREE.Color) =>
-    t < 0.5 ? out.lerpColors(foot, middle, t * 2) : out.lerpColors(middle, tip, (t - 0.5) * 2);
+  const colourAt = (t: number, out: THREE.Color) => (t < 0.5 ? out.lerpColors(foot, middle, t * 2) : out.lerpColors(middle, tip, (t - 0.5) * 2));
 
   // The stem is a curve that rises from the foot, then bends out and down towards the tip.
   const start = new THREE.Vector3(outward.x * 0.02, 0, outward.z * 0.02);
-  const bend = start.clone().addScaledVector(outward, length * 0.3).setY(length * 0.75 * upright);
-  const end = start.clone().addScaledVector(outward, length * 0.85).setY(length * 0.4 * upright);
+  const bend = start
+    .clone()
+    .addScaledVector(outward, length * 0.3)
+    .setY(length * 0.75 * upright);
+  const end = start
+    .clone()
+    .addScaledVector(outward, length * 0.85)
+    .setY(length * 0.4 * upright);
   const stem = new THREE.QuadraticBezierCurve3(start, bend, end);
 
   const normal = new THREE.Vector3(outward.x * NORMAL_LEAN, 1, outward.z * NORMAL_LEAN).normalize();
@@ -165,12 +170,7 @@ function buildFrond(recipe: FernRecipe, random: Random, index: number): THREE.Bu
     colourAt(Math.min(1, t + 0.15), tipColour);
     for (const sign of [-1, 1]) {
       // Each leaflet points out sideways, a little towards the tip, and droops slightly.
-      const direction = side
-        .clone()
-        .multiplyScalar(sign)
-        .addScaledVector(tangent, 0.45)
-        .setY(-0.2)
-        .normalize();
+      const direction = side.clone().multiplyScalar(sign).addScaledVector(tangent, 0.45).setY(-0.2).normalize();
       const a = centre.clone().addScaledVector(tangent, -halfBase);
       const b = centre.clone().addScaledVector(tangent, halfBase);
       const point = centre.clone().addScaledVector(direction, leafLength);

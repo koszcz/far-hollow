@@ -1,7 +1,16 @@
 // Crafting: timed work that turns materials into something new that goes in the backpack.
 // Every recipe is listed in RECIPES. A new recipe needs only a new entry there, with its name in the strings file.
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG, countInBackpack, hasInBackpack, type Backpack, type BackpackContent } from "./backpack";
-import { debarkedLogEntities, logEntities, playerEntities, setComponent, workStationEntities, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import {
+  debarkedLogEntities,
+  logEntities,
+  playerEntities,
+  setComponent,
+  workStationEntities,
+  type CarriedLog,
+  type Entity,
+  type EntityStore,
+} from "./entities";
 import type { RecipeKind } from "./recipe-kind";
 import type { WorkStationKind } from "./structure-kind";
 import { groundDistance, type GroundPoint } from "./valley";
@@ -107,9 +116,7 @@ export function craftingNow(player: Entity): { progress: number; targetId?: numb
  * `materials`: the backpack does not hold every material it uses.
  */
 export type RecipeLack =
-  | { readonly kind: "tool"; readonly tool: BackpackContent }
-  | { readonly kind: "station"; readonly station: WorkStationKind }
-  | { readonly kind: "materials" };
+  { readonly kind: "tool"; readonly tool: BackpackContent } | { readonly kind: "station"; readonly station: WorkStationKind } | { readonly kind: "materials" };
 
 /**
  * Everything the player lacks to follow `recipe`, given their backpack and whether a finished station of a kind stands anywhere.
@@ -268,8 +275,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
         if (crafter.walkPath) continue;
         const recipe = recipeOf(crafter.craftTask.recipe);
         const station = stationOf(recipe, crafter.craftTask.stationId);
-        const atStation =
-          recipe.station === undefined || (station !== undefined && groundDistance(station.position, crafter.position) <= STATION_REACH_METRES);
+        const atStation = recipe.station === undefined || (station !== undefined && groundDistance(station.position, crafter.position) <= STATION_REACH_METRES);
         const logs = station === undefined ? [] : logsBeside(recipe, station);
         if (
           !atStation ||

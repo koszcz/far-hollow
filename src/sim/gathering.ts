@@ -81,10 +81,14 @@ export function createGathering(entities: EntityStore, walking: Walking): Gather
 
   return {
     pickUpStick(stickId) {
-      return startPickUp(stickId, "stick", (player) => { setComponent(entities, player, "stickPickUpTask", { stickId }); });
+      return startPickUp(stickId, "stick", (player) => {
+        setComponent(entities, player, "stickPickUpTask", { stickId });
+      });
     },
     pickUpBark(barkId) {
-      return startPickUp(barkId, "bark", (player) => { setComponent(entities, player, "barkPickUpTask", { barkId }); });
+      return startPickUp(barkId, "bark", (player) => {
+        setComponent(entities, player, "barkPickUpTask", { barkId });
+      });
     },
     splitLog() {
       let refusal: GatherRefusal | undefined;

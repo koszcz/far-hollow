@@ -2,6 +2,7 @@
 # Runs before every commit. Installed by `bun install` (the "prepare" script).
 set -e
 bun run typecheck
+bun run format:check
 bun run lint
 bun run test
 bun run check:assets

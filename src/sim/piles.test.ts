@@ -46,11 +46,13 @@ describe("dropping things from the backpack", () => {
     giveBackpack(game, { firewood: 2 });
     send(game, { type: "dropFromBackpack", content: "firewood" });
 
-    expect(pileContents(game)).toEqual(sortedPiles([
-      { content: "firewood", count: 3 },
-      { content: "bark", count: 2 },
-      { content: "firewood", count: 2 },
-    ]));
+    expect(pileContents(game)).toEqual(
+      sortedPiles([
+        { content: "firewood", count: 3 },
+        { content: "bark", count: 2 },
+        { content: "firewood", count: 2 },
+      ]),
+    );
   });
 
   it("lays a pile dropped on a foundation on its deck, not on the ground under it", () => {
@@ -87,12 +89,14 @@ describe("dropping things from the backpack", () => {
       send(game, { type: "dropFromBackpack", content });
     }
 
-    expect(pileContents(game)).toEqual(sortedPiles([
-      { content: "axe", count: 1 },
-      { content: "berries", count: 4 },
-      { content: "bedroll", count: 1 },
-      { content: "potOfBoiledWater", count: 1 },
-    ]));
+    expect(pileContents(game)).toEqual(
+      sortedPiles([
+        { content: "axe", count: 1 },
+        { content: "berries", count: 4 },
+        { content: "bedroll", count: 1 },
+        { content: "potOfBoiledWater", count: 1 },
+      ]),
+    );
     const left = Object.entries(game.client.getView().backpack).filter(([, count]) => count > 0);
     expect(Object.fromEntries(left)).toEqual({ knife: 1, drawknife: 1, fireStriker: 1, sawBlade: 1 });
   });
@@ -175,7 +179,10 @@ describe("dropping sticks", () => {
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { id: number; components: Record<string, unknown> }[] };
     const player = onlyPlayer(game);
     save.version = STICKS_ON_GROUND_SAVE_VERSION - 1;
-    save.entities.push({ id: Math.max(...save.entities.map((entity) => entity.id)) + 1, components: { pile: { content: "stick", count: 4 }, position: { ...player.position } } });
+    save.entities.push({
+      id: Math.max(...save.entities.map((entity) => entity.id)) + 1,
+      components: { pile: { content: "stick", count: 4 }, position: { ...player.position } },
+    });
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
@@ -279,7 +286,12 @@ describe("saving piles", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(pileContents(loaded.game)).toEqual(sortedPiles([{ content: "bark", count: 5 }, { content: "potOfBoiledWater", count: 1 }]));
+    expect(pileContents(loaded.game)).toEqual(
+      sortedPiles([
+        { content: "bark", count: 5 },
+        { content: "potOfBoiledWater", count: 1 },
+      ]),
+    );
     stepUntil(loaded.game, () => loaded.game.client.getView().backpack.bark === 5);
   });
 

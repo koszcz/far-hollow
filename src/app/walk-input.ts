@@ -156,7 +156,16 @@ export interface WalkInput {
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
  */
-export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, onBuildModeChange, onPlacingBlueprintChange, onMenuChange }: WalkInputOptions): WalkInput {
+export function attachWalkInput({
+  canvas,
+  client,
+  rig,
+  pickAt,
+  onHoverChange,
+  onBuildModeChange,
+  onPlacingBlueprintChange,
+  onMenuChange,
+}: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let rightPress: { x: number; y: number } | null = null;
   let mode: BuildMode = NOT_BUILDING;

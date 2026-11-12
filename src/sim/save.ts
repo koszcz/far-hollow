@@ -373,7 +373,10 @@ function giveBack(save: Record<string, unknown>, material: "bark", count: number
     const components = (entity as { components?: Entity } | null)?.components;
     const contents = components?.backpack?.contents;
     if (components?.player !== true || typeof contents !== "object") return entity;
-    return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [material]: (contents[material] ?? 0) + count } } } };
+    return {
+      ...(entity as object),
+      components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [material]: (contents[material] ?? 0) + count } } },
+    };
   });
   return { ...save, entities };
 }

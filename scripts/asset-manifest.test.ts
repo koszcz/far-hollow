@@ -48,9 +48,7 @@ const everythingExists = () => true;
 describe("findUnapprovedAssets", () => {
   it("reports an asset file that the manifest does not list", () => {
     const manifest: AssetManifest = { assets: [] };
-    expect(findUnapprovedAssets(["public/assets/tree.glb"], manifest)).toEqual([
-      { file: "public/assets/tree.glb", reason: "not-listed" },
-    ]);
+    expect(findUnapprovedAssets(["public/assets/tree.glb"], manifest)).toEqual([{ file: "public/assets/tree.glb", reason: "not-listed" }]);
   });
 
   it("accepts a listed file the owner approved", () => {
@@ -75,9 +73,7 @@ describe("findUnapprovedAssets", () => {
 
   it("reports a draft file the owner has not let into the game", () => {
     const manifest: AssetManifest = { assets: [draftFileEntry("public/assets/grass.glb", undefined)] };
-    expect(findUnapprovedAssets(["public/assets/grass.glb"], manifest)).toEqual([
-      { file: "public/assets/grass.glb", reason: "not-approved" },
-    ]);
+    expect(findUnapprovedAssets(["public/assets/grass.glb"], manifest)).toEqual([{ file: "public/assets/grass.glb", reason: "not-approved" }]);
   });
 });
 
@@ -105,9 +101,7 @@ describe("findBrokenEntries", () => {
   });
 
   it("reports an id listed twice", () => {
-    expect(findBrokenEntries({ assets: [draftEntry("pot"), draftEntry("pot")] }, everythingExists)).toEqual([
-      "pot: the id is listed more than once",
-    ]);
+    expect(findBrokenEntries({ assets: [draftEntry("pot"), draftEntry("pot")] }, everythingExists)).toEqual(["pot: the id is listed more than once"]);
   });
 });
 

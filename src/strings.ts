@@ -112,8 +112,7 @@ export const strings = {
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
     /** What to do while placing each kind of structure, given its name. */
     placing: {
-      anywhere: (structure: string) =>
-        `Placing: ${structure}. Click the ground or a floor to place it anywhere. Press R to turn it, or Escape to cancel.`,
+      anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere. Press R to turn it, or Escape to cancel.`,
       onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
       onEdge: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,

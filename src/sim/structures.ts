@@ -4,14 +4,38 @@ import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, roofFrameEntities,
-  stumpEntities, treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore, type Vec3,
+  blueprintEntities,
+  cabinRoofEntities,
+  campfireEntities,
+  chestEntities,
+  edgePieceEntities,
+  foundationEntities,
+  lyingThings,
+  roofEntities,
+  roofFrameEntities,
+  stumpEntities,
+  treeEntities,
+  walkBlockerSpotEntities,
+  woodpileEntities,
+  workStationEntities,
+  type Entity,
+  type EntityStore,
+  type Vec3,
 } from "./entities";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
-  isInRect, rectsOverlap, SIDES, turnedRect, turnOffset, type DeliveredMaterial, type EdgePieceKind, type GroundRect, type Placement, type QuarterTurns,
+  isInRect,
+  rectsOverlap,
+  SIDES,
+  turnedRect,
+  turnOffset,
+  type DeliveredMaterial,
+  type EdgePieceKind,
+  type GroundRect,
+  type Placement,
+  type QuarterTurns,
   type StructureKind,
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
@@ -155,8 +179,12 @@ export const LEAN_TO_DEPTH_METRES = 2;
  * The two middle front squares stay open, so the player walks in at the front and stands under the roof.
  */
 const LEAN_TO_BLOCKED_SQUARES: readonly GroundPoint[] = [
-  { x: -1.5, z: -0.5 }, { x: -0.5, z: -0.5 }, { x: 0.5, z: -0.5 }, { x: 1.5, z: -0.5 },
-  { x: -1.5, z: 0.5 }, { x: 1.5, z: 0.5 },
+  { x: -1.5, z: -0.5 },
+  { x: -0.5, z: -0.5 },
+  { x: 0.5, z: -0.5 },
+  { x: 1.5, z: -0.5 },
+  { x: -1.5, z: 0.5 },
+  { x: 1.5, z: 0.5 },
 ];
 
 const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {
@@ -466,7 +494,16 @@ function gridSquareAround(spot: GroundPoint): GroundRect {
 
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
 const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
-  campfire, leanTo, foundation, logWall, doorFrame, roofFrame, roof, woodpile, chest, sawhorse,
+  campfire,
+  leanTo,
+  foundation,
+  logWall,
+  doorFrame,
+  roofFrame,
+  roof,
+  woodpile,
+  chest,
+  sawhorse,
 };
 
 /** Every structure the player can build, in the order the build menu lists them. */
@@ -538,7 +575,11 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
 function isClearOfTreesAndStructures(
   entities: EntityStore,
   rect: GroundRect,
-  { ignoreFurniture = false, ignoreCabinRoofs = false, ignoreRoofFrames = false }: { ignoreFurniture?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean } = {},
+  {
+    ignoreFurniture = false,
+    ignoreCabinRoofs = false,
+    ignoreRoofFrames = false,
+  }: { ignoreFurniture?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean } = {},
 ): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
@@ -608,7 +649,8 @@ function isFinishedAs({ kind, finishedAs }: StructureDefinition, entity: Entity)
 }
 
 /** An entity that is a blueprint or a finished structure, standing somewhere. */
-export type PlacedStructure = Entity & { position: Vec3 } & { [Marker in "blueprint" | FinishedMarker]: Required<Pick<Entity, Marker>> }["blueprint" | FinishedMarker];
+export type PlacedStructure = Entity & { position: Vec3 } & { [Marker in "blueprint" | FinishedMarker]: Required<Pick<Entity, Marker>> }[
+    "blueprint" | FinishedMarker];
 
 /** Every marker component, once each, even where several kinds share one. */
 const FINISHED_MARKERS: readonly FinishedMarker[] = [...new Set(STRUCTURES.map(({ finishedAs }) => finishedAs))];

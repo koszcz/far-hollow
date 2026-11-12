@@ -9,7 +9,6 @@ import { cabinRoofOn } from "./roofs";
 import { SIDES } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
-
 /** The middles of the foundation squares in one room. */
 export type Room = readonly GroundPoint[];
 

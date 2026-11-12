@@ -6,8 +6,23 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type {
-  BackpackContent, BedrollView, BlueprintView, BuildMenuEntry, CampfireView, ChestView, Food, GameClient, GameView, NearbyThing, Notice, PileView,
-  RecipeKind, RecipeLack, StructureKind, WoodpileView, WoodpileWood,
+  BackpackContent,
+  BedrollView,
+  BlueprintView,
+  BuildMenuEntry,
+  CampfireView,
+  ChestView,
+  Food,
+  GameClient,
+  GameView,
+  NearbyThing,
+  Notice,
+  PileView,
+  RecipeKind,
+  RecipeLack,
+  StructureKind,
+  WoodpileView,
+  WoodpileWood,
 } from "../sim/api";
 import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
@@ -31,7 +46,10 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
  * `tip` is the text shown when the player points at a cell. `label` is a cell's full name, for screen readers.
  */
 function ContentGrid({
-  contents, tip, label, onClick,
+  contents,
+  tip,
+  label,
+  onClick,
 }: {
   contents: GameView["backpack"];
   tip: (name: string) => string;
@@ -44,9 +62,14 @@ function ContentGrid({
         const name = strings.backpackContents[content];
         return (
           <li key={content} data-tip={tip(name)}>
-            <button type="button" class="hud-content-move" aria-label={label(strings.backpackContentCount(name, count))} onClick={(event) => {
+            <button
+              type="button"
+              class="hud-content-move"
+              aria-label={label(strings.backpackContentCount(name, count))}
+              onClick={(event) => {
                 onClick(content, event.shiftKey);
-              }}>
+              }}
+            >
               <BackpackIcon content={content} />
               {count > 1 && (
                 <span class="hud-backpack-count" aria-hidden="true">
@@ -133,9 +156,12 @@ function Wheel({ title, pick, entries, onClose }: { title: string; pick: string;
   const [pointed, setPointed] = useState<string | null>(null);
   const shown = entries.find(({ key }) => key === pointed);
   return (
-    <div class="hud-wheel-backdrop" onClick={(event) => {
+    <div
+      class="hud-wheel-backdrop"
+      onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
-      }}>
+      }}
+    >
       <section class="hud-wheel" aria-label={title}>
         <div class="hud-wheel-centre" aria-hidden="true">
           <strong>{shown === undefined ? title : shown.name}</strong>
@@ -145,7 +171,13 @@ function Wheel({ title, pick, entries, onClose }: { title: string; pick: string;
           {entries.map((entry, index) => {
             const angle = (index / entries.length) * 2 * Math.PI - Math.PI / 2;
             return (
-              <li key={entry.key} style={{ left: `calc(50% + ${Math.round(Math.cos(angle) * WHEEL_RADIUS)}px)`, top: `calc(50% + ${Math.round(Math.sin(angle) * WHEEL_RADIUS)}px)` }}>
+              <li
+                key={entry.key}
+                style={{
+                  left: `calc(50% + ${Math.round(Math.cos(angle) * WHEEL_RADIUS)}px)`,
+                  top: `calc(50% + ${Math.round(Math.sin(angle) * WHEEL_RADIUS)}px)`,
+                }}
+              >
                 <button
                   type="button"
                   class={entry.dimmed === true ? "hud-wheel-entry hud-wheel-entry-dimmed" : "hud-wheel-entry"}
@@ -205,7 +237,9 @@ function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (re
         <>
           {cost}
           {notes.map((note) => (
-            <span key={note} class="hud-wheel-note">{note}</span>
+            <span key={note} class="hud-wheel-note">
+              {note}
+            </span>
           ))}
         </>
       ),
@@ -279,8 +313,20 @@ function warmthColour(warmth: number): string {
 
 /** One row of a bar with an icon and a label. Needs such as warmth, and the progress of timed work, use it. */
 function Meter({
-  icon, label, value, colour, low = false, compact = false,
-}: { icon: HudIconName; label: string; value: number; colour: string; low?: boolean; compact?: boolean }) {
+  icon,
+  label,
+  value,
+  colour,
+  low = false,
+  compact = false,
+}: {
+  icon: HudIconName;
+  label: string;
+  value: number;
+  colour: string;
+  low?: boolean;
+  compact?: boolean;
+}) {
   return (
     <label class={low ? "hud-meter hud-meter-low" : "hud-meter"} style={{ "--hud-bar": colour }} data-tip={compact ? label : undefined}>
       <HudIcon name={icon} />
@@ -292,8 +338,16 @@ function Meter({
 
 /** A HUD button with an icon in front of its text. */
 function HudButton({
-  icon, label, disabled = false, onClick,
-}: { icon?: HudIconName; label: string; disabled?: boolean; onClick: (event: MouseEvent) => void }) {
+  icon,
+  label,
+  disabled = false,
+  onClick,
+}: {
+  icon?: HudIconName;
+  label: string;
+  disabled?: boolean;
+  onClick: (event: MouseEvent) => void;
+}) {
   return (
     <button type="button" class="hud-button" disabled={disabled} onClick={onClick}>
       {icon !== undefined && <HudIcon name={icon} />}
@@ -304,8 +358,18 @@ function HudButton({
 
 /** A square HUD button that shows only an icon. Its label shows when the player points at it, and screen readers read it. */
 function HudIconButton({
-  icon, label, disabled = false, pressed, onClick,
-}: { icon: HudIconName; label: string; disabled?: boolean; pressed?: boolean; onClick: () => void }) {
+  icon,
+  label,
+  disabled = false,
+  pressed,
+  onClick,
+}: {
+  icon: HudIconName;
+  label: string;
+  disabled?: boolean;
+  pressed?: boolean;
+  onClick: () => void;
+}) {
   return (
     <button type="button" class="hud-button hud-icon-button" aria-label={label} aria-pressed={pressed} data-tip={label} disabled={disabled} onClick={onClick}>
       <HudIcon name={icon} />
@@ -328,24 +392,47 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
       </h2>
       <Meter icon="flame" label={strings.campfireFuel} value={campfire.fuelLeft} colour={`rgb(${WARM_RGB.join(" ")})`} />
       <div class="hud-buttons">
-        <HudButton label={strings.addStick} disabled={!hasSticks} onClick={() => {
+        <HudButton
+          label={strings.addStick}
+          disabled={!hasSticks}
+          onClick={() => {
             client.send({ type: "addFuel", campfireId: campfire.id, fuel: "stick" });
-          }} />
-        <HudButton label={strings.addFirewood} disabled={!hasFirewood} onClick={() => {
+          }}
+        />
+        <HudButton
+          label={strings.addFirewood}
+          disabled={!hasFirewood}
+          onClick={() => {
             client.send({ type: "addFuel", campfireId: campfire.id, fuel: "firewood" });
-          }} />
-        <HudButton icon="bark" label={strings.addBark} disabled={!hasBark} onClick={() => {
+          }}
+        />
+        <HudButton
+          icon="bark"
+          label={strings.addBark}
+          disabled={!hasBark}
+          onClick={() => {
             client.send({ type: "addFuel", campfireId: campfire.id, fuel: "bark" });
-          }} />
+          }}
+        />
         {!campfire.lit && (
-          <HudButton icon="flame" label={strings.lightCampfire} disabled={!campfire.canLight} onClick={() => {
+          <HudButton
+            icon="flame"
+            label={strings.lightCampfire}
+            disabled={!campfire.canLight}
+            onClick={() => {
               client.send({ type: "lightCampfire", campfireId: campfire.id });
-            }} />
+            }}
+          />
         )}
         {campfire.pot === null && (
-          <HudButton icon="droplet" label={strings.putPotOnFire} disabled={!campfire.lit || !hasFullPot} onClick={() => {
+          <HudButton
+            icon="droplet"
+            label={strings.putPotOnFire}
+            disabled={!campfire.lit || !hasFullPot}
+            onClick={() => {
               client.send({ type: "putPotOnFire", campfireId: campfire.id });
-            }} />
+            }}
+          />
         )}
       </div>
       {campfire.pot !== null && (
@@ -356,9 +443,13 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
             <Meter icon="droplet" label={strings.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
           )}
           <div class="hud-buttons">
-            <HudButton icon="backpack" label={strings.takePotOffFire} onClick={() => {
+            <HudButton
+              icon="backpack"
+              label={strings.takePotOffFire}
+              onClick={() => {
                 client.send({ type: "takePotOffFire", campfireId: campfire.id });
-              }} />
+              }}
+            />
           </div>
         </>
       )}
@@ -392,14 +483,25 @@ function WoodpilePanel({ client, view, woodpile }: { client: GameClient; view: G
       </ul>
       <div class="hud-buttons">
         {WOODPILE_WOODS.filter((wood) => wood === "firewood" || view.carrying === wood).map((wood) => (
-          <HudButton key={`stack-${wood}`} label={strings.woodpile.stack[wood]} disabled={!canStack(wood)} onClick={(event) => {
+          <HudButton
+            key={`stack-${wood}`}
+            label={strings.woodpile.stack[wood]}
+            disabled={!canStack(wood)}
+            onClick={(event) => {
               client.send({ type: "stackOnWoodpile", woodpileId: woodpile.id, wood, all: event.shiftKey });
-            }} />
+            }}
+          />
         ))}
         {WOODPILE_WOODS.map((wood) => (
-          <HudButton key={`take-${wood}`} icon={wood === "firewood" ? "backpack" : "log"} label={strings.woodpile.take[wood]} disabled={!canTake(wood)} onClick={() => {
+          <HudButton
+            key={`take-${wood}`}
+            icon={wood === "firewood" ? "backpack" : "log"}
+            label={strings.woodpile.take[wood]}
+            disabled={!canTake(wood)}
+            onClick={() => {
               client.send({ type: "takeFromWoodpile", woodpileId: woodpile.id, wood });
-            }} />
+            }}
+          />
         ))}
       </div>
       <p class="hud-hint">{strings.woodpile.stackAllHint}</p>
@@ -416,12 +518,20 @@ function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: Bedrol
         {strings.bedroll}
       </h2>
       <div class="hud-buttons">
-        <HudButton icon="moon" label={strings.sleep} onClick={() => {
+        <HudButton
+          icon="moon"
+          label={strings.sleep}
+          onClick={() => {
             client.send({ type: "sleep", bedrollId: bedroll.id });
-          }} />
-        <HudButton icon="backpack" label={strings.pickUpBedroll} onClick={() => {
+          }}
+        />
+        <HudButton
+          icon="backpack"
+          label={strings.pickUpBedroll}
+          onClick={() => {
             client.send({ type: "pickUpBedroll", bedrollId: bedroll.id });
-          }} />
+          }}
+        />
       </div>
     </section>
   );
@@ -436,9 +546,13 @@ function PilePanel({ client, pile }: { client: GameClient; pile: PileView }) {
         {strings.pile.holds(pile.content, pile.count)}
       </h2>
       <div class="hud-buttons">
-        <HudButton icon="backpack" label={strings.pile.pickUp} onClick={() => {
+        <HudButton
+          icon="backpack"
+          label={strings.pile.pickUp}
+          onClick={() => {
             client.send({ type: "pickUpPile", pileId: pile.id });
-          }} />
+          }}
+        />
       </div>
     </section>
   );
@@ -473,7 +587,14 @@ const actionLabels = {
   craft: strings.crafting,
 } as const;
 
-const actionIcons: Record<keyof typeof actionLabels, HudIconName> = { chop: "axe", split: "axe", debark: "bark", build: "campfire", takeDown: "axe", craft: "axe" };
+const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
+  chop: "axe",
+  split: "axe",
+  debark: "bark",
+  build: "campfire",
+  takeDown: "axe",
+  craft: "axe",
+};
 
 /** At or above this share of its limit, the backpack weight turns amber. */
 const FULL_BACKPACK = 0.9;
@@ -542,9 +663,13 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
       </div>
       <div class="hud hud-pause">
         <div class="hud-panel">
-          <HudIconButton icon={view.paused ? "play" : "pause"} label={view.paused ? strings.resume : strings.pause} onClick={() => {
+          <HudIconButton
+            icon={view.paused ? "play" : "pause"}
+            label={view.paused ? strings.resume : strings.pause}
+            onClick={() => {
               client.send({ type: "setPaused", paused: !view.paused });
-            }} />
+            }}
+          />
         </div>
       </div>
       <div class="hud hud-dock">
@@ -558,11 +683,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             {view.action !== null && (
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
             )}
-            {placing !== null && (
-              <p class="hud-hint">
-                {placingHint(view.buildMenu, placing)}
-              </p>
-            )}
+            {placing !== null && <p class="hud-hint">{placingHint(view.buildMenu, placing)}</p>}
             {view.carrying !== null && (
               <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
                 <h2>
@@ -570,13 +691,20 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                   {view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}
                 </h2>
                 <div class="hud-buttons">
-                  <HudButton label={strings.dropLog} onClick={() => {
+                  <HudButton
+                    label={strings.dropLog}
+                    onClick={() => {
                       client.send({ type: "dropLog" });
-                    }} />
+                    }}
+                  />
                   {view.carrying === "log" && (
-                    <HudButton icon="axe" label={strings.splitLog} onClick={() => {
+                    <HudButton
+                      icon="axe"
+                      label={strings.splitLog}
+                      onClick={() => {
                         client.send({ type: "splitLog" });
-                      }} />
+                      }}
+                    />
                   )}
                 </div>
               </section>
@@ -596,15 +724,27 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
         <div class="hud-panel hud-hotbar">
           <section class="hud-backpack" aria-label={strings.backpack}>
             {openChest === null ? (
-              <ContentGrid contents={view.backpack} tip={strings.pile.dropTip} label={strings.pile.drop} onClick={(content) => {
+              <ContentGrid
+                contents={view.backpack}
+                tip={strings.pile.dropTip}
+                label={strings.pile.drop}
+                onClick={(content) => {
                   client.send({ type: "dropFromBackpack", content });
-                }} />
+                }}
+              />
             ) : (
-              <ContentGrid contents={view.backpack} tip={strings.chest.putTip} label={strings.chest.put} onClick={(content, all) => {
+              <ContentGrid
+                contents={view.backpack}
+                tip={strings.chest.putTip}
+                label={strings.chest.put}
+                onClick={(content, all) => {
                   client.send({ type: "putInChest", chestId: openChest.id, content, all });
-                }} />
+                }}
+              />
             )}
-            <span class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}>
+            <span
+              class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}
+            >
               {strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}
             </span>
           </section>
@@ -627,19 +767,31 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
                 </button>
               ))}
             {(view.backpack.bedroll ?? 0) > 0 && (
-              <HudButton icon="place" label={strings.layBedroll} onClick={() => {
+              <HudButton
+                icon="place"
+                label={strings.layBedroll}
+                onClick={() => {
                   client.send({ type: "layBedroll" });
-                }} />
+                }}
+              />
             )}
             {(view.backpack.pot ?? 0) > 0 && (
-              <HudButton icon="droplet" label={strings.fillPot} onClick={() => {
+              <HudButton
+                icon="droplet"
+                label={strings.fillPot}
+                onClick={() => {
                   client.send({ type: "fillPot" });
-                }} />
+                }}
+              />
             )}
             {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
-              <HudButton icon="droplet" label={strings.drinkFromPot} onClick={() => {
+              <HudButton
+                icon="droplet"
+                label={strings.drinkFromPot}
+                onClick={() => {
                   client.send({ type: "drinkFromPot" });
-                }} />
+                }}
+              />
             )}
           </div>
           <div class="hud-hotbar-buttons">
@@ -679,9 +831,14 @@ function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView })
       {empty ? (
         <p class="hud-hint">{strings.chest.empty}</p>
       ) : (
-        <ContentGrid contents={chest.contents} tip={strings.chest.takeTip} label={strings.chest.take} onClick={(content, all) => {
+        <ContentGrid
+          contents={chest.contents}
+          tip={strings.chest.takeTip}
+          label={strings.chest.take}
+          onClick={(content, all) => {
             client.send({ type: "takeFromChest", chestId: chest.id, content, all });
-          }} />
+          }}
+        />
       )}
       <p class="hud-hint">{strings.chest.hint}</p>
     </section>

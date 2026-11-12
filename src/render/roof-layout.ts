@@ -92,7 +92,10 @@ export function roofPlaces<Section extends RoofSection>(sections: readonly Secti
  * angles makes it a valley, sloping both ways, unless the section on the far side of it faces the same way as this one.
  */
 function shapeOf<Section extends RoofSection>(
-  section: Section, column: number, row: number, at: (column: number, row: number) => Section | undefined,
+  section: Section,
+  column: number,
+  row: number,
+  at: (column: number, row: number) => Section | undefined,
   facesSameWay: (other: Section | undefined) => boolean,
 ): Pick<RoofPlace, "shape" | "drawTurns"> {
   const down = downhill(section.turns);

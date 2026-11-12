@@ -26,8 +26,18 @@ import type { OutlinePart } from "./hover-outline";
 import { BARK_COLOURS, barkStrip, seededRandom } from "./lean-to-meshes";
 import type { RoofShape } from "./roof-layout";
 import {
-  BARK_THICKNESS_METRES, EDGES, FRAME_TOP_METRES, frameLayout, isShown, neighboursOf, RAFTER_RADIUS_METRES, raisedBy, ROOF_SEED,
-  ROOF_SLOPE_RADIANS, shapeHeight, type Section,
+  BARK_THICKNESS_METRES,
+  EDGES,
+  FRAME_TOP_METRES,
+  frameLayout,
+  isShown,
+  neighboursOf,
+  RAFTER_RADIUS_METRES,
+  raisedBy,
+  ROOF_SEED,
+  ROOF_SLOPE_RADIANS,
+  shapeHeight,
+  type Section,
 } from "./roof-parts";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
@@ -335,7 +345,12 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
     },
     dispose() {
       for (const item of [
-        ...[...stripsByShape.values(), ...reachedStrips.values()].flat(), pickGeometry, ...barkMaterials, blueprintMaterial, notAllowedMaterial, pickMaterial,
+        ...[...stripsByShape.values(), ...reachedStrips.values()].flat(),
+        pickGeometry,
+        ...barkMaterials,
+        blueprintMaterial,
+        notAllowedMaterial,
+        pickMaterial,
       ]) {
         item.dispose();
       }
@@ -382,30 +397,38 @@ function paintBarkGrain(random: () => number): THREE.Texture | null {
     const startX = random() * wide;
     const startY = random() * high;
     const sway = (random() - 0.5) * 6;
-    wrapped((x, y) => {
-      context.strokeStyle = colour;
-      context.lineWidth = thick;
-      context.beginPath();
-      context.moveTo(x, y);
-      context.bezierCurveTo(x + long / 3, y + sway, x + (2 * long) / 3, y - sway, x + long, y + sway / 2);
-      context.stroke();
-    }, startX, startY);
+    wrapped(
+      (x, y) => {
+        context.strokeStyle = colour;
+        context.lineWidth = thick;
+        context.beginPath();
+        context.moveTo(x, y);
+        context.bezierCurveTo(x + long / 3, y + sway, x + (2 * long) / 3, y - sway, x + long, y + sway / 2);
+        context.stroke();
+      },
+      startX,
+      startY,
+    );
   };
   for (let i = 0; i < 140; i += 1) streak(`rgba(40, 24, 12, ${0.12 + random() * 0.2})`, 60 + random() * 260, 1 + random() * 2);
   for (let i = 0; i < 50; i += 1) streak(`rgba(255, 236, 210, ${0.1 + random() * 0.15})`, 40 + random() * 160, 1 + random() * 1.5);
   for (let i = 0; i < 9; i += 1) streak(`rgba(25, 14, 6, ${0.45 + random() * 0.2})`, 120 + random() * 300, 2 + random() * 2);
   for (let i = 0; i < 3; i += 1) {
     const radius = 6 + random() * 6;
-    wrapped((x, y) => {
-      context.fillStyle = "rgba(255, 236, 210, 0.35)";
-      context.beginPath();
-      context.ellipse(x, y, radius * 2.4, radius * 1.4, 0, 0, Math.PI * 2);
-      context.fill();
-      context.fillStyle = "rgba(25, 14, 6, 0.7)";
-      context.beginPath();
-      context.ellipse(x, y, radius * 1.2, radius * 0.7, 0, 0, Math.PI * 2);
-      context.fill();
-    }, random() * wide, random() * high);
+    wrapped(
+      (x, y) => {
+        context.fillStyle = "rgba(255, 236, 210, 0.35)";
+        context.beginPath();
+        context.ellipse(x, y, radius * 2.4, radius * 1.4, 0, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgba(25, 14, 6, 0.7)";
+        context.beginPath();
+        context.ellipse(x, y, radius * 1.2, radius * 0.7, 0, 0, Math.PI * 2);
+        context.fill();
+      },
+      random() * wide,
+      random() * high,
+    );
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;

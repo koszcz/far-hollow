@@ -19,7 +19,10 @@ const BASE_VIEW: GameView = {
   craftMenu: [
     {
       kind: "saw",
-      materials: [{ material: "sawBlade", count: 1 }, { material: "stick", count: 3 }],
+      materials: [
+        { material: "sawBlade", count: 1 },
+        { material: "stick", count: 3 },
+      ],
       result: { content: "saw", count: 1 },
       seconds: 5,
       lacks: [],
@@ -127,7 +130,14 @@ const BACKPACK_ICON_STATES: readonly ShowcaseState[] = [
 /** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
 const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
-  { structure: "leanTo", cost: [{ material: "stick", count: 10 }, { material: "bark", count: 6 }], placement: "onGround" },
+  {
+    structure: "leanTo",
+    cost: [
+      { material: "stick", count: 10 },
+      { material: "bark", count: 6 },
+    ],
+    placement: "onGround",
+  },
   { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
@@ -156,17 +166,31 @@ const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
 
 /** The "build-icons" first view: every build icon drawn large, with its name, so the owner can judge the drawings. */
 function BuildIconSheet() {
-  const cell = { display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "4px", background: "#3d2b1e", borderRadius: "6px", color: "#cdb898", fontSize: "11px" } as const;
+  const cell = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "2px",
+    padding: "4px",
+    background: "#3d2b1e",
+    borderRadius: "6px",
+    color: "#cdb898",
+    fontSize: "11px",
+  } as const;
   return (
     <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "4px" }}>
       {FULL_BUILD_MENU.map(({ structure }) => (
         <div key={structure} style={cell}>
-          <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon"><StructureIcon structure={structure} /></span>
+          <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon">
+            <StructureIcon structure={structure} />
+          </span>
           {structure}
         </div>
       ))}
       <div style={cell}>
-        <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon"><MaterialIcon material="debarkedLog" /></span>
+        <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon">
+          <MaterialIcon material="debarkedLog" />
+        </span>
         debarkedLog
       </div>
     </div>
@@ -185,7 +209,13 @@ function stillClient(view: GameView): GameClient {
   };
 }
 
-const STATES_BY_ASSET = { hud: STATES, bark: BARK_STATES, "backpack-icons": BACKPACK_ICON_STATES, "crafting-icons": CRAFTING_ICON_STATES, "build-icons": BUILD_ICON_STATES } as const;
+const STATES_BY_ASSET = {
+  hud: STATES,
+  bark: BARK_STATES,
+  "backpack-icons": BACKPACK_ICON_STATES,
+  "crafting-icons": CRAFTING_ICON_STATES,
+  "build-icons": BUILD_ICON_STATES,
+} as const;
 
 /** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", or "build-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {

@@ -60,7 +60,11 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
 
   /** The nearest pile of `content` within JOIN_PILE_METRES of a spot, if any. */
   function nearestPileOf(content: BackpackContent, at: GroundPoint): PileEntity | undefined {
-    return nearestWithin(at, piles.entities.filter((pile) => pile.pile.content === content), JOIN_PILE_METRES);
+    return nearestWithin(
+      at,
+      piles.entities.filter((pile) => pile.pile.content === content),
+      JOIN_PILE_METRES,
+    );
   }
 
   return {

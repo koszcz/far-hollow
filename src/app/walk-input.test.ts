@@ -4,7 +4,12 @@ import { strings } from "../strings";
 import { blueprintPressFor, cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";
 
 describe("pressing on a blueprint", () => {
-  const foundation = (has: number) => ({ id: 3, structure: "foundation" as const, progress: 0, deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }] });
+  const foundation = (has: number) => ({
+    id: 3,
+    structure: "foundation" as const,
+    progress: 0,
+    deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }],
+  });
 
   it("adds the debarked log on the player's shoulder while the blueprint still needs one", () => {
     expect(blueprintPressFor(foundation(1), "debarkedLog")).toEqual({ type: "deliverToBlueprint", blueprintId: 3 });
@@ -60,11 +65,7 @@ describe("clicking a finished work station", () => {
   });
 
   it("offers only the recipes crafted at that kind of station, in the craft menu's order", () => {
-    const recipes = [
-      { kind: "saw" },
-      { kind: "planks", station: "sawhorse" },
-      { kind: "saw", station: "sawhorse" },
-    ] as const;
+    const recipes = [{ kind: "saw" }, { kind: "planks", station: "sawhorse" }, { kind: "saw", station: "sawhorse" }] as const;
     expect(menuActionsFor(sawhorse, recipes).map(({ command }) => command)).toEqual([
       { type: "craft", recipe: "planks", stationId: 11 },
       { type: "craft", recipe: "saw", stationId: 11 },

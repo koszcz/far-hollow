@@ -106,6 +106,20 @@ describe("sleeping on a bedroll", () => {
     expect(view.notice?.kind).not.toBe("collapsed");
   });
 
+  it("reports each sleep and where the bedroll lies, so drawing can play the sleep animation", () => {
+    const game = createGame({ seed: 42 });
+    putCampfireBesidePlayer(game);
+    expect(game.client.getView().lastSleep).toBeNull();
+    const bedrollId = layBedroll(game);
+    const bedroll = game.entities.with("bedroll", "position").first?.position;
+    if (bedroll === undefined) throw new Error("No bedroll was laid");
+
+    send(game, { type: "sleep", bedrollId });
+    expect(game.client.getView().lastSleep).toEqual({ count: 1, at: { x: bedroll.x, z: bedroll.z } });
+    send(game, { type: "sleep", bedrollId });
+    expect(game.client.getView().lastSleep?.count).toBe(2);
+  });
+
   it("keeps warmth draining when no lit campfire is near", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipTime", hours: 12 }); // 20:00: night falls.
@@ -193,7 +207,8 @@ describe("saving fatigue and the bedroll", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save was rejected");
 
-    expect(loaded.game.client.getView()).toEqual(game.client.getView());
+    // The last sleep is only for drawing, so a save leaves it out.
+    expect(loaded.game.client.getView()).toEqual({ ...game.client.getView(), lastSleep: null });
     const player = loaded.game.entities.with("player", "respawnPoint").first;
     const bedroll = loaded.game.entities.with("bedroll", "position").first;
     expect(player?.respawnPoint.x).toBeCloseTo(bedroll?.position.x ?? NaN, 5);

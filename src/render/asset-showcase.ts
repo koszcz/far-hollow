@@ -56,6 +56,17 @@ import { createRainEffect, type RainEffect } from "./rain-effect";
 import { createSkyLighting } from "./sky-lighting";
 import type { ModelShapes } from "./model-shapes";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
+import {
+  darkenView,
+  SLEEP_DARK_AT,
+  SLEEP_LAID_DOWN_AT,
+  SLEEP_LIGHT_AT,
+  SLEEP_MORNING_AT,
+  SLEEP_SECONDS,
+  SLEEP_STEP_ON_SECONDS,
+  sleepDarknessAt,
+  sleepSpotFrom,
+} from "./sleep-animation";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createUndergrowthMaterial } from "./undergrowth-meshes";
 import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
@@ -77,6 +88,13 @@ const NOON = 12;
 const NIGHT = 22;
 /** How long the player stands after debarking before the "debarking-animation" plays again, in seconds. */
 const DEBARK_PLAY_REST_SECONDS = 1.2;
+/** How long the player stands after waking before the "sleep-animation" plays again, in seconds. */
+const SLEEP_PLAY_REST_SECONDS = 1.5;
+/** The hour the player goes to sleep in the "sleep-animation" showcase, and the morning hour they wake at. */
+const SLEEP_PLAY_BEDTIME = 19;
+const SLEEP_PLAY_MORNING = 9;
+/** Where the player stands beside the bedroll before stepping onto it, in metres from its middle, and which way they face. */
+const SLEEP_PLAY_FROM = { x: 0.7, z: 0.5, heading: -Math.PI / 2 };
 
 /** How many build cycles the "player-build-animation" plays before it stops, mid-press, to show the player standing up. */
 const BUILD_PLAY_CYCLES = 2.5;
@@ -131,6 +149,8 @@ interface Showcase {
     readonly shot: Shot;
     /** Poses the animation `seconds` after it began. Returns how far the camera moves to follow it, in metres. */
     pose(stage: Stage, seconds: number): Partial<Vec3> | undefined;
+    /** The hour of the day `seconds` after it began, and how dark the view is, from 0 (as normal) to 1 (black). */
+    look?(seconds: number): { hour: number; darkness: number };
   };
 }
 
@@ -1027,6 +1047,34 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
+  "sleep-animation": {
+    radius: 1.5,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: [
+      { label: "stepping onto the bedroll", seconds: SLEEP_STEP_ON_SECONDS * 0.6, hour: SLEEP_PLAY_BEDTIME },
+      { label: "lying down", seconds: (SLEEP_STEP_ON_SECONDS + SLEEP_LAID_DOWN_AT) / 2, hour: SLEEP_PLAY_BEDTIME },
+      { label: "asleep, morning comes", seconds: SLEEP_DARK_AT + 1.5, hour: SLEEP_PLAY_MORNING },
+      { label: "standing up", seconds: (SLEEP_LIGHT_AT + SLEEP_SECONDS) / 2, hour: SLEEP_PLAY_MORNING },
+    ].map((shot) => ({ ...shot, yaw: 60, pitch: 25 })),
+    build({ place }) {
+      place(0, 0, { bedroll: true });
+    },
+    pose(stage, shot) {
+      poseSleeper(stage, shot.seconds ?? 0);
+    },
+    // The player steps onto the bedroll at night, lies down, the view dims, morning comes, and they get up. Then again.
+    play: {
+      shot: { label: "going to sleep, then waking", yaw: 60, pitch: 25, radius: 1.8 },
+      pose(stage, seconds) {
+        poseSleeper(stage, seconds % (SLEEP_SECONDS + SLEEP_PLAY_REST_SECONDS));
+        return undefined;
+      },
+      look(seconds) {
+        const cycle = seconds % (SLEEP_SECONDS + SLEEP_PLAY_REST_SECONDS);
+        return { hour: cycle < SLEEP_MORNING_AT ? SLEEP_PLAY_BEDTIME : SLEEP_PLAY_MORNING, darkness: sleepDarknessAt(cycle) };
+      },
+    },
+  },
   "debarking-animation": {
     radius: 1.3,
     focus: { x: 0, y: 0.6, z: 0.3 },
@@ -1133,6 +1181,7 @@ export function showAsset(
     "chop-animation",
     "split-animation",
     "debarking-animation",
+    "sleep-animation",
     "player-build-animation",
     "sky-lighting",
     "hud",
@@ -1235,7 +1284,9 @@ export function showAsset(
     const drawFrame = (nowMs: number): void => {
       const seconds = ((nowMs - startMs) / 1000) * options.speed;
       const follow = play.pose(stage, seconds) ?? {};
-      drawView(play.shot, seconds, follow, { left: 0, bottom: 0, width, height });
+      const look = play.look?.(seconds);
+      if (look !== undefined) darkenView(renderer.domElement, look.darkness);
+      drawView(look === undefined ? play.shot : { ...play.shot, hour: look.hour }, seconds, follow, { left: 0, bottom: 0, width, height });
       frame = requestAnimationFrame(drawFrame);
     };
     frame = requestAnimationFrame(drawFrame);
@@ -1274,6 +1325,18 @@ export function showAsset(
       renderer.dispose();
     },
   };
+}
+
+/** Poses the player going to sleep on the bedroll at the stage's middle, `seconds` after they reached it. */
+function poseSleeper({ player, movePlayer }: Stage, seconds: number): void {
+  if (seconds >= SLEEP_SECONDS) {
+    player.setSleeping(undefined);
+    movePlayer(SLEEP_PLAY_FROM.x, SLEEP_PLAY_FROM.z, SLEEP_PLAY_FROM.heading);
+    return;
+  }
+  const spot = sleepSpotFrom(SLEEP_PLAY_FROM, { x: 0, z: 0 }, seconds);
+  movePlayer(spot.x, spot.z, spot.heading);
+  player.setSleeping(seconds);
 }
 
 /** A spot on the flat valley floor beside the middle of the river, with its ground height. */

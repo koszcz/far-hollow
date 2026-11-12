@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { StructureKind, ThingInReach } from "../sim/api";
+import type { SleepView, StructureKind, ThingInReach } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
@@ -17,6 +17,7 @@ import { createPlayerMesh } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSkyLighting } from "./sky-lighting";
+import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
@@ -61,12 +62,15 @@ export interface SceneRenderer {
   setHovered(pick: ScenePick | undefined): void;
   /** Shows the blueprint under the mouse while the player places one. Undefined hides it. */
   showPlacingBlueprint(placing: PlacingBlueprint | undefined): void;
+  /** Whether the sleep animation is playing. Game logic waits while it plays, so the player cannot act mid-sleep. */
+  isPlayingSleep(): boolean;
   dispose(): void;
 }
 
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
+ * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
  * shapes are the loaded models, from loadModelShapes.
  */
 export function createSceneRenderer(
@@ -74,6 +78,7 @@ export function createSceneRenderer(
   valley: Valley,
   entities: EntityStore,
   readHourOfDay: () => number,
+  readLastSleep: () => SleepView | null,
   shapes: ModelShapes,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -169,6 +174,15 @@ export function createSceneRenderer(
   let cameraPlaced = false;
   /** Total metres the player has walked, which keeps the legs in step with the ground. */
   let playerWalkedMetres = 0;
+  /** The hour of the day the sky showed last frame. */
+  let drawnHour = readHourOfDay();
+  /** How many sleeps the player had when the last sleep animation began. */
+  let sleepsSeen = readLastSleep()?.count ?? 0;
+  /**
+   * The sleep animation, while it plays: when it began, on the performance clock in seconds, where the player stood and
+   * faced then, the bedroll's middle, and the hour the sky keeps showing until the view is dark.
+   */
+  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number } | undefined;
 
   const moving = movingEntities(entities);
   const blended = { x: 0, y: 0, z: 0 };
@@ -185,6 +199,18 @@ export function createSceneRenderer(
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
+    if (sleeping !== undefined) {
+      // The player steps onto the bedroll and lies along it. Nothing else moves them until they are up again.
+      const seconds = nowSeconds - sleeping.since;
+      const spot = sleepSpotFrom(sleeping.from, sleeping.at, seconds);
+      Object.assign(playerDrawn, { x: spot.x, z: spot.z });
+      playerMesh.group.position.set(spot.x, playerDrawn.y, spot.z);
+      playerMesh.setHeading(spot.heading);
+      playerMesh.setWalking(undefined);
+      playerMesh.setSleeping(seconds);
+      return;
+    }
+    playerMesh.setSleeping(undefined);
     const activity = playerActivity(entities, player);
     const target = activity?.targetId === undefined ? undefined : entities.entity(activity.targetId);
     const faceTarget = () => {
@@ -246,12 +272,29 @@ export function createSceneRenderer(
     return { pick: onRiver ? { kind: "river", spot } : { kind: "ground", spot }, distance: ground.distance };
   }
 
+  /** Starts the sleep animation when game logic reports a sleep it has not played yet. Run it before the player is placed. */
+  function startSleepIfNew(nowSeconds: number): void {
+    const last = readLastSleep();
+    if (last === null || last.count === sleepsSeen) return;
+    sleepsSeen = last.count;
+    // Game logic has moved the player onto the bedroll already. They step there from where they were drawn last frame.
+    const from = { x: playerDrawn.x, z: playerDrawn.z, heading: playerMesh.group.rotation.y };
+    sleeping = { since: nowSeconds, from, at: last.at, hour: drawnHour };
+  }
+
   return {
     cameraRig,
+    isPlayingSleep: () => sleeping !== undefined,
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
-      const hourOfDay = readHourOfDay();
+      startSleepIfNew(nowSeconds);
+      if (sleeping !== undefined && nowSeconds - sleeping.since >= SLEEP_SECONDS) sleeping = undefined;
+      const sleepSeconds = sleeping === undefined ? undefined : nowSeconds - sleeping.since;
+      // The sky keeps the bedtime hour until the view is dark, then shows the morning game logic has already reached.
+      const hourOfDay = sleeping !== undefined && sleepSeconds !== undefined && sleepSeconds < SLEEP_MORNING_AT ? sleeping.hour : readHourOfDay();
+      drawnHour = hourOfDay;
+      darkenView(canvas, sleepSeconds === undefined ? 0 : sleepDarknessAt(sleepSeconds));
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       forageMeshes.update();

@@ -136,7 +136,14 @@ if (saveStorage !== undefined && slot !== undefined) {
   });
 }
 const canvas = requireElement("#scene", HTMLCanvasElement);
-const sceneRenderer = createSceneRenderer(canvas, game.valley, game.entities, () => game.client.getView().time.hourOfDay, await loadModelShapes());
+const sceneRenderer = createSceneRenderer(
+  canvas,
+  game.valley,
+  game.entities,
+  () => game.client.getView().time.hourOfDay,
+  () => game.client.getView().lastSleep,
+  await loadModelShapes(),
+);
 const cameraInput = attachCameraInput({
   canvas,
   rig: sceneRenderer.cameraRig,
@@ -175,7 +182,8 @@ const loop = createFixedStepLoop({
   stepMs: STEP_MS,
   maxStepsPerAdvance: MAX_STEPS_PER_FRAME,
   step: () => {
-    game.step();
+    // Game logic waits while the player lies down, sleeps, and gets up, so they cannot act mid-sleep.
+    if (!sceneRenderer.isPlayingSleep()) game.step();
   },
 });
 

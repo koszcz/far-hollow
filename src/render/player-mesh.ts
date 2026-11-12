@@ -5,6 +5,7 @@
 // While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
 // While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
 // pulling a drawknife, and the axe goes on the back. The owner approved it.
+// While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down, Lie_Idle, and Lie_StandUp clips. The owner approved it.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -16,6 +17,7 @@ import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
+import { sleepBodyAt } from "./sleep-animation";
 import type { PlayerModel } from "./player-model";
 
 /** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
@@ -30,6 +32,9 @@ const IDLE_CLIP = "Idle";
 const WALK_CLIP = "Running_A";
 const CHOP_CLIP = "2H_Melee_Attack_Slice";
 const SPLIT_CLIP = "2H_Melee_Attack_Chop";
+const LIE_DOWN_CLIP = "Lie_Down";
+const LIE_IDLE_CLIP = "Lie_Idle";
+const STAND_UP_CLIP = "Lie_StandUp";
 /** The clip that holds both arms still while the right hand steadies a log on the shoulder. */
 const CARRY_CLIP = "Walking_B";
 
@@ -91,6 +96,11 @@ export interface PlayerMesh {
   setDebarking(nowSeconds: number | undefined): void;
   /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setBuilding(nowSeconds: number | undefined): void;
+  /**
+   * Lies the player down to sleep, and gets them up again, as sleep-animation.ts times it. Pass the seconds since the
+   * player reached the bedroll, or undefined while not sleeping.
+   */
+  setSleeping(seconds: number | undefined): void;
   dispose(): void;
 }
 
@@ -148,6 +158,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const chop = clip(CHOP_CLIP);
   const split = clip(SPLIT_CLIP);
   const carry = clip(CARRY_CLIP);
+  const sleepClips = { lieDown: clip(LIE_DOWN_CLIP), lieIdle: clip(LIE_IDLE_CLIP), standUp: clip(STAND_UP_CLIP) };
   let playing: THREE.AnimationAction | undefined;
   /** Shows `action` frozen `seconds` into its clip. */
   function showClip(action: THREE.AnimationAction, seconds: number): void {
@@ -203,6 +214,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let walkedMetres: number | undefined;
   let choppingAt: number | undefined;
   let splittingAt: number | undefined;
+  /** Seconds since the player reached the bedroll, while sleeping. */
+  let sleepingAt: number | undefined;
   /** The clock time building began, or undefined while not building. */
   let buildingSince: number | undefined;
   /** The clock time it is now, while building. */
@@ -296,7 +309,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with building. */
   function updateAxe(): void {
     const swinging = choppingAt !== undefined || splittingAt !== undefined;
-    placeAxe(!swinging && (carrying || buildingSince !== undefined || debarkingSince !== undefined));
+    placeAxe(!swinging && (carrying || buildingSince !== undefined || debarkingSince !== undefined || sleepingAt !== undefined));
   }
 
   /** Shows the clip for what the player is doing now. */
@@ -366,6 +379,14 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   }
 
   function posePlayingClip(): void {
+    if (sleepingAt !== undefined) {
+      const body = sleepBodyAt(sleepingAt);
+      const action = sleepClips[body.clip];
+      // Lying down and standing up play once, so they hold their last frame rather than start again.
+      const last = action.getClip().duration - 0.001;
+      showClip(action, body.clip === "lieIdle" ? body.clipSeconds : Math.min(body.clipSeconds, last));
+      return;
+    }
     if (choppingAt !== undefined) {
       showClip(chop, choppingAt * CHOP_SWINGS_PER_SECOND * chop.getClip().duration);
       return;
@@ -450,6 +471,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
         }
         buildingAt = nowSeconds;
       }
+      pose();
+    },
+    setSleeping(seconds) {
+      const changed = (seconds === undefined) !== (sleepingAt === undefined);
+      sleepingAt = seconds;
+      if (changed) updateAxe();
       pose();
     },
     dispose() {

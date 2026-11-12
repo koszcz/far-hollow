@@ -449,6 +449,26 @@
       ]
     },
     {
+      "id": "sleep-animation",
+      "kind": "file",
+      "file": "public/assets/player/barbarian.glb",
+      "code": [
+        "src/render/sleep-animation.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts",
+        "src/app/main.tsx",
+        "src/sim/game.ts"
+      ],
+      "description": "The player going to sleep on a laid bedroll and waking. A person going to bed on a mat steps onto it, sits, and lies back with the head at the rolled blanket, then lies still. The view dims to black while the night passes, and lights up on the morning. Then the person sits up, gets their feet under them, and stands. The body plays KayKit's Lie_Down, Lie_Idle, and Lie_StandUp clips, a little faster than made; code times the step onto the bedroll, the dimming, and the sky change. Game logic waits while it plays. It reads apart from the build's squat: the whole body goes down flat.",
+      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clips Lie_Down, Lie_Idle, and Lie_StandUp",
+      "license": "CC0 1.0",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
+      }
+    },
+    {
       "id": "player-build-animation",
       "kind": "code",
       "code": [

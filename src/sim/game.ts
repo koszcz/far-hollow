@@ -11,6 +11,7 @@ import {
   type PileView,
   type PlainNotice,
   type PlayerAction,
+  type SleepView,
 } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
@@ -187,6 +188,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   let firstNightOver = progress?.firstNightOver ?? false;
   let notice: (Notice & { untilMinutes: number }) | null = progress?.notice ? structuredClone(progress.notice) : null;
   let paused = false;
+  /** The player's last sleep since the game was loaded. It is not saved. */
+  let lastSleep: SleepView | null = null;
   let stepCount = progress?.stepCount ?? 0;
   if (startNotice !== undefined) showNotice(startNotice);
   let view = snapshot();
@@ -218,6 +221,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       sick: player.sickness !== undefined,
       raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? noticeView(notice) : null,
+      lastSleep,
     });
   }
 
@@ -557,6 +561,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const night = isNight(readClock(clock.minutes).hourOfDay);
     passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs, isUnderRoof(entities, player.position))), true);
+    lastSleep = Object.freeze({ count: (lastSleep?.count ?? 0) + 1, at: Object.freeze({ x, z }) });
   }
 
   function applyCommand(command: Command): void {

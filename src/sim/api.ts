@@ -191,6 +191,17 @@ export interface GameView {
   readonly raining: boolean;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: Notice | null;
+  /**
+   * The player's last sleep on a bedroll since the game was loaded, or null if none. `count` goes up by one with each
+   * sleep, so drawing can tell a new one. `at` is the middle of the bedroll. Drawing plays the sleep animation from it.
+   */
+  readonly lastSleep: SleepView | null;
+}
+
+/** One sleep on a bedroll. See `GameView.lastSleep`. */
+export interface SleepView {
+  readonly count: number;
+  readonly at: Readonly<GroundPoint>;
 }
 
 /**

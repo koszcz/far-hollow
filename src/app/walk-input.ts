@@ -1,55 +1,19 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { GroundOrThingPick, PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import type { BlueprintView, CarriedLog, Command, GameClient, StructureKind } from "../sim/api";
+import type { GameClient, StructureKind } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
-import { actionsFor, type ThingAction } from "./thing-actions";
+import { actionsFor, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
 
 /**
- * The command a left-click sends for what it landed on. A blueprint needs to know what the player carries, so `blueprintPressFor` decides it instead.
- * A click on a finished structure acts on what is under it.
+ * What a left-click on a thing does: its main action, if the player can do it now.
+ * A click on a finished structure acts on what is under it. A disabled main action does nothing, since the cursor prompt already says why.
+ * A work station's main action, opening its menu, has no command. The caller opens the right-click menu for it instead.
  */
-export function mainActionFor(pick: ScenePick): Command | undefined {
-  switch (pick.kind) {
-    case "structure":
-      return pick.under === undefined ? undefined : mainActionFor(pick.under);
-    case "ground":
-      return { type: "walkTo", x: pick.spot.x, z: pick.spot.z };
-    case "river":
-      return { type: "drinkFromRiver", x: pick.spot.x, z: pick.spot.z };
-    case "tree":
-      return { type: "chopTree", treeId: pick.id };
-    case "log":
-    case "debarkedLog":
-      return { type: "pickUpLog", logId: pick.id };
-    case "stick":
-      return { type: "pickUpStick", stickId: pick.id };
-    case "bark":
-      return { type: "pickUpBark", barkId: pick.id };
-    case "forage":
-      return { type: "forage", spotId: pick.id };
-    case "campfire":
-      return { type: "tendCampfire", campfireId: pick.id };
-    case "woodpile":
-      return { type: "tendWoodpile", woodpileId: pick.id };
-    case "chest":
-      return { type: "openChest", chestId: pick.id };
-    case "bedroll":
-      return { type: "sleep", bedrollId: pick.id };
-    case "pile":
-      return { type: "pickUpPile", pileId: pick.id };
-    case "blueprint":
-    case "workStation":
-      return undefined;
-  }
-}
-
-/**
- * The command a click on a blueprint sends. If the player carries a material the blueprint still needs, such as a debarked log,
- * the click adds it. Otherwise it starts building the blueprint. Building goes on until it finishes, the materials run out, or the player stops.
- */
-export function blueprintPressFor(blueprint: BlueprintView, carrying: CarriedLog | null): Command {
-  const needsCarried = blueprint.deliveries.some(({ material, has, needs }) => material === carrying && has < needs);
-  return needsCarried ? { type: "deliverToBlueprint", blueprintId: blueprint.id } : { type: "build", blueprintId: blueprint.id };
+export function leftClickFor(pick: ScenePick, reader: ActionReader): ThingAction | undefined {
+  const target = pick.kind === "structure" ? pick.under : pick;
+  if (target === undefined) return undefined;
+  const main = mainAction(actionsFor({ kind: "scene", pick: target }, reader));
+  return main?.enabled === true ? main : undefined;
 }
 
 /** A right-click menu to show at a point on the page, in page pixels. */
@@ -95,6 +59,8 @@ export interface WalkInputOptions {
   readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
   /** Called with what the player could click under the pointer, or undefined, so the scene can outline it. */
   readonly onHoverChange?: (pick: ScenePick | undefined) => void;
+  /** Called with what is under the pointer, finished structures included, so the cursor prompt can describe it. Undefined while placing a blueprint. */
+  readonly onPromptTargetChange?: (pick: ScenePick | undefined) => void;
   /** Called when the build menu opens or closes, or placing a blueprint starts, turns, or ends, so the HUD can show it. */
   readonly onBuildModeChange?: (mode: BuildMode) => void;
   /** Called with the blueprint that should follow the mouse while placing, or undefined to hide it. */
@@ -113,10 +79,10 @@ export interface WalkInput {
 }
 
 /**
- * Left-clicking does the main action for what is under the pointer:
- * walk to a spot on the ground, chop a tree, pick up a log, pick up a stick, forage a bush or mushrooms,
- * walk over to tend a campfire, use a woodpile, or open a chest, walk to the riverbank to drink, or walk to a bedroll and sleep on it.
- * Clicking a blueprint starts building it. Clicking anywhere else, or pressing Escape, stops building. Clicking a blueprint while carrying a debarked log it needs adds the log.
+ * Left-clicking does the main action for what is under the pointer, as `thing-actions.ts` names it.
+ * For example, it walks to a spot on the ground, chops a tree, lights or feeds a campfire, or stacks the carried log on a woodpile.
+ * The player walks to the thing first when needed. A left-click on a work station opens its menu of recipes.
+ * Clicking a blueprint starts building it, or adds the carried material it still needs. Clicking anywhere else, or pressing Escape, stops building.
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
  * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
@@ -132,6 +98,7 @@ export function attachWalkInput({
   rig,
   pickAt,
   onHoverChange,
+  onPromptTargetChange,
   onBuildModeChange,
   onPlacingBlueprintChange,
   onMenuChange,
@@ -152,11 +119,14 @@ export function attachWalkInput({
 
   function updateCursor(): void {
     cursorFrame = null;
-    const pick = hover === null ? undefined : pickThrough(hover.x, hover.y);
+    const seen = hover === null ? undefined : pickAt(hover.x, hover.y);
+    // A left-click acts on what is under a finished structure, so the cursor and outline do too.
+    const pick = seen?.kind === "structure" ? seen.under : seen;
     const placing = mode.placing !== null;
     const blueprint = placingBlueprintFor(pick);
     canvas.style.cursor = blueprint?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
     onHoverChange?.(outlineFor(pick, placing));
+    onPromptTargetChange?.(placing ? undefined : seen);
     onPlacingBlueprintChange?.(blueprint);
   }
 
@@ -207,9 +177,14 @@ export function attachWalkInput({
     rightPress = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS || mode.placing !== null) return;
     const pick = pickAt(event.clientX, event.clientY);
-    const actions = pick === undefined ? [] : actionsFor({ kind: "scene", pick }, client);
+    if (pick !== undefined) showMenu(event.clientX, event.clientY, pick);
+  }
+
+  /** Opens the menu of every action the thing offers at a point on the page, if it offers more than its main action. */
+  function showMenu(x: number, y: number, pick: ScenePick): void {
+    const actions = actionsFor({ kind: "scene", pick }, client);
     // The menu opens only for a thing that offers more than its main action, such as a log that can be debarked too.
-    if (actions.length > 1) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
+    if (actions.length > 1) onMenuChange?.({ x, y, actions });
   }
 
   function onPointerUp(event: PointerEvent): void {
@@ -233,9 +208,10 @@ export function attachWalkInput({
       setMode(NOT_BUILDING);
       return;
     }
-    const blueprint = pick.kind === "blueprint" ? client.describeBlueprint(pick.id) : null;
-    const command = blueprint !== null ? blueprintPressFor(blueprint, client.getView().carrying) : mainActionFor(pick);
-    if (command !== undefined) client.send(command);
+    const action = leftClickFor(pick, client);
+    if (action?.command !== undefined) client.send(action.command);
+    // A work station's main action opens its menu, which lists the recipes made there.
+    else if (action?.id === "openMenu") showMenu(event.clientX, event.clientY, pick);
   }
 
   function onKeyDown(event: KeyboardEvent): void {

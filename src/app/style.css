@@ -103,15 +103,48 @@ body {
   gap: 6px;
   align-items: center;
 }
-.hud-hotbar-buttons {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding-left: 6px;
-  border-left: 1px solid #6b4a2f;
+/* A hotbar cell is larger than a chest cell. It shows its icon, its name under it, a count, and its number key. */
+.hud-backpack .hud-hotbar-cells li {
+  width: 64px;
+  height: 58px;
 }
-.hud-hotbar-buttons:empty {
-  display: none;
+.hud-hotbar-cell {
+  grid-template-rows: 1fr auto;
+  gap: 2px;
+  padding: 6px 2px 4px;
+  box-sizing: border-box;
+}
+.hud-hotbar-cell .backpack-icon,
+.hud-hotbar-cell .hud-icon {
+  width: 26px;
+  height: 26px;
+}
+.hud-hotbar-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hud-hotbar-key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: #cdb898;
+}
+/* In a hotbar cell the count sits top right, clear of the name. */
+.hud-hotbar-cell .hud-backpack-count {
+  top: 2px;
+  bottom: auto;
+}
+/* The log on the shoulder sits apart from the backpack items. */
+.hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder {
+  margin-right: 6px;
+  border-color: #82593a;
 }
 /* The build and craft buttons sit at the right end of the hotbar, apart from the items. */
 .hud-hotbar-tools {
@@ -210,8 +243,7 @@ body {
 .hud [data-tip] {
   position: relative;
 }
-.hud-icon-button[data-tip]:hover::after,
-.hud-tool-button[data-tip]:hover::after {
+.hud-icon-button[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 4px);
@@ -407,12 +439,6 @@ body {
     opacity: 0.45;
   }
 }
-.hud-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0 0;
-}
 .hud-button {
   display: inline-flex;
   gap: 5px;
@@ -532,7 +558,7 @@ body {
   width: 18px;
   height: 18px;
 }
-/* The name of a backpack item, shown at once when the player points at its grid cell. */
+/* The name of a chest item, shown at once when the player points at its grid cell. Hotbar items show the cursor prompt instead. */
 .hud-backpack li[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
@@ -582,6 +608,37 @@ body {
   pointer-events: auto;
   /* Above the HUD, which comes later in the page. */
   z-index: 2;
+}
+/* The cursor prompt: the thing's name and what each mouse button does, beside the cursor. src/app/cursor-prompt-overlay.ts moves it. */
+.cursor-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px 8px;
+  color: #f3e6d3;
+  font-size: 12px;
+  white-space: nowrap;
+  background: rgb(31 21 14 / 0.92);
+  border: 1px solid #6b4a2f;
+  border-radius: 6px;
+  pointer-events: none;
+  will-change: transform;
+  /* Above the HUD and the right-click menu. */
+  z-index: 3;
+}
+.cursor-prompt strong {
+  font-size: 13px;
+}
+.cursor-prompt-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cursor-prompt-off {
+  opacity: 0.55;
 }
 .action-menu .hud-button {
   justify-content: flex-start;

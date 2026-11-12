@@ -141,25 +141,13 @@ export const strings = {
     deliverHint: "Carry a debarked log here and click the blueprint to add it.",
     buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",
   },
-  carryingLog: "Carrying a log",
-  carryingDebarkedLog: "Carrying a debarked log",
-  dropLog: "Drop log",
   actionMenu: "Actions",
-  splitLog: "Split into firewood",
   campfire: "Campfire",
   campfireLit: "Burning",
   campfireUnlit: "Not lit",
   campfireFuel: "Fuel",
-  addStick: "Add a stick",
-  addFirewood: "Add firewood",
-  addBark: "Add bark",
-  lightCampfire: "Light with fire striker",
-  putPotOnFire: "Put the pot on to boil",
-  takePotOffFire: "Take the pot off",
   potBoiling: "Boiling",
   potBoiled: "The water has boiled.",
-  fillPot: "Fill the pot at the river",
-  drinkFromPot: "Drink from the pot",
   woodpile: {
     title: "Woodpile",
     fill: "Stacked",
@@ -169,32 +157,14 @@ export const strings = {
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
       firewood: (count: number) => (count === 1 ? "1 piece of firewood" : `${count} pieces of firewood`),
     },
-    stack: {
-      log: "Stack the log",
-      debarkedLog: "Stack the debarked log",
-      firewood: "Stack firewood",
-    },
-    take: {
-      log: "Take a log",
-      debarkedLog: "Take a debarked log",
-      firewood: "Take firewood",
-    },
-    stackAllHint: "Shift-click Stack firewood to stack all the firewood that fits.",
   },
   warmth: "Warmth",
   needs: "Needs",
   hunger: "Hunger",
   raining: "It is raining. The rain chills you.",
   thirst: "Thirst",
-  eat: "Eat",
-  /** The full name of an eat button, for screen readers. */
-  eatFood: (food: string) => `Eat ${food.toLowerCase()}`,
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   fatigue: "Rest",
-  layBedroll: "Lay out bedroll",
-  bedroll: "Bedroll",
-  sleep: "Sleep",
-  pickUpBedroll: "Roll up and pack",
   notices: {
     survivedFirstNight: "You survived the night.",
     collapsed: "You collapsed. You woke the next morning.",
@@ -231,10 +201,6 @@ export const strings = {
   chest: {
     title: "Chest",
     empty: "The chest is empty.",
-    /** The tip shown when the player points at a backpack cell while a chest is open. */
-    putTip: (name: string) => `${name}. Click to put one in the chest.`,
-    /** The full name of a backpack cell while a chest is open, for screen readers. */
-    put: (name: string) => `Put ${name.toLowerCase()} in the chest`,
     /** The tip shown when the player points at a chest cell. */
     takeTip: (name: string) => `${name}. Click to take one.`,
     /** The full name of a chest cell, for screen readers. */
@@ -245,16 +211,23 @@ export const strings = {
     title: "Pile",
     /** What a pile holds, such as "7 sticks". */
     holds: (content: BackpackContent, count: number) => PILE_HOLDS[content](count),
-    pickUp: "Pick up",
-    /** The tip shown when the player points at a backpack cell. */
-    dropTip: (name: string) => `${name}. Click to drop all of it here.`,
-    /** The full name of a backpack cell's drop button, for screen readers. */
-    drop: (name: string) => `Drop ${name.toLowerCase()}`,
   },
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
   backpackCountBadge: (count: number) => `${count}`,
   backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
+  /** The hotbar's cells: the backpack items and the log on the shoulder. */
+  hotbar: {
+    /** The number key that uses a cell, shown in its corner. */
+    key: (number: number) => `${number}`,
+    /** The full name of a cell, for screen readers, such as "Berries ×3, key 2". */
+    cell: (name: string, count: number, key: string | undefined) => {
+      const what = count === 1 ? name : `${name} ×${count}`;
+      return key === undefined ? what : `${what}, key ${key}`;
+    },
+    /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
+    shoulder: (name: string) => `On your shoulder: ${name}`,
+  },
   /** What the player can do to a thing, as the right-click menu and the cursor prompt name it. */
   actions: {
     walk: "Walk here",
@@ -301,6 +274,18 @@ export const strings = {
     shoulderFull: "your shoulder is full",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
+    potOnFire: "take the pot off first",
+  },
+  /** The label beside the cursor that says what each mouse button does to the thing under it. */
+  prompt: {
+    leftClick: "Left-click",
+    rightClick: "Right-click",
+    moreActions: "More actions",
+    /** The left-click line of a hotbar item that a click does nothing to. */
+    noUse: "No use",
+    /** The left-click line of the build and craft buttons. */
+    openWheel: { build: "Open the build wheel", craft: "Open the craft wheel" },
+    closeWheel: { build: "Close the build wheel", craft: "Close the craft wheel" },
   },
   /** The names of things the player can act on, as the cursor prompt shows them. */
   things: {

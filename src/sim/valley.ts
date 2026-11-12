@@ -284,6 +284,11 @@ function placeSticks(random: Random, trees: readonly GroundPoint[], isOpen: Spot
   return { sticks: [...deadfalls.flat(), ...loneSticks], deadfalls };
 }
 
+/** A check for spots where a stick may lie: inside the valley, out of the water, and clear of every tree trunk. */
+export function stickSpotCheck(valley: Valley): SpotIsOpen {
+  return openSpotCheck(valley.river, valley.trees, STICK_MIN_FROM_TREE_METRES);
+}
+
 /**
  * Makes a check for spots inside the valley, out of the water, and at least `minFromTree` metres from every trunk,
  * so the player can reach them.

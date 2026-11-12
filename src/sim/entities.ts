@@ -5,6 +5,7 @@ import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
+import type { StickFall } from "./stick-fall";
 import type { Sickness } from "./sickness";
 import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
@@ -204,6 +205,8 @@ export interface Entity {
   potOnFire?: PotOnFire;
   /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
   rain?: Rain;
+  /** When the next sticks fall from the trees. Only one entity, the valley's stick fall, has it. */
+  stickFall?: StickFall;
   /**
    * Marks a pile: things of one kind the player dropped from the backpack, lying on the ground. Its position is the middle of the pile.
    * `count` is how many it holds, always at least 1. A pile with nothing left is removed.
@@ -411,6 +414,11 @@ export function leanToEntities(store: EntityStore) {
 /** Piles of things the player dropped on the ground. */
 export function pileEntities(store: EntityStore) {
   return store.with("pile", "position");
+}
+
+/** The valley's stick fall. There is only ever one. */
+export function stickFallEntities(store: EntityStore) {
+  return store.with("stickFall");
 }
 
 /** The valley's weather. There is only ever one. */

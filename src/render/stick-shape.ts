@@ -51,14 +51,16 @@ export function createStickGeometry(): THREE.BufferGeometry {
     const last = i === segments.length - 1;
     // Inner segments start a little inside the previous one, so no notch shows at the bends.
     const start = first ? fromPoint : fromPoint.clone().addScaledVector(toPoint.clone().sub(fromPoint).normalize(), -from.radius * 0.6);
-    parts.push(createStickSegment(start, toPoint, from.radius, to.radius, BRANCH_SIDES, first, last));
+    parts.push(
+      createStickSegment({ from: start, to: toPoint, fromRadius: from.radius, toRadius: to.radius, sides: BRANCH_SIDES, paleFrom: first, paleTo: last }),
+    );
   });
   for (const twig of TWIGS) {
     const host = ends[twig.segment];
     if (host === undefined) continue;
     const start = host.from.clone().lerp(host.to, twig.along);
     const end = start.clone().addScaledVector(twig.direction, twig.length);
-    parts.push(createStickSegment(start, end, twig.radius, twig.radius * 0.5, TWIG_SIDES, false, false));
+    parts.push(createStickSegment({ from: start, to: end, fromRadius: twig.radius, toRadius: twig.radius * 0.5, sides: TWIG_SIDES }));
   }
   const stick = mergeGeometries(parts);
   for (const part of parts) part.dispose();
@@ -66,21 +68,37 @@ export function createStickGeometry(): THREE.BufferGeometry {
   return stick;
 }
 
+/** The shape of one stick segment. */
+export interface StickSegmentOptions {
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  fromRadius: number;
+  toRadius: number;
+  /** How many flat sides the cylinder has. */
+  sides: number;
+  /** Whether the `from` end shows pale cut wood. No by default. */
+  paleFrom?: boolean;
+  /** Whether the `to` end shows pale cut wood. No by default. */
+  paleTo?: boolean;
+  /** The bark colour of the material the segment is drawn in. STICK_COLOUR by default. */
+  barkColour?: number;
+}
+
 /**
  * A tapered cylinder from `from` to `to`, with bark-coloured sides and optionally pale cut ends.
  * The lean-to in lean-to-meshes.ts builds its crooked posts and ridge pole from these.
  * Draw it in a material coloured `barkColour`. The sled in sled-meshes.ts passes its own bark colour.
  */
-export function createStickSegment(
-  from: THREE.Vector3,
-  to: THREE.Vector3,
-  fromRadius: number,
-  toRadius: number,
-  sides: number,
-  paleFrom: boolean,
-  paleTo: boolean,
-  barkColour: number = STICK_COLOUR,
-): THREE.BufferGeometry {
+export function createStickSegment({
+  from,
+  to,
+  fromRadius,
+  toRadius,
+  sides,
+  paleFrom = false,
+  paleTo = false,
+  barkColour = STICK_COLOUR,
+}: StickSegmentOptions): THREE.BufferGeometry {
   const direction = to.clone().sub(from);
   const length = direction.length();
   const geometry = new THREE.CylinderGeometry(toRadius, fromRadius, length, sides);

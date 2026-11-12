@@ -33,6 +33,12 @@ export function spotUnderTree(random: Random, tree: GroundPoint): GroundPoint {
   return { x: tree.x + Math.sin(angle) * distance, z: tree.z + Math.cos(angle) * distance };
 }
 
+/** Lays one stick alone under `tree`, on an open spot in the ring around the trunk. Returns undefined if the spot it picks is not open. */
+export function layLoneStick(random: Random, tree: GroundPoint, isOpen: SpotIsOpen): GroundPoint[] | undefined {
+  const spot = spotUnderTree(random, tree);
+  return isOpen(spot) ? [spot] : undefined;
+}
+
 /**
  * Lays a deadfall of `stickCount` sticks under `tree`. Each stick lies in the ring around the trunk, on an open spot,
  * close to the others. Returns undefined if there is no room for all the sticks, so the caller can try another tree.

@@ -92,6 +92,22 @@ describe("the limit on sticks", () => {
     expect(stickCount(game)).toBe(start);
   });
 
+  it("lays sticks alone, not in a deadfall smaller than 3, when fewer than 3 more sticks fit", () => {
+    const game = createGame({ seed: 42 });
+    const start = stickCount(game);
+    let pairs = 0;
+    for (let round = 0; round < 20; round += 1) {
+      clearSticks(game, 2);
+      const before = new Set(stickEntities(game.entities).entities);
+      skipHours(game, 3);
+      const [first, second] = newSticks(game, before);
+      // The sticks in a deadfall lie within 0.9 metres of each other.
+      if (first && second && groundDistance(first.position, second.position) < 0.9) pairs += 1;
+    }
+    expect(stickCount(game)).toBe(start);
+    expect(pairs).toBe(0);
+  });
+
   it("counts sticks the player dropped", () => {
     const game = createGame({ seed: 42 });
     const start = stickCount(game);
@@ -121,6 +137,48 @@ describe("the gap around built things", () => {
       expect(distanceOutside(footprintOfEntity(campfire.entity), position)).toBeGreaterThanOrEqual(STICK_GAP_FROM_PLACED_METRES);
       expect(groundDistance(position, bedroll)).toBeGreaterThanOrEqual(STICK_GAP_FROM_PLACED_METRES);
     }
+  });
+
+  it("lays no stick on or right next to a log, debarked log, or bark the player left on the ground", () => {
+    const game = createGame({ seed: 42 });
+    const tree = game.valley.trees[100] as GroundPoint;
+    const dropped = [
+      { x: tree.x + 2.5, z: tree.z },
+      { x: tree.x - 2.5, z: tree.z },
+      { x: tree.x, z: tree.z + 2.5 },
+    ];
+    const [log, debarkedLog, bark] = dropped as [GroundPoint, GroundPoint, GroundPoint];
+    game.entities.add({ log: { heading: 0 }, position: { ...log, y: 0 } });
+    game.entities.add({ debarkedLog: { heading: 0 }, position: { ...debarkedLog, y: 0 } });
+    game.entities.add({ bark: true, position: { ...bark, y: 0 } });
+    const near = (stick: GroundPoint) => groundDistance(stick, tree) < 30;
+    for (const stick of sticksWhere(game, near)) game.entities.remove(stick);
+    skipHours(game, 6 * 24);
+    expect(sticksWhere(game, near).length).toBeGreaterThan(0);
+    for (const { position } of sticksWhere(game, near)) {
+      for (const spot of dropped) expect(groundDistance(position, spot)).toBeGreaterThanOrEqual(STICK_GAP_FROM_PLACED_METRES);
+    }
+  });
+});
+
+describe("falls that find no room", () => {
+  it("are laid soon after room opens, so the cleared area keeps its pace", () => {
+    const game = createGame({ seed: 42 });
+    const tree = game.valley.trees[100] as GroundPoint;
+    const near = (stick: GroundPoint) => groundDistance(stick, tree) < 20;
+    for (const stick of sticksWhere(game, near)) game.entities.remove(stick);
+    // Bedrolls cover every tree in the cleared area, so no stick has room to fall.
+    const bedrolls = [];
+    for (let x = -46; x <= 46; x += 2) {
+      for (let z = -46; z <= 46; z += 2) bedrolls.push(game.entities.add({ bedroll: true, position: { x: tree.x + x, y: 0, z: tree.z + z } }));
+    }
+    const start = stickCount(game);
+    skipHours(game, 6);
+    expect(stickCount(game)).toBe(start);
+    for (const bedroll of bedrolls) game.entities.remove(bedroll);
+    skipHours(game, 1);
+    // One fall lays at most 6 sticks. The falls that found no room are laid now too.
+    expect(stickCount(game) - start).toBeGreaterThan(6);
   });
 });
 

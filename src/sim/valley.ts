@@ -1,4 +1,4 @@
-import { layDeadfall, rollDeadfallSize, spotUnderTree, STICK_MIN_FROM_TREE_METRES, type SpotIsOpen } from "./deadfall";
+import { layDeadfall, layLoneStick, rollDeadfallSize, STICK_MIN_FROM_TREE_METRES, type SpotIsOpen } from "./deadfall";
 import { createRandom, type Random } from "./random";
 
 /** A spot on the valley floor, in metres from the valley's centre. */
@@ -278,8 +278,8 @@ function placeSticks(random: Random, trees: readonly GroundPoint[], isOpen: Spot
     if (deadfall) deadfalls.push(deadfall);
   }
   while (loneSticks.length < LONE_STICK_COUNT) {
-    const spot = spotUnderTree(random, randomTree());
-    if (isOpen(spot)) loneSticks.push(spot);
+    const stick = layLoneStick(random, randomTree(), isOpen);
+    if (stick) loneSticks.push(...stick);
   }
   return { sticks: [...deadfalls.flat(), ...loneSticks], deadfalls };
 }

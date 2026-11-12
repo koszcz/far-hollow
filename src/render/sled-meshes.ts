@@ -290,17 +290,24 @@ function sledParts(
     const knee = new THREE.Vector3(bend, (CROSS_RADIUS_METRES + thin) / 2, 0);
     const end = new THREE.Vector3(0, thin, flip * half);
     const pieces = [
-      createStickSegment(foot, knee, CROSS_RADIUS_METRES, (CROSS_RADIUS_METRES + thin) / 2, CROSS_SIDES, true, false, SLED_STICK_COLOUR),
-      createStickSegment(
-        knee.clone().addScaledVector(knee.clone().sub(foot).normalize(), -0.02),
-        end,
-        (CROSS_RADIUS_METRES + thin) / 2,
-        thin,
-        CROSS_SIDES,
-        false,
-        true,
-        SLED_STICK_COLOUR,
-      ),
+      createStickSegment({
+        from: foot,
+        to: knee,
+        fromRadius: CROSS_RADIUS_METRES,
+        toRadius: (CROSS_RADIUS_METRES + thin) / 2,
+        sides: CROSS_SIDES,
+        paleFrom: true,
+        barkColour: SLED_STICK_COLOUR,
+      }),
+      createStickSegment({
+        from: knee.clone().addScaledVector(knee.clone().sub(foot).normalize(), -0.02),
+        to: end,
+        fromRadius: (CROSS_RADIUS_METRES + thin) / 2,
+        toRadius: thin,
+        sides: CROSS_SIDES,
+        paleTo: true,
+        barkColour: SLED_STICK_COLOUR,
+      }),
       ...[-runnerZ, runnerZ].flatMap((z) => lashing(z).map((wrap) => wrap.translate(0, -crossY, 0))),
       ...(i === SLED_STICK_COST - 1 ? towRope(runnerZ).map((rope) => rope.translate(-x, -crossY, 0)) : []),
     ];

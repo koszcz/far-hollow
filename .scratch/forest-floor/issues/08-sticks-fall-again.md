@@ -4,7 +4,7 @@
 
 **Blocked by:** 07 (Sticks lie in deadfalls)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuses `sticks`. Adds none.
 

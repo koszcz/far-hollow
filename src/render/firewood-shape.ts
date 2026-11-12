@@ -1,5 +1,5 @@
 // The code-built shape listed in asset-manifest.json as "firewood" (approved). Nothing draws it in the world yet.
-// asset-showcase.ts draws it at /?asset=firewood.
+// src/render/showcases/camp.ts draws it at /?asset=firewood.
 // A piece of firewood is one quarter of the "logs" asset, split lengthwise: bark on its round face, pale split wood on its
 // two flat faces and its sawn ends. Its edges are a little uneven, so it looks split by hand.
 import * as THREE from "three";

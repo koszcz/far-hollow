@@ -51,7 +51,7 @@ Read the entry's ticket, if it is a draft. Then read the comment at the top of e
 
 If the asset is an animation, read `animation.md` in this skill's folder now. Plan and build the animation by its rules.
 
-Then record the shared files you will edit with `"$s" files <id> ...`. A shared file builds more than this asset, such as `forest-meshes.ts`, `player-mesh.ts`, or `asset-showcase.ts`. Leave out `asset-manifest.json`, because every session edits it. Run `"$s" list` and compare. If another session lists the same file, tell the owner which session and which file. Edit only the parts of that file that belong to your asset.
+Then record the shared files you will edit with `"$s" files <id> ...`. A shared file builds more than this asset, such as `forest-meshes.ts`, `player-mesh.ts`, or a family file in `src/render/showcases/`. Leave out `asset-manifest.json`, because every session edits it. Run `"$s" list` and compare. If another session lists the same file, tell the owner which session and which file. Edit only the parts of that file that belong to your asset.
 
 Done when you can name every place that builds, loads, or draws the asset, and the board lists your shared files.
 
@@ -85,7 +85,7 @@ Done when the game uses the new asset everywhere step 3 found. For an animation,
 
 ### 6. Show it
 
-Start the `dev` preview and open `/?asset=<id>`. The asset showcase draws the asset with the game's own code, in four labelled views. When `document.body.dataset.showcase` is `"ready"`, take one screenshot and send it to the owner. For an animation, do not send stills. Open `/?asset=<id>&play` instead, so the owner watches the full animation loop in the browser pane. Add `&speed=0.25` for slow motion. If the animation has no `play` entry in the showcase, add one first. To change the views, or to add a new asset, edit `src/render/asset-showcase.ts`. For a sound, describe when it plays and how loud it is.
+Start the `dev` preview and open `/?asset=<id>`. The asset showcase draws the asset with the game's own code, in four labelled views. When `document.body.dataset.showcase` is `"ready"`, take one screenshot and send it to the owner. For an animation, do not send stills. Open `/?asset=<id>&play` instead, so the owner watches the full animation loop in the browser pane. Add `&speed=0.25` for slow motion. If the animation has no `play` entry in the showcase, add one first. Each asset's views live in one family file in `src/render/showcases/`. To find an asset's entry, run `grep -rnE '^  "?<id>"?:' src/render/showcases`, then read only that entry. To add a new asset, add it to the file for its family. For a sound, describe when it plays and how loud it is.
 
 Show the asset in the full game only if the owner asks to see it there.
 

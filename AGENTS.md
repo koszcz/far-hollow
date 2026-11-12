@@ -16,6 +16,10 @@ Uses the five default triage labels, recorded as a `Status:` line in each issue 
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Game testing
+
+Before you play the game in a browser to test a change, a bug, or a QA task, read `docs/agents/game-testing.md`. It covers reading game state instead of taking screenshots. Pass this pointer to any QA subagent you start.
+
 ## Assets
 
 Every asset (3D model, texture, animation, or sound) is listed in the asset catalogue, `asset-manifest.json`. When a ticket needs an asset:

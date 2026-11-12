@@ -162,7 +162,7 @@ describe("a sled's actions", () => {
       "take:log off: your shoulder is full",
       "take:debarkedLog off: your shoulder is full",
       "tipOut",
-      "takeDown off: empty it first",
+      "takeDown",
     ]);
     expect(find(actions, "load:debarkedLog")).toMatchObject({ label: "Put the debarked log on the sled", command: { type: "loadSled", sledId: 9 } });
     expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out every log", command: { type: "tipOutSled", sledId: 9 } });
@@ -170,7 +170,7 @@ describe("a sled's actions", () => {
 
   it("drags the sled when the player carries nothing, then takes one log, offering only the kinds the sled holds", () => {
     const logsOnly = readerWith({ sled: { contents: { log: 2, debarkedLog: 0 }, total: 2 } });
-    expect(summary(actionsFor(SLED, logsOnly))).toEqual(["drag main", "take:log", "tipOut", "takeDown off: empty it first"]);
+    expect(summary(actionsFor(SLED, logsOnly))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
     expect(find(actionsFor(SLED, logsOnly), "drag")).toMatchObject({ label: "Drag the sled", command: { type: "dragSled", sledId: 9 } });
 
     const empty = readerWith({ sled: { contents: { log: 0, debarkedLog: 0 }, total: 0 } });

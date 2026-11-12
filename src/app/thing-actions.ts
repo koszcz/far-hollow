@@ -34,8 +34,13 @@ function targetActions(target: ActionTarget, reader: ActionReader, view: GameVie
     case "shoulder":
       return shoulderActions(target.log, view);
     case "sled":
-      return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+      return letGoActions();
   }
+}
+
+/** Letting go of the dragged sled, as the only and main action. */
+function letGoActions(): readonly ThingAction[] {
+  return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
 }
 
 /** While the player drags a sled, their hands are busy, so an action that needs them is off until they let go. */
@@ -288,7 +293,7 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
 function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
   const sledId = sled.id;
   const reasons = strings.actionReasons;
-  if (view.dragging?.id === sledId) return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+  if (view.dragging?.id === sledId) return letGoActions();
   const drag = offerUnless(view.dragging === null ? undefined : reasons.letGoFirst, "drag", strings.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
   const load =
     view.carrying === null
@@ -323,7 +328,8 @@ function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
     { hud: "log" },
     { type: "tipOutSled", sledId },
   );
-  const offers = [...load, drag, ...take, tipOut, takeDown(sledId, sled.total > 0 ? reasons.emptyFirst : undefined)];
+  // A loaded sled can be taken down. Its logs are laid on the ground beside it first.
+  const offers = [...load, drag, ...take, tipOut, takeDown(sledId)];
   return withMain(offers, view.carrying === null ? "drag" : `load:${view.carrying}`);
 }
 

@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Changes the approved `sticks` asset and sets it back to `draft`. The owner approved this change in chat on 2026-11-12. The owner approves the final look with the `make-asset` skill.
 

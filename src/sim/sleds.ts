@@ -86,14 +86,6 @@ export function layLoadBeside(entities: EntityStore, valley: Valley, sled: Entit
   });
 }
 
-/**
- * True if a sled stands parked, so a work station can use the logs on it. A sled the player drags is not parked.
- * Until the player can drag sleds (sled ticket 03), every sled is parked.
- */
-export function isSledParked(_entities: EntityStore, _sled: Entity): boolean {
-  return true;
-}
-
 /** Lets the player keep logs on parked sleds. */
 export function createSleds(entities: EntityStore, walking: Walking, valley: Valley): Sleds {
   const players = playerEntities(entities);

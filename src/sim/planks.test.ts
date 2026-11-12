@@ -208,19 +208,23 @@ describe("cutting planks with a debarked log on a sled", () => {
     expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([]);
   });
 
-  // TODO(sled ticket 03): once the player can drag a sled, make the player drag this one and remove `.skip`.
-  // `isSledParked` in src/sim/sleds.ts is the one place that must learn about dragging.
-  it.skip("does not count a sled the player is dragging", () => {
+  it("does not count a sled the player is dragging", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
     const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
     give(game, { saw: 1 });
-    // Ticket 03: make the player drag `sled` here, standing by the sawhorse.
+    const sledId = game.entities.id(sled);
+    if (sledId === undefined) throw new Error("The sled is not in the store");
+    send(game, { type: "dragSled", sledId });
+    runSeconds(game, 5);
+    expect(game.client.getView().dragging).not.toBeNull();
 
+    // Crafting needs free hands, so the player is told to let go. The sled keeps its log.
     send(game, { type: "craft", recipe: "planks" });
-    expect(game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
+    expect(game.client.getView().notice).toMatchObject({ kind: "letGoFirst" });
     runSeconds(game, 10);
     expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+    expect(game.client.getView().backpack.plank).toBeUndefined();
   });
 });
 
@@ -343,11 +347,10 @@ function sledBeside(
   sawhorse: Entity & { position: NonNullable<Entity["position"]> },
   metres: number,
   contents: Record<"log" | "debarkedLog", number>,
-): { sled: Record<"log" | "debarkedLog", number> } {
+): Entity & { sled: Record<"log" | "debarkedLog", number> } {
   const { x, y, z } = sawhorse.position;
   const sled = { ...contents };
-  game.entities.add({ sled, facing: { turns: 0 }, position: { x, y, z: z + metres } });
-  return { sled };
+  return Object.assign(game.entities.add({ sled, facing: { turns: 0 }, position: { x, y, z: z + metres } }), { sled });
 }
 
 /** Places a sawhorse blueprint on open ground a few metres from the player and builds it. */

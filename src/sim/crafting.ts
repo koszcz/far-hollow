@@ -14,7 +14,7 @@ import {
   type EntityStore,
 } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
-import { isSledParked } from "./sleds";
+import { isParked } from "./sleds";
 import type { WorkStationKind } from "./structure-kind";
 import { footprintOfEntity } from "./structures";
 import { groundDistance, type GroundPoint } from "./valley";
@@ -218,7 +218,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
   function logsBeside(recipe: Recipe, station: PlacedEntity): (() => void)[] | undefined {
     const used: (() => void)[] = [];
     const sleds = sledEntities(entities)
-      .entities.filter((sled) => isSledParked(entities, sled))
+      .entities.filter((sled) => isParked(entities, sled))
       .map((sled) => ({ sled, distance: distanceOutside(footprintOfEntity(sled), station.position) }))
       .filter(({ distance }) => distance <= STATION_GROUND_METRES)
       .sort((a, b) => a.distance - b.distance);

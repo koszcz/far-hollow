@@ -276,6 +276,7 @@ export const strings = {
     shoulderFull: "your shoulder is full",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
+    potOnFire: "take the pot off first",
   },
   /** The names of things the player can act on, as the cursor prompt shows them. */
   things: {

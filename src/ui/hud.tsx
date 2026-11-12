@@ -29,6 +29,7 @@ import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
 import { HudIcon, type HudIconName } from "./hud-icons";
+import { placingHint } from "./placing-hint";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
 function backpackContents(backpack: GameView["backpack"]): [BackpackContent, number][] {
@@ -312,25 +313,11 @@ function warmthColour(warmth: number): string {
 }
 
 /** One row of a bar with an icon and a label. Needs such as warmth, and the progress of timed work, use it. */
-function Meter({
-  icon,
-  label,
-  value,
-  colour,
-  low = false,
-  compact = false,
-}: {
-  icon: HudIconName;
-  label: string;
-  value: number;
-  colour: string;
-  low?: boolean;
-  compact?: boolean;
-}) {
+function Meter({ icon, label, value, colour, low = false }: { icon: HudIconName; label: string; value: number; colour: string; low?: boolean }) {
   return (
-    <label class={low ? "hud-meter hud-meter-low" : "hud-meter"} style={{ "--hud-bar": colour }} data-tip={compact ? label : undefined}>
+    <label class={low ? "hud-meter hud-meter-low" : "hud-meter"} style={{ "--hud-bar": colour }}>
       <HudIcon name={icon} />
-      <span class={compact ? "hud-sr-only" : "hud-meter-label"}>{label}</span>
+      <span class="hud-meter-label">{label}</span>
       <progress max={1} value={value} />
     </label>
   );
@@ -373,6 +360,40 @@ function HudIconButton({
   return (
     <button type="button" class="hud-button hud-icon-button" aria-label={label} aria-pressed={pressed} data-tip={label} disabled={disabled} onClick={onClick}>
       <HudIcon name={icon} />
+    </button>
+  );
+}
+
+/** A larger HUD button that shows an icon, its name, and the key that does the same, such as "Build B". The build and craft buttons use it. */
+function HudToolButton({
+  icon,
+  label,
+  shortcut,
+  disabled = false,
+  pressed,
+  onClick,
+}: {
+  icon: HudIconName;
+  label: string;
+  shortcut: string;
+  disabled?: boolean;
+  pressed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      class="hud-button hud-tool-button"
+      aria-label={label}
+      aria-keyshortcuts={shortcut}
+      aria-pressed={pressed}
+      data-tip={label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <HudIcon name={icon} />
+      <span class="hud-tool-label">{label}</span>
+      <kbd class="hud-key">{shortcut}</kbd>
     </button>
   );
 }
@@ -602,10 +623,15 @@ const FULL_BACKPACK = 0.9;
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
-/** The hint shown while placing a structure. Pieces on an edge, over walls, or placed anywhere snap differently, so they say so. */
-function placingHint(entries: readonly BuildMenuEntry[], placing: StructureKind): string {
-  const placement = entries.find(({ structure }) => structure === placing)?.placement ?? "onGround";
-  return strings.buildMenu.placing[placement](strings.buildMenu.structures[placing]);
+/** The hint shown while placing a structure: what to click, then the keys on a line of their own. */
+function PlacingHintText({ entries, placing }: { entries: readonly BuildMenuEntry[]; placing: StructureKind }) {
+  const { what, keys } = placingHint(entries, placing);
+  return (
+    <p class="hud-hint hud-placing-hint">
+      {what}
+      <span class="hud-placing-keys">{keys}</span>
+    </p>
+  );
 }
 
 /** The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel. */
@@ -683,7 +709,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             {view.action !== null && (
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
             )}
-            {placing !== null && <p class="hud-hint">{placingHint(view.buildMenu, placing)}</p>}
+            {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} />}
             {view.carrying !== null && (
               <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
                 <h2>
@@ -715,10 +741,10 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           </div>
         )}
         <section class="hud-needs" aria-label={strings.needs}>
-          <Meter compact icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
-          <Meter compact icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
-          <Meter compact icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
-          <Meter compact icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
+          <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
+          <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
+          <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
+          <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
           {view.sick && <p class="hud-hint">{strings.sick}</p>}
         </section>
         <div class="hud-panel hud-hotbar">
@@ -794,9 +820,22 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               />
             )}
           </div>
-          <div class="hud-hotbar-buttons">
-            <HudIconButton icon="place" label={strings.buildMenu.open} pressed={buildMenuOpen} disabled={placing !== null} onClick={onToggleBuildMenu} />
-            <HudIconButton icon="axe" label={strings.craftMenu.open} pressed={craftMenuOpen} onClick={onToggleCraftMenu} />
+          <div class="hud-hotbar-tools">
+            <HudToolButton
+              icon="place"
+              label={strings.buildMenu.open}
+              shortcut={strings.hudLabels.buildKey}
+              pressed={buildMenuOpen}
+              disabled={placing !== null}
+              onClick={onToggleBuildMenu}
+            />
+            <HudToolButton
+              icon="axe"
+              label={strings.craftMenu.open}
+              shortcut={strings.hudLabels.craftKey}
+              pressed={craftMenuOpen}
+              onClick={onToggleCraftMenu}
+            />
           </div>
         </div>
       </div>

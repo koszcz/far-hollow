@@ -110,16 +110,27 @@ export const strings = {
     entryLabel: (structure: string, cost: string) => (cost === "" ? structure : `${structure}: ${cost}`),
     /** What the build menu says about the tool a structure needs, such as "needs the axe". */
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
-    /** What to do while placing each kind of structure, given its name. */
+    /** What to click while placing each kind of structure, given its name. The keys show after it, from `hudLabels.placingKeys`. */
     placing: {
-      anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere. Press R to turn it, or Escape to cancel.`,
-      onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it. Press R to turn it, or Escape to cancel.`,
-      onEdge: (structure: string) =>
-        `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
+      anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere.`,
+      onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it.`,
+      onEdge: (structure: string) => `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. R picks another edge.`,
       overWalls: (structure: string) =>
-        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press R to turn the way it slopes down, or Escape to cancel.`,
-      onFrame: (structure: string) =>
-        `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does. Press Escape to cancel.`,
+        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
+      onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
+    },
+  },
+  /** Labels that name the HUD's buttons and bars, and the keys that work them. */
+  hudLabels: {
+    /** The key that opens the build wheel, shown on its button. */
+    buildKey: "B",
+    /** The key that opens the craft wheel, shown on its button. */
+    craftKey: "C",
+    /** The keys that work while placing a structure, shown after the placing hint. */
+    placingKeys: {
+      rotate: "R to rotate",
+      cancel: "Esc to cancel",
+      join: (keys: readonly string[]) => keys.join(" · "),
     },
   },
   blueprint: {

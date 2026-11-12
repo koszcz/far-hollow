@@ -239,7 +239,7 @@ export function createSceneRenderer(
     return result;
   }
 
-  /** What the ray meets first in the valley, with how far away it is. `ground` is where it meets the valley's ground, if it does. */
+  /** Like pickThroughFinishedStructures, given what the ray meets on the valley's ground. */
   function pickInsideValley(ground: THREE.Intersection | undefined): { pick: GroundOrThingPick; distance: number } | undefined {
     const candidates = [
       forestMeshes.pick(raycaster),

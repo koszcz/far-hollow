@@ -2,8 +2,7 @@
 // - The ridge's ground carries on the valley ground's painted look across the seam, then turns to forest floor.
 // - Trees on the ridge use the "far-trees" shapes (approved), in one batch per tree type. They cast no shadows.
 // - The river runs on through each gorge with the "river" asset's water and pebble banks (approved).
-// - The far land and its mountains are shaded flat, with no shadows, and fade into the sky's haze, a little more than
-//   nearer land does.
+// - The far land and its mountains are shaded flat, with no shadows, and fade into the sky's haze.
 // None of it can be clicked or walked on. The scene uses `ridge` only to stop clicks that land on the ridge.
 import * as THREE from "three";
 import type { Terrain, Valley } from "../sim/valley";
@@ -13,15 +12,13 @@ import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createFarTreeShape } from "./tree-far-shape";
 import type { TreeShape } from "./tree-model";
 import { createFarLandGeometry, createRidgeGeometry, RIDGE_REACH_METRES, type ValleyBackdrop } from "./valley-backdrop-shape";
-import { GROUND_FRAGMENT_HEAD, groundColourGlsl, type GroundLook } from "./valley-meshes";
+import type { GroundLook } from "./valley-meshes";
 
 /** The ridge's ground turns from the valley edge's ground types to forest floor over this distance, in metres. */
 const FOREST_FLOOR_FADE_METRES = 15;
 /** The ridge's ground darkens to this share of its colour far up the slope, as if under thick forest. */
 const RIDGE_SHADE = 0.72;
 const RIDGE_SHADE_FADE_METRES = 60;
-/** The haze over the far land is as thick as over land this many times as far away. */
-const FAR_LAND_HAZE_SCALE = 1.3;
 
 export interface ValleyBackdropMeshes {
   readonly group: THREE.Group;
@@ -58,16 +55,10 @@ export function createValleyBackdropMeshes(
   ridge.receiveShadow = true;
   group.add(ridge);
 
-  const farLandMaterial = track(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
-  // The far land counts as further away in the haze than it is, so even the near mountains fade at noon.
-  // The sky's haze itself is unchanged.
-  farLandMaterial.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader.replace(
-      "#include <fog_vertex>",
-      `#include <fog_vertex>\n#ifdef USE_FOG\nvFogDepth *= ${FAR_LAND_HAZE_SCALE.toFixed(2)};\n#endif`,
-    );
-  };
-  const farLand = new THREE.Mesh(track(createFarLandGeometry(valley, backdrop)), farLandMaterial);
+  const farLand = new THREE.Mesh(
+    track(createFarLandGeometry(valley, backdrop)),
+    track(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 })),
+  );
   group.add(farLand);
 
   const batches = createRidgeTrees(backdrop, treeShapes, track);
@@ -112,7 +103,7 @@ function copySeamNormals(ridge: THREE.BufferGeometry, terrain: Terrain, groundNo
 /**
  * The valley ground's material, carried on past the edge. The baked ground-type map stops at the edge, so past it each
  * spot takes the edge's ground types, then fades to forest floor and darkens up the slope.
- * The painting itself is the valley ground's own, from valley-meshes.ts, so the two always match at the seam.
+ * Mirrors the ground shader in valley-meshes.ts, which belongs to the approved "terrain" asset.
  */
 function createRidgeMaterial(valley: Valley, look: GroundLook): THREE.MeshStandardMaterial {
   const material = new THREE.MeshStandardMaterial({ map: look.textures.clearing });
@@ -131,13 +122,26 @@ function createRidgeMaterial(valley: Valley, look: GroundLook): THREE.MeshStanda
         "#include <begin_vertex>\nvGroundTypeUv = clamp( position.xz / valleySize + 0.5, 0.0, 1.0 );\nvBeyondEdge = beyondEdge;",
       );
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${GROUND_FRAGMENT_HEAD}\nvarying float vBeyondEdge;`)
+      .replace(
+        "#include <common>",
+        "#include <common>\nuniform sampler2D forestFloorMap;\nuniform sampler2D riverBankMap;\nuniform sampler2D groundTypeWeights;\nvarying vec2 vGroundTypeUv;\nvarying float vBeyondEdge;",
+      )
       .replace(
         "#include <map_fragment>",
-        groundColourGlsl(
+        [
+          "vec4 groundMap = texture2D( groundTypeWeights, vGroundTypeUv );",
+          "vec3 groundWeights = vec3( groundMap.r, max( 1.0 - groundMap.r - groundMap.b, 0.0 ), groundMap.b );",
+          "groundWeights /= max( groundWeights.r + groundWeights.g + groundWeights.b, 0.001 );",
           `groundWeights = mix( groundWeights, vec3( 1.0, 0.0, 0.0 ), smoothstep( 0.0, ${FOREST_FLOOR_FADE_METRES.toFixed(1)}, vBeyondEdge ) );`,
+          "vec2 largeUv = mat2( 0.8, -0.6, 0.6, 0.8 ) * vMapUv * 0.43 + vec2( 0.31, 0.67 );",
+          "vec4 forestFloorColour = mix( texture2D( forestFloorMap, vMapUv ), texture2D( forestFloorMap, largeUv ), groundMap.a );",
+          "vec4 clearingColour = mix( texture2D( map, vMapUv ), texture2D( map, largeUv ), groundMap.a );",
+          "vec4 riverBankColour = mix( texture2D( riverBankMap, vMapUv ), texture2D( riverBankMap, largeUv ), groundMap.a );",
+          "vec4 groundColour = forestFloorColour * groundWeights.r + clearingColour * groundWeights.g + riverBankColour * groundWeights.b;",
+          "groundColour.rgb *= mix( vec3( 0.84, 0.8, 0.7 ), vec3( 1.1, 1.14, 1.12 ), groundMap.g );",
           `groundColour.rgb *= mix( 1.0, ${RIDGE_SHADE.toFixed(2)}, smoothstep( 0.0, ${RIDGE_SHADE_FADE_METRES.toFixed(1)}, vBeyondEdge ) );`,
-        ),
+          "diffuseColor *= groundColour;",
+        ].join("\n"),
       );
   };
   return material;

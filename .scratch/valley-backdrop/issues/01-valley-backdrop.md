@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** resolved
+**Status:** ready-for-agent
 
 **Assets:** Adds a new draft, `valley-backdrop`, built in code. Reuses `far-trees` for the trees on the ridges, and `river` for the gaps it runs through. Does not change `terrain` or `sky-lighting`, which are both approved.
 
@@ -37,29 +37,19 @@ The valley is a 300 m square of forest that ends in a hard edge with nothing pas
 
 ## Acceptance criteria
 
-- [x] Ridges rise on all four sides of the valley, 40 m above the valley floor.
-- [x] The ridges meet the valley's ground with no visible step, gap, or seam, all the way around.
-- [x] Trees cover the ridge slopes and tops.
-- [x] The river enters and leaves through gaps in the ridges.
-- [x] Far mountains stand 1 to 3 km away and fade into the haze at every hour of the day.
-- [x] At night, the ridges and mountains are dark shapes against the sky, not bright patches.
-- [x] From any zoom and angle, the camera never shows empty space below the horizon.
-- [x] The camera's focus cannot pan past the valley's edge, in free mode or while following the player.
-- [x] The player cannot walk out of the valley. Clicking on a ridge does not start a walk.
-- [x] The same seed always gives the same ridges and mountains.
+- [ ] Ridges rise on all four sides of the valley, 40 m above the valley floor.
+- [ ] The ridges meet the valley's ground with no visible step, gap, or seam, all the way around.
+- [ ] Trees cover the ridge slopes and tops.
+- [ ] The river enters and leaves through gaps in the ridges.
+- [ ] Far mountains stand 1 to 3 km away and fade into the haze at every hour of the day.
+- [ ] At night, the ridges and mountains are dark shapes against the sky, not bright patches.
+- [ ] From any zoom and angle, the camera never shows empty space below the horizon.
+- [ ] The camera's focus cannot pan past the valley's edge, in free mode or while following the player.
+- [ ] The player cannot walk out of the valley. Clicking on a ridge does not start a walk.
+- [ ] The same seed always gives the same ridges and mountains.
 - [ ] The game still runs at 60 fps on an Apple M1 laptop in Chrome.
-- [x] `asset-manifest.json` has a `valley-backdrop` entry with `"status": "draft"` and this ticket's path.
-- [x] The asset showcase (`/?asset=valley-backdrop`) shows the ridges and mountains from high above and from near the ground.
-- [x] Unit tests cover the seam heights along the valley's edge and the camera's pan limit.
+- [ ] `asset-manifest.json` has a `valley-backdrop` entry with `"status": "draft"` and this ticket's path.
+- [ ] The asset showcase (`/?asset=valley-backdrop`) shows the ridges and mountains from high above and from near the ground.
+- [ ] Unit tests cover the seam heights along the valley's edge and the camera's pan limit.
 
 ## Comments
-
-### 2026-11-12, implementing agent
-
-- Built in `src/render/valley-backdrop-shape.ts` (heights, trees, river runs, meshes' shapes) and `src/render/valley-backdrop-meshes.ts` (materials and drawing).
-- The crest stands 40 m (± 3 m) above the valley floor, taken as the river's level. Where the valley's edge is already high, the ridge rises less than 40 m above the ground right beside it.
-- Ridge trees draw in one culled batch per tree type, like the valley's own trees, so about 8 draw calls rather than one.
-- The sky's haze is unchanged. The far land's own material treats it as 1.3 times as far away, and the near mountain ring stands about 1.6 km out, so it softens at noon.
-- The camera's eye now stays at least 2 m above the ground under it, so it never looks out from inside a ridge.
-- `valley-meshes.ts` (terrain) now shares its ground shader and textures with the ridge. Its look is unchanged.
-- Not checked: 60 fps on an Apple M1. The dev machine drew 144 fps at 1024 × 768 at full zoom-out facing a ridge. About 7,100 ridge trees.

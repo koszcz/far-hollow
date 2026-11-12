@@ -35,14 +35,6 @@ _Avoid_: Shore, riverside, bank
 The small plants and stones that grow or lie on the valley's ground, such as grass, ferns, flowers, and pebbles. The player cannot pick up undergrowth, and it does not block the way. The same seed always grows the same undergrowth.
 _Avoid_: Foliage, ground cover, props, decoration
 
-**Backdrop**:
-The land around the valley that the player sees but cannot reach: the wooded ridges that close the valley in, and the mountains far beyond them.
-_Avoid_: Skybox, scenery
-
-**Ridge**:
-A steep wooded slope that rises from the valley's edge, part of the backdrop. Not the top line of a roof.
-_Avoid_: Hill, wall
-
 ## The player
 
 **Player**:

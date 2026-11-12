@@ -4,8 +4,6 @@ import type { CameraRig } from "./camera-rig";
 const EDGE_PAN_MARGIN_PIXELS = 12;
 /** A press must move this far before it counts as a drag rather than a click. */
 const DRAG_THRESHOLD_PIXELS = 4;
-/** Q and E turn the camera this fast. */
-const KEY_ROTATE_RADIANS_PER_SECOND = 1.5;
 /** Right-drag turns the camera this much per pixel. */
 const DRAG_ROTATE_RADIANS_PER_PIXEL = 0.006;
 const DRAG_TILT_RADIANS_PER_PIXEL = 0.004;
@@ -64,6 +62,7 @@ export interface CameraInputOptions {
 /**
  * Turns mouse, trackpad, and keyboard input into camera moves.
  * Left-drag pans the camera. Right-drag turns and tilts it.
+ * No key turns the camera. E is the use key, handled in walk-input.ts.
  * It only moves the camera. It never sends commands to the game.
  */
 export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInputOptions): CameraInput {
@@ -158,8 +157,6 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
 
   return {
     update(elapsedSeconds) {
-      rig.rotate(keyAxis("KeyE", "KeyQ") * KEY_ROTATE_RADIANS_PER_SECOND * elapsedSeconds);
-
       const edge = press === null ? edgePanDirection(pointer, { width: canvas.clientWidth, height: canvas.clientHeight }) : { right: 0, forward: 0 };
       const right = clampUnit(keyAxis("KeyA", "KeyD") + edge.right);
       const forward = clampUnit(keyAxis("KeyS", "KeyW") + edge.forward);

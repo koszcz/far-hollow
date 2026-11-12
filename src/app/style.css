@@ -103,15 +103,48 @@ body {
   gap: 6px;
   align-items: center;
 }
-.hud-hotbar-buttons {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding-left: 6px;
-  border-left: 1px solid #6b4a2f;
+/* A hotbar cell is larger than a chest cell. It shows its icon, its name under it, a count, and its number key. */
+.hud-backpack .hud-hotbar-cells li {
+  width: 64px;
+  height: 58px;
 }
-.hud-hotbar-buttons:empty {
-  display: none;
+.hud-hotbar-cell {
+  grid-template-rows: 1fr auto;
+  gap: 2px;
+  padding: 6px 2px 4px;
+  box-sizing: border-box;
+}
+.hud-hotbar-cell .backpack-icon,
+.hud-hotbar-cell .hud-icon {
+  width: 26px;
+  height: 26px;
+}
+.hud-hotbar-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hud-hotbar-key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: #cdb898;
+}
+/* In a hotbar cell the count sits top right, clear of the name. */
+.hud-hotbar-cell .hud-backpack-count {
+  top: 2px;
+  bottom: auto;
+}
+/* The log on the shoulder sits apart from the backpack items. */
+.hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder {
+  margin-right: 6px;
+  border-color: #82593a;
 }
 /* The build and craft buttons sit at the right end of the hotbar, apart from the items. */
 .hud-hotbar-tools {

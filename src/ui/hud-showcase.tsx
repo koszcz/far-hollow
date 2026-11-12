@@ -252,6 +252,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         onPickBuildEntry={() => {}}
         craftMenuOpen={craftMenuOpen}
         onToggleCraftMenu={() => {}}
+        onUseHotbarCell={() => {}}
+        onOpenHotbarMenu={() => {}}
       />,
       quarter,
     );

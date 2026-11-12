@@ -279,10 +279,10 @@ export function createSceneRenderer(
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
-      const views = { view: frustumOf(camera, viewFrustum), shadow: skyLighting.shadowFrustum() };
+      const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
       forestMeshes.cull(views);
       forageMeshes.cull(views);
-      undergrowthMeshes.cull(views.view);
+      undergrowthMeshes.cull(views.view, views.eye);
       renderer.render(scene, camera);
     },
     pickAt(clientX, clientY) {

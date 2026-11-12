@@ -1,7 +1,8 @@
 // A batch of instanced shapes that draws only the instances a camera can see.
 // - The main pass and the sun's shadow pass each get their own copy of the batch, culled for their own camera.
 // - The shadow copy sits on SHADOW_ONLY_LAYER, which only the sun's shadow camera sees.
-// - Until cull is first called, both copies draw every instance.
+// - A batch can draw only the instances in a band of distances from the camera, so a far batch can stand in for a near one.
+// - Until cull is first called, both copies draw every instance, and every instance counts as right next to the camera.
 import * as THREE from "three";
 
 /** Objects on this layer are drawn only into the sun's shadows, never on screen. */
@@ -10,7 +11,15 @@ export const SHADOW_ONLY_LAYER = 1;
 /** The cameras to cull for this frame. `shadow` is null while the sun casts no shadows. */
 export interface CullViews {
   readonly view: THREE.Frustum;
+  /** Where the camera stands, for batches drawn only in a band of distances. */
+  readonly eye: THREE.Vector3;
   readonly shadow: THREE.Frustum | null;
+}
+
+/** The band of distances from the camera, in metres, where a batch draws on screen. Its shadow copy ignores it. */
+export interface DrawDistance {
+  readonly from?: number;
+  readonly to?: number;
 }
 
 /** One shape in the batch. Every instance draws all its parts with the same matrix, such as a trunk and its crown. */
@@ -38,8 +47,11 @@ export interface CulledBatch {
 /**
  * capacity is the most instances the batch holds. Every instance starts hidden.
  * castShadow says whether the batch has a shadow copy at all.
+ * distance limits where the batch draws on screen. An instance's distance is measured to the middle of its bounding sphere.
  */
-export function createCulledBatch(parts: readonly CulledBatchPart[], capacity: number, castShadow: boolean): CulledBatch {
+export function createCulledBatch(parts: readonly CulledBatchPart[], capacity: number, castShadow: boolean, distance: DrawDistance = {}): CulledBatch {
+  const fromSquared = (distance.from ?? 0) ** 2;
+  const toSquared = (distance.to ?? Infinity) ** 2;
   const viewMeshes = parts.map((part) => newMesh(part, capacity));
   for (const mesh of viewMeshes) {
     mesh.castShadow = false;
@@ -69,12 +81,17 @@ export function createCulledBatch(parts: readonly CulledBatchPart[], capacity: n
   /** The instances each copy draws now, in drawn order. */
   let viewDrawn: number[] = [];
   let shadowDrawn: number[] = [];
-  function drawnIn(frustum: THREE.Frustum | null | undefined): number[] {
+  /** The shown instances inside `frustum`, and inside the draw distance from `eye` when it is given. */
+  function drawnIn(frustum: THREE.Frustum | null | undefined, eye?: THREE.Vector3): number[] {
     const drawn: number[] = [];
     if (frustum === null) return drawn;
     for (let index = 0; index < capacity; index += 1) {
       const sphere = spheres[index];
-      if (shown[index] === 1 && sphere !== undefined && (frustum === undefined || frustum.intersectsSphere(sphere))) drawn.push(index);
+      if (shown[index] !== 1 || sphere === undefined) continue;
+      // With no camera yet, every instance counts as right next to it.
+      const away = eye === undefined ? 0 : sphere.center.distanceToSquared(eye);
+      if (away < fromSquared || away >= toSquared) continue;
+      if (frustum === undefined || frustum.intersectsSphere(sphere)) drawn.push(index);
     }
     return drawn;
   }
@@ -95,7 +112,7 @@ export function createCulledBatch(parts: readonly CulledBatchPart[], capacity: n
   function cull(next?: CullViews): void {
     if (next !== undefined) views = next;
     else if (!dirty) return;
-    const nextView = drawnIn(views?.view);
+    const nextView = drawnIn(views?.view, views?.eye);
     if (dirty || !sameList(nextView, viewDrawn)) fill(viewMeshes, nextView);
     viewDrawn = nextView;
     if (castShadow) {

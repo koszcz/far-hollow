@@ -30,7 +30,9 @@ import {
   SAWHORSE_LOG_COST,
 } from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
-import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
+import { createForestMeshes, TREE_COLOURS, type ForestMeshes } from "./forest-meshes";
+import { createFarTreeShape } from "./tree-far-shape";
+import type { TreeShape } from "./tree-model";
 import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_REACHED_SHARE, CROUCH_SETTLED_SHARE } from "./player-build-pose";
 import {
   CHOP_RAISED_SHARE,
@@ -101,6 +103,8 @@ interface Stage {
   readonly addProp: (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, z: number, lift?: number, heading?: number) => void;
   /** Every loaded undergrowth model, from loadUndergrowthShapes. */
   readonly undergrowthShapes: readonly UndergrowthShape[];
+  /** Every loaded tree type, from loadTreeShapes. */
+  readonly treeShapes: readonly TreeShape[];
 }
 
 interface Showcase {
@@ -119,6 +123,9 @@ interface Showcase {
     pose(stage: Stage, seconds: number): Partial<Vec3> | undefined;
   };
 }
+
+/** Far tree shapes stand this far apart in the showcase, in metres. */
+const FAR_TREE_SPACING_METRES = 5;
 
 /** Undergrowth models stand this far apart in the showcase, in metres. */
 const UNDERGROWTH_SPACING_METRES = 0.7;
@@ -256,6 +263,21 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         [4, 0.5],
       ] as const)
         place(x, z, { tree: true });
+    },
+  },
+  // Every tree type's far shape in a row, in the game's colours. The game draws these only far from the camera.
+  "far-trees": {
+    radius: 19,
+    focus: { x: 0, y: 3, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ addProp, treeShapes }) {
+      treeShapes.forEach((shape, index) => {
+        const x = (index - (treeShapes.length - 1) / 2) * FAR_TREE_SPACING_METRES;
+        const far = createFarTreeShape(shape);
+        const material = (colour: number) => new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
+        addProp(far.trunk, material(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
+        addProp(far.crown, material(TREE_COLOURS.crown[shape.crownTone]), x, 0);
+      });
     },
   },
   stumps: {
@@ -1035,6 +1057,7 @@ export function showAsset(
     store,
     player,
     undergrowthShapes: shapes.undergrowth,
+    treeShapes: shapes.trees,
     place(x, z, entity) {
       return store.add({ ...entity, position: at(x, z) });
     },

@@ -3,7 +3,8 @@
 // - Each model is one batch (an instanced mesh), so thousands of plants cost a few dozen draw calls.
 // - Only patches near where the camera looks are grown. Plants shrink into the ground as they near the edge
 //   of the grown area, so they never pop in or out.
-// - Of the grown patches, only those inside the camera's view are drawn.
+// - Of the grown patches, only those inside the camera's view and within EYE_DRAW_METRES of the camera are drawn.
+//   Plants shrink into the ground as they near that distance too.
 // - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
@@ -18,6 +19,12 @@ import type { UndergrowthShape } from "./undergrowth-models";
 export const UNDERGROWTH_DRAW_METRES = 80;
 /** Plants start shrinking this far from where the camera looks, and are gone at the draw distance, in metres. */
 const FADE_START_METRES = 64;
+/**
+ * Plants also shrink away between these distances from the camera, in metres, so a camera zoomed far out skips plants
+ * smaller than a pixel or two.
+ */
+const EYE_FADE_START_METRES = 120;
+const EYE_DRAW_METRES = 160;
 /** No plant stands taller than this, in metres, and none reaches further than this outside its patch. Used for culling. */
 const PLANT_REACH_METRES = 2;
 
@@ -40,8 +47,11 @@ export interface UndergrowthMeshes {
    * It draws again when the focus enters a new patch or when the player places or removes something.
    */
   update(focus: Readonly<Vec3>): void;
-  /** Draws only the grown patches inside the camera's view. Call it once the camera has moved for this frame. */
-  cull(view: THREE.Frustum): void;
+  /**
+   * Draws only the grown patches inside the camera's view and near enough to `eye`, where the camera stands.
+   * Call it once the camera has moved for this frame.
+   */
+  cull(view: THREE.Frustum, eye: THREE.Vector3): void;
   dispose(): void;
 }
 
@@ -73,6 +83,9 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
           // Shrink each plant towards its foot as it nears the edge of the drawn area.
           "vec2 undergrowthSpot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
           `transformed *= 1.0 - smoothstep( ${FADE_START_METRES.toFixed(1)}, ${UNDERGROWTH_DRAW_METRES.toFixed(1)}, distance( undergrowthSpot, undergrowthFocus ) );`,
+          // Shrink it as it nears the furthest distance from the camera that undergrowth is drawn at.
+          "vec3 undergrowthFoot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xyz;",
+          `transformed *= 1.0 - smoothstep( ${EYE_FADE_START_METRES.toFixed(1)}, ${EYE_DRAW_METRES.toFixed(1)}, distance( undergrowthFoot, cameraPosition ) );`,
           "#endif",
         ].join("\n"),
       );
@@ -100,7 +113,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   let placedPatches: PlacedPatch[] = [];
   /** The patches drawn now, in placedPatches order. Undefined means every grown patch. */
   let drawnPatches: PlacedPatch[] | undefined;
-  let lastView: THREE.Frustum | undefined;
+  let lastView: { view: THREE.Frustum; eye: THREE.Vector3 } | undefined;
   let drawnPatch: number | undefined;
   /** What the player had placed when the undergrowth was last drawn. */
   let footprints: CampFootprint[] = [];
@@ -130,7 +143,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
       if (patch !== null) placedPatches.push(patch);
     }
     drawnPatches = undefined;
-    drawPatches(lastView === undefined ? placedPatches : visiblePatches(lastView));
+    drawPatches(lastView === undefined ? placedPatches : visiblePatches(lastView.view, lastView.eye));
   }
 
   /** Grows one patch and places its plants. Null if no plant in it is drawn. */
@@ -160,8 +173,8 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
     if (matrices !== undefined) matrix.toArray(matrices, matrices.length);
   }
 
-  function visiblePatches(view: THREE.Frustum): PlacedPatch[] {
-    return placedPatches.filter((patch) => view.intersectsBox(patch.box));
+  function visiblePatches(view: THREE.Frustum, eye: THREE.Vector3): PlacedPatch[] {
+    return placedPatches.filter((patch) => patch.box.distanceToPoint(eye) < EYE_DRAW_METRES && view.intersectsBox(patch.box));
   }
 
   /** Fills the batches with the plants of these patches. */
@@ -214,9 +227,9 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
       footprints = nowFootprints;
       drawAround(column, row);
     },
-    cull(view) {
-      lastView = view;
-      drawPatches(visiblePatches(view));
+    cull(view, eye) {
+      lastView = { view, eye };
+      drawPatches(visiblePatches(view, eye));
     },
     dispose() {
       for (const batch of batches) batch.mesh.dispose();

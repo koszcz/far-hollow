@@ -1,5 +1,6 @@
 // Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
+// Trees far from the camera draw with the "far-trees" asset (draft), built in tree-far-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
 // Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
@@ -18,6 +19,7 @@ import {
 } from "../sim/entities";
 import { createCulledBatch, type CulledBatch, type CullViews } from "./culled-batch";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
+import { createFarTreeShape, FAR_TREE_METRES } from "./tree-far-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
@@ -25,10 +27,11 @@ import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
 
-const TRUNK_COLOUR = 0x6b4a2b;
-const LIGHT_TRUNK_COLOUR = 0x7d5634;
-const CROWN_COLOUR = 0x2f5a2a;
-const LIGHT_CROWN_COLOUR = 0x4a7a2e;
+/** The colour of each tree part in each tone. Trees are drawn in these, whatever colours the model file holds. */
+export const TREE_COLOURS: Readonly<Record<"trunk" | "crown", Readonly<Record<TreeTone, number>>>> = {
+  trunk: { dark: 0x6b4a2b, light: 0x7d5634 },
+  crown: { dark: 0x2f5a2a, light: 0x4a7a2e },
+};
 /** How often each tree type grows, relative to the others. Pines fill most of the valley. Unlisted types get 1. */
 const TREE_TYPE_WEIGHTS: Readonly<Record<string, number>> = {
   tree_pineDefaultA: 4,
@@ -77,14 +80,16 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
 
   // Trees: one culled batch per type, drawing its trunks and crowns, so thousands of trees take a few draw calls.
   // Each batch draws only the trees the camera sees, and casts shadows only from the trees inside the sun's shadow box.
+  // Beyond FAR_TREE_METRES from the camera, a second batch per type draws each tree with its cheap far shape instead.
+  // Shadows always come from the real shape.
   const trees = [...treeEntities(entities)];
   const trunkMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
-    dark: track(new THREE.MeshStandardMaterial({ color: TRUNK_COLOUR, flatShading: true })),
-    light: track(new THREE.MeshStandardMaterial({ color: LIGHT_TRUNK_COLOUR, flatShading: true })),
+    dark: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.trunk.dark, flatShading: true })),
+    light: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.trunk.light, flatShading: true })),
   };
   const crownMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
-    dark: track(new THREE.MeshStandardMaterial({ color: CROWN_COLOUR, flatShading: true })),
-    light: track(new THREE.MeshStandardMaterial({ color: LIGHT_CROWN_COLOUR, flatShading: true })),
+    dark: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.crown.dark, flatShading: true })),
+    light: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.crown.light, flatShading: true })),
   };
   for (const shape of treeShapes) {
     track(shape.trunk);
@@ -107,17 +112,36 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     const ofType = treesOfType[type] ?? [];
     const trunk = { geometry: shape.trunk, material: trunkMaterials[shape.trunkTone] };
     const crown = { geometry: shape.crown, material: crownMaterials[shape.crownTone] };
-    const batch = track(createCulledBatch([trunk, crown], ofType.length, true));
+    const farShape = createFarTreeShape(shape);
+    track(farShape.trunk);
+    track(farShape.crown);
+    const near = track(createCulledBatch([trunk, crown], ofType.length, true, { to: FAR_TREE_METRES }));
+    const far = track(
+      createCulledBatch(
+        [
+          { geometry: farShape.trunk, material: trunk.material },
+          { geometry: farShape.crown, material: crown.material },
+        ],
+        ofType.length,
+        false,
+        { from: FAR_TREE_METRES },
+      ),
+    );
+    const batches = [near, far];
     ofType.forEach((tree, index) => {
       instanceOf.set(tree, index);
-      batch.set(index, treeMatrix(tree.position, matrix));
+      treeMatrix(tree.position, matrix);
+      for (const batch of batches) batch.set(index, matrix);
     });
-    batch.cull();
-    for (const mesh of batch.viewMeshes) treesOfMesh.set(mesh, { batch, trees: ofType });
-    group.add(...batch.meshes);
-    return { batch, trunk, crown };
+    for (const batch of batches) {
+      batch.cull();
+      for (const mesh of batch.viewMeshes) treesOfMesh.set(mesh, { batch, trees: ofType });
+      group.add(...batch.meshes);
+    }
+    return { near, batches, trunk, crown };
   });
-  const treePickTargets = treeBatches.flatMap(({ batch }) => batch.viewMeshes);
+  const allTreeBatches = treeBatches.flatMap(({ batches }) => batches);
+  const treePickTargets = allTreeBatches.flatMap((batch) => batch.viewMeshes);
 
   // Stumps: one batch per bark tone. A tree's stump keeps the tree's size and turn, and its foot is as wide as the trunk's.
   const stumpGeometry = track(stumpShape.geometry);
@@ -182,7 +206,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     const batch = type === undefined ? undefined : treeBatches[type];
     if (index === undefined || type === undefined || batch === undefined) return;
     // Hide this tree in its batch. Its falling copy takes over.
-    batch.batch.set(index, undefined);
+    for (const shapeBatch of batch.batches) shapeBatch.set(index, undefined);
     startFall(tree.position, type);
   });
   // A tree that stands again, such as in the asset showcase's looping chop, shows again in its batch.
@@ -191,7 +215,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     const type = typeOf.get(tree);
     const batch = type === undefined ? undefined : treeBatches[type];
     if (index === undefined || batch === undefined) return;
-    batch.batch.set(index, treeMatrix(tree.position, matrix));
+    treeMatrix(tree.position, matrix);
+    for (const shapeBatch of batch.batches) shapeBatch.set(index, matrix);
   });
   const stumpQuery = stumpEntities(entities).connect();
   const logQuery = logEntities(entities).connect();
@@ -343,7 +368,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       if (logsDirty) rebuildLogs();
       if (debarkedLogsDirty) rebuildDebarkedLogs();
       if (sticksDirty) rebuildSticks();
-      for (const { batch } of treeBatches) batch.cull();
+      for (const batch of allTreeBatches) batch.cull();
       stumpsDirty = false;
       logsDirty = false;
       debarkedLogsDirty = false;
@@ -361,7 +386,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       }
     },
     cull(views) {
-      for (const { batch } of treeBatches) batch.cull(views);
+      for (const batch of allTreeBatches) batch.cull(views);
     },
     pick(raycaster) {
       hits.length = 0;
@@ -401,7 +426,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const index = instanceOf.get(hit.entity);
         const type = typeOf.get(hit.entity);
         const batch = type === undefined ? undefined : treeBatches[type];
-        if (hit.entity.tree !== true || index === undefined || batch === undefined || !batch.batch.matrixAt(index, matrix)) return [];
+        if (hit.entity.tree !== true || index === undefined || batch === undefined || !batch.near.matrixAt(index, matrix)) return [];
         const at = new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
         return [
           { geometry: batch.trunk.geometry, matrix: at },

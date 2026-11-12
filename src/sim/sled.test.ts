@@ -317,16 +317,74 @@ describe("tipping out a sled", () => {
   });
 });
 
-describe("taking down a loaded sled", () => {
-  it("is refused until the sled is tipped out, so no log is lost", () => {
+describe("tipping out a sled next to a woodpile", () => {
+  it("puts every log on a woodpile with room, and lays none on the ground", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 1, debarkedLog: 0 };
+    const woodpile = woodpileBeside(game, sled);
+    sled.sled = { log: 4, debarkedLog: 2 };
+    const lyingBefore = logsLyingNear(game, sled).length;
+
+    sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
+
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0 });
+    expect(woodpile.woodpile).toEqual({ log: 4, debarkedLog: 2, firewood: 0 });
+    expect(logsLyingNear(game, sled)).toHaveLength(lyingBefore);
+  });
+
+  it("lays the logs that do not fit on a nearly full woodpile on the ground beside the sled", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    const woodpile = woodpileBeside(game, sled);
+    woodpile.woodpile.firewood = 18;
+    sled.sled = { log: 4, debarkedLog: 2 };
+    const lyingBefore = logsLyingNear(game, sled).length;
+
+    sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
+
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0 });
+    // A woodpile holds 20 in all, so 2 logs fit. The other 2 logs and both debarked logs go on the ground.
+    expect(woodpile.woodpile).toEqual({ log: 2, debarkedLog: 0, firewood: 18 });
+    const laid = logsLyingNear(game, sled).slice(lyingBefore);
+    expect(laid.filter((entity) => entity.log !== undefined)).toHaveLength(2);
+    expect(laid.filter((entity) => entity.debarkedLog !== undefined)).toHaveLength(2);
+  });
+});
+
+describe("taking down a sled", () => {
+  it("gives back its 2 logs on the ground and its 4 sticks in the backpack", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    const contents = onlyPlayer(game).backpack.contents;
+    contents.stick = 0;
+    const logsBefore = game.entities.with("log").size;
 
     send(game, { type: "takeDown", pieceId: idOf(game, sled) });
+    stepUntil(game, () => !game.entities.has(sled));
 
-    expect(game.client.getView().notice).toEqual({ kind: "stillHoldsSomething" });
-    expect(game.entities.with("sled").size).toBe(1);
+    expect(game.entities.with("log").size).toBe(logsBefore + 2);
+    expect(contents.stick).toBe(4);
+  });
+
+  it("lays any logs on a loaded sled on the ground beside it first, so none is lost", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sled.sled = { log: 3, debarkedLog: 2 };
+    const { x, z } = sled.position;
+    const logsBefore = game.entities.with("log").size;
+    const debarkedBefore = game.entities.with("debarkedLog").size;
+
+    send(game, { type: "takeDown", pieceId: idOf(game, sled) });
+    expect(game.client.getView().notice).toBeNull();
+    stepUntil(game, () => !game.entities.has(sled));
+
+    // The 3 logs it held, and the 2 logs it was built from.
+    expect(game.entities.with("log").size).toBe(logsBefore + 5);
+    expect(game.entities.with("debarkedLog").size).toBe(debarkedBefore + 2);
+    const besideSled = [...game.entities.with("debarkedLog", "position").entities].filter(
+      ({ position }) => Math.hypot(position.x - x, position.z - z) < 2.5 && Math.abs(position.z - z) > 0.4,
+    );
+    expect(besideSled).toHaveLength(2);
   });
 });
 
@@ -339,6 +397,26 @@ describe("a sled within reach of E", () => {
     expect(game.client.nearestInReach()).toEqual({ kind: "sled", id: idOf(game, sled) });
   });
 });
+
+/** Builds a woodpile on the grid point just off one side of a sled. */
+function woodpileBeside(game: Game, sled: Entity & { position: { x: number; z: number } }) {
+  send(game, place("woodpile", Math.round(sled.position.x), Math.round(sled.position.z) + 1, 0));
+  const blueprint = onlyBlueprint(game);
+  send(game, { type: "build", blueprintId: idOf(game, blueprint) });
+  stepUntil(game, () => blueprint.blueprint === undefined);
+  const woodpile = game.entities.with("woodpile", "position").first;
+  if (woodpile === undefined) throw new Error("No woodpile");
+  return woodpile;
+}
+
+/** Every log and debarked log lying on the ground within a few metres of a sled, in the order they were laid. */
+function logsLyingNear(game: Game, sled: Entity & { position: { x: number; z: number } }): Entity[] {
+  return [...game.entities.with("position").entities].filter(
+    (entity) =>
+      (entity.log !== undefined || entity.debarkedLog !== undefined) &&
+      Math.hypot(entity.position.x - sled.position.x, entity.position.z - sled.position.z) < 2.5,
+  );
+}
 
 /** Builds a finished, empty sled on open ground a few metres from the player. */
 function finishedSledNearPlayer(game: Game) {

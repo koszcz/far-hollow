@@ -1,12 +1,13 @@
 // Loading logs and debarked logs on a parked sled, taking them off one at a time, and tipping them all out. Added by sled ticket 02.
 import type { SledView } from "./api";
 import { distanceOutside } from "./building";
-import { entityWith, playerEntities, type CarriedLog, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { entityWith, playerEntities, woodpileEntities, type CarriedLog, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { USE_REACH_METRES } from "./reach";
 import { footprintOfEntity, SLED_WIDTH_METRES } from "./structures";
 import type { Valley } from "./valley";
 import { walkBeside, type Walking } from "./walking";
+import { WOODPILE_CAPACITY, woodpileTotal } from "./woodpiles";
 
 /** A sled holds up to this many logs and debarked logs in all, in any mix. */
 export const SLED_CAPACITY = 6;
@@ -14,6 +15,8 @@ export const SLED_CAPACITY = 6;
 const SLED_STAND_METRES = 1.3;
 /** A log tipped out of a sled lies this far out from the sled's side, in metres. Each further log on that side lies this much further out. */
 const TIPPED_LOG_SPACING_METRES = 0.35;
+/** A woodpile is next to a sled if its centre is within this many metres of the sled's edge. Tipping out then stacks the logs on it. */
+const WOODPILE_NEXT_TO_SLED_METRES = 1.5;
 
 type SledEntity = Entity & Required<Pick<Entity, "sled" | "position">>;
 
@@ -24,7 +27,10 @@ export interface Sleds {
   load(sledId: number): void;
   /** Takes one log or debarked log off a sled within reach onto the player's shoulder. Does nothing if the shoulder is not free or there is none. */
   take(sledId: number, log: CarriedLog): void;
-  /** Lays every log on a sled within reach on the ground beside it, each on its own. */
+  /**
+   * Tips every log off a sled within reach. With a woodpile next to the sled, the logs go on the woodpile as far as it has room.
+   * The rest are laid on the ground beside the sled, each on its own.
+   */
   tipOut(sledId: number): void;
   /** The sled as the HUD shows it, near or far, or undefined if the entity is not a finished sled. */
   describe(sledId: number): SledView | undefined;
@@ -37,9 +43,33 @@ export function sledTotal(contents: Readonly<Record<CarriedLog, number>>): numbe
   return contents.log + contents.debarkedLog;
 }
 
+/**
+ * Lays every log and debarked log on a sled on the ground beside it, each on its own, and leaves the sled empty.
+ * They alternate sides and work outwards. Tipping out and taking a sled down both use it.
+ */
+export function layLoadBeside(entities: EntityStore, valley: Valley, sled: Entity & Required<Pick<Entity, "sled" | "position">>): void {
+  const logs: CarriedLog[] = [...Array<CarriedLog>(sled.sled.log).fill("log"), ...Array<CarriedLog>(sled.sled.debarkedLog).fill("debarkedLog")];
+  sled.sled.log = 0;
+  sled.sled.debarkedLog = 0;
+  const turnRadians = -(sled.facing?.turns ?? 0) * (Math.PI / 2);
+  // The runners run along x when the sled faces the default way. Its sides are along z.
+  const along = { x: Math.cos(turnRadians), z: -Math.sin(turnRadians) };
+  const across = { x: Math.sin(turnRadians), z: Math.cos(turnRadians) };
+  const heading = Math.atan2(along.x, along.z);
+  logs.forEach((kind, index) => {
+    const side = index % 2 === 0 ? 1 : -1;
+    const out = SLED_WIDTH_METRES / 2 + TIPPED_LOG_SPACING_METRES * (1 + Math.floor(index / 2));
+    const x = sled.position.x + across.x * side * out;
+    const z = sled.position.z + across.z * side * out;
+    const position: Vec3 = { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z };
+    entities.add({ [kind]: { heading }, position });
+  });
+}
+
 /** Lets the player keep logs on parked sleds. */
 export function createSleds(entities: EntityStore, walking: Walking, valley: Valley): Sleds {
   const players = playerEntities(entities);
+  const woodpiles = woodpileEntities(entities);
 
   const sledById = (sledId: number): SledEntity | undefined => entityWith(entities, sledId, "sled", "position");
 
@@ -52,21 +82,15 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     return undefined;
   }
 
-  /** Lays one log of each kind on the sled on the ground beside it, alternating sides and working outwards. */
-  function layBeside(sled: SledEntity, logs: readonly CarriedLog[]): void {
-    const turnRadians = -(sled.facing?.turns ?? 0) * (Math.PI / 2);
-    // The runners run along x when the sled faces the default way. Its sides are along z.
-    const along = { x: Math.cos(turnRadians), z: -Math.sin(turnRadians) };
-    const across = { x: Math.sin(turnRadians), z: Math.cos(turnRadians) };
-    const heading = Math.atan2(along.x, along.z);
-    logs.forEach((kind, index) => {
-      const side = index % 2 === 0 ? 1 : -1;
-      const out = SLED_WIDTH_METRES / 2 + TIPPED_LOG_SPACING_METRES * (1 + Math.floor(index / 2));
-      const x = sled.position.x + across.x * side * out;
-      const z = sled.position.z + across.z * side * out;
-      const position: Vec3 = { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z };
-      entities.add({ [kind]: { heading }, position });
-    });
+  /** The woodpile next to the sled, nearest first, if any. */
+  function woodpileNextTo(sled: SledEntity) {
+    const footprint = footprintOfEntity(sled);
+    let nearest: { woodpile: (typeof woodpiles.entities)[number]; distance: number } | undefined;
+    for (const woodpile of woodpiles) {
+      const distance = distanceOutside(footprint, woodpile.position);
+      if (distance <= WOODPILE_NEXT_TO_SLED_METRES && (nearest === undefined || distance < nearest.distance)) nearest = { woodpile, distance };
+    }
+    return nearest?.woodpile;
   }
 
   function describe(sled: SledEntity): SledView | undefined {
@@ -99,10 +123,15 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     tipOut(sledId) {
       const sled = sledById(sledId);
       if (sled === undefined || userOf(sled) === undefined) return;
-      const logs: CarriedLog[] = [...Array<CarriedLog>(sled.sled.log).fill("log"), ...Array<CarriedLog>(sled.sled.debarkedLog).fill("debarkedLog")];
-      sled.sled.log = 0;
-      sled.sled.debarkedLog = 0;
-      layBeside(sled, logs);
+      const woodpile = woodpileNextTo(sled);
+      if (woodpile !== undefined) {
+        for (const kind of ["log", "debarkedLog"] as const) {
+          const moved = Math.min(sled.sled[kind], WOODPILE_CAPACITY - woodpileTotal(woodpile.woodpile));
+          sled.sled[kind] -= moved;
+          woodpile.woodpile[kind] += moved;
+        }
+      }
+      layLoadBeside(entities, valley, sled);
     },
     describe(sledId) {
       const sled = sledById(sledId);

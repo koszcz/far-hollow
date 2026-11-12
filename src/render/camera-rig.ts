@@ -44,7 +44,7 @@ export interface CameraRig {
   /** Pans like `pan`, but only when follow is off. Used for WASD and the screen edges. */
   panWhenFree(rightMetres: number, forwardMetres: number): void;
   view(): CameraView;
-  /** Whether the camera keeps the follow target in view. On by default. */
+  /** Whether the camera keeps the follow target in view. Off by default: the camera stays where the player leaves it. */
   readonly followEnabled: boolean;
   /** Turns follow on or off. Turning it off leaves the camera looking where it was. */
   setFollowEnabled(enabled: boolean): void;
@@ -71,7 +71,7 @@ export function createCameraRig({ groundHeightAt = () => 0 }: CameraRigOptions =
   let yaw = START_YAW;
   /** The point the camera looks at when it is not following anything. */
   let freeFocus = { x: 0, y: 0, z: 0 };
-  let followEnabled = true;
+  let followEnabled = false;
   let followTarget: Readonly<Vec3> | null = null;
   /** How far a right-drag has moved the view away from the follow target. */
   const followOffset = { x: 0, z: 0 };

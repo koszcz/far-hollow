@@ -106,11 +106,19 @@ describe("camera zoom", () => {
 });
 
 describe("camera follow", () => {
-  it("is on by default and keeps looking at the follow target as it moves", () => {
+  it("is off by default, so the camera stays put while the target moves", () => {
     const rig = createCameraRig();
     const target = { x: 5, y: 2, z: -3 };
     rig.setFollowTarget(target);
-    expect(rig.followEnabled).toBe(true);
+    expect(rig.followEnabled).toBe(false);
+    expect(rig.view().focus).toMatchObject({ x: 0, z: 0 });
+  });
+
+  it("keeps looking at the follow target as it moves while follow is on", () => {
+    const rig = createCameraRig();
+    const target = { x: 5, y: 2, z: -3 };
+    rig.setFollowTarget(target);
+    rig.setFollowEnabled(true);
     expect(rig.view().focus).toEqual({ x: 5, y: 2, z: -3 });
 
     target.x = 9;
@@ -121,6 +129,7 @@ describe("camera follow", () => {
     const rig = createCameraRig();
     const target = { x: 5, y: 2, z: -3 };
     rig.setFollowTarget(target);
+    rig.setFollowEnabled(true);
     rig.setFollowEnabled(false);
     expect(rig.view().focus).toMatchObject({ x: 5, z: -3 });
 
@@ -132,6 +141,7 @@ describe("camera follow", () => {
     const rig = createCameraRig();
     const target = { x: 0, y: 0, z: 0 };
     rig.setFollowTarget(target);
+    rig.setFollowEnabled(true);
     rig.pan(3, 4);
     const offset = rig.view().focus;
     expect(Math.hypot(offset.x, offset.z)).toBeCloseTo(5);
@@ -162,6 +172,7 @@ describe("camera follow", () => {
 
   it("ignores keyboard and screen-edge panning while following", () => {
     const rig = createCameraRig();
+    rig.setFollowEnabled(true);
     rig.panWhenFree(10, 10);
     expect(rig.view().focus).toEqual({ x: 0, y: 0, z: 0 });
 

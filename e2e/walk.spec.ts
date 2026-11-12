@@ -26,7 +26,7 @@ test("the game loads and the player walks where the ground is clicked", async ({
   await expect(page.locator("#loading")).toHaveCount(0);
 
   const start = await playerPosition(page);
-  // The camera follows the player, so the player is in the middle of the screen. Click the ground below them on screen, which is towards the camera and into the valley.
+  // The camera starts looking at the player, so the player is in the middle of the screen. Click the ground below them on screen, which is towards the camera and into the valley.
   const box = await canvas.boundingBox();
   if (box === null) throw new Error("The canvas has no size");
   await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.75);

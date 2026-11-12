@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { StructureKind, ThingInReach } from "../sim/api";
 import { playerActivity } from "../sim/activity";
-import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
+import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
@@ -160,10 +160,13 @@ export function createSceneRenderer(
   const playerMesh = createPlayerMesh(shapes.player, shapes.log);
   scene.add(playerMesh.group);
   skyLighting.addShadowCasters(playerMesh.group);
-  /** Where the player is drawn this frame. The camera follows it. */
+  /** Where the player is drawn this frame. Space moves the camera to it, and the camera follows it when follow is on. */
   const playerDrawn = { x: 0, y: 0, z: 0 };
   const playerDrawnBefore = { x: 0, y: 0, z: 0 };
   cameraRig.setFollowTarget(playerDrawn);
+  const players = playerEntities(entities);
+  /** Whether the camera has looked at the player yet. */
+  let cameraPlaced = false;
   /** Total metres the player has walked, which keeps the legs in step with the ground. */
   let playerWalkedMetres = 0;
 
@@ -264,7 +267,14 @@ export function createSceneRenderer(
         }
       }
       posePlayer(nowSeconds);
+      // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
+      if (!cameraPlaced && players.first !== undefined) {
+        cameraRig.snapToFollowTarget();
+        cameraPlaced = true;
+      }
       placeCamera();
+      // Trees between the camera and the player fade, so the player stays in view in a dense forest.
+      forestMeshes.seeThroughTo(players.first === undefined ? null : playerDrawn);
       // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
       structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn });
       outlineHovered();

@@ -26,6 +26,7 @@ import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-
 import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
+import { addTreeSeeThrough } from "./tree-see-through";
 
 /** The colour of each tree part in each tone. Trees are drawn in these, whatever colours the model file holds. */
 export const TREE_COLOURS: Readonly<Record<"trunk" | "crown", Readonly<Record<TreeTone, number>>>> = {
@@ -61,6 +62,8 @@ export interface ForestMeshes {
   readonly group: THREE.Group;
   /** Brings stumps, logs, and falling trees up to date. `nowSeconds` is a steady real-time clock. */
   update(nowSeconds: number): void;
+  /** Fades the trees between the camera and the player drawn at `player`. Pass null to fade none. */
+  seeThroughTo(player: Readonly<Vec3> | null): void;
   /** Draws only the standing trees each camera can see. Call it once the cameras have moved for this frame. */
   cull(views: CullViews): void;
   /** What a ray from the camera hits first among standing trees, logs, debarked logs, and sticks, and how far away. */
@@ -91,6 +94,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     dark: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.crown.dark, flatShading: true })),
     light: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.crown.light, flatShading: true })),
   };
+  const seeThrough = addTreeSeeThrough([...Object.values(trunkMaterials), ...Object.values(crownMaterials)]);
   for (const shape of treeShapes) {
     track(shape.trunk);
     track(shape.crown);
@@ -363,6 +367,9 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
 
   return {
     group,
+    seeThroughTo(player) {
+      seeThrough.setPlayer(player);
+    },
     update(nowSeconds) {
       if (stumpsDirty) rebuildStumps();
       if (logsDirty) rebuildLogs();

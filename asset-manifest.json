@@ -746,12 +746,13 @@
       "code": [
         "src/render/sled-meshes.ts"
       ],
-      "description": "The sled: two log runners with their bark on, 1.8 m long, lying side by side 0.8 m apart, with four sticks laid across them. The runners show dark bark and pale cut ends, and the sticks are the stick colour. As a blueprint it shows see-through, each delivered log waits pale and half solid in its runner's place, and construction lays one runner per log, then one cross piece per stick. A finished sled shows the 0 to 6 logs and debarked logs on it, lying along the runners: logs first, then debarked logs, stacked in a pyramid of three on the cross pieces, two above, and one on top. They use the logs and debarked-log shapes. A sled the player has dragged points the way it was last pulled, at any angle.",
+      "description": "The sled: two log runners made from the logs asset's Kenney log, stretched to 1.8 m and lying side by side 0.8 m apart, with four crooked sticks laid across them. The front of each runner curves up and narrows like a skid. Dark rope lashes each stick to each runner in an X, and a tow rope runs in a V from the runner tips to a loop in front. The runners show dark bark and pale cut ends, and the sticks are the stick colour with pale cut ends. As a blueprint it shows see-through, each delivered log waits pale and half solid in its runner's place, and construction lays one runner per log, then one lashed cross piece per stick; the last brings the tow rope. A finished sled shows the 0 to 6 logs and debarked logs on it, lying along the runners: logs first, then debarked logs, stacked in a pyramid of three on the cross pieces, two above, and one on top. They use the logs and debarked-log shapes. A sled the player has dragged points the way it was last pulled, front first, at any angle.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/sled/issues/01-place-and-build-a-sled.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {

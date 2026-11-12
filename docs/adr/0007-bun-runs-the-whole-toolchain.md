@@ -15,7 +15,8 @@ Bun replaces Vite and Vitest. Bun installs the packages, checks the types with `
 ## What Bun does not replace
 
 - **Linting.** Bun 1.4.4 has no built-in linter. oxlint replaces ESLint. Its type-aware mode (`oxlint-tsgolint`) runs the typescript-eslint `strictTypeChecked` rules we used, in about a tenth of the time. `.oxlintrc.json` was converted from the old ESLint config with `@oxlint/migrate`. Two rules did not carry over, `no-dupe-args` and `no-octal`, because strict mode already forbids both. `no-unnecessary-condition` is still marked experimental in oxlint.
-- **dependency-cruiser.** Nothing in Bun or oxlint checks module boundaries.
+- **Module boundaries.** oxlint replaces dependency-cruiser. A `no-restricted-imports` override for each folder in `.oxlintrc.json` enforces the import rules from ADR 0001, ADR 0003, and ADR 0005, and `import/no-cycle` forbids circular imports. Test files are exempt, as they were before. oxlint matches the path as written in an import, while dependency-cruiser matched the file the import resolved to. Every import in this project uses a plain relative path, so the two give the same result.
+- **TypeScript 7.** dependency-cruiser needed the JavaScript API of TypeScript 6, and TypeScript 7 does not publish that API yet. With dependency-cruiser gone, the project uses TypeScript 7.
 - **Playwright.** Bun cannot drive a browser. Playwright now starts Bun's dev server.
 
 ## Considered options

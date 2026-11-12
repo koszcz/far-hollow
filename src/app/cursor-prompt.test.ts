@@ -46,7 +46,7 @@ describe("the cursor prompt over a thing in the world", () => {
   });
 
   it("names a campfire and lights it, with more actions for fuel and the pot", () => {
-    const reader = readerWith({ backpack: { fireStriker: 1 }, campfire: { fuelMinutes: 20 } });
+    const reader = readerWith({ backpack: { steelAndFlint: 1 }, campfire: { fuelMinutes: 20 } });
 
     expect(text(promptFor({ kind: "scene", pick: { kind: "campfire", id: 7 } }, reader))).toEqual([
       "Campfire",

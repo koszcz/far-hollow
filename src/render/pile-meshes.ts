@@ -3,7 +3,8 @@
 // Firewood lies in a stack, each layer resting in the gaps of the one below, like the woodpile. Bark lies in up to three
 // rows of strips, each strip nested in the one below. Everything else spreads around the middle.
 // Firewood reuses the "firewood" shape, bark the ground form of the "bark" asset, mushrooms the "mushrooms" patch, the pot
-// the "pot", and the bedroll lies as the "rolled-bedroll". The tools and berries are built here.
+// the "pot", the bedroll lies as the "rolled-bedroll", and the steel and flint as the "steel-and-flint". The other tools and
+// berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
@@ -13,6 +14,7 @@ import type { BackpackContent } from "../sim/backpack";
 import { pileEntities, type Entity, type EntityStore } from "../sim/entities";
 import { barkParts } from "./bark-meshes";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
+import { createSteelAndFlintShape } from "./steel-and-flint-shape";
 import type { OutlinePart } from "./hover-outline";
 import type { MushroomsShape } from "./mushrooms-model";
 import { createPotMaker, type PotMesh } from "./pot-shape";
@@ -48,7 +50,6 @@ const AXE_HEAD_COLOUR = 0x6c7378;
 const KNIFE_BLADE_COLOUR = 0xc9d2d8;
 /** The drawknife's blade is blue steel, like its backpack icon. */
 const DRAWKNIFE_BLADE_COLOUR = 0x6f8ea6;
-const STRIKER_COLOUR = 0x5a6066;
 /** The same red and leaf green as the berry bush. */
 const BERRY_COLOUR = 0xb3202e;
 const LEAF_COLOUR = 0x2f6b2c;
@@ -248,22 +249,6 @@ export function createDrawknife(): { readonly group: THREE.Group; dispose(): voi
   };
 }
 
-/** The fire striker: a flat steel loop with rounded ends, like its backpack icon. */
-function strikerGeometry(): THREE.BufferGeometry {
-  const rounded = (halfWidth: number, halfDepth: number): THREE.Path => {
-    const path = new THREE.Path();
-    path.moveTo(-halfWidth + halfDepth, -halfDepth);
-    path.lineTo(halfWidth - halfDepth, -halfDepth);
-    path.absarc(halfWidth - halfDepth, 0, halfDepth, -Math.PI / 2, Math.PI / 2, false);
-    path.lineTo(-halfWidth + halfDepth, halfDepth);
-    path.absarc(-halfWidth + halfDepth, 0, halfDepth, Math.PI / 2, (Math.PI * 3) / 2, false);
-    return path;
-  };
-  const outline = new THREE.Shape(rounded(0.042, 0.018).getPoints(8));
-  outline.holes.push(rounded(0.03, 0.007));
-  return flatPiece(outline, 0.006);
-}
-
 /** A handful of berries: seven red berries on one leaf. */
 function berriesParts(berry: THREE.Material, leaf: THREE.Material): Part[] {
   const spots: readonly (readonly [number, number, number])[] = [
@@ -303,6 +288,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
   // A smaller copy of the mushroom patch. The patch itself belongs to the caller.
   const mushroomGeometry = track(mushrooms.clone().scale(MUSHROOM_SCALE, MUSHROOM_SCALE, MUSHROOM_SCALE));
   const rolledBedroll = track(createRolledBedrollShape());
+  const steelAndFlint = track(createSteelAndFlintShape());
 
   const SHAPES: Readonly<Record<Exclude<BackpackContent, "stick" | "pot" | "potOfRiverWater" | "potOfBoiledWater">, readonly Part[]>> = {
     firewood: [{ geometry: track(createFirewoodGeometry().center().translate(0, 0.07, 0)), material: material(FIREWOOD_COLOUR, { vertexColors: true }) }],
@@ -312,7 +298,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     axe: owned(axeParts(handle, material(PAINT_COLOUR), steel(AXE_HEAD_COLOUR))),
     knife: owned(knifeParts(handle, steel(KNIFE_BLADE_COLOUR))),
     drawknife: owned(drawknifeParts(handle, steel(DRAWKNIFE_BLADE_COLOUR))),
-    fireStriker: [{ geometry: track(strikerGeometry()), material: steel(STRIKER_COLOUR) }],
+    steelAndFlint: steelAndFlint.parts,
     // The saw blade: a long, thin steel strip with no handle. A rough draft shape.
     sawBlade: [{ geometry: track(new THREE.BoxGeometry(0.07, 0.004, 0.45)), material: steel(KNIFE_BLADE_COLOUR) }],
     // The saw: the same blade with a wooden handle at one end. A rough draft shape.
@@ -331,7 +317,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     axe: spread(0.16),
     knife: spread(0.09),
     drawknife: spread(0.12),
-    fireStriker: spread(0.06),
+    steelAndFlint: spread(0.12),
     sawBlade: spread(0.1),
     saw: spread(0.12),
     plank: spread(0.12),

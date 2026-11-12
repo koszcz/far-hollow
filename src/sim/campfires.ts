@@ -32,7 +32,7 @@ export interface Campfires {
   tend(campfireId: number): void;
   /** Puts one piece of fuel from the backpack on a campfire within the player's reach. Does nothing if it would not fit. */
   addFuel(campfireId: number, fuel: CampfireFuel): void;
-  /** Lights a campfire within the player's reach with the fire striker. It needs fuel. */
+  /** Lights a campfire within the player's reach with the steel and flint. It needs fuel. */
   light(campfireId: number): void;
   /** The campfire as the HUD shows it, or undefined if the entity is not a finished campfire. */
   describe(campfireId: number): CampfireView | undefined;
@@ -67,10 +67,10 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
     return undefined;
   }
 
-  /** True if the campfire is out and has fuel, and the player has a fire striker. Lighting it also needs the player within reach. */
+  /** True if the campfire is out and has fuel, and the player has a steel and flint. Lighting it also needs the player within reach. */
   function canLight(campfire: CampfireEntity): boolean {
     if (campfire.campfire.lit || campfire.campfire.fuelMinutes <= 0) return false;
-    return [...players].some(({ backpack }) => backpack !== undefined && hasInBackpack(backpack, "fireStriker"));
+    return [...players].some(({ backpack }) => backpack !== undefined && hasInBackpack(backpack, "steelAndFlint"));
   }
 
   return {

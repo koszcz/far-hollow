@@ -110,10 +110,10 @@ describe("describing a campfire or woodpile by its id", () => {
     });
   });
 
-  it("says a campfire cannot be lit without a fire striker, even out of reach", () => {
+  it("says a campfire cannot be lit without a steel and flint, even out of reach", () => {
     const { game, campfire } = gameWithCampfire();
     campfire.campfire.fuelMinutes = 60;
-    give(game, "fireStriker", -1);
+    give(game, "steelAndFlint", -1);
     walkAway(game);
 
     expect(game.client.describeCampfire(idOf(game, campfire))?.canLight).toBe(false);

@@ -210,7 +210,7 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
 function campfireActions(campfire: CampfireView, view: GameView): readonly ThingAction[] {
   const campfireId = campfire.id;
   const reasons = strings.actionReasons;
-  const lightReason = campfire.fuelMinutes <= 0 ? reasons.fireEmpty : needsTool(view, "fireStriker");
+  const lightReason = campfire.fuelMinutes <= 0 ? reasons.fireEmpty : needsTool(view, "steelAndFlint");
   // The menu lists the fuels in the order a lit fire takes them.
   const fuels = CAMPFIRE_FUELS.map((fuel) =>
     offerUnless(

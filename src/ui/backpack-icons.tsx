@@ -1,5 +1,6 @@
 // Coloured icons for the things in the backpack, the approved "backpack-icons" asset in asset-manifest.json. Built in code.
 // Added by hud-icons ticket 01. The owner approved the two-tone version on 2026-11-11. The owner approved the shaded version, with outlines, shading, and glints, on 2026-11-11.
+// The owner approved the steel and flint icon, a C-steel, a flint shard, and sparks, on 2026-11-12.
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
 import { useId } from "preact/hooks";
 import type { BackpackContent, CraftingContent } from "../sim/api";
@@ -67,12 +68,14 @@ const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent>, Backp
       { d: "M4.5 10.5L2.5 4.5M19.5 10.5l2-6", as: "line", colour: "#d9a066" },
     ],
   },
-  /** A steel loop with orange sparks flying up. */
-  fireStriker: {
-    colour: STEEL,
+  /** Steel and flint: a C-shaped steel with curled ends, a dark flint shard above it, and orange sparks flying off the flint. */
+  steelAndFlint: {
+    colour: "#9aa8b6",
     parts: [
-      { d: "M7 12.5h10a4 4 0 0 1 0 8H7a4 4 0 0 1 0-8zm1 2.5a1.5 1.5 0 0 0 0 3h8a1.5 1.5 0 0 0 0-3z", as: "fill" },
-      { d: "M12 3v5M6.5 4.5l2 3.5M17.5 4.5l-2 3.5", as: "line", colour: "#ffb340" },
+      { d: "M7 18.5h10c2.6 0 3.2-3.6.6-4.4c-1.5-.5-2.6.7-2 1.7M7 18.5c-2.6 0-3.2-3.6-.6-4.4c1.5-.5 2.6.7 2 1.7", as: "line" },
+      { d: "M8 11.5l2.8-5.2 4.6 1.2 1.2 3.4-3.4 1.8z", as: "fill", colour: "#5d6270" },
+      { d: "M11.3 8.2l3 .8", as: "shine" },
+      { d: "M18 9l2.6-1.6M18.3 11.6l3 .4M16.8 6.3l1.4-2.6", as: "line", colour: "#ffb340" },
     ],
   },
   /** A green bedroll, rolled up, with two leather straps and its spiral end towards the viewer. */

@@ -12,7 +12,7 @@ const BASE_VIEW: GameView = {
   entityCount: 0,
   playerPosition: { x: 0, y: 0, z: 0 },
   time: { day: 1, hour: 12, minute: 0, hourOfDay: 12 },
-  backpack: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, stick: 3 },
+  backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 3 },
   backpackWeight: 4.2,
   backpackWeightLimit: 20,
   buildMenu: [{ structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" }],
@@ -60,7 +60,7 @@ const STATES: readonly ShowcaseState[] = [
   {
     view: {
       ...BASE_VIEW,
-      backpack: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, stick: 12, firewood: 6 },
+      backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 12, firewood: 6 },
       backpackWeight: 19.6,
       action: { kind: "chop", progress: 0.4 },
       warmth: 0.7,
@@ -72,7 +72,7 @@ const STATES: readonly ShowcaseState[] = [
   {
     view: {
       ...BASE_VIEW,
-      backpack: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, firewood: 2 },
+      backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, firewood: 2 },
       carrying: "log",
       nearby: [
         {
@@ -90,7 +90,7 @@ const STATES: readonly ShowcaseState[] = [
       ...BASE_VIEW,
       paused: true,
       time: { day: 3, hour: 22, minute: 40, hourOfDay: 22 + 40 / 60 },
-      backpack: { axe: 1, knife: 1, fireStriker: 1, stick: 3 },
+      backpack: { axe: 1, knife: 1, steelAndFlint: 1, stick: 3 },
       nearby: [{ kind: "bedroll", view: { id: 2 } }],
       warmth: 0.15,
       needs: { ...BASE_VIEW.needs, warmth: 0.15, fatigue: 0.2 },
@@ -132,7 +132,7 @@ const BARK_STATES: readonly ShowcaseState[] = [
 
 /** The "backpack-icons" asset: every kind of backpack content, shown once alone and once with a count. */
 const BACKPACK_ICON_STATES: readonly ShowcaseState[] = [
-  { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, drawknife: 1, fireStriker: 1, bedroll: 1, pot: 1 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, drawknife: 1, steelAndFlint: 1, bedroll: 1, pot: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { axe: 1, stick: 1, firewood: 4, bark: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { stick: 7, bark: 3, berries: 5, mushroom: 1, potOfRiverWater: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { knife: 1, firewood: 1, berries: 1, mushroom: 2, potOfBoiledWater: 1 } }, buildMenuOpen: false, placing: null },

@@ -110,7 +110,7 @@ export type Command =
   | { type: "putInChest"; chestId: number; content: BackpackContent; all: boolean }
   /** Move one of a kind from the open chest into the backpack, or with `all` as many of that kind as fit. */
   | { type: "takeFromChest"; chestId: number; content: BackpackContent; all: boolean }
-  /** Light a campfire with the fire striker. The campfire needs fuel. The player walks beside it first if needed. */
+  /** Light a campfire with the steel and flint. The campfire needs fuel. The player walks beside it first if needed. */
   | { type: "lightCampfire"; campfireId: number }
   /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
   | { type: "layBedroll" }
@@ -235,7 +235,7 @@ export interface CampfireView {
   readonly fuelLeft: number;
   /** How many more game minutes the campfire's fuel can burn. */
   readonly fuelMinutes: number;
-  /** True if sending lightCampfire would light it: it is out, it has fuel, and the player has a fire striker. The player walks there first if needed. */
+  /** True if sending lightCampfire would light it: it is out, it has fuel, and the player has a steel and flint. The player walks there first if needed. */
   readonly canLight: boolean;
   /** For each kind of fuel, true if one more piece fits on the fire. A full fire takes no more. */
   readonly fits: Readonly<Record<CampfireFuel, boolean>>;

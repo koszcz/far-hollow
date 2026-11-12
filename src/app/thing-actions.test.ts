@@ -7,7 +7,7 @@ const CAMPFIRE: ActionTarget = { kind: "scene", pick: { kind: "campfire", id: 7 
 
 describe("a campfire's actions", () => {
   it("offers to light an unlit fire with fuel, then each fuel, then the pot, then taking it down", () => {
-    const reader = readerWith({ backpack: { fireStriker: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
+    const reader = readerWith({ backpack: { steelAndFlint: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
 
     const actions = actionsFor(CAMPFIRE, reader);
 
@@ -25,7 +25,7 @@ describe("a campfire's actions", () => {
   });
 
   it("adds the first fuel the player has to an unlit fire with no fuel, and says why lighting is off", () => {
-    const reader = readerWith({ backpack: { fireStriker: 1, bark: 1 }, campfire: {} });
+    const reader = readerWith({ backpack: { steelAndFlint: 1, bark: 1 }, campfire: {} });
 
     expect(summary(actionsFor(CAMPFIRE, reader))).toEqual([
       "addFuel:bark main",
@@ -37,10 +37,10 @@ describe("a campfire's actions", () => {
     ]);
   });
 
-  it("says lighting needs the fire striker", () => {
+  it("says lighting needs the steel and flint", () => {
     const reader = readerWith({ backpack: { stick: 1 }, campfire: { fuelMinutes: 20 } });
 
-    expect(mainAction(actionsFor(CAMPFIRE, reader))).toMatchObject({ id: "light", enabled: false, reason: "needs the fire striker" });
+    expect(mainAction(actionsFor(CAMPFIRE, reader))).toMatchObject({ id: "light", enabled: false, reason: "needs the steel and flint" });
   });
 
   it("feeds a lit fire firewood first, then a stick, then bark, and offers no lighting", () => {

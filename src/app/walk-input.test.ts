@@ -14,11 +14,11 @@ describe("left-clicking a campfire", () => {
   const campfire = { kind: "campfire", id: 7 } as const;
 
   it("lights an unlit fire that has fuel", () => {
-    expect(clickSends(campfire, { backpack: { fireStriker: 1 }, campfire: { fuelMinutes: 20 } })).toEqual({ type: "lightCampfire", campfireId: 7 });
+    expect(clickSends(campfire, { backpack: { steelAndFlint: 1 }, campfire: { fuelMinutes: 20 } })).toEqual({ type: "lightCampfire", campfireId: 7 });
   });
 
   it("adds fuel to an unlit fire with none, using the first fuel the player has", () => {
-    expect(clickSends(campfire, { backpack: { fireStriker: 1, stick: 2 }, campfire: {} })).toEqual({ type: "addFuel", campfireId: 7, fuel: "stick" });
+    expect(clickSends(campfire, { backpack: { steelAndFlint: 1, stick: 2 }, campfire: {} })).toEqual({ type: "addFuel", campfireId: 7, fuel: "stick" });
   });
 
   it("adds firewood to a lit fire first, then a stick, then bark", () => {

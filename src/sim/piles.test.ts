@@ -101,7 +101,7 @@ describe("dropping things from the backpack", () => {
       ]),
     );
     const left = Object.entries(game.client.getView().backpack).filter(([, count]) => count > 0);
-    expect(Object.fromEntries(left)).toEqual({ knife: 1, drawknife: 1, fireStriker: 1, sawBlade: 1 });
+    expect(Object.fromEntries(left)).toEqual({ knife: 1, drawknife: 1, steelAndFlint: 1, sawBlade: 1 });
   });
 
   it("leaves a dropped bedroll rolled up, so the player cannot sleep in it, and laying the bedroll still works", () => {

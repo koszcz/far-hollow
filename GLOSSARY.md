@@ -92,7 +92,7 @@ A young tree the player can plant. It grows into a tree over many days.
 ## Tools and carrying
 
 **Tool**:
-A hand-held object that lets the player do a kind of work, such as an axe, knife, fire striker, drawknife, saw, or fishing rod. Tools never wear out.
+A hand-held object that lets the player do a kind of work, such as an axe, knife, steel and flint, drawknife, saw, or fishing rod. Tools never wear out.
 _Avoid_: Equipment, gear
 
 **Backpack**:

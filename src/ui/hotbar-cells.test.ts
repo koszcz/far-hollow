@@ -38,7 +38,7 @@ describe("the hotbar cells", () => {
         axe: 1,
         knife: 1,
         drawknife: 1,
-        fireStriker: 1,
+        steelAndFlint: 1,
         bedroll: 1,
         stick: 1,
         firewood: 1,

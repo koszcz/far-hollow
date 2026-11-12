@@ -138,10 +138,10 @@ function fellNearestTree(game: Game): void {
 function fillBackpack(game: Game): void {
   const backpack = onlyPlayer(game).backpack;
   if (backpack === undefined) throw new Error("No backpack");
-  // 10 pieces of firewood weigh 15 kg. With the tools, bedroll, pot, and two spare fire strikers, that makes 19.6 kg,
+  // 10 pieces of firewood weigh 15 kg. With the tools, bedroll, pot, and two spare sets of steel and flint, that makes 19.6 kg,
   // which leaves less room than one stick needs.
   backpack.contents.firewood = 10;
-  backpack.contents.fireStriker = 3;
+  backpack.contents.steelAndFlint = 3;
 }
 
 function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): number {

@@ -656,6 +656,14 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
     },
   },
+  "steel-and-flint": {
+    radius: 0.12,
+    focus: { x: 0, y: 0.008, z: 0 },
+    shots: FOUR_ANGLES.map((shot) => ({ ...shot, radius: 0.16 })),
+    build({ place }) {
+      place(0, 0, { pile: { content: "steelAndFlint", count: 1 } });
+    },
+  },
   // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Then the tools and a pot.
   // Front row: the crafting draft shapes: a saw blade, a saw, one plank, and several planks.
   // One view shows them all. The others come close to the wood and bark, the tools and crafting things, and the food.
@@ -692,7 +700,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
           { content: "axe", count: 1 },
           { content: "knife", count: 1 },
           { content: "drawknife", count: 1 },
-          { content: "fireStriker", count: 2 },
+          { content: "steelAndFlint", count: 2 },
           { content: "pot", count: 1 },
         ],
         0.45,

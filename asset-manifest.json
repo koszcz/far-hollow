@@ -512,7 +512,7 @@
         "src/ui/hud.tsx",
         "src/app/style.css"
       ],
-      "description": "Coloured filled icons for every kind of thing in the backpack, shown in the HUD's backpack chips: axe, knife, drawknife, fire striker, bedroll, stick, firewood, bark, berries, mushroom, and the pot when empty, holding river water, or holding boiled water. Each item has its own shape, a main colour, and an accent colour, such as a wooden handle on a steel blade. The item's name shows when the player points at its chip.",
+      "description": "Coloured filled icons for every kind of thing in the backpack, shown in the HUD's backpack chips: axe, knife, drawknife, steel and flint, bedroll, stick, firewood, bark, berries, mushroom, and the pot when empty, holding river water, or holding boiled water. Each item has its own shape, a main colour, and an accent colour, such as a wooden handle on a steel blade. The item's name shows when the player points at its chip.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -793,7 +793,7 @@
       "code": [
         "src/render/pile-meshes.ts"
       ],
-      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood lies in a stack of 5, 4, then 3, each layer resting in the gaps of the one below. Bark lies in up to three rows of strips, each strip nested in the one below. Tools, food, the pot, and the bedroll spread around the middle. Firewood, bark, mushrooms, and the pot reuse their approved shapes. The axe has a steel head and a handle painted red at its end, the knife a bright blade, the drawknife a blue-steel blade with two wooden handles, and the fire striker is a flat steel loop. A handful of berries is seven red berries on a leaf. Dropped sticks never form a pile: they lie as normal sticks. The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.",
+      "description": "How each kind of dropped thing looks on the ground, from one to many. A pile shows one copy of its kind for each thing it holds, up to 12. Firewood lies in a stack of 5, 4, then 3, each layer resting in the gaps of the one below. Bark lies in up to three rows of strips, each strip nested in the one below. Tools, food, the pot, and the bedroll spread around the middle. Firewood, bark, mushrooms, and the pot reuse their approved shapes. The axe has a steel head and a handle painted red at its end, the knife a bright blade, the drawknife a blue-steel blade with two wooden handles, and the steel and flint is the \"steel-and-flint\" asset. A handful of berries is seven red berries on a leaf. Dropped sticks never form a pile: they lie as normal sticks. The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -820,6 +820,26 @@
         "by": "owner",
         "date": "2026-11-11"
       }
+    },
+    {
+      "id": "steel-and-flint",
+      "kind": "code",
+      "code": [
+        "src/render/steel-and-flint-shape.ts",
+        "src/render/pile-meshes.ts",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "The fire-lighting kit, called steel and flint in the game. On the ground it is a C-shaped steel of dark blued steel, a straight striking bar with each end curled back into a loop, with a dark grey shard of flint lying behind it, about 11 cm wide in all. Its backpack icon shows the C-steel, the flint above it, and orange sparks flying off the flint.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
+      },
+      "approvalNotes": [
+        "2026-11-12: The owner asked in chat to change the fire striker to a kit of steel and flint, with its own entry, a redrawn backpack icon, and the name Steel and flint. The owner approved the C-steel and flint shard and asked to call it steel and flint everywhere."
+      ]
     }
   ]
 }

@@ -27,7 +27,7 @@ describe("lighting a campfire", () => {
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
   });
 
-  it("lights with the fire striker once it has fuel", () => {
+  it("lights with the steel and flint once it has fuel", () => {
     const { game, campfire } = gameWithCampfire();
     give(game, "stick", 1);
     tend(game, campfire);
@@ -37,14 +37,14 @@ describe("lighting a campfire", () => {
 
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
     expect(game.client.getView().backpack.stick).toBe(0);
-    // The striker is a tool, so lighting does not use it up.
-    expect(game.client.getView().backpack.fireStriker).toBe(1);
+    // The steel and flint is a tool, so lighting does not use it up.
+    expect(game.client.getView().backpack.steelAndFlint).toBe(1);
   });
 
-  it("will not light without a fire striker", () => {
+  it("will not light without a steel and flint", () => {
     const { game, campfire } = gameWithCampfire();
     give(game, "stick", 1);
-    give(game, "fireStriker", -1);
+    give(game, "steelAndFlint", -1);
     tend(game, campfire);
 
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
@@ -53,7 +53,7 @@ describe("lighting a campfire", () => {
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
   });
 
-  it("says the campfire can be lit only when it has fuel, is out, and the player has a fire striker", () => {
+  it("says the campfire can be lit only when it has fuel, is out, and the player has a steel and flint", () => {
     const { game, campfire } = gameWithCampfire();
     give(game, "stick", 1);
     tend(game, campfire);
@@ -62,11 +62,11 @@ describe("lighting a campfire", () => {
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
     expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(true);
 
-    give(game, "fireStriker", -1);
+    give(game, "steelAndFlint", -1);
     game.step();
     expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
 
-    give(game, "fireStriker", 1);
+    give(game, "steelAndFlint", 1);
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
     expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);

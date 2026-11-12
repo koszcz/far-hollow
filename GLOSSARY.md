@@ -129,7 +129,7 @@ Everything the player has built in the valley. It has no formal boundary.
 _Avoid_: Base, settlement, home zone
 
 **Building piece**:
-One structural part of a building, such as a foundation, log wall, door frame, or roof section. Building pieces snap to a grid and cost materials.
+One structural part of a building, such as a foundation, log wall, door frame, roof frame, or roof section. Building pieces snap to a grid and cost materials.
 _Avoid_: Block, part, module
 
 **Storey**:
@@ -143,6 +143,10 @@ _Avoid_: Floorboards, deck
 **Lean-to**:
 The first shelter the player builds: a sloped roof of sticks and bark on a frame, open at the front. It is one structure, not a set of building pieces.
 _Avoid_: Shack, tent, hut
+
+**Roof frame**:
+The timber skeleton of one foundation square, built on its walls before the roof. Level beams lie on the wall tops, and sloped rafters rest on the beams. The frame sets which way the roof slopes. The roof section laid on it is only bark.
+_Avoid_: Truss, rafters (for the whole frame)
 
 **Room**:
 A set of foundation squares closed in on every side by log walls or door frames, with a roof over every square. A lit campfire in a room warms the whole room.

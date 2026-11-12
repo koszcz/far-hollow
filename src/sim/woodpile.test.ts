@@ -195,7 +195,7 @@ describe("taking wood off a woodpile", () => {
     send(game, { type: "takeFromWoodpile", woodpileId: idOf(game, woodpile), wood: "firewood" });
 
     expect(woodpile.woodpile.firewood).toBe(3);
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
   });
 });
 

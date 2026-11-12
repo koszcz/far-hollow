@@ -11,6 +11,7 @@ import { createFoundationMeshes } from "./foundation-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { createLeanToMeshes } from "./lean-to-meshes";
 import type { LogShape } from "./log-shape";
+import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createWoodpileMeshes } from "./woodpile-meshes";
@@ -44,7 +45,7 @@ export interface StructureMeshes {
   update(frame: StructureFrame): void;
   /** What a ray from the camera hits first among blueprints and finished structures the player can act on, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined;
-  /** The finished lean-to, foundation, wall, door frame, or roof section a ray meets first. The right-click menu uses it. */
+  /** The finished lean-to, foundation, wall, door frame, roof frame, or roof section a ray meets first. The right-click menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of what a click landed on, placed in the world. Empty once it is gone. */
   outlineOf(hit: StructureHit): OutlinePart[];
@@ -65,12 +66,13 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const leanTos = createLeanToMeshes(entities);
   const foundations = createFoundationMeshes(entities, groundAt);
   const edgePieces = createEdgePieceMeshes(entities);
+  const roofFrames = createRoofFrameMeshes(entities);
   const roofs = createRoofMeshes(entities);
   const woodpiles = createWoodpileMeshes(entities, logShape);
   const chests = createChestMeshes(entities);
   const sawhorses = createSawhorseMeshes(entities);
-  const all = [campfires, leanTos, foundations, edgePieces, roofs, woodpiles, chests, sawhorses];
-  const withFinishedPicks = [leanTos, foundations, edgePieces, roofs];
+  const all = [campfires, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses];
+  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
 
   const group = new THREE.Group();
   group.add(...all.map((meshes) => meshes.group));
@@ -90,6 +92,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     doorFrame: {
       outlineBlueprint: (entity) => edgePieces.outlineOf({ kind: "blueprint", entity }),
       showPlacing: (placing) => { edgePieces.showPlacingBlueprint(placing && { ...placing, structure: "doorFrame" }); },
+    },
+    roofFrame: {
+      outlineBlueprint: (entity) => roofFrames.outlineOf({ kind: "blueprint", entity }),
+      showPlacing: (placing) => {
+        roofFrames.showPlacingBlueprint(placing);
+      },
     },
     roof: { outlineBlueprint: (entity) => roofs.outlineOf({ kind: "blueprint", entity }), showPlacing: (placing) => { roofs.showPlacingBlueprint(placing); } },
     woodpile: {
@@ -117,6 +125,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       leanTos.update();
       foundations.update();
       edgePieces.update(camera !== undefined && player !== undefined ? { camera, player } : undefined);
+      // The roof above the player, and the frames under it, hide.
+      roofFrames.update(player !== undefined ? { player } : undefined);
       roofs.update(player !== undefined ? { player } : undefined);
       woodpiles.update();
       chests.update();
@@ -124,7 +134,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([
-        campfires.pick(raycaster), leanTos.pick(raycaster), foundations.pick(raycaster), edgePieces.pick(raycaster), roofs.pick(raycaster),
+        campfires.pick(raycaster), leanTos.pick(raycaster), foundations.pick(raycaster), edgePieces.pick(raycaster), roofFrames.pick(raycaster),
+        roofs.pick(raycaster),
         woodpiles.pick(raycaster), chests.pick(raycaster), sawhorses.pick(raycaster),
       ]);
     },

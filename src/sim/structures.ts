@@ -1,11 +1,11 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 import type { BackpackContent } from "./backpack";
-import { BUILD_GRID_METRES, snapToGridPoint, snapToGridSquare } from "./build-grid";
+import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, stumpEntities,
-  treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore, type Vec3,
+  blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, edgePieceEntities, foundationEntities, lyingThings, roofEntities, roofFrameEntities,
+  stumpEntities, treeEntities, walkBlockerSpotEntities, woodpileEntities, workStationEntities, type Entity, type EntityStore, type Vec3,
 } from "./entities";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { roomAround } from "./rooms";
@@ -38,7 +38,7 @@ export interface PlacementSite {
 }
 
 /** The components that mark a finished structure. */
-export type FinishedMarker = "campfire" | "leanTo" | "foundation" | "edgePiece" | "cabinRoof" | "woodpile" | "chest" | "workStation";
+export type FinishedMarker = "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "workStation";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -66,6 +66,11 @@ export interface StructureDefinition {
    * Without this, it snaps to the nearest grid point.
    */
   snap?(site: PlacementSite, at: GroundPoint, turns: QuarterTurns): GroundPoint;
+  /**
+   * The turn a blueprint placed at `spot` takes, when the player asked for `turns`. Without this, it takes `turns`.
+   * A roof takes the turn of the frame under it.
+   */
+  facingAt?(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): QuarterTurns;
   /** How high its position sits at a snapped spot, in metres. Without this, it sits on the ground. */
   heightAt?(site: PlacementSite, spot: GroundPoint): number;
   /** Clears the ground for a blueprint just placed at `spot`, if the structure needs it. */
@@ -267,39 +272,69 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
 const logWall = edgePiece("logWall", LOG_WALL_LOG_COST, LOG_WALL_BUILD_SECONDS);
 const doorFrame = edgePiece("doorFrame", DOOR_FRAME_LOG_COST, DOOR_FRAME_BUILD_SECONDS);
 
-/** How many debarked logs a roof section costs, laid as rafters. Construction spends them first. */
-export const ROOF_LOG_COST = 3;
-/** How much bark a roof section costs, laid over the rafters. Construction spends it from the backpack after the logs. */
-export const ROOF_BARK_COST = 4;
-/** How long the player holds the build action to build a roof section, in seconds. */
-export const ROOF_BUILD_SECONDS = 15;
+/** How many debarked logs a roof frame costs: two beam logs, each cut in two, then three rafters. Construction spends one at the start of each stage. */
+export const ROOF_FRAME_LOG_COST = 5;
+/** How long the player holds the build action to build a roof frame, in seconds. */
+export const ROOF_FRAME_BUILD_SECONDS = 12;
+
+/** The finished roof frame over the foundation square with this middle, or undefined if it has none. */
+export function roofFrameOn(entities: EntityStore, square: GroundPoint): (Entity & { position: NonNullable<Entity["position"]> }) | undefined {
+  for (const frame of roofFrameEntities(entities)) if (isOnGridSquare(square, frame.position)) return frame;
+  return undefined;
+}
 
 /**
- * A roof section over one foundation square. It rests on the log walls and door frames on the square's edges, so it needs at least one.
- * A finished section is a roof overhead for the whole square, like a lean-to's roof.
- * R turns it like a wall: facing `turns`, it slopes down the way `turnOffset` turns +z. The section keeps its turn in `facing`.
- * The game rules store only that turn. The renderer works out each section's height and corner shape from its neighbours.
+ * A roof frame over one foundation square: level beams on the tops of the walls, and sloped rafters on the beams.
+ * It rests on the log walls and door frames on the square's edges, so it needs at least one.
+ * R turns it: facing `turns`, it slopes down the way `turnOffset` turns +z. The frame keeps its turn in `facing`.
+ * The game rules store only that turn. The renderer works out each frame's height and corner shape from its neighbours.
+ * It is no roof overhead. A roof section laid on it is.
  */
-const roof: StructureDefinition & { readonly kind: "roof" } = {
-  kind: "roof",
+const roofFrame: StructureDefinition & { readonly kind: "roofFrame" } = {
+  kind: "roofFrame",
   placement: "overWalls",
-  finishedAs: "cabinRoof",
-  cost: [
-    { material: "debarkedLog", count: ROOF_LOG_COST },
-    { material: "bark", count: ROOF_BARK_COST },
-  ],
-  buildSeconds: ROOF_BUILD_SECONDS,
+  finishedAs: "roofFrame",
+  cost: [{ material: "debarkedLog", count: ROOF_FRAME_LOG_COST }],
+  buildSeconds: ROOF_FRAME_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
   snap: (_site, at) => snapToGridSquare(at),
   heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities }, spot, turns) {
     if (foundationOn(entities, spot) === undefined) return false;
-    // The roof rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
+    // The frame rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
     if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
-    // Logs, sticks, bark, and bedrolls on the deck are in the way, as is a roof already over the square, finished or as a blueprint.
+    // Logs, sticks, bark, and bedrolls on the deck are in the way, as is a frame or roof already over the square, finished or as a blueprint.
     // Furniture under it is not.
-    const rect = roof.footprint(spot, turns);
+    const rect = roofFrame.footprint(spot, turns);
     return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreFurniture: true });
+  },
+  finish: () => ({ roofFrame: true }),
+};
+
+/** How much bark a roof section costs, laid on its frame. Construction spends it from the backpack. */
+export const ROOF_BARK_COST = 4;
+/** How long the player holds the build action to build a roof section, in seconds. */
+export const ROOF_BUILD_SECONDS = 8;
+
+/**
+ * A roof section: bark laid on the finished roof frame of one foundation square, so it needs one.
+ * A finished section is a roof overhead for the whole square, like a lean-to's roof.
+ * It has no turn of its own: it takes the turn of the frame under it, and slopes the way the frame does.
+ */
+const roof: StructureDefinition & { readonly kind: "roof" } = {
+  kind: "roof",
+  placement: "onFrame",
+  finishedAs: "cabinRoof",
+  cost: [{ material: "bark", count: ROOF_BARK_COST }],
+  buildSeconds: ROOF_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
+  snap: (_site, at) => snapToGridSquare(at),
+  facingAt: ({ entities }, spot, turns) => roofFrameOn(entities, spot)?.facing?.turns ?? turns,
+  heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace({ entities }, spot, turns) {
+    if (roofFrameOn(entities, spot) === undefined) return false;
+    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it and furniture are not.
+    return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFurniture: true, ignoreRoofFrames: true });
   },
   finish: (spot, turns) => ({ cabinRoof: true, roof: roof.footprint(spot, turns) }),
 };
@@ -431,7 +466,7 @@ function gridSquareAround(spot: GroundPoint): GroundRect {
 
 /** Each structure by its kind. TypeScript reports a kind with no entry. The build menu lists them in this order. */
 const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition & { readonly kind: Kind } } = {
-  campfire, leanTo, foundation, logWall, doorFrame, roof, woodpile, chest, sawhorse,
+  campfire, leanTo, foundation, logWall, doorFrame, roofFrame, roof, woodpile, chest, sawhorse,
 };
 
 /** Every structure the player can build, in the order the build menu lists them. */
@@ -461,16 +496,17 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
 }
 
 /** The structures a cabin is built from. */
-const CABIN_PIECES: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "logWall", "doorFrame", "roof"]);
+const CABIN_PIECES: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "logWall", "doorFrame", "roofFrame", "roof"]);
 
 /**
- * Whether `rect` overlaps any foundation, log wall, door frame, or roof section, finished or as a blueprint.
+ * Whether `rect` overlaps any foundation, log wall, door frame, roof frame, or roof section, finished or as a blueprint.
  * A wall or door frame covers only the line it stands on, so it overlaps only a rectangle that reaches across that line.
  */
 function overlapsCabinPiece(entities: EntityStore, rect: GroundRect): boolean {
   for (const built of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(built.position, 0))) return true;
   for (const piece of edgePieceEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(piece))) return true;
   for (const section of cabinRoofEntities(entities)) if (rectsOverlap(rect, section.roof)) return true;
+  for (const frame of roofFrameEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(frame))) return true;
   for (const blueprint of blueprintEntities(entities)) {
     if (CABIN_PIECES.has(blueprint.blueprint.structure) && rectsOverlap(rect, footprintOfEntity(blueprint))) return true;
   }
@@ -496,12 +532,13 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
  * a finished wall or door frame, a chest, or a finished work station such as a sawhorse.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  * `ignoreFurniture` lets it go over furniture and furniture blueprints, as a roof does.
- * `ignoreCabinRoofs` lets it go under a finished cabin roof or a roof blueprint, as furniture does. A lean-to is still in the way.
+ * `ignoreCabinRoofs` lets it go under a finished cabin roof or roof frame, or a blueprint of either, as furniture does. A lean-to is still in the way.
+ * `ignoreRoofFrames` lets it go over a finished roof frame, as a roof does.
  */
 function isClearOfTreesAndStructures(
   entities: EntityStore,
   rect: GroundRect,
-  { ignoreFurniture = false, ignoreCabinRoofs = false }: { ignoreFurniture?: boolean; ignoreCabinRoofs?: boolean } = {},
+  { ignoreFurniture = false, ignoreCabinRoofs = false, ignoreRoofFrames = false }: { ignoreFurniture?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean } = {},
 ): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
@@ -510,13 +547,16 @@ function isClearOfTreesAndStructures(
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
-    if ((ignoreFurniture && isFurniture(structure)) || (ignoreCabinRoofs && structure === "roof")) continue;
+    if ((ignoreFurniture && isFurniture(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
     if (rectsOverlap(rect, footprintOfEntity(blueprint))) return false;
   }
   for (const roofed of roofEntities(entities)) {
     // A lean-to's roof is part of the lean-to, so it is always in the way. Only a cabin's roof may be over something.
     if (ignoreCabinRoofs && roofed.cabinRoof === true) continue;
     if (rectsOverlap(rect, roofed.roof)) return false;
+  }
+  if (!ignoreCabinRoofs && !ignoreRoofFrames) {
+    for (const frame of roofFrameEntities(entities)) if (rectsOverlap(rect, footprintOfEntity(frame))) return false;
   }
   if (!ignoreFurniture && !isClearOfFurniture(entities, rect)) return false;
   // Every other finished structure is in the way, so a new kind of structure is in the way unless it says otherwise.
@@ -529,9 +569,9 @@ function isClearOfTreesAndStructures(
 
 /**
  * Finished structures `isClearOfTreesAndStructures` checks in their own way, or not at all.
- * A lean-to and a roof section are checked by their roofs. Each placement rule decides about foundations and campfires itself.
+ * A lean-to and a roof section are checked by their roofs, and a roof frame by its own rule. Each placement rule decides about foundations and campfires itself.
  */
-const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "campfire", "leanTo", "roof"]);
+const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "campfire", "leanTo", "roofFrame", "roof"]);
 
 /** Whether `rect` keeps clear of every finished chest and every chest blueprint. */
 function isClearOfFurniture(entities: EntityStore, rect: GroundRect): boolean {
@@ -554,7 +594,7 @@ export function isDelivered(material: BuildMaterial): material is DeliveredMater
 
 /**
  * What kind of structure an entity is: a blueprint of any structure, or a finished campfire, lean-to, foundation,
- * log wall, door frame, roof section, woodpile, chest, or work station. Undefined for anything else.
+ * log wall, door frame, roof frame, roof section, woodpile, chest, or work station. Undefined for anything else.
  */
 export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.blueprint !== undefined) return entity.blueprint.structure;

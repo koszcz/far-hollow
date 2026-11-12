@@ -18,11 +18,11 @@ const BASE_VIEW: GameView = {
   buildMenu: [{ structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" }],
   craftMenu: [
     {
-      recipe: "saw",
+      kind: "saw",
       materials: [{ material: "sawBlade", count: 1 }, { material: "stick", count: 3 }],
       result: { content: "saw", count: 1 },
       seconds: 5,
-      hasMaterials: true,
+      lacks: [],
     },
   ],
   action: null,
@@ -60,7 +60,7 @@ const STATES: readonly ShowcaseState[] = [
       backpackWeight: 19.6,
       action: { kind: "chop", progress: 0.4 },
       warmth: 0.7,
-      notice: "backpackFull",
+      notice: { kind: "backpackFull" },
     },
     buildMenuOpen: false,
     placing: null,
@@ -80,11 +80,12 @@ const STATES: readonly ShowcaseState[] = [
     view: {
       ...BASE_VIEW,
       paused: true,
+      time: { day: 3, hour: 22, minute: 40, hourOfDay: 22 + 40 / 60 },
       backpack: { axe: 1, knife: 1, fireStriker: 1, stick: 3 },
       nearby: [{ kind: "bedroll", view: { id: 2 } }],
       warmth: 0.15,
       needs: { ...BASE_VIEW.needs, warmth: 0.15, fatigue: 0.2 },
-      notice: "collapsed",
+      notice: { kind: "collapsed" },
     },
     buildMenuOpen: false,
     placing: "campfire",
@@ -130,7 +131,8 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
-  { structure: "roof", cost: [{ material: "debarkedLog", count: 3 }, { material: "bark", count: 4 }], placement: "overWalls" },
+  { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
+  { structure: "roof", cost: [{ material: "bark", count: 4 }], placement: "onFrame" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" },
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
@@ -175,10 +177,9 @@ function BuildIconSheet() {
 function stillClient(view: GameView): GameClient {
   return {
     getView: () => view,
-    checkPlacement: () => ({ spot: { x: 0, y: 0, z: 0 }, allowed: true }),
+    checkPlacement: (_structure, _at, turns) => ({ spot: { x: 0, y: 0, z: 0 }, turns, allowed: true }),
     describeBlueprint: () => null,
     describeRooms: () => [],
-    recipesAt: () => [],
     send() {},
     subscribe: () => () => {},
   };

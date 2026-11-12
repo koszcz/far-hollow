@@ -227,13 +227,31 @@
       }
     },
     {
+      "id": "roof-frame",
+      "kind": "code",
+      "code": [
+        "src/render/roof-frame-meshes.ts",
+        "src/render/roof-parts.ts",
+        "src/render/roof-layout.ts",
+        "src/sim/structures.ts"
+      ],
+      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Debarked-log beams lie level on the top of every wall and door frame on the square's edges. The beams on the lower walls, which run along z, are thicker, so every beam top is level. A beam reaches about 0.3 m past the walls where no frame carries on beyond its end. Three faceted debarked-log rafters with pale cut ends rest on the beams and slope 12 degrees the way the frame faces. Where a slope rises above the beams, debarked logs stacked on the beams, cut to the slope, fill the gap up to the roof. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the fill going up with the last rafter. It hides with the roof above the player.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/10-roof-frame.md"
+      }
+    },
+    {
       "id": "roof",
       "kind": "code",
       "code": [
         "src/render/roof-meshes.ts",
+        "src/render/roof-parts.ts",
         "src/sim/roofs.ts"
       ],
-      "description": "The cabin roof section: a sloped roof over one foundation square, resting on the tops of its walls. It slopes 12 degrees down to the front to shed rain, and sections one behind another share one continuous slope. Three faceted debarked-log rafters with pale cut ends rest on the front wall. Where a section has no section beside or behind it, debarked logs stacked on the wall, cut to the slope, fill the gap up to the bark. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie over them like shingles from the front up, a little past the square's edges. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the rafters one per stage, then lays the bark one strip per stage. The roof above the player hides when they stand under it. Each section slopes down the way the player turned it. Its hip and valley corner pieces are the separate draft asset roof-corners.",
+      "description": "The cabin roof section: bark laid on the roof frame of one foundation square. It slopes 12 degrees the way its frame does, and sections one behind another share one continuous slope. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie on the frame's rafters like shingles from the front up, a little past the square's edges. Where an edge has no section beside it, the bark reaches further, past the ends of the frame's beams, keeping the slope. As a blueprint it shows see-through, and construction lays the bark one strip per stage. The roof above the player hides when they stand under it. The rafters and fill logs moved to the roof-frame draft in ticket 10, as the owner approved on 2026-11-11. Its hip and valley corner pieces are the separate draft asset roof-corners.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -247,14 +265,15 @@
       "kind": "code",
       "code": [
         "src/render/roof-meshes.ts",
+        "src/render/roof-frame-meshes.ts",
         "src/render/roof-layout.ts"
       ],
-      "description": "The hip and valley corner pieces of the cabin roof. Where two roofs that slope at right angles meet, the corner section changes shape on its own: an outside corner becomes a hip, where two slopes meet at a ridge, and an inside corner becomes a valley, where they meet in a gutter. Each has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Four rows of bark strips, made like the straight section's, are laid on both slopes from the eaves up, each cut along the meeting line and reaching a little past it, so on a hip each slope laps over the ridge and on a valley each slope tucks under the other. Logs cut to the slope fill any gap above a wall or a lower roof beside it. Construction stages match the straight section's.",
+      "description": "The hip and valley corner pieces of the cabin roof and its frame. Where two frames that slope at right angles meet, the corner section changes shape on its own: an outside corner becomes a hip, where two slopes meet at a ridge, and an inside corner becomes a valley, where they meet in a gutter. The roof on the frame follows its shape. The frame has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Four rows of bark strips, made like the straight section's, are laid on both slopes from the eaves up, each cut along the meeting line and reaching a little past it, so on a hip each slope laps over the ridge and on a valley each slope tucks under the other. The frame's logs, cut to the slope, fill any gap above its beams or a lower roof beside it. Construction stages match the straight frame's and roof's.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "draft",
-        "ticket": ".scratch/shelter/issues/09-roof-facing-and-corners.md"
+        "ticket": ".scratch/shelter/issues/10-roof-frame.md"
       }
     },
     {
@@ -414,7 +433,7 @@
         "src/ui/hud-icons.tsx",
         "src/app/style.css"
       ],
-      "description": "The HUD: a woodland panel of dark bark with warm text, line icons, need bars, buttons, and backpack chips, in separate panels: needs top left, pause and build bottom left, backpack and open chest bottom right.",
+      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight, item buttons, and the build and craft buttons. Short need bars sit above it, and the context panels and open chest sit above them. The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -423,7 +442,8 @@
         "date": "2026-11-11"
       },
       "approvalNotes": [
-        "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles."
+        "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles.",
+        "2026-11-11: The owner chose the hotbar and wheel layout from four mockups and approved the change in chat. See .scratch/hud-redesign/issues/01-hotbar-and-wheel.md."
       ]
     },
     {
@@ -454,7 +474,7 @@
         "src/ui/hud.tsx",
         "src/app/style.css"
       ],
-      "description": "Coloured shaded icons for the build menu, one per structure: campfire, lean-to, foundation, log wall, door frame, roof section, woodpile, sawhorse, and chest. Also an icon for the debarked log, a build material that is not a backpack content. They share the backpack icons' style and renderer. Each build menu tile shows its structure's icon over its cost, drawn as material icons with counts.",
+      "description": "Coloured shaded icons for the build menu, one per structure: campfire, lean-to, foundation, log wall, door frame, roof frame, roof section, woodpile, sawhorse, and chest. Also an icon for the debarked log, a build material that is not a backpack content. They share the backpack icons' style and renderer. Each build menu tile shows its structure's icon over its cost, drawn as material icons with counts.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

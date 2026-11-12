@@ -117,7 +117,7 @@ function courseLook(course: number): (typeof COURSE_LOOKS)[number] {
  * How much lower a log wall running along z sits than one running along x, in metres: half the rise from one course to the next.
  * At a corner the logs of the two walls then take turns instead of passing through each other.
  */
-const CORNER_STAGGER_METRES = (() => {
+export const CORNER_STAGGER_METRES = (() => {
   const heights = courseHeights();
   return ((heights[COURSE_COUNT - 1] ?? 0) - (heights[0] ?? 0)) / (COURSE_COUNT - 1) / 2;
 })();

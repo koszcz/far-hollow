@@ -60,7 +60,7 @@ describe("filling the pot", () => {
     runUntilStill(game);
 
     expect(game.client.getView().backpack).toMatchObject({ pot: 1 });
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
   });
 });
 

@@ -1,5 +1,6 @@
 // All player-facing text lives here, so the game can be translated later.
 import type { BackpackContent } from "./sim/api";
+import { STATION_GROUND_METRES } from "./sim/crafting";
 
 /** How many of each kind of thing a pile holds, in words. */
 const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> = {
@@ -52,9 +53,10 @@ export const strings = {
   takeDown: "Take down",
   crafting: "Crafting",
   craftMenu: {
-    open: "Craft (C)",
+    open: "Craft",
     title: "Craft",
-    close: "Press C or Escape to close.",
+    /** What the craft wheel's centre says before the player points at a recipe. */
+    pick: "Pick a recipe",
     recipes: {
       saw: "Saw",
       planks: "Cut planks",
@@ -68,22 +70,31 @@ export const strings = {
     },
     /** What a recipe uses and how long it takes, such as "Saw blade, Stick ×3 · 5 s". */
     cost: (materials: readonly string[], seconds: number) => `${materials.join(", ")} · ${seconds} s`,
-    /** What the craft menu says about a tool a recipe needs that is not in the backpack, such as "needs the saw". */
-    needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
-    /** What the craft menu says about a work station a recipe needs that does not stand yet, such as "needs a sawhorse". */
-    needsStation: (station: string) => `needs a ${station.toLowerCase()}`,
-    putLogDownFirst: "Put the log down first.",
+    /** Each thing a recipe can lack, as the craft menu and notices name it. */
+    lacking: {
+      /** A tool that is not in the backpack, such as "the saw". */
+      tool: (tool: string) => `the ${tool.toLowerCase()}`,
+      /** A work station that does not stand yet, such as "a sawhorse". */
+      station: (station: string) => `a ${station.toLowerCase()}`,
+      materials: "more materials",
+    },
+    /** What the craft menu says a recipe lacks, such as "needs the saw and a sawhorse". */
+    needs: (lacking: readonly string[]) => `needs ${lacking.join(" and ")}`,
   },
+  /** The HUD clock in the top left corner, such as "Day 2 · 14:20". */
+  clock: (day: number, hour: number, minute: number) => `Day ${day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
   buildMenu: {
-    open: "Build (B)",
+    open: "Build",
     title: "Build",
-    close: "Press B or Escape to close.",
+    /** What the build wheel's centre says before the player points at a structure. */
+    pick: "Pick a structure",
     structures: {
       campfire: "Campfire",
       leanTo: "Lean-to",
       foundation: "Foundation",
       logWall: "Log wall",
       doorFrame: "Door frame",
+      roofFrame: "Roof frame",
       roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
@@ -107,7 +118,9 @@ export const strings = {
       onEdge: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. Press R to pick another edge, or Escape to cancel.`,
       overWalls: (structure: string) =>
-        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press Escape to cancel.`,
+        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. Press R to turn the way it slopes down, or Escape to cancel.`,
+      onFrame: (structure: string) =>
+        `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does. Press Escape to cancel.`,
     },
   },
   blueprint: {
@@ -181,7 +194,10 @@ export const strings = {
     stillHoldsSomething: "Something is still in this. Empty it first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
     putLogDownFirst: "Put the log down first.",
-    noLogBesideStation: "Lay a debarked log within 2 m of the sawhorse first.",
+    /** The player tried a station recipe with no debarked log beside the station, such as "Lay a debarked log within 2 m of the sawhorse first." */
+    noLogBesideStation: (station: string) => `Lay a debarked log within ${STATION_GROUND_METRES} m of the ${station.toLowerCase()} first.`,
+    /** The player tried a recipe they cannot follow yet, such as "This needs the saw first." */
+    cannotCraftYet: (lacking: readonly string[]) => `This needs ${lacking.join(" and ")} first.`,
   },
   backpack: "Backpack",
   backpackContents: {

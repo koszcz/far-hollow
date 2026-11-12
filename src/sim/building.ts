@@ -62,7 +62,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const { x, z } = definition.snap?.(site, at, turns) ?? snapToGridPoint(at);
     const allowed = definition.canPlace(site, { x, z }, turns);
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
-    return Object.freeze({ spot: Object.freeze({ x, y, z }), allowed });
+    const facing = definition.facingAt?.(site, { x, z }, turns) ?? turns;
+    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed });
   }
 
   /** Walks the player within reach of a blueprint, then gives them a task on it. */
@@ -100,12 +101,12 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
   return {
     checkPlacement,
     place(structure, at, turns) {
-      const { spot, allowed } = checkPlacement(structure, at, turns);
+      const { spot, turns: facing, allowed } = checkPlacement(structure, at, turns);
       if (!allowed) return undefined;
       structureOf(structure).clearSite?.(entities, spot);
       const added = entities.add({
         blueprint: { structure, progress: 0, materialsSpent: 0, delivered: {} },
-        facing: { turns },
+        facing: { turns: facing },
         position: { ...spot },
       });
       return entities.id(added);

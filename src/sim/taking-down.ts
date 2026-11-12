@@ -1,18 +1,18 @@
 // Taking down blueprints and finished structures, and giving back the materials in them.
-// Every structure but a finished campfire can come down: a lean-to, or a building piece such as a foundation, wall, or roof section.
+// Every structure but a finished campfire can come down: a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
 import { addToBackpack } from "./backpack";
 import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
-  blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, leanToEntities, lyingThings, playerEntities, setComponent, type Entity,
-  type EntityStore,
+  blueprintEntities, cabinRoofEntities, campfireEntities, chestEntities, leanToEntities, lyingThings, playerEntities, roofFrameEntities, setComponent,
+  type Entity, type EntityStore,
 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { rectsOverlap, SIDES } from "./structure-kind";
 import {
-  footprintOfEntity, isDelivered, isFurniture, isPlacedStructure, stageMaterials, structureKindOf, structureOf, type BuildMaterial, type DeliveredMaterial,
+  footprintOfEntity, isDelivered, isFurniture, isPlacedStructure, roofFrameOn, stageMaterials, structureKindOf, structureOf, type BuildMaterial, type DeliveredMaterial,
   type PlacedStructure, type StructureKind,
 } from "./structures";
 import type { GroundPoint, Valley } from "./valley";
@@ -186,18 +186,23 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
  * Whether another structure stands on this one, so it cannot come down yet.
- * A log wall, door frame, campfire, roof section, lean-to, or chest, finished or as a blueprint, stands on the foundation under it.
- * A roof section, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
+ * A log wall, door frame, campfire, roof frame, roof section, lean-to, or chest, finished or as a blueprint, stands on the foundation under it.
+ * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
+ * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
  */
 export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure, kind: StructureKind): boolean {
   if (structure.blueprint !== undefined) return false;
   if (kind === "foundation") return standsOnSquare(entities, structure.position);
+  const blueprintsOf = (structureKind: StructureKind) => blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === structureKind);
   if (isEdgePiece(kind)) {
-    const roofBlueprints = blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "roof");
+    const frameBlueprints = blueprintsOf("roofFrame");
     return squaresBeside(structure.position, structure.facing?.turns ?? 0).some(
-      (square) => cabinRoofOn(entities, square) !== undefined || roofBlueprints.some((roof) => isOnGridSquare(square, roof.position)),
+      (square) => roofFrameOn(entities, square) !== undefined || frameBlueprints.some((frame) => isOnGridSquare(square, frame.position)),
     );
+  }
+  if (kind === "roofFrame") {
+    return cabinRoofOn(entities, structure.position) !== undefined || blueprintsOf("roof").some((roof) => isOnGridSquare(structure.position, roof.position));
   }
   return false;
 }
@@ -210,19 +215,20 @@ export function holdsSomething(structure: Entity): boolean {
 
 /**
  * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
- * a log wall or door frame on one of its edges, a campfire whose centre is on it, or a roof section, lean-to, or piece of furniture
+ * a log wall or door frame on one of its edges, a campfire whose centre is on it, or a roof frame, roof section, lean-to, or piece of furniture
  * over any of it. Furniture, such as a chest, stands on every foundation its base reaches over.
  */
 function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(square, side)))) return true;
   const rect = structureOf("foundation").footprint(square, 0);
   const others = [
-    ...campfireEntities(entities), ...leanToEntities(entities), ...cabinRoofEntities(entities), ...chestEntities(entities), ...blueprintEntities(entities),
+    ...campfireEntities(entities), ...leanToEntities(entities), ...roofFrameEntities(entities), ...cabinRoofEntities(entities), ...chestEntities(entities),
+    ...blueprintEntities(entities),
   ];
   return others.some((other) => {
     const kind = structureKindOf(other);
     if (kind === undefined) return false;
     if (kind === "campfire") return isOnGridSquare(square, other.position);
-    return (kind === "leanTo" || kind === "roof" || isFurniture(kind)) && rectsOverlap(rect, footprintOfEntity(other));
+    return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isFurniture(kind)) && rectsOverlap(rect, footprintOfEntity(other));
   });
 }

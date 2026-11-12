@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { WorkStationKind } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
@@ -28,7 +29,7 @@ const TURN_MIN_TRAVEL_METRES = 0.001;
 
 /**
  * What is under a point on the screen. Everything but the ground and the river is given by its entity id.
- * A finished lean-to, foundation, log wall, door frame, or roof section is a `structure`.
+ * A finished lean-to, foundation, log wall, door frame, roof frame, or roof section is a `structure`.
  * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
  */
 export type ScenePick =
@@ -45,7 +46,7 @@ export type ScenePick =
   | { kind: "campfire"; id: number }
   | { kind: "woodpile"; id: number }
   | { kind: "chest"; id: number }
-  | { kind: "workStation"; id: number }
+  | { kind: "workStation"; id: number; station: WorkStationKind }
   | { kind: "bedroll"; id: number }
   | { kind: "pile"; id: number };
 
@@ -235,8 +236,12 @@ export function createSceneRenderer(
       if (candidate !== undefined && (nearest === undefined || candidate.distance < nearest.distance)) nearest = candidate;
     }
     if (nearest !== undefined && (ground === undefined || nearest.distance <= ground.distance)) {
-      const id = entities.id(nearest.hit.entity);
-      if (id !== undefined) return { pick: { kind: nearest.hit.kind, id }, distance: nearest.distance };
+      const { kind, entity } = nearest.hit;
+      const id = entities.id(entity);
+      if (id !== undefined) {
+        if (kind !== "workStation") return { pick: { kind, id }, distance: nearest.distance };
+        if (entity.workStation !== undefined) return { pick: { kind, id, station: entity.workStation }, distance: nearest.distance };
+      }
     }
     if (ground === undefined) return undefined;
     const spot = { x: ground.point.x, z: ground.point.z };

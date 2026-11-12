@@ -2,28 +2,58 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 #scene { display: block; width: 100vw; height: 100vh; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
 /* The HUD, the "hud" asset in asset-manifest.json: woodland panels of dark bark with warm text. Approved by the owner. */
-/* The HUD is split into separate panels, each in its own corner: needs top left, pause and build bottom left, backpack bottom right. */
+/* The "hotbar and wheel" layout: the clock top left, pause top right, and a dock at the bottom centre. The dock stacks the open chest, */
+/* the context panel, the needs bars, and the hotbar, from top to bottom. Build and craft open as a wheel in the middle of the screen. */
 .hud { position: absolute; color: #f3e6d3; font-size: 13px; line-height: 1.35; }
-.hud-needs-dock { top: 12px; left: 12px; width: 220px; }
-.hud-needs-dock .hud-meter:last-child { margin-bottom: 0; }
-.hud-toolbar { bottom: 12px; left: 12px; }
-.hud-toolbar .hud-panel { padding: 6px; }
-.hud-toolbar .hud-buttons { margin: 0; }
-/* An open chest stacks above the backpack, so the pair never reaches the context dock in the bottom centre. */
-.hud-inventory { right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 8px; width: 260px; }
+.hud-clock { top: 12px; left: 12px; }
+.hud-clock .hud-panel { display: flex; gap: 6px; align-items: center; margin: 0; padding: 6px 10px; }
+.hud-pause { top: 12px; right: 12px; }
+.hud-pause .hud-panel { padding: 4px; }
+.hud-dock { right: 12px; bottom: 12px; left: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.hud-dock > .hud-panel:not(.hud-hotbar) { width: min(300px, 100%); box-sizing: border-box; }
+.hud-context > :first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.hud-needs { display: grid; grid-template-columns: repeat(2, 150px); gap: 4px 18px; padding: 5px 10px; background: rgb(42 29 20 / 0.6); border-radius: 8px; pointer-events: auto; }
+.hud-needs .hud-meter { margin: 0; gap: 6px; }
+.hud-needs .hud-meter progress { height: 6px; }
+.hud-needs .hud-hint { grid-column: 1 / -1; margin: 2px 0 0; padding: 2px 6px; }
+.hud-meter-label { width: 64px; flex: none; }
+.hud-hotbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding: 5px; }
+.hud-hotbar .hud-backpack { display: flex; gap: 6px; align-items: center; }
+.hud-hotbar-buttons { display: flex; gap: 4px; align-items: center; padding-left: 6px; border-left: 1px solid #6b4a2f; }
+.hud-hotbar-buttons:empty { display: none; }
+.hud-backpack ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.hud-backpack li { position: relative; display: grid; place-items: center; width: 38px; height: 38px; background: #3d2b1e; border: 1px solid #5a3f2a; border-radius: 6px; }
+.hud-chest ul { max-width: 100%; }
+.hud-backpack-weight { margin-left: auto; padding: 0 4px; font-size: 11px; font-weight: 400; line-height: 1.2; color: #cdb898; white-space: nowrap; }
+.hud-backpack-weight-full { color: #e8a93a; }
+.hud-icon-button { justify-content: center; width: 30px; height: 30px; padding: 0; }
+.hud-icon-button .hud-icon { width: 16px; height: 16px; }
+.hud-icon-button[aria-pressed="true"] { background: #82593a; border-color: #e8833a; }
+.hud [data-tip] { position: relative; }
+.hud-icon-button[data-tip]:hover::after, .hud-needs [data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 4px); left: 50%; z-index: 1; padding: 3px 7px; font-size: 12px; white-space: nowrap; color: #f3e6d3; background: #1f150e; border: 1px solid #6b4a2f; border-radius: 5px; transform: translateX(-50%); pointer-events: none; }
+.hud-pause .hud-icon-button[data-tip]:hover::after { top: calc(100% + 6px); bottom: auto; left: auto; right: 0; transform: none; }
+.hud-wheel-backdrop { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / 0.3); pointer-events: auto; }
+.hud-wheel { position: relative; width: 280px; height: 280px; color: #f3e6d3; font-size: 13px; background: rgb(42 29 20 / 0.9); border: 1px solid #6b4a2f; border-radius: 50%; box-shadow: 0 2px 14px rgb(0 0 0 / 0.45); }
+.hud-wheel ul { margin: 0; padding: 0; list-style: none; }
+.hud-wheel li { position: absolute; width: 52px; height: 52px; transform: translate(-50%, -50%); }
+.hud-wheel-entry { display: grid; place-items: center; width: 100%; height: 100%; padding: 6px; background: #3d2b1e; border: 1px solid #5a3f2a; border-radius: 50%; cursor: pointer; }
+.hud-wheel-entry .backpack-icon { width: 100%; height: 100%; }
+.hud-wheel-entry:hover, .hud-wheel-entry:focus-visible { background: #5a3f2a; border-color: #e8833a; outline: none; }
+.hud-wheel-entry-dimmed { opacity: 0.45; cursor: default; }
+.hud-wheel-entry-dimmed:hover, .hud-wheel-entry-dimmed:focus-visible { border-color: #8a6544; }
+.hud-wheel-centre { position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; gap: 4px; align-items: center; width: 120px; text-align: center; transform: translate(-50%, -50%); pointer-events: none; }
+.hud-wheel-centre strong { font-weight: 600; }
+.hud-wheel-detail { display: flex; flex-direction: column; gap: 2px; align-items: center; font-size: 11px; color: #cdb898; }
+.hud-wheel-note { color: #e8a93a; }
 .hud-panel > .hud-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .hud-panel { padding: 10px 12px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-radius: 10px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.35); pointer-events: auto; }
-/* Banners and the context dock sit apart from the HUD panel, so the panel never jumps when they come and go. */
+/* Banners sit apart from the dock at the top centre, so the dock never jumps when they come and go. */
 .hud-banners { position: absolute; top: 12px; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: min(420px, calc(100% - 24px)); transform: translateX(-50%); }
-/* The context dock sits in the bottom centre. On a narrow screen it moves left, so it stays clear of the backpack in the bottom right. */
-.hud-context { position: absolute; bottom: 12px; left: clamp(12px, calc(50% - 150px), calc(100% - 584px)); width: min(300px, calc(100% - 24px)); color: #f3e6d3; font-size: 13px; line-height: 1.35; }
-.hud-context .hud-panel > :first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .hud-banner { margin: 0; padding: 6px 10px; color: #f3e6d3; font-size: 13px; background: rgb(42 29 20 / 0.86); border: 1px solid #6b4a2f; border-left: 3px solid #e8833a; border-radius: 0; }
 .hud-notice { font-weight: 600; }
 .hud-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .hud-meter { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }
 .hud-meter .hud-icon { color: var(--hud-bar); }
-.hud-meter-label { width: 64px; flex: none; }
 .hud-meter progress { flex: 1; height: 8px; appearance: none; border: none; border-radius: 4px; background: rgb(0 0 0 / 0.45); overflow: hidden; }
 .hud-meter progress::-webkit-progress-bar { background: rgb(0 0 0 / 0.45); border-radius: 4px; }
 .hud-meter progress::-webkit-progress-value { background: var(--hud-bar); border-radius: 4px; transition: width 0.2s; }
@@ -42,23 +72,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, 
 .hud-section h2 { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
 .hud-tag { margin-left: auto; padding: 1px 7px; font-size: 11px; font-weight: 400; background: #3d2b1e; border-radius: 9px; }
 .hud-tag-lit { color: #2a1d14; background: #e8833a; }
-.hud-backpack-weight { margin-left: auto; font-weight: 400; color: #cdb898; }
 /* The build menu is a grid of tiles. Each tile shows a structure's icon over its cost, and its name when the player points at it. */
-.hud-build-menu ul { display: grid; grid-template-columns: repeat(4, 64px); gap: 4px; margin: 0; padding: 0; list-style: none; }
-.hud-build-menu li { position: relative; }
-.hud-build-entry { display: flex; flex-direction: column; gap: 2px; align-items: center; width: 100%; height: 100%; padding: 6px 2px 4px; font: inherit; color: #cdb898; background: #3d2b1e; border: 1px solid transparent; border-radius: 6px; cursor: pointer; pointer-events: auto; }
-.hud-build-entry:hover, .hud-build-entry:focus-visible { background: #5a3f2a; border-color: #8a6544; outline: none; }
-.hud-build-entry:active { transform: translateY(1px); }
 .build-icon { width: 36px; height: 36px; flex: none; }
 .hud-build-cost { display: flex; flex-wrap: wrap; gap: 0 4px; justify-content: center; min-height: 15px; font-size: 11px; font-weight: 600; line-height: 1; }
 .hud-build-material { display: inline-flex; gap: 1px; align-items: center; }
 .hud-build-material .backpack-icon { width: 14px; height: 14px; }
-.hud-build-menu li[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 4px); left: 50%; z-index: 1; padding: 3px 7px; font-size: 12px; white-space: nowrap; color: #f3e6d3; background: #1f150e; border: 1px solid #6b4a2f; border-radius: 5px; transform: translateX(-50%); pointer-events: none; }
-.hud-backpack ul { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 0; padding: 0; list-style: none; }
-.hud-backpack li { position: relative; display: grid; place-items: center; aspect-ratio: 1; background: #3d2b1e; border-radius: 6px; }
 .backpack-icon { width: 24px; height: 24px; flex: none; }
 .hud-button .backpack-icon { width: 16px; height: 16px; }
-.hud-backpack li .backpack-icon { width: 82%; height: 82%; }
 /* A backpack or chest cell is a button that fills the cell. A click drops or moves that kind. */
 .hud-content-move { display: grid; place-items: center; width: 100%; height: 100%; padding: 0; color: inherit; background: none; border: none; border-radius: 6px; cursor: pointer; pointer-events: auto; }
 .hud-content-move:hover, .hud-content-move:focus-visible { background: #5a3f2a; }

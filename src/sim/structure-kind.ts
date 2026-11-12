@@ -2,7 +2,7 @@
 import type { GroundPoint } from "./valley";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
-export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roof" | "woodpile" | FurnitureKind | WorkStationKind;
+export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "woodpile" | FurnitureKind | WorkStationKind;
 
 /** The work stations the build menu can list. A work station is a built object where the player does one kind of processing. */
 export const WORK_STATION_KINDS = ["sawhorse"] as const;
@@ -17,10 +17,10 @@ export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];
 
 /**
  * How a blueprint follows the mouse while the player places it:
- * on the ground at a grid point or square, on the edge of a foundation square, over a square with walls, or anywhere, off the grid.
- * Furniture is the structure placed anywhere.
+ * on the ground at a grid point or square, on the edge of a foundation square, over a square with walls, on a finished roof frame,
+ * or anywhere, off the grid. Furniture is the structure placed anywhere.
  */
-export type Placement = "onGround" | "onEdge" | "overWalls" | "anywhere";
+export type Placement = "onGround" | "onEdge" | "overWalls" | "onFrame" | "anywhere";
 
 /** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
 export type QuarterTurns = 0 | 1 | 2 | 3;

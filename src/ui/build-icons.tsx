@@ -133,6 +133,18 @@ const STRUCTURE_DRAWINGS: Readonly<Record<StructureKind, IconDrawing>> = {
       ...sideLog(1.5, 22.5, 21.3, 1.6, DEBARKED_SHADE),
     ],
   },
+  /** The roof's frame with no bark yet: three log rafters sloping up from a beam on the front wall to a beam at the back. */
+  roofFrame: {
+    colour: DEBARKED,
+    parts: [
+      ...sideLog(2.5, 20, 20.6, 1.7, DEBARKED_SHADE),
+      ...sideLog(5.5, 21.5, 5, 1.5, DEBARKED_SHADE),
+      { d: "M4.5 17.9L7 5.5M10.5 17.9L12.5 5.5M16.5 17.9L18 5.5", as: "line", colour: DEBARKED },
+      ...cutEnd(4.5, 17.9, 1.6),
+      ...cutEnd(10.5, 17.9, 1.6),
+      ...cutEnd(16.5, 17.9, 1.6),
+    ],
+  },
   /** A gently sloped roof of four bark rows, each lapping over the one in front, with three log rafter ends under its front edge on a wall log. */
   roof: {
     colour: BARK,

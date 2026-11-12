@@ -227,7 +227,7 @@ describe("picking up piles", () => {
     giveBackpack(game, { bark: 50 });
 
     send(game, { type: "pickUpPile", pileId: idOf(game, pile) });
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
     runSeconds(game, 5);
 
     expect(pile.pile).toEqual({ content: "firewood", count: 2 });

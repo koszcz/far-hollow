@@ -1,7 +1,7 @@
 // What the player does over time, such as chopping, building, or walking to pick something up.
 // The game holds one list of activities. A new command cancels them all, and each logic step runs each in turn.
 // playerActivity says which timed work the player is doing now, for both the HUD and the player's drawn pose.
-import type { GameNotice, PlayerAction } from "./api";
+import type { Notice, PlainNotice, PlayerAction } from "./api";
 import { buildingNow } from "./building";
 import { choppingNow } from "./chopping";
 import { craftingNow } from "./crafting";
@@ -15,7 +15,7 @@ export interface Activity {
   /** Stops it, if the player is doing it or walking to do it. */
   cancel(): void;
   /** Runs it for one logic step of `playerSeconds`. It may return a notice to show, such as a refusal. */
-  step(playerSeconds: number): GameNotice | undefined;
+  step(playerSeconds: number): Notice | PlainNotice | undefined;
 }
 
 /** The timed work the player is doing now, with what they work on, given by its entity id, if anything. */

@@ -21,7 +21,7 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { createForageMeshes } from "./forage-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../sim/foundations";
 import {
-  CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_LOG_COST, SAWHORSE_LOG_COST,
+  CHEST_LOG_COST, DOOR_FRAME_LOG_COST, FOUNDATION_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_FRAME_LOG_COST, SAWHORSE_LOG_COST,
 } from "../sim/structures";
 import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
@@ -130,6 +130,38 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
         });
     },
   };
+}
+
+/**
+ * Builds a 3 by 2 square cabin with log walls all round and a door frame in the middle of the front. Every square but the
+ * front right one gets a finished roof frame, sloping down to the front, and with `roofs`, a finished roof on it too.
+ * Returns a placer that puts an entity on the deck of a square, for the showcase to add the front right square's pieces.
+ */
+function squareCabin({ place }: Stage, { roofs }: { roofs: boolean }): (x: number, z: number, entity: Entity) => Entity {
+  const onDeck = (x: number, z: number, entity: Entity) => {
+    const placed = place(x, z, entity);
+    if (placed.position !== undefined) placed.position.y += FOUNDATION_DECK_LIFT_METRES;
+    return placed;
+  };
+  const columns = [-1, 0, 1];
+  const rows = [-1, 0];
+  for (const x of columns) for (const z of rows) onDeck(x, z, { foundation: true });
+  for (const x of columns) {
+    onDeck(x, -1.5, { edgePiece: "logWall", facing: { turns: 2 } });
+    onDeck(x, 0.5, { edgePiece: x === 0 ? "doorFrame" : "logWall", facing: { turns: 0 } });
+  }
+  for (const z of rows) {
+    onDeck(-1.5, z, { edgePiece: "logWall", facing: { turns: 1 } });
+    onDeck(1.5, z, { edgePiece: "logWall", facing: { turns: 3 } });
+  }
+  for (const x of columns) {
+    for (const z of rows) {
+      if (x === 1 && z === 0) continue;
+      onDeck(x, z, { roofFrame: true, facing: { turns: 0 } });
+      if (roofs) onDeck(x, z, { cabinRoof: true, facing: { turns: 0 }, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } });
+    }
+  }
+  return onDeck;
 }
 
 /**
@@ -311,43 +343,44 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
+  "roof-frame": {
+    radius: 1.7,
+    // The views look at the front right square of the cabin, where the frame blueprint is, unless a view says otherwise.
+    focus: { x: 1, y: 1.9, z: 0 },
+    // A 3 by 2 square cabin with no roof yet: a frame blueprint over its front right square with two logs delivered, then with
+    // its beams laid and its rafters going up, then every frame finished, from the front and from the side.
+    shots: [
+      { label: `blueprint, 2 of ${ROOF_FRAME_LOG_COST} logs delivered`, yaw: 30, pitch: 35, seconds: 0 },
+      { label: "beams laid, rafters going up", yaw: 30, pitch: 35, seconds: 3.5 / ROOF_FRAME_LOG_COST },
+      { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.4, focus: { x: 0, y: 1.3, z: -0.5 } },
+      { label: "3 by 2 cabin, side", yaw: 90, pitch: 12, seconds: 1, radius: 2.2, focus: { x: 0, y: 1.4, z: -0.5 } },
+    ],
+    build(stage) {
+      const onDeck = squareCabin(stage, { roofs: false });
+      onDeck(1, 0, { blueprint: { structure: "roofFrame", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 0 } });
+      stage.movePlayer(0.6, 1.3, Math.PI);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
   roof: {
     radius: 1.7,
     // The views look at the front right square of the cabin, where the roof blueprint is, unless a view says otherwise.
-    focus: { x: 1, y: 1.8, z: 0 },
-    // A 3 by 2 square cabin: a roof blueprint over its front right square with two logs delivered, then with its bark half
+    focus: { x: 1, y: 1.9, z: 0 },
+    // A 3 by 2 square cabin with a frame on every square: a roof blueprint over its front right square, then with its bark half
     // laid, then the whole cabin finished, from the front and from the side to show how the sections slope and meet.
     shots: [
-      { label: `blueprint, 2 of ${ROOF_LOG_COST} logs delivered`, yaw: 30, pitch: 35, seconds: 0 },
-      { label: "bark half laid", yaw: 30, pitch: 35, seconds: (ROOF_LOG_COST + ROOF_BARK_COST / 2) / (ROOF_LOG_COST + ROOF_BARK_COST) },
-      { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.4, focus: { x: 0, y: 1.2, z: -0.5 } },
-      { label: "3 by 2 cabin, side", yaw: 90, pitch: 12, seconds: 1, radius: 2.2, focus: { x: 0, y: 1.3, z: -0.5 } },
+      { label: "blueprint on its frame", yaw: 30, pitch: 35, seconds: 0 },
+      { label: `${ROOF_BARK_COST / 2} of ${ROOF_BARK_COST} strips of bark laid`, yaw: 30, pitch: 35, seconds: 0.5 },
+      { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.4, focus: { x: 0, y: 1.3, z: -0.5 } },
+      { label: "3 by 2 cabin, side", yaw: 90, pitch: 12, seconds: 1, radius: 2.2, focus: { x: 0, y: 1.4, z: -0.5 } },
     ],
-    build({ place, movePlayer }) {
-      const deckTop = (entity: Entity) => {
-        if (entity.position !== undefined) entity.position.y += FOUNDATION_DECK_LIFT_METRES;
-      };
-      const columns = [-1, 0, 1];
-      const rows = [-1, 0];
-      for (const x of columns) for (const z of rows) deckTop(place(x, z, { foundation: true }));
-      // Log walls all round, with a door frame in the middle of the front.
-      for (const x of columns) {
-        deckTop(place(x, -1.5, { edgePiece: "logWall", facing: { turns: 2 } }));
-        deckTop(place(x, 0.5, { edgePiece: x === 0 ? "doorFrame" : "logWall", facing: { turns: 0 } }));
-      }
-      for (const z of rows) {
-        deckTop(place(-1.5, z, { edgePiece: "logWall", facing: { turns: 1 } }));
-        deckTop(place(1.5, z, { edgePiece: "logWall", facing: { turns: 3 } }));
-      }
-      // Every square has a finished roof but the front right one, which has the blueprint.
-      for (const x of columns) {
-        for (const z of rows) {
-          if (x === 1 && z === 0) continue;
-          deckTop(place(x, z, { cabinRoof: true, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
-        }
-      }
-      deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } } }));
-      movePlayer(0.6, 1.3, Math.PI);
+    build(stage) {
+      const onDeck = squareCabin(stage, { roofs: true });
+      onDeck(1, 0, { roofFrame: true, facing: { turns: 0 } });
+      onDeck(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });
+      stage.movePlayer(0.6, 1.3, Math.PI);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
@@ -358,11 +391,10 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 1.6, z: 0 },
     // A 3 by 2 cabin with a hipped roof: the long sides slope down to the front and back, and the two ends slope out, so each
     // corner is a hip. Beside it, an L-shaped cabin one square wide whose roofs slope into the L, so its corner is a valley.
-    // The front right hip is a blueprint with two logs delivered, then with its bark half laid, then finished.
+    // Every section stands on a finished frame. The front right hip is a roof blueprint on its frame, then with its bark half laid, then finished.
     shots: [
-      { label: `hip blueprint, 2 of ${ROOF_LOG_COST} logs delivered`, yaw: 30, pitch: 40, seconds: 0, radius: 1.8, focus: { x: 1, y: 1.8, z: 0 } },
-      { label: "hip, bark half laid", yaw: 30, pitch: 40, radius: 1.8, focus: { x: 1, y: 1.8, z: 0 },
-        seconds: (ROOF_LOG_COST + ROOF_BARK_COST / 2) / (ROOF_LOG_COST + ROOF_BARK_COST) },
+      { label: "hip frame, roof blueprint", yaw: 30, pitch: 40, seconds: 0, radius: 1.8, focus: { x: 1, y: 1.9, z: 0 } },
+      { label: "hip, bark half laid", yaw: 30, pitch: 40, radius: 1.8, focus: { x: 1, y: 1.9, z: 0 }, seconds: 0.5 },
       { label: "hipped 3 by 2 cabin", yaw: 60, pitch: 15, seconds: 1, radius: 2, focus: { x: 0, y: 1.6, z: -0.5 } },
       { label: "L cabin, valley", yaw: 45, pitch: 35, seconds: 1, radius: 1.6, focus: { x: -4.5, y: 1.6, z: 0 } },
     ],
@@ -383,8 +415,10 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
           }
         }
       };
-      const roofOver = (x: number, z: number, turns: QuarterTurns) =>
+      const roofOver = (x: number, z: number, turns: QuarterTurns) => {
+        deckTop(place(x, z, { roofFrame: true, facing: { turns } }));
         deckTop(place(x, z, { cabinRoof: true, facing: { turns }, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } }));
+      };
       // The hipped cabin. Turns 0 slopes down to +z, 1 to -x, 2 to -z, and 3 to +x.
       cabin([[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0]]);
       roofOver(0, 0, 0);
@@ -392,7 +426,8 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       roofOver(-1, 0, 1);
       roofOver(-1, -1, 1);
       roofOver(1, -1, 3);
-      deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 3 } }));
+      deckTop(place(1, 0, { roofFrame: true, facing: { turns: 3 } }));
+      deckTop(place(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 3 } }));
       // The L: an arm along x at the back, and an arm along z down its left side. Both slope into the L.
       cabin([[-5, -1], [-4, -1], [-3, -1], [-5, 0], [-5, 1]]);
       roofOver(-4, -1, 0);
@@ -492,15 +527,16 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
     },
   },
-  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Front row: the tools and a pot.
-  // One view shows them all. The others come close to the wood and bark, the tools, and the food.
+  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Then the tools and a pot.
+  // Front row: the crafting draft shapes: a saw blade, a saw, one plank, and several planks.
+  // One view shows them all. The others come close to the wood and bark, the tools and crafting things, and the food.
   pile: {
     radius: 3.2,
-    focus: { x: 0, y: 0.1, z: 0.5 },
+    focus: { x: 0, y: 0.1, z: 1 },
     shots: [
-      { label: "all piles", yaw: 0, pitch: 35 },
+      { label: "all piles", yaw: 0, pitch: 35, radius: 3.8 },
       { label: "firewood and bark, one and many", yaw: 25, pitch: 30, radius: 1.1, focus: { x: -1.35, y: 0.1, z: -0.1 } },
-      { label: "axe, knife, drawknife, fire strikers", yaw: 0, pitch: 55, radius: 0.75, focus: { x: -0.2, y: 0, z: 1.8 } },
+      { label: "tools, saw blade, saw, and planks", yaw: 0, pitch: 55, radius: 1.3, focus: { x: 0, y: 0, z: 2.3 } },
       { label: "berries and mushrooms, one and many", yaw: -20, pitch: 40, radius: 0.85, focus: { x: 0.45, y: 0.05, z: 0.1 } },
     ],
     build({ place }) {
@@ -528,6 +564,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
         { content: "fireStriker", count: 2 },
         { content: "pot", count: 1 },
       ], 0.45);
+      row(2.8, [
+        { content: "sawBlade", count: 1 },
+        { content: "saw", count: 1 },
+        { content: "plank", count: 1 },
+        { content: "plank", count: 6 },
+      ], 0.5);
     },
   },
   "fire-effect": {

@@ -193,8 +193,8 @@ window.addEventListener("keydown", (event) => {
   // Let typing keep working in form fields.
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (event.code !== "Escape" && target?.closest("input, textarea, select") != null) return;
-  const open = pressCraftKey(uiState.craftMenuOpen, event.code);
-  if (open !== undefined) setCraftMenuOpen(open);
+  const result = pressCraftKey(uiState.craftMenuOpen, event.code);
+  if (result !== "ignore") setCraftMenuOpen(result === "open");
 });
 
 /** Draws the HUD, the right-click menu, and the debug overlay. Called again when the build mode or the right-click menu changes. */

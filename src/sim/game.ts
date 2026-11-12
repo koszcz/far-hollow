@@ -1,4 +1,4 @@
-import type { BedrollView, CampfireView, Command, GameClient, GameNotice, GameView, NearbyThing, NearbyViews, PileView, PlayerAction } from "./api";
+import type { BedrollView, CampfireView, Command, GameClient, GameView, NearbyThing, NearbyViews, Notice, PileView, PlainNotice, PlayerAction } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, type Activity } from "./activity";
@@ -9,7 +9,7 @@ import { createCarrying } from "./carrying";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping } from "./chopping";
 import { createDebarking } from "./debarking";
-import { createCrafting, RECIPES, recipesAt } from "./crafting";
+import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering } from "./gathering";
@@ -63,7 +63,7 @@ export interface GameOptions {
   /** Carries on a saved game instead of starting a new one. It must have been saved from a game with the same seed. */
   progress?: GameProgress;
   /** A notice to show the player as soon as the game starts. */
-  startNotice?: GameNotice;
+  startNotice?: PlainNotice;
   /** Lets the player build anything without spending materials or needing tools. The playground turns it on. It is never saved. */
   freeBuilding?: boolean;
 }
@@ -77,7 +77,8 @@ export interface GameProgress {
   clockMinutes: number;
   stepCount: number;
   firstNightOver: boolean;
-  notice: { kind: GameNotice; untilMinutes: number } | null;
+  /** The notice showing now, with the game minute it stops showing at, or null if none shows. */
+  notice: (Notice & { untilMinutes: number }) | null;
   /** Every entity, with the id that tasks and commands know it by. */
   entities: SavedEntity[];
 }
@@ -146,7 +147,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const firstMorning = nextMorning(gameStartMinutes);
   /** Whether the first night has ended, by morning coming or by a collapse. */
   let firstNightOver = progress?.firstNightOver ?? false;
-  let notice: { kind: GameNotice; untilMinutes: number } | null = progress?.notice ? { ...progress.notice } : null;
+  let notice: (Notice & { untilMinutes: number }) | null = progress?.notice ? structuredClone(progress.notice) : null;
   let paused = false;
   let stepCount = progress?.stepCount ?? 0;
   if (startNotice !== undefined) showNotice(startNotice);
@@ -177,12 +178,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       warmth: player.needs.warmth.level,
       sick: player.sickness !== undefined,
       raining: rain.falling,
-      notice: notice !== null && clock.minutes < notice.untilMinutes ? notice.kind : null,
+      notice: notice !== null && clock.minutes < notice.untilMinutes ? noticeView(notice) : null,
     });
   }
 
-  function showNotice(kind: GameNotice): void {
-    notice = { kind, untilMinutes: clock.minutes + NOTICE_MINUTES[kind] };
+  /** Shows a notice for as long as its kind shows. A plain notice can be given by its kind alone. */
+  function showNotice(shown: Notice | PlainNotice): void {
+    const full: Notice = typeof shown === "string" ? { kind: shown } : shown;
+    notice = { ...structuredClone(full), untilMinutes: clock.minutes + NOTICE_MINUTES[full.kind] };
   }
 
   /** Each thing within the player's reach that the HUD shows a panel for, in the order the HUD shows them. */
@@ -229,23 +232,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /** Every recipe, with what the player lacks to follow each one now. */
   function craftMenu(): GameView["craftMenu"] {
-    return Object.freeze(
-      RECIPES.map(({ kind, materials, besideStation, result, seconds, tool, station }) => {
-        const lacks = crafting.lacks(kind);
-        return Object.freeze({
-          recipe: kind,
-          materials: Object.freeze(materials.map((amount) => Object.freeze({ ...amount }))),
-          ...(besideStation === undefined ? {} : { besideStation: Object.freeze(besideStation.map((amount) => Object.freeze({ ...amount }))) }),
-          result: Object.freeze({ ...result }),
-          seconds,
-          ...(tool === undefined ? {} : { tool }),
-          ...(station === undefined ? {} : { station }),
-          ...(lacks.tool === undefined ? {} : { missingTool: lacks.tool }),
-          ...(lacks.station === undefined ? {} : { missingStation: lacks.station }),
-          hasMaterials: lacks.materials !== true,
-        });
-      }),
-    );
+    return deepFreeze(RECIPES.map((recipe) => ({ ...structuredClone(recipe), lacks: structuredClone(crafting.lacks(recipe.kind)) })));
+  }
+
+  /** The notice as the view shows it: without the minute it stops showing at. */
+  function noticeView(shown: Notice & { untilMinutes: number }): Notice {
+    const fields = Object.entries(structuredClone(shown)).filter(([key]) => key !== "untilMinutes");
+    return deepFreeze(Object.fromEntries(fields) as Notice);
   }
 
   function currentAction(): PlayerAction | null {
@@ -259,14 +252,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /** Starts something new in place of whatever the player was doing, and shows the notice if it is refused. */
-  function startNew(start: () => GameNotice | undefined): void {
+  function startNew(start: () => Notice | PlainNotice | undefined): void {
     cancelTasks();
     const refusal = start();
     if (refusal !== undefined) showNotice(refusal);
   }
 
   /** Shows the notice if what the player tried was refused. */
-  function refuseWith(refusal: GameNotice | undefined): void {
+  function refuseWith(refusal: Notice | PlainNotice | undefined): void {
     if (refusal !== undefined) showNotice(refusal);
   }
 
@@ -524,7 +517,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       Object.freeze(
         findRooms(entities).map((room) => Object.freeze({ squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))), heated: isRoomHeated(entities, room) })),
       ),
-    recipesAt: (stationId) => Object.freeze(recipesAt(entities.entity(stationId))),
     send: (command) => {
       pendingCommands.push(command);
     },
@@ -545,6 +537,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress };
+}
+
+/** Freezes plain data and everything inside it, so whoever reads the view cannot change it. */
+function deepFreeze<T>(value: T): T {
+  if (typeof value === "object" && value !== null) {
+    for (const inner of Object.values(value)) deepFreeze(inner);
+    Object.freeze(value);
+  }
+  return value;
 }
 
 /** Adds the valley's starting trees, sticks, berry bushes, and mushrooms. */

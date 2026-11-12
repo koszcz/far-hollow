@@ -1,6 +1,6 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { GroundOrThingPick, PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import type { BlueprintView, CarriedLog, Command, GameClient, RecipeKind, StructureKind } from "../sim/api";
+import type { BlueprintView, CarriedLog, Command, GameClient, Recipe, StructureKind } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { strings } from "../strings";
 
@@ -60,9 +60,9 @@ export interface MenuAction {
 
 /**
  * The choices a right-click on this thing offers, beyond what a left-click does. Empty if it offers none.
- * `recipesAt` gives the recipes game logic says a work station offers.
+ * A work station offers each of `recipes` crafted at its kind of station, in the order given, then taking it down.
  */
-export function menuActionsFor(pick: ScenePick, recipesAt: (stationId: number) => readonly RecipeKind[] = () => []): MenuAction[] {
+export function menuActionsFor(pick: ScenePick, recipes: readonly Pick<Recipe, "kind" | "station">[] = []): MenuAction[] {
   switch (pick.kind) {
     case "log":
       return [{ label: strings.debark, command: { type: "debarkLog", logId: pick.id } }];
@@ -71,10 +71,12 @@ export function menuActionsFor(pick: ScenePick, recipesAt: (stationId: number) =
     case "chest":
     case "woodpile":
       return [{ label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } }];
-    // A finished work station, such as a sawhorse, offers its recipes. The player walks to it first.
+    // A finished work station offers the recipes crafted at it. The player walks to it first.
     case "workStation":
       return [
-        ...recipesAt(pick.id).map((recipe) => ({ label: strings.craftMenu.recipes[recipe], command: { type: "craft", recipe, stationId: pick.id } as const })),
+        ...recipes
+          .filter(({ station }) => station === pick.station)
+          .map(({ kind }): MenuAction => ({ label: strings.craftMenu.recipes[kind], command: { type: "craft", recipe: kind, stationId: pick.id } })),
         { label: strings.takeDown, command: { type: "takeDown", pieceId: pick.id } },
       ];
     default:
@@ -183,7 +185,8 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
   function placingBlueprintFor(pick: ScenePick | undefined): PlacingBlueprint | undefined {
     if (mode.placing === null || pick?.kind !== "ground") return undefined;
     const { structure, turns } = mode.placing;
-    return { structure, turns, ...client.checkPlacement(structure, pick.spot, turns) };
+    // A roof takes the turn of the frame under it, so the placement check says which turn to show.
+    return { structure, ...client.checkPlacement(structure, pick.spot, turns) };
   }
 
   /** Picking is a raycast, so the cursor updates at most once per frame. */
@@ -225,7 +228,7 @@ export function attachWalkInput({ canvas, client, rig, pickAt, onHoverChange, on
     rightPress = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS || mode.placing !== null) return;
     const pick = pickAt(event.clientX, event.clientY);
-    const actions = pick === undefined ? [] : menuActionsFor(pick, (stationId) => client.recipesAt(stationId));
+    const actions = pick === undefined ? [] : menuActionsFor(pick, client.getView().craftMenu);
     if (actions.length > 0) onMenuChange?.({ x: event.clientX, y: event.clientY, actions });
   }
 

@@ -88,7 +88,7 @@ describe("foraging", () => {
     const bush = nearestSpot(game, "berries");
 
     send(game, { type: "forage", spotId: idOf(game, bush) });
-    expect(game.client.getView().notice).toBe("backpackFull");
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
     runSeconds(game, 60);
 
     expect(game.client.getView().backpack.berries).toBeUndefined();

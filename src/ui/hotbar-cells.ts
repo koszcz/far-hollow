@@ -3,7 +3,7 @@ import type { BackpackContent, CarriedLog, GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /** What a hotbar cell holds: one kind of thing in the backpack, or the log on the shoulder. src/app/thing-actions.ts takes it as an action target. */
-export type HotbarTarget = { readonly kind: "item"; readonly content: BackpackContent } | { readonly kind: "shoulder"; readonly log: CarriedLog };
+export type HotbarTarget = { readonly kind: "backpackContent"; readonly content: BackpackContent } | { readonly kind: "shoulder"; readonly log: CarriedLog };
 
 export interface HotbarCell {
   readonly target: HotbarTarget;
@@ -21,13 +21,13 @@ const KEYED_CELLS = 9;
 export function hotbarCells(view: Pick<GameView, "backpack" | "carrying">): readonly HotbarCell[] {
   const shoulder: HotbarCell[] =
     view.carrying === null ? [] : [{ target: { kind: "shoulder", log: view.carrying }, name: strings.things[view.carrying], count: 1, key: undefined }];
-  const items = (Object.keys(strings.backpackContents) as BackpackContent[])
+  const contents = (Object.keys(strings.backpackContents) as BackpackContent[])
     .filter((content) => (view.backpack[content] ?? 0) > 0)
     .map((content, index): HotbarCell => ({
-      target: { kind: "item", content },
+      target: { kind: "backpackContent", content },
       name: strings.backpackContents[content],
       count: view.backpack[content] ?? 0,
       key: index < KEYED_CELLS ? strings.hotbar.key(index + 1) : undefined,
     }));
-  return [...shoulder, ...items];
+  return [...shoulder, ...contents];
 }

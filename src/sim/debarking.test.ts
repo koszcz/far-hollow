@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { addToBackpack } from "./backpack";
-import { BARK_PER_LOG, DEBARK_SECONDS } from "./debarking";
+import { BARK_PER_LOG, DEBARK_SECONDS, DEBARK_STAND_METRES } from "./debarking";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 
@@ -17,6 +17,28 @@ describe("debarking a log", () => {
     runSeconds(game, DEBARK_SECONDS / 2);
     expect(log.log).toBeDefined();
     expect(game.client.getView().action?.progress).toBeCloseTo(0.5, 1);
+  });
+
+  it("stands the player just off the nearer end of the log, on its line, so each stroke runs along it", () => {
+    const game = gameWithLogsOnGround();
+    const log = farthestLogOnGround(game);
+    const heading = log.log.heading;
+    const startedAt = { ...onlyPlayer(game).position };
+
+    game.client.send({ type: "debarkLog", logId: idOf(game, log) });
+    stepUntil(game, () => game.client.getView().action?.kind === "debark");
+
+    const player = onlyPlayer(game);
+    const dx = player.position.x - log.position.x;
+    const dz = player.position.z - log.position.z;
+    // Along the log's line, and off its end rather than over its middle.
+    const along = dx * Math.sin(heading) + dz * Math.cos(heading);
+    const across = dx * Math.cos(heading) - dz * Math.sin(heading);
+    expect(Math.abs(along)).toBeCloseTo(DEBARK_STAND_METRES, 1);
+    expect(Math.abs(across)).toBeLessThan(0.05);
+    // The nearer end: the player stands on the side of the log they came from.
+    const cameFrom = (startedAt.x - log.position.x) * Math.sin(heading) + (startedAt.z - log.position.z) * Math.cos(heading);
+    expect(Math.sign(along)).toBe(Math.sign(cameFrom));
   });
 
   it("turns the log into one debarked log and puts its bark in the backpack", () => {

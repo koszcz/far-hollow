@@ -110,8 +110,6 @@ export const strings = {
     cost: (materials: readonly string[]) => materials.join(", "),
     /** The full name of a build menu tile, for screen readers, such as "Campfire: 5 sticks". A structure that costs nothing has only its name. */
     entryLabel: (structure: string, cost: string) => (cost === "" ? structure : `${structure}: ${cost}`),
-    /** What the build menu says about the tool a structure needs, such as "needs the axe". */
-    needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
     /** What to click while placing each kind of structure, given its name. The keys show after it, from `hudLabels.placingKeys`. */
     placing: {
       anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere.`,
@@ -227,11 +225,8 @@ export const strings = {
   hotbar: {
     /** The number key that uses a cell, shown in its corner. */
     key: (number: number) => `${number}`,
-    /** The full name of a cell, for screen readers, such as "Berries ×3, key 2". */
-    cell: (name: string, count: number, key: string | undefined) => {
-      const what = count === 1 ? name : `${name} ×${count}`;
-      return key === undefined ? what : `${what}, key ${key}`;
-    },
+    /** The full name of a cell, for screen readers, such as "Berries ×3, key 2". `what` comes from `backpackContentCount`. */
+    cell: (what: string, key: string | undefined) => (key === undefined ? what : `${what}, key ${key}`),
     /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
     shoulder: (name: string) => `On your shoulder: ${name}`,
   },
@@ -271,14 +266,15 @@ export const strings = {
   actionReasons: {
     /** A tool that is not in the backpack, such as "needs the axe". */
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
-    noFuel: { firewood: "no firewood", stick: "no sticks", bark: "no bark" },
+    /** A fuel or wood the backpack does not hold. */
+    noContent: { firewood: "no firewood", stick: "no sticks", bark: "no bark" },
     fireEmpty: "no fuel",
     fireFull: "the fire is full",
     lightFirst: "light the fire first",
     noPotOfWater: "no pot of water",
-    noFirewood: "no firewood",
     woodpileFull: "the woodpile is full",
     shoulderFull: "your shoulder is full",
+    noLogCarried: "carrying no log",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
     potOnFire: "take the pot off first",

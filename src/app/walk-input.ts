@@ -16,6 +16,18 @@ export function leftClickFor(pick: ScenePick, reader: ActionReader): ThingAction
   return main?.enabled === true ? main : undefined;
 }
 
+/**
+ * What E does: the main action on the thing nearest the player within reach, if the player can do it now.
+ * With nothing in reach, or a main action that is off, E does nothing.
+ * A work station's main action, opening its menu, has no command, so E does nothing there either.
+ */
+export function useKeyFor(reader: ActionReader & Pick<GameClient, "nearestInReach">): ThingAction | undefined {
+  const nearest = reader.nearestInReach();
+  if (nearest === null) return undefined;
+  const action = leftClickFor(nearest, reader);
+  return action?.command === undefined ? undefined : action;
+}
+
 /** A right-click menu to show at a point on the page, in page pixels. */
 export interface MenuRequest {
   readonly x: number;
@@ -91,6 +103,7 @@ export interface WalkInput {
  * Only the right-click menu sees finished structures. Other clicks act on what is under them.
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
+ * E does the main action on the thing nearest the player within reach.
  */
 export function attachWalkInput({
   canvas,
@@ -226,6 +239,11 @@ export function attachWalkInput({
     const next = event.code === "Escape" || !typing ? pressBuildKey(mode, event.code) : undefined;
     if (next !== undefined) {
       setMode(next);
+      return;
+    }
+    if (event.code === "KeyE" && !typing && mode.placing === null) {
+      const command = useKeyFor(client)?.command;
+      if (command !== undefined) client.send(command);
       return;
     }
     if (event.code !== "Space" || target?.closest("input, textarea, select, button") != null) return;

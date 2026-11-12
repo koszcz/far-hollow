@@ -1,5 +1,6 @@
 // The cursor prompt: a label beside the cursor that names the thing under it and says what each mouse button does.
 // This file decides the words. src/app/cursor-prompt-overlay.ts draws them and moves them with the cursor.
+import type { ThingInReach } from "../sim/api";
 import { strings } from "../strings";
 import { actionsFor, mainAction, targetName, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
@@ -7,6 +8,8 @@ import { actionsFor, mainAction, targetName, type ActionReader, type ActionTarge
 export interface PromptLine {
   /** The button's name, such as "Left-click". */
   readonly button: string;
+  /** The key that does the same, such as "E", if one does. */
+  readonly key?: string;
   /** What the button does, such as "Chop", or "Chop: needs the axe" when the player cannot do it yet. */
   readonly text: string;
   /** False when the player cannot do it yet. The prompt greys the line. */
@@ -27,8 +30,9 @@ export type PromptButton = "build" | "craft";
  * Plain ground shows none, because a click there only walks.
  * A finished structure, such as a wall, is named with what is behind it when that is a thing, since a left-click acts on that.
  * Its right-click menu always offers to take it down, so it always shows "More actions".
+ * `nearest` is the thing nearest the player within reach. Over it, the left-click line shows E too, since E does the same.
  */
-export function promptFor(target: ActionTarget, reader: ActionReader): CursorPrompt | undefined {
+export function promptFor(target: ActionTarget, reader: ActionReader, nearest: ThingInReach | null = null): CursorPrompt | undefined {
   if (target.kind === "scene" && target.pick.kind === "ground") return undefined;
   const menu = actionsFor(target, reader);
   let named = target;
@@ -40,7 +44,7 @@ export function promptFor(target: ActionTarget, reader: ActionReader): CursorPro
     left = named === target ? undefined : mainAction(actionsFor(named, reader));
   }
   const lines: PromptLine[] = [];
-  if (left !== undefined) lines.push(leftLine(left));
+  if (left !== undefined) lines.push(leftLine(left, isThing(named, nearest)));
   else if (target.kind === "item") lines.push({ button: strings.prompt.leftClick, text: strings.prompt.noUse, enabled: false });
   if (menu.some((action) => action.id !== left?.id)) lines.push({ button: strings.prompt.rightClick, text: strings.prompt.moreActions, enabled: true });
   return { title: targetName(named, reader), lines };
@@ -53,7 +57,12 @@ export function promptForButton(button: PromptButton, open: boolean): CursorProm
   return { title, lines: [{ button: strings.prompt.leftClick, text, enabled: true }] };
 }
 
-function leftLine(action: ThingAction): PromptLine {
+function leftLine(action: ThingAction, byKey: boolean): PromptLine {
   const text = action.enabled || action.reason === undefined ? action.label : strings.actions.withReason(action.label, action.reason);
-  return { button: strings.prompt.leftClick, text, enabled: action.enabled };
+  return { button: strings.prompt.leftClick, ...(byKey ? { key: strings.prompt.useKey } : {}), text, enabled: action.enabled };
+}
+
+/** Whether the target is this thing in the world. */
+function isThing(target: ActionTarget, thing: ThingInReach | null): boolean {
+  return thing !== null && target.kind === "scene" && target.pick.kind === thing.kind && "id" in target.pick && target.pick.id === thing.id;
 }

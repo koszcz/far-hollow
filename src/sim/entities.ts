@@ -68,6 +68,8 @@ export interface Entity {
   chopTask?: { treeId: number; secondsDone: number };
   /** The log or debarked log on the ground the player is walking to pick up, given by its entity id. */
   logPickUpTask?: { logId: number };
+  /** The spot on the ground the player is walking to, to lay the log on their shoulder there. */
+  logDropTask?: { x: number; z: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. */
   stump?: true;
   /** Marks a log lying on the ground. Its position is the middle of the log. `heading` is the log's turn about the vertical axis, in radians. */

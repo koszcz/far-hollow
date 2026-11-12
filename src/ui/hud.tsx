@@ -26,7 +26,6 @@ import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
-import type { PromptButton } from "./cursor-prompt-view";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
 import { placingHint } from "./placing-hint";
@@ -65,7 +64,6 @@ function ContentGrid({
             <button
               type="button"
               class="hud-content-move"
-              data-prompt-chest-content={content}
               aria-label={label(strings.backpackContentCount(name, count))}
               onClick={(event) => {
                 onClick(content, event.shiftKey);
@@ -88,8 +86,6 @@ function ContentGrid({
 /**
  * The hotbar's cells: the sled the player drags, the log on the shoulder, then each kind in the backpack. Each shows its icon,
  * its name, a count when there is more than one, and its number key. A click calls `onOpenMenu` with the middle of the cell's top edge, to open its action menu above it.
- * A backpack cell sets `data-prompt-content`, the shoulder cell sets `data-prompt-shoulder`, and the sled cell sets `data-prompt-sled`,
- * so the cursor prompt describes it (src/app/cursor-prompt-overlay.tsx).
  */
 function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target: HotbarTarget, x: number, y: number) => void }) {
   return (
@@ -98,9 +94,6 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
         <li
           key={target.kind === "backpackContent" ? target.content : target.kind}
           class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : target.kind === "sled" ? "hud-hotbar-sled" : undefined}
-          data-prompt-content={target.kind === "backpackContent" ? target.content : undefined}
-          data-prompt-shoulder={target.kind === "shoulder" ? "" : undefined}
-          data-prompt-sled={target.kind === "sled" ? "" : undefined}
         >
           <button
             type="button"
@@ -390,7 +383,6 @@ function HudIconButton({
 function HudToolButton({
   icon,
   label,
-  prompt,
   shortcut,
   disabled = false,
   pressed,
@@ -398,8 +390,6 @@ function HudToolButton({
 }: {
   icon: HudIconName;
   label: string;
-  /** Which cursor prompt it shows when pointed at. See src/app/cursor-prompt-overlay.tsx. */
-  prompt: PromptButton;
   shortcut: string;
   disabled?: boolean;
   pressed: boolean;
@@ -412,7 +402,6 @@ function HudToolButton({
       aria-label={label}
       aria-keyshortcuts={shortcut}
       aria-pressed={pressed}
-      data-prompt-button={prompt}
       disabled={disabled}
       onClick={onClick}
     >
@@ -638,7 +627,6 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             <HudToolButton
               icon="place"
               label={strings.buildMenu.open}
-              prompt="build"
               shortcut={strings.hudLabels.buildKey}
               pressed={buildMenuOpen}
               disabled={placing !== null}
@@ -647,7 +635,6 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             <HudToolButton
               icon="axe"
               label={strings.craftMenu.open}
-              prompt="craft"
               shortcut={strings.hudLabels.craftKey}
               pressed={craftMenuOpen}
               onClick={onToggleCraftMenu}

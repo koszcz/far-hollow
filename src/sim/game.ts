@@ -389,6 +389,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     dropLog: () => {
       carrying.drop();
     },
+    dropLogAt: (command) => {
+      cancelTasks();
+      carrying.dropAt({ x: command.x, z: command.z });
+    },
     dropFromBackpack: (command) => {
       piles.drop(command.content);
     },

@@ -37,6 +37,7 @@ export type ActionId =
   | "putInChest:all"
   | "use"
   | "drop"
+  | "dropHere"
   | "split";
 
 export interface ThingAction {

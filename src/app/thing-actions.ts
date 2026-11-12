@@ -1,5 +1,5 @@
 // Every action a thing offers the player: a thing in the world, a backpack content in the hotbar, or the log on their shoulder.
-// A click opens the action menu, which lists them all with the main one on top. The cursor prompt names the top one, and E does the main one.
+// A click opens the action menu, which lists them all with the main one on top. E does the main one.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, needsFreeHands, WOODPILE_WOODS } from "../sim/api";
@@ -61,20 +61,6 @@ function withHandsBusy(action: ThingAction): ThingAction {
   return { ...action, enabled: false, reason: strings.actionReasons.letGoFirst };
 }
 
-/** The target's name for the prompt title, such as "Tree", "Campfire", or "Berries". */
-export function targetName(target: ActionTarget, reader: ActionReader): string {
-  switch (target.kind) {
-    case "backpackContent":
-      return strings.backpackContents[target.content];
-    case "shoulder":
-      return strings.things[target.log];
-    case "sled":
-      return strings.things.sled;
-    case "scene":
-      return pickName(target.pick, reader);
-  }
-}
-
 /** Convenience: the main action, or undefined. */
 export function mainAction(actions: readonly ThingAction[]): ThingAction | undefined {
   return actions[0]?.isMain === true ? actions[0] : undefined;
@@ -86,21 +72,6 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
  */
 export function menuActions(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
   return actionsFor(target, reader).filter(({ command }) => command !== undefined);
-}
-
-function pickName(pick: ScenePick, reader: ActionReader): string {
-  switch (pick.kind) {
-    case "blueprint": {
-      const blueprint = reader.describeBlueprint(pick.id);
-      return blueprint === null ? strings.things.structure : strings.blueprint.title(strings.buildMenu.structures[blueprint.structure]);
-    }
-    case "workStation":
-      return strings.buildMenu.structures[pick.station];
-    case "structure":
-      return strings.buildMenu.structures[pick.structure];
-    default:
-      return strings.things[pick.kind];
-  }
 }
 
 /** Puts the main action first and marks it. `main` is its id. Without one, no action is marked main. */
@@ -137,8 +108,13 @@ function sceneActions(pick: ScenePick, reader: ActionReader, view: GameView): re
 
 function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameView): readonly ThingAction[] {
   switch (pick.kind) {
-    case "ground":
-      return withMain([offer("walk", strings.actions.walk, { hud: "place" }, { type: "walkTo", x: pick.spot.x, z: pick.spot.z })], "walk");
+    case "ground": {
+      const { x, z } = pick.spot;
+      const walk = offer("walk", strings.actions.walk, { hud: "place" }, { type: "walkTo", x, z });
+      // With a log on the shoulder, the player can also carry it to the spot and drop it there.
+      const dropHere = view.carrying === null ? [] : [offer("dropHere", strings.actions.dropHere[view.carrying], { hud: "log" }, { type: "dropLogAt", x, z })];
+      return withMain([walk, ...dropHere], "walk");
+    }
     case "river":
       return withMain([offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x: pick.spot.x, z: pick.spot.z })], "drink");
     case "tree":

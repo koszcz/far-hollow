@@ -16,7 +16,6 @@ import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
 import { pressHotbarKey } from "./hotbar";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
-import { attachCursorPrompt } from "./cursor-prompt-overlay";
 import { menuActions } from "./thing-actions";
 import { attachWalkInput, type MenuRequest } from "./walk-input";
 
@@ -149,7 +148,6 @@ const cameraInput = attachCameraInput({
   rig: sceneRenderer.cameraRig,
   fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
 });
-const cursorPrompt = attachCursorPrompt(game.client);
 const walkInput = attachWalkInput({
   canvas,
   client: game.client,
@@ -157,9 +155,6 @@ const walkInput = attachWalkInput({
   pickAt: (clientX, clientY) => sceneRenderer.pickAt(clientX, clientY),
   onHoverChange: (pick) => {
     sceneRenderer.setHovered(pick);
-  },
-  onPromptTargetChange: (pick) => {
-    cursorPrompt.setSceneTarget(pick);
   },
   onBuildModeChange: (mode) => {
     uiState.buildMode = mode;
@@ -171,7 +166,6 @@ const walkInput = attachWalkInput({
   onMenuChange: (menu) => {
     uiState.menu = menu;
     menuCameraView = menu === undefined ? null : cameraViewKey();
-    cursorPrompt.setHidden(menu !== undefined);
     renderUi();
   },
 });
@@ -203,7 +197,6 @@ function closeMenu(): void {
   if (uiState.menu === undefined) return;
   uiState.menu = undefined;
   menuCameraView = null;
-  cursorPrompt.setHidden(false);
   renderUi();
 }
 
@@ -264,7 +257,6 @@ function renderUi(): void {
         }}
         onOpenHotbarMenu={(target, x, y) => {
           uiState.menu = { x, y, above: true, actions: menuActions(target, game.client) };
-          cursorPrompt.setHidden(true);
           // A hotbar menu sits on the HUD, which stays put when the camera moves.
           menuCameraView = null;
           renderUi();

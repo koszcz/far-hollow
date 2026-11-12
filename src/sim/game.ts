@@ -56,6 +56,7 @@ import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
 import { createTending } from "./tending";
 import { nearestInReach } from "./reach";
+import { createStickFallSystem } from "./stick-fall";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -149,6 +150,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const piles = createPiles(entities, walking, valley);
+  const stickFall = createStickFallSystem(entities, valley);
   const tending = createTending(entities, { campfires, woodpiles, sleds }, tendNow);
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
@@ -500,6 +502,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       // Rain does not put out campfires.
       campfires.burn(minutes);
       foraging.grow(minutes);
+      stickFall.pass(minutes);
       pot.heat(minutes);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
@@ -542,6 +545,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
     campfires.burn(asleepMinutes);
     foraging.grow(asleepMinutes);
+    stickFall.pass(asleepMinutes);
     pot.heat(asleepMinutes);
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z });

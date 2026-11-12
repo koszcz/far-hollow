@@ -1,6 +1,6 @@
 // When rain falls in the valley. The seed decides it: the same seed always gives the same spells of rain.
 import { MINUTES_PER_HOUR, nextMorning } from "./clock";
-import { createRandom } from "./random";
+import { createRandom, scramble } from "./random";
 
 /** A spell of rain lasts from 1 to 5 game hours. */
 const RAIN_MIN_MINUTES = 1 * MINUTES_PER_HOUR;
@@ -43,16 +43,4 @@ function spellMinutes(seed: number, changes: number, falling: boolean): number {
   const random = createRandom(scramble(seed + Math.imul(changes + 1, SPELL_SEED_STEP)));
   const [min, max] = falling ? [RAIN_MIN_MINUTES, RAIN_MAX_MINUTES] : [DRY_MIN_MINUTES, DRY_MAX_MINUTES];
   return Math.round(min + random() * (max - min));
-}
-
-/**
- * Stirs the bits of a number, so seeds next to each other give unrelated spells.
- * Without it, the first random number from neighbouring seeds can come out nearly the same.
- * This is the final mixing step of the MurmurHash3 hash.
- */
-function scramble(value: number): number {
-  let mixed = value >>> 0;
-  mixed = Math.imul(mixed ^ (mixed >>> 16), 0x85ebca6b);
-  mixed = Math.imul(mixed ^ (mixed >>> 13), 0xc2b2ae35);
-  return (mixed ^ (mixed >>> 16)) >>> 0;
 }

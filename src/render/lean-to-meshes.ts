@@ -346,7 +346,15 @@ function crookedPole(
     const radius = (share: number) => fromRadius + (toRadius - fromRadius) * share;
     // Inner pieces start a little inside the previous one, so no notch shows at the bends.
     const begin = i === 0 ? start : start.clone().addScaledVector(end.clone().sub(start).normalize(), -radius(i / joints) * 0.6);
-    return createStickSegment(begin, end, radius(i / joints), radius((i + 1) / joints), POLE_SIDES, i === 0, paleTo && i === joints - 1);
+    return createStickSegment({
+      from: begin,
+      to: end,
+      fromRadius: radius(i / joints),
+      toRadius: radius((i + 1) / joints),
+      sides: POLE_SIDES,
+      paleFrom: i === 0,
+      paleTo: paleTo && i === joints - 1,
+    });
   });
   return mergeAndDispose(pieces);
 }
@@ -358,7 +366,9 @@ function forkedPost(foot: THREE.Vector3, jitter: (size: number) => number): THRE
   for (const way of [-1, 1]) {
     const tip = new THREE.Vector3(crotch.x + jitter(0.02), RIDGE_HEIGHT_METRES + FORK_ABOVE_METRES, crotch.z + way * FORK_SPREAD_METRES);
     const start = crotch.clone().addScaledVector(tip.clone().sub(crotch).normalize(), -POST_RADIUS_METRES * 0.5);
-    pieces.push(createStickSegment(start, tip, POST_RADIUS_METRES * 0.7, POST_RADIUS_METRES * 0.45, POLE_SIDES, false, true));
+    pieces.push(
+      createStickSegment({ from: start, to: tip, fromRadius: POST_RADIUS_METRES * 0.7, toRadius: POST_RADIUS_METRES * 0.45, sides: POLE_SIDES, paleTo: true }),
+    );
   }
   return mergeAndDispose(pieces);
 }
@@ -372,7 +382,7 @@ function rafter(foot: THREE.Vector3, tip: THREE.Vector3, jitter: (size: number) 
   const start = foot.clone().lerp(tip, 0.45 + jitter(0.15));
   const side = jitter(1) < 0 ? -1 : 1;
   const end = start.clone().add(new THREE.Vector3(side * 0.16, 0.04, (tip.z - foot.z) * 0.08));
-  const twig = createStickSegment(start, end, RAFTER_RADIUS_METRES * 0.45, RAFTER_RADIUS_METRES * 0.2, 5, false, false);
+  const twig = createStickSegment({ from: start, to: end, fromRadius: RAFTER_RADIUS_METRES * 0.45, toRadius: RAFTER_RADIUS_METRES * 0.2, sides: 5 });
   return mergeAndDispose([pole, twig]);
 }
 

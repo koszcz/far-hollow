@@ -91,13 +91,12 @@
         "src/render/stick-shape.ts",
         "src/render/forest-meshes.ts"
       ],
-      "description": "Sticks on the forest floor.",
+      "description": "Sticks on the forest floor: crooked branches with two side twigs and pale cut ends. Their bark is pale grey-tan, like weathered dead wood, so they stand out from the brown forest floor and the tree trunks. Each stick gets its own slight shade. The campfire and the lean-to use the same shape and colour. The sled keeps the old brown bark. Ticket 06 made them paler and slightly thicker, as the owner approved on 2026-11-12.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/06-stick-look.md"
       }
     },
     {

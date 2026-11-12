@@ -22,7 +22,7 @@ import { SLED_CAPACITY } from "../sim/sleds";
 import { SLED_LENGTH_METRES, SLED_LOG_COST, SLED_STICK_COST, SLED_WIDTH_METRES } from "../sim/structures";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, LOG_LENGTH_METRES, type LogShape } from "./log-shape";
-import { createStickSegment, STICK_COLOUR } from "./stick-shape";
+import { createStickSegment } from "./stick-shape";
 import type { OutlinePart } from "./hover-outline";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
@@ -194,10 +194,16 @@ function createRunnerGeometry(logShape: LogShape, rolled: boolean): THREE.Buffer
   return runner;
 }
 
+/**
+ * The bark colour of the sled's cross pieces. It keeps the approved sled's look,
+ * so it stays the old brown stick colour when the "sticks" asset changes.
+ */
+const SLED_STICK_COLOUR = 0x8a6440;
+
 /** The colour that, multiplied by the stick colour, gives `colour`. Stick parts draw with vertex colours on the stick material. */
 function tintOverStick(colour: number): THREE.Color {
   const target = new THREE.Color(colour);
-  const stick = new THREE.Color(STICK_COLOUR);
+  const stick = new THREE.Color(SLED_STICK_COLOUR);
   return new THREE.Color(target.r / stick.r, target.g / stick.g, target.b / stick.b);
 }
 
@@ -284,16 +290,24 @@ function sledParts(
     const knee = new THREE.Vector3(bend, (CROSS_RADIUS_METRES + thin) / 2, 0);
     const end = new THREE.Vector3(0, thin, flip * half);
     const pieces = [
-      createStickSegment(foot, knee, CROSS_RADIUS_METRES, (CROSS_RADIUS_METRES + thin) / 2, CROSS_SIDES, true, false),
-      createStickSegment(
-        knee.clone().addScaledVector(knee.clone().sub(foot).normalize(), -0.02),
-        end,
-        (CROSS_RADIUS_METRES + thin) / 2,
-        thin,
-        CROSS_SIDES,
-        false,
-        true,
-      ),
+      createStickSegment({
+        from: foot,
+        to: knee,
+        fromRadius: CROSS_RADIUS_METRES,
+        toRadius: (CROSS_RADIUS_METRES + thin) / 2,
+        sides: CROSS_SIDES,
+        paleFrom: true,
+        barkColour: SLED_STICK_COLOUR,
+      }),
+      createStickSegment({
+        from: knee.clone().addScaledVector(knee.clone().sub(foot).normalize(), -0.02),
+        to: end,
+        fromRadius: (CROSS_RADIUS_METRES + thin) / 2,
+        toRadius: thin,
+        sides: CROSS_SIDES,
+        paleTo: true,
+        barkColour: SLED_STICK_COLOUR,
+      }),
       ...[-runnerZ, runnerZ].flatMap((z) => lashing(z).map((wrap) => wrap.translate(0, -crossY, 0))),
       ...(i === SLED_STICK_COST - 1 ? towRope(runnerZ).map((rope) => rope.translate(-x, -crossY, 0)) : []),
     ];
@@ -311,7 +325,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
   // A runner draws bark on its side and pale cut ends, like the log shape it is made from.
   const barkMaterial = new THREE.MeshStandardMaterial({ color: LOG_COLOUR, flatShading: true });
   const cutMaterial = new THREE.MeshStandardMaterial({ color: LOG_CUT_COLOUR, flatShading: true });
-  const stickMaterial = new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true });
+  const stickMaterial = new THREE.MeshStandardMaterial({ color: SLED_STICK_COLOUR, flatShading: true, vertexColors: true });
   const parts = sledParts(logShape, { bark: barkMaterial, cut: cutMaterial, stick: stickMaterial });
   const geometries = parts.map(({ geometry }) => geometry);
   const solidMaterials = parts.map(({ solid }) => solid);

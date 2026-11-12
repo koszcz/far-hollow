@@ -117,6 +117,46 @@ describe("generateValley", () => {
     }
   });
 
+  it("lays most sticks in deadfalls of 3 to 6, with about 200 lone sticks", () => {
+    for (const seed of [1, 2, 3, 1234]) {
+      const { sticks, deadfalls } = generateValley(seed);
+      expect(deadfalls.length).toBe(250);
+      for (const deadfall of deadfalls) {
+        expect(deadfall.length).toBeGreaterThanOrEqual(3);
+        expect(deadfall.length).toBeLessThanOrEqual(6);
+      }
+      const inDeadfalls = deadfalls.flat();
+      for (const stick of inDeadfalls) expect(sticks).toContain(stick);
+      expect(sticks.length - inDeadfalls.length).toBe(200);
+      expect(sticks.length).toBeGreaterThanOrEqual(1150);
+      expect(sticks.length).toBeLessThanOrEqual(1450);
+    }
+  });
+
+  it("uses every deadfall size from 3 to 6", () => {
+    const sizes = new Set(generateValley(1234).deadfalls.map((deadfall) => deadfall.length));
+    expect([...sizes].sort()).toEqual([3, 4, 5, 6]);
+  });
+
+  it("lays the sticks of a deadfall close together under one tree", () => {
+    const { trees, deadfalls } = generateValley(1234);
+    for (const deadfall of deadfalls.slice(0, 40)) {
+      // Every stick is within a stick's length (0.9 m) of another stick in its deadfall, so they overlap a little.
+      for (const stick of deadfall) {
+        const nearestOther = Math.min(...deadfall.filter((other) => other !== stick).map((other) => Math.hypot(other.x - stick.x, other.z - stick.z)));
+        expect(nearestOther).toBeLessThan(0.9);
+      }
+      // One tree stands within the 1.5 to 4 m ring of every stick in the deadfall.
+      const sharedTree = trees.find((tree) => deadfall.every((stick) => Math.hypot(tree.x - stick.x, tree.z - stick.z) <= 4));
+      expect(sharedTree).toBeDefined();
+    }
+  });
+
+  it("places the same deadfalls for the same seed", () => {
+    expect(generateValley(77).deadfalls).toEqual(generateValley(77).deadfalls);
+    expect(generateValley(77).deadfalls).not.toEqual(generateValley(78).deadfalls);
+  });
+
   it("keeps sticks out of the river and clear of tree trunks", () => {
     for (const seed of [1, 2, 3, 1234]) {
       const { river, trees, sticks } = generateValley(seed);

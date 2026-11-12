@@ -120,7 +120,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   };
   const axe = bone(AXE_PART);
   const axeInHand = { position: axe.position.clone(), quaternion: axe.quaternion.clone(), scale: axe.scale.clone() };
-  let axeOnBack = false;
+  let axeIsOnBack = false;
 
   const mixer = new THREE.AnimationMixer(model);
   const clip = (name: string): THREE.AnimationAction => {
@@ -167,6 +167,16 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   group.updateMatrixWorld(true);
   group.add(shoulderLog);
   chestBone.attach(shoulderLog);
+  // Work out where the axe hangs on the chest in this same standing carry pose, once. Placing it later, from whatever
+  // pose the chest is in at that moment, left it floating off the back when the player picked up a log mid-stride.
+  const axeOnBackRest = new THREE.Object3D();
+  axeOnBackRest.position.copy(AXE_ON_BACK_SPOT);
+  axeOnBackRest.rotation.set(0, 0, 0.5);
+  axeOnBackRest.scale.setScalar(MODEL_SCALE);
+  group.add(axeOnBackRest);
+  chestBone.attach(axeOnBackRest);
+  chestBone.remove(axeOnBackRest);
+  const axeOnBack = { position: axeOnBackRest.position.clone(), quaternion: axeOnBackRest.quaternion.clone(), scale: axeOnBackRest.scale.clone() };
 
   let carrying = false;
   let carriedKind: CarriedLog | undefined;
@@ -219,23 +229,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
 
   /** Moves the axe to the right hand, or to the back while the right hand steadies the log. */
   function placeAxe(onBack: boolean): void {
-    if (onBack === axeOnBack) return;
-    axeOnBack = onBack;
-    if (!onBack) {
-      rightHandSlot.add(axe);
-      axe.position.copy(axeInHand.position);
-      axe.quaternion.copy(axeInHand.quaternion);
-      axe.scale.copy(axeInHand.scale);
-      return;
-    }
-    // The axe hangs from the chest as the clip holds it, not as a crouch or a carry turn has moved it.
-    restoreClipPose();
-    group.updateMatrixWorld(true);
-    group.add(axe);
-    axe.position.copy(AXE_ON_BACK_SPOT);
-    axe.rotation.set(0, 0, 0.5);
-    axe.scale.setScalar(MODEL_SCALE);
-    chestBone.attach(axe);
+    if (onBack === axeIsOnBack) return;
+    axeIsOnBack = onBack;
+    const spot = onBack ? axeOnBack : axeInHand;
+    (onBack ? chestBone : rightHandSlot).add(axe);
+    axe.position.copy(spot.position);
+    axe.quaternion.copy(spot.quaternion);
+    axe.scale.copy(spot.scale);
   }
 
   /** Each bone turned or moved by code, as the clip last posed it. The mixer does not put these back itself. */

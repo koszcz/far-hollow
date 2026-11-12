@@ -4,6 +4,7 @@ import { createCulledBatch, frustumOf, SHADOW_ONLY_LAYER } from "./culled-batch"
 
 const box = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshBasicMaterial();
+const ORIGIN = new THREE.Vector3();
 const at = (x: number, z: number) => new THREE.Matrix4().makeTranslation(x, 0, z);
 
 /** A camera at the origin, looking down -z, that sees out to 100 m. */
@@ -38,7 +39,7 @@ describe("createCulledBatch", () => {
 
   it("draws only the instances the camera sees in the main pass", () => {
     const batch = batchWithTrees();
-    batch.cull({ view: lookingNorth(), shadow: null });
+    batch.cull({ view: lookingNorth(), eye: ORIGIN, shadow: null });
     const [view] = batch.viewMeshes;
     expect(view?.count).toBe(1);
     expect(batch.instanceHit(0)).toBe(0);
@@ -46,7 +47,7 @@ describe("createCulledBatch", () => {
 
   it("draws only the instances inside the shadow box in the shadow pass, on the shadow-only layer", () => {
     const batch = batchWithTrees();
-    batch.cull({ view: lookingNorth(), shadow: shadowBoxAround(0, 20) });
+    batch.cull({ view: lookingNorth(), eye: ORIGIN, shadow: shadowBoxAround(0, 20) });
     const shadow = batch.meshes.find((mesh) => !batch.viewMeshes.includes(mesh));
     expect(shadow?.count).toBe(2);
     expect(shadow?.layers.mask).toBe(1 << SHADOW_ONLY_LAYER);
@@ -56,7 +57,7 @@ describe("createCulledBatch", () => {
 
   it("draws nothing in the shadow pass while the sun casts no shadows", () => {
     const batch = batchWithTrees();
-    batch.cull({ view: lookingNorth(), shadow: null });
+    batch.cull({ view: lookingNorth(), eye: ORIGIN, shadow: null });
     const shadow = batch.meshes.find((mesh) => !batch.viewMeshes.includes(mesh));
     expect(shadow?.count).toBe(0);
   });
@@ -74,7 +75,7 @@ describe("createCulledBatch", () => {
 
   it("maps a ray hit on a drawn instance back to the instance", () => {
     const batch = batchWithTrees();
-    batch.cull({ view: lookingNorth(), shadow: null });
+    batch.cull({ view: lookingNorth(), eye: ORIGIN, shadow: null });
     const [view] = batch.viewMeshes;
     if (view === undefined) throw new Error("The batch has no main pass mesh.");
     view.updateMatrixWorld();
@@ -82,5 +83,31 @@ describe("createCulledBatch", () => {
     const hitId = ray.intersectObject(view, false)[0]?.instanceId;
     expect(hitId).toBeDefined();
     expect(hitId === undefined ? undefined : batch.instanceHit(hitId)).toBe(0);
+  });
+
+  it("draws only the instances within its band of distances on screen, but casts shadows from all of them", () => {
+    const near = createCulledBatch([{ geometry: box, material }], 2, true, { to: 50 });
+    const far = createCulledBatch([{ geometry: box, material }], 2, false, { from: 50 });
+    for (const batch of [near, far]) {
+      batch.set(0, at(0, -20));
+      batch.set(1, at(0, -80));
+      batch.cull({ view: lookingNorth(), eye: ORIGIN, shadow: shadowBoxAround(0, -50) });
+    }
+    expect(near.viewMeshes[0]?.count).toBe(1);
+    expect(near.instanceHit(0)).toBe(0);
+    expect(far.viewMeshes[0]?.count).toBe(1);
+    expect(far.instanceHit(0)).toBe(1);
+    expect(far.meshes).toHaveLength(1);
+  });
+
+  it("counts every instance as close to the camera until it is first culled", () => {
+    const near = createCulledBatch([{ geometry: box, material }], 1, false, { to: 50 });
+    const far = createCulledBatch([{ geometry: box, material }], 1, false, { from: 50 });
+    for (const batch of [near, far]) {
+      batch.set(0, at(0, -80));
+      batch.cull();
+    }
+    expect(near.viewMeshes[0]?.count).toBe(1);
+    expect(far.viewMeshes[0]?.count).toBe(0);
   });
 });

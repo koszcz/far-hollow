@@ -35,6 +35,21 @@
       }
     },
     {
+      "id": "far-trees",
+      "kind": "code",
+      "code": [
+        "src/render/tree-far-shape.ts",
+        "src/render/forest-meshes.ts"
+      ],
+      "description": "Cheap stand-ins for the standing trees, drawn only at least 150 m from the camera. Each tree type gets a seven-sided trunk as tall and wide as its real trunk, and a crown turned from the real crown's outline at six heights, in the real tree's colours. Shadows still come from the real trees.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/performance/issues/03-far-trees.md"
+      }
+    },
+    {
       "id": "trees",
       "kind": "file",
       "file": "public/assets/trees/trees.glb",
@@ -448,9 +463,10 @@
       "code": [
         "src/ui/hud.tsx",
         "src/ui/hud-icons.tsx",
+        "src/ui/placing-hint.ts",
         "src/app/style.css"
       ],
-      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight, item buttons, and the build and craft buttons. Short need bars sit above it, and the context panels and open chest sit above them. The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
+      "description": "The HUD: woodland panels of dark bark with warm text and line icons, in the hotbar and wheel layout. The backpack is a hotbar at the bottom centre, with its weight and item buttons. The build and craft buttons sit at the right end of the hotbar, apart from the items. They are larger buttons that show an icon, a name, and their key: \"Build B\" and \"Craft C\". Need bars sit above the hotbar, each with its name beside its icon. A low need pulses. The context panels and open chest sit above them. While placing, the hint names its keys, such as \"R to rotate · Esc to cancel\". The clock is top left and the pause button top right. Build and craft open as a wheel of icons in the middle of the screen.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -460,7 +476,8 @@
       },
       "approvalNotes": [
         "2026-11-11: The owner approved the shelter changes: the build menu panel, the bark button, and the right-click action menu styles.",
-        "2026-11-11: The owner chose the hotbar and wheel layout from four mockups and approved the change in chat. See .scratch/hud-redesign/issues/01-hotbar-and-wheel.md."
+        "2026-11-11: The owner chose the hotbar and wheel layout from four mockups and approved the change in chat. See .scratch/hud-redesign/issues/01-hotbar-and-wheel.md.",
+        "2026-11-12: The owner asked in chat for the HUD redesign: labelled build and craft buttons with key labels, named need bars, and a placing hint that names its keys. See .scratch/hud-redesign/issues/06-labelled-build-craft-and-needs.md."
       ]
     },
     {

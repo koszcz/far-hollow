@@ -333,6 +333,17 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
   return found === undefined ? null : (found.view as NearbyViews[Kind]);
 }
 
+/**
+ * A thing in the world the player can act on with E, given by its entity id, with its kind.
+ * The kinds match what the scene reports under the cursor, so the UI can treat both the same way.
+ */
+export type ThingInReach =
+  | {
+      readonly kind: "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | "chest" | "bedroll" | "pile";
+      readonly id: number;
+    }
+  | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };
+
 export interface PlayerAction {
   /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, or crafting. */
   readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft";
@@ -362,6 +373,8 @@ export interface GameClient {
   describeCampfire(campfireId: number): CampfireView | null;
   /** A finished woodpile, given by its entity id, near or far, or null if it is not one. It only reads game state. */
   describeWoodpile(woodpileId: number): WoodpileView | null;
+  /** The thing nearest the player within the reach of E, or null if nothing is in reach. It only reads game state. */
+  nearestInReach(): ThingInReach | null;
   /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */
   describeRooms(): readonly RoomView[];
   send(command: Command): void;

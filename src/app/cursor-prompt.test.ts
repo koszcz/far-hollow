@@ -102,6 +102,30 @@ describe("the cursor prompt over a thing in the world", () => {
   });
 });
 
+describe("the cursor prompt over the thing nearest the player", () => {
+  it("shows E beside the main action of the nearest thing", () => {
+    const prompt = promptFor({ kind: "scene", pick: { kind: "tree", id: 1 } }, readerWith({ backpack: { axe: 1 } }), { kind: "tree", id: 1 });
+
+    expect(text(prompt)).toEqual(["Tree", "Left-click, E: Chop"]);
+  });
+
+  it("shows no E over a thing that is not the nearest", () => {
+    const prompt = promptFor({ kind: "scene", pick: { kind: "tree", id: 1 } }, readerWith({ backpack: { axe: 1 } }), { kind: "stick", id: 2 });
+
+    expect(text(prompt)).toEqual(["Tree", "Left-click: Chop"]);
+  });
+
+  it("shows E over a wall when the nearest thing is behind it", () => {
+    const pick = { kind: "structure", id: 9, under: { kind: "stick", id: 2 } } as const;
+
+    expect(text(promptFor({ kind: "scene", pick }, readerWith({}), { kind: "stick", id: 2 }))).toEqual([
+      "Stick",
+      "Left-click, E: Pick up",
+      "Right-click: More actions",
+    ]);
+  });
+});
+
 describe("the cursor prompt over a hotbar item", () => {
   it("names food and eating it, with more actions for dropping it", () => {
     const prompt = promptFor({ kind: "item", content: "berries" }, readerWith({ backpack: { berries: 2 } }));
@@ -124,10 +148,13 @@ describe("the cursor prompt over the build and craft buttons", () => {
   });
 });
 
-/** The prompt as lines of text: the title, then each mouse button's line. A greyed line ends in "(off)". */
+/** The prompt as lines of text: the title, then each mouse button's line, with its key if it has one. A greyed line ends in "(off)". */
 function text(prompt: CursorPrompt | undefined): readonly string[] | undefined {
   if (prompt === undefined) return undefined;
-  return [prompt.title, ...prompt.lines.map(({ button, text: line, enabled }) => `${button}: ${line}${enabled ? "" : " (off)"}`)];
+  return [
+    prompt.title,
+    ...prompt.lines.map(({ button, key, text: line, enabled }) => `${button}${key === undefined ? "" : `, ${key}`}: ${line}${enabled ? "" : " (off)"}`),
+  ];
 }
 
 function readerWith({

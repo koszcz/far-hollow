@@ -1,18 +1,22 @@
 // Crafting: timed work that turns materials into something new that goes in the backpack.
 // Every recipe is listed in RECIPES. A new recipe needs only a new entry there, with its name in the strings file.
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG, countInBackpack, hasInBackpack, type Backpack, type BackpackContent } from "./backpack";
+import { distanceOutside } from "./building";
 import {
   debarkedLogEntities,
   logEntities,
   playerEntities,
   setComponent,
+  sledEntities,
   workStationEntities,
   type CarriedLog,
   type Entity,
   type EntityStore,
 } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
+import { isSledParked } from "./sleds";
 import type { WorkStationKind } from "./structure-kind";
+import { footprintOfEntity } from "./structures";
 import { groundDistance, type GroundPoint } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 
@@ -40,7 +44,8 @@ export interface Recipe {
   /** What the work uses up from the backpack. These leave the backpack only when the work finishes. */
   readonly materials: readonly RecipeAmount[];
   /**
-   * What a station recipe uses up from the ground: logs or debarked logs lying within STATION_GROUND_METRES of the station.
+   * What a station recipe uses up from beside the station: logs or debarked logs lying within STATION_GROUND_METRES of it,
+   * or on a sled parked that close to it.
    * They are gone only when the work finishes. Missing if it uses nothing from the ground.
    */
   readonly besideStation?: readonly GroundAmount[];
@@ -205,15 +210,31 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
     return nearest;
   }
 
-  /** The logs or debarked logs a recipe would use from beside `station`, nearest first, or undefined if too few lie there. */
-  function logsBeside(recipe: Recipe, station: PlacedEntity): PlacedEntity[] | undefined {
-    const used: PlacedEntity[] = [];
+  /**
+   * The logs or debarked logs a recipe would use from beside `station`, or undefined if too few are there.
+   * Each one is a function that uses it up. Logs lying on the ground come first, nearest first.
+   * Then come logs on sleds parked within STATION_GROUND_METRES of the station, measured to the sled's edge, nearest sled first.
+   */
+  function logsBeside(recipe: Recipe, station: PlacedEntity): (() => void)[] | undefined {
+    const used: (() => void)[] = [];
+    const sleds = sledEntities(entities)
+      .entities.filter((sled) => isSledParked(entities, sled))
+      .map((sled) => ({ sled, distance: distanceOutside(footprintOfEntity(sled), station.position) }))
+      .filter(({ distance }) => distance <= STATION_GROUND_METRES)
+      .sort((a, b) => a.distance - b.distance);
     for (const { material, count } of recipe.besideStation ?? []) {
       const near = groundLogs[material].entities
         .filter((log) => groundDistance(log.position, station.position) <= STATION_GROUND_METRES)
-        .sort((a, b) => groundDistance(a.position, station.position) - groundDistance(b.position, station.position));
-      if (near.length < count) return undefined;
-      used.push(...near.slice(0, count));
+        .sort((a, b) => groundDistance(a.position, station.position) - groundDistance(b.position, station.position))
+        .map((log) => () => entities.remove(log));
+      const onSleds = sleds.flatMap(({ sled }) =>
+        Array.from({ length: sled.sled[material] }, () => () => {
+          sled.sled[material] -= 1;
+        }),
+      );
+      const available = [...near, ...onSleds];
+      if (available.length < count) return undefined;
+      used.push(...available.slice(0, count));
     }
     return used;
   }
@@ -292,7 +313,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
         crafter.craftTask.secondsDone += stepSeconds;
         if (crafter.craftTask.secondsDone < recipe.seconds) continue;
         entities.removeComponent(crafter, "craftTask");
-        for (const log of logs) entities.remove(log);
+        for (const useUp of logs) useUp();
         for (const { material, count } of recipe.materials) crafter.backpack.contents[material] = countInBackpack(crafter.backpack, material) - count;
         crafter.backpack.contents[recipe.result.content] = countInBackpack(crafter.backpack, recipe.result.content) + recipe.result.count;
       }

@@ -20,6 +20,7 @@ import {
 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
+import { layLoadBeside } from "./sleds";
 import { rectsOverlap, SIDES } from "./structure-kind";
 import {
   footprintOfEntity,
@@ -82,6 +83,7 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
    */
   function takeDown(worker: Worker, structure: PlacedStructure, kind: StructureKind): void {
     const { delivered, backpack } = materialsIn(structure, kind);
+    if (structure.sled !== undefined) layLoadBeside(entities, valley, { ...structure, sled: structure.sled });
     entities.remove(structure);
     if (kind === "foundation") dropOffDeck(structure.position);
     const onGround: Entity[] = [];
@@ -226,12 +228,13 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
 }
 
 /**
- * Whether a structure is a chest, woodpile, or sled with anything in it, or a campfire with a pot on it.
+ * Whether a structure is a chest or woodpile with anything in it, or a campfire with a pot on it.
  * It must be emptied before it comes down, so nothing in it is lost.
+ * A loaded sled can come down: its logs are laid on the ground beside it first.
  */
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined) return true;
-  const counts = [...Object.values(structure.chest?.contents ?? {}), ...Object.values(structure.woodpile ?? {}), ...Object.values(structure.sled ?? {})];
+  const counts = [...Object.values(structure.chest?.contents ?? {}), ...Object.values(structure.woodpile ?? {})];
   return counts.some((count) => count > 0);
 }
 

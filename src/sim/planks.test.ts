@@ -154,6 +154,76 @@ describe("cutting planks at the sawhorse", () => {
   });
 });
 
+describe("cutting planks with a debarked log on a sled", () => {
+  it("uses a debarked log on a sled parked within 2 m of the sawhorse, and takes it off the sled", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    // The sled's middle is 2.4 m away, so its near side, 0.4 m from the middle, is 2 m from the sawhorse.
+    const sled = sledBeside(game, sawhorse, 2.4, { log: 1, debarkedLog: 1 });
+    give(game, { saw: 1 });
+    walkAwayFrom(game, sawhorse);
+
+    send(game, { type: "craft", recipe: "planks" });
+    stepUntil(game, () => game.client.getView().action?.kind === "craft");
+    runSeconds(game, 8.1);
+
+    expect(game.client.getView().backpack.plank).toBe(4);
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+  });
+
+  it("does not count a sled parked further than 2 m from the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const sled = sledBeside(game, sawhorse, 3, { log: 0, debarkedLog: 1 });
+    give(game, { saw: 1 });
+
+    send(game, { type: "craft", recipe: "planks" });
+    expect(game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
+    runSeconds(game, 10);
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+    expect(game.client.getView().backpack.plank).toBeUndefined();
+  });
+
+  it("uses a debarked log lying on the ground before one on a sled", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
+    const log = debarkedLogBeside(game, sawhorse, 1.8);
+    give(game, { saw: 1 });
+
+    send(game, { type: "craft", recipe: "planks" });
+    stepUntil(game, () => game.client.getView().backpack.plank !== undefined);
+
+    expect(game.entities.has(log)).toBe(false);
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+  });
+
+  it("shows nothing lacking in the craft menu when the only debarked log is on a sled by the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
+    give(game, { saw: 1 });
+    game.step();
+
+    expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([]);
+  });
+
+  // TODO(sled ticket 03): once the player can drag a sled, make the player drag this one and remove `.skip`.
+  // `isSledParked` in src/sim/sleds.ts is the one place that must learn about dragging.
+  it.skip("does not count a sled the player is dragging", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
+    give(game, { saw: 1 });
+    // Ticket 03: make the player drag `sled` here, standing by the sawhorse.
+
+    send(game, { type: "craft", recipe: "planks" });
+    expect(game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
+    runSeconds(game, 10);
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+  });
+});
+
 describe("cutting planks in the craft menu", () => {
   it("lists cutting planks with the debarked log it uses, and shows the saw and the sawhorse as missing until the player has both", () => {
     const game = createGame({ seed: 42 });
@@ -265,6 +335,19 @@ function walkAwayFrom(game: Game, sawhorse: Entity & { position: NonNullable<Ent
 function debarkedLogBeside(game: Game, sawhorse: Entity & { position: NonNullable<Entity["position"]> }, metres: number): Entity {
   const { x, y, z } = sawhorse.position;
   return game.entities.add({ debarkedLog: { heading: 0 }, position: { x, y, z: z + metres } });
+}
+
+/** Puts a finished sled holding `contents` with its middle `metres` from a sawhorse, on its open side. Its runners run along x. */
+function sledBeside(
+  game: Game,
+  sawhorse: Entity & { position: NonNullable<Entity["position"]> },
+  metres: number,
+  contents: Record<"log" | "debarkedLog", number>,
+): { sled: Record<"log" | "debarkedLog", number> } {
+  const { x, y, z } = sawhorse.position;
+  const sled = { ...contents };
+  game.entities.add({ sled, facing: { turns: 0 }, position: { x, y, z: z + metres } });
+  return { sled };
 }
 
 /** Places a sawhorse blueprint on open ground a few metres from the player and builds it. */

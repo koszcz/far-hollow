@@ -48,7 +48,7 @@ export interface ThingAction {
   readonly enabled: boolean;
   /** Why it is disabled, such as "needs the axe" or "no bark". Present only when enabled is false. */
   readonly reason?: string;
-  /** True for the left-click action. At most one per list, and always first. */
+  /** True for the main action, which tops the action menu and which E and the number keys do. At most one per list, and always first. */
   readonly isMain: boolean;
   /** What to send. The sim walks the player there first when needed. Undefined only for UI-only actions such as "open menu" on a work station. */
   readonly command: Command | undefined;

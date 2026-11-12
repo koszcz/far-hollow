@@ -278,10 +278,10 @@ describe("other things' actions", () => {
     expect(find(actions, "takeDownStructure")?.command).toEqual({ type: "takeDown", pieceId: 11 });
   });
 
-  it("only takes down a finished structure with ground under it, since a click there just walks", () => {
+  it("offers a walk onto a finished structure with ground under it, then taking it down", () => {
     const actions = actionsFor(scene({ kind: "structure", id: 11, structure: "foundation", under: { kind: "ground", spot: { x: 0, z: 0 } } }), readerWith({}));
 
-    expect(summary(actions)).toEqual(["takeDownStructure"]);
+    expect(summary(actions)).toEqual(["walk main", "takeDownStructure"]);
   });
 
   it("eats food from the hotbar, then drops it, and puts it in an open chest first", () => {

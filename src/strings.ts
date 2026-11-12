@@ -288,14 +288,10 @@ export const strings = {
   },
   /** The label beside the cursor that says what each mouse button does to the thing under it. */
   prompt: {
-    leftClick: "Left-click",
-    rightClick: "Right-click",
+    click: "Click",
     /** The key that does the main action of the thing nearest the player. */
     useKey: "E",
-    moreActions: "More actions",
-    /** The left-click line of a backpack content that a click does nothing to. */
-    noUse: "No use",
-    /** The left-click line of the build and craft buttons. */
+    /** The click line of the build and craft buttons. */
     openToolMenu: { build: "Open the build menu", craft: "Open the craft menu" },
     closeToolMenu: { build: "Close the build menu", craft: "Close the craft menu" },
   },

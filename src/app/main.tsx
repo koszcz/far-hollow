@@ -14,10 +14,10 @@ import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
-import { clickHotbarCell, pressHotbarKey } from "./hotbar";
+import { pressHotbarKey } from "./hotbar";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import { attachCursorPrompt } from "./cursor-prompt-overlay";
-import { actionsFor } from "./thing-actions";
+import { menuActions } from "./thing-actions";
 import { attachWalkInput, type MenuRequest } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -214,6 +214,7 @@ function renderUi(): void {
           client={game.client}
           x={menu.x}
           y={menu.y}
+          above={menu.above ?? false}
           actions={menu.actions}
           onClose={() => {
             uiState.menu = undefined;
@@ -236,12 +237,9 @@ function renderUi(): void {
         onToggleCraftMenu={() => {
           setCraftMenuOpen(!uiState.craftMenuOpen);
         }}
-        onUseHotbarCell={(target, shiftKey) => {
-          const command = clickHotbarCell(target, game.client, shiftKey);
-          if (command !== undefined) game.client.send(command);
-        }}
         onOpenHotbarMenu={(target, x, y) => {
-          uiState.menu = { x, y, actions: actionsFor(target, game.client) };
+          uiState.menu = { x, y, above: true, actions: menuActions(target, game.client) };
+          cursorPrompt.setHidden(true);
           renderUi();
         }}
       />

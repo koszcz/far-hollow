@@ -88,19 +88,11 @@ function ContentGrid({
 
 /**
  * The hotbar's cells: the sled the player drags, the log on the shoulder, then each kind in the backpack. Each shows its icon,
- * its name, a count when there is more than one, and its number key. A click calls `onUse`. A right-click calls `onOpenMenu` at the cursor.
+ * its name, a count when there is more than one, and its number key. A click calls `onOpenMenu` with the middle of the cell's top edge, to open its action menu above it.
  * A backpack cell sets `data-prompt-content`, the shoulder cell sets `data-prompt-shoulder`, and the sled cell sets `data-prompt-sled`,
  * so the cursor prompt describes it (src/app/cursor-prompt-overlay.tsx).
  */
-function HotbarGrid({
-  view,
-  onUse,
-  onOpenMenu,
-}: {
-  view: GameView;
-  onUse: (target: HotbarTarget, shiftKey: boolean) => void;
-  onOpenMenu: (target: HotbarTarget, x: number, y: number) => void;
-}) {
+function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target: HotbarTarget, x: number, y: number) => void }) {
   return (
     <ul class="hud-hotbar-cells">
       {hotbarCells(view).map(({ target, name, count, key }) => (
@@ -116,11 +108,8 @@ function HotbarGrid({
             class="hud-content-move hud-hotbar-cell"
             aria-label={hotbarCellLabel(target, name, count, key)}
             onClick={(event) => {
-              onUse(target, event.shiftKey);
-            }}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              onOpenMenu(target, event.clientX, event.clientY);
+              const cell = event.currentTarget.getBoundingClientRect();
+              onOpenMenu(target, cell.left + cell.width / 2, cell.top);
             }}
           >
             <HotbarCellIcon target={target} />
@@ -182,9 +171,7 @@ export interface HudProps {
   craftMenuOpen: boolean;
   /** Called when the player opens or closes the craft menu. The menu is input state, not game state, so this is not a command. */
   onToggleCraftMenu: () => void;
-  /** Called when the player clicks a hotbar cell, with whether shift was held. The caller decides what that does, such as eating berries. */
-  onUseHotbarCell: (target: HotbarTarget, shiftKey: boolean) => void;
-  /** Called when the player right-clicks a hotbar cell, with the cursor's place on the page, to open the menu of its actions. */
+  /** Called when the player clicks a hotbar cell, with the middle of its top edge on the page, to open the menu of its actions above it. */
   onOpenHotbarMenu: (target: HotbarTarget, x: number, y: number) => void;
 }
 
@@ -570,17 +557,7 @@ function NearbyPanel({ thing }: { thing: PanelThing }) {
   }
 }
 
-export function Hud({
-  client,
-  buildMenuOpen,
-  placing,
-  onToggleBuildMenu,
-  onPickBuildEntry,
-  craftMenuOpen,
-  onToggleCraftMenu,
-  onUseHotbarCell,
-  onOpenHotbarMenu,
-}: HudProps) {
+export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry, craftMenuOpen, onToggleCraftMenu, onOpenHotbarMenu }: HudProps) {
   const [view, setView] = useState(client.getView());
   useEffect(
     () =>
@@ -651,7 +628,7 @@ export function Hud({
         </section>
         <div class="hud-panel hud-hotbar">
           <section class="hud-backpack" aria-label={strings.backpack}>
-            <HotbarGrid view={view} onUse={onUseHotbarCell} onOpenMenu={onOpenHotbarMenu} />
+            <HotbarGrid view={view} onOpenMenu={onOpenHotbarMenu} />
             <span
               class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}
             >

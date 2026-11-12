@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Place and build a sled)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `logs` and `debarked-log`. Extend draft `sled` to show 0 to 6 logs or debarked logs lying on it.
 

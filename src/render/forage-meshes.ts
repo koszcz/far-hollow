@@ -14,6 +14,8 @@ const BERRY_COLOUR = 0xb3202e;
 /** Each plant is drawn between these sizes, so the valley does not look copy-pasted. */
 const PLANT_MIN_SCALE = 0.8;
 const PLANT_MAX_SCALE = 1.2;
+/** Plants further than this from the camera, in metres, are not drawn. */
+const FORAGE_DRAW_METRES = 300;
 /** Clicks hit an invisible box this wide and tall around each plant, in metres. */
 const BUSH_PICK_SIZE_METRES = { width: 1.4, height: 1 };
 const MUSHROOM_PICK_SIZE_METRES = { width: 0.6, height: 0.4 };
@@ -65,9 +67,11 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
     return mesh;
   };
   // The drawn plants: each batch draws only what the camera sees, and casts shadows only inside the sun's shadow box.
-  const bushes = createCulledBatch([{ geometry: bushGeometry, material: leafMaterial }], capacity, true);
-  const berries = createCulledBatch([{ geometry: berriesGeometry, material: berryMaterial }], capacity, true);
-  const mushrooms = createCulledBatch([{ geometry: mushroomsGeometry, material: mushroomMaterial }], capacity, true);
+  // Beyond FORAGE_DRAW_METRES from the camera, a plant covers a few pixels, so it is not drawn.
+  const drawDistance = { to: FORAGE_DRAW_METRES };
+  const bushes = createCulledBatch([{ geometry: bushGeometry, material: leafMaterial }], capacity, true, drawDistance);
+  const berries = createCulledBatch([{ geometry: berriesGeometry, material: berryMaterial }], capacity, true, drawDistance);
+  const mushrooms = createCulledBatch([{ geometry: mushroomsGeometry, material: mushroomMaterial }], capacity, true, drawDistance);
   const drawnBatches = [bushes, berries, mushrooms];
   for (const drawn of drawnBatches) group.add(...drawn.meshes);
   // Invisible boxes that clicks are tested against. They are never added to the scene, so they never draw.

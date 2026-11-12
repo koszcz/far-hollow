@@ -274,6 +274,7 @@ export const strings = {
     shoulderFull: "your shoulder is full",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
+    potOnFire: "take the pot off first",
   },
   /** The label beside the cursor that says what each mouse button does to the thing under it. */
   prompt: {

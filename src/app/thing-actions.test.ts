@@ -6,7 +6,7 @@ import { actionsFor, mainAction, type ActionReader, type ActionTarget, type Thin
 const CAMPFIRE: ActionTarget = { kind: "scene", pick: { kind: "campfire", id: 7 } };
 
 describe("a campfire's actions", () => {
-  it("offers to light an unlit fire with fuel, then each fuel, then the pot, but no taking down, since a finished campfire stays", () => {
+  it("offers to light an unlit fire with fuel, then each fuel, then the pot, then taking it down", () => {
     const reader = readerWith({ backpack: { fireStriker: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
 
     const actions = actionsFor(CAMPFIRE, reader);
@@ -17,8 +17,10 @@ describe("a campfire's actions", () => {
       "addFuel:stick",
       "addFuel:bark off: no bark",
       "putPotOn off: light the fire first",
+      "takeDown",
     ]);
     expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: 7 });
+    expect(find(actions, "takeDown")?.command).toEqual({ type: "takeDown", pieceId: 7 });
     expect(actions.find(({ id }) => id === "addFuel:stick")?.command).toEqual({ type: "addFuel", campfireId: 7, fuel: "stick" });
   });
 
@@ -31,6 +33,7 @@ describe("a campfire's actions", () => {
       "addFuel:firewood off: no firewood",
       "addFuel:stick off: no sticks",
       "putPotOn off: light the fire first",
+      "takeDown",
     ]);
   });
 
@@ -73,6 +76,12 @@ describe("a campfire's actions", () => {
     const potOn = actionsFor(CAMPFIRE, readerWith({ campfire: { ...lit, pot: { water: "river", boilProgress: 0.5 } } }));
     expect(find(potOn, "putPotOn")).toBeUndefined();
     expect(find(potOn, "takePotOff")).toMatchObject({ enabled: true, command: { type: "takePotOffFire", campfireId: 7 } });
+  });
+
+  it("greys taking down a fire with a pot on it, and says to take the pot off first", () => {
+    const potOn = actionsFor(CAMPFIRE, readerWith({ campfire: { lit: true, fuelMinutes: 60, pot: { water: "river", boilProgress: 0.5 } } }));
+
+    expect(summary(potOn).at(-1)).toBe("takeDown off: take the pot off first");
   });
 
   it("gives every entry an icon and a name", () => {

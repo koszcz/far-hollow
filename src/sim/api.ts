@@ -187,7 +187,7 @@ export interface GameView {
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
  * `chestFull`: the open chest had no room for what the player tried to put in it.
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
- * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something.
+ * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something, or a campfire with a pot on it.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
  * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the `station`.

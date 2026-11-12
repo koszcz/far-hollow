@@ -21,6 +21,8 @@ import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
+import { createValleyBackdrop } from "./valley-backdrop-shape";
+import { createValleyBackdropMeshes } from "./valley-backdrop-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -92,7 +94,9 @@ export function createSceneRenderer(
   const skyLighting = createSkyLighting(scene, renderer);
 
   const camera = new THREE.PerspectiveCamera(CAMERA_FIELD_OF_VIEW_DEGREES, 1, CAMERA_NEAR_METRES, CAMERA_FAR_METRES);
-  const cameraRig = createCameraRig({ groundHeightAt: (x, z) => terrainHeightAt(valley.terrain, x, z) });
+  const backdrop = createValleyBackdrop(valley);
+  // The camera's focus stays over the valley. Its eye stays above the ridges when it looks in from outside.
+  const cameraRig = createCameraRig({ groundHeightAt: (x, z) => backdrop.groundHeightAt(x, z), focusLimit: valley.size / 2 });
   function placeCamera(): void {
     const { eye, focus } = cameraRig.view();
     camera.position.set(eye.x, eye.y, eye.z);
@@ -103,6 +107,9 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
+  // The ridges and mountains around the valley are only for looks. Clicks on the ridge start nothing.
+  const backdropMeshes = createValleyBackdropMeshes(valley, backdrop, valleyMeshes.look, valleyMeshes.ground.geometry.getAttribute("normal"), shapes.trees);
+  scene.add(backdropMeshes.group);
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
   const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities);
   scene.add(undergrowthMeshes.group);
@@ -223,6 +230,15 @@ export function createSceneRenderer(
    */
   function pickThroughFinishedStructures(): { pick: GroundOrThingPick; distance: number } | undefined {
     const ground = raycaster.intersectObject(valleyMeshes.ground, false)[0];
+    // The ridge hides whatever lies behind it, so a click on it lands on nothing.
+    const ridge = raycaster.intersectObject(backdropMeshes.ridge, false)[0];
+    const result = pickInsideValley(ground);
+    if (ridge !== undefined && (result === undefined || ridge.distance < result.distance)) return undefined;
+    return result;
+  }
+
+  /** Like pickThroughFinishedStructures, given what the ray meets on the valley's ground. */
+  function pickInsideValley(ground: THREE.Intersection | undefined): { pick: GroundOrThingPick; distance: number } | undefined {
     const candidates = [
       forestMeshes.pick(raycaster),
       structureMeshes.pick(raycaster),
@@ -257,6 +273,7 @@ export function createSceneRenderer(
       matchCanvasSize();
       const hourOfDay = readHourOfDay();
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
+      backdropMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       forageMeshes.update();
       bedrollMeshes.update();
@@ -282,6 +299,7 @@ export function createSceneRenderer(
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
       forestMeshes.cull(views);
       forageMeshes.cull(views);
+      backdropMeshes.cull(views);
       undergrowthMeshes.cull(views.view, views.eye);
       renderer.render(scene, camera);
     },
@@ -308,6 +326,7 @@ export function createSceneRenderer(
       valleyMeshes.dispose();
       undergrowthMeshes.dispose();
       riverMeshes.dispose();
+      backdropMeshes.dispose();
       forestMeshes.dispose();
       structureMeshes.dispose();
       forageMeshes.dispose();

@@ -52,6 +52,8 @@ import { FALL_LANDS_SECONDS, FALL_SECONDS } from "./tree-fall";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createUndergrowthMaterial } from "./undergrowth-meshes";
 import type { UndergrowthAsset, UndergrowthShape } from "./undergrowth-models";
+import { createValleyBackdrop } from "./valley-backdrop-shape";
+import { createValleyBackdropMeshes, type ValleyBackdropMeshes } from "./valley-backdrop-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 import { createStructureMeshes } from "./structure-meshes";
 
@@ -246,6 +248,18 @@ function showPots(seconds: number): void {
 const SHOWCASES: Readonly<Record<string, Showcase>> = {
   // Framed so all three ground types show: river bank to the west, forest floor around a tree, and clearing between.
   terrain: { radius: 22, focus: { x: -5, y: 0, z: 4 }, shots: FOUR_ANGLES, build() {} },
+  // The ridges and mountains around the bare valley: from high above at noon and at dusk, and from the ground by the river.
+  "valley-backdrop": {
+    radius: 150,
+    focus: { x: 0, y: 0, z: 0 },
+    shots: [
+      { label: "from high above, noon", yaw: 30, pitch: 35 },
+      { label: "near the ground, noon", yaw: 100, pitch: 6, radius: 4, focus: { y: 2 } },
+      { label: "from high above, dusk", yaw: 210, pitch: 20, hour: 19.5 },
+      { label: "near the ground, night", yaw: 280, pitch: 6, radius: 4, focus: { y: 2 }, hour: 23 },
+    ],
+    build() {},
+  },
   river: {
     radius: 16,
     focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },
@@ -1009,7 +1023,7 @@ export function showAsset(
   if (showcase === undefined) return undefined;
   // The valley's ground and river are the subject only for "terrain" and "river". Everything else stands on flat ground
   // with the same painted texture, because the valley floor slopes and would tilt every view.
-  const onValley = id === "terrain" || id === "river";
+  const onValley = id === "terrain" || id === "river" || id === "valley-backdrop";
   const valley = generateValley(SHOWCASE_SEED);
   const middle = onValley ? stageMiddle(valley) : { x: 0, y: 0, z: 0 };
   const groundAt = (x: number, z: number): number => (onValley ? terrainHeightAt(valley.terrain, x, z) : 0);
@@ -1027,6 +1041,11 @@ export function showAsset(
   scene.add(ground.group);
   const river: RiverMeshes | undefined = onValley ? createRiverMeshes(valley) : undefined;
   if (river !== undefined) scene.add(river.group);
+  const backdrop: ValleyBackdropMeshes | undefined =
+    id === "valley-backdrop" && "look" in ground
+      ? createValleyBackdropMeshes(valley, createValleyBackdrop(valley), ground.look, ground.ground.geometry.getAttribute("normal"), shapes.trees)
+      : undefined;
+  if (backdrop !== undefined) scene.add(backdrop.group);
 
   const store = createEntityStore();
   const player = createPlayerMesh(shapes.player, shapes.log);
@@ -1112,6 +1131,7 @@ export function showAsset(
     piles.update();
     bark.update();
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
+    backdrop?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
@@ -1176,6 +1196,7 @@ export function showAsset(
       for (const resource of propResources) resource.dispose();
       ground.dispose();
       river?.dispose();
+      backdrop?.dispose();
       sky.dispose();
       renderer.dispose();
     },

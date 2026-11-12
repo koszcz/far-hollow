@@ -474,7 +474,7 @@ function treeMatrix(at: Vec3 & { look?: number }, out: THREE.Matrix4): THREE.Mat
 }
 
 /** The tree type drawn at a spot, picked by TREE_TYPE_WEIGHTS. It only affects drawing. */
-function treeTypeFor(x: number, z: number, shapes: readonly TreeShape[]): number {
+export function treeTypeFor(x: number, z: number, shapes: readonly TreeShape[]): number {
   const weights = shapes.map((shape) => TREE_TYPE_WEIGHTS[shape.name] ?? 1);
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   // Offset the spot, so a tree's type does not follow its size.

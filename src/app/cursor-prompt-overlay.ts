@@ -41,7 +41,7 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
       if (!hudElement.isConnected) hudElement = null;
       else return hudPrompt(hudElement);
     }
-    return sceneTarget === undefined ? undefined : promptFor({ kind: "scene", pick: sceneTarget }, client);
+    return sceneTarget === undefined ? undefined : promptFor({ kind: "scene", pick: sceneTarget }, client, client.nearestInReach());
   }
 
   function hudPrompt(source: HTMLElement): CursorPrompt | undefined {
@@ -67,13 +67,16 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
   function draw(prompt: CursorPrompt): void {
     const title = document.createElement("strong");
     title.textContent = prompt.title;
-    const lines = prompt.lines.map(({ button, text, enabled }) => {
+    const lines = prompt.lines.map(({ button, key, text, enabled }) => {
       const line = document.createElement("span");
       line.className = enabled ? "cursor-prompt-line" : "cursor-prompt-line cursor-prompt-off";
-      const key = document.createElement("kbd");
-      key.className = "hud-key";
-      key.textContent = button;
-      line.append(key, text);
+      const keys = [button, ...(key === undefined ? [] : [key])].map((name) => {
+        const element = document.createElement("kbd");
+        element.className = "hud-key";
+        element.textContent = name;
+        return element;
+      });
+      line.append(...keys, text);
       return line;
     });
     element.replaceChildren(title, ...lines);

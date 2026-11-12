@@ -277,6 +277,8 @@ export const strings = {
   prompt: {
     leftClick: "Left-click",
     rightClick: "Right-click",
+    /** The key that does the main action of the thing nearest the player. */
+    useKey: "E",
     moreActions: "More actions",
     /** The left-click line of a hotbar item that a click does nothing to. */
     noUse: "No use",

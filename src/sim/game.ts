@@ -40,6 +40,7 @@ import { createPiles } from "./piles";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
 import { createTending } from "./tending";
+import { nearestInReach } from "./reach";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -551,6 +552,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
     describeCampfire: (campfireId) => campfires.describe(campfireId) ?? null,
     describeWoodpile: (woodpileId) => woodpiles.describe(woodpileId) ?? null,
+    nearestInReach: () => nearestInReach(entities, player.position),
     describeRooms: () =>
       Object.freeze(
         findRooms(entities).map((room) =>

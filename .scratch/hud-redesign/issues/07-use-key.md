@@ -1,6 +1,6 @@
 # 07: E uses the nearest thing
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 02, 04
 
@@ -8,7 +8,7 @@
 
 **What to build:** See "Use key" in `../spec.md`. E does the main action on the nearest thing within reach.
 
-- [ ] E does the main action on the nearest thing within the player's reach. With nothing in reach, E does nothing.
-- [ ] When the cursor is over that nearest thing, its prompt shows "E" beside the main action.
-- [ ] E does nothing while typing in a form field.
-- [ ] Tests cover E with one thing in reach, two things in reach, and none.
+- [x] E does the main action on the nearest thing within the player's reach. With nothing in reach, E does nothing.
+- [x] When the cursor is over that nearest thing, its prompt shows "E" beside the main action.
+- [x] E does nothing while typing in a form field.
+- [x] Tests cover E with one thing in reach, two things in reach, and none.

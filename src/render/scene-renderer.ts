@@ -207,7 +207,7 @@ export function createSceneRenderer(
     playerMesh.setBuilding(activity?.kind === "build" ? nowSeconds : undefined);
     // Splitting has its own overhead strike, aimed where the player already faces.
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
-    // Debarking pulls a drawknife along the log, facing it.
+    // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
     playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
     // Chopping swings at the tree. Crafting swings where the player already faces.
     const swinging = activity?.kind === "chop" || activity?.kind === "craft";

@@ -448,16 +448,20 @@
         "src/render/player-debark-pose.ts",
         "src/render/player-mesh.ts",
         "src/render/pile-meshes.ts",
-        "src/render/scene-renderer.ts"
+        "src/render/scene-renderer.ts",
+        "src/sim/debarking.ts"
       ],
-      "description": "The player debarking a log on the ground with a drawknife: a person stripping bark bends over the log with knees bent and hips back, holds the drawknife by both handles with its edge towards the body, sets the blade into the bark at the far side, and pulls it back towards the knees, rocking back with the hips. Then they lift the blade clear and reach out for the next stroke. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing, the split's overhead drop, and the build's squat and press.",
+      "description": "The player debarking a log on the ground with a drawknife: the player stands just off the nearer end of the log, facing along it. A person stripping bark bends over the log with knees bent and hips back, holds the drawknife by both handles, sets the blade into the bark at the far side, and pulls it back towards the knees, rocking back with the hips. Then they lift the blade clear and reach out for the next stroke. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing, the split's overhead drop, and the build's squat and press.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-12"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-12: The owner approved standing the player just off the nearer end of the log, so each stroke runs along it."
+      ]
     },
     {
       "id": "player-build-animation",

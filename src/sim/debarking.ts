@@ -1,6 +1,6 @@
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
-import { groundDistance } from "./valley";
+import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
 
 /** How long the player works at a log with the drawknife to strip its bark, in seconds. */
@@ -13,6 +13,12 @@ export function debarkingNow(player: Entity): { progress: number; targetId: numb
 }
 /** How much bark one log gives. */
 export const BARK_PER_LOG = 2;
+
+/**
+ * How far from the middle of a 1 m log the player stands to debark it, in metres, along the log's line.
+ * That is just off its end, so the player bends over the log and each drawknife stroke runs along it.
+ */
+export const DEBARK_STAND_METRES = 0.55;
 
 /** The player can debark a log from this far away, in metres. */
 const DEBARK_REACH_METRES = 2;
@@ -49,7 +55,7 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
           refusal = "backpackFull";
           continue;
         }
-        walking.walkTo(log.position);
+        walking.walkTo(standingSpot(log.position, log.log.heading, player.position));
         setComponent(entities, player, "debarkTask", { logId, secondsDone: 0 });
       }
       return refusal;
@@ -82,6 +88,13 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
       }
     },
   };
+}
+
+/** The spot just off the end of the log nearer `from`, on the log's line. The log lies along its `heading` from +z. */
+function standingSpot(middle: GroundPoint, heading: number, from: GroundPoint | undefined): GroundPoint {
+  const along = { x: Math.sin(heading), z: Math.cos(heading) };
+  const side = from === undefined || (from.x - middle.x) * along.x + (from.z - middle.z) * along.z >= 0 ? 1 : -1;
+  return { x: middle.x + along.x * DEBARK_STAND_METRES * side, z: middle.z + along.z * DEBARK_STAND_METRES * side };
 }
 
 function barkFits(backpack: Backpack): boolean {

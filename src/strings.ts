@@ -55,8 +55,6 @@ export const strings = {
   craftMenu: {
     open: "Craft",
     title: "Craft",
-    /** What the craft menu's centre says before the player points at a recipe. */
-    pick: "Pick a recipe",
     recipes: {
       saw: "Saw",
       planks: "Cut planks",
@@ -86,8 +84,6 @@ export const strings = {
   buildMenu: {
     open: "Build",
     title: "Build",
-    /** What the build menu's centre says before the player points at a structure. */
-    pick: "Pick a structure",
     structures: {
       campfire: "Campfire",
       leanTo: "Lean-to",

@@ -1,6 +1,6 @@
-// The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene, in the "hotbar and wheel" layout the owner chose.
+// The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene, in the "hotbar and wheel" layout the owner chose, with build and craft changed to lists.
 // The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the panels and the open chest.
-// The clock sits top left, the pause button top right, and banners top centre. Build and craft open as wheels in the middle of the screen.
+// The clock sits top left, the pause button top right, and banners top centre. Build and craft open as lists above their buttons.
 // Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 // The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the approved "build-icons" asset.
 import type { ComponentChildren } from "preact";
@@ -188,22 +188,21 @@ export interface HudProps {
   onOpenHotbarMenu: (target: HotbarTarget, x: number, y: number) => void;
 }
 
-/** One choice on a wheel: its icon, its name, and the detail its centre shows while the player points at it. */
-interface WheelEntry {
+/** One row in a list menu: its icon, its name, and what it costs or lacks. */
+interface MenuEntry {
   key: string;
   name: string;
   icon: ComponentChildren;
-  /** What the centre shows under the name, such as the cost. */
-  detail: ComponentChildren;
-  /** The full text screen readers read for this choice. */
+  /** Shown at the right end of the row, such as material icons with counts. */
+  aside?: ComponentChildren;
+  /** Shown under the name, such as the cost as text. */
+  detail?: ComponentChildren;
+  /** The full text screen readers read for this row. */
   label: string;
-  /** A dimmed choice still shows its detail, so the player can see what it lacks, but a click does nothing. */
+  /** A dimmed row still shows what it lacks, but a click does nothing. */
   dimmed?: boolean;
   onPick: () => void;
 }
-
-/** How far each choice's centre sits from the wheel's centre, in pixels. */
-const WHEEL_RADIUS = 104;
 
 /** Names one thing a recipe lacks, such as "the saw". */
 function lackingText(lack: RecipeLack): string {
@@ -230,70 +229,47 @@ function noticeText(notice: Notice): string {
 }
 
 /**
- * A ring of choices in the middle of the screen, used for the build and craft menus. Pointing at a choice shows its
- * name and detail in the centre. A click picks it. A click outside the ring closes the wheel.
+ * A list of choices that opens above the build and craft buttons, used for the build and craft menus. A click on a row
+ * picks it. A click outside the list closes it.
  */
-function Wheel({ title, pick, entries, onClose }: { title: string; pick: string; entries: readonly WheelEntry[]; onClose: () => void }) {
-  const [pointed, setPointed] = useState<string | null>(null);
-  const shown = entries.find(({ key }) => key === pointed);
+function ListMenu({ title, entries, onClose }: { title: string; entries: readonly MenuEntry[]; onClose: () => void }) {
   return (
-    <div
-      class="hud-wheel-backdrop"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section class="hud-wheel" aria-label={title}>
-        <div class="hud-wheel-centre" aria-hidden="true">
-          <strong>{shown === undefined ? title : shown.name}</strong>
-          <span class="hud-wheel-detail">{shown === undefined ? pick : shown.detail}</span>
-        </div>
+    <>
+      <div class="hud-menu-backdrop" onClick={onClose} />
+      <section class="hud-menu" aria-label={title}>
         <ul>
-          {entries.map((entry, index) => {
-            const angle = (index / entries.length) * 2 * Math.PI - Math.PI / 2;
-            return (
-              <li
-                key={entry.key}
-                style={{
-                  left: `calc(50% + ${Math.round(Math.cos(angle) * WHEEL_RADIUS)}px)`,
-                  top: `calc(50% + ${Math.round(Math.sin(angle) * WHEEL_RADIUS)}px)`,
+          {entries.map((entry) => (
+            <li key={entry.key}>
+              <button
+                type="button"
+                class={entry.dimmed === true ? "hud-menu-entry hud-menu-entry-dimmed" : "hud-menu-entry"}
+                aria-label={entry.label}
+                aria-disabled={entry.dimmed === true}
+                onClick={() => {
+                  if (entry.dimmed !== true) entry.onPick();
                 }}
               >
-                <button
-                  type="button"
-                  class={entry.dimmed === true ? "hud-wheel-entry hud-wheel-entry-dimmed" : "hud-wheel-entry"}
-                  aria-label={entry.label}
-                  aria-disabled={entry.dimmed === true}
-                  onMouseEnter={() => {
-                    setPointed(entry.key);
-                  }}
-                  onFocus={() => {
-                    setPointed(entry.key);
-                  }}
-                  onMouseLeave={() => {
-                    setPointed(null);
-                  }}
-                  onClick={() => {
-                    if (entry.dimmed !== true) entry.onPick();
-                  }}
-                >
-                  {entry.icon}
-                </button>
-              </li>
-            );
-          })}
+                {entry.icon}
+                <span class="hud-menu-text">
+                  <span class="hud-menu-name">{entry.name}</span>
+                  {entry.detail !== undefined && <span class="hud-menu-detail">{entry.detail}</span>}
+                </span>
+                {entry.aside !== undefined && <span aria-hidden="true">{entry.aside}</span>}
+              </button>
+            </li>
+          ))}
         </ul>
       </section>
-    </div>
+    </>
   );
 }
 
 /**
- * The craft menu: one choice per recipe, with the icon of what it makes. The centre shows what a recipe uses, how long
+ * The craft menu: one row per recipe, with the icon of what it makes. Each row shows what the recipe uses, how long
  * it takes, and which tool or work station it lacks. A recipe the player cannot follow yet is dimmed. Choosing one starts crafting it.
  */
 function CraftMenu({ view, onChoose, onClose }: { view: GameView; onChoose: (recipe: RecipeKind) => void; onClose: () => void }) {
-  const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, lacks, result }): WheelEntry => {
+  const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, lacks, result }): MenuEntry => {
     const name = strings.craftMenu.recipes[kind];
     const notes = [
       ...(lacks.length === 0 ? [] : [strings.craftMenu.needs(lacks.map(lackingText))]),
@@ -318,7 +294,7 @@ function CraftMenu({ view, onChoose, onClose }: { view: GameView; onChoose: (rec
         <>
           {cost}
           {notes.map((note) => (
-            <span key={note} class="hud-wheel-note">
+            <span key={note} class="hud-menu-note">
               {note}
             </span>
           ))}
@@ -331,15 +307,15 @@ function CraftMenu({ view, onChoose, onClose }: { view: GameView; onChoose: (rec
       },
     };
   });
-  return <Wheel title={strings.craftMenu.title} pick={strings.craftMenu.pick} entries={entries} onClose={onClose} />;
+  return <ListMenu title={strings.craftMenu.title} entries={entries} onClose={onClose} />;
 }
 
 /**
- * The build menu: one choice per structure the player can build, with its icon. The centre shows the materials it
- * costs as icons with counts, and the tool it needs. Picking one puts its blueprint under the mouse.
+ * The build menu: one row per structure the player can build, with its icon, its name, the materials it costs as icons
+ * with counts, and the tool it needs. Picking one puts its blueprint under the mouse.
  */
 function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void; onClose: () => void }) {
-  const wheelEntries = entries.map(({ structure, cost, tool }): WheelEntry => {
+  const menuEntries = entries.map(({ structure, cost, tool }): MenuEntry => {
     const name = strings.buildMenu.structures[structure];
     const costText = strings.buildMenu.cost([
       ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
@@ -349,7 +325,7 @@ function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"
       key: structure,
       name,
       icon: <StructureIcon structure={structure} />,
-      detail: (
+      aside: (
         <span class="hud-build-cost">
           {cost.map(({ material, count }) => (
             <span key={material} class="hud-build-material">
@@ -370,7 +346,7 @@ function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"
       },
     };
   });
-  return <Wheel title={strings.buildMenu.title} pick={strings.buildMenu.pick} entries={wheelEntries} onClose={onClose} />;
+  return <ListMenu title={strings.buildMenu.title} entries={menuEntries} onClose={onClose} />;
 }
 
 /** Warmth's bar colour runs from this cold blue at 0 to the ember orange at 1. */
@@ -700,20 +676,20 @@ export function Hud({
               pressed={craftMenuOpen}
               onClick={onToggleCraftMenu}
             />
+            {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
+            {craftMenuOpen && (
+              <CraftMenu
+                view={view}
+                onChoose={(recipe) => {
+                  client.send({ type: "craft", recipe });
+                  onToggleCraftMenu();
+                }}
+                onClose={onToggleCraftMenu}
+              />
+            )}
           </div>
         </div>
       </div>
-      {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
-      {craftMenuOpen && (
-        <CraftMenu
-          view={view}
-          onChoose={(recipe) => {
-            client.send({ type: "craft", recipe });
-            onToggleCraftMenu();
-          }}
-          onClose={onToggleCraftMenu}
-        />
-      )}
     </>
   );
 }

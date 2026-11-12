@@ -26,6 +26,7 @@ import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
+import type { PromptButton } from "./cursor-prompt-view";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
 import { placingHint } from "./placing-hint";
@@ -87,7 +88,8 @@ function ContentGrid({
 /**
  * The hotbar's cells: the log on the shoulder, then each kind in the backpack. Each shows its icon, its name, a count when
  * there is more than one, and its number key. A click calls `onUse`. A right-click calls `onOpenMenu` at the cursor.
- * Each cell sets `data-prompt-item`, so the cursor prompt describes it (src/app/cursor-prompt-overlay.ts).
+ * A backpack cell sets `data-prompt-content` and the shoulder cell sets `data-prompt-shoulder`, so the cursor prompt
+ * describes it (src/app/cursor-prompt-overlay.tsx).
  */
 function HotbarGrid({
   view,
@@ -102,14 +104,15 @@ function HotbarGrid({
     <ul class="hud-hotbar-cells">
       {hotbarCells(view).map(({ target, name, count, key }) => (
         <li
-          key={target.kind === "item" ? target.content : "shoulder"}
+          key={target.kind === "backpackContent" ? target.content : "shoulder"}
           class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : undefined}
-          data-prompt-item={target.kind === "item" ? target.content : "shoulder"}
+          data-prompt-content={target.kind === "backpackContent" ? target.content : undefined}
+          data-prompt-shoulder={target.kind === "shoulder" ? "" : undefined}
         >
           <button
             type="button"
             class="hud-content-move hud-hotbar-cell"
-            aria-label={target.kind === "shoulder" ? strings.hotbar.shoulder(name) : strings.hotbar.cell(name, count, key)}
+            aria-label={target.kind === "shoulder" ? strings.hotbar.shoulder(name) : strings.hotbar.cell(strings.backpackContentCount(name, count), key)}
             onClick={(event) => {
               onUse(target, event.shiftKey);
             }}
@@ -118,7 +121,7 @@ function HotbarGrid({
               onOpenMenu(target, event.clientX, event.clientY);
             }}
           >
-            {target.kind === "item" ? <BackpackIcon content={target.content} /> : <HudIcon name="log" />}
+            {target.kind === "backpackContent" ? <BackpackIcon content={target.content} /> : <HudIcon name="log" />}
             <span class="hud-hotbar-name" aria-hidden="true">
               {name}
             </span>
@@ -314,7 +317,7 @@ function BuildWheel({ entries, onPick, onClose }: { entries: GameView["buildMenu
     const name = strings.buildMenu.structures[structure];
     const costText = strings.buildMenu.cost([
       ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
-      ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
+      ...(tool === undefined ? [] : [strings.actionReasons.needsTool(strings.backpackContents[tool])]),
     ]);
     return {
       key: structure,
@@ -407,8 +410,8 @@ function HudToolButton({
 }: {
   icon: HudIconName;
   label: string;
-  /** Which cursor prompt it shows when pointed at. See src/app/cursor-prompt-overlay.ts. */
-  prompt: "build" | "craft";
+  /** Which cursor prompt it shows when pointed at. See src/app/cursor-prompt-overlay.tsx. */
+  prompt: PromptButton;
   shortcut: string;
   disabled?: boolean;
   pressed: boolean;

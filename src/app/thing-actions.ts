@@ -1,45 +1,17 @@
-// Every action a thing offers the player: a thing in the world, a hotbar item, or the log on their shoulder.
+// Every action a thing offers the player: a thing in the world, a backpack content in the hotbar, or the log on their shoulder.
 // The right-click menu lists them all. The cursor prompt, a left-click, and the E key use the main one.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
-import type {
-  BackpackContent,
-  CampfireFuel,
-  CampfireView,
-  CarriedLog,
-  Command,
-  GameClient,
-  GameView,
-  RecipeLack,
-  WoodpileView,
-  WoodpileWood,
-} from "../sim/api";
+import { CAMPFIRE_FUELS, WOODPILE_WOODS } from "../sim/api";
+import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, RecipeLack, WoodpileView, WoodpileWood } from "../sim/api";
 import { strings } from "../strings";
-import type { HudIconName } from "../ui/hud-icons";
+import type { HotbarTarget } from "../ui/hotbar-cells";
+import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 
-/** What the player points at or clicks: a thing in the world, a hotbar item, or the log on their shoulder. */
-export type ActionTarget =
-  | { readonly kind: "scene"; readonly pick: ScenePick }
-  | { readonly kind: "item"; readonly content: BackpackContent }
-  | { readonly kind: "shoulder"; readonly log: CarriedLog };
+export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 
-/** The icon an action shows: a HUD icon or a backpack content icon. */
-export type ActionIcon = { readonly hud: HudIconName } | { readonly content: BackpackContent };
-
-export interface ThingAction {
-  /** Stable id for tests, e.g. "chop", "addFuel:firewood", "stack:firewood:all", "take:debarkedLog", "craft:planks", "takeDown", "use", "drop". */
-  readonly id: string;
-  /** The action's name, from strings.ts, e.g. "Chop", "Add bark". */
-  readonly label: string;
-  readonly icon: ActionIcon;
-  readonly enabled: boolean;
-  /** Why it is disabled, e.g. "needs the axe", "no bark". Present only when enabled is false. */
-  readonly reason?: string;
-  /** True for the left-click action. At most one per list, and always first. */
-  readonly isMain: boolean;
-  /** What to send. The sim walks the player there first when needed. Undefined only for UI-only actions such as "open menu" on a work station. */
-  readonly command: Command | undefined;
-}
+/** What the player points at or clicks: a thing in the world, or a hotbar cell, which holds a backpack content or the log on their shoulder. */
+export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } | HotbarTarget;
 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */
 export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile">;
@@ -53,17 +25,17 @@ export function actionsFor(target: ActionTarget, reader: ActionReader): readonly
   switch (target.kind) {
     case "scene":
       return sceneActions(target.pick, reader, view);
-    case "item":
-      return itemActions(target.content, view);
+    case "backpackContent":
+      return backpackContentActions(target.content, view);
     case "shoulder":
       return shoulderActions(target.log, view);
   }
 }
 
-/** The target's name for the prompt title, e.g. "Tree", "Campfire", "Berries". */
+/** The target's name for the prompt title, such as "Tree", "Campfire", or "Berries". */
 export function targetName(target: ActionTarget, reader: ActionReader): string {
   switch (target.kind) {
-    case "item":
+    case "backpackContent":
       return strings.backpackContents[target.content];
     case "shoulder":
       return strings.things[target.log];
@@ -111,19 +83,19 @@ function pickName(pick: ScenePick, reader: ActionReader): string {
 }
 
 /** Puts the main action first and marks it. `main` is its id. Without one, no action is marked main. */
-function withMain(offers: readonly Offer[], main: string | undefined): readonly ThingAction[] {
+function withMain(offers: readonly Offer[], main: ActionId | undefined): readonly ThingAction[] {
   const first = offers.find(({ id }) => id === main);
   const rest = offers.filter((offer) => offer !== first);
   return [...(first === undefined ? [] : [{ ...first, isMain: true }]), ...rest.map((offer) => ({ ...offer, isMain: false }))];
 }
 
 /** An action the player can do now. */
-function offer(id: string, label: string, icon: ActionIcon, command: Command | undefined): Offer {
+function offer(id: ActionId, label: string, icon: ActionIcon, command: Command | undefined): Offer {
   return { id, label, icon, enabled: true, command };
 }
 
 /** An action that is off if `reason` is given. */
-function offerUnless(reason: string | undefined, id: string, label: string, icon: ActionIcon, command: Command): Offer {
+function offerUnless(reason: string | undefined, id: ActionId, label: string, icon: ActionIcon, command: Command): Offer {
   return reason === undefined ? offer(id, label, icon, command) : { id, label, icon, enabled: false, reason, command };
 }
 
@@ -131,15 +103,15 @@ const has = (view: GameView, content: BackpackContent): boolean => (view.backpac
 const needsTool = (view: GameView, tool: BackpackContent): string | undefined =>
   has(view, tool) ? undefined : strings.actionReasons.needsTool(strings.backpackContents[tool]);
 
-function takeDown(id: number, actionId = "takeDown", reason?: string): Offer {
-  return offerUnless(reason, actionId, strings.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
+function takeDown(id: number, reason?: string): Offer {
+  return offerUnless(reason, "takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
 }
 
 function sceneActions(pick: ScenePick, reader: ActionReader, view: GameView): readonly ThingAction[] {
   if (pick.kind !== "structure") return thingActions(pick, reader, view);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it adds nothing, since a click there only walks.
   const under = pick.under === undefined || pick.under.kind === "ground" ? [] : thingActions(pick.under, reader, view);
-  return [...under, { ...takeDown(pick.id, "takeDownStructure"), isMain: false }];
+  return [...under, { ...takeDown(pick.id), id: "takeDownStructure", isMain: false }];
 }
 
 function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameView): readonly ThingAction[] {
@@ -208,9 +180,6 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
   }
 }
 
-/** The fuels in the order the menu lists them, which is also the order a lit fire takes them in. */
-const FUELS: readonly CampfireFuel[] = ["firewood", "stick", "bark"];
-
 /**
  * Light, each fuel, the pot, then Take down. A fire with a pot on it cannot be taken down until the pot comes off.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
@@ -219,9 +188,10 @@ function campfireActions(campfire: CampfireView, view: GameView): readonly Thing
   const campfireId = campfire.id;
   const reasons = strings.actionReasons;
   const lightReason = campfire.fuelMinutes <= 0 ? reasons.fireEmpty : needsTool(view, "fireStriker");
-  const fuels = FUELS.map((fuel) =>
+  // The menu lists the fuels in the order a lit fire takes them.
+  const fuels = CAMPFIRE_FUELS.map((fuel) =>
     offerUnless(
-      !has(view, fuel) ? reasons.noFuel[fuel] : !campfire.fits[fuel] ? reasons.fireFull : undefined,
+      !has(view, fuel) ? reasons.noContent[fuel] : !campfire.fits[fuel] ? reasons.fireFull : undefined,
       `addFuel:${fuel}`,
       strings.actions.addFuel[fuel],
       { content: fuel },
@@ -240,13 +210,11 @@ function campfireActions(campfire: CampfireView, view: GameView): readonly Thing
         )
       : offer("takePotOff", strings.actions.takePotOff, { content: "pot" }, { type: "takePotOffFire", campfireId });
   const light = campfire.lit ? [] : [offerUnless(lightReason, "light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const offers = [...light, ...fuels, pot, takeDown(campfireId, "takeDown", campfire.pot === null ? undefined : reasons.potOnFire)];
+  const offers = [...light, ...fuels, pot, takeDown(campfireId, campfire.pot === null ? undefined : reasons.potOnFire)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);
 }
-
-const WOODS: readonly WoodpileWood[] = ["log", "debarkedLog", "firewood"];
 
 /**
  * Stack the log on the shoulder, stack firewood one or all, take each kind of wood, then take it down.
@@ -266,7 +234,7 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
       all: false,
     }),
   );
-  const firewoodReason = full ?? (has(view, "firewood") ? undefined : reasons.noFirewood);
+  const firewoodReason = full ?? (has(view, "firewood") ? undefined : reasons.noContent.firewood);
   const stackFirewood = [
     offerUnless(firewoodReason, "stack:firewood", strings.actions.stack.firewood, woodIcon("firewood"), {
       type: "stackOnWoodpile",
@@ -281,7 +249,7 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
       all: true,
     }),
   ];
-  const take = WOODS.map((wood) =>
+  const take = WOODPILE_WOODS.map((wood) =>
     offerUnless(
       woodpile.contents[wood] <= 0 ? reasons.nothingToTake : wood !== "firewood" && view.carrying !== null ? reasons.shoulderFull : undefined,
       `take:${wood}`,
@@ -290,7 +258,7 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
       { type: "takeFromWoodpile", woodpileId, wood },
     ),
   );
-  const offers = [...stackLog, ...stackFirewood, ...take, takeDown(woodpileId, "takeDown", woodpile.total > 0 ? reasons.emptyFirst : undefined)];
+  const offers = [...stackLog, ...stackFirewood, ...take, takeDown(woodpileId, woodpile.total > 0 ? reasons.emptyFirst : undefined)];
   return withMain(offers, view.carrying === null ? "take:firewood" : `stack:${view.carrying}`);
 }
 
@@ -306,7 +274,7 @@ function blueprintActions(blueprintId: number, reader: ActionReader, view: GameV
   return withMain([...deliver, build, takeDown(blueprintId)], deliver[0]?.id ?? "build");
 }
 
-/** What using an item does, if it has a use. */
+/** What using a backpack content does, if it has a use. */
 function useCommand(content: BackpackContent): { readonly label: string; readonly command: Command } | undefined {
   switch (content) {
     case "berries":
@@ -325,7 +293,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
 }
 
 /** Use it, when it has a use, then drop it. With a chest open, putting it in the chest comes first. */
-function itemActions(content: BackpackContent, view: GameView): readonly ThingAction[] {
+function backpackContentActions(content: BackpackContent, view: GameView): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
   const chest = view.nearby.find((thing) => thing.kind === "openChest");

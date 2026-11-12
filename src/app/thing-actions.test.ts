@@ -210,13 +210,13 @@ describe("other things' actions", () => {
   });
 
   it("eats food from the hotbar, then drops it, and puts it in an open chest first", () => {
-    expect(summary(actionsFor({ kind: "item", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
-    expect(summary(actionsFor({ kind: "item", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
 
     const chest = { id: 12, contents: {}, weight: 0, weightLimit: 30 };
     const withChest = readerWith({ backpack: { berries: 2 } });
     const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
-    const actions = actionsFor({ kind: "item", content: "berries" }, chestReader);
+    const actions = actionsFor({ kind: "backpackContent", content: "berries" }, chestReader);
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
     expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
   });

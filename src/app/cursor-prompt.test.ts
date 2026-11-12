@@ -126,15 +126,15 @@ describe("the cursor prompt over the thing nearest the player", () => {
   });
 });
 
-describe("the cursor prompt over a hotbar item", () => {
+describe("the cursor prompt over a hotbar cell", () => {
   it("names food and eating it, with more actions for dropping it", () => {
-    const prompt = promptFor({ kind: "item", content: "berries" }, readerWith({ backpack: { berries: 2 } }));
+    const prompt = promptFor({ kind: "backpackContent", content: "berries" }, readerWith({ backpack: { berries: 2 } }));
 
     expect(text(prompt)).toEqual(["Berries", "Left-click: Eat", "Right-click: More actions"]);
   });
 
-  it("says a click does nothing for an item with no use", () => {
-    const prompt = promptFor({ kind: "item", content: "stick" }, readerWith({ backpack: { stick: 1 } }));
+  it("says a click does nothing for a backpack content with no use", () => {
+    const prompt = promptFor({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 1 } }));
 
     expect(text(prompt)).toEqual(["Stick", "Left-click: No use (off)", "Right-click: More actions"]);
   });

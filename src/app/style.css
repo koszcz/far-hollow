@@ -141,12 +141,12 @@ body {
   top: 2px;
   bottom: auto;
 }
-/* The log on the shoulder sits apart from the backpack items. */
+/* The log on the shoulder sits apart from the backpack contents. */
 .hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder {
   margin-right: 6px;
   border-color: #82593a;
 }
-/* The build and craft buttons sit at the right end of the hotbar, apart from the items. */
+/* The build and craft buttons sit at the right end of the hotbar, apart from the backpack contents. */
 .hud-hotbar-tools {
   display: flex;
   gap: 6px;
@@ -558,7 +558,7 @@ body {
   width: 18px;
   height: 18px;
 }
-/* The name of a chest item, shown at once when the player points at its grid cell. Hotbar items show the cursor prompt instead. */
+/* The name of a chest content, shown at once when the player points at its grid cell. Hotbar cells show the cursor prompt instead. */
 .hud-backpack li[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
@@ -609,7 +609,7 @@ body {
   /* Above the HUD, which comes later in the page. */
   z-index: 2;
 }
-/* The cursor prompt: the thing's name and what each mouse button does, beside the cursor. src/app/cursor-prompt-overlay.ts moves it. */
+/* The cursor prompt: the thing's name and what each mouse button does, beside the cursor. src/ui/cursor-prompt-view.tsx draws it. */
 .cursor-prompt {
   position: fixed;
   top: 0;

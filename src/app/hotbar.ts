@@ -5,7 +5,7 @@ import { actionsFor, mainAction, type ActionReader } from "./thing-actions";
 
 /**
  * The command a left-click on a hotbar cell sends: its main action, such as eating berries or dropping the log on the shoulder.
- * With a chest open, it puts one in the chest, or all of that kind if shift is held. An item with no use sends nothing.
+ * With a chest open, it puts one in the chest, or all of that kind if shift is held. A backpack content with no use sends nothing.
  */
 export function clickHotbarCell(target: HotbarTarget, reader: ActionReader, shiftKey: boolean): Command | undefined {
   const actions = actionsFor(target, reader);
@@ -25,6 +25,6 @@ export function pressHotbarKey(code: string, reader: ActionReader, { typing }: {
   if (typing) return undefined;
   const number = NUMBER_KEY.exec(code)?.[1];
   if (number === undefined) return undefined;
-  const cell = hotbarCells(reader.getView()).find(({ target, key }) => target.kind === "item" && key === number);
+  const cell = hotbarCells(reader.getView()).find(({ target, key }) => target.kind === "backpackContent" && key === number);
   return cell === undefined ? undefined : clickHotbarCell(cell.target, reader, false);
 }

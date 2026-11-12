@@ -10,9 +10,9 @@ describe("the hotbar cells", () => {
 
     expect(cells.map(({ target, name, count, key }) => [target.kind, name, count, key])).toEqual([
       ["shoulder", "Debarked log", 1, undefined],
-      ["item", "Axe", 1, "1"],
-      ["item", "Stick", 2, "2"],
-      ["item", "Berries", 3, "3"],
+      ["backpackContent", "Axe", 1, "1"],
+      ["backpackContent", "Stick", 2, "2"],
+      ["backpackContent", "Berries", 3, "3"],
     ]);
   });
 

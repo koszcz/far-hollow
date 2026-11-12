@@ -12,7 +12,6 @@ import type {
   BuildMenuEntry,
   CampfireView,
   ChestView,
-  Food,
   GameClient,
   GameView,
   NearbyThing,
@@ -28,6 +27,7 @@ import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
+import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
 import { placingHint } from "./placing-hint";
 
@@ -85,11 +85,54 @@ function ContentGrid({
   );
 }
 
-/** Backpack contents the player can eat. */
-const FOODS: readonly BackpackContent[] = ["berries", "mushroom"] satisfies Food[];
-
-function isFood(content: BackpackContent): content is Food {
-  return FOODS.includes(content);
+/**
+ * The hotbar's cells: the log on the shoulder, then each kind in the backpack. Each shows its icon, its name, a count when
+ * there is more than one, and its number key. A click calls `onUse`. A right-click calls `onOpenMenu` at the cursor.
+ */
+function HotbarGrid({
+  view,
+  onUse,
+  onOpenMenu,
+}: {
+  view: GameView;
+  onUse: (target: HotbarTarget, shiftKey: boolean) => void;
+  onOpenMenu: (target: HotbarTarget, x: number, y: number) => void;
+}) {
+  return (
+    <ul class="hud-hotbar-cells">
+      {hotbarCells(view).map(({ target, name, count, key }) => (
+        <li key={target.kind === "item" ? target.content : "shoulder"} class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : undefined}>
+          <button
+            type="button"
+            class="hud-content-move hud-hotbar-cell"
+            aria-label={target.kind === "shoulder" ? strings.hotbar.shoulder(name) : strings.hotbar.cell(name, count, key)}
+            onClick={(event) => {
+              onUse(target, event.shiftKey);
+            }}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              onOpenMenu(target, event.clientX, event.clientY);
+            }}
+          >
+            {target.kind === "item" ? <BackpackIcon content={target.content} /> : <HudIcon name="log" />}
+            <span class="hud-hotbar-name" aria-hidden="true">
+              {name}
+            </span>
+            {count > 1 && (
+              <span class="hud-backpack-count" aria-hidden="true">
+                {strings.backpackCountBadge(count)}
+              </span>
+            )}
+            {key !== undefined && (
+              <span class="hud-hotbar-key" aria-hidden="true">
+                {key}
+              </span>
+            )}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export interface HudProps {
@@ -106,6 +149,10 @@ export interface HudProps {
   craftMenuOpen: boolean;
   /** Called when the player opens or closes the craft menu. The menu is input state, not game state, so this is not a command. */
   onToggleCraftMenu: () => void;
+  /** Called when the player clicks a hotbar cell, with whether shift was held. The caller decides what that does, such as eating berries. */
+  onUseHotbarCell: (target: HotbarTarget, shiftKey: boolean) => void;
+  /** Called when the player right-clicks a hotbar cell, with the cursor's place on the page, to open the menu of its actions. */
+  onOpenHotbarMenu: (target: HotbarTarget, x: number, y: number) => void;
 }
 
 /** One choice on a wheel: its icon, its name, and the detail its centre shows while the player points at it. */
@@ -652,7 +699,17 @@ function NearbyPanel({ client, view, thing }: { client: GameClient; view: GameVi
   }
 }
 
-export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickBuildEntry, craftMenuOpen, onToggleCraftMenu }: HudProps) {
+export function Hud({
+  client,
+  buildMenuOpen,
+  placing,
+  onToggleBuildMenu,
+  onPickBuildEntry,
+  craftMenuOpen,
+  onToggleCraftMenu,
+  onUseHotbarCell,
+  onOpenHotbarMenu,
+}: HudProps) {
   const [view, setView] = useState(client.getView());
   useEffect(
     () =>
@@ -749,77 +806,13 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
         </section>
         <div class="hud-panel hud-hotbar">
           <section class="hud-backpack" aria-label={strings.backpack}>
-            {openChest === null ? (
-              <ContentGrid
-                contents={view.backpack}
-                tip={strings.pile.dropTip}
-                label={strings.pile.drop}
-                onClick={(content) => {
-                  client.send({ type: "dropFromBackpack", content });
-                }}
-              />
-            ) : (
-              <ContentGrid
-                contents={view.backpack}
-                tip={strings.chest.putTip}
-                label={strings.chest.put}
-                onClick={(content, all) => {
-                  client.send({ type: "putInChest", chestId: openChest.id, content, all });
-                }}
-              />
-            )}
+            <HotbarGrid view={view} onUse={onUseHotbarCell} onOpenMenu={onOpenHotbarMenu} />
             <span
               class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}
             >
               {strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}
             </span>
           </section>
-          <div class="hud-hotbar-buttons">
-            {backpackContents(view.backpack)
-              .map(([content]) => content)
-              .filter(isFood)
-              .map((food) => (
-                <button
-                  key={food}
-                  type="button"
-                  class="hud-button"
-                  aria-label={strings.eatFood(strings.backpackContents[food])}
-                  onClick={() => {
-                    client.send({ type: "eat", food });
-                  }}
-                >
-                  <BackpackIcon content={food} />
-                  {strings.eat}
-                </button>
-              ))}
-            {(view.backpack.bedroll ?? 0) > 0 && (
-              <HudButton
-                icon="place"
-                label={strings.layBedroll}
-                onClick={() => {
-                  client.send({ type: "layBedroll" });
-                }}
-              />
-            )}
-            {(view.backpack.pot ?? 0) > 0 && (
-              <HudButton
-                icon="droplet"
-                label={strings.fillPot}
-                onClick={() => {
-                  client.send({ type: "fillPot" });
-                }}
-              />
-            )}
-            {((view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0) && (
-              <HudButton
-                icon="droplet"
-                label={strings.drinkFromPot}
-                onClick={() => {
-                  client.send({ type: "drinkFromPot" });
-                }}
-              />
-            )}
-          </div>
           <div class="hud-hotbar-tools">
             <HudToolButton
               icon="place"

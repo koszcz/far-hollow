@@ -14,7 +14,9 @@ import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
+import { clickHotbarCell, pressHotbarKey } from "./hotbar";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
+import { actionsFor } from "./thing-actions";
 import { attachWalkInput, type MenuRequest } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -188,7 +190,10 @@ window.addEventListener("keydown", (event) => {
   if (event.repeat) return;
   // Let typing keep working in form fields.
   const target = event.target instanceof HTMLElement ? event.target : null;
-  if (event.code !== "Escape" && target?.closest("input, textarea, select") != null) return;
+  const typing = target?.closest("input, textarea, select") != null;
+  const hotbarCommand = pressHotbarKey(event.code, game.client, { typing });
+  if (hotbarCommand !== undefined) game.client.send(hotbarCommand);
+  if (event.code !== "Escape" && typing) return;
   const result = pressCraftKey(uiState.craftMenuOpen, event.code);
   if (result !== "ignore") setCraftMenuOpen(result === "open");
 });
@@ -223,6 +228,14 @@ function renderUi(): void {
         craftMenuOpen={uiState.craftMenuOpen}
         onToggleCraftMenu={() => {
           setCraftMenuOpen(!uiState.craftMenuOpen);
+        }}
+        onUseHotbarCell={(target, shiftKey) => {
+          const command = clickHotbarCell(target, game.client, shiftKey);
+          if (command !== undefined) game.client.send(command);
+        }}
+        onOpenHotbarMenu={(target, x, y) => {
+          uiState.menu = { x, y, actions: actionsFor(target, game.client) };
+          renderUi();
         }}
       />
       <DebugOverlay client={game.client} />

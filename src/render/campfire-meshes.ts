@@ -15,6 +15,7 @@ import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import { CAMPFIRE_STICK_COST } from "../sim/structures";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
+import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
@@ -37,6 +38,9 @@ const BLUEPRINT_OPACITY = 0.35;
 const STONE_COUNT = 10;
 /** The stones sit this far from the campfire's centre, in metres. Camp footprints use it too. */
 export const STONE_RING_RADIUS_METRES = 0.55;
+/** The campfire is fitted to the ground over a square this far out from its middle, to the stones' middles. */
+const FOOTPRINT_HALF_METRES = STONE_RING_RADIUS_METRES;
+const UP = new THREE.Vector3(0, 1, 0);
 /** Each stone's size is picked between these, in metres. */
 const STONE_SMALLEST_METRES = 0.11;
 const STONE_LARGEST_METRES = 0.18;
@@ -123,7 +127,11 @@ interface Drawn {
   readonly pot: PotMesh;
 }
 
-export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
+/**
+ * `groundAt` gives the height of the ground. On a slope the stones, sticks, and ash tilt to lie along it,
+ * while the fire, its light, and the pot stay upright.
+ */
+export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number, z: number) => number): CampfireMeshes {
   const group = new THREE.Group();
   const stones = createStones();
   const { plain: stickGeometry, charred: charredStickGeometry } = createStandingStickGeometries();
@@ -193,12 +201,15 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     const existing = drawn.get(entity);
     if (existing !== undefined) return existing;
     const root = new THREE.Group();
-    const { stones: stoneMeshes, sticks: stickMeshes } = addStonesAndSticks(root, blueprintMaterial);
+    /** The stones, sticks, and ash, which tilt with the ground. */
+    const base = new THREE.Group();
+    root.add(base);
+    const { stones: stoneMeshes, sticks: stickMeshes } = addStonesAndSticks(base, blueprintMaterial);
     const ash = new THREE.Mesh(ashGeometry, ashMaterial);
     ash.position.y = ASH_LIFT_METRES;
     ash.receiveShadow = true;
     ash.visible = false;
-    root.add(ash);
+    base.add(ash);
     const sticks: Drawn["sticks"] = stickMeshes.map((mesh) => {
       const fading = stickMaterial.clone();
       fading.transparent = true;
@@ -222,8 +233,13 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
-    root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    const yaw = facingRadians(entity.facing?.turns ?? 0);
+    const fit = fitToGround(groundAt, entity.position, FOOTPRINT_HALF_METRES, FOOTPRINT_HALF_METRES, yaw);
+    root.position.set(entity.position.x, fit.y, entity.position.z);
+    root.rotation.y = yaw;
+    // The root already turns by the yaw, so undo it around the tilt to tilt the base in the root's own frame.
+    const turn = new THREE.Quaternion().setFromAxisAngle(UP, yaw);
+    base.quaternion.copy(turn.clone().invert().multiply(fit.tilt).multiply(turn));
     group.add(root);
     const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, glow, warmthPool, pot };
     drawn.set(entity, result);
@@ -343,8 +359,10 @@ export function createCampfireMeshes(entities: EntityStore): CampfireMeshes {
     showPlacingBlueprint(shown) {
       placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
-      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      const yaw = facingRadians(shown.turns);
+      const fit = fitToGround(groundAt, shown.spot, FOOTPRINT_HALF_METRES, FOOTPRINT_HALF_METRES, yaw);
+      placingBlueprint.position.set(shown.spot.x, fit.y, shown.spot.z);
+      placingBlueprint.quaternion.copy(fit.tilt).multiply(new THREE.Quaternion().setFromAxisAngle(UP, yaw));
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
       for (const mesh of [...placingParts.stones, ...placingParts.sticks]) mesh.material = material;
     },

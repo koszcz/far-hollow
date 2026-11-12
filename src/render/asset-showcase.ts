@@ -499,6 +499,18 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   player: { radius: 1.1, focus: { x: 0, y: 0.9, z: 0 }, shots: FOUR_ANGLES, build() {} },
+  // Close up and with empty hands, so nothing covers the backpack. The "logs" showcase shows the axe hanging on it.
+  backpack: {
+    radius: 0.85,
+    focus: { x: 0, y: 0.85, z: 0 },
+    shots: [
+      { label: "front", yaw: 0, pitch: 12 },
+      { label: "back", yaw: 180, pitch: 15 },
+      { label: "back three-quarter", yaw: 215, pitch: 25 },
+      { label: "side", yaw: 90, pitch: 12 },
+    ],
+    build() {},
+  },
   campfire: {
     radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },
@@ -986,6 +998,7 @@ export function showAsset(
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
   const showsPlayer = [
     "player",
+    "backpack",
     "logs",
     "debarked-log",
     "walk-animation",
@@ -1042,7 +1055,7 @@ export function showAsset(
   const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
-  const bedrolls = createBedrollMeshes(store);
+  const bedrolls = createBedrollMeshes(store, groundAt);
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   // Rain shows only where the stage has rain falling.

@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { bedrollEntities, type Entity, type EntityStore } from "../sim/entities";
+import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 
 const MAT_COLOUR = 0x4f6b3a;
@@ -163,7 +164,8 @@ function bedrollShapes(): BedrollShape[] {
   ];
 }
 
-export function createBedrollMeshes(entities: EntityStore): BedrollMeshes {
+/** `groundAt` gives the height of the ground. A bedroll on a slope tilts to lie along it. */
+export function createBedrollMeshes(entities: EntityStore, groundAt: (x: number, z: number) => number): BedrollMeshes {
   const group = new THREE.Group();
   const shapes = bedrollShapes();
   const pickGeometry = new THREE.BoxGeometry(MAT_WIDTH_METRES, PICK_HEIGHT_METRES, MAT_LENGTH_METRES);
@@ -189,7 +191,9 @@ export function createBedrollMeshes(entities: EntityStore): BedrollMeshes {
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
-    root.position.set(entity.position.x, entity.position.y, entity.position.z);
+    const fit = fitToGround(groundAt, entity.position, MAT_WIDTH_METRES / 2, MAT_LENGTH_METRES / 2);
+    root.position.set(entity.position.x, fit.y, entity.position.z);
+    root.quaternion.copy(fit.tilt);
     group.add(root);
     drawn.set(entity, { root, parts, picker });
   }

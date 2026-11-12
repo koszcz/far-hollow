@@ -763,12 +763,13 @@
       "code": [
         "src/ui/sled-icons.tsx"
       ],
-      "description": "Icons drawn in the build icons' shaded style: the sled, two dark log runners seen from the side with four sticks across them, shown on the sled's build menu tile, and the log, a log on its side with dark bark and a pale cut end, shown in the sled's cost. The sled icon also shows on the hotbar's sled cell while the player drags a sled.",
+      "description": "Icons drawn in the build icons' shaded style: the sled, seen from the front left and a little above, with two log runners whose front tips curl up like skids, the far runner darker and higher up, four crooked sticks lashed across them with dark rope Xs, and a pale tow rope running in a V from the tips to a loop in front. It shows on the sled's build menu tile and on the hotbar's sled cell while the player drags a sled. The log, a log on its side with dark bark and a pale cut end, shows in the sled's cost.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/sled/issues/01-place-and-build-a-sled.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {

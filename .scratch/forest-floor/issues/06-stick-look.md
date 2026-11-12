@@ -10,10 +10,10 @@
 
 The campfire and the lean-to reuse the stick's shape and colour. The owner wants the new look on them too, so this ticket changes all three on purpose.
 
-- [ ] Sticks on the ground have pale grey-tan bark. You can tell them apart from the forest floor and from tree trunks at a glance.
-- [ ] Sticks are slightly thicker than before. The crooked shape and the twigs stay.
-- [ ] The campfire and the lean-to show the new stick look.
-- [ ] Each stick still gets its own slight shade, so the ground does not look copy-pasted.
-- [ ] Sticks are still easy to click.
-- [ ] The `sticks` entry in `asset-manifest.json` is `draft` and links this ticket.
-- [ ] The nature showcase shows the new look, so the owner can review it.
+- [x] Sticks on the ground have pale grey-tan bark. You can tell them apart from the forest floor and from tree trunks at a glance.
+- [x] Sticks are slightly thicker than before. The crooked shape and the twigs stay.
+- [x] The campfire and the lean-to show the new stick look.
+- [x] Each stick still gets its own slight shade, so the ground does not look copy-pasted.
+- [x] Sticks are still easy to click.
+- [x] The `sticks` entry in `asset-manifest.json` is `draft` and links this ticket.
+- [x] The nature showcase shows the new look, so the owner can review it.

@@ -3,10 +3,12 @@
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
 // While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
+// The backpack on the back is the draft "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CarriedLog } from "../sim/entities";
+import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
@@ -54,8 +56,14 @@ const BUILD_LEAVE_SECONDS = 0.3;
 
 /** The carried log rests here on the player's right shoulder, from the player's feet, in metres. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = new THREE.Vector3(-0.3, 1.0, 0);
-/** While the right hand steadies the log, the axe hangs here on the back, from the player's feet, in metres. */
-const AXE_ON_BACK_SPOT = new THREE.Vector3(0.05, 0.95, -0.3);
+/**
+ * While the right hand steadies the log, the axe hangs on the outside of the backpack, from the player's feet, in metres.
+ * Its depth is measured from the backpack once the player is built.
+ */
+const AXE_ON_BACK_HEIGHT = 0.95;
+const AXE_ON_BACK_SIDE = 0.05;
+/** How far out from the backpack the axe hangs, in metres. */
+const AXE_OFF_BACKPACK = 0.04;
 /** How the right arm turns up to steady the log, in radians about the upper arm's own axes. */
 const CARRY_UPPER_ARM = new THREE.Euler(-1.3, 0, 1.3);
 const CARRY_FOREARM = new THREE.Euler(0, 0, 0);
@@ -150,6 +158,11 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   showClip(idle, 0.4);
   group.updateMatrixWorld(true);
   addBeanie();
+  const torso = new THREE.Box3().setFromObject(bone("Barbarian_Body"), true);
+  const backpack: Backpack = createBackpack(torso);
+  group.add(backpack.group);
+  chestBone.attach(backpack.group);
+  const axeOnBackSpot = new THREE.Vector3(AXE_ON_BACK_SIDE, AXE_ON_BACK_HEIGHT, torso.min.z - BACKPACK_DEPTH - AXE_OFF_BACKPACK);
 
   // The forest owns the log shape and disposes it, so the player does not.
   const shoulderBark = material(LOG_COLOUR, { flatShading: true });
@@ -232,7 +245,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     restoreClipPose();
     group.updateMatrixWorld(true);
     group.add(axe);
-    axe.position.copy(AXE_ON_BACK_SPOT);
+    axe.position.copy(axeOnBackSpot);
     axe.rotation.set(0, 0, 0.5);
     axe.scale.setScalar(MODEL_SCALE);
     chestBone.attach(axe);
@@ -377,6 +390,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       mixer.uncacheRoot(model);
       for (const geometry of geometries) geometry.dispose();
       for (const made of materials) made.dispose();
+      backpack.dispose();
     },
   };
 }

@@ -499,6 +499,15 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   player: { radius: 1.1, focus: { x: 0, y: 0.9, z: 0 }, shots: FOUR_ANGLES, build() {} },
+  backpack: {
+    radius: 1.1,
+    focus: { x: 0, y: 0.9, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ player }) {
+      // With a log on the shoulder, so the axe hangs on the backpack too.
+      player.setCarryingLog("log");
+    },
+  },
   campfire: {
     radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },
@@ -986,6 +995,7 @@ export function showAsset(
   const at = (x: number, z: number): Vec3 => ({ x: middle.x + x, y: groundAt(middle.x + x, middle.z + z), z: middle.z + z });
   const showsPlayer = [
     "player",
+    "backpack",
     "logs",
     "debarked-log",
     "walk-animation",

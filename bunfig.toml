@@ -9,3 +9,10 @@ timeout = 20000
 [serve.static]
 # Bun's dev server does not fill in import.meta.env. See scripts/dev-env-plugin.ts.
 plugins = ["./scripts/dev-env-plugin.ts"]
+
+[fmt]
+# Most lines in this project are long. At 160 columns the formatter keeps them as they are.
+printWidth = 160
+# Agents and asset sessions edit the Markdown docs and JSON files, such as the asset catalogue.
+# Formatting them would mostly realign tables and cause merge conflicts, so only code is formatted.
+ignorePatterns = ["**/*.md", "**/*.json"]

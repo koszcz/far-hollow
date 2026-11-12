@@ -16,6 +16,7 @@ You need Bun 1.4. Bun installs the packages and runs every tool. You do not need
 
 - `bun run test` runs the tests.
 - `bun run test:e2e` runs the browser test in your installed Google Chrome. It checks that the game loads and the player can walk. Run it when you need it. The git hooks do not run it.
+- `bun fmt` formats the code. `bun run format:check` only reports what needs formatting.
 - `bun run lint` checks code style and module boundaries.
 - `bun run typecheck` checks the TypeScript types.
 - `bun run build` checks the assets and builds the game into `dist/`.

@@ -1,7 +1,7 @@
 # Shortcuts for the Bun scripts in package.json.
 # Run `make` on its own to start the dev server.
 
-.PHONY: run test e2e check build drafts land
+.PHONY: run test e2e check fmt build drafts land
 
 run:
 	bun run dev
@@ -14,6 +14,10 @@ e2e:
 
 check:
 	bun run typecheck && bun run lint && bun run test && bun run check:assets
+
+# Format the code in place.
+fmt:
+	bun fmt
 
 build:
 	bun run build

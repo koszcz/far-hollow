@@ -17,7 +17,7 @@ export const CROUCH_PRESSED_SHARE = 0.56;
 export const CROUCH_SETTLED_SHARE = 0.68;
 
 /** One key pose of the build. Distances are metres from the player's feet, angles are radians. */
-interface BuildPose {
+export interface BuildPose {
   /** How far the hips sink below where the clip holds them. */
   readonly hipsDrop: number;
   /** How far the hips move back, against the way the player faces, to balance the lean. */

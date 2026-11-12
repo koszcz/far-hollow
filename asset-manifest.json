@@ -426,6 +426,24 @@
       }
     },
     {
+      "id": "debarking-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-debark-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/pile-meshes.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player debarking a log on the ground with a drawknife: a person stripping bark bends over the log with knees bent and hips back, holds the drawknife by both handles with its edge towards the body, sets the blade into the bark at the far side, and pulls it back towards the knees, rocking back with the hips. Then they lift the blade clear and reach out for the next stroke. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing, the split's overhead drop, and the build's squat and press.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
+      }
+    },
+    {
       "id": "player-build-animation",
       "kind": "code",
       "code": [

@@ -319,10 +319,12 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
   foundation: {
     radius: 1.4,
     focus: { x: 0, y: 0.2, z: 0 },
-    // A blueprint with two logs delivered, the third log being laid, then the finished foundation from two sides.
+    // A blueprint with two logs delivered, the legs and beams fading in, the third log turning solid,
+    // then the finished foundation from two sides.
     shots: [
       { label: "blueprint, 2 of 4 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
-      { label: "3rd log above its place", yaw: 30, pitch: 30, seconds: (2 + BUILD_FADE_SHARE) / FOUNDATION_LOG_COST },
+      { label: "legs and beams fading in", yaw: 30, pitch: 30, seconds: 0.3 / FOUNDATION_LOG_COST },
+      { label: "3rd log turning solid", yaw: 30, pitch: 30, seconds: 2.4 / FOUNDATION_LOG_COST },
       { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
       { label: "built, from above", yaw: 40, pitch: 60, seconds: 1 },
     ],
@@ -331,7 +333,11 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
     },
     pose({ store }, shot) {
-      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+      for (const entity of store.with("blueprint")) {
+        entity.blueprint.progress = shot.seconds ?? 0;
+        // A log is always delivered before its stage starts.
+        entity.blueprint.delivered.debarkedLog = Math.max(2, Math.ceil(entity.blueprint.progress * FOUNDATION_LOG_COST));
+      }
     },
   },
   chest: {

@@ -6,8 +6,8 @@
 // The deck logs and beams show darker cut ends.
 // A blueprint shows the deck, beams, and legs see-through. Each debarked log the player has delivered shows pale and half solid
 // in its place, so the blueprint shows how many logs it has and how many it still needs.
-// Construction has one stage per log. The legs and beams go in when work starts. Then each log fades in above its place,
-// is lowered, and set down, like the sticks of a campfire.
+// Construction has one stage per log. Each delivered log stays where it waits and turns solid during its stage.
+// During the first stage, the legs and beams fade in under the deck.
 // While the player places a foundation from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
@@ -16,7 +16,7 @@ import { FOUNDATION_DECK_THICKNESS_METRES, foundationLegs } from "../sim/foundat
 import { FOUNDATION_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
-import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { BUILD_LOWERED_SHARE, BUILD_SET_DOWN_SHARE, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -79,6 +79,9 @@ interface Drawn {
   readonly logs: FadingLog[];
   readonly beams: THREE.Mesh[];
   readonly legs: THREE.Mesh[];
+  /** See-through copies of the leg wood and cut ends, which the legs and beams share while they fade in. */
+  readonly fadingLegWood: THREE.MeshStandardMaterial;
+  readonly fadingLegCut: THREE.MeshStandardMaterial;
   readonly picker: THREE.Mesh;
 }
 
@@ -97,9 +100,18 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
   // One metre tall with its top at the origin, so scaling it makes a leg of any length hanging down from the beam.
   const legGeometry = new THREE.CylinderGeometry(LEG_RADIUS_METRES, LEG_RADIUS_METRES * 1.2, 1, 7).translate(0, -0.5, 0);
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, FOUNDATION_DECK_THICKNESS_METRES * 2, BUILD_GRID_METRES);
-  const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
-  const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
-  const legMaterial = new THREE.MeshStandardMaterial({ color: LEG_COLOUR, flatShading: true });
+  const woodMaterial = new THREE.MeshStandardMaterial({
+    color: DEBARKED_LOG_COLOUR,
+    flatShading: true,
+  });
+  const cutMaterial = new THREE.MeshStandardMaterial({
+    color: DEBARKED_LOG_CUT_COLOUR,
+    flatShading: true,
+  });
+  const legMaterial = new THREE.MeshStandardMaterial({
+    color: LEG_COLOUR,
+    flatShading: true,
+  });
   const logMaterials = [woodMaterial, cutMaterial, cutMaterial];
   const beamMaterials = [legMaterial, cutMaterial, cutMaterial];
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
@@ -121,21 +133,25 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
         root.add(mesh);
         return mesh;
       });
-    return { logs: make(logGeometry, FOUNDATION_LOG_COST), beams: make(beamGeometry, 2), legs: make(legGeometry, 4) };
+    return {
+      logs: make(logGeometry, FOUNDATION_LOG_COST),
+      beams: make(beamGeometry, 2),
+      legs: make(legGeometry, 4),
+    };
   }
 
   /**
-   * Lays the deck logs side by side, `lift` metres above their places, on two beams over the legs.
+   * Lays the deck logs side by side on two beams over the legs.
    * Stretches each leg from under its beam down into the ground.
    */
-  function fit(root: THREE.Group, parts: Parts, deck: Vec3, lifts: readonly number[] = []): void {
+  function fit(root: THREE.Group, parts: Parts, deck: Vec3): void {
     root.position.set(deck.x, deck.y, deck.z);
     parts.logs.forEach((mesh, i) => {
       const look = DECK_LOG_LOOKS[i % DECK_LOG_LOOKS.length] ?? DECK_LOG_LOOKS[0];
       const across = -BUILD_GRID_METRES / 2 + ((i + 0.5) * BUILD_GRID_METRES) / parts.logs.length;
       // Each log rests on the beams, so a thinner log sits with its underside level with the others.
       const middle = -FOUNDATION_DECK_THICKNESS_METRES + DECK_LOG_RADIUS_METRES * look.thickness;
-      mesh.position.set(look.shift, middle + (lifts[i] ?? 0), across);
+      mesh.position.set(look.shift, middle, across);
       mesh.scale.set(look.length, look.thickness, look.thickness);
       mesh.rotation.x = look.turn;
     });
@@ -180,35 +196,62 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
     root.add(picker);
     pickers.push(picker);
     group.add(root);
-    const result = { root, logs, beams: parts.beams, legs: parts.legs, picker };
+    const fadingLegWood = legMaterial.clone();
+    const fadingLegCut = cutMaterial.clone();
+    fadingLegWood.transparent = true;
+    fadingLegCut.transparent = true;
+    const result = {
+      root,
+      logs,
+      beams: parts.beams,
+      legs: parts.legs,
+      fadingLegWood,
+      fadingLegCut,
+      picker,
+    };
     drawn.set(entity, result);
     return result;
   }
 
   /**
-   * Shows how far construction has gone. Built logs are solid and in place, the log being laid moves through its stage,
-   * delivered logs wait half solid in their places, and the rest show see-through. The legs and beams go in when work starts.
+   * Shows how far construction has gone. Built logs are solid. The log of the stage under way stays in its place and turns
+   * from half solid to solid. Delivered logs wait half solid in their places, and the rest show see-through.
+   * The legs and beams fade in during the first stage, from see-through to solid.
    */
   function showProgress(item: Drawn, deck: Vec3, progress: number, delivered: number): void {
     const stagesDone = progress * item.logs.length;
-    const lifts = item.logs.map(({ mesh, fading }, index) => {
+    item.logs.forEach(({ mesh, fading }, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
       if (share <= 0) {
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
-        return 0;
+        return;
       }
-      const opacity = buildOpacity(share);
+      const opacity = towardsSolid(DELIVERED_OPACITY, share / BUILD_SET_DOWN_SHARE);
       for (const material of fading) material.opacity = opacity;
       mesh.material = opacity < 1 ? fading : logMaterials;
-      return buildLift(share);
     });
-    for (const leg of item.legs) leg.material = progress > 0 ? legMaterial : blueprintMaterial;
-    for (const beam of item.beams) beam.material = progress > 0 ? beamMaterials : blueprintMaterial;
-    fit(item.root, { logs: item.logs.map(({ mesh }) => mesh), beams: item.beams, legs: item.legs }, deck, lifts);
+    const frameOpacity = towardsSolid(BLUEPRINT_OPACITY, stagesDone / BUILD_LOWERED_SHARE);
+    item.fadingLegWood.opacity = frameOpacity;
+    item.fadingLegCut.opacity = frameOpacity;
+    const legLook = progress <= 0 ? blueprintMaterial : frameOpacity < 1 ? item.fadingLegWood : legMaterial;
+    const beamLook = progress <= 0 ? blueprintMaterial : frameOpacity < 1 ? [item.fadingLegWood, item.fadingLegCut, item.fadingLegCut] : beamMaterials;
+    for (const leg of item.legs) leg.material = legLook;
+    for (const beam of item.beams) beam.material = beamLook;
+    fit(
+      item.root,
+      {
+        logs: item.logs.map(({ mesh }) => mesh),
+        beams: item.beams,
+        legs: item.legs,
+      },
+      deck,
+    );
   }
 
   function disposeFading(item: Drawn): void {
     for (const { fading } of item.logs) for (const material of new Set(fading)) material.dispose();
+    item.fadingLegWood.dispose();
+    item.fadingLegCut.dispose();
   }
 
   function forget(entity: Entity): void {
@@ -283,4 +326,10 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
       for (const item of drawn.values()) disposeFading(item);
     },
   };
+}
+
+/** An opacity that eases from `start` up to solid as `share` goes from 0 to 1. */
+function towardsSolid(start: number, share: number): number {
+  const t = Math.min(1, Math.max(0, share));
+  return start + (1 - start) * t * t * (3 - 2 * t);
 }

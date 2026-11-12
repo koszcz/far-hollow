@@ -44,16 +44,19 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
 /**
  * A grid of icons, one cell per kind, with a count badge when there is more than one.
  * Each cell is a button. A click calls `onClick` with that kind, and whether shift was held.
- * `tip` is the text shown when the player points at a cell. `label` is a cell's full name, for screen readers.
+ * `tip` is the text shown when the player points at a cell. Hotbar cells have no tip: they set `promptItems`, so the cursor prompt
+ * describes them instead (src/app/cursor-prompt-overlay.ts). `label` is a cell's full name, for screen readers.
  */
 function ContentGrid({
   contents,
   tip,
+  promptItems = false,
   label,
   onClick,
 }: {
   contents: GameView["backpack"];
-  tip: (name: string) => string;
+  tip?: (name: string) => string;
+  promptItems?: boolean;
   label: (name: string) => string;
   onClick: (content: BackpackContent, shiftKey: boolean) => void;
 }) {
@@ -62,7 +65,7 @@ function ContentGrid({
       {backpackContents(contents).map(([content, count]) => {
         const name = strings.backpackContents[content];
         return (
-          <li key={content} data-tip={tip(name)}>
+          <li key={content} data-tip={tip?.(name)} data-prompt-item={promptItems ? content : undefined}>
             <button
               type="button"
               class="hud-content-move"
@@ -368,6 +371,7 @@ function HudIconButton({
 function HudToolButton({
   icon,
   label,
+  prompt,
   shortcut,
   disabled = false,
   pressed,
@@ -375,6 +379,8 @@ function HudToolButton({
 }: {
   icon: HudIconName;
   label: string;
+  /** Which cursor prompt it shows when pointed at. See src/app/cursor-prompt-overlay.ts. */
+  prompt: "build" | "craft";
   shortcut: string;
   disabled?: boolean;
   pressed: boolean;
@@ -387,7 +393,7 @@ function HudToolButton({
       aria-label={label}
       aria-keyshortcuts={shortcut}
       aria-pressed={pressed}
-      data-tip={label}
+      data-prompt-button={prompt}
       disabled={disabled}
       onClick={onClick}
     >
@@ -752,7 +758,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             {openChest === null ? (
               <ContentGrid
                 contents={view.backpack}
-                tip={strings.pile.dropTip}
+                promptItems
                 label={strings.pile.drop}
                 onClick={(content) => {
                   client.send({ type: "dropFromBackpack", content });
@@ -761,7 +767,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             ) : (
               <ContentGrid
                 contents={view.backpack}
-                tip={strings.chest.putTip}
+                promptItems
                 label={strings.chest.put}
                 onClick={(content, all) => {
                   client.send({ type: "putInChest", chestId: openChest.id, content, all });
@@ -824,6 +830,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             <HudToolButton
               icon="place"
               label={strings.buildMenu.open}
+              prompt="build"
               shortcut={strings.hudLabels.buildKey}
               pressed={buildMenuOpen}
               disabled={placing !== null}
@@ -832,6 +839,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             <HudToolButton
               icon="axe"
               label={strings.craftMenu.open}
+              prompt="craft"
               shortcut={strings.hudLabels.craftKey}
               pressed={craftMenuOpen}
               onClick={onToggleCraftMenu}

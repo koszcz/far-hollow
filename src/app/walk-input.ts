@@ -95,6 +95,8 @@ export interface WalkInputOptions {
   readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
   /** Called with what the player could click under the pointer, or undefined, so the scene can outline it. */
   readonly onHoverChange?: (pick: ScenePick | undefined) => void;
+  /** Called with what is under the pointer, finished structures included, so the cursor prompt can describe it. Undefined while placing a blueprint. */
+  readonly onPromptTargetChange?: (pick: ScenePick | undefined) => void;
   /** Called when the build menu opens or closes, or placing a blueprint starts, turns, or ends, so the HUD can show it. */
   readonly onBuildModeChange?: (mode: BuildMode) => void;
   /** Called with the blueprint that should follow the mouse while placing, or undefined to hide it. */
@@ -132,6 +134,7 @@ export function attachWalkInput({
   rig,
   pickAt,
   onHoverChange,
+  onPromptTargetChange,
   onBuildModeChange,
   onPlacingBlueprintChange,
   onMenuChange,
@@ -152,11 +155,14 @@ export function attachWalkInput({
 
   function updateCursor(): void {
     cursorFrame = null;
-    const pick = hover === null ? undefined : pickThrough(hover.x, hover.y);
+    const seen = hover === null ? undefined : pickAt(hover.x, hover.y);
+    // A left-click acts on what is under a finished structure, so the cursor and outline do too.
+    const pick = seen?.kind === "structure" ? seen.under : seen;
     const placing = mode.placing !== null;
     const blueprint = placingBlueprintFor(pick);
     canvas.style.cursor = blueprint?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
     onHoverChange?.(outlineFor(pick, placing));
+    onPromptTargetChange?.(placing ? undefined : seen);
     onPlacingBlueprintChange?.(blueprint);
   }
 

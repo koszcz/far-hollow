@@ -210,8 +210,7 @@ body {
 .hud [data-tip] {
   position: relative;
 }
-.hud-icon-button[data-tip]:hover::after,
-.hud-tool-button[data-tip]:hover::after {
+.hud-icon-button[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 4px);
@@ -532,7 +531,7 @@ body {
   width: 18px;
   height: 18px;
 }
-/* The name of a backpack item, shown at once when the player points at its grid cell. */
+/* The name of a chest item, shown at once when the player points at its grid cell. Hotbar items show the cursor prompt instead. */
 .hud-backpack li[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
@@ -582,6 +581,37 @@ body {
   pointer-events: auto;
   /* Above the HUD, which comes later in the page. */
   z-index: 2;
+}
+/* The cursor prompt: the thing's name and what each mouse button does, beside the cursor. src/app/cursor-prompt-overlay.ts moves it. */
+.cursor-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px 8px;
+  color: #f3e6d3;
+  font-size: 12px;
+  white-space: nowrap;
+  background: rgb(31 21 14 / 0.92);
+  border: 1px solid #6b4a2f;
+  border-radius: 6px;
+  pointer-events: none;
+  will-change: transform;
+  /* Above the HUD and the right-click menu. */
+  z-index: 3;
+}
+.cursor-prompt strong {
+  font-size: 13px;
+}
+.cursor-prompt-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cursor-prompt-off {
+  opacity: 0.55;
 }
 .action-menu .hud-button {
   justify-content: flex-start;

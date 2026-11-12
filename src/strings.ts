@@ -203,9 +203,6 @@ export const strings = {
   chest: {
     title: "Chest",
     empty: "The chest is empty.",
-    /** The cursor prompt lines of a chest cell. */
-    takeOne: "Take one",
-    takeAll: "Take all that fit",
     /** The full name of a chest cell, for screen readers. */
     take: (name: string) => `Take ${name.toLowerCase()} from the chest`,
     hint: "Click something in the backpack to put one in the chest. Click something in the chest to take one out. Shift-click moves all that fit.",
@@ -232,7 +229,7 @@ export const strings = {
     /** The name of the sled cell for screen readers, such as "Dragging: Sled 4/6". */
     dragging: (name: string) => `Dragging: ${name}`,
   },
-  /** What the player can do to a thing, as the action menu and the cursor prompt name it. */
+  /** What the player can do to a thing, as the action menu names it. */
   actions: {
     walk: "Walk here",
     drink: "Drink",
@@ -262,6 +259,7 @@ export const strings = {
     fillPot: "Fill it at the river",
     drinkFromPot: "Drink",
     drop: "Drop",
+    dropHere: { log: "Drop the log here", debarkedLog: "Drop the debarked log here" },
     putInChest: "Put one in the chest",
     putAllInChest: "Put all in the chest",
     split: "Split into firewood",
@@ -289,33 +287,10 @@ export const strings = {
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },
-  /** The label beside the cursor that says what each mouse button does to the thing under it. */
-  prompt: {
-    click: "Click",
-    shiftClick: "Shift-click",
-    /** The key that does the main action of the thing nearest the player. */
-    useKey: "E",
-    /** The click line of the build and craft buttons. */
-    openToolMenu: { build: "Open the build menu", craft: "Open the craft menu" },
-    closeToolMenu: { build: "Close the build menu", craft: "Close the craft menu" },
-  },
-  /** The names of things the player can act on, as the cursor prompt shows them. */
+  /** The names of the logs the player can carry on their shoulder, as the hotbar shows them. */
   things: {
-    ground: "Ground",
-    river: "River",
-    tree: "Tree",
     log: "Log",
     debarkedLog: "Debarked log",
-    stick: "Stick",
-    bark: "Bark",
-    forage: "Forage spot",
-    campfire: "Campfire",
-    woodpile: "Woodpile",
-    chest: "Chest",
-    bedroll: "Bedroll",
-    pile: "Pile",
-    sled: "Sled",
-    structure: "Building piece",
   },
   debugFps: "FPS",
   debugEntities: "Entities",

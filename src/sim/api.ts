@@ -46,6 +46,8 @@ export type Command =
   | { type: "splitLog" }
   /** Lay the log or debarked log the player carries on the ground at their feet. */
   | { type: "dropLog" }
+  /** Walk the player to a spot on the ground, given in metres from the valley's centre, and lay the log or debarked log they carry there. */
+  | ({ type: "dropLogAt" } & GroundPoint)
   /**
    * Drop all of one kind from the backpack at the player's feet, as one pile.
    * If a pile of the same kind lies within 1 m, they join that pile instead.

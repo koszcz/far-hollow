@@ -69,6 +69,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   backpack: shape({ contents: backpackContents }),
   chopTask: shape({ treeId: count, secondsDone: finite }),
   logPickUpTask: shape({ logId: count }),
+  logDropTask: point,
   stump: exactly(true),
   log: shape({ heading: finite }),
   debarkedLog: shape({ heading: finite }),

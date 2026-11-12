@@ -32,11 +32,12 @@ export function useKeyFor(
 
 /**
  * What a click on a thing in the world opens: its action menu, main action first, or undefined if it offers nothing to send.
- * Plain ground opens no menu, since a click there walks straight away.
+ * Plain ground opens no menu when walking is all it offers, since a click there walks straight away.
+ * With a log on the shoulder, ground opens a menu to walk there or drop the log there.
  */
 export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAction[] | undefined {
-  if (pick.kind === "ground") return undefined;
   const actions = menuActions({ kind: "scene", pick }, reader);
+  if (pick.kind === "ground" && actions.length <= 1) return undefined;
   return actions.length === 0 ? undefined : actions;
 }
 
@@ -92,8 +93,6 @@ export interface WalkInputOptions {
   readonly pickAt: (clientX: number, clientY: number) => ScenePick | undefined;
   /** Called with what the player could click under the pointer, or undefined, so the scene can outline it. */
   readonly onHoverChange?: (pick: ScenePick | undefined) => void;
-  /** Called with what is under the pointer, finished structures included, so the cursor prompt can describe it. Undefined while placing a blueprint. */
-  readonly onPromptTargetChange?: (pick: ScenePick | undefined) => void;
   /** Called when the build menu opens or closes, or placing a blueprint starts, turns, or ends, so the HUD can show it. */
   readonly onBuildModeChange?: (mode: BuildMode) => void;
   /** Called with the blueprint that should follow the mouse while placing, or undefined to hide it. */
@@ -112,7 +111,7 @@ export interface WalkInput {
 }
 
 /**
- * A click on plain ground walks there. A click on a thing opens its action menu: a ring of every action it offers, as `thing-actions.ts`
+ * A click on plain ground walks there. With a log on the shoulder, it opens a ring to walk there or drop the log there instead. A click on a thing opens its action menu: a ring of every action it offers, as `thing-actions.ts`
  * names them, with the main action at 12 o'clock. Picking one sends it, and the player walks to the thing first when needed.
  * A click on a finished structure opens its menu, which offers what is under it and taking it down.
  * Pressing Escape, or a click elsewhere, closes the menu. Escape also stops building.
@@ -128,7 +127,6 @@ export function attachWalkInput({
   rig,
   pickAt,
   onHoverChange,
-  onPromptTargetChange,
   onBuildModeChange,
   onPlacingBlueprintChange,
   onMenuChange,
@@ -157,7 +155,6 @@ export function attachWalkInput({
     const blueprint = placingBlueprintFor(pick);
     canvas.style.cursor = blueprint?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
     onHoverChange?.(outlineFor(pick, placing));
-    onPromptTargetChange?.(placing ? undefined : seen);
     onPlacingBlueprintChange?.(blueprint);
   }
 
@@ -176,7 +173,7 @@ export function attachWalkInput({
 
   /**
    * The world can change under a still pointer: the camera pans or zooms, or the thing under it is built or taken away.
-   * Each frame, this re-picks if either happened, so the cursor prompt always names what a click would act on.
+   * Each frame, this re-picks if either happened, so the cursor and outline always show what a click would act on.
    */
   function watchUnderPointer(): void {
     watchFrame = null;
@@ -235,7 +232,7 @@ export function attachWalkInput({
       setMode(NOT_BUILDING);
       return;
     }
-    if (seen.kind === "ground") {
+    if (seen.kind === "ground" && menuFor(seen, client) === undefined) {
       const walk = mainAction(actionsFor({ kind: "scene", pick: seen }, client));
       if (walk?.command !== undefined) client.send(walk.command);
       return;

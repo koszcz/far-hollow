@@ -127,6 +127,23 @@ describe("carrying a log", () => {
     expect(game.entities.with("log", "position").size).toBe(LOGS_PER_TREE - 1);
   });
 
+  it("walks to a spot and lays the carried log there", () => {
+    const game = createGame({ seed: 42 });
+    fell(game, nearestTreeToPlayer(game));
+    const player = onlyPlayer(game);
+    const spot = { x: player.position.x + 4, z: player.position.z };
+    const logsBefore = game.entities.with("log", "position").size;
+
+    game.client.send({ type: "dropLogAt", ...spot });
+    game.step();
+    // The log stays on the shoulder until the player reaches the spot.
+    expect(game.client.getView().carrying).toBe("log");
+    stepUntil(game, () => game.client.getView().carrying === null, STEPS_PER_SECOND * 10);
+
+    expect(game.entities.with("log", "position").size).toBe(logsBefore + 1);
+    expect(Math.hypot(player.position.x - spot.x, player.position.z - spot.z)).toBeLessThan(2);
+  });
+
   it("does nothing when the player drops a log they do not carry", () => {
     const game = createGame({ seed: 42 });
     game.client.send({ type: "dropLog" });

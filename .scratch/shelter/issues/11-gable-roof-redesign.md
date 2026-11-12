@@ -1,54 +1,59 @@
-# 11: Gable roof that looks like a real log cabin's
+# 11: Steep plank gable roof
 
-**What to build:** Rework the cabin roof so it looks like the roof of a real log cabin. The roof becomes a steep gable: two slopes that meet at a ridge, with log gable ends that fill the triangle under the roof. Split boards cover it in thick, overlapping rows, and it reaches well past the walls.
+**What to build:** Rework the cabin roof so it looks like the roof of a real log cabin. The roof slopes at 35 degrees. Two rows of roof frames that face away from each other meet at a ridge. Plank gable ends close the triangle under each end of a ridge. Each roof section is made of planks laid in overlapping rows, and the roof reaches 0.5 m past the walls.
 
-**Blocked by:** 10 (Roof frame)
+**Blocked by:** 10 (Roof frame), crafting 03 (Cut planks)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Assets:** Change the approved `roof` and `roof-frame`, and the draft `roof-corners`, only with the owner's approval in chat. Add a draft asset for the gable ends. Reuse `debarked-log`, `log-wall`, and `player`. Add a draft for split boards if the roof cover changes from bark (see Open questions).
+**Assets:** The owner approved these changes in chat on 2026-11-12:
+
+- Change `roof`: the bark becomes weathered grey planks in 6 rows, with ragged, staggered ends, at 35 degrees, reaching 0.5 m past the walls. It goes back to `"status": "draft"`.
+- Change `roof-frame`: the rafters slope at 35 degrees. Plank gable ends and plank step fill replace the fill logs. It goes back to `"status": "draft"`.
+- Change the draft `roof-corners`: remove the hips. Redraw the valleys in planks.
+- Add a draft `gable-end` for the plank triangles.
+- Reuse `debarked-log`, `log-wall`, and `player`.
 
 ## Why
 
-The owner compared the roof with a photo of a real log cabin on 2026-11-12. The roof does not look right, and polishing the hip and valley seams did not fix it. The photo shows five differences:
+The owner compared the roof with a photo of a real log cabin on 2026-11-12. The roof does not look right. The roof slopes 12 degrees, so it looks like a flat lid. It has a hip at every outside corner, no gable ends, flat dark bark, and only about 0.3 m of overhang. The photo shows a steep gable roof of long, grey boards with a deep overhang.
 
-| | Real log cabin | Our roof now |
-| --- | --- | --- |
-| Slope | About 30 to 35 degrees | 12 degrees, so it reads as a flat lid |
-| Shape | A plain gable: two slopes and a ridge | A hip at every outside corner |
-| Ends | Log courses that get shorter up to the ridge fill the triangle under the roof | No gable ends |
-| Cover | Long, grey, weathered split boards in about seven rows. Each row throws a deep shadow line, and the board ends are staggered and ragged | Flat, dark-brown bark with faint row lines |
-| Overhang | Well past the gable ends and the eaves | About 0.3 m past the walls |
+## Decisions
 
-The boards on one slope also reach past the ridge, over the other slope. The roof does this already.
+All made by the owner on 2026-11-12.
 
-## Open questions for the owner
-
-1. **Cover:** Should the roof stay bark, but laid in thick, staggered rows? Or should it change to split boards, with a new material and recipe?
-2. **Hips and valleys:** Should every roof become a gable, with hips gone? Or should hips and valleys stay only where an L-shaped or U-shaped cabin needs them?
-3. **Gable ends:** Should the player build gable ends as their own piece? Or should they appear on their own under each end of a roof run, like the fill logs do now?
-4. **Slope:** Which slope do you want? At 30 degrees, each 1 m square of roof rises about 0.58 m, so a roof two squares deep stands about 1.2 m above the walls.
-5. **Overhang:** How far should the roof reach past the gable ends and the eaves? The photo shows about 0.4 to 0.6 m.
+- **Slope:** 35 degrees. Each 1 m square of roof rises about 0.70 m.
+- **Cover:** A roof section is planks, the same material the sawhorse cuts. It costs 6 planks instead of 4 bark. Construction lays one row of planks per stage, so it has 6 stages. There is no new material or recipe.
+- **Frame:** The roof frame stays hewn debarked logs and still costs 5 debarked logs. Only its rafters change slope.
+- **Gables only:** No roof has a hip. A ridge forms where two rows of frames face away from each other.
+- **L-shaped and U-shaped cabins:** At a corner, the corner frame's own turn decides which wing's roof runs through. The wing that slopes the same way as the corner frame runs through. The other wing ends against it in valleys. The player changes this by turning the corner frame with R. Saves still store only each frame's turn.
+- **Taller butted wing:** If the wing that ends in valleys is deeper, its ridge stands above the through-roof's ridge. This is allowed. A plank gable end fills the step above the through-roof.
+- **Shed roofs:** If every frame in a run faces the same way, the roof is one slope with no ridge. This is allowed. A plank triangle closes each end, up to the high wall.
+- **Gable ends:** They appear on their own under each end of a ridge or slope, as the fill logs do now. The frame's cost pays for them. The player never builds them on their own.
+- **Overhang:** 0.5 m past the eaves and past the gable ends.
+- **Old saves:** Every finished bark roof loads as a finished plank roof, at no cost. Every roof blueprint keeps its turn. Any bark already delivered to a blueprint goes back to the player's backpack.
 
 ## Tasks
 
-Settle the open questions first. Then:
-
-- [ ] Set the new slope. Sections one behind another still share one slope. Two runs that slope away from each other meet at a ridge.
-- [ ] Change the corner rule in `src/render/roof-layout.ts` to fit the decision on hips and valleys. The rule still looks only at a section's neighbours, and saves still store only each section's turn.
-- [ ] Log gable ends fill the triangle between the wall top and the roof at each end of a run, with no gap. They replace the fill logs where they do the same job.
-- [ ] Lay the cover in thick, overlapping rows with staggered, ragged ends, so each row casts a clear shadow line. The boards on one slope reach past the ridge over the other.
-- [ ] The roof reaches past the gable ends and the eaves by the agreed overhang.
-- [ ] Construction stages, taking down, and the hiding of a roof over the player work as they do now.
-- [ ] Saves from before this change load with the new look. Bump the save version if the stored data changes.
+- [ ] Frames and roofs slope at 35 degrees. Sections one behind another still share one slope.
+- [ ] Two rows of frames that face away from each other meet at a ridge. The planks on one slope reach past the ridge, over the other slope.
+- [ ] Change the corner rule in `src/render/roof-layout.ts`: no hips. At an outside corner, the corner frame's turn picks the wing that runs through, and the other wing ends in valleys. The rule still looks only at a section's neighbours.
+- [ ] Plank gable ends close the triangle between the wall top and the roof at each end of a ridge or slope, with no gap. They replace the fill logs.
+- [ ] Where a butted wing is taller than the through-roof, a plank gable end fills the step. Steps between runs of different depth are filled with planks, not logs.
+- [ ] Lay 6 rows of planks per roof section. They overlap, and their ends are ragged and staggered, so each row casts a clear shadow line. The planks look grey and weathered.
+- [ ] The roof reaches 0.5 m past the eaves and the gable ends.
+- [ ] The roof section costs 6 planks, and the build menu shows this cost. Construction has 6 stages, one row each.
+- [ ] Construction stages, taking down, rain cover, and the hiding of a roof over the player work as they do now. Taking down a roof section gives back its planks.
+- [ ] Old saves load as described under Decisions. Bump the save version.
 - [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused, changed, or added as a draft (ADR 0006).
-- [ ] Unit tests cover the changed corner rule and loading old saves.
+- [ ] Every asset under **Assets** is in the asset catalogue, changed or added as a draft (ADR 0006).
+- [ ] Unit tests cover the new corner rule, the taller butted wing, shed roofs, the roof cost, and loading old saves.
 
 ## Notes
 
-- The shapes and heights live in `src/render/roof-layout.ts` and `src/render/roof-parts.ts`. The frame is drawn in `src/render/roof-frame-meshes.ts`, and the bark in `src/render/roof-meshes.ts`.
-- The branch `asset/roof-corners` holds older, unfinished work on hip and valley pieces: a split log along each hip and a gutter in each valley. The owner did not like the same idea when it was rebuilt on 2026-11-12, so do not reuse it.
+- The shapes and heights live in `src/render/roof-layout.ts` and `src/render/roof-parts.ts`. The frame is drawn in `src/render/roof-frame-meshes.ts`, and the cover in `src/render/roof-meshes.ts`.
+- Do not reuse the branch `asset/roof-corners`. The owner did not like its hip and valley pieces.
+- Planks become the cabin's main cost. A roof over a 2 by 3 cabin needs 36 planks, which is 9 debarked logs cut at the sawhorse. The owner may want to tune this.
 - The owner's reference is a photo of a reconstructed soldiers' log hut with a board roof and log gable ends. Ask the owner for it if you need it.
 
 ## Comments

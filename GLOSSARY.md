@@ -157,10 +157,6 @@ _Avoid_: Feed, refuel, manage
 The ring of every action a thing offers, which opens when the player clicks the thing. The main action sits at the top, at 12 o'clock, and the rest follow clockwise. The ring has no background: only the options show. An action the player cannot do yet shows greyed, with the reason.
 _Avoid_: Right-click menu, context menu, radial menu, pie menu
 
-**Cursor prompt**:
-The small label beside the cursor that names the thing under it and the action at the top of its action menu.
-_Avoid_: Tooltip, hint, hover label
-
 **Hotbar**:
 The row at the bottom of the screen that shows the backpack contents, anything on the shoulder, and the sled the player drags.
 _Avoid_: Inventory bar, toolbar, quick bar
@@ -204,8 +200,24 @@ The first shelter the player builds: a sloped roof of sticks and bark on a frame
 _Avoid_: Shack, tent, hut
 
 **Roof frame**:
-The timber skeleton of one foundation square, built on its walls before the roof. Level beams lie on the wall tops, and sloped rafters rest on the beams. The frame sets which way the roof slopes. The roof section laid on it is only bark.
+The timber skeleton of one foundation square, built on its walls before the roof. Level beams lie on the wall tops, and sloped rafters rest on the beams. The frame sets which way the roof slopes. The roof section laid on it is only planks.
 _Avoid_: Truss, rafters (for the whole frame)
+
+**Roof section**:
+The planks laid on one roof frame, in overlapping rows. Only a finished roof section keeps the rain off.
+_Avoid_: Roof tile, shingle
+
+**Ridge**:
+The top line of a roof, where two slopes that face away from each other meet.
+_Avoid_: Peak, apex
+
+**Gable end**:
+The triangle of planks that closes the space between the wall top and the roof at the end of a ridge. It comes with the roof frame, so the player never builds it on its own.
+_Avoid_: Gable wall, end wall
+
+**Valley**:
+The gutter where two roof slopes meet at an inside corner, as where the roofs of an L-shaped cabin join.
+_Avoid_: Gutter, inside corner
 
 **Room**:
 A set of foundation squares closed in on every side by log walls or door frames, with a roof over every square. A lit campfire in a room warms the whole room.

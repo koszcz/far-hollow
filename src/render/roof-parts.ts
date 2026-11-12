@@ -1,5 +1,5 @@
-// What the roof frame and the roof laid on it share: their sizes and slope, the frame layout both follow, and the debarked
-// logs both are made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, and the bark ("roof") by roof-meshes.ts.
+// What the roof frame and the roof laid on it share: their sizes and slope, the frame layout both follow, and the hewn
+// timbers and split boards the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, and the bark ("roof") by roof-meshes.ts.
 // Heights here are in metres above the foundation's deck, in a section's own frame: drawn unturned, sloping down to +z.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
@@ -34,11 +34,17 @@ export const SECTION_RISE_METRES = BUILD_GRID_METRES * Math.tan(ROOF_SLOPE_RADIA
  * because the screen cannot tell which is on top.
  */
 const ODD_COLUMN_LIFT_METRES = 0.012;
-/** The logs that fill the gaps between the beams and the roof are this thick, like the logs of a log wall, in metres. */
-const FILL_RADIUS_METRES = 0.1;
+/** Each course of split boards that fills the gaps between the beams and the roof is this tall, in metres. */
+const FILL_COURSE_METRES = 0.2;
+/** A split board is this thick, in metres: a debarked log split down its middle and the halves split again. */
+const FILL_THICKNESS_METRES = 0.06;
+/** A fill board is left out where it would be shorter than this, in metres. */
+const FILL_SHORTEST_METRES = 0.1;
+/** A split board has this many flat faces round it, squashed flat, so its faces look rough-split rather than sawn. */
+const FILL_BOARD_SIDES = 6;
 /** Logs fill a gap under an edge only where it is this much more than the rafters' thickness, in metres. */
 const FILL_GAP_METRES = 0.01;
-/** A fill log is cut into this many lengths, so its top can follow the slope of the roof. */
+/** A fill board is cut into this many lengths, so its top can follow the slope of the roof. */
 const FILL_LENGTHS = 12;
 /** How many points along an edge are checked for the height of the roof and of what is under it. */
 const EDGE_SAMPLES = 25;
@@ -117,22 +123,66 @@ export function neighboursOf(layout: FrameLayout, middle: { x: number; z: number
   });
 }
 
+/** A hewn timber's corners are cut off by this share of its half width, leaving four broad faces and four narrow chamfers. */
+const CHAMFER_SHARE = 0.3;
+/** How deep the shallow adze marks along a hewn timber's faces go, at most, in metres. */
+const ADZE_DEPTH_METRES = 0.007;
+/** How many adze marks a hewn timber has along each face, per metre. */
+const ADZE_MARKS_PER_METRE = 6;
+
 /**
- * One debarked log lying along z, `length` long, faceted and a little tapered, with pale cut ends.
- * It carries a colour per corner, so draw it with `vertexColors: true` and the material colour set to the log colour.
+ * One hewn timber lying along z, `length` long: a debarked log squared with an adze, with chamfered corners, shallow adze marks
+ * along its faces, and pale cut ends. It is `2 * halfHeight` tall and `2 * halfWidth` wide, and a little thinner at one end.
+ * It carries a colour per corner, so draw it with `vertexColors: true`, `flatShading: true`, and the material colour set to the log colour.
  */
-export function debarkedLog(length: number, radius: number, jitter: (size: number) => number, taper = RAFTER_TAPER_METRES): THREE.BufferGeometry {
-  const geometry = new THREE.CylinderGeometry(radius - taper, radius, length, LOG_SIDES, 1)
-    .rotateY(random01(jitter) * Math.PI)
-    .rotateX(Math.PI / 2 + jitter(0.015))
-    .rotateY(jitter(0.03));
+export function hewnTimber(
+  length: number,
+  halfHeight: number,
+  jitter: (size: number) => number,
+  halfWidth = halfHeight,
+  taper = RAFTER_TAPER_METRES,
+): THREE.BufferGeometry {
+  const faces = 8;
+  const marks = Math.max(2, Math.round(length * ADZE_MARKS_PER_METRE));
+  // The cylinder stands along y, with its corners half a face round, so its faces look along x and z and the corners between.
+  const geometry = new THREE.CylinderGeometry(1, 1, length, faces, marks, false, Math.PI / faces);
+  const positions = geometry.getAttribute("position");
+  const dents = new Map<string, number>();
+  const dent = (key: string) => {
+    const known = dents.get(key);
+    if (known !== undefined) return known;
+    const made = random01(jitter) * ADZE_DEPTH_METRES;
+    dents.set(key, made);
+    return made;
+  };
+  for (let i = 0; i < positions.count; i += 1) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    const z = positions.getZ(i);
+    if (Math.hypot(x, z) < 0.5) continue;
+    // Snap each corner of the cylinder onto the outline of a squared timber with chamfered corners.
+    const angle = Math.atan2(x, z);
+    const corner = (((Math.round((angle - Math.PI / faces) / ((2 * Math.PI) / faces)) % faces) + faces) % faces).toString();
+    const thin = 1 - (taper / Math.max(halfWidth, halfHeight)) * (y / length + 0.5);
+    const deep = Math.abs(y) < length / 2 - 0.001 ? dent(`${y.toFixed(4)}:${corner}`) : 0;
+    const width = (halfWidth - deep) * thin;
+    const height = (halfHeight - deep) * thin;
+    const facesZ = Math.abs(z) > Math.abs(x);
+    positions.setXYZ(i, Math.sign(x) * (facesZ ? width * (1 - CHAMFER_SHARE) : width), y, Math.sign(z) * (facesZ ? height : height * (1 - CHAMFER_SHARE)));
+  }
+  // Laid on its side, the cylinder's x stays the timber's width, and its z becomes the timber's height.
+  geometry.rotateX(Math.PI / 2 + jitter(0.012)).rotateY(jitter(0.025));
   // After the turn onto its side, the cut ends face along z.
   return paleLog(geometry, (normal) => Math.abs(normal.z));
 }
 
-/** One rafter: a debarked log lying along z, reaching `span` plus an overhang at each end. */
+/** How wide a rafter is across, as a share of its height. A rafter is hewn a little narrower than it is tall. */
+const RAFTER_WIDTH_SHARE = 0.85;
+
+/** One rafter: a hewn timber lying along z, reaching `span` plus an overhang at each end. */
 export function rafterLog(jitter: (size: number) => number, span = BUILD_GRID_METRES): THREE.BufferGeometry {
-  return debarkedLog(span + 2 * RAFTER_OVERHANG_METRES + jitter(0.04), RAFTER_RADIUS_METRES + jitter(0.006), jitter);
+  const halfHeight = RAFTER_RADIUS_METRES;
+  return hewnTimber(span + 2 * RAFTER_OVERHANG_METRES + jitter(0.04), halfHeight, jitter, halfHeight * RAFTER_WIDTH_SHARE + jitter(0.004));
 }
 
 /**
@@ -187,14 +237,14 @@ export function fillLogs(shape: RoofShape, floors: readonly (number | undefined)
   EDGES.forEach((edge, index) => {
     const floor = floors[index];
     if (floor === undefined) return;
-    // A log reaches past an end where the edge meeting it there is filled too, so the two stacks meet at the corner.
-    const from = -half - (floors[edge.startEdge] === undefined ? 0 : FILL_RADIUS_METRES);
-    const to = half + (floors[edge.endEdge] === undefined ? 0 : FILL_RADIUS_METRES);
+    // A board reaches past an end where the edge meeting it there is filled too, so the two stacks meet at the corner.
+    const from = -half - (floors[edge.startEdge] === undefined ? 0 : FILL_THICKNESS_METRES / 2);
+    const to = half + (floors[edge.endEdge] === undefined ? 0 : FILL_THICKNESS_METRES / 2);
     const across = edge.across * half;
     const under = (t: number) => (edge.axis === "x" ? ceiling(t, across) : ceiling(across, t));
     const top = Math.max(...samples(from, to).map(under));
-    for (let bottom = floor; bottom < top - 0.005; bottom += 2 * FILL_RADIUS_METRES) {
-      // The log stops where the bark comes down to its bottom.
+    for (let bottom = floor; bottom < top - 0.005; bottom += FILL_COURSE_METRES) {
+      // The board stops where the bark comes down to its bottom.
       const reach = stretchAbove(from, to, (t) => under(t) - bottom);
       if (reach !== undefined) logs.push(cutLog(bottom, reach.from, reach.to, edge.axis, across, ceiling));
     }
@@ -228,20 +278,24 @@ function stretchAbove(from: number, to: number, height: (t: number) => number): 
   const lastPoint = from + last * step;
   const start = first === 0 ? from : crossing(firstPoint - step, firstPoint);
   const end = last === points.length - 1 ? to : crossing(lastPoint + step, lastPoint);
-  return end - start > FILL_RADIUS_METRES ? { from: start, to: end } : undefined;
+  return end - start > FILL_SHORTEST_METRES ? { from: start, to: end } : undefined;
 }
 
 /**
- * A fill log resting at height `bottom`, running along `axis` from `from` to `to`, its middle at `across` on the other axis.
- * Its top is cut down to the bark's underside, so the top log of a stack fills the gap under the slope exactly.
+ * A split board resting at height `bottom`, running along `axis` from `from` to `to`, its middle at `across` on the other axis.
+ * Its top is cut down to the bark's underside, so the top board of a stack fills the gap under the slope exactly.
  */
 function cutLog(bottom: number, from: number, to: number, axis: "x" | "z", across: number, ceiling: (x: number, z: number) => number): THREE.BufferGeometry {
-  const geometry = new THREE.CylinderGeometry(FILL_RADIUS_METRES, FILL_RADIUS_METRES, to - from, LOG_SIDES, FILL_LENGTHS);
-  // The cylinder stands along y. Lay it along its axis.
-  if (axis === "x") geometry.rotateZ(Math.PI / 2);
-  else geometry.rotateX(Math.PI / 2);
+  const half = FILL_COURSE_METRES / 2;
+  const geometry = new THREE.CylinderGeometry(half, half, to - from, FILL_BOARD_SIDES, FILL_LENGTHS, false, Math.PI / FILL_BOARD_SIDES);
+  // The cylinder stands along y. Squash it flat across, in z, and keep it a little short of its course in x, so a groove shows between boards.
+  geometry.scale(0.94, 1, FILL_THICKNESS_METRES / FILL_COURSE_METRES);
+  // Laid along x, its x becomes its height.
+  geometry.rotateZ(Math.PI / 2);
+  // The cylinder now lies along x, standing tall in y. A board along z is turned round to it.
+  if (axis === "z") geometry.rotateY(Math.PI / 2);
   const middle = (from + to) / 2;
-  geometry.translate(axis === "x" ? middle : across, bottom + FILL_RADIUS_METRES, axis === "x" ? across : middle);
+  geometry.translate(axis === "x" ? middle : across, bottom + half, axis === "x" ? across : middle);
   const positions = geometry.getAttribute("position");
   for (let i = 0; i < positions.count; i += 1) {
     positions.setY(i, Math.max(bottom, Math.min(positions.getY(i), ceiling(positions.getX(i), positions.getZ(i)))));

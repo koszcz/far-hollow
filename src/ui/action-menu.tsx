@@ -1,22 +1,11 @@
 // The menu a right-click on a thing in the world opens. It uses the HUD's button style. Its own look lives in the
 // .action-menu rules of src/app/style.css.
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import type { BackpackContent, Command, GameClient } from "../sim/api";
+import type { GameClient } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
-import { HudIcon, type HudIconName } from "./hud-icons";
-
-/** One entry in the menu. A ThingAction from src/app/thing-actions.ts fits it. */
-export interface ActionMenuEntry {
-  readonly id: string;
-  readonly label: string;
-  readonly icon: { readonly hud: HudIconName } | { readonly content: BackpackContent };
-  readonly enabled: boolean;
-  /** Why the entry is off. Shown after its name. */
-  readonly reason?: string;
-  /** What picking it sends. An entry without one is left out. */
-  readonly command: Command | undefined;
-}
+import { HudIcon } from "./hud-icons";
+import type { ActionIcon, ThingAction } from "./thing-action";
 
 export interface ActionMenuProps {
   client: GameClient;
@@ -24,7 +13,7 @@ export interface ActionMenuProps {
   x: number;
   y: number;
   /** Every action the thing offers, main first. Actions that send no command are left out. */
-  actions: readonly ActionMenuEntry[];
+  actions: readonly ThingAction[];
   /** Called when the player picks an action, after its command is sent, or presses anywhere outside the menu, so the menu can close. */
   onClose: () => void;
 }
@@ -80,6 +69,6 @@ export function ActionMenu({ client, x, y, actions, onClose }: ActionMenuProps) 
   );
 }
 
-function ActionIconView({ icon }: { icon: ActionMenuEntry["icon"] }) {
+function ActionIconView({ icon }: { icon: ActionIcon }) {
   return "hud" in icon ? <HudIcon name={icon.hud} /> : <BackpackIcon content={icon.content} />;
 }

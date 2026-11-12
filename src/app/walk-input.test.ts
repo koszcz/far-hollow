@@ -3,7 +3,7 @@ import type { ScenePick } from "../render/scene-renderer";
 import type { BackpackContent, BlueprintView, CampfireView, Command, GameView, WoodpileView } from "../sim/api";
 import { createGame } from "../sim/game";
 import type { ActionReader } from "./thing-actions";
-import { cursorFor, leftClickFor, outlineFor } from "./walk-input";
+import { cursorFor, leftClickFor, menuFor, outlineFor } from "./walk-input";
 
 /** The command a left-click on this pick sends, read through a reader built from the given state. */
 function clickSends(pick: ScenePick, state: ReaderState = {}): Command | undefined {
@@ -81,14 +81,14 @@ describe("left-clicking a finished work station", () => {
 
 describe("left-clicking a finished building piece", () => {
   it("acts on what is under it, so the player can walk onto a foundation or into a lean-to", () => {
-    const pick = { kind: "structure", id: 8, under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
+    const pick = { kind: "structure", id: 8, structure: "foundation", under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
     expect(clickSends(pick)).toEqual({ type: "walkTo", x: 1, z: 2 });
     expect(cursorFor(pick, false)).toBe("");
     expect(outlineFor(pick, false)).toBeUndefined();
   });
 
   it("does nothing with nothing under it", () => {
-    expect(leftClickFor({ kind: "structure", id: 8, under: undefined }, readerWith({}))).toBeUndefined();
+    expect(leftClickFor({ kind: "structure", id: 8, structure: "foundation", under: undefined }, readerWith({}))).toBeUndefined();
   });
 });
 
@@ -109,6 +109,24 @@ describe("left-clicking other things", () => {
   it("shows a hand and an outline over a pile", () => {
     expect(cursorFor({ kind: "pile", id: 4 }, false)).toBe("pointer");
     expect(outlineFor({ kind: "pile", id: 4 }, false)).toEqual({ kind: "pile", id: 4 });
+  });
+});
+
+describe("right-clicking", () => {
+  const ids = (pick: ScenePick, state: ReaderState = {}) => menuFor(pick, readerWith(state))?.map(({ id }) => id);
+
+  it("opens a lone wall's menu, which offers to take it down", () => {
+    const wall = { kind: "structure", id: 8, structure: "logWall", under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
+
+    expect(ids(wall)).toEqual(["takeDownStructure"]);
+  });
+
+  it("opens the menu of a thing with more than its main action", () => {
+    expect(ids({ kind: "log", id: 3 })).toEqual(["pickUp", "debark"]);
+  });
+
+  it("opens no menu for a thing whose only action is its left-click", () => {
+    expect(ids({ kind: "stick", id: 4 })).toBeUndefined();
   });
 });
 

@@ -20,7 +20,7 @@ import {
   restoreEntities,
   saveEntities,
   type Entity,
-  type TendCommand,
+  type TendTask,
   type EntityStore,
   type SavedEntity,
 } from "./entities";
@@ -279,7 +279,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
-  function tendNow(command: TendCommand): PlainNotice | undefined {
+  function tendNow(command: TendTask): PlainNotice | undefined {
     switch (command.type) {
       case "addFuel":
         campfires.addFuel(command.campfireId, command.fuel);
@@ -304,7 +304,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    * Carries out a command on a campfire or woodpile now if the player stands within its reach.
    * Otherwise the player stops what they were doing, walks beside it, and carries the command out there.
    */
-  function tend(command: TendCommand): void {
+  function tend(command: TendTask): void {
     if (tending.inReach(command)) refuseWith(tendNow(command));
     else {
       cancelTasks();

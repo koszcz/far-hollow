@@ -1,8 +1,8 @@
 import type { CameraRig } from "../render/camera-rig";
 import type { GroundOrThingPick, PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import type { GameClient, StructureKind } from "../sim/api";
+import type { GameClient, StructureKind, ThingInReach } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
-import { actionsFor, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
+import { actionsFor, hasMoreActions, leftClickAction, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
 
 /**
  * What a left-click on a thing does: its main action, if the player can do it now.
@@ -17,15 +17,27 @@ export function leftClickFor(pick: ScenePick, reader: ActionReader): ThingAction
 }
 
 /**
- * What E does: the main action on the thing nearest the player within reach, if the player can do it now.
+ * What E does: the main action on the thing nearest the player within reach, if the player can do it now, with that thing.
  * With nothing in reach, or a main action that is off, E does nothing.
- * A work station's main action, opening its menu, has no command, so E does nothing there either.
+ * A work station's main action, opening its menu, has no command. The caller opens the menu, as for a left-click.
  */
-export function useKeyFor(reader: ActionReader & Pick<GameClient, "nearestInReach">): ThingAction | undefined {
-  const nearest = reader.nearestInReach();
-  if (nearest === null) return undefined;
-  const action = leftClickFor(nearest, reader);
-  return action?.command === undefined ? undefined : action;
+export function useKeyFor(
+  reader: ActionReader & Pick<GameClient, "nearestInReach">,
+): { readonly thing: ThingInReach; readonly action: ThingAction } | undefined {
+  const thing = reader.nearestInReach();
+  if (thing === null) return undefined;
+  const action = leftClickFor(thing, reader);
+  return action === undefined ? undefined : { thing, action };
+}
+
+/**
+ * The actions a right-click menu lists for a thing, main first, or undefined if the menu should not open.
+ * It opens whenever the thing offers an action a left-click does not do, such as taking down a lone wall.
+ */
+export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAction[] | undefined {
+  const target = { kind: "scene", pick } as const;
+  const actions = actionsFor(target, reader);
+  return hasMoreActions(actions, leftClickAction(target, reader)) ? actions : undefined;
 }
 
 /** A right-click menu to show at a point on the page, in page pixels. */
@@ -99,7 +111,7 @@ export interface WalkInput {
  * R turns it, a left-click on the ground places it, and Escape cancels.
  * A left-drag pans the camera instead, so it never counts as a click.
  * A right-click without a drag opens a menu of every action the thing offers, such as debarking a log or taking down a structure.
- * It opens only for things that offer more than their main action.
+ * It opens for things that offer any action a left-click does not do.
  * Only the right-click menu sees finished structures. Other clicks act on what is under them.
  * A right-drag turns the camera instead.
  * Space snaps the camera back to the player.
@@ -193,11 +205,10 @@ export function attachWalkInput({
     if (pick !== undefined) showMenu(event.clientX, event.clientY, pick);
   }
 
-  /** Opens the menu of every action the thing offers at a point on the page, if it offers more than its main action. */
+  /** Opens the menu of every action the thing offers at a point on the page, if it offers any a left-click does not do. */
   function showMenu(x: number, y: number, pick: ScenePick): void {
-    const actions = actionsFor({ kind: "scene", pick }, client);
-    // The menu opens only for a thing that offers more than its main action, such as a log that can be debarked too.
-    if (actions.length > 1) onMenuChange?.({ x, y, actions });
+    const actions = menuFor(pick, client);
+    if (actions !== undefined) onMenuChange?.({ x, y, actions });
   }
 
   function onPointerUp(event: PointerEvent): void {
@@ -242,8 +253,13 @@ export function attachWalkInput({
       return;
     }
     if (event.code === "KeyE" && !typing && mode.placing === null) {
-      const command = useKeyFor(client)?.command;
-      if (command !== undefined) client.send(command);
+      const use = useKeyFor(client);
+      if (use?.action.command !== undefined) client.send(use.action.command);
+      else if (use?.action.id === "openMenu") {
+        // E has no cursor spot to open the menu at, so it opens in the middle of the scene, where the player stands.
+        const bounds = canvas.getBoundingClientRect();
+        showMenu(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2, use.thing);
+      }
       return;
     }
     if (event.code !== "Space" || target?.closest("input, textarea, select, button") != null) return;

@@ -2,7 +2,7 @@
 // This file decides the words. src/app/cursor-prompt-overlay.ts draws them and moves them with the cursor.
 import type { ThingInReach } from "../sim/api";
 import { strings } from "../strings";
-import { actionsFor, mainAction, targetName, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
+import { actionsFor, hasMoreActions, leftClickAction, targetName, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
 /** One line of the prompt: a mouse button and what it does. */
 export interface PromptLine {
@@ -34,19 +34,14 @@ export type PromptButton = "build" | "craft";
  */
 export function promptFor(target: ActionTarget, reader: ActionReader, nearest: ThingInReach | null = null): CursorPrompt | undefined {
   if (target.kind === "scene" && target.pick.kind === "ground") return undefined;
-  const menu = actionsFor(target, reader);
-  let named = target;
-  let left = mainAction(menu);
-  if (target.kind === "scene" && target.pick.kind === "structure") {
-    // A left-click acts on what is behind a finished structure. Over plain ground behind it, a left-click only walks.
-    const behind = target.pick.under;
-    named = behind === undefined || behind.kind === "ground" ? target : { kind: "scene", pick: behind };
-    left = named === target ? undefined : mainAction(actionsFor(named, reader));
-  }
+  const left = leftClickAction(target, reader);
+  // A left-click on a finished structure acts on the thing behind it, so the prompt names that thing. Over ground, it names the structure.
+  const behind = target.kind === "scene" && target.pick.kind === "structure" ? target.pick.under : undefined;
+  const named: ActionTarget = behind === undefined || behind.kind === "ground" ? target : { kind: "scene", pick: behind };
   const lines: PromptLine[] = [];
   if (left !== undefined) lines.push(leftLine(left, isThing(named, nearest)));
   else if (target.kind === "item") lines.push({ button: strings.prompt.leftClick, text: strings.prompt.noUse, enabled: false });
-  if (menu.some((action) => action.id !== left?.id)) lines.push({ button: strings.prompt.rightClick, text: strings.prompt.moreActions, enabled: true });
+  if (hasMoreActions(actionsFor(target, reader), left)) lines.push({ button: strings.prompt.rightClick, text: strings.prompt.moreActions, enabled: true });
   return { title: targetName(named, reader), lines };
 }
 

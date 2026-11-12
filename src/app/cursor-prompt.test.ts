@@ -89,14 +89,14 @@ describe("the cursor prompt over a thing in the world", () => {
     expect(text(prompt)).toEqual(["Sawhorse", "Left-click: Open its menu", "Right-click: More actions"]);
   });
 
-  it("names a finished wall with no left-click action, and still offers its menu", () => {
-    const pick = { kind: "structure", id: 10, under: { kind: "ground", spot: { x: 0, z: 0 } } } as const;
+  it("names a finished wall by its kind, with no left-click action, and still offers its menu", () => {
+    const pick = { kind: "structure", id: 10, structure: "logWall", under: { kind: "ground", spot: { x: 0, z: 0 } } } as const;
 
-    expect(text(promptFor({ kind: "scene", pick }, readerWith({})))).toEqual(["Building piece", "Right-click: More actions"]);
+    expect(text(promptFor({ kind: "scene", pick }, readerWith({})))).toEqual(["Log wall", "Right-click: More actions"]);
   });
 
   it("names the thing behind a finished structure, since a left-click acts on it", () => {
-    const pick = { kind: "structure", id: 10, under: { kind: "stick", id: 4 } } as const;
+    const pick = { kind: "structure", id: 10, structure: "logWall", under: { kind: "stick", id: 4 } } as const;
 
     expect(text(promptFor({ kind: "scene", pick }, readerWith({})))).toEqual(["Stick", "Left-click: Pick up", "Right-click: More actions"]);
   });
@@ -116,7 +116,7 @@ describe("the cursor prompt over the thing nearest the player", () => {
   });
 
   it("shows E over a wall when the nearest thing is behind it", () => {
-    const pick = { kind: "structure", id: 9, under: { kind: "stick", id: 2 } } as const;
+    const pick = { kind: "structure", id: 9, structure: "logWall", under: { kind: "stick", id: 2 } } as const;
 
     expect(text(promptFor({ kind: "scene", pick }, readerWith({}), { kind: "stick", id: 2 }))).toEqual([
       "Stick",

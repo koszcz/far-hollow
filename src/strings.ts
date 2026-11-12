@@ -272,6 +272,7 @@ export const strings = {
     noFirewood: "no firewood",
     woodpileFull: "the woodpile is full",
     shoulderFull: "your shoulder is full",
+    noLogCarried: "carrying no log",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
     potOnFire: "take the pot off first",

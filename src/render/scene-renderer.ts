@@ -1,7 +1,8 @@
 import * as THREE from "three";
-import type { WorkStationKind } from "../sim/api";
+import type { StructureKind, WorkStationKind } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { movingEntities, type Entity, type EntityStore } from "../sim/entities";
+import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
@@ -35,7 +36,7 @@ const TURN_MIN_TRAVEL_METRES = 0.001;
  * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
  */
 export type ScenePick =
-  | { kind: "structure"; id: number; under: GroundOrThingPick | undefined }
+  | { kind: "structure"; id: number; structure: StructureKind; under: GroundOrThingPick | undefined }
   | { kind: "ground"; spot: GroundPoint }
   | { kind: "river"; spot: GroundPoint }
   | { kind: "tree"; id: number }
@@ -292,8 +293,10 @@ export function createSceneRenderer(
       const under = pickThroughFinishedStructures();
       const nearest = structureMeshes.pickFinished(raycaster);
       const id = nearest === undefined ? undefined : entities.id(nearest.entity);
-      if (nearest === undefined || id === undefined || (under !== undefined && under.distance < nearest.distance)) return under?.pick;
-      return { kind: "structure", id, under: under?.pick };
+      const structure = nearest === undefined ? undefined : structureKindOf(nearest.entity);
+      if (nearest === undefined || id === undefined || structure === undefined || (under !== undefined && under.distance < nearest.distance))
+        return under?.pick;
+      return { kind: "structure", id, structure, under: under?.pick };
     },
     setHovered(pick) {
       const entityPick = pick !== undefined && "id" in pick && pick.kind !== "structure" ? pick : undefined;

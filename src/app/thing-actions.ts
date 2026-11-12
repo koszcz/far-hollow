@@ -77,6 +77,24 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
   return actions[0]?.isMain === true ? actions[0] : undefined;
 }
 
+/**
+ * The action the cursor prompt names for a left-click, enabled or not, or undefined if it names none.
+ * A left-click on a finished structure acts on the thing behind it. With only ground behind it, the click just walks, so it names none.
+ */
+export function leftClickAction(target: ActionTarget, reader: ActionReader): ThingAction | undefined {
+  if (target.kind !== "scene" || target.pick.kind !== "structure") return mainAction(actionsFor(target, reader));
+  const behind = target.pick.under;
+  return behind === undefined || behind.kind === "ground" ? undefined : mainAction(actionsFor({ kind: "scene", pick: behind }, reader));
+}
+
+/**
+ * Whether the target's actions include one a left-click does not do. Only then does the right-click menu open,
+ * and only then does the cursor prompt say "More actions".
+ */
+export function hasMoreActions(actions: readonly ThingAction[], left: ThingAction | undefined): boolean {
+  return actions.some(({ id }) => id !== left?.id);
+}
+
 function pickName(pick: ScenePick, reader: ActionReader): string {
   switch (pick.kind) {
     case "blueprint": {
@@ -85,6 +103,8 @@ function pickName(pick: ScenePick, reader: ActionReader): string {
     }
     case "workStation":
       return strings.buildMenu.structures[pick.station];
+    case "structure":
+      return strings.buildMenu.structures[pick.structure];
     default:
       return strings.things[pick.kind];
   }
@@ -117,9 +137,9 @@ function takeDown(id: number, actionId = "takeDown", reason?: string): Offer {
 
 function sceneActions(pick: ScenePick, reader: ActionReader, view: GameView): readonly ThingAction[] {
   if (pick.kind !== "structure") return thingActions(pick, reader, view);
-  // A finished structure acts like what is under it, and can also be taken down.
-  const under = pick.under === undefined ? [] : thingActions(pick.under, reader, view);
-  return [...under, { ...takeDown(pick.id, "takeDownStructure"), isMain: under.length === 0 }];
+  // A finished structure acts like the thing under it, and can also be taken down. Ground under it adds nothing, since a click there only walks.
+  const under = pick.under === undefined || pick.under.kind === "ground" ? [] : thingActions(pick.under, reader, view);
+  return [...under, { ...takeDown(pick.id, "takeDownStructure"), isMain: false }];
 }
 
 function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameView): readonly ThingAction[] {
@@ -226,7 +246,6 @@ function campfireActions(campfire: CampfireView, view: GameView): readonly Thing
   return withMain(offers, main);
 }
 
-const LOGS: readonly CarriedLog[] = ["log", "debarkedLog"];
 const WOODS: readonly WoodpileWood[] = ["log", "debarkedLog", "firewood"];
 
 /**
@@ -238,8 +257,14 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
   const reasons = strings.actionReasons;
   const full = woodpile.total >= woodpile.capacity ? reasons.woodpileFull : undefined;
   const woodIcon = (wood: WoodpileWood): ActionIcon => (wood === "firewood" ? { content: "firewood" } : { hud: "log" });
-  const stackLog = LOGS.filter((log) => view.carrying === log).map((log) =>
-    offerUnless(full, `stack:${log}`, strings.actions.stack[log], woodIcon(log), { type: "stackOnWoodpile", woodpileId, wood: log, all: false }),
+  // With nothing on the shoulder, stacking the log still shows, greyed, so the player learns they can.
+  const stackLog = (view.carrying === null ? (["log"] as const) : [view.carrying]).map((log) =>
+    offerUnless(view.carrying === null ? reasons.noLogCarried : full, `stack:${log}`, strings.actions.stack[log], woodIcon(log), {
+      type: "stackOnWoodpile",
+      woodpileId,
+      wood: log,
+      all: false,
+    }),
   );
   const firewoodReason = full ?? (has(view, "firewood") ? undefined : reasons.noFirewood);
   const stackFirewood = [

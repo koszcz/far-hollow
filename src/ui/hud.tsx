@@ -7,7 +7,6 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type {
   BackpackContent,
-  BedrollView,
   BlueprintView,
   BuildMenuEntry,
   CampfireView,
@@ -398,12 +397,8 @@ function HudToolButton({
   );
 }
 
-/** Shows whether the campfire beside the player burns and how much fuel it has, with buttons to fuel and light it. */
-function CampfirePanel({ client, view, campfire }: { client: GameClient; view: GameView; campfire: CampfireView }) {
-  const hasSticks = (view.backpack.stick ?? 0) > 0;
-  const hasFirewood = (view.backpack.firewood ?? 0) > 0;
-  const hasBark = (view.backpack.bark ?? 0) > 0;
-  const hasFullPot = (view.backpack.potOfRiverWater ?? 0) > 0 || (view.backpack.potOfBoiledWater ?? 0) > 0;
+/** Shows whether the campfire beside the player burns, how much fuel it has, and how far the pot on it has boiled. Its actions are on the campfire itself. */
+function CampfirePanel({ campfire }: { campfire: CampfireView }) {
   return (
     <section class="hud-section hud-campfire" aria-label={strings.campfire}>
       <h2>
@@ -412,68 +407,12 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
         <span class={campfire.lit ? "hud-tag hud-tag-lit" : "hud-tag"}>{campfire.lit ? strings.campfireLit : strings.campfireUnlit}</span>
       </h2>
       <Meter icon="flame" label={strings.campfireFuel} value={campfire.fuelLeft} colour={`rgb(${WARM_RGB.join(" ")})`} />
-      <div class="hud-buttons">
-        <HudButton
-          label={strings.addStick}
-          disabled={!hasSticks}
-          onClick={() => {
-            client.send({ type: "addFuel", campfireId: campfire.id, fuel: "stick" });
-          }}
-        />
-        <HudButton
-          label={strings.addFirewood}
-          disabled={!hasFirewood}
-          onClick={() => {
-            client.send({ type: "addFuel", campfireId: campfire.id, fuel: "firewood" });
-          }}
-        />
-        <HudButton
-          icon="bark"
-          label={strings.addBark}
-          disabled={!hasBark}
-          onClick={() => {
-            client.send({ type: "addFuel", campfireId: campfire.id, fuel: "bark" });
-          }}
-        />
-        {!campfire.lit && (
-          <HudButton
-            icon="flame"
-            label={strings.lightCampfire}
-            disabled={!campfire.canLight}
-            onClick={() => {
-              client.send({ type: "lightCampfire", campfireId: campfire.id });
-            }}
-          />
-        )}
-        {campfire.pot === null && (
-          <HudButton
-            icon="droplet"
-            label={strings.putPotOnFire}
-            disabled={!campfire.lit || !hasFullPot}
-            onClick={() => {
-              client.send({ type: "putPotOnFire", campfireId: campfire.id });
-            }}
-          />
-        )}
-      </div>
-      {campfire.pot !== null && (
-        <>
-          {campfire.pot.water === "boiled" ? (
-            <p class="hud-hint">{strings.potBoiled}</p>
-          ) : (
-            <Meter icon="droplet" label={strings.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
-          )}
-          <div class="hud-buttons">
-            <HudButton
-              icon="backpack"
-              label={strings.takePotOffFire}
-              onClick={() => {
-                client.send({ type: "takePotOffFire", campfireId: campfire.id });
-              }}
-            />
-          </div>
-        </>
-      )}
+      {campfire.pot !== null &&
+        (campfire.pot.water === "boiled" ? (
+          <p class="hud-hint">{strings.potBoiled}</p>
+        ) : (
+          <Meter icon="droplet" label={strings.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
+        ))}
     </section>
   );
 }
@@ -481,14 +420,8 @@ function CampfirePanel({ client, view, campfire }: { client: GameClient; view: G
 /** The kinds of wood a woodpile holds, in the order the woodpile panel lists them. */
 const WOODPILE_WOODS: readonly WoodpileWood[] = ["log", "debarkedLog", "firewood"];
 
-/**
- * Shows how full the woodpile beside the player is and what it holds, with buttons to stack wood on it and take wood off.
- * A log or debarked log is stacked from the shoulder. Firewood is stacked from the backpack: one with a click, all that fit with a shift-click.
- */
-function WoodpilePanel({ client, view, woodpile }: { client: GameClient; view: GameView; woodpile: WoodpileView }) {
-  const full = woodpile.total >= woodpile.capacity;
-  const canStack = (wood: WoodpileWood): boolean => !full && (wood === "firewood" ? (view.backpack.firewood ?? 0) > 0 : view.carrying === wood);
-  const canTake = (wood: WoodpileWood): boolean => woodpile.contents[wood] > 0 && (wood === "firewood" || view.carrying === null);
+/** Shows how full the woodpile beside the player is and what it holds. Its actions are on the woodpile itself. */
+function WoodpilePanel({ woodpile }: { woodpile: WoodpileView }) {
   return (
     <section class="hud-section hud-woodpile" aria-label={strings.woodpile.title}>
       <h2>
@@ -502,79 +435,18 @@ function WoodpilePanel({ client, view, woodpile }: { client: GameClient; view: G
           <li key={wood}>{strings.woodpile.contents[wood](woodpile.contents[wood])}</li>
         ))}
       </ul>
-      <div class="hud-buttons">
-        {WOODPILE_WOODS.filter((wood) => wood === "firewood" || view.carrying === wood).map((wood) => (
-          <HudButton
-            key={`stack-${wood}`}
-            label={strings.woodpile.stack[wood]}
-            disabled={!canStack(wood)}
-            onClick={(event) => {
-              client.send({ type: "stackOnWoodpile", woodpileId: woodpile.id, wood, all: event.shiftKey });
-            }}
-          />
-        ))}
-        {WOODPILE_WOODS.map((wood) => (
-          <HudButton
-            key={`take-${wood}`}
-            icon={wood === "firewood" ? "backpack" : "log"}
-            label={strings.woodpile.take[wood]}
-            disabled={!canTake(wood)}
-            onClick={() => {
-              client.send({ type: "takeFromWoodpile", woodpileId: woodpile.id, wood });
-            }}
-          />
-        ))}
-      </div>
-      <p class="hud-hint">{strings.woodpile.stackAllHint}</p>
     </section>
   );
 }
 
-/** Buttons to sleep on the bedroll beside the player, or to pack it away. */
-function BedrollPanel({ client, bedroll }: { client: GameClient; bedroll: BedrollView }) {
-  return (
-    <section class="hud-section hud-bedroll" aria-label={strings.bedroll}>
-      <h2>
-        <HudIcon name="moon" />
-        {strings.bedroll}
-      </h2>
-      <div class="hud-buttons">
-        <HudButton
-          icon="moon"
-          label={strings.sleep}
-          onClick={() => {
-            client.send({ type: "sleep", bedrollId: bedroll.id });
-          }}
-        />
-        <HudButton
-          icon="backpack"
-          label={strings.pickUpBedroll}
-          onClick={() => {
-            client.send({ type: "pickUpBedroll", bedrollId: bedroll.id });
-          }}
-        />
-      </div>
-    </section>
-  );
-}
-
-/** Shows what the pile beside the player holds and how many, with a button to pick it up. */
-function PilePanel({ client, pile }: { client: GameClient; pile: PileView }) {
+/** Shows what the pile beside the player holds and how many. A click on the pile picks it up. */
+function PilePanel({ pile }: { pile: PileView }) {
   return (
     <section class="hud-section hud-pile" aria-label={strings.pile.title}>
       <h2>
         <BackpackIcon content={pile.content} />
         {strings.pile.holds(pile.content, pile.count)}
       </h2>
-      <div class="hud-buttons">
-        <HudButton
-          icon="backpack"
-          label={strings.pile.pickUp}
-          onClick={() => {
-            client.send({ type: "pickUpPile", pileId: pile.id });
-          }}
-        />
-      </div>
     </section>
   );
 }
@@ -634,17 +506,20 @@ function PlacingHintText({ entries, placing }: { entries: readonly BuildMenuEntr
   );
 }
 
-/** The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel. */
-function NearbyPanel({ client, view, thing }: { client: GameClient; view: GameView; thing: NearbyThing }) {
+/**
+ * The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel.
+ * A laid bedroll has no status to show, so it has no panel. Its actions are on the bedroll itself.
+ */
+function NearbyPanel({ client, thing }: { client: GameClient; thing: NearbyThing }) {
   switch (thing.kind) {
     case "campfire":
-      return <CampfirePanel client={client} view={view} campfire={thing.view} />;
+      return <CampfirePanel campfire={thing.view} />;
     case "woodpile":
-      return <WoodpilePanel client={client} view={view} woodpile={thing.view} />;
+      return <WoodpilePanel woodpile={thing.view} />;
     case "bedroll":
-      return <BedrollPanel client={client} bedroll={thing.view} />;
+      return null;
     case "pile":
-      return <PilePanel client={client} pile={thing.view} />;
+      return <PilePanel pile={thing.view} />;
     case "blueprint":
       return <BlueprintPanel blueprint={thing.view} />;
     case "openChest":
@@ -663,9 +538,10 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
   );
   const openChest = nearbyOf(view, "openChest");
   /** The open chest shows beside the backpack. Everything else within reach shows a panel under the work. */
-  const nearbyPanels = view.nearby.filter((thing) => thing.kind !== "openChest");
+  /** A laid bedroll has no panel. */
+  const nearbyPanels = view.nearby.filter((thing) => thing.kind !== "openChest" && thing.kind !== "bedroll");
 
-  const hasContext = view.action !== null || placing !== null || view.carrying !== null || nearbyPanels.length > 0;
+  const hasContext = view.action !== null || placing !== null || nearbyPanels.length > 0;
   const daylight = view.time.hourOfDay >= 6 && view.time.hourOfDay < 20;
 
   return (
@@ -710,33 +586,8 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
             )}
             {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} />}
-            {view.carrying !== null && (
-              <section class="hud-section hud-carrying" aria-label={view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}>
-                <h2>
-                  <HudIcon name="log" />
-                  {view.carrying === "log" ? strings.carryingLog : strings.carryingDebarkedLog}
-                </h2>
-                <div class="hud-buttons">
-                  <HudButton
-                    label={strings.dropLog}
-                    onClick={() => {
-                      client.send({ type: "dropLog" });
-                    }}
-                  />
-                  {view.carrying === "log" && (
-                    <HudButton
-                      icon="axe"
-                      label={strings.splitLog}
-                      onClick={() => {
-                        client.send({ type: "splitLog" });
-                      }}
-                    />
-                  )}
-                </div>
-              </section>
-            )}
             {nearbyPanels.map((thing) => (
-              <NearbyPanel key={thing.kind} client={client} view={view} thing={thing} />
+              <NearbyPanel key={thing.kind} client={client} thing={thing} />
             ))}
           </div>
         )}

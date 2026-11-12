@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Load and unload a parked sled)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `sled` and `woodpile`.
 

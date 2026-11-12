@@ -5,8 +5,11 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_FRAME_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
 import { isUnderRoof } from "./roofs";
-import { readSave, ROOF_FRAMES_SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, ROOF_FRAMES_SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the roof frame in the build menu", () => {
   it("lists the roof frame between the door frame and the roof, costing debarked logs, and the roof costing only bark", () => {
@@ -241,7 +244,7 @@ describe("loading a save from before roof frames", () => {
   it("gives every finished roof a finished frame under it, with the roof's turn", () => {
     const { save, square } = oldSave();
 
-    const loaded = readSave(structuredClone(save));
+    const loaded = readLargeValleySave(structuredClone(save));
     if (!loaded.ok) throw new Error("The save was rejected");
 
     const frames = loaded.game.entities.with("roofFrame", "position").entities;
@@ -254,7 +257,7 @@ describe("loading a save from before roof frames", () => {
   it("turns every roof blueprint into a frame blueprint with the same turn, keeping its logs, and gives back any bark spent on it", () => {
     const { save, barkBefore } = oldSave();
 
-    const loaded = readSave(structuredClone(save));
+    const loaded = readLargeValleySave(structuredClone(save));
     if (!loaded.ok) throw new Error("The save was rejected");
 
     const blueprint = loaded.game.entities.with("blueprint", "position").entities.find(({ blueprint }) => blueprint.structure !== "logWall");

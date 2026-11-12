@@ -2,9 +2,12 @@ import { describe, expect, it } from "bun:test";
 import type { Command, StructureKind } from "./api";
 import { workStationEntities, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, SAVE_VERSION, SAWHORSES_SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, SAWHORSES_SAVE_VERSION, writeSave } from "./save";
 import { SAWHORSE_BUILD_SECONDS } from "./structures";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the sawhorse in the build menu", () => {
   it("lists the sawhorse with its cost of 2 debarked logs and no tool", () => {
@@ -166,7 +169,7 @@ describe("saving sawhorses", () => {
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = SAWHORSES_SAVE_VERSION - 1;
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     // Version 16 was the newest save version before the crafting feature.

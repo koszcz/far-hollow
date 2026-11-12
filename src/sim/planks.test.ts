@@ -2,9 +2,20 @@ import { describe, expect, it } from "bun:test";
 import type { BackpackContent, Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { CRAFTING_SAVE_VERSION, NOTICES_NAME_STATION_SAVE_VERSION, PLANKS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import {
+  LARGE_VALLEY_UPGRADES,
+  CRAFTING_SAVE_VERSION,
+  NOTICES_NAME_STATION_SAVE_VERSION,
+  PLANKS_SAVE_VERSION,
+  readSave,
+  SAVE_VERSION,
+  writeSave,
+} from "./save";
 import { groundDistance } from "./valley";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("cutting planks at the sawhorse", () => {
   it("walks the player to the sawhorse from the craft menu, then turns the debarked log beside it into four planks in eight seconds", () => {
@@ -216,7 +227,7 @@ describe("saving planks", () => {
   it("loads a save from before planks", () => {
     const save = JSON.parse(JSON.stringify(writeSave(createGame({ seed: 42 })))) as { version: number };
     save.version = PLANKS_SAVE_VERSION - 1;
-    expect(readSave(save).ok).toBe(true);
+    expect(readLargeValleySave(save).ok).toBe(true);
   });
 });
 
@@ -238,7 +249,7 @@ describe("saving a notice about crafting", () => {
     save.version = NOTICES_NAME_STATION_SAVE_VERSION - 1;
     save.notice = { kind: "noLogBesideStation", untilMinutes: 10_000 };
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
     expect(loaded.game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
   });

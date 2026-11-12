@@ -91,10 +91,10 @@ describe("camera zoom", () => {
     expect(rig.distance).toBeCloseTo(8);
   });
 
-  it("never zooms further than 1300 m from the point it looks at", () => {
+  it("never zooms further than 400 m from the point it looks at", () => {
     const rig = createCameraRig();
     rig.zoomBy(10_000);
-    expect(rig.distance).toBeCloseTo(1300);
+    expect(rig.distance).toBeCloseTo(400);
   });
 
   it("zooms by multiplying the distance, so each step feels the same near and far", () => {

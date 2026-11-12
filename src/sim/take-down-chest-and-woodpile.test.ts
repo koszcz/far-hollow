@@ -2,9 +2,12 @@ import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave } from "./save";
 import { CHEST_BUILD_SECONDS, CHEST_LOG_COST } from "./structures";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("taking down a chest", () => {
   it("gives back its 2 debarked logs on the ground once it is empty", () => {
@@ -109,7 +112,7 @@ describe("saving the notice that a chest or woodpile still holds something", () 
     save.version = RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION - 1;
     save.notice = { kind: "storageNotEmpty", untilMinutes: 10_000 };
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(loaded.game.client.getView().notice?.kind).toBe("stillHoldsSomething");

@@ -4,8 +4,23 @@ import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_LOG_COST } from
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { LOG_WALL_LOG_COST } from "./structures";
-import { continueOrStartGame, describeSave, readSave, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, writeSave, type SaveFile, type SaveUpgrade } from "./save";
+import {
+  LARGE_VALLEY_UPGRADES,
+  SMALL_VALLEY_SAVE_VERSION,
+  continueOrStartGame,
+  describeSave,
+  readSave,
+  SAVE_UPGRADES,
+  SAVE_VERSION,
+  upgradeSave,
+  writeSave,
+  type SaveFile,
+  type SaveUpgrade,
+} from "./save";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("saving and loading a game", () => {
   it("restores a played valley exactly: clock, player, backpack, logs, stumps, sticks, blueprints, and campfires", () => {
@@ -113,7 +128,7 @@ describe("upgrading an older save", () => {
       delete components.backpack?.contents.pot;
     }
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(loaded.game.entities.with("forageSpot").size).toBe(game.entities.with("forageSpot").size);
@@ -126,7 +141,7 @@ describe("upgrading an older save", () => {
     save.version = 4;
     for (const { components } of save.entities) delete components.backpack?.contents.drawknife;
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(loaded.game.client.getView().backpack.drawknife).toBe(1);
@@ -141,7 +156,7 @@ describe("upgrading an older save", () => {
       if (blueprint !== undefined) delete blueprint.delivered;
     }
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(writeSave(game));
@@ -152,7 +167,7 @@ describe("upgrading an older save", () => {
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = 9;
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(SAVE_VERSION).toBeGreaterThan(9);
@@ -435,3 +450,18 @@ function idOf(game: Game, entity: Entity): number {
   if (id === undefined) throw new Error("Entity is not in the store");
   return id;
 }
+
+describe("saves from before the valley shrank", () => {
+  it("cannot be loaded, and their slot shows as broken", () => {
+    const save = writeSave(createGame({ seed: 7 }));
+    const older = { ...save, version: SMALL_VALLEY_SAVE_VERSION - 1 };
+    expect(readSave(older)).toEqual({ ok: false });
+    expect(describeSave(older)).toEqual({ state: "broken" });
+  });
+
+  it("starts a new game instead, when the player continues one", () => {
+    const save = writeSave(createGame({ seed: 7 }));
+    const game = continueOrStartGame({ ...save, version: SMALL_VALLEY_SAVE_VERSION - 1 }, 99);
+    expect(game.client.getView().seed).toBe(99);
+  });
+});

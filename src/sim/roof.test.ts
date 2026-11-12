@@ -13,8 +13,11 @@ import {
   type StructureKind,
 } from "./structures";
 import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
-import { readSave, ROOFS_FACE_SAVE_VERSION, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, ROOFS_FACE_SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("where a roof can go", () => {
   it("snaps to the framed square under the mouse, at the height of its deck", () => {
@@ -215,7 +218,7 @@ describe("the way a roof faces", () => {
     });
     const old = { ...writeSave(game), version: ROOFS_FACE_SAVE_VERSION - 1 };
 
-    const loaded = readSave(structuredClone(old));
+    const loaded = readLargeValleySave(structuredClone(old));
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(cabinRoofOn(loaded.game.entities, square)?.facing).toEqual({ turns: 0 });
@@ -229,7 +232,7 @@ describe("the way a roof faces", () => {
     const wall = finishedPieceAt(game, "logWall", square, 3);
     const old = { ...writeSave(game), version: ROOFS_FACE_SAVE_VERSION - 1 };
 
-    const loaded = readSave(structuredClone(old));
+    const loaded = readLargeValleySave(structuredClone(old));
     if (!loaded.ok) throw new Error("The save was rejected");
 
     const loadedWall = loaded.game.entities

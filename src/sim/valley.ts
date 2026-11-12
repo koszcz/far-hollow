@@ -63,44 +63,56 @@ export interface Valley {
   readonly mushrooms: readonly GroundPoint[];
 }
 
-/** The valley is a square 1 km on each side, so about 1 km². */
-const VALLEY_SIZE_METRES = 1000;
-const TERRAIN_SPACING_METRES = 5;
+/** The valley is a square 300 m on each side: small enough to know well, with thick forest. */
+const VALLEY_SIZE_METRES = 300;
+const TERRAIN_SPACING_METRES = 2.5;
 
 /** Rolling hills: the largest bump spacing and height, then smaller bumps added on top. */
-const HILL_SPACING_METRES = 250;
-const HILL_HEIGHT_METRES = 12;
+const HILL_SPACING_METRES = 100;
+const HILL_HEIGHT_METRES = 6;
 const HILL_LAYERS = 3;
 /** Hills flatten out within this distance of the river, so the river runs along a flat valley floor. */
-const HILL_FADE_METRES = 40;
+const HILL_FADE_METRES = 20;
 /** How much higher the valley sides are than its floor. */
-const VALLEY_SIDE_HEIGHT_METRES = 40;
+const VALLEY_SIDE_HEIGHT_METRES = 12;
 
-const RIVER_POINT_SPACING_METRES = 20;
+const RIVER_POINT_SPACING_METRES = 10;
 const RIVER_MIN_WIDTH_METRES = 6;
 const RIVER_MAX_WIDTH_METRES = 10;
 /** How far the river's middle may wander from the valley's centre line. */
-const RIVER_MAX_OFFSET_METRES = 250;
+const RIVER_MAX_OFFSET_METRES = 70;
 const RIVER_BED_DEPTH_METRES = 2;
 /** How far beyond the water the ground slopes down into the riverbed. */
 export const RIVER_BANK_WIDTH_METRES = 8;
 
-const TREE_COUNT = 4000;
+/** The valley holds this many trees, packed into groves. Gives trees about 4 to 5 m apart inside a grove. */
+const TREE_COUNT = 2600;
 /** Trees stand at least this far from each other. */
 const TREE_MIN_SPACING_METRES = 3;
+/** Groves and clearings change over about this distance, in metres. */
+const GROVE_SPACING_METRES = 45;
+/**
+ * Trees grow only where the grove noise, from -1 to 1, is above this. Lower values leave fewer, smaller clearings.
+ * About a third of the valley away from the river is clearing.
+ */
+const CLEARING_BELOW = -0.15;
+/** No tree grows this close to where the player starts, so there is room for a first camp. */
+const START_CLEARING_METRES = 16;
+/** The player starts this far from the water's edge, in metres. Far enough to stand above the sloping riverbank. */
+const START_FROM_WATER_METRES = 10;
 /** Trees stand at least this far from the water's edge. */
 const TREE_RIVER_CLEARANCE_METRES = 4;
 
-const STICK_COUNT = 3000;
+const STICK_COUNT = 700;
 /** Sticks fall from trees, so each lies within this ring around a tree's trunk, in metres. */
 const STICK_MIN_FROM_TREE_METRES = 1.5;
 const STICK_MAX_FROM_TREE_METRES = 4;
 
-const BERRY_BUSH_COUNT = 400;
+const BERRY_BUSH_COUNT = 60;
 /** Berry bushes grow at the forest's edge, this far from a tree's trunk, in metres. */
 const BERRY_BUSH_MIN_FROM_TREE_METRES = 2.5;
 const BERRY_BUSH_MAX_FROM_TREE_METRES = 6;
-const MUSHROOM_COUNT = 500;
+const MUSHROOM_COUNT = 80;
 /** Mushrooms grow in the shade, close to a tree's trunk, in metres. */
 const MUSHROOM_MIN_FROM_TREE_METRES = 1.5;
 const MUSHROOM_MAX_FROM_TREE_METRES = 3;
@@ -131,6 +143,12 @@ export function terrainHeightAt(terrain: Terrain, x: number, z: number): number 
   const top = lerp(height(row0, column0), height(row0, column0 + 1), across);
   const bottom = lerp(height(row0 + 1, column0), height(row0 + 1, column0 + 1), across);
   return lerp(top, bottom, down);
+}
+
+/** Where the player starts: on the west bank, beside the middle of the river. Ground near it may be blocked. */
+export function startSpotBeside(river: River): GroundPoint {
+  const middle = river.path[Math.floor(river.path.length / 2)] ?? { x: 0, z: 0 };
+  return { x: middle.x - river.width / 2 - START_FROM_WATER_METRES, z: middle.z };
 }
 
 /** Shortest distance from a spot to the middle of the river. */
@@ -200,6 +218,10 @@ function generateTerrain(random: Random, river: River): Terrain {
   return { pointsPerSide, spacing: TERRAIN_SPACING_METRES, heights };
 }
 
+/**
+ * Packs trees into groves, with clearings between them where seeded noise is low.
+ * Trees keep clear of the river, of each other, and of the spot where the player starts.
+ */
 function placeTrees(random: Random, river: River): GroundPoint[] {
   const half = VALLEY_SIZE_METRES / 2;
   const cellsPerSide = Math.ceil(VALLEY_SIZE_METRES / TREE_MIN_SPACING_METRES);
@@ -207,6 +229,9 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
   const treesByCell = new Map<number, GroundPoint[]>();
   const cellOf = (value: number) => clamp(Math.floor((value + half) / TREE_MIN_SPACING_METRES), 0, cellsPerSide - 1);
   const riverClearance = river.width / 2 + TREE_RIVER_CLEARANCE_METRES;
+  const groves = createValueNoise(random, Math.ceil(VALLEY_SIZE_METRES / GROVE_SPACING_METRES) + 2);
+  const inClearing = (point: GroundPoint) => groves((point.x + half) / GROVE_SPACING_METRES, (point.z + half) / GROVE_SPACING_METRES) < CLEARING_BELOW;
+  const start = startSpotBeside(river);
 
   function tooCloseToAnotherTree(point: GroundPoint): boolean {
     const column = cellOf(point.x);
@@ -222,8 +247,12 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
   }
 
   const trees: GroundPoint[] = [];
-  while (trees.length < TREE_COUNT) {
+  // Give up after this many tries, in case the groves are too small to hold every tree.
+  let triesLeft = TREE_COUNT * 200;
+  while (trees.length < TREE_COUNT && triesLeft > 0) {
+    triesLeft -= 1;
     const point = { x: (random() * 2 - 1) * half, z: (random() * 2 - 1) * half };
+    if (inClearing(point) || groundDistance(point, start) < START_CLEARING_METRES) continue;
     if (distanceToRiver(river, point) <= riverClearance || tooCloseToAnotherTree(point)) continue;
     trees.push(point);
     const key = cellOf(point.z) * cellsPerSide + cellOf(point.x);

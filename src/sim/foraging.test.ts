@@ -3,8 +3,11 @@ import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds } from "./needs";
-import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, readSave, writeSave } from "./save";
 import { distanceToRiver, generateValley, groundDistance } from "./valley";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("hunger", () => {
   it("drains over time, so full hunger lasts two days", () => {
@@ -201,7 +204,7 @@ describe("saving food", () => {
     save.version = 1;
     save.entities = save.entities.filter((entity) => entity.components.forageSpot === undefined);
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save was rejected");
 
     const spots = loaded.game.entities.with("forageSpot");

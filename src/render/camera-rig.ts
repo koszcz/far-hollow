@@ -4,7 +4,7 @@ const MIN_PITCH = (20 * Math.PI) / 180;
 const MAX_PITCH = (75 * Math.PI) / 180;
 const START_PITCH = (45 * Math.PI) / 180;
 const MIN_DISTANCE_METRES = 8;
-const MAX_DISTANCE_METRES = 1300;
+const MAX_DISTANCE_METRES = 400;
 /** Close enough to see the player and the trees around them. */
 const START_DISTANCE_METRES = 40;
 /** The camera starts south-east of the point it looks at. */

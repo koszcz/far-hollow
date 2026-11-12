@@ -3,7 +3,10 @@ import type { BackpackContent } from "./backpack";
 import { recipeLacks, type Recipe } from "./crafting";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { CRAFTING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { LARGE_VALLEY_UPGRADES, CRAFTING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the saw blade in the starting kit", () => {
   it("is in a new game's backpack, along with the rest of the starting kit", () => {
@@ -24,13 +27,13 @@ describe("loading a save from before crafting", () => {
   }
 
   it("gives the player a saw blade", () => {
-    const loaded = readSave(saveFromBeforeCrafting({ axe: 1, stick: 2 }));
+    const loaded = readLargeValleySave(saveFromBeforeCrafting({ axe: 1, stick: 2 }));
     if (!loaded.ok) throw new Error("The save was rejected");
     expect(loaded.game.client.getView().backpack).toEqual({ axe: 1, stick: 2, sawBlade: 1 });
   });
 
   it("gives no saw blade to a player who already holds a saw", () => {
-    const loaded = readSave(saveFromBeforeCrafting({ axe: 1, saw: 1 }));
+    const loaded = readLargeValleySave(saveFromBeforeCrafting({ axe: 1, saw: 1 }));
     if (!loaded.ok) throw new Error("The save was rejected");
     expect(loaded.game.client.getView().backpack).toEqual({ axe: 1, saw: 1 });
   });

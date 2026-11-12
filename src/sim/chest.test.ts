@@ -2,10 +2,13 @@ import { describe, expect, it } from "bun:test";
 import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { CHESTS_BLOCK_WALKING_SAVE_VERSION, readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, CHESTS_BLOCK_WALKING_SAVE_VERSION, readSave, writeSave } from "./save";
 import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
+
+/** Loads a save made before the valley shrank, the way the game loaded it then. */
+const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the chest in the build menu", () => {
   it("lists the chest as furniture, with its cost of 2 debarked logs and the axe it needs", () => {
@@ -167,7 +170,7 @@ describe("upgrading older saves", () => {
       if (components.woodpile !== undefined) components.blocksWalking = { radius: 0.6 };
     }
 
-    const loaded = readSave(save);
+    const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save did not load");
 
     const chest = loaded.game.entities.with("chest", "position").first;

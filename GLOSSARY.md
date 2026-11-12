@@ -78,7 +78,11 @@ A flat board cut from a debarked log at a sawhorse.
 _Avoid_: Board, lumber
 
 **Stick**:
-A small piece of dry wood the player picks up from the forest floor. Sticks are used as fuel.
+A small piece of dry wood the player picks up from the forest floor. Sticks are used as fuel. New sticks keep falling from the trees, so the forest floor never runs out of them.
+
+**Deadfall**:
+A few sticks that fell together and lie close under one tree. The player picks them up one at a time, like any stick.
+_Avoid_: Pile, cluster, bundle
 
 **Firewood**:
 Split pieces of a log, made with the axe. Firewood is used as fuel and burns longer than sticks.

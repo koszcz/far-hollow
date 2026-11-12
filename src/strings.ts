@@ -287,23 +287,10 @@ export const strings = {
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },
-  /** The names of things the player can act on, as the action menu shows them. */
+  /** The names of the logs the player can carry on their shoulder, as the hotbar shows them. */
   things: {
-    ground: "Ground",
-    river: "River",
-    tree: "Tree",
     log: "Log",
     debarkedLog: "Debarked log",
-    stick: "Stick",
-    bark: "Bark",
-    forage: "Forage spot",
-    campfire: "Campfire",
-    woodpile: "Woodpile",
-    chest: "Chest",
-    bedroll: "Bedroll",
-    pile: "Pile",
-    sled: "Sled",
-    structure: "Building piece",
   },
   debugFps: "FPS",
   debugEntities: "Entities",

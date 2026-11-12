@@ -4,14 +4,14 @@
 //   height of the valley's ground at each point along the edge, so the two meet with no step.
 // - The river runs out through a gorge in the ridge at each end. In the gorge, the valley's edge profile carries on
 //   outward along the river, so its bed and banks carry on too.
-// - Beyond the ridges lies low land, with two rings of mountains about 1.4 km and 2.7 km away.
+// - Beyond the ridges lies low land, with two rings of mountains about 1.6 km and 2.7 km away.
 // Everything comes from the valley's seed.
 import * as THREE from "three";
 import { createRandom, type Random } from "../sim/random";
 import { terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 
 /** How far the ridge crest rises above the valley floor, in metres. The owner chose 40 m. */
-export const RIDGE_HEIGHT_METRES = 40;
+const RIDGE_HEIGHT_METRES = 40;
 /** The crest rises and dips by up to this much along its length, in metres. */
 const RIDGE_WOBBLE_METRES = 3;
 /** The ridge climbs from the valley's edge to its crest over this distance, in metres. */
@@ -39,13 +39,18 @@ const FAR_CHANNEL_FLOOR_METRES = -3.5;
 const FAR_CHANNEL_HALF_WIDTH_METRES = 20;
 const FAR_CHANNEL_WALL_METRES = 80;
 const FAR_CHANNEL_END_METRES = 900;
-/** Each ring of mountains: its distance from the valley's middle, its width, its lowest and highest peaks, in metres. */
+/**
+ * Each ring of mountains, in metres: its distance from the valley's middle, its width, and its lowest and highest peaks.
+ * `wander` is how far the ring moves in and out around the valley. `bends` says how many peaks each layer of bumps has
+ * around the ring, from a few broad ones to many small ones.
+ * The near ring stands far enough out that the noon haze softens it.
+ */
 const MOUNTAIN_RINGS = [
-  { distance: 1400, width: 330, lowest: 110, highest: 320, wander: 180, bends: [5, 8, 13, 21, 34, 47] },
+  { distance: 1600, width: 330, lowest: 110, highest: 320, wander: 150, bends: [5, 8, 13, 21, 34, 47] },
   { distance: 2700, width: 520, lowest: 260, highest: 620, wander: 300, bends: [4, 7, 11, 17, 26, 39] },
 ] as const;
 /** The far land ends this far from the valley's middle, in metres, inside the camera's 4,000 m draw distance. */
-export const FAR_LAND_REACH_METRES = 3600;
+const FAR_LAND_REACH_METRES = 3600;
 /** The far land mesh starts this far from the valley's middle, in metres, hidden under the ridge. */
 const FAR_LAND_START_METRES = 330;
 /** The far land sits this far below the ridge where the two overlap, so the ridge always draws on top. */
@@ -160,7 +165,7 @@ export function createValleyBackdrop(valley: Valley): ValleyBackdrop {
   function heightAt(x: number, z: number): number {
     const edgeX = clamp(x, -half, half);
     const edgeZ = clamp(z, -half, half);
-    const fromEdge = Math.hypot(x - edgeX, z - edgeZ);
+    const fromEdge = distanceBeyondEdge(half, x, z);
     const edge = terrainHeightAt(valley.terrain, edgeX, edgeZ);
     if (fromEdge > RIDGE_REACH_METRES) return farLandHeightAt(x, z);
     const crest = RIDGE_HEIGHT_METRES + RIDGE_WOBBLE_METRES * crestWobble(Math.atan2(z, x));
@@ -209,7 +214,7 @@ function riverExits(valley: Valley): RiverExit[] {
 }
 
 /**
- * Trees on a jittered grid over the ridge: close on its inner slope and crest, sparser on its back, where the camera
+ * Trees on a grid over the ridge, each nudged a random amount from its grid point so no rows show: close on its inner slope and crest, sparser on its back, where the camera
  * sees them only from far off. None stand on the gorge floor.
  */
 function placeRidgeTrees(
@@ -230,7 +235,7 @@ function placeRidgeTrees(
         const z = gridZ + (random() - 0.5) * spacing * 0.8;
         const turn = random() * Math.PI * 2;
         const scale = THREE.MathUtils.lerp(RIDGE_TREE_MIN_SCALE, RIDGE_TREE_MAX_SCALE, random());
-        const fromEdge = Math.hypot(x - clamp(x, -half, half), z - clamp(z, -half, half));
+        const fromEdge = distanceBeyondEdge(half, x, z);
         if (fromEdge < from || fromEdge >= to || onGorgeFloor(x, z)) continue;
         trees.push({ x, y: heightAt(x, z) - RIDGE_TREE_SINK_METRES, z, turn, scale });
       }
@@ -325,7 +330,7 @@ export function createFarLandGeometry(valley: Valley, backdrop: Pick<ValleyBackd
     for (const distance of FAR_LAND_RINGS_METRES) {
       const x = Math.cos(angle) * distance;
       const z = Math.sin(angle) * distance;
-      const fromEdge = Math.hypot(x - clamp(x, -half, half), z - clamp(z, -half, half));
+      const fromEdge = distanceBeyondEdge(half, x, z);
       const height = backdrop.heightAt(x, z) - (fromEdge <= RIDGE_REACH_METRES ? FAR_LAND_UNDER_RIDGE_METRES : 0);
       positions.push(x, height, z);
       farLandColour(height, colour);
@@ -378,6 +383,11 @@ function createLoopNoise(random: Random, bends: readonly number[]): (angle: numb
   const layers = bends.map((count) => ({ count, phase: random() * Math.PI * 2, size: 1 / Math.sqrt(count) }));
   const total = layers.reduce((sum, layer) => sum + layer.size, 0);
   return (angle) => layers.reduce((sum, layer) => sum + layer.size * Math.sin(angle * layer.count + layer.phase), 0) / total;
+}
+
+/** How far a spot lies outside a valley `half` metres from its middle to each edge, in metres. 0 inside it. */
+export function distanceBeyondEdge(half: number, x: number, z: number): number {
+  return Math.hypot(x - clamp(x, -half, half), z - clamp(z, -half, half));
 }
 
 function clamp(value: number, min: number, max: number): number {

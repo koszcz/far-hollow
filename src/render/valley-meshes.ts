@@ -100,29 +100,40 @@ function createGroundMaterial(
       "#include <begin_vertex>\nvGroundTypeUv = position.xz / valleySize + 0.5;",
     );
     shader.fragmentShader = shader.fragmentShader
-      .replace(
-        "#include <common>",
-        "#include <common>\nuniform sampler2D forestFloorMap;\nuniform sampler2D riverBankMap;\nuniform sampler2D groundTypeWeights;\nvarying vec2 vGroundTypeUv;",
-      )
-      .replace(
-        "#include <map_fragment>",
-        [
-          // Red is forest floor and blue is river bank. Clearing fills the rest. See bakeGroundTypeWeights.
-          "vec4 groundMap = texture2D( groundTypeWeights, vGroundTypeUv );",
-          "vec3 groundWeights = vec3( groundMap.r, max( 1.0 - groundMap.r - groundMap.b, 0.0 ), groundMap.b );",
-          "groundWeights /= max( groundWeights.r + groundWeights.g + groundWeights.b, 0.001 );",
-          // A second, larger and turned copy of each texture, mixed in by patches, hides the repeat.
-          "vec2 largeUv = mat2( 0.8, -0.6, 0.6, 0.8 ) * vMapUv * 0.43 + vec2( 0.31, 0.67 );",
-          "vec4 forestFloorColour = mix( texture2D( forestFloorMap, vMapUv ), texture2D( forestFloorMap, largeUv ), groundMap.a );",
-          "vec4 clearingColour = mix( texture2D( map, vMapUv ), texture2D( map, largeUv ), groundMap.a );",
-          "vec4 riverBankColour = mix( texture2D( riverBankMap, vMapUv ), texture2D( riverBankMap, largeUv ), groundMap.a );",
-          "vec4 groundColour = forestFloorColour * groundWeights.r + clearingColour * groundWeights.g + riverBankColour * groundWeights.b;",
-          // Green holds large light and dark patches across the valley.
-          // Darker patches are also a little warmer and drier, lighter ones a little fresher.
-          "groundColour.rgb *= mix( vec3( 0.84, 0.8, 0.7 ), vec3( 1.1, 1.14, 1.12 ), groundMap.g );",
-          "diffuseColor *= groundColour;",
-        ].join("\n"),
-      );
+      .replace("#include <common>", `#include <common>\n${GROUND_FRAGMENT_HEAD}`)
+      .replace("#include <map_fragment>", groundColourGlsl());
   };
   return { material, look: { textures, weights } };
+}
+
+/** The fragment shader's uniforms and inputs that groundColourGlsl reads. */
+export const GROUND_FRAGMENT_HEAD =
+  "uniform sampler2D forestFloorMap;\nuniform sampler2D riverBankMap;\nuniform sampler2D groundTypeWeights;\nvarying vec2 vGroundTypeUv;";
+
+/**
+ * The GLSL that paints the ground's colour, in place of three.js's map chunk. It blends the three ground-type textures
+ * by the baked map at vGroundTypeUv. `adjustWeights` can change `groundWeights` after they are read, and
+ * `adjustColour` can change `groundColour` before it is applied. The terrain uses neither.
+ */
+export function groundColourGlsl(adjustWeights = "", adjustColour = ""): string {
+  return [
+    // Red is forest floor and blue is river bank. Clearing fills the rest. See bakeGroundTypeWeights.
+    "vec4 groundMap = texture2D( groundTypeWeights, vGroundTypeUv );",
+    "vec3 groundWeights = vec3( groundMap.r, max( 1.0 - groundMap.r - groundMap.b, 0.0 ), groundMap.b );",
+    "groundWeights /= max( groundWeights.r + groundWeights.g + groundWeights.b, 0.001 );",
+    adjustWeights,
+    // A second, larger and turned copy of each texture, mixed in by patches, hides the repeat.
+    "vec2 largeUv = mat2( 0.8, -0.6, 0.6, 0.8 ) * vMapUv * 0.43 + vec2( 0.31, 0.67 );",
+    "vec4 forestFloorColour = mix( texture2D( forestFloorMap, vMapUv ), texture2D( forestFloorMap, largeUv ), groundMap.a );",
+    "vec4 clearingColour = mix( texture2D( map, vMapUv ), texture2D( map, largeUv ), groundMap.a );",
+    "vec4 riverBankColour = mix( texture2D( riverBankMap, vMapUv ), texture2D( riverBankMap, largeUv ), groundMap.a );",
+    "vec4 groundColour = forestFloorColour * groundWeights.r + clearingColour * groundWeights.g + riverBankColour * groundWeights.b;",
+    // Green holds large light and dark patches across the valley.
+    // Darker patches are also a little warmer and drier, lighter ones a little fresher.
+    "groundColour.rgb *= mix( vec3( 0.84, 0.8, 0.7 ), vec3( 1.1, 1.14, 1.12 ), groundMap.g );",
+    adjustColour,
+    "diffuseColor *= groundColour;",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }

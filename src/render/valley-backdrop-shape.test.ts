@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { generateValley } from "../sim/valley";
-import { createFarLandGeometry, createRidgeGeometry, createValleyBackdrop } from "./valley-backdrop-shape";
+import { createFarLandGeometry, createRidgeGeometry, createValleyBackdrop, distanceBeyondEdge } from "./valley-backdrop-shape";
 
 const valley = generateValley(12345);
 const half = valley.size / 2;
@@ -112,7 +112,7 @@ describe("valley backdrop far land", () => {
     expect(highestNear).toBeLessThan(120);
     const ring = (distance: number) =>
       Array.from({ length: 64 }, (_, step) => backdrop.heightAt(Math.cos(step / 10) * distance, Math.sin(step / 10) * distance));
-    expect(Math.max(...ring(1400))).toBeGreaterThan(150);
+    expect(Math.max(...ring(1600))).toBeGreaterThan(150);
     expect(Math.max(...ring(2700))).toBeGreaterThan(300);
   });
 
@@ -121,7 +121,7 @@ describe("valley backdrop far land", () => {
     for (let index = 0; index < positions.count; index += 1) {
       const x = positions.getX(index);
       const z = positions.getZ(index);
-      const fromEdge = Math.hypot(x - Math.max(-half, Math.min(half, x)), z - Math.max(-half, Math.min(half, z)));
+      const fromEdge = distanceBeyondEdge(half, x, z);
       if (fromEdge < 200) expect(positions.getY(index)).toBeLessThan(backdrop.heightAt(x, z));
     }
   });

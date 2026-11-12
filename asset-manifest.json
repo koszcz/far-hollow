@@ -57,7 +57,7 @@
         "src/render/valley-backdrop-shape.ts",
         "src/render/valley-backdrop-meshes.ts"
       ],
-      "description": "The land around the valley that the player sees but cannot reach. Wooded ridges rise 40 m above the valley floor on all four sides, from the valley's edge with no step, and turn its corners in a smooth curve. Their ground carries on the valley ground's painted look across the seam, then turns to darker forest floor up the slope. Far-tree shapes cover the slopes and tops, closer on the inner slope than on the back. The river runs out through a narrow gorge at each end, with its own water and pebble banks. Beyond the ridges lies low land, with a ring of mountains about 1.4 km away and a higher ring about 2.7 km away, shaded flat in forest green, grey rock, and snow on the highest peaks, fading into the haze.",
+      "description": "The land around the valley that the player sees but cannot reach. Wooded ridges rise 40 m above the valley floor on all four sides, from the valley's edge with no step, and turn its corners in a smooth curve. Their ground carries on the valley ground's painted look across the seam, then turns to darker forest floor up the slope. Far-tree shapes cover the slopes and tops, closer on the inner slope than on the back. The river runs out through a narrow gorge at each end, with its own water and pebble banks. Beyond the ridges lies low land, with a ring of mountains about 1.6 km away and a higher ring about 2.7 km away, shaded flat in forest green, grey rock, and snow on the highest peaks, fading into the haze, a little more than nearer land does.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

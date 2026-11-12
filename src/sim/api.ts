@@ -5,9 +5,10 @@ export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from 
 
 export type { BackpackContent, CraftingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
-import type { CarriedLog, Vec3, WoodpileWood } from "./entities";
+import type { Vec3 } from "./entities";
+import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
-export type { CarriedLog, WoodpileWood } from "./entities";
+export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
 import type { DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 import type { GroundPoint } from "./valley";
@@ -213,9 +214,6 @@ export type PlainNotice =
 export type SaveSlotSummary =
   { readonly state: "empty" } | { readonly state: "broken" } | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
-/** The kinds of fuel the player can put on a campfire. */
-export type CampfireFuel = "stick" | "firewood" | "bark";
-
 export interface CampfireView {
   /** The campfire's entity id. */
   readonly id: number;
@@ -335,7 +333,7 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 
 /**
  * A thing in the world the player can act on with E, given by its entity id, with its kind.
- * The kinds match what the scene reports under the cursor, so the UI can treat both the same way.
+ * What the scene reports under the cursor is built from this type, so the app can treat both the same way.
  */
 export type ThingInReach =
   | {

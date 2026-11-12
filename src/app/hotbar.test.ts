@@ -4,10 +4,10 @@ import { createGame } from "../sim/game";
 import { clickHotbarCell, pressHotbarKey } from "./hotbar";
 import type { ActionReader } from "./thing-actions";
 
-describe("a click on a hotbar item", () => {
-  it("uses the item", () => {
+describe("a click on a hotbar cell", () => {
+  it("uses the backpack content", () => {
     const reader = readerWith({ backpack: { berries: 1, mushroom: 1, bedroll: 1, pot: 1, potOfRiverWater: 1, potOfBoiledWater: 1 } });
-    const click = (content: BackpackContent) => clickHotbarCell({ kind: "item", content }, reader, false);
+    const click = (content: BackpackContent) => clickHotbarCell({ kind: "backpackContent", content }, reader, false);
 
     expect(click("berries")).toEqual({ type: "eat", food: "berries" });
     expect(click("mushroom")).toEqual({ type: "eat", food: "mushroom" });
@@ -17,15 +17,25 @@ describe("a click on a hotbar item", () => {
     expect(click("potOfBoiledWater")).toEqual({ type: "drinkFromPot" });
   });
 
-  it("does nothing for an item with no use", () => {
-    expect(clickHotbarCell({ kind: "item", content: "stick" }, readerWith({ backpack: { stick: 3 } }), false)).toBeUndefined();
+  it("does nothing for a backpack content with no use", () => {
+    expect(clickHotbarCell({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 3 } }), false)).toBeUndefined();
   });
 
   it("puts one in an open chest, or all with shift held", () => {
     const reader = readerWith({ backpack: { berries: 3 }, openChestId: 12 });
 
-    expect(clickHotbarCell({ kind: "item", content: "berries" }, reader, false)).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: false });
-    expect(clickHotbarCell({ kind: "item", content: "berries" }, reader, true)).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
+    expect(clickHotbarCell({ kind: "backpackContent", content: "berries" }, reader, false)).toEqual({
+      type: "putInChest",
+      chestId: 12,
+      content: "berries",
+      all: false,
+    });
+    expect(clickHotbarCell({ kind: "backpackContent", content: "berries" }, reader, true)).toEqual({
+      type: "putInChest",
+      chestId: 12,
+      content: "berries",
+      all: true,
+    });
   });
 
   it("drops the log on the shoulder", () => {
@@ -34,7 +44,7 @@ describe("a click on a hotbar item", () => {
 });
 
 describe("the number keys", () => {
-  it("use the backpack item in that cell, not counting the shoulder", () => {
+  it("use the backpack content in that cell, not counting the shoulder", () => {
     const reader = readerWith({ backpack: { axe: 1, pot: 1, berries: 2 }, carrying: "log" });
 
     expect(pressHotbarKey("Digit1", reader, NOT_TYPING)).toBeUndefined();

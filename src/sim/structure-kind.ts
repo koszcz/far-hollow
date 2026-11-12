@@ -2,7 +2,7 @@
 import type { GroundPoint } from "./valley";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
-export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "woodpile" | FurnitureKind | WorkStationKind;
+export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "woodpile" | FurnitureKind | WorkStationKind | "sled";
 
 /** The work stations the build menu can list. A work station is a built object where the player does one kind of processing. */
 export const WORK_STATION_KINDS = ["sawhorse"] as const;
@@ -18,7 +18,7 @@ export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];
 /**
  * How a blueprint follows the mouse while the player places it:
  * on the ground at a grid point or square, on the edge of a foundation square, over a square with walls, on a finished roof frame,
- * or anywhere, off the grid. Furniture is the structure placed anywhere.
+ * or anywhere, off the grid. Furniture and the sled are placed anywhere.
  */
 export type Placement = "onGround" | "onEdge" | "overWalls" | "onFrame" | "anywhere";
 
@@ -31,8 +31,9 @@ export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
 /**
  * The materials the player carries to a blueprint on their shoulder, one at a time, such as a debarked log.
  * They are too big for the backpack, so construction spends them from what was carried to the blueprint.
+ * A sled is built from logs with their bark on. Every other structure that costs logs takes debarked logs.
  */
-export type DeliveredMaterial = "debarkedLog";
+export type DeliveredMaterial = "log" | "debarkedLog";
 
 /** A rectangle of ground with sides along x and z, from its `min` corner to its `max` corner, in metres. */
 export interface GroundRect {

@@ -5,6 +5,7 @@ import type { Entity } from "./entities";
 import { NEED_KINDS } from "./needs";
 import { EDGE_PIECE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, STRUCTURES } from "./structures";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "./wood-and-fuel";
 
 /** Says whether a value has the right shape. */
 type Check = (value: unknown) => boolean;
@@ -40,8 +41,8 @@ const backpackContents: Check = (value) =>
 const DELIVERED_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.flatMap(({ material }) => (isDelivered(material) ? [material] : []))))];
 const deliveredCounts: Check = shape(Object.fromEntries(DELIVERED_MATERIALS.map((material) => [material, count])), DELIVERED_MATERIALS);
 
-const fuel = exactly("stick", "firewood", "bark");
-const wood = exactly("log", "debarkedLog", "firewood");
+const fuel = exactly(...CAMPFIRE_FUELS);
+const wood = exactly(...WOODPILE_WOODS);
 /** A campfire or woodpile command the player is walking to carry out. */
 const tendCommand: Check = (value) =>
   shape({ type: exactly("addFuel"), campfireId: count, fuel })(value) ||
@@ -70,7 +71,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   log: shape({ heading: finite }),
   debarkedLog: shape({ heading: finite }),
   debarkTask: shape({ logId: count, secondsDone: finite }),
-  carrying: exactly("log", "debarkedLog"),
+  carrying: exactly(...CARRIED_LOGS),
   stick: exactly(true),
   stickPickUpTask: shape({ stickId: count }),
   bark: exactly(true),
@@ -91,6 +92,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   onFoundation: point,
   chest: shape({ contents: backpackContents }),
   workStation: exactly(...WORK_STATION_KINDS),
+  sled: shape({ log: count, debarkedLog: count }),
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),

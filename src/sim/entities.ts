@@ -1,5 +1,5 @@
 import { World } from "miniplex";
-import type { Command } from "./api";
+import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, Food } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
@@ -15,14 +15,17 @@ export interface Vec3 {
   z: number;
 }
 
-/** The kinds of log the player can carry on their shoulder. */
-export type CarriedLog = "log" | "debarkedLog";
+export type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
-/** The kinds of wood a woodpile holds: logs and debarked logs from the shoulder, and firewood from the backpack. */
-export type WoodpileWood = CarriedLog | "firewood";
-
-/** The commands that act on a campfire or woodpile and need the player within its reach. Out of reach, the player walks there first. */
-export type TendCommand = Extract<Command, { type: "addFuel" | "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "stackOnWoodpile" | "takeFromWoodpile" }>;
+/**
+ * Work on a campfire or woodpile that needs the player within its reach. Out of reach, the player walks there first.
+ * Each kind has the shape of the command in api.ts that asks for it, so the command can be stored as it is.
+ */
+export type TendTask =
+  | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
+  | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire"; campfireId: number }
+  | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
+  | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood };
 
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {
@@ -151,6 +154,11 @@ export interface Entity {
    */
   chest?: { contents: BackpackContents };
   /**
+   * Marks a finished sled, with how many logs and debarked logs lie on it. Its position is the middle of the ground it covers.
+   * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
+   */
+  sled?: Record<CarriedLog, number>;
+  /**
    * Marks a finished work station, such as a sawhorse, with its kind. A blueprint of a work station does not have it.
    * Its position is the middle of the ground it covers. Its `facing` says which way it is turned.
    */
@@ -170,7 +178,7 @@ export interface Entity {
   /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
   /** The campfire or woodpile command the player is walking to carry out. They carry it out once they stop beside it. */
-  tendTask?: TendCommand;
+  tendTask?: TendTask;
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
@@ -372,6 +380,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished chests. */
 export function chestEntities(store: EntityStore) {
   return store.with("chest", "position");
+}
+
+/** Finished sleds. */
+export function sledEntities(store: EntityStore) {
+  return store.with("sled", "position");
 }
 
 /** Finished work stations, such as sawhorses. Blueprints are not among them. */

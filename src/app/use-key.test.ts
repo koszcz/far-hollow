@@ -9,7 +9,7 @@ describe("pressing E", () => {
     const game = gameWithNothingInReach();
     const stick = addNearPlayer(game, { stick: true }, 1);
 
-    expect(useKeyFor(game.client)?.command).toEqual({ type: "pickUpStick", stickId: idOf(game, stick) });
+    expect(useKeyFor(game.client)?.action.command).toEqual({ type: "pickUpStick", stickId: idOf(game, stick) });
   });
 
   it("picks up the nearer of two things in reach", () => {
@@ -31,6 +31,16 @@ describe("pressing E", () => {
     expect(useKeyFor(game.client)).toBeUndefined();
   });
 
+  it("opens the menu of a work station in reach, as a left-click does", () => {
+    const game = gameWithNothingInReach();
+    const sawhorse = addNearPlayer(game, { workStation: "sawhorse" }, 1.5);
+
+    expect(useKeyFor(game.client)).toMatchObject({
+      thing: { kind: "workStation", id: idOf(game, sawhorse), station: "sawhorse" },
+      action: { id: "openMenu", command: undefined },
+    });
+  });
+
   it("does nothing when the nearest thing's main action is off", () => {
     const game = gameWithNothingInReach();
     const backpack = onlyPlayer(game).backpack;
@@ -44,7 +54,7 @@ describe("pressing E", () => {
 
 /** Sends what E does, then lets the player walk there and act. */
 function pressE(game: Game): void {
-  const command = useKeyFor(game.client)?.command;
+  const command = useKeyFor(game.client)?.action.command;
   if (command === undefined) throw new Error("E does nothing");
   game.client.send(command);
   for (let step = 0; step < 200; step += 1) game.step();

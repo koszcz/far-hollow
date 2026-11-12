@@ -26,6 +26,7 @@ import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
+import type { PromptButton } from "./cursor-prompt-view";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
 import { placingHint } from "./placing-hint";
@@ -87,7 +88,8 @@ function ContentGrid({
 /**
  * The hotbar's cells: the log on the shoulder, then each kind in the backpack. Each shows its icon, its name, a count when
  * there is more than one, and its number key. A click calls `onUse`. A right-click calls `onOpenMenu` at the cursor.
- * Each cell sets `data-prompt-item`, so the cursor prompt describes it (src/app/cursor-prompt-overlay.ts).
+ * A backpack cell sets `data-prompt-content` and the shoulder cell sets `data-prompt-shoulder`, so the cursor prompt
+ * describes it (src/app/cursor-prompt-overlay.tsx).
  */
 function HotbarGrid({
   view,
@@ -102,14 +104,15 @@ function HotbarGrid({
     <ul class="hud-hotbar-cells">
       {hotbarCells(view).map(({ target, name, count, key }) => (
         <li
-          key={target.kind === "item" ? target.content : "shoulder"}
+          key={target.kind === "backpackContent" ? target.content : "shoulder"}
           class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : undefined}
-          data-prompt-item={target.kind === "item" ? target.content : "shoulder"}
+          data-prompt-content={target.kind === "backpackContent" ? target.content : undefined}
+          data-prompt-shoulder={target.kind === "shoulder" ? "" : undefined}
         >
           <button
             type="button"
             class="hud-content-move hud-hotbar-cell"
-            aria-label={target.kind === "shoulder" ? strings.hotbar.shoulder(name) : strings.hotbar.cell(name, count, key)}
+            aria-label={target.kind === "shoulder" ? strings.hotbar.shoulder(name) : strings.hotbar.cell(strings.backpackContentCount(name, count), key)}
             onClick={(event) => {
               onUse(target, event.shiftKey);
             }}
@@ -118,7 +121,7 @@ function HotbarGrid({
               onOpenMenu(target, event.clientX, event.clientY);
             }}
           >
-            {target.kind === "item" ? <BackpackIcon content={target.content} /> : <HudIcon name="log" />}
+            {target.kind === "backpackContent" ? <BackpackIcon content={target.content} /> : <HudIcon name="log" />}
             <span class="hud-hotbar-name" aria-hidden="true">
               {name}
             </span>
@@ -314,7 +317,7 @@ function BuildWheel({ entries, onPick, onClose }: { entries: GameView["buildMenu
     const name = strings.buildMenu.structures[structure];
     const costText = strings.buildMenu.cost([
       ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
-      ...(tool === undefined ? [] : [strings.buildMenu.needsTool(strings.backpackContents[tool])]),
+      ...(tool === undefined ? [] : [strings.actionReasons.needsTool(strings.backpackContents[tool])]),
     ]);
     return {
       key: structure,
@@ -407,8 +410,8 @@ function HudToolButton({
 }: {
   icon: HudIconName;
   label: string;
-  /** Which cursor prompt it shows when pointed at. See src/app/cursor-prompt-overlay.ts. */
-  prompt: "build" | "craft";
+  /** Which cursor prompt it shows when pointed at. See src/app/cursor-prompt-overlay.tsx. */
+  prompt: PromptButton;
   shortcut: string;
   disabled?: boolean;
   pressed: boolean;
@@ -489,7 +492,7 @@ function PilePanel({ pile }: { pile: PileView }) {
 /** Shows the blueprint beside the player: how many of each carried material it has and needs, and how to go on. */
 function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
   const name = strings.buildMenu.structures[blueprint.structure];
-  const waiting = blueprint.deliveries.some(({ has, needs }) => has < needs);
+  const waiting = blueprint.deliveries.find(({ has, needs }) => has < needs);
   return (
     <section class="hud-section hud-blueprint" aria-label={strings.blueprint.title(name)}>
       <h2>
@@ -501,7 +504,7 @@ function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
           <li key={material}>{strings.blueprint.deliveries[material](has, needs)}</li>
         ))}
       </ul>
-      <p class="hud-hint">{waiting ? strings.blueprint.deliverHint : strings.blueprint.buildHint}</p>
+      <p class="hud-hint">{waiting === undefined ? strings.blueprint.buildHint : strings.blueprint.deliverHint[waiting.material]}</p>
     </section>
   );
 }
@@ -542,23 +545,26 @@ function PlacingHintText({ entries, placing }: { entries: readonly BuildMenuEntr
 }
 
 /**
- * The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel.
+ * A thing within reach that shows a panel under the work. The open chest shows beside the backpack instead.
  * A laid bedroll has no status to show, so it has no panel. Its actions are on the bedroll itself.
  */
-function NearbyPanel({ client, thing }: { client: GameClient; thing: NearbyThing }) {
+type PanelThing = Exclude<NearbyThing, { kind: "openChest" | "bedroll" }>;
+
+function hasPanel(thing: NearbyThing): thing is PanelThing {
+  return thing.kind !== "openChest" && thing.kind !== "bedroll";
+}
+
+/** The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel. */
+function NearbyPanel({ thing }: { thing: PanelThing }) {
   switch (thing.kind) {
     case "campfire":
       return <CampfirePanel campfire={thing.view} />;
     case "woodpile":
       return <WoodpilePanel woodpile={thing.view} />;
-    case "bedroll":
-      return null;
     case "pile":
       return <PilePanel pile={thing.view} />;
     case "blueprint":
       return <BlueprintPanel blueprint={thing.view} />;
-    case "openChest":
-      return <ChestPanel client={client} chest={thing.view} />;
   }
 }
 
@@ -582,9 +588,7 @@ export function Hud({
     [client],
   );
   const openChest = nearbyOf(view, "openChest");
-  /** The open chest shows beside the backpack. Everything else within reach shows a panel under the work. */
-  /** A laid bedroll has no panel. */
-  const nearbyPanels = view.nearby.filter((thing) => thing.kind !== "openChest" && thing.kind !== "bedroll");
+  const nearbyPanels = view.nearby.filter(hasPanel);
 
   const hasContext = view.action !== null || placing !== null || nearbyPanels.length > 0;
   const daylight = view.time.hourOfDay >= 6 && view.time.hourOfDay < 20;
@@ -632,7 +636,7 @@ export function Hud({
             )}
             {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} />}
             {nearbyPanels.map((thing) => (
-              <NearbyPanel key={thing.kind} client={client} thing={thing} />
+              <NearbyPanel key={thing.kind} thing={thing} />
             ))}
           </div>
         )}

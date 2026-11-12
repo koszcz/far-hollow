@@ -427,6 +427,28 @@
       }
     },
     {
+      "id": "debarking-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-debark-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/pile-meshes.ts",
+        "src/render/scene-renderer.ts",
+        "src/sim/debarking.ts"
+      ],
+      "description": "The player debarking a log on the ground with a drawknife: the player stands just off the nearer end of the log, facing along it. A person stripping bark bends over the log with knees bent and hips back, holds the drawknife by both handles, sets the blade into the bark at the far side, and pulls it back towards the knees, rocking back with the hips. Then they lift the blade clear and reach out for the next stroke. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing, the split's overhead drop, and the build's squat and press.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
+      },
+      "approvalNotes": [
+        "2026-11-12: The owner approved standing the player just off the nearer end of the log, so each stroke runs along it."
+      ]
+    },
+    {
       "id": "player-build-animation",
       "kind": "code",
       "code": [
@@ -716,6 +738,34 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "sled",
+      "kind": "code",
+      "code": [
+        "src/render/sled-meshes.ts"
+      ],
+      "description": "The sled, empty: two log runners with their bark on, 1.8 m long, lying side by side 0.8 m apart, with four sticks laid across them. The runners show dark bark and pale cut ends, and the sticks are the stick colour. As a blueprint it shows see-through, each delivered log waits pale and half solid in its runner's place, and construction lays one runner per log, then one cross piece per stick.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sled/issues/01-place-and-build-a-sled.md"
+      }
+    },
+    {
+      "id": "sled-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/sled-icons.tsx"
+      ],
+      "description": "Icons drawn in the build icons' shaded style: the sled, two dark log runners seen from the side with four sticks across them, shown on the sled's build menu tile, and the log, a log on its side with dark bark and a pale cut end, shown in the sled's cost. Sled ticket 03 may reuse the sled icon for the hotbar's sled cell.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sled/issues/01-place-and-build-a-sled.md"
       }
     },
     {

@@ -3,6 +3,8 @@
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
 // While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
+// While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
+// pulling a drawknife, and the axe goes on the back. The owner approved it.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -11,6 +13,8 @@ import type { CarriedLog } from "../sim/entities";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
+import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
+import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import type { PlayerModel } from "./player-model";
 
@@ -83,6 +87,8 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
+  /** Bends the player over a log, pulling a drawknife along it. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
+  setDebarking(nowSeconds: number | undefined): void;
   /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setBuilding(nowSeconds: number | undefined): void;
   dispose(): void;
@@ -119,12 +125,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     side: side === "l" ? (1 as const) : (-1 as const),
   });
   const leftArm = limb("l", "upperarm", "lowerarm", "wrist");
+  const rightArm = limb("r", "upperarm", "lowerarm", "wrist");
   const buildBones: BuildBones = {
     hips: bone("hips"),
     chest: chestBone,
     head: headBone,
     legs: [limb("l", "upperleg", "lowerleg", "foot"), limb("r", "upperleg", "lowerleg", "foot")],
-    arms: [leftArm, limb("r", "upperarm", "lowerarm", "wrist")],
+    arms: [leftArm, rightArm],
   };
   const axe = bone(AXE_PART);
   const axeInHand = { position: axe.position.clone(), quaternion: axe.quaternion.clone(), scale: axe.scale.clone() };
@@ -200,8 +207,21 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let buildingSince: number | undefined;
   /** The clock time it is now, while building. */
   let buildingAt = 0;
-  /** While standing up after building stops: when it stopped, on the performance clock in seconds, and the pose then. */
-  let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt> } | undefined;
+  /** The clock time debarking began, or undefined while not debarking. */
+  let debarkingSince: number | undefined;
+  /** The clock time it is now, while debarking. */
+  let debarkingAt = 0;
+  /**
+   * While standing up after building or debarking stops: when it stopped, on the performance clock in seconds, the
+   * pose then, and how many seconds standing up takes.
+   */
+  let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt>; seconds: number } | undefined;
+
+  // The drawknife rides between the hands while debarking, placed from the wrists each frame.
+  const drawknife = createDrawknife();
+  drawknife.group.visible = false;
+  drawknife.group.scale.setScalar(DRAWKNIFE_IN_HAND_SCALE);
+  group.add(drawknife.group);
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -276,7 +296,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with building. */
   function updateAxe(): void {
     const swinging = choppingAt !== undefined || splittingAt !== undefined;
-    placeAxe(!swinging && (carrying || buildingSince !== undefined));
+    placeAxe(!swinging && (carrying || buildingSince !== undefined || debarkingSince !== undefined));
   }
 
   /** Shows the clip for what the player is doing now. */
@@ -292,6 +312,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       rightForearm.quaternion.multiply(CARRY_FOREARM_TURN);
     }
     poseBuilding();
+    placeDrawknife();
   }
 
   /** Crouches over the clip while building, or stands back up for a moment after building stops. */
@@ -299,8 +320,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     let pose: ReturnType<typeof buildPoseAt> | undefined;
     if (buildingSince !== undefined) {
       pose = buildPoseAt(buildingAt - buildingSince);
+    } else if (debarkingSince !== undefined) {
+      pose = debarkPoseAt(debarkingAt - debarkingSince);
     } else if (leavingBuild !== undefined) {
-      const done = (performance.now() / 1000 - leavingBuild.at) / BUILD_LEAVE_SECONDS;
+      const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
       // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
       const idleNow = walkedMetres === undefined && choppingAt === undefined && splittingAt === undefined;
       if (done >= 1 || !idleNow) {
@@ -313,6 +336,33 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     rememberClipPose(...buildPosedBones);
     // A hand steadying a log on the shoulder stays there, so only the left hand reaches.
     applyBuildPose(group, buildBones, pose, carrying ? [leftArm] : buildBones.arms);
+  }
+
+  const leftWrist = new THREE.Vector3();
+  const rightWrist = new THREE.Vector3();
+  const knifeAcross = new THREE.Vector3();
+  const knifeUp = new THREE.Vector3();
+  const knifeForward = new THREE.Vector3();
+  const knifeTurn = new THREE.Matrix4();
+  /** Shows the drawknife while debarking, its handles in the two hands. */
+  function placeDrawknife(): void {
+    drawknife.group.visible = debarkingSince !== undefined;
+    if (!drawknife.group.visible) return;
+    group.updateWorldMatrix(true, true);
+    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
+    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
+    // The blade runs level across the hands, beyond them, with the handles pointing back towards the player.
+    knifeAcross.subVectors(rightWrist, leftWrist).normalize();
+    knifeUp.set(0, 1, 0);
+    knifeForward.crossVectors(knifeAcross, knifeUp).normalize();
+    knifeUp.crossVectors(knifeForward, knifeAcross);
+    knifeTurn.makeBasis(knifeAcross, knifeUp, knifeForward);
+    drawknife.group.quaternion.setFromRotationMatrix(knifeTurn);
+    // The grips sit at the wrists, so the middle of the blade lies out beyond them.
+    drawknife.group.position
+      .addVectors(leftWrist, rightWrist)
+      .multiplyScalar(0.5)
+      .addScaledVector(knifeForward, -DRAWKNIFE_GRIP.forward * DRAWKNIFE_IN_HAND_SCALE);
   }
 
   function posePlayingClip(): void {
@@ -368,10 +418,27 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       updateAxe();
       pose();
     },
+    setDebarking(nowSeconds) {
+      if (nowSeconds === undefined) {
+        if (debarkingSince !== undefined) {
+          leavingBuild = { at: performance.now() / 1000, pose: debarkPoseAt(debarkingAt - debarkingSince), seconds: DEBARK_ENTER_SECONDS };
+          debarkingSince = undefined;
+          updateAxe();
+        }
+      } else {
+        if (debarkingSince === undefined) {
+          debarkingSince = nowSeconds;
+          leavingBuild = undefined;
+          updateAxe();
+        }
+        debarkingAt = nowSeconds;
+      }
+      pose();
+    },
     setBuilding(nowSeconds) {
       if (nowSeconds === undefined) {
         if (buildingSince !== undefined) {
-          leavingBuild = { at: performance.now() / 1000, pose: buildPoseAt(buildingAt - buildingSince) };
+          leavingBuild = { at: performance.now() / 1000, pose: buildPoseAt(buildingAt - buildingSince), seconds: BUILD_LEAVE_SECONDS };
           buildingSince = undefined;
           updateAxe();
         }
@@ -391,6 +458,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       for (const geometry of geometries) geometry.dispose();
       for (const made of materials) made.dispose();
       backpack.dispose();
+      drawknife.dispose();
     },
   };
 }

@@ -14,6 +14,7 @@ import type { LogShape } from "./log-shape";
 import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createSawhorseMeshes } from "./sawhorse-meshes";
+import { createSledMeshes } from "./sled-meshes";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
@@ -45,7 +46,7 @@ export interface StructureMeshes {
   update(frame: StructureFrame): void;
   /** What a ray from the camera hits first among blueprints and finished structures the player can act on, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined;
-  /** The finished lean-to, foundation, wall, door frame, roof frame, or roof section a ray meets first. The right-click menu uses it. */
+  /** The finished lean-to, foundation, wall, door frame, roof frame, roof section, or sled a ray meets first. The right-click menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of what a click landed on, placed in the world. Empty once it is gone. */
   outlineOf(hit: StructureHit): OutlinePart[];
@@ -71,8 +72,9 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const woodpiles = createWoodpileMeshes(entities, logShape);
   const chests = createChestMeshes(entities);
   const sawhorses = createSawhorseMeshes(entities);
-  const all = [campfires, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses];
-  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
+  const sleds = createSledMeshes(entities);
+  const all = [campfires, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses, sleds];
+  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs, sleds];
 
   const group = new THREE.Group();
   group.add(...all.map((meshes) => meshes.group));
@@ -139,6 +141,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         sawhorses.showPlacingBlueprint(placing);
       },
     },
+    sled: {
+      outlineBlueprint: (entity) => sleds.outlineOf({ kind: "blueprint", entity }),
+      showPlacing: (placing) => {
+        sleds.showPlacingBlueprint(placing);
+      },
+    },
   };
 
   /** Keeps whichever candidate is nearest. */
@@ -161,6 +169,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       woodpiles.update();
       chests.update();
       sawhorses.update();
+      sleds.update();
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([
@@ -173,6 +182,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         woodpiles.pick(raycaster),
         chests.pick(raycaster),
         sawhorses.pick(raycaster),
+        sleds.pick(raycaster),
       ]);
     },
     pickFinished(raycaster) {

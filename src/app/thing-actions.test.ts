@@ -109,13 +109,14 @@ describe("a woodpile's actions", () => {
     ]);
   });
 
-  it("takes firewood when the player carries nothing, and stacks all firewood with its own entry", () => {
+  it("takes firewood when the player carries nothing, greys stacking the log, and stacks all firewood with its own entry", () => {
     const reader = readerWith({ backpack: { firewood: 2 }, woodpile: { contents: { log: 0, debarkedLog: 2, firewood: 1 }, total: 3 } });
 
     const actions = actionsFor(WOODPILE, reader);
 
     expect(summary(actions)).toEqual([
       "take:firewood main",
+      "stack:log off: carrying no log",
       "stack:firewood",
       "stack:firewood:all",
       "take:log off: nothing to take",
@@ -195,21 +196,27 @@ describe("other things' actions", () => {
     });
   });
 
-  it("acts on what is under a finished structure, then takes the structure down", () => {
-    const actions = actionsFor(scene({ kind: "structure", id: 11, under: { kind: "ground", spot: { x: 0, z: 0 } } }), readerWith({}));
+  it("acts on the thing under a finished structure, then takes the structure down", () => {
+    const actions = actionsFor(scene({ kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: 4 } }), readerWith({}));
 
-    expect(summary(actions)).toEqual(["walk main", "takeDownStructure"]);
+    expect(summary(actions)).toEqual(["pickUp main", "takeDownStructure"]);
     expect(find(actions, "takeDownStructure")?.command).toEqual({ type: "takeDown", pieceId: 11 });
   });
 
+  it("only takes down a finished structure with ground under it, since a click there just walks", () => {
+    const actions = actionsFor(scene({ kind: "structure", id: 11, structure: "foundation", under: { kind: "ground", spot: { x: 0, z: 0 } } }), readerWith({}));
+
+    expect(summary(actions)).toEqual(["takeDownStructure"]);
+  });
+
   it("eats food from the hotbar, then drops it, and puts it in an open chest first", () => {
-    expect(summary(actionsFor({ kind: "item", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
-    expect(summary(actionsFor({ kind: "item", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
 
     const chest = { id: 12, contents: {}, weight: 0, weightLimit: 30 };
     const withChest = readerWith({ backpack: { berries: 2 } });
     const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
-    const actions = actionsFor({ kind: "item", content: "berries" }, chestReader);
+    const actions = actionsFor({ kind: "backpackContent", content: "berries" }, chestReader);
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
     expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
   });

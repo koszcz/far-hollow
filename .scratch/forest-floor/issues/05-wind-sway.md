@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Undergrowth)
 
-**Status:** needs-triage
+**Status:** deferred
 
 **Assets:** None yet. Changing the approved `trees` asset needs the owner's approval.
 

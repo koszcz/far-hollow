@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Undergrowth)
 
-**Status:** needs-triage
+**Status:** deferred
 
 **Assets:** None yet. Decide during triage.
 

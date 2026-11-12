@@ -1,6 +1,6 @@
 // Checks that every structure kind is drawn through the one structure meshes module, without a browser.
 import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
 import { STRUCTURES } from "../sim/structures";
 import { createStructureMeshes } from "./structure-meshes";

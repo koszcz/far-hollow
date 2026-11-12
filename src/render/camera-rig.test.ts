@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createCameraRig } from "./camera-rig";
 
 const degrees = (value: number) => (value * Math.PI) / 180;

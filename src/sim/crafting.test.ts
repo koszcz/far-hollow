@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { BackpackContent } from "./backpack";
 import { recipeLacks, type Recipe } from "./crafting";
 import type { Entity } from "./entities";

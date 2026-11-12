@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { nearbyOf } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { findPath } from "./pathfinding";
 import type { GroundPoint } from "./valley";
 import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";

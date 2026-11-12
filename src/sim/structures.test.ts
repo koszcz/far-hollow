@@ -1,5 +1,5 @@
 // Checks every structure in the catalogue the same way, so a new structure kind gets these checks without new tests.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "./entities";
 import { createGame } from "./game";
 import { readSave, writeSave } from "./save";
@@ -13,7 +13,7 @@ describe.each(STRUCTURES.map((definition) => [definition.kind, definition] as co
     const finished = entities.add({ ...definition.finish(SPOT, 1, entities), position: { x: SPOT.x, y: 0, z: SPOT.z }, facing: { turns: 1 } });
 
     expect(structureKindOf(finished)).toBe(kind);
-    expect(finishedStructures(entities)).toEqual([{ entity: finished, kind }]);
+    expect(finishedStructures(entities)).toEqual<unknown>([{ entity: finished, kind }]);
   });
 
   it("is recognised as its own kind as a blueprint", () => {

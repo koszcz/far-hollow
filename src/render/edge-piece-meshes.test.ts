@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { isBetweenCameraAndPlayer, wallEnds } from "./edge-piece-meshes";
 
 describe("fading walls between the camera and the player", () => {

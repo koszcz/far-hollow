@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createGroundMap } from "../sim/ground-types";
 import type { GroundPoint, River } from "../sim/valley";
 import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthItem } from "./undergrowth-layout";

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
 import { createForestMeshes } from "./forest-meshes";
 

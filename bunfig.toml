@@ -1,0 +1,11 @@
+[test]
+# Unit tests live beside the code. Playwright owns e2e/, so bun test skips it.
+root = "."
+pathIgnorePatterns = ["e2e/**", "node_modules/**"]
+# Simulation tests build a whole valley and step the game, about 1 to 2 seconds each on an idle machine.
+# Several worktrees often run the tests at once, which can slow one test past the 5-second default.
+timeout = 20000
+
+[serve.static]
+# Bun's dev server does not fill in import.meta.env. See scripts/dev-env-plugin.ts.
+plugins = ["./scripts/dev-env-plugin.ts"]

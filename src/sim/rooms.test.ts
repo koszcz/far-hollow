@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { isWarmedByCampfire } from "./campfires";
 import { edgeMiddle } from "./edge-pieces";
 import { createEntityStore, type EntityStore } from "./entities";
@@ -52,7 +52,7 @@ describe("finding rooms", () => {
     const rooms = findRooms(entities);
     expect(rooms).toHaveLength(1);
     expect(rooms[0]).toHaveLength(3);
-    expect(rooms[0]).toEqual(expect.arrayContaining(squares));
+    expect(rooms[0]).toEqual<unknown>(expect.arrayContaining(squares));
   });
 
   it("splits squares with a wall between them into two rooms", () => {
@@ -62,7 +62,7 @@ describe("finding rooms", () => {
     cabin(entities, [left, right]);
     pieceAt(entities, "logWall", left, 3);
 
-    expect(findRooms(entities)).toEqual(expect.arrayContaining([[left], [right]]));
+    expect(findRooms(entities)).toEqual<unknown>(expect.arrayContaining([[left], [right]]));
     expect(findRooms(entities)).toHaveLength(2);
     expect(roomAround(entities, left)).toEqual([left]);
   });

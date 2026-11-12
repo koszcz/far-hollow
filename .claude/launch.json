@@ -4,9 +4,15 @@
     {
       "name": "dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["--bun", "vite"],
+      "runtimeArgs": ["--hot", "scripts/dev.ts"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "dist",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["scripts/preview.ts"],
+      "port": 4173
     }
   ]
 }

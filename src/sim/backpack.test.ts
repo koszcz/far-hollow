@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack, removeFromBackpack } from "./backpack";
 
 describe("the backpack's weight limit", () => {

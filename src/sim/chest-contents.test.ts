@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { BackpackContent, Command } from "./api";
 import { nearbyOf } from "./api";
 import type { Entity } from "./entities";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { addToBackpack } from "./backpack";
 import { BARK_PER_LOG, DEBARK_SECONDS } from "./debarking";
 import type { Entity } from "./entities";

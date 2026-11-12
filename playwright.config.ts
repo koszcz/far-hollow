@@ -13,7 +13,8 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
   },
   webServer: {
-    command: `bun --bun vite --port ${PORT} --strictPort`,
+    command: "bun scripts/dev.ts",
+    env: { PORT: String(PORT) },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
   },

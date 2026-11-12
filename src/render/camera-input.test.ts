@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { edgePanDirection } from "./camera-input";
 
 const screen = { width: 1000, height: 800 };

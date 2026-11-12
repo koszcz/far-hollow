@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createGame, type Game } from "../sim/game";
 import { isWalkable } from "../sim/walk-map";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey } from "./build-mode";

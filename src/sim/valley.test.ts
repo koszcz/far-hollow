@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { generateValley, terrainHeightAt, type GroundPoint } from "./valley";
 
 /** Shortest distance from a point to a path made of straight segments. Written here so the test does not trust the code under test. */

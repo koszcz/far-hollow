@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createFixedStepLoop } from "./fixed-step-loop";
 
 function loopWithCounter(stepMs = 50, maxStepsPerAdvance = 5) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { createGame, type Game } from "./game";
 import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";

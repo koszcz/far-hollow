@@ -10,7 +10,7 @@ You need Bun 1.4. Bun installs the packages and runs every tool. You do not need
 
 1. Install the dependencies: `bun install`
 2. Start the dev server: `bun run dev`
-3. Open the address that Vite prints.
+3. Open the address that the dev server prints. The page reloads when you save a file.
 
 ## Check your changes
 
@@ -19,6 +19,7 @@ You need Bun 1.4. Bun installs the packages and runs every tool. You do not need
 - `bun run lint` checks code style and module boundaries.
 - `bun run typecheck` checks the TypeScript types.
 - `bun run build` checks the assets and builds the game into `dist/`.
+- `bun run preview` serves the finished build from `dist/` so you can try it.
 - Git runs the typecheck, lint, tests, and asset check before every commit and every merge. The hooks live in `.githooks/`.
 - `make drafts` lists the draft assets that still need polish. Polish one with the `make-asset` skill.
 

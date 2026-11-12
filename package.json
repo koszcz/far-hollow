@@ -8,12 +8,12 @@
     "bun": ">=1.4 <2"
   },
   "scripts": {
-    "dev": "bun --bun vite",
-    "build": "bun run check:assets && bun --bun tsc --noEmit && bun --bun vite build",
-    "preview": "bun --bun vite preview",
-    "typecheck": "bun --bun tsc --noEmit",
+    "dev": "bun --hot scripts/dev.ts",
+    "build": "bun run check:assets && bun check && bun scripts/build.ts",
+    "preview": "bun scripts/preview.ts",
+    "typecheck": "bun check",
     "lint": "bun --bun eslint . && bun --bun depcruise src",
-    "test": "bun --bun vitest run",
+    "test": "bun test --parallel",
     "test:e2e": "bun --bun playwright test",
     "check:assets": "bun scripts/check-assets.ts",
     "assets:drafts": "bun scripts/list-drafts.ts",
@@ -27,15 +27,12 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
-    "@preact/preset-vite": "^2.10.6",
     "@types/bun": "^1.4.4",
     "@types/three": "^0.187.0",
     "dependency-cruiser": "^18.7.2",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.2",
-    "vite": "^8.3.7",
-    "vitest": "^5.1.0"
+    "typescript-eslint": "^8.72.2"
   }
 }

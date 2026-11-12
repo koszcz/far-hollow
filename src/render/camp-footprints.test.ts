@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createEntityStore, restoreEntities, saveEntities, type SavedEntity } from "../sim/entities";
 import { campFootprints, isUnderCamp, sameFootprints } from "./camp-footprints";
 

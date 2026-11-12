@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { QuarterTurns } from "../sim/structure-kind";
 import { roofPlaces, roofTopAt, type RoofPlace, type RoofSection } from "./roof-layout";
 

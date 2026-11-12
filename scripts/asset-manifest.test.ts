@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { findBrokenEntries, findUnapprovedAssets, listDrafts, type AssetManifest, type CodeAssetEntry, type FileAssetEntry } from "./asset-manifest";
 
 function fileEntry(file: string, status: "pending" | "approved" | "rejected"): FileAssetEntry {

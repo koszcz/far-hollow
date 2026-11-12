@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createClock, isNight, readClock } from "./clock";
 
 const REAL_MINUTE_MS = 60_000;

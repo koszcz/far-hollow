@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createGame } from "../sim/game";
 import { strings } from "../strings";
 import { blueprintPressFor, cursorFor, mainActionFor, menuActionsFor, outlineFor } from "./walk-input";

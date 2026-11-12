@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Command, StructureKind } from "./api";
 import { workStationEntities, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
@@ -77,7 +77,7 @@ describe("building a sawhorse", () => {
     expect(blueprint.blueprint).toBeUndefined();
     expect(blueprint.workStation).toBe("sawhorse");
     expect(blueprint.facing).toEqual({ turns: 2 });
-    expect(workStationEntities(game.entities).entities).toEqual([blueprint]);
+    expect(workStationEntities(game.entities).entities).toEqual<unknown>([blueprint]);
   });
 
   it("needs no tool", () => {

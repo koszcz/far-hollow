@@ -1,5 +1,5 @@
 // Checks which timed work the player is doing, as both the HUD and the player's drawn pose read it.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { playerActivity } from "./activity";
 import { CHOP_SECONDS } from "./chopping";
 import { DEBARK_SECONDS } from "./debarking";

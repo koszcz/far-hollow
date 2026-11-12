@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, FOUNDATION_LOG_COST } from "./structures";
 import type { Entity } from "./entities";

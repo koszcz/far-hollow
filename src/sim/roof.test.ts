@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { createEntityStore, type Entity, type EntityStore } from "./entities";
 import { foundationDeckTop } from "./foundations";

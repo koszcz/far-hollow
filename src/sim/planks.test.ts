@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { BackpackContent, Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
@@ -100,7 +100,7 @@ describe("cutting planks at the sawhorse", () => {
     walkAwayFrom(game, sawhorse);
     expect(game.client.getView().action).toBeNull();
     expect(game.entities.has(log)).toBe(true);
-    expect(log.position).toEqual(logSpot);
+    expect(log.position).toEqual<unknown>(logSpot);
     expect(game.client.getView().backpack.plank).toBeUndefined();
 
     send(game, { type: "craft", recipe: "planks" });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { seedFromText } from "./seed";
 
 describe("turning what the player types into a seed", () => {

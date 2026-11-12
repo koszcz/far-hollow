@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { pressCraftKey } from "./craft-menu";
 
 describe("the craft menu key", () => {

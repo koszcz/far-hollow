@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { createGroundMap, groundTypeAt, groundTypeWeightsAt } from "./ground-types";
 import { generateValley, type GroundPoint, type River } from "./valley";
 

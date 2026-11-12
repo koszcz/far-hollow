@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { catchSickness, passSicknessTime, SICKNESS_MINUTES } from "./sickness";
 
 const ACTIVE = { resting: false };

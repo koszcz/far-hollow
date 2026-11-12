@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
@@ -52,8 +52,8 @@ describe("where food grows", () => {
     const bushes = [...game.entities.with("forageSpot", "position")].filter((spot) => spot.forageSpot.food === "berries");
     const mushrooms = [...game.entities.with("forageSpot", "position")].filter((spot) => spot.forageSpot.food === "mushroom");
 
-    expect(bushes.map(({ position: { x, z } }) => ({ x, z }))).toEqual(game.valley.berryBushes);
-    expect(mushrooms.map(({ position: { x, z } }) => ({ x, z }))).toEqual(game.valley.mushrooms);
+    expect(bushes.map(({ position: { x, z } }) => ({ x, z }))).toEqual([...game.valley.berryBushes]);
+    expect(mushrooms.map(({ position: { x, z } }) => ({ x, z }))).toEqual([...game.valley.mushrooms]);
     expect(game.entities.with("regrowing").size).toBe(0);
   });
 });

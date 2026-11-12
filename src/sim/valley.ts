@@ -1,3 +1,4 @@
+import { layDeadfall, rollDeadfallSize, spotUnderTree, STICK_MIN_FROM_TREE_METRES, type SpotIsOpen } from "./deadfall";
 import { createRandom, type Random } from "./random";
 
 /** A spot on the valley floor, in metres from the valley's centre. */
@@ -55,8 +56,10 @@ export interface Valley {
   readonly river: River;
   /** Where each tree stands. */
   readonly trees: readonly GroundPoint[];
-  /** Where each stick lies on the forest floor at the start of a game. */
+  /** Where each stick lies on the forest floor at the start of a game, both in deadfalls and alone. */
   readonly sticks: readonly GroundPoint[];
+  /** The deadfalls among the sticks: each is the spots of a few sticks that fell together under one tree. */
+  readonly deadfalls: readonly (readonly GroundPoint[])[];
   /** Where each berry bush grows. */
   readonly berryBushes: readonly GroundPoint[];
   /** Where each patch of mushrooms grows. */
@@ -103,10 +106,9 @@ const START_FROM_WATER_METRES = 10;
 /** Trees stand at least this far from the water's edge. */
 const TREE_RIVER_CLEARANCE_METRES = 4;
 
-const STICK_COUNT = 700;
-/** Sticks fall from trees, so each lies within this ring around a tree's trunk, in metres. */
-const STICK_MIN_FROM_TREE_METRES = 1.5;
-const STICK_MAX_FROM_TREE_METRES = 4;
+/** A new valley has this many deadfalls of 3 to 6 sticks, and this many lone sticks. About 1,300 sticks in all. */
+const DEADFALL_COUNT = 250;
+const LONE_STICK_COUNT = 200;
 
 const BERRY_BUSH_COUNT = 60;
 /** Berry bushes grow at the forest's edge, this far from a tree's trunk, in metres. */
@@ -122,11 +124,11 @@ export function generateValley(seed: number): Valley {
   const river = generateRiver(random);
   const terrain = generateTerrain(random, river);
   const trees = placeTrees(random, river);
-  const sticks = placeNearTrees(random, river, trees, STICK_COUNT, STICK_MIN_FROM_TREE_METRES, STICK_MAX_FROM_TREE_METRES);
-  // Food is placed last, so adding it did not move the trees and sticks of any valley.
+  const { sticks, deadfalls } = placeSticks(random, trees, openSpotCheck(river, trees, STICK_MIN_FROM_TREE_METRES));
+  // Food is placed last, so adding it did not move the trees of any valley.
   const berryBushes = placeNearTrees(random, river, trees, BERRY_BUSH_COUNT, BERRY_BUSH_MIN_FROM_TREE_METRES, BERRY_BUSH_MAX_FROM_TREE_METRES);
   const mushrooms = placeNearTrees(random, river, trees, MUSHROOM_COUNT, MUSHROOM_MIN_FROM_TREE_METRES, MUSHROOM_MAX_FROM_TREE_METRES);
-  return { seed, size: VALLEY_SIZE_METRES, terrain, river, trees, sticks, berryBushes, mushrooms };
+  return { seed, size: VALLEY_SIZE_METRES, terrain, river, trees, sticks, deadfalls, berryBushes, mushrooms };
 }
 
 /** Ground height at any spot in the valley, blended from the nearest grid points. Spots outside the valley use the nearest edge. */
@@ -263,11 +265,30 @@ function placeTrees(random: Random, river: River): GroundPoint[] {
   return trees;
 }
 
+/** Lays the valley's first sticks: deadfalls under random trees first, then lone sticks. */
+function placeSticks(random: Random, trees: readonly GroundPoint[], isOpen: SpotIsOpen): { sticks: GroundPoint[]; deadfalls: GroundPoint[][] } {
+  const deadfalls: GroundPoint[][] = [];
+  const loneSticks: GroundPoint[] = [];
+  const firstTree = trees[0];
+  if (firstTree === undefined) return { sticks: [], deadfalls };
+  const randomTree = () => trees[Math.floor(random() * trees.length)] ?? firstTree;
+  while (deadfalls.length < DEADFALL_COUNT) {
+    const size = rollDeadfallSize(random);
+    const deadfall = layDeadfall(random, randomTree(), size, isOpen);
+    if (deadfall) deadfalls.push(deadfall);
+  }
+  while (loneSticks.length < LONE_STICK_COUNT) {
+    const spot = spotUnderTree(random, randomTree());
+    if (isOpen(spot)) loneSticks.push(spot);
+  }
+  return { sticks: [...deadfalls.flat(), ...loneSticks], deadfalls };
+}
+
 /**
- * Scatters `count` spots in a ring from `minFromTree` to `maxFromTree` metres around random trees, such as where sticks fall.
- * A spot is never in the water or closer than `minFromTree` to any trunk, so the player can reach it.
+ * Makes a check for spots inside the valley, out of the water, and at least `minFromTree` metres from every trunk,
+ * so the player can reach them.
  */
-function placeNearTrees(random: Random, river: River, trees: readonly GroundPoint[], count: number, minFromTree: number, maxFromTree: number): GroundPoint[] {
+function openSpotCheck(river: River, trees: readonly GroundPoint[], minFromTree: number): SpotIsOpen {
   const half = VALLEY_SIZE_METRES / 2;
   const cellSize = minFromTree;
   const cellsPerSide = Math.ceil(VALLEY_SIZE_METRES / cellSize);
@@ -292,7 +313,18 @@ function placeNearTrees(random: Random, river: River, trees: readonly GroundPoin
     }
     return false;
   }
+  return (point) => {
+    if (Math.abs(point.x) > half || Math.abs(point.z) > half) return false;
+    return distanceToRiver(river, point) > river.width / 2 + 1 && !tooCloseToATree(point);
+  };
+}
 
+/**
+ * Scatters `count` spots in a ring from `minFromTree` to `maxFromTree` metres around random trees, such as where berry bushes grow.
+ * A spot is never in the water or closer than `minFromTree` to any trunk, so the player can reach it.
+ */
+function placeNearTrees(random: Random, river: River, trees: readonly GroundPoint[], count: number, minFromTree: number, maxFromTree: number): GroundPoint[] {
+  const isOpen = openSpotCheck(river, trees, minFromTree);
   const spots: GroundPoint[] = [];
   if (trees.length === 0) return spots;
   while (spots.length < count) {
@@ -301,9 +333,7 @@ function placeNearTrees(random: Random, river: River, trees: readonly GroundPoin
     const distance = lerp(minFromTree, maxFromTree, random());
     if (tree === undefined) continue;
     const point = { x: tree.x + Math.sin(angle) * distance, z: tree.z + Math.cos(angle) * distance };
-    if (Math.abs(point.x) > half || Math.abs(point.z) > half) continue;
-    if (distanceToRiver(river, point) <= river.width / 2 + 1 || tooCloseToATree(point)) continue;
-    spots.push(point);
+    if (isOpen(point)) spots.push(point);
   }
   return spots;
 }

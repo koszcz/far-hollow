@@ -3,14 +3,14 @@ import type { ScenePick } from "../render/scene-renderer";
 import type { BackpackContent, BlueprintView, CampfireView, Command, GameView, WoodpileView } from "../sim/api";
 import { createGame } from "../sim/game";
 import type { ActionReader } from "./thing-actions";
-import { cursorFor, leftClickFor, menuFor, outlineFor } from "./walk-input";
+import { cursorFor, mainActionFor, menuFor, outlineFor } from "./walk-input";
 
-/** The command a left-click on this pick sends, read through a reader built from the given state. */
+/** The command the main action on this pick sends, as E or the top of its action menu does, read through a reader built from the given state. */
 function clickSends(pick: ScenePick, state: ReaderState = {}): Command | undefined {
-  return leftClickFor(pick, readerWith(state))?.command;
+  return mainActionFor(pick, readerWith(state))?.command;
 }
 
-describe("left-clicking a campfire", () => {
+describe("the main action on a campfire", () => {
   const campfire = { kind: "campfire", id: 7 } as const;
 
   it("lights an unlit fire that has fuel", () => {
@@ -32,7 +32,7 @@ describe("left-clicking a campfire", () => {
   });
 });
 
-describe("left-clicking a woodpile", () => {
+describe("the main action on a woodpile", () => {
   const woodpile = { kind: "woodpile", id: 8 } as const;
 
   it("stacks the log on the player's shoulder", () => {
@@ -51,12 +51,13 @@ describe("left-clicking a woodpile", () => {
   });
 });
 
-describe("left-clicking a blueprint", () => {
+describe("the main action on a blueprint", () => {
   const foundation = (has: number) => ({
     id: 3,
     structure: "foundation" as const,
     progress: 0,
     deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }],
+    lacks: null,
   });
 
   it("adds the debarked log on the player's shoulder while the blueprint still needs one", () => {
@@ -72,14 +73,14 @@ describe("left-clicking a blueprint", () => {
   });
 });
 
-describe("left-clicking a finished work station", () => {
+describe("the main action on a finished work station", () => {
   it("opens its menu, which sends nothing by itself", () => {
-    const action = leftClickFor({ kind: "workStation", station: "sawhorse", id: 11 }, readerWith({}));
+    const action = mainActionFor({ kind: "workStation", station: "sawhorse", id: 11 }, readerWith({}));
     expect(action).toMatchObject({ id: "openMenu", command: undefined });
   });
 });
 
-describe("left-clicking a finished building piece", () => {
+describe("the main action on a finished building piece", () => {
   it("acts on what is under it, so the player can walk onto a foundation or into a lean-to", () => {
     const pick = { kind: "structure", id: 8, structure: "foundation", under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
     expect(clickSends(pick)).toEqual({ type: "walkTo", x: 1, z: 2 });
@@ -88,11 +89,11 @@ describe("left-clicking a finished building piece", () => {
   });
 
   it("does nothing with nothing under it", () => {
-    expect(leftClickFor({ kind: "structure", id: 8, structure: "foundation", under: undefined }, readerWith({}))).toBeUndefined();
+    expect(mainActionFor({ kind: "structure", id: 8, structure: "foundation", under: undefined }, readerWith({}))).toBeUndefined();
   });
 });
 
-describe("left-clicking other things", () => {
+describe("the main action on other things", () => {
   it("does the main action", () => {
     expect(clickSends({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });
     expect(clickSends({ kind: "bedroll", id: 9 })).toEqual({ type: "sleep", bedrollId: 9 });
@@ -112,21 +113,33 @@ describe("left-clicking other things", () => {
   });
 });
 
-describe("right-clicking", () => {
+describe("clicking a thing", () => {
   const ids = (pick: ScenePick, state: ReaderState = {}) => menuFor(pick, readerWith(state))?.map(({ id }) => id);
 
-  it("opens a lone wall's menu, which offers to take it down", () => {
-    const wall = { kind: "structure", id: 8, structure: "logWall", under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
-
-    expect(ids(wall)).toEqual(["takeDownStructure"]);
-  });
-
-  it("opens the menu of a thing with more than its main action", () => {
+  it("opens a ring with the main action on top, then the rest", () => {
     expect(ids({ kind: "log", id: 3 })).toEqual(["pickUp", "debark"]);
   });
 
-  it("opens no menu for a thing whose only action is its left-click", () => {
-    expect(ids({ kind: "stick", id: 4 })).toBeUndefined();
+  it("opens a ring even when the thing offers only its main action", () => {
+    expect(ids({ kind: "stick", id: 4 })).toEqual(["pickUp"]);
+  });
+
+  it("keeps an action the player cannot do yet, so the ring can grey it and say why", () => {
+    expect(menuFor({ kind: "tree", id: 2 }, readerWith({}))?.[0]).toMatchObject({ id: "chop", enabled: false });
+  });
+
+  it("offers a walk onto a building piece over ground, then taking it down", () => {
+    const wall = { kind: "structure", id: 8, structure: "logWall", under: { kind: "ground", spot: { x: 1, z: 2 } } } as const;
+
+    expect(ids(wall)).toEqual(["walk", "takeDownStructure"]);
+  });
+
+  it("leaves out a work station's open-menu action, which sends nothing, so its recipes lead", () => {
+    expect(ids({ kind: "workStation", station: "sawhorse", id: 11 })?.includes("openMenu")).toBe(false);
+  });
+
+  it("opens no ring on plain ground, where a click walks", () => {
+    expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({}))).toBeUndefined();
   });
 });
 

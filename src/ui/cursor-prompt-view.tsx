@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 
 /** One line of the prompt: a mouse button and what it does. */
 export interface PromptLine {
-  /** The button's name, such as "Left-click". */
+  /** The button's name, such as "Click". */
   readonly button: string;
   /** The key that does the same, such as "E", if one does. */
   readonly key?: string;

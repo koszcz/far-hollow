@@ -149,6 +149,7 @@ describe("delivering debarked logs to a blueprint", () => {
       structure: "foundation",
       progress: 0,
       deliveries: [{ material: "debarkedLog", has: 2, needs: FOUNDATION_LOG_COST }],
+      lacks: null,
     });
   });
 

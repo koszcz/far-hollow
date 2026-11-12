@@ -20,7 +20,7 @@ export function pickBuildEntry(structure: StructureKind): BuildMode {
 }
 
 /**
- * The command a left-click sends while placing a blueprint. Only a click on the ground places one.
+ * The command a click sends while placing a blueprint. Only a click on the ground places one.
  * The player then starts building it at once, if they have what its first stage needs.
  */
 export function placeCommandFor(mode: BuildMode, pick: ScenePick): Command | undefined {

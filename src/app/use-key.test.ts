@@ -31,7 +31,7 @@ describe("pressing E", () => {
     expect(useKeyFor(game.client)).toBeUndefined();
   });
 
-  it("opens the menu of a work station in reach, as a left-click does", () => {
+  it("opens the menu of a work station in reach, as a click does", () => {
     const game = gameWithNothingInReach();
     const sawhorse = addNearPlayer(game, { workStation: "sawhorse" }, 1.5);
 

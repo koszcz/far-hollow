@@ -134,11 +134,11 @@ _Avoid_: Unload, empty, dump
 ## Acting
 
 **Main action**:
-The one action a plain click on a thing does, such as chopping a tree, lighting a campfire, or eating berries.
+The most likely action on a thing, such as chopping a tree, lighting a campfire, or eating berries. It sits at the top of the thing's action menu, and E does it.
 _Avoid_: Default action, primary action, left-click action
 
 **Use**:
-To do a thing's main action. The player uses a thing by clicking it, by pressing E when it is the nearest thing in reach, or, for a backpack content, by pressing its number key.
+To do a thing's main action. The player uses a thing by picking the top option of its action menu, by pressing E when it is the nearest thing in reach, or, for a backpack content, by pressing its number key.
 _Avoid_: Interact, activate
 
 **Reach**:
@@ -150,11 +150,11 @@ To add fuel to a campfire, to stack things on or take things off a woodpile, or 
 _Avoid_: Feed, refuel, manage
 
 **Action menu**:
-The list of every action a thing offers, with its main action first. An action the player cannot do yet shows greyed, with the reason.
-_Avoid_: Right-click menu, context menu
+The ring of every action a thing offers, which opens when the player clicks the thing. The main action sits at the top, at 12 o'clock, and the rest follow clockwise. The ring has no background: only the options show. An action the player cannot do yet shows greyed, with the reason.
+_Avoid_: Right-click menu, context menu, radial menu, pie menu
 
 **Cursor prompt**:
-The small label beside the cursor that names the thing under it and says what each mouse button does.
+The small label beside the cursor that names the thing under it and the action at the top of its action menu.
 _Avoid_: Tooltip, hint, hover label
 
 **Hotbar**:

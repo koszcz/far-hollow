@@ -1,9 +1,21 @@
 // Every action a thing offers the player: a thing in the world, a backpack content in the hotbar, or the log on their shoulder.
-// The action menu lists them all. The cursor prompt, a left-click, and the E key use the main one.
+// A click opens the action menu, which lists them all with the main one on top. The cursor prompt names the top one, and E does the main one.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, needsFreeHands, WOODPILE_WOODS } from "../sim/api";
-import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, RecipeLack, SledView, WoodpileView, WoodpileWood } from "../sim/api";
+import type {
+  BackpackContent,
+  BuildLack,
+  CampfireView,
+  CarriedLog,
+  Command,
+  GameClient,
+  GameView,
+  RecipeLack,
+  SledView,
+  WoodpileView,
+  WoodpileWood,
+} from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
@@ -69,21 +81,11 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
 }
 
 /**
- * The action the cursor prompt names for a left-click, enabled or not, or undefined if it names none.
- * A left-click on a finished structure acts on the thing behind it. With only ground behind it, the click just walks, so it names none.
+ * The actions the action menu lists for a target, in ring order: the main action first, at 12 o'clock, then the rest.
+ * Actions that send no command, such as a work station's "open menu", are left out. Empty when the target offers none.
  */
-export function leftClickAction(target: ActionTarget, reader: ActionReader): ThingAction | undefined {
-  if (target.kind !== "scene" || target.pick.kind !== "structure") return mainAction(actionsFor(target, reader));
-  const behind = target.pick.under;
-  return behind === undefined || behind.kind === "ground" ? undefined : mainAction(actionsFor({ kind: "scene", pick: behind }, reader));
-}
-
-/**
- * Whether the target's actions include one a left-click does not do. Only then does the action menu open,
- * and only then does the cursor prompt say "More actions".
- */
-export function hasMoreActions(actions: readonly ThingAction[], left: ThingAction | undefined): boolean {
-  return actions.some(({ id }) => id !== left?.id);
+export function menuActions(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
+  return actionsFor(target, reader).filter(({ command }) => command !== undefined);
 }
 
 function pickName(pick: ScenePick, reader: ActionReader): string {
@@ -128,8 +130,8 @@ function takeDown(id: number, reason?: string): Offer {
 
 function sceneActions(pick: ScenePick, reader: ActionReader, view: GameView): readonly ThingAction[] {
   if (pick.kind !== "structure") return thingActions(pick, reader, view);
-  // A finished structure acts like the thing under it, and can also be taken down. Ground under it adds nothing, since a click there only walks.
-  const under = pick.under === undefined || pick.under.kind === "ground" ? [] : thingActions(pick.under, reader, view);
+  // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
+  const under = pick.under === undefined ? [] : thingActions(pick.under, reader, view);
   return [...under, { ...takeDown(pick.id), id: "takeDownStructure", isMain: false }];
 }
 
@@ -282,7 +284,20 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
     ),
   );
   const offers = [...stackLog, ...stackFirewood, ...take, takeDown(woodpileId, woodpile.total > 0 ? reasons.emptyFirst : undefined)];
-  return withMain(offers, view.carrying === null ? "take:firewood" : `stack:${view.carrying}`);
+  return withMain(
+    offers,
+    view.carrying === null
+      ? woodpileMainWithoutLog([...take.filter(({ id }) => id === "take:firewood"), ...take.filter(({ id }) => id !== "take:firewood"), stackFirewood[0]])
+      : `stack:${view.carrying}`,
+  );
+}
+
+/**
+ * The woodpile's main action when the player carries no log: the first of `choices` they can do now.
+ * That takes firewood, then a log, then stacks firewood from the backpack. With none possible, it names taking firewood, greyed.
+ */
+function woodpileMainWithoutLog(choices: readonly (Offer | undefined)[]): ActionId {
+  return choices.find((choice) => choice?.enabled === true)?.id ?? "take:firewood";
 }
 
 /**
@@ -336,13 +351,28 @@ function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
 /** Main: add the carried material if the blueprint still needs it, otherwise build. Then taking it down. */
 function blueprintActions(blueprintId: number, reader: ActionReader, view: GameView): readonly ThingAction[] {
   const blueprint = reader.describeBlueprint(blueprintId);
-  const build = offer("build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
+  const build = offerUnless(buildLackReason(blueprint?.lacks ?? null), "build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
   const needed = blueprint?.deliveries.find(({ material, has: delivered, needs }) => material === view.carrying && delivered < needs);
   const deliver =
     needed === undefined
       ? []
       : [offer(`deliver:${needed.material}`, strings.actions.deliver[needed.material], { hud: "log" }, { type: "deliverToBlueprint", blueprintId })];
   return withMain([...deliver, build, takeDown(blueprintId)], deliver[0]?.id ?? "build");
+}
+
+/** Why the player cannot build a blueprint's next stage, or undefined if they can. */
+function buildLackReason(lacks: BuildLack | null): string | undefined {
+  if (lacks === null) return undefined;
+  const reasons = strings.actionReasons;
+  if (lacks.kind === "tool") return reasons.needsTool(strings.backpackContents[lacks.tool]);
+  switch (lacks.material) {
+    case "stick":
+    case "bark":
+      return reasons.noContent[lacks.material];
+    case "log":
+    case "debarkedLog":
+      return reasons.bringFirst[lacks.material];
+  }
 }
 
 /** What using a backpack content does, if it has a use. */

@@ -66,7 +66,10 @@ export interface ForestMeshes {
   seeThroughTo(player: Readonly<Vec3> | null): void;
   /** Draws only the standing trees each camera can see. Call it once the cameras have moved for this frame. */
   cull(views: CullViews): void;
-  /** What a ray from the camera hits first among standing trees, logs, debarked logs, and sticks, and how far away. */
+  /**
+   * What a ray from the camera hits first among standing trees, logs, debarked logs, and sticks, and how far away.
+   * The ray passes through trees faded to show the player, so the player can reach what they can see behind them.
+   */
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
   /** The shapes that draw a tree, log, or stick, placed in the world. Empty once it is gone. */
   outlineOf(hit: ForestHit): OutlinePart[];
@@ -419,7 +422,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const drawn = treesOfMesh.get(hit.object);
         const index = drawn?.batch.instanceHit(hit.instanceId);
         const tree = index === undefined ? undefined : drawn?.trees[index];
-        if (tree?.tree === true) return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
+        if (tree?.tree !== true || seeThrough.clicksPassThrough(tree.position, raycaster.ray.origin)) continue;
+        return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
       }
       return undefined;
     },

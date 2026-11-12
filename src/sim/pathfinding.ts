@@ -15,14 +15,21 @@ export function findPath(map: WalkMap, from: GroundPoint, to: GroundPoint): Grou
   if (hasLineOfSight(map, from, to)) return [{ x: to.x, z: to.z }];
 
   const regions = regionsOf(map);
-  const startRegion = regions[nearestCellWhere(map, from, (cell) => regions[cell] !== BLOCKED_REGION) ?? startCell];
+  const openCell = nearestCellWhere(map, from, (cell) => regions[cell] !== BLOCKED_REGION);
+  const startRegion = regions[openCell ?? startCell];
   const goalCell = nearestCellWhere(map, to, (cell) => regions[cell] === startRegion);
   if (goalCell === undefined) return [];
   const reachesTarget = goalCell === cellIndexAt(map, to);
   if (goalCell === startCell) return reachesTarget ? [{ x: to.x, z: to.z }] : [];
 
   const cells = searchCells(map, startCell, goalCell);
-  if (cells.length === 0) return [];
+  if (cells.length === 0) {
+    // The player can stand where something now blocks walking, with every square around them blocked too,
+    // such as after placing a campfire beside them under a lean-to. They step out to the nearest open square, then walk on.
+    if (isWalkable(map, from) || openCell === undefined || openCell === startCell) return [];
+    const out = cellCentre(map, openCell);
+    return [out, ...findPath(map, out, to)];
+  }
   const spots = cells.map((cell) => cellCentre(map, cell));
   if (reachesTarget) spots[spots.length - 1] = { x: to.x, z: to.z };
   return smooth(map, from, spots);

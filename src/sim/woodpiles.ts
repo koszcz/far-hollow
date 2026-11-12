@@ -28,6 +28,10 @@ export interface Woodpiles {
    * Firewood goes in the backpack, as much as fits. Returns `backpackFull` if none of it fits.
    */
   take(woodpileId: number, wood: WoodpileWood): "backpackFull" | undefined;
+  /** The woodpile as the HUD shows it, near or far, or undefined if the entity is not a finished woodpile. */
+  describe(woodpileId: number): WoodpileView | undefined;
+  /** True if the player stands still within reach of the woodpile, so they can use it now. */
+  inReach(woodpileId: number): boolean;
   /** The woodpile nearest the player that is within their reach, if any, as the HUD shows it. */
   nearby(): WoodpileView | undefined;
 }
@@ -99,6 +103,14 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
       woodpile.woodpile[wood] -= 1;
       entities.addComponent(player, "carrying", wood);
       return undefined;
+    },
+    describe(woodpileId) {
+      const woodpile = woodpileById(woodpileId);
+      return woodpile === undefined ? undefined : describe(woodpile);
+    },
+    inReach(woodpileId) {
+      const woodpile = woodpileById(woodpileId);
+      return woodpile !== undefined && userOf(woodpile) !== undefined;
     },
     nearby() {
       const player = players.first;

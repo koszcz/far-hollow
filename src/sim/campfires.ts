@@ -1,7 +1,8 @@
-import type { CampfireFuel } from "./api";
+import type { CampfireFuel, CampfireView } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridSquare } from "./build-grid";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
+import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./valley";
 import { walkBeside, type Walking } from "./walking";
@@ -33,8 +34,10 @@ export interface Campfires {
   addFuel(campfireId: number, fuel: CampfireFuel): void;
   /** Lights a campfire within the player's reach with the fire striker. It needs fuel. */
   light(campfireId: number): void;
-  /** True if `light` would light the campfire now: it is out, it has fuel, and the player is within reach with a fire striker. */
-  canLight(campfireId: number): boolean;
+  /** The campfire as the HUD shows it, or undefined if the entity is not a finished campfire. */
+  describe(campfireId: number): CampfireView | undefined;
+  /** True if the player stands still within reach of the campfire, so they can tend it now. */
+  inReach(campfireId: number): boolean;
   /** The campfire nearest the player that is within their reach, if any. */
   nearby(): CampfireEntity | undefined;
   /** Burns the fuel of every lit campfire for this many game minutes. A fire goes out when its fuel runs out. */
@@ -64,11 +67,10 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
     return undefined;
   }
 
-  /** True if the campfire is out, has fuel, and a player within reach has a fire striker. */
+  /** True if the campfire is out and has fuel, and the player has a fire striker. Lighting it also needs the player within reach. */
   function canLight(campfire: CampfireEntity): boolean {
     if (campfire.campfire.lit || campfire.campfire.fuelMinutes <= 0) return false;
-    const player = tenderOf(campfire);
-    return player?.backpack !== undefined && hasInBackpack(player.backpack, "fireStriker");
+    return [...players].some(({ backpack }) => backpack !== undefined && hasInBackpack(backpack, "fireStriker"));
   }
 
   return {
@@ -88,13 +90,29 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       if (!removeFromBackpack(player.backpack, fuel, 1)) return;
       campfire.campfire.fuelMinutes = fuelMinutes;
     },
-    canLight(campfireId) {
+    describe(campfireId) {
       const campfire = campfireById(campfireId);
-      return campfire !== undefined && canLight(campfire);
+      if (campfire === undefined) return undefined;
+      const { lit, fuelMinutes } = campfire.campfire;
+      const fits = (fuel: CampfireFuel): boolean => fuelMinutes + FUEL_BURN_MINUTES[fuel] <= CAMPFIRE_FUEL_LIMIT_MINUTES;
+      const { potOnFire } = campfire;
+      return Object.freeze({
+        id: campfireId,
+        lit,
+        fuelLeft: fuelMinutes / CAMPFIRE_FUEL_LIMIT_MINUTES,
+        fuelMinutes,
+        canLight: canLight(campfire),
+        fits: Object.freeze({ stick: fits("stick"), firewood: fits("firewood"), bark: fits("bark") }),
+        pot: potOnFire === undefined ? null : Object.freeze({ water: potOnFire.water, boilProgress: boilProgress(potOnFire) }),
+      });
     },
     light(campfireId) {
       const campfire = campfireById(campfireId);
-      if (campfire !== undefined && canLight(campfire)) campfire.campfire.lit = true;
+      if (campfire !== undefined && tenderOf(campfire) !== undefined && canLight(campfire)) campfire.campfire.lit = true;
+    },
+    inReach(campfireId) {
+      const campfire = campfireById(campfireId);
+      return campfire !== undefined && tenderOf(campfire) !== undefined;
     },
     nearby() {
       let nearest: CampfireEntity | undefined;

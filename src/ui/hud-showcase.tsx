@@ -73,7 +73,12 @@ const STATES: readonly ShowcaseState[] = [
       ...BASE_VIEW,
       backpack: { axe: 1, knife: 1, fireStriker: 1, bedroll: 1, firewood: 2 },
       carrying: "log",
-      nearby: [{ kind: "campfire", view: { id: 1, lit: true, fuelLeft: 0.6, fuelMinutes: 90, canLight: false, pot: null } }],
+      nearby: [
+        {
+          kind: "campfire",
+          view: { id: 1, lit: true, fuelLeft: 0.6, fuelMinutes: 90, canLight: false, fits: { stick: true, firewood: true, bark: true }, pot: null },
+        },
+      ],
       warmth: 0.55,
     },
     buildMenuOpen: false,
@@ -107,7 +112,12 @@ const BARK_STATES: readonly ShowcaseState[] = [
     view: {
       ...BASE_VIEW,
       backpack: { ...BASE_VIEW.backpack, drawknife: 1, bark: 6 },
-      nearby: [{ kind: "campfire", view: { id: 1, lit: true, fuelLeft: 0.3, fuelMinutes: 40, canLight: false, pot: null } }],
+      nearby: [
+        {
+          kind: "campfire",
+          view: { id: 1, lit: true, fuelLeft: 0.3, fuelMinutes: 40, canLight: false, fits: { stick: true, firewood: true, bark: true }, pot: null },
+        },
+      ],
     },
     buildMenuOpen: false,
     placing: null,
@@ -203,6 +213,8 @@ function stillClient(view: GameView): GameClient {
     getView: () => view,
     checkPlacement: (_structure, _at, turns) => ({ spot: { x: 0, y: 0, z: 0 }, turns, allowed: true }),
     describeBlueprint: () => null,
+    describeCampfire: () => null,
+    describeWoodpile: () => null,
     describeRooms: () => [],
     send() {},
     subscribe: () => () => {},

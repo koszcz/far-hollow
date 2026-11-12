@@ -15,6 +15,7 @@ import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
+import { attachCursorPrompt } from "./cursor-prompt-overlay";
 import { attachWalkInput, type MenuRequest } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
@@ -139,6 +140,7 @@ const cameraInput = attachCameraInput({
   rig: sceneRenderer.cameraRig,
   fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
 });
+const cursorPrompt = attachCursorPrompt(game.client);
 const walkInput = attachWalkInput({
   canvas,
   client: game.client,
@@ -146,6 +148,9 @@ const walkInput = attachWalkInput({
   pickAt: (clientX, clientY) => sceneRenderer.pickAt(clientX, clientY),
   onHoverChange: (pick) => {
     sceneRenderer.setHovered(pick);
+  },
+  onPromptTargetChange: (pick) => {
+    cursorPrompt.setSceneTarget(pick);
   },
   onBuildModeChange: (mode) => {
     uiState.buildMode = mode;
@@ -156,6 +161,7 @@ const walkInput = attachWalkInput({
   },
   onMenuChange: (menu) => {
     uiState.menu = menu;
+    cursorPrompt.setHidden(menu !== undefined);
     renderUi();
   },
 });
@@ -206,6 +212,7 @@ function renderUi(): void {
           actions={menu.actions}
           onClose={() => {
             uiState.menu = undefined;
+            cursorPrompt.setHidden(false);
             renderUi();
           }}
         />

@@ -6,14 +6,24 @@ import { createBuilding } from "./building";
 import { createTakingDown } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
-import { CAMPFIRE_FUEL_LIMIT_MINUTES, createCampfires, isWarmedByCampfire } from "./campfires";
+import { createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping } from "./chopping";
 import { createDebarking } from "./debarking";
 import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering } from "./gathering";
-import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
+import {
+  createEntityStore,
+  movingEntities,
+  rainEntities,
+  restoreEntities,
+  saveEntities,
+  type Entity,
+  type TendCommand,
+  type EntityStore,
+  type SavedEntity,
+} from "./entities";
 import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
@@ -27,9 +37,9 @@ import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { NOTICE_MINUTES } from "./notices";
 import { createPiles } from "./piles";
-import { boilProgress } from "./pot-state";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
+import { createTending } from "./tending";
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -122,6 +132,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const drinking = createDrinking(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires);
   const piles = createPiles(entities, walking, valley);
+  const tending = createTending(entities, campfires, woodpiles, tendNow);
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
     chopping,
@@ -145,6 +156,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     pot,
     chests,
     piles,
+    tending,
   ];
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
@@ -216,15 +228,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   function nearbyCampfire(): CampfireView | null {
     const campfire = campfires.nearby();
     const id = campfire === undefined ? undefined : entities.id(campfire);
-    if (campfire === undefined || id === undefined) return null;
-    return Object.freeze({
-      id,
-      lit: campfire.campfire.lit,
-      fuelLeft: campfire.campfire.fuelMinutes / CAMPFIRE_FUEL_LIMIT_MINUTES,
-      fuelMinutes: campfire.campfire.fuelMinutes,
-      canLight: campfires.canLight(id),
-      pot: campfire.potOnFire === undefined ? null : Object.freeze({ water: campfire.potOnFire.water, boilProgress: boilProgress(campfire.potOnFire) }),
-    });
+    return id === undefined ? null : (campfires.describe(id) ?? null);
   }
 
   function nearbyBedroll(): BedrollView | null {
@@ -271,6 +275,40 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Shows the notice if what the player tried was refused. */
   function refuseWith(refusal: Notice | PlainNotice | undefined): void {
     if (refusal !== undefined) showNotice(refusal);
+  }
+
+  /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
+  function tendNow(command: TendCommand): PlainNotice | undefined {
+    switch (command.type) {
+      case "addFuel":
+        campfires.addFuel(command.campfireId, command.fuel);
+        return undefined;
+      case "lightCampfire":
+        campfires.light(command.campfireId);
+        return undefined;
+      case "putPotOnFire":
+        pot.putOnFire(command.campfireId);
+        return undefined;
+      case "takePotOffFire":
+        return pot.takeOffFire(command.campfireId);
+      case "stackOnWoodpile":
+        woodpiles.stack(command.woodpileId, command.wood, command.all);
+        return undefined;
+      case "takeFromWoodpile":
+        return woodpiles.take(command.woodpileId, command.wood);
+    }
+  }
+
+  /**
+   * Carries out a command on a campfire or woodpile now if the player stands within its reach.
+   * Otherwise the player stops what they were doing, walks beside it, and carries the command out there.
+   */
+  function tend(command: TendCommand): void {
+    if (tending.inReach(command)) refuseWith(tendNow(command));
+    else {
+      cancelTasks();
+      tending.walkThen(command);
+    }
   }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
@@ -348,19 +386,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       cancelTasks();
       campfires.tend(command.campfireId);
     },
-    addFuel: (command) => {
-      campfires.addFuel(command.campfireId, command.fuel);
-    },
+    addFuel: tend,
     tendWoodpile: (command) => {
       cancelTasks();
       woodpiles.tend(command.woodpileId);
     },
-    stackOnWoodpile: (command) => {
-      woodpiles.stack(command.woodpileId, command.wood, command.all);
-    },
-    takeFromWoodpile: (command) => {
-      refuseWith(woodpiles.take(command.woodpileId, command.wood));
-    },
+    stackOnWoodpile: tend,
+    takeFromWoodpile: tend,
     openChest: (command) => {
       cancelTasks();
       chests.open(command.chestId);
@@ -371,9 +403,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     takeFromChest: (command) => {
       refuseWith(chests.take(command.chestId, command.content, command.all));
     },
-    lightCampfire: (command) => {
-      campfires.light(command.campfireId);
-    },
+    lightCampfire: tend,
     layBedroll: () => {
       bedrolls.lay();
     },
@@ -390,12 +420,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       cancelTasks();
       drinking.drinkFromRiver({ x: command.x, z: command.z });
     },
-    putPotOnFire: (command) => {
-      pot.putOnFire(command.campfireId);
-    },
-    takePotOffFire: (command) => {
-      refuseWith(pot.takeOffFire(command.campfireId));
-    },
+    putPotOnFire: tend,
+    takePotOffFire: tend,
     drinkFromPot: () => {
       pot.drink();
     },
@@ -523,6 +549,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     getView: () => view,
     checkPlacement: (structure, at, turns) => building.checkPlacement(structure, at, turns),
     describeBlueprint: (blueprintId) => building.describe(blueprintId) ?? null,
+    describeCampfire: (campfireId) => campfires.describe(campfireId) ?? null,
+    describeWoodpile: (woodpileId) => woodpiles.describe(woodpileId) ?? null,
     describeRooms: () =>
       Object.freeze(
         findRooms(entities).map((room) =>

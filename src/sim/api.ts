@@ -79,17 +79,17 @@ export type Command =
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
   | { type: "tendCampfire"; campfireId: number }
-  /** Put one stick, piece of firewood, or piece of bark from the backpack on a campfire within the player's reach. */
+  /** Put one stick, piece of firewood, or piece of bark from the backpack on a campfire. The player walks beside it first if needed. */
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Walk the player beside a finished woodpile, given by its entity id, so they can stack wood on it or take wood off. */
   | { type: "tendWoodpile"; woodpileId: number }
   /**
-   * Stack wood on a woodpile within the player's reach. A log or debarked log comes off the player's shoulder, one at a time.
+   * Stack wood on a woodpile. The player walks beside it first if needed. A log or debarked log comes off the player's shoulder, one at a time.
    * Firewood comes out of the backpack: one piece, or with `all` as many as the woodpile has room for.
    */
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
   /**
-   * Take wood off a woodpile within the player's reach. A log or debarked log goes on the player's shoulder, if it is free.
+   * Take wood off a woodpile. The player walks beside it first if needed. A log or debarked log goes on the player's shoulder, if it is free.
    * Firewood goes in the backpack, as much as fits.
    */
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
@@ -99,7 +99,7 @@ export type Command =
   | { type: "putInChest"; chestId: number; content: BackpackContent; all: boolean }
   /** Move one of a kind from the open chest into the backpack, or with `all` as many of that kind as fit. */
   | { type: "takeFromChest"; chestId: number; content: BackpackContent; all: boolean }
-  /** Light a campfire within the player's reach with the fire striker. The campfire needs fuel. */
+  /** Light a campfire with the fire striker. The campfire needs fuel. The player walks beside it first if needed. */
   | { type: "lightCampfire"; campfireId: number }
   /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
   | { type: "layBedroll" }
@@ -120,9 +120,9 @@ export type Command =
   | { type: "fillPot" }
   /** Drink the water in the full pot. Boiled water fills thirst safely. Unboiled river water makes the player sick. */
   | { type: "drinkFromPot" }
-  /** Put the full pot from the backpack on a lit campfire within the player's reach, to boil its water. */
+  /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
-  /** Take the pot off a campfire within the player's reach and put it back in the backpack. */
+  /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
   | { type: "takePotOffFire"; campfireId: number }
   /**
    * Start crafting a recipe, given by its name. A hand recipe is crafted where the player stands, as timed work.
@@ -224,8 +224,10 @@ export interface CampfireView {
   readonly fuelLeft: number;
   /** How many more game minutes the campfire's fuel can burn. */
   readonly fuelMinutes: number;
-  /** True if sending lightCampfire would light it now: it is out, it has fuel, and the player has a fire striker. */
+  /** True if sending lightCampfire would light it: it is out, it has fuel, and the player has a fire striker. The player walks there first if needed. */
   readonly canLight: boolean;
+  /** For each kind of fuel, true if one more piece fits on the fire. A full fire takes no more. */
+  readonly fits: Readonly<Record<CampfireFuel, boolean>>;
   /**
    * The pot on the campfire, or null if there is none. `water` says whether its water has boiled yet.
    * `boilProgress` runs from 0 to 1 while the water boils on the lit fire.
@@ -356,6 +358,10 @@ export interface GameClient {
   checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck;
   /** What a blueprint, given by its entity id, has and needs, or null if it is not a blueprint. It only reads game state. */
   describeBlueprint(blueprintId: number): BlueprintView | null;
+  /** A finished campfire, given by its entity id, near or far, or null if it is not one. It only reads game state. */
+  describeCampfire(campfireId: number): CampfireView | null;
+  /** A finished woodpile, given by its entity id, near or far, or null if it is not one. It only reads game state. */
+  describeWoodpile(woodpileId: number): WoodpileView | null;
   /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */
   describeRooms(): readonly RoomView[];
   send(command: Command): void;

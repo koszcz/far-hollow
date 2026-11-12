@@ -72,6 +72,14 @@ export function buildLift(share: number): number {
   return BUILD_LOWERED_METRES * (1 - dropped);
 }
 
+/**
+ * How solid a delivered part is at `share` of its stage. A delivered part already waits in its place `start` solid,
+ * so it stays there and eases to solid by the time a lowered part would touch down.
+ */
+export function deliveredOpacity(start: number, share: number): number {
+  return start + (1 - start) * easeInOut(Math.min(1, Math.max(0, share / BUILD_SET_DOWN_SHARE)));
+}
+
 function easeInOut(t: number): number {
   return t * t * (3 - 2 * t);
 }

@@ -180,8 +180,19 @@ function squareCabin({ place }: Stage, { roofs }: { roofs: boolean }): (x: numbe
 }
 
 /**
+ * Sets every blueprint in `store` to `progress` of a build that costs `logCost` debarked logs.
+ * Two logs wait delivered, and every log whose stage has started is delivered too, as in the game.
+ */
+function showLogBuild(store: EntityStore, progress: number, logCost: number): void {
+  for (const entity of store.with("blueprint")) {
+    entity.blueprint.progress = progress;
+    entity.blueprint.delivered.debarkedLog = Math.max(2, Math.ceil(progress * logCost));
+  }
+}
+
+/**
  * Shows a log wall or door frame on the back edge of a finished foundation, with the player beside it for size.
- * A blueprint with two logs delivered, the third log's part being laid, then the finished piece from the front and from behind.
+ * A blueprint with two logs delivered, the third log's part turning solid, then the finished piece from the front and from behind.
  */
 function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Showcase {
   return {
@@ -189,7 +200,7 @@ function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Sho
     focus: { x: 0, y: 1.1, z: 0 },
     shots: [
       { label: `blueprint, 2 of ${logCost} logs delivered`, yaw: 25, pitch: 20, seconds: 0 },
-      { label: "3rd log above its place", yaw: 25, pitch: 20, seconds: (2 + BUILD_FADE_SHARE) / logCost },
+      { label: "3rd log turning solid", yaw: 25, pitch: 20, seconds: 2.4 / logCost },
       { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
       { label: "built, back three-quarter", yaw: 215, pitch: 25, seconds: 1 },
     ],
@@ -202,7 +213,7 @@ function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Sho
       movePlayer(1.3, 0.2, -0.4);
     },
     pose({ store }, shot) {
-      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+      showLogBuild(store, shot.seconds ?? 0, logCost);
     },
   };
 }
@@ -333,11 +344,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       if (blueprint.position !== undefined) blueprint.position.y += FOUNDATION_DECK_LIFT_METRES;
     },
     pose({ store }, shot) {
-      for (const entity of store.with("blueprint")) {
-        entity.blueprint.progress = shot.seconds ?? 0;
-        // A log is always delivered before its stage starts.
-        entity.blueprint.delivered.debarkedLog = Math.max(2, Math.ceil(entity.blueprint.progress * FOUNDATION_LOG_COST));
-      }
+      showLogBuild(store, shot.seconds ?? 0, FOUNDATION_LOG_COST);
     },
   },
   chest: {
@@ -396,7 +403,7 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       stage.movePlayer(0.6, 1.3, Math.PI);
     },
     pose({ store }, shot) {
-      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+      showLogBuild(store, shot.seconds ?? 0, ROOF_FRAME_LOG_COST);
     },
   },
   roof: {

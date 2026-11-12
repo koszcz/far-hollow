@@ -12,7 +12,7 @@
 // - A door frame is two posts with a lintel across the top. Each stage puts up one of the three. The posts taper and lean a
 //   little, and the lintel sits in notches on their tops and reaches past them. Their cut ends show the paler cut wood.
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
-// The part being built fades in above its place, is lowered, and set down, like the logs of a foundation.
+// The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
 // A finished wall or door frame between the camera and the player fades out, so the player never disappears behind it.
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
@@ -22,7 +22,7 @@ import type { EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -312,8 +312,8 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   }
 
   /**
-   * Shows how far construction has gone. Built parts are solid and in place, the part being built moves through its stage,
-   * parts whose log has been delivered wait half solid in their places, and the rest show see-through.
+   * Shows how far construction has gone. Built parts are solid. The part being built stays in its place and turns solid.
+   * Parts whose log has been delivered wait half solid in their places, and the rest show see-through.
    */
   function showProgress(item: Drawn, progress: number, delivered: number): void {
     const stagesDone = progress * item.stages.length;
@@ -325,10 +325,10 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
           mesh.position.y = plan.y;
           continue;
         }
-        const opacity = buildOpacity(share);
+        const opacity = deliveredOpacity(DELIVERED_OPACITY, share);
         for (const material of fading) material.opacity = opacity;
         mesh.material = opacity < 1 ? fading : solid;
-        mesh.position.y = plan.y + buildLift(share);
+        mesh.position.y = plan.y;
       }
     });
   }

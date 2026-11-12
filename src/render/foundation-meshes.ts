@@ -16,7 +16,7 @@ import { FOUNDATION_DECK_THICKNESS_METRES, foundationLegs } from "../sim/foundat
 import { FOUNDATION_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
-import { BUILD_LOWERED_SHARE, BUILD_SET_DOWN_SHARE, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { BUILD_LOWERED_SHARE, deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -226,7 +226,7 @@ export function createFoundationMeshes(entities: EntityStore, groundAt: (x: numb
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
         return;
       }
-      const opacity = towardsSolid(DELIVERED_OPACITY, share / BUILD_SET_DOWN_SHARE);
+      const opacity = deliveredOpacity(DELIVERED_OPACITY, share);
       for (const material of fading) material.opacity = opacity;
       mesh.material = opacity < 1 ? fading : logMaterials;
     });

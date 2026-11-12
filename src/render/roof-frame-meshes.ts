@@ -11,7 +11,7 @@
 //   gap up to the bark, their top logs cut to the slope. Beside a lower frame they rest on that frame's bark instead.
 // Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The fill
 // goes up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
-// The part being built fades in above its place, is lowered, and set down, like the logs of a foundation.
+// The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
 // When the player stands under a cabin roof, the frames under that roof hide with it, so the player stays in view.
 // While the player places a frame from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
@@ -47,7 +47,7 @@ import {
   type FrameLayout,
   type Section,
 } from "./roof-parts";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -337,8 +337,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   }
 
   /**
-   * Shows how far construction has gone. Built parts are solid and in place, the part being built moves through its stage,
-   * parts whose log has been delivered wait half solid in their places, and the rest show see-through.
+   * Shows how far construction has gone. Built parts are solid. The part being built stays in its place and turns solid.
+   * Parts whose log has been delivered wait half solid in their places, and the rest show see-through.
    */
   function showProgress(item: Drawn, progress: number, delivered: number): void {
     const stagesDone = progress * item.parts.length;
@@ -348,9 +348,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
         mesh.position.y = plan.y;
       } else {
-        fading.opacity = buildOpacity(share);
+        fading.opacity = deliveredOpacity(DELIVERED_OPACITY, share);
         mesh.material = fading.opacity < 1 ? fading : wood;
-        mesh.position.y = plan.y + buildLift(share);
+        mesh.position.y = plan.y;
       }
       // The fill goes up with the last rafter.
       if (index === item.parts.length - 1) {

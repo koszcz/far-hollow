@@ -1,14 +1,13 @@
-// Draws the cursor prompt beside the cursor. src/app/cursor-prompt.ts decides its words.
-// It is plain DOM, not Preact, so following the cursor costs one style change per pointer move.
-// The scene reports what the cursor is over through setSceneTarget. HUD elements mark themselves with
-// data-prompt-item (a backpack content, or "shoulder" for the carried log) or data-prompt-button ("build" or "craft"), and the overlay finds them itself.
+// Shows the cursor prompt for what the cursor is over. src/app/cursor-prompt.ts decides its words, and
+// src/ui/cursor-prompt-view.tsx draws them beside the cursor. The view renders again only when the words change.
+// The scene reports what the cursor is over through setSceneTarget. HUD elements mark themselves, and the overlay finds them itself:
+// data-prompt-content names a backpack content, data-prompt-shoulder marks the carried log, and data-prompt-button names "build" or "craft".
+import { render } from "preact";
 import type { ScenePick } from "../render/scene-renderer";
 import type { BackpackContent, GameClient } from "../sim/api";
 import { strings } from "../strings";
+import { CursorPromptView } from "../ui/cursor-prompt-view";
 import { promptFor, promptForButton, type CursorPrompt, type PromptButton } from "./cursor-prompt";
-
-/** How far the prompt sits from the cursor's tip, in page pixels. */
-const OFFSET_PIXELS = 16;
 
 export interface CursorPromptOverlay {
   /** What the cursor is over in the scene, or undefined over nothing or while placing a blueprint. */
@@ -18,22 +17,19 @@ export interface CursorPromptOverlay {
   dispose(): void;
 }
 
+/** The HUD elements that ask for a prompt. */
+const PROMPT_SELECTOR = "[data-prompt-content], [data-prompt-shoulder], [data-prompt-button]";
+
 export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
-  const element = document.createElement("div");
-  element.className = "cursor-prompt";
-  // Screen readers already hear each HUD button's name, and the scene has no reader support.
-  element.setAttribute("aria-hidden", "true");
-  element.hidden = true;
-  document.body.append(element);
+  const container = document.createElement("div");
+  document.body.append(container);
 
   let sceneTarget: ScenePick | undefined;
   /** The HUD element under the cursor that asks for a prompt, if any. */
   let hudElement: HTMLElement | null = null;
   let hidden = false;
-  let cursor = { x: 0, y: 0 };
-  /** The prompt now drawn, as text, so it is redrawn only when it changes. */
-  let drawn = "";
-  let size = { width: 0, height: 0 };
+  /** The prompt now drawn, as text, so it is drawn again only when it changes. Null before the first draw. */
+  let drawn: string | null = null;
 
   function currentPrompt(): CursorPrompt | undefined {
     if (hidden) return undefined;
@@ -45,12 +41,14 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
   }
 
   function hudPrompt(source: HTMLElement): CursorPrompt | undefined {
-    const item = source.dataset.promptItem;
-    if (item === "shoulder") {
+    if (source.dataset.promptShoulder !== undefined) {
       const log = client.getView().carrying;
       return log === null ? undefined : promptFor({ kind: "shoulder", log }, client);
     }
-    if (item !== undefined && item in strings.backpackContents) return promptFor({ kind: "item", content: item as BackpackContent }, client);
+    const content = source.dataset.promptContent;
+    if (content !== undefined && content in strings.backpackContents) {
+      return promptFor({ kind: "backpackContent", content: content as BackpackContent }, client);
+    }
     const button = source.dataset.promptButton;
     if (button === "build" || button === "craft") return promptForButton(button satisfies PromptButton, source.getAttribute("aria-pressed") === "true");
     return undefined;
@@ -61,49 +59,14 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
     const text = prompt === undefined ? "" : JSON.stringify(prompt);
     if (text === drawn) return;
     drawn = text;
-    element.hidden = prompt === undefined;
-    if (prompt === undefined) return;
-    draw(prompt);
-    size = { width: element.offsetWidth, height: element.offsetHeight };
-    place();
-  }
-
-  function draw(prompt: CursorPrompt): void {
-    const title = document.createElement("strong");
-    title.textContent = prompt.title;
-    const lines = prompt.lines.map(({ button, key, text, enabled }) => {
-      const line = document.createElement("span");
-      line.className = enabled ? "cursor-prompt-line" : "cursor-prompt-line cursor-prompt-off";
-      const keys = [button, ...(key === undefined ? [] : [key])].map((name) => {
-        const element = document.createElement("kbd");
-        element.className = "hud-key";
-        element.textContent = name;
-        return element;
-      });
-      line.append(...keys, text);
-      return line;
-    });
-    element.replaceChildren(title, ...lines);
-  }
-
-  /** Puts the prompt below and right of the cursor, or on the other side where it would leave the window. */
-  function place(): void {
-    if (element.hidden) return;
-    const right = cursor.x + OFFSET_PIXELS + size.width > window.innerWidth;
-    const below = cursor.y + OFFSET_PIXELS + size.height <= window.innerHeight;
-    const x = right ? cursor.x - OFFSET_PIXELS - size.width : cursor.x + OFFSET_PIXELS;
-    const y = below ? cursor.y + OFFSET_PIXELS : cursor.y - OFFSET_PIXELS - size.height;
-    element.style.transform = `translate(${Math.max(0, x)}px, ${Math.max(0, y)}px)`;
+    render(<CursorPromptView prompt={prompt} />, container);
   }
 
   function onPointerMove(event: PointerEvent): void {
-    cursor = { x: event.clientX, y: event.clientY };
-    const target = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-prompt-item], [data-prompt-button]") : null;
-    if (target !== hudElement) {
-      hudElement = target;
-      refresh();
-    }
-    place();
+    const target = event.target instanceof Element ? event.target.closest<HTMLElement>(PROMPT_SELECTOR) : null;
+    if (target === hudElement) return;
+    hudElement = target;
+    refresh();
   }
 
   function onPointerLeave(): void {
@@ -115,6 +78,7 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
   window.addEventListener("pointermove", onPointerMove, { passive: true });
   document.documentElement.addEventListener("pointerleave", onPointerLeave);
   const unsubscribe = client.subscribe(refresh);
+  refresh();
   return {
     setSceneTarget(pick) {
       sceneTarget = pick;
@@ -128,7 +92,8 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
       window.removeEventListener("pointermove", onPointerMove);
       document.documentElement.removeEventListener("pointerleave", onPointerLeave);
       unsubscribe();
-      element.remove();
+      render(null, container);
+      container.remove();
     },
   };
 }

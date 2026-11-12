@@ -1,35 +1,18 @@
 // The cursor prompt: a label beside the cursor that names the thing under it and says what each mouse button does.
-// This file decides the words. src/app/cursor-prompt-overlay.ts draws them and moves them with the cursor.
+// This file decides the words. src/ui/cursor-prompt-view.tsx draws them, and src/app/cursor-prompt-overlay.tsx shows it.
 import type { ThingInReach } from "../sim/api";
 import { strings } from "../strings";
+import type { CursorPrompt, PromptButton, PromptLine } from "../ui/cursor-prompt-view";
 import { actionsFor, hasMoreActions, leftClickAction, targetName, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
-/** One line of the prompt: a mouse button and what it does. */
-export interface PromptLine {
-  /** The button's name, such as "Left-click". */
-  readonly button: string;
-  /** The key that does the same, such as "E", if one does. */
-  readonly key?: string;
-  /** What the button does, such as "Chop", or "Chop: needs the axe" when the player cannot do it yet. */
-  readonly text: string;
-  /** False when the player cannot do it yet. The prompt greys the line. */
-  readonly enabled: boolean;
-}
-
-export interface CursorPrompt {
-  /** The thing's name, such as "Tree". */
-  readonly title: string;
-  readonly lines: readonly PromptLine[];
-}
-
-/** The HUD buttons that show a prompt without being a thing the player acts on. */
-export type PromptButton = "build" | "craft";
+export type { CursorPrompt, PromptButton, PromptLine } from "../ui/cursor-prompt-view";
 
 /**
  * The prompt for what the cursor is over, or undefined when there should be none.
  * Plain ground shows none, because a click there only walks.
  * A finished structure, such as a wall, is named with what is behind it when that is a thing, since a left-click acts on that.
  * Its right-click menu always offers to take it down, so it always shows "More actions".
+ * The right-click line shows whenever the right-click menu would open.
  * `nearest` is the thing nearest the player within reach. Over it, the left-click line shows E too, since E does the same.
  */
 export function promptFor(target: ActionTarget, reader: ActionReader, nearest: ThingInReach | null = null): CursorPrompt | undefined {
@@ -40,7 +23,7 @@ export function promptFor(target: ActionTarget, reader: ActionReader, nearest: T
   const named: ActionTarget = behind === undefined || behind.kind === "ground" ? target : { kind: "scene", pick: behind };
   const lines: PromptLine[] = [];
   if (left !== undefined) lines.push(leftLine(left, isThing(named, nearest)));
-  else if (target.kind === "item") lines.push({ button: strings.prompt.leftClick, text: strings.prompt.noUse, enabled: false });
+  else if (target.kind === "backpackContent") lines.push({ button: strings.prompt.leftClick, text: strings.prompt.noUse, enabled: false });
   if (hasMoreActions(actionsFor(target, reader), left)) lines.push({ button: strings.prompt.rightClick, text: strings.prompt.moreActions, enabled: true });
   return { title: targetName(named, reader), lines };
 }

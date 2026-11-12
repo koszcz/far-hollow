@@ -542,23 +542,26 @@ function PlacingHintText({ entries, placing }: { entries: readonly BuildMenuEntr
 }
 
 /**
- * The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel.
+ * A thing within reach that shows a panel under the work. The open chest shows beside the backpack instead.
  * A laid bedroll has no status to show, so it has no panel. Its actions are on the bedroll itself.
  */
-function NearbyPanel({ client, thing }: { client: GameClient; thing: NearbyThing }) {
+type PanelThing = Exclude<NearbyThing, { kind: "openChest" | "bedroll" }>;
+
+function hasPanel(thing: NearbyThing): thing is PanelThing {
+  return thing.kind !== "openChest" && thing.kind !== "bedroll";
+}
+
+/** The panel for one thing within the player's reach, by its kind. TypeScript reports a kind with no panel. */
+function NearbyPanel({ thing }: { thing: PanelThing }) {
   switch (thing.kind) {
     case "campfire":
       return <CampfirePanel campfire={thing.view} />;
     case "woodpile":
       return <WoodpilePanel woodpile={thing.view} />;
-    case "bedroll":
-      return null;
     case "pile":
       return <PilePanel pile={thing.view} />;
     case "blueprint":
       return <BlueprintPanel blueprint={thing.view} />;
-    case "openChest":
-      return <ChestPanel client={client} chest={thing.view} />;
   }
 }
 
@@ -582,9 +585,7 @@ export function Hud({
     [client],
   );
   const openChest = nearbyOf(view, "openChest");
-  /** The open chest shows beside the backpack. Everything else within reach shows a panel under the work. */
-  /** A laid bedroll has no panel. */
-  const nearbyPanels = view.nearby.filter((thing) => thing.kind !== "openChest" && thing.kind !== "bedroll");
+  const nearbyPanels = view.nearby.filter(hasPanel);
 
   const hasContext = view.action !== null || placing !== null || nearbyPanels.length > 0;
   const daylight = view.time.hourOfDay >= 6 && view.time.hourOfDay < 20;
@@ -632,7 +633,7 @@ export function Hud({
             )}
             {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} />}
             {nearbyPanels.map((thing) => (
-              <NearbyPanel key={thing.kind} client={client} thing={thing} />
+              <NearbyPanel key={thing.kind} thing={thing} />
             ))}
           </div>
         )}

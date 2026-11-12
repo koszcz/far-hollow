@@ -1,5 +1,5 @@
 // The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene, in the "hotbar and wheel" layout the owner chose.
-// The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the context panels and the open chest.
+// The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the panels and the open chest.
 // The clock sits top left, the pause button top right, and banners top centre. Build and craft open as wheels in the middle of the screen.
 // Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 // The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the approved "build-icons" asset.
@@ -263,10 +263,10 @@ function Wheel({ title, pick, entries, onClose }: { title: string; pick: string;
 }
 
 /**
- * The craft wheel: one choice per recipe, with the icon of what it makes. The centre shows what a recipe uses, how long
+ * The craft menu: one choice per recipe, with the icon of what it makes. The centre shows what a recipe uses, how long
  * it takes, and which tool or work station it lacks. A recipe the player cannot follow yet is dimmed. Choosing one starts crafting it.
  */
-function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (recipe: RecipeKind) => void; onClose: () => void }) {
+function CraftMenu({ view, onChoose, onClose }: { view: GameView; onChoose: (recipe: RecipeKind) => void; onClose: () => void }) {
   const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, lacks, result }): WheelEntry => {
     const name = strings.craftMenu.recipes[kind];
     const notes = [
@@ -309,10 +309,10 @@ function CraftWheel({ view, onChoose, onClose }: { view: GameView; onChoose: (re
 }
 
 /**
- * The build wheel: one choice per structure the player can build, with its icon. The centre shows the materials it
+ * The build menu: one choice per structure the player can build, with its icon. The centre shows the materials it
  * costs as icons with counts, and the tool it needs. Picking one puts its blueprint under the mouse.
  */
-function BuildWheel({ entries, onPick, onClose }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void; onClose: () => void }) {
+function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void; onClose: () => void }) {
   const wheelEntries = entries.map(({ structure, cost, tool }): WheelEntry => {
     const name = strings.buildMenu.structures[structure];
     const costText = strings.buildMenu.cost([
@@ -677,9 +677,9 @@ export function Hud({
           </div>
         </div>
       </div>
-      {buildMenuOpen && <BuildWheel entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
+      {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
       {craftMenuOpen && (
-        <CraftWheel
+        <CraftMenu
           view={view}
           onChoose={(recipe) => {
             client.send({ type: "craft", recipe });

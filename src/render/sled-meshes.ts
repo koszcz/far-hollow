@@ -39,7 +39,7 @@ export interface SledMeshes {
   update(): void;
   /** What a ray from the camera hits first among sled blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: SledHit; distance: number } | undefined;
-  /** The finished sled a ray meets first. The right-click menu uses it. */
+  /** The finished sled a ray meets first. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of a sled or sled blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: SledHit): OutlinePart[];

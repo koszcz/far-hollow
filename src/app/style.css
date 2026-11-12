@@ -17,7 +17,7 @@ body {
 }
 /* The HUD, the "hud" asset in asset-manifest.json: woodland panels of dark bark with warm text. Approved by the owner. */
 /* The "hotbar and wheel" layout: the clock top left, pause top right, and a dock at the bottom centre. The dock stacks the open chest, */
-/* the context panel, the needs bars, and the hotbar, from top to bottom. Build and craft open as a wheel in the middle of the screen. */
+/* the panel, the needs bars, and the hotbar, from top to bottom. Build and craft open as a wheel in the middle of the screen. */
 .hud {
   position: absolute;
   color: #f3e6d3;
@@ -626,7 +626,7 @@ body {
   border-radius: 6px;
   pointer-events: none;
   will-change: transform;
-  /* Above the HUD and the right-click menu. */
+  /* Above the HUD and the action menu. */
   z-index: 3;
 }
 .cursor-prompt strong {

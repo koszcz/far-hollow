@@ -74,7 +74,7 @@ export interface RoofFrameMeshes {
   update(view?: { player: Vec3 }): void;
   /** What a ray from the camera hits first among frame blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: RoofFrameHit; distance: number } | undefined;
-  /** The finished frame the ray meets first, with how far away it is, or undefined if it meets none. The right-click menu uses it. */
+  /** The finished frame the ray meets first, with how far away it is, or undefined if it meets none. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of a frame blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: RoofFrameHit): OutlinePart[];

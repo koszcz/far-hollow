@@ -12,7 +12,7 @@ import { promptFor, promptForButton, type CursorPrompt, type PromptButton } from
 export interface CursorPromptOverlay {
   /** What the cursor is over in the scene, or undefined over nothing or while placing a blueprint. */
   setSceneTarget(pick: ScenePick | undefined): void;
-  /** Hides the prompt while something else shows at the cursor, such as the right-click menu. */
+  /** Hides the prompt while something else shows at the cursor, such as the action menu. */
   setHidden(hidden: boolean): void;
   dispose(): void;
 }

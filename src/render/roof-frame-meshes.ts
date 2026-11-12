@@ -1,14 +1,15 @@
-// Draws roof frames and their blueprints: the "roof-frame" asset in asset-manifest.json, a draft built in code.
+// Draws roof frames and their blueprints: the "roof-frame" asset in asset-manifest.json, built in code and approved by the owner.
 // A frame is the timber skeleton of one foundation square, between the walls and the roof.
-// - Beams: debarked logs lying level on the top of every wall and door frame on the square's edges. A log wall that runs
-//   along z sits half a course lower than one along x, so its beam is thicker, and every beam top is level. A beam reaches
+// - Beams: hewn timbers, debarked logs squared with an adze, lying level on the top of every wall and door frame on the
+//   square's edges. A log wall that runs along z sits half a course lower than one along x, so its beam is hewn taller, and
+//   every beam top is level. A beam reaches
 //   about 0.3 m past the walls where no frame carries on beyond its end, so the join between walls and roof hides under the
 //   overhang. Where two frames share an edge, only one of them lays its beam.
-// - Rafters: three debarked logs on the beams, sloping down the way the frame faces, 12 degrees, like the roof on them.
+// - Rafters: three hewn timbers on the beams, sloping down the way the frame faces, 12 degrees, like the roof on them.
 //   Frames side by side work out their heights and their hip and valley shapes from each other, as roof-layout.ts says.
 //   A hip or valley has a rafter along each low edge and one corner to corner under the line where its two slopes meet.
-// - Fill: where a slope rises above the beams, as at the high side of a slope, debarked logs stacked on the beams fill the
-//   gap up to the bark, their top logs cut to the slope. Beside a lower frame they rest on that frame's bark instead.
+// - Fill: where a slope rises above the beams, as at the high side of a slope, courses of split boards stacked on the beams
+//   fill the gap up to the bark, their top boards cut to the slope. Beside a lower frame they rest on that frame's bark instead.
 // Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The fill
 // goes up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
@@ -30,12 +31,12 @@ import { roofTopAt, type RoofPlace, type RoofShape } from "./roof-layout";
 import {
   BARK_THICKNESS_METRES,
   BEAM_RADIUS_METRES,
-  debarkedLog,
   EDGES,
   fillFloors,
   fillLogs,
   FRAME_TOP_METRES,
   frameLayout,
+  hewnTimber,
   isShown,
   neighboursOf,
   RAFTER_RADIUS_METRES,
@@ -185,9 +186,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const logs = along.map(({ side, under, startReach, endReach }) => {
       const beamRandom = seededRandom(ROOF_SEED + 10 + side);
       const wobble = (size: number) => (beamRandom() * 2 - 1) * size;
-      // A log wall along z sits lower, so its beam is thicker, and its top is level with the others.
+      // A log wall along z sits lower, so its beam is hewn taller, and its top is level with the others. Every beam is as wide.
       const radius = BEAM_RADIUS_METRES + (under === "logWall" && side % 2 === 1 ? CORNER_STAGGER_METRES / 2 : 0);
-      const geometry = debarkedLog(BUILD_GRID_METRES + startReach + endReach, radius, wobble, 0.008);
+      const geometry = hewnTimber(BUILD_GRID_METRES + startReach + endReach, radius, wobble, BEAM_RADIUS_METRES, 0.006);
       const middle = turnOffset({ x: 0, z: BUILD_GRID_METRES / 2 }, side);
       const shift = (endReach - startReach) / 2;
       // A beam on side 0 or 2 runs along x. Logs are made along z.

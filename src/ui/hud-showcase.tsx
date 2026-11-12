@@ -215,6 +215,7 @@ function stillClient(view: GameView): GameClient {
     describeBlueprint: () => null,
     describeCampfire: () => null,
     describeWoodpile: () => null,
+    nearestInReach: () => null,
     describeRooms: () => [],
     send() {},
     subscribe: () => () => {},
@@ -252,6 +253,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         onPickBuildEntry={() => {}}
         craftMenuOpen={craftMenuOpen}
         onToggleCraftMenu={() => {}}
+        onUseHotbarCell={() => {}}
+        onOpenHotbarMenu={() => {}}
       />,
       quarter,
     );

@@ -283,12 +283,13 @@
         "src/render/roof-layout.ts",
         "src/sim/structures.ts"
       ],
-      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Debarked-log beams lie level on the top of every wall and door frame on the square's edges. The beams on the lower walls, which run along z, are thicker, so every beam top is level. A beam reaches about 0.3 m past the walls where no frame carries on beyond its end. Three faceted debarked-log rafters with pale cut ends rest on the beams and slope 12 degrees the way the frame faces. Where a slope rises above the beams, debarked logs stacked on the beams, cut to the slope, fill the gap up to the roof. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the fill going up with the last rafter. Each part stays in its place and turns solid during its stage. It hides with the roof above the player.",
+      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Hewn beams, debarked logs squared with an adze, with chamfered corners, shallow adze marks, and pale cut ends, lie level on the top of every wall and door frame on the square's edges. Their square shape sets them apart from the round wall logs. The beams on the lower walls, which run along z, are hewn taller, so every beam top is level. A beam reaches about 0.3 m past the walls where no frame carries on beyond its end. Three hewn rafters, a little narrower than they are tall, rest on the beams and slope 12 degrees the way the frame faces, so the bark lies flat on them. Where a slope rises above the beams, courses of rough split boards stacked on the beams, the top one cut to the slope, fill the gap up to the roof. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the fill going up with the last rafter. Each part stays in its place and turns solid during its stage. It hides with the roof above the player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/10-roof-frame.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {
@@ -438,6 +439,24 @@
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
+      }
+    },
+    {
+      "id": "debarking-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-debark-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/pile-meshes.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player debarking a log on the ground with a drawknife: a person stripping bark bends over the log with knees bent and hips back, holds the drawknife by both handles with its edge towards the body, sets the blade into the bark at the far side, and pulls it back towards the knees, rocking back with the hips. Then they lift the blade clear and reach out for the next stroke. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing, the split's overhead drop, and the build's squat and press.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {

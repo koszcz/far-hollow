@@ -1,5 +1,6 @@
 // Taking down blueprints and finished structures, and giving back the materials in them.
-// Every structure but a finished campfire can come down: a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
+// Every structure can come down: a campfire, a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
+// A lit campfire goes out as it comes down, and any fuel still in it is lost.
 import { addToBackpack } from "./backpack";
 import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
@@ -52,7 +53,7 @@ type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
 /**
  * Why the player could not take a structure down.
- * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a chest or woodpile that still holds something.
+ * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a chest or woodpile that still holds something, or a campfire with a pot on it.
  */
 export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
 
@@ -60,7 +61,7 @@ export interface TakingDown {
   /**
    * Sets the player walking to a blueprint or finished structure to take it down.
    * Does nothing if the entity is not one the player can take down. Returns a refusal if another structure stands on it,
-   * or if it is a chest or woodpile that still holds something.
+   * or if it is a chest or woodpile that still holds something, or a campfire with a pot on it.
    */
   start(structureId: number): TakeDownRefusal | undefined;
   /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
@@ -178,13 +179,9 @@ export function takeDownSeconds(kind: StructureKind): number {
   return structureOf(kind).buildSeconds * TAKE_DOWN_SHARE_OF_BUILD;
 }
 
-/**
- * The kind of a structure the player can take down: a blueprint of any structure, or any finished structure but a campfire.
- * Undefined for anything else.
- */
+/** The kind of a structure the player can take down: a blueprint of any structure, or any finished structure. Undefined for anything else. */
 export function takeDownKindOf(entity: Entity): StructureKind | undefined {
-  const kind = structureKindOf(entity);
-  return kind === "campfire" && entity.blueprint === undefined ? undefined : kind;
+  return structureKindOf(entity);
 }
 
 /**
@@ -228,8 +225,12 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
   return false;
 }
 
-/** Whether a structure is a chest or woodpile with anything in it. It must be emptied before it comes down, so nothing in it is lost. */
+/**
+ * Whether a structure is a chest or woodpile with anything in it, or a campfire with a pot on it.
+ * It must be emptied before it comes down, so nothing in it is lost.
+ */
 export function holdsSomething(structure: Entity): boolean {
+  if (structure.potOnFire !== undefined) return true;
   const counts = [...Object.values(structure.chest?.contents ?? {}), ...Object.values(structure.woodpile ?? {})];
   return counts.some((count) => count > 0);
 }

@@ -192,7 +192,7 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
 const FUELS: readonly CampfireFuel[] = ["firewood", "stick", "bark"];
 
 /**
- * Light, each fuel, then the pot. A finished campfire cannot be taken down, so there is no Take down.
+ * Light, each fuel, the pot, then Take down. A fire with a pot on it cannot be taken down until the pot comes off.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
 function campfireActions(campfire: CampfireView, view: GameView): readonly ThingAction[] {
@@ -220,7 +220,7 @@ function campfireActions(campfire: CampfireView, view: GameView): readonly Thing
         )
       : offer("takePotOff", strings.actions.takePotOff, { content: "pot" }, { type: "takePotOffFire", campfireId });
   const light = campfire.lit ? [] : [offerUnless(lightReason, "light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const offers = [...light, ...fuels, pot];
+  const offers = [...light, ...fuels, pot, takeDown(campfireId, "takeDown", campfire.pot === null ? undefined : reasons.potOnFire)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);

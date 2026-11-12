@@ -218,6 +218,36 @@ function drawknifeParts(handle: THREE.Material, blade: THREE.Material): Part[] {
   ];
 }
 
+/**
+ * Where a hand grips each handle of the drawknife built by `createDrawknife`, in metres from its middle: `side` along
+ * x for the left handle (the right one is at -side), `forward` along z.
+ */
+export const DRAWKNIFE_GRIP = { side: 0.18, forward: 0.08 };
+
+/**
+ * A drawknife of its own, for the "debarking-animation" to hold, built like the one in a pile: the blade along x
+ * with its edge to -z, a handle at each end turned to +z. Lying flat, its pivot at the middle of the blade's underside.
+ */
+export function createDrawknife(): { readonly group: THREE.Group; dispose(): void } {
+  const handle = new THREE.MeshStandardMaterial({ color: HANDLE_COLOUR, roughness: 1 });
+  const blade = new THREE.MeshStandardMaterial({ color: DRAWKNIFE_BLADE_COLOUR, metalness: 0.6, roughness: 0.4 });
+  const parts = drawknifeParts(handle, blade);
+  const group = new THREE.Group();
+  for (const part of parts) {
+    const mesh = new THREE.Mesh(part.geometry, part.material);
+    mesh.castShadow = true;
+    group.add(mesh);
+  }
+  return {
+    group,
+    dispose() {
+      for (const part of parts) part.geometry.dispose();
+      handle.dispose();
+      blade.dispose();
+    },
+  };
+}
+
 /** The fire striker: a flat steel loop with rounded ends, like its backpack icon. */
 function strikerGeometry(): THREE.BufferGeometry {
   const rounded = (halfWidth: number, halfDepth: number): THREE.Path => {

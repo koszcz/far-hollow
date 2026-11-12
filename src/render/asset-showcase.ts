@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { CHOP_SECONDS } from "../sim/chopping";
+import { DEBARK_SECONDS } from "../sim/debarking";
 import { createEntityStore, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { WALK_SPEED_METRES_PER_SECOND } from "../sim/walking";
@@ -33,6 +34,7 @@ import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
 import { createForestMeshes, TREE_COLOURS, type ForestMeshes } from "./forest-meshes";
 import { createFarTreeShape } from "./tree-far-shape";
 import type { TreeShape } from "./tree-model";
+import { DEBARK_BITE_SHARE, DEBARK_ENTER_SECONDS, DEBARK_PULLED_SHARE, DEBARK_REACHED_SHARE, DEBARK_STROKE_SECONDS } from "./player-debark-pose";
 import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_REACHED_SHARE, CROUCH_SETTLED_SHARE } from "./player-build-pose";
 import {
   CHOP_RAISED_SHARE,
@@ -70,6 +72,9 @@ const FIELD_OF_VIEW_DEGREES = 40;
 /** Midday, so colours show as they do in daylight. */
 const NOON = 12;
 const NIGHT = 22;
+/** How long the player stands after debarking before the "debarking-animation" plays again, in seconds. */
+const DEBARK_PLAY_REST_SECONDS = 1.2;
+
 /** How many build cycles the "player-build-animation" plays before it stops, mid-press, to show the player standing up. */
 const BUILD_PLAY_CYCLES = 2.5;
 
@@ -978,6 +983,36 @@ const SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
+  "debarking-animation": {
+    radius: 1.3,
+    focus: { x: 0, y: 0.6, z: 0.3 },
+    shots: [
+      { label: "reaching out", share: DEBARK_REACHED_SHARE / 2 },
+      { label: "blade bites the bark", share: DEBARK_BITE_SHARE },
+      { label: "pulling", share: (DEBARK_BITE_SHARE + DEBARK_PULLED_SHARE) / 2 },
+      { label: "lifting the blade", share: (DEBARK_PULLED_SHARE + 1) / 2 },
+    ].map(({ label, share }) => ({ label, yaw: 50, pitch: 25, seconds: DEBARK_ENTER_SECONDS + share * DEBARK_STROKE_SECONDS })),
+    build({ place, movePlayer }) {
+      // The log lies along the way the player faces, so each stroke runs along its length, as a real one does.
+      place(0, 0.55, { log: { heading: 0 } });
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      // Start debarking afresh at time 0 for each view, so the view shows the stroke `shot.seconds` in.
+      player.setDebarking(undefined);
+      player.setDebarking(0);
+      player.setDebarking(shot.seconds);
+    },
+    // The player debarks for as long as the game takes, stands up, rests, then starts again.
+    play: {
+      shot: { label: "debarking, then standing up", yaw: 30, pitch: 20, radius: 1.6 },
+      pose({ player }, seconds) {
+        const cycle = seconds % (DEBARK_SECONDS + DEBARK_PLAY_REST_SECONDS);
+        player.setDebarking(cycle < DEBARK_SECONDS ? cycle : undefined);
+        return undefined;
+      },
+    },
+  },
   "split-animation": {
     radius: 1.3,
     focus: { x: 0, y: 1, z: 0 },
@@ -1058,6 +1093,7 @@ export function showAsset(
     "walk-animation",
     "chop-animation",
     "split-animation",
+    "debarking-animation",
     "player-build-animation",
     "sky-lighting",
     "hud",

@@ -116,7 +116,12 @@ Dropped things of one kind lying together on the ground, such as seven sticks. T
 _Avoid_: Stack, heap, drop
 
 **Sled**:
-A craftable object the player drags to carry several logs at once.
+An object the player builds from the build menu and drags behind them to move several logs or debarked logs at once. It holds a fixed number of them. Dragging a sled slows the player, and their hands are busy until they let go.
+_Avoid_: Cart, wagon, wheelbarrow
+
+**Drag**:
+To pull a sled behind the player as they walk. The player drags one sled at a time.
+_Avoid_: Pull, tow, push
 
 ## Food
 
@@ -184,7 +189,7 @@ _Avoid_: Making, fabrication, assembly
 A recipe the player can follow anywhere, using only what is in their backpack.
 
 **Station recipe**:
-A recipe the player follows while standing at a work station. Besides what is in the backpack, it can use logs lying next to the station.
+A recipe the player follows while standing at a work station. Besides what is in the backpack, it can use logs lying next to the station or on a sled parked next to it.
 
 **Craft menu**:
 The list, opened with C, of every recipe in the game. Recipes the player cannot follow yet show the tool or work station they are missing.

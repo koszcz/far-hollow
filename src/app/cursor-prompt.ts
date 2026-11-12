@@ -1,6 +1,6 @@
 // The cursor prompt: a label beside the cursor that names the thing under it and says what each mouse button does.
 // This file decides the words. src/ui/cursor-prompt-view.tsx draws them, and src/app/cursor-prompt-overlay.tsx shows it.
-import type { ThingInReach } from "../sim/api";
+import type { BackpackContent, ThingInReach } from "../sim/api";
 import { strings } from "../strings";
 import type { CursorPrompt, PromptButton, PromptLine } from "../ui/cursor-prompt-view";
 import { actionsFor, hasMoreActions, leftClickAction, targetName, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
@@ -26,6 +26,17 @@ export function promptFor(target: ActionTarget, reader: ActionReader, nearest: T
   else if (target.kind === "backpackContent") lines.push({ button: strings.prompt.leftClick, text: strings.prompt.noUse, enabled: false });
   if (hasMoreActions(actionsFor(target, reader), left)) lines.push({ button: strings.prompt.rightClick, text: strings.prompt.moreActions, enabled: true });
   return { title: targetName(named, reader), lines };
+}
+
+/** The prompt for a cell of the open chest, which holds `content`. A click takes one out, and a Shift-click takes all that fit. */
+export function promptForChestContent(content: BackpackContent): CursorPrompt {
+  return {
+    title: strings.backpackContents[content],
+    lines: [
+      { button: strings.prompt.leftClick, text: strings.chest.takeOne, enabled: true },
+      { button: strings.prompt.shiftClick, text: strings.chest.takeAll, enabled: true },
+    ],
+  };
 }
 
 /** The prompt for the build or craft button. `open` says whether its wheel is open now. */

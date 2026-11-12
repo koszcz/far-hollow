@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { SEE_THROUGH_OUTER_METRES, seeThroughAmount } from "./tree-see-through";
+import { clicksPassThrough, SEE_THROUGH_OUTER_METRES, seeThroughAmount } from "./tree-see-through";
 
 const eye = { x: 0, y: 30, z: 40 };
 const player = { x: 0, y: 0, z: 0 };
@@ -27,5 +27,14 @@ describe("tree see-through", () => {
     expect(seeThroughAmount({ x: 0, y: 0, z: 1.5 }, eye, player)).toBe(0);
     expect(seeThroughAmount({ x: 1.5, y: 0, z: 0 }, eye, player)).toBe(0);
     expect(seeThroughAmount({ x: 0, y: 0, z: -1.5 }, eye, player)).toBe(0);
+  });
+
+  it("lets clicks pass through a faded tree, so the player can reach what lies behind it", () => {
+    expect(clicksPassThrough({ x: 0, y: 0, z: 20 }, eye, player)).toBe(true);
+  });
+
+  it("catches clicks on a solid tree", () => {
+    expect(clicksPassThrough({ x: SEE_THROUGH_OUTER_METRES + 1, y: 0, z: 20 }, eye, player)).toBe(false);
+    expect(clicksPassThrough({ x: 0, y: 0, z: 1.5 }, eye, player)).toBe(false);
   });
 });

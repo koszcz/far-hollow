@@ -68,6 +68,21 @@ describe("findPath", () => {
   });
 });
 
+describe("findPath from a spot something now blocks", () => {
+  it("steps out to the nearest open square, then walks on, such as after a campfire is placed where the player stands", () => {
+    const map = createWalkMap({ size: 100 });
+    // The player stands in the middle of a 3 by 3 block of blocked squares.
+    blockWhere(map, { x: -1.5, z: -1.5 }, { x: 1.5, z: 1.5 }, () => true);
+    const from = { x: 0.5, z: 0.5 };
+    const to = { x: 10.5, z: 0.5 };
+
+    const path = findPath(map, from, to);
+
+    expect(path.at(-1)).toEqual(to);
+    expect(isWalkable(map, path[0] ?? from)).toBe(true);
+  });
+});
+
 describe("findPath with walls on the lines between squares", () => {
   it("walks around a wall, though the squares either side stay walkable", () => {
     const map = createWalkMap({ size: 100 });

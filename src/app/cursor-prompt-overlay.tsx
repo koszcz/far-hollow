@@ -1,14 +1,14 @@
 // Shows the cursor prompt for what the cursor is over. src/app/cursor-prompt.ts decides its words, and
 // src/ui/cursor-prompt-view.tsx draws them beside the cursor. The view renders again only when the words change.
 // The scene reports what the cursor is over through setSceneTarget. HUD elements mark themselves, and the overlay finds them itself:
-// data-prompt-content names a backpack content, data-prompt-shoulder marks the carried log, data-prompt-sled marks the dragged sled,
+// data-prompt-content names a backpack content, data-prompt-chest-content names a content of the open chest, data-prompt-shoulder marks the carried log, data-prompt-sled marks the dragged sled,
 // and data-prompt-button names "build" or "craft".
 import { render } from "preact";
 import type { ScenePick } from "../render/scene-renderer";
 import type { BackpackContent, GameClient } from "../sim/api";
 import { strings } from "../strings";
 import { CursorPromptView } from "../ui/cursor-prompt-view";
-import { promptFor, promptForButton, type CursorPrompt, type PromptButton } from "./cursor-prompt";
+import { promptFor, promptForButton, promptForChestContent, type CursorPrompt, type PromptButton } from "./cursor-prompt";
 
 export interface CursorPromptOverlay {
   /** What the cursor is over in the scene, or undefined over nothing or while placing a blueprint. */
@@ -19,7 +19,7 @@ export interface CursorPromptOverlay {
 }
 
 /** The HUD elements that ask for a prompt. */
-const PROMPT_SELECTOR = "[data-prompt-content], [data-prompt-shoulder], [data-prompt-sled], [data-prompt-button]";
+const PROMPT_SELECTOR = "[data-prompt-content], [data-prompt-chest-content], [data-prompt-shoulder], [data-prompt-sled], [data-prompt-button]";
 
 export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
   const container = document.createElement("div");
@@ -54,6 +54,8 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
     if (content !== undefined && content in strings.backpackContents) {
       return promptFor({ kind: "backpackContent", content: content as BackpackContent }, client);
     }
+    const chestContent = source.dataset.promptChestContent;
+    if (chestContent !== undefined && chestContent in strings.backpackContents) return promptForChestContent(chestContent as BackpackContent);
     const button = source.dataset.promptButton;
     if (button === "build" || button === "craft") return promptForButton(button satisfies PromptButton, source.getAttribute("aria-pressed") === "true");
     return undefined;

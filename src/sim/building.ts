@@ -1,4 +1,4 @@
-import type { BlueprintView, PlacementCheck } from "./api";
+import type { BlueprintView, BuildLack, PlacementCheck } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridPoint } from "./build-grid";
 import { blueprintEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
@@ -103,7 +103,15 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const deliveries = structureOf(blueprint.structure).cost.flatMap(({ material, count }) =>
       isDelivered(material) && !freeBuilding ? [Object.freeze({ material, has: blueprint.delivered[material] ?? 0, needs: count })] : [],
     );
-    return Object.freeze({ id: blueprintId, structure: blueprint.structure, progress: blueprint.progress, deliveries: Object.freeze(deliveries) });
+    const backpack = players.first?.backpack;
+    const lacks = backpack === undefined ? null : nextStageLack(blueprint, backpack, freeBuilding);
+    return Object.freeze({
+      id: blueprintId,
+      structure: blueprint.structure,
+      progress: blueprint.progress,
+      deliveries: Object.freeze(deliveries),
+      lacks: lacks === undefined ? null : Object.freeze(lacks),
+    });
   }
 
   return {
@@ -213,15 +221,23 @@ function buildOn(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>
 /** Whether a blueprint's next stage can be worked on: the player has the tool it needs, and its material is in the backpack or was carried to it. */
 function hasNextStage(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, free: boolean): boolean {
   if (free) return true;
+  const stages = stageMaterials(structureOf(blueprint.structure).cost);
+  // Every stage built already leaves nothing to build.
+  if (stages.length > 0 && stages[blueprint.materialsSpent] === undefined) return false;
+  return nextStageLack(blueprint, backpack, free) === undefined;
+}
+
+/** What the player lacks to build the blueprint's next stage, or undefined if nothing. */
+function nextStageLack(blueprint: Blueprint, backpack: NonNullable<Entity["backpack"]>, free: boolean): BuildLack | undefined {
+  if (free) return undefined;
   const structure = structureOf(blueprint.structure);
-  if (structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return false;
+  if (structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return { kind: "tool", tool: structure.tool };
   const stages = stageMaterials(structure.cost);
-  if (stages.length === 0) return true;
   const material = stages[blueprint.materialsSpent];
-  if (material === undefined) return false;
-  if (!isDelivered(material)) return hasInBackpack(backpack, material);
+  if (material === undefined) return undefined;
+  if (!isDelivered(material)) return hasInBackpack(backpack, material) ? undefined : { kind: "material", material };
   const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
-  return (blueprint.delivered[material] ?? 0) > spent;
+  return (blueprint.delivered[material] ?? 0) > spent ? undefined : { kind: "material", material };
 }
 
 /** Spends the material for the blueprint's next stage. Returns false, changing nothing, if it has run out. */

@@ -12,7 +12,7 @@
     "build": "bun run check:assets && bun check && bun scripts/build.ts",
     "preview": "bun scripts/preview.ts",
     "typecheck": "bun check",
-    "lint": "bun --bun eslint . && bun --bun depcruise src",
+    "lint": "oxlint && bun --bun depcruise src",
     "test": "bun test --parallel",
     "test:e2e": "bun --bun playwright test",
     "check:assets": "bun scripts/check-assets.ts",
@@ -25,14 +25,12 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
     "@types/bun": "^1.4.4",
     "@types/three": "^0.187.0",
     "dependency-cruiser": "^18.7.2",
-    "eslint": "^10.14.0",
-    "globals": "^17.14.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.2"
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2006",
+    "typescript": "^6.0.3"
   }
 }

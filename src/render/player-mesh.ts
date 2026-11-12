@@ -159,7 +159,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const debarkedLogGeometry = createDebarkedLogGeometry(logShape.geometry);
   geometries.push(debarkedLogGeometry);
   const debarkedLogMaterial = material(0xffffff, { flatShading: true, vertexColors: true });
-  const shoulderLog = new THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>(logShape.geometry, logMaterials);
+  const shoulderLog: THREE.Mesh = new THREE.Mesh(logShape.geometry, logMaterials);
   shoulderLog.castShadow = true;
   shoulderLog.position.copy(SHOULDER_LOG_SPOT);
   shoulderLog.visible = false;

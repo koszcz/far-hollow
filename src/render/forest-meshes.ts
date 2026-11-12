@@ -1,6 +1,6 @@
 // Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs", and "sticks" (approved) in asset-manifest.json.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
-// Trees far from the camera draw with the "far-trees" asset (draft), built in tree-far-shape.ts.
+// Trees far from the camera draw with the "far-trees" asset (approved), built in tree-far-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
 // Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.

@@ -47,7 +47,7 @@ export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, Place
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
  * It spends a delivered material, such as a debarked log, from what the player carried to the blueprint.
  */
-export type BuildMaterial = Extract<BackpackContent, "stick" | "bark"> | DeliveredMaterial;
+export type BuildMaterial = Extract<BackpackContent, "stick" | "bark" | "plank"> | DeliveredMaterial;
 
 /** How many of one material a structure costs. */
 export interface MaterialCost {
@@ -340,13 +340,13 @@ const roofFrame: StructureDefinition & { readonly kind: "roofFrame" } = {
   finish: () => ({ roofFrame: true }),
 };
 
-/** How much bark a roof section costs, laid on its frame. Construction spends it from the backpack. */
-export const ROOF_BARK_COST = 4;
-/** How long the player holds the build action to build a roof section, in seconds. */
-export const ROOF_BUILD_SECONDS = 8;
+/** How many planks a roof section costs, laid on its frame in one row each. Construction spends them from the backpack. */
+export const ROOF_PLANK_COST = 6;
+/** How long the player holds the build action to build a roof section, in seconds: 2 seconds a row. */
+export const ROOF_BUILD_SECONDS = 12;
 
 /**
- * A roof section: bark laid on the finished roof frame of one foundation square, so it needs one.
+ * A roof section: rows of planks laid on the finished roof frame of one foundation square, so it needs one.
  * A finished section is a roof overhead for the whole square, like a lean-to's roof.
  * It has no turn of its own: it takes the turn of the frame under it, and slopes the way the frame does.
  */
@@ -354,7 +354,7 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   kind: "roof",
   placement: "onFrame",
   finishedAs: "cabinRoof",
-  cost: [{ material: "bark", count: ROOF_BARK_COST }],
+  cost: [{ material: "plank", count: ROOF_PLANK_COST }],
   buildSeconds: ROOF_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
   snap: (_site, at) => snapToGridSquare(at),

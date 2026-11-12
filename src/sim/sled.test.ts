@@ -204,7 +204,7 @@ describe("saving sleds", () => {
     const game = createGame({ seed: 42 });
     const save = { ...writeSave(game), version: SLEDS_SAVE_VERSION - 1 };
 
-    expect(SLEDS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(SLEDS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     expect(SLEDS_SAVE_VERSION).toBeGreaterThan(ROOF_FRAMES_SAVE_VERSION);
     const loaded = readSave(JSON.parse(JSON.stringify(save)));
     if (!loaded.ok) throw new Error("The older save did not load");

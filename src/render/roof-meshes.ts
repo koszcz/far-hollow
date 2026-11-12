@@ -1,17 +1,17 @@
-// Draws cabin roof sections and their blueprints: the "roof" asset in asset-manifest.json, approved, built in code.
-// A roof section is the bark laid on the roof frame of one foundation square (roof-frame-meshes.ts). Curled, ragged strips of
-// bark, like the lean-to's, lie on the frame's rafters like shingles. The roof slopes the way its frame does, and sits where its
-// frame's layout puts it: sections one behind another share one slope, and where two roofs sloping at right angles meet, the
-// corner section becomes a hip or a valley, as roof-layout.ts works out. Those two corner pieces are a draft (the
-// "roof-corners" asset): their bark is laid on both slopes, from the eaves up, each strip cut along the line where the slopes
-// meet and reaching a little past it, so on a hip each slope laps over the ridge and on a valley each slope tucks under the other.
-// The bark reaches a little past the square's edges, so the sections beside it overlap. Where an edge has no section beside
-// it, the bark reaches further, past the ends of the frame's beams, so it covers the frame's overhang and keeps the slope.
-// Each strip of bark is laid a little less steep than the roof, so its ragged lower edge lifts over the strip below it, in the
-// same section or the one in front. The bark carries a grain painted in code: streaks along its length, a few deep cracks, and
-// a knot here and there, so it reads as bark and not as brown boards.
-// Construction has one stage per strip of bark. A blueprint shows see-through. The strip being laid fades in above its place,
-// is lowered, and set down, like the logs of a foundation.
+// Draws cabin roof sections and their blueprints: the "roof" asset in asset-manifest.json, a draft built in code (ticket 11).
+// A roof section is the planks laid on the roof frame of one foundation square (roof-frame-meshes.ts), the same planks the
+// sawhorse cuts. They are grey and weathered, and lie in 6 overlapping rows across the slope, from the eaves up. Each row
+// is short planks side by side, running down the slope, with a thin gap between them. Their lower ends are ragged and
+// staggered, and each plank lies a little less steep than the roof, so its lower end lifts over the row below and every
+// row casts a clear shadow line. The roof slopes 35 degrees the way its frame does, and sits where its frame's layout puts
+// it, as roof-layout.ts works out: sections one behind another share one slope, two rows that slope away from each other
+// meet at a ridge, and a wing that ends against another meets it in valleys. At a ridge, the planks of the slope down to
+// +z or +x reach a little past it, over the other slope. A valley (the "roof-corners" draft) has planks on both its slopes,
+// each cut along the line where they meet and reaching a little past it, so each slope tucks under the other.
+// The planks reach a little past the square's edges where a section is beside it, so the sections overlap. Where an edge
+// has none, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed.
+// Construction has one stage per plank, and lays one row each stage. A blueprint shows see-through. The row being laid fades
+// in above its place, is lowered, and set down, like the logs of a foundation.
 // When the player stands under a cabin roof, that roof and every section joined to it hide, so the player stays in view.
 // While the player places a roof from the build menu, a see-through copy follows the mouse, sloping the way the frame under it
 // does. It turns red where it is not allowed.
@@ -21,22 +21,24 @@ import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, cabinRoofEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { QuarterTurns } from "../sim/structure-kind";
 import { roofAbove } from "../sim/roofs";
-import { ROOF_BARK_COST } from "../sim/structures";
+import { ROOF_PLANK_COST } from "../sim/structures";
 import type { OutlinePart } from "./hover-outline";
-import { BARK_COLOURS, barkStrip, seededRandom } from "./lean-to-meshes";
-import type { RoofShape } from "./roof-layout";
+import { seededRandom } from "./lean-to-meshes";
+import { ALONE, type RoofPlace, type RoofShape } from "./roof-layout";
 import {
-  BARK_THICKNESS_METRES,
-  EDGES,
+  EAVE_REACH_METRES,
   FRAME_TOP_METRES,
   frameLayout,
   isShown,
   neighboursOf,
+  PLANK_GAP_METRES,
+  PLANK_WIDTH_METRES,
   RAFTER_RADIUS_METRES,
   raisedBy,
   ROOF_SEED,
   ROOF_SLOPE_RADIANS,
   shapeHeight,
+  WEATHERED_PLANK_COLOURS,
   type Section,
 } from "./roof-parts";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
@@ -44,31 +46,28 @@ import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinishe
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
-/** The bark reaches this far past each side of the square, in metres, so the sections beside it overlap. */
-const BARK_OVERHANG_METRES = 0.1;
-/**
- * Where an edge has no section beside it, the bark reaches this much further, in metres, past the ends of the frame's beams,
- * which reach 0.3 m past the walls.
- */
-const EAVE_REACH_METRES = 0.25;
-/** Each bark strip is this much longer than its share of the roof, so the strips overlap like shingles. */
-const BARK_OVERLAP = 1.75;
-/**
- * Roof bark is pressed flatter than the lean-to's and trimmed neater, so the roof reads as one tight cover:
- * its edges curl up this far, its lower edge frays this far, and it wavers this far, in metres.
- */
-const ROOF_BARK_SHAPE = { curl: 0.01, fray: 0.025, waver: 0.004 };
-/** The bark grain is painted this many pixels wide and high. One picture covers this many metres of bark along and across. */
-const GRAIN_PIXELS = { wide: 512, high: 256 };
-const GRAIN_METRES = { along: 0.6, across: 0.3 };
-/** Each bark strip lies this much less steep than the roof, in radians, so its lower edge lifts over the strip below it. */
-const BARK_KICK_RADIANS = 0.04;
-/** Each bark strip lies this much above the rafters, in metres, so its tilted upper edge stays clear of them. */
-const BARK_LIFT_METRES = 0.012;
-/** Corner bark reaches this far past the line where its two slopes meet, in metres, so the slopes lap. */
-const CORNER_LAP_METRES = 0.06;
-/** On a hip or valley, the bark on the slope down to +x lies this much higher, in metres, so the two slopes do not flicker. */
-const CORNER_FACE_LIFT_METRES = 0.006;
+/** How many rows of planks a section has: one for each plank it costs, laid one per stage. */
+const ROWS = ROOF_PLANK_COST;
+/** How thick a plank is, in metres. */
+const PLANK_THICKNESS_METRES = 0.02;
+/** Each plank is this much longer than its row's share of the slope, so the rows overlap. */
+const ROW_OVERLAP = 1.6;
+/** Each plank lies this much less steep than the roof, in radians, so its lower end lifts over the row below it. */
+const PLANK_KICK_RADIANS = 0.06;
+/** How far the lower ends of planks side by side are staggered up and down the slope, at most, in metres. */
+const STAGGER_METRES = 0.035;
+/** How far each corner of a plank's lower end is torn ragged, at most, in metres. */
+const RAGGED_METRES = 0.012;
+/** The lower end of a plank is this much darker than the rest, worn by the weather. */
+const WORN_END_SHARE = 0.82;
+/** The planks reach this far past an edge with a section beside it, in metres, so the two overlap. */
+const NEIGHBOUR_LAP_METRES = 0.06;
+/** At a ridge, the planks of the slope down to +z or +x reach this far past it, in metres, over the other slope. */
+const RIDGE_LAP_METRES = 0.07;
+/** Valley planks reach this far past the line where the two slopes meet, in metres, so the slopes lap. */
+const VALLEY_LAP_METRES = 0.06;
+/** In a valley, the planks on the slope down to +x lie this much higher, in metres, so the two slopes do not flicker. */
+const VALLEY_FACE_LIFT_METRES = 0.006;
 /** How thick the invisible slab that catches clicks on a blueprint is, in metres. */
 const PICK_THICKNESS_METRES = 0.3;
 
@@ -96,150 +95,179 @@ export interface RoofMeshes {
   dispose(): void;
 }
 
+/** How far the planks reach past each edge of a section, drawn unturned, in metres: back (-z), front (+z), left (-x), and right (+x). */
+interface Reach {
+  readonly back: number;
+  readonly front: number;
+  readonly left: number;
+  readonly right: number;
+}
+
 interface Drawn {
   readonly root: THREE.Group;
-  /** The shape its strips were made for. A section whose shape changes is drawn again. */
-  readonly shape: RoofShape;
-  /** One strip of bark for each stage of construction, in order, each with its own see-through copy of its material for fading in. */
-  readonly parts: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial; bark: THREE.MeshStandardMaterial }[];
+  /** One row of planks for each stage of construction, in order, each with its own see-through copy of the plank material for fading in. */
+  readonly parts: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial }[];
   readonly picker: THREE.Mesh;
+}
+
+/** The underside of the planks above the deck where the roof is lowest, in metres: on the rafters. */
+const COVER_BASE_METRES = FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES;
+
+/**
+ * The rows of planks of a section of `shape`, drawn unturned, reaching past its edges as `reach` says, from the eaves up.
+ * Each is one shape coloured per plank. Draw them with `vertexColors: true`, `flatShading: true`, and the material colour white.
+ */
+export function plankRows(shape: RoofShape, reach: Reach): THREE.BufferGeometry[] {
+  const half = BUILD_GRID_METRES / 2;
+  if (shape === "straight") {
+    const random = seededRandom(ROOF_SEED);
+    return Array.from({ length: ROWS }, (_, row) =>
+      slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -half - reach.back, z1: half + reach.front }, random),
+    );
+  }
+  // A valley: the slope down to +z covers the part of the square right of the line x = z, and the slope down to +x the
+  // part left of it. Each is laid like a straight section, the one down to +x turned a quarter round to face +x.
+  const random = seededRandom(ROOF_SEED + 5);
+  return Array.from({ length: ROWS }, (_, row) => {
+    const alongZ = slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -half - reach.back, z1: half + reach.front }, random);
+    const alongX = slopeRow(row, { x0: -half - reach.front, x1: half + reach.back, z0: -half - reach.left, z1: half + reach.right }, random)
+      .rotateY(facingRadians(3))
+      .translate(0, VALLEY_FACE_LIFT_METRES, 0);
+    // Cut each slope along the line where they meet, a little past it. Moving a point across its own slope keeps its height.
+    clip(alongZ, (x, z) => ({ x: Math.max(x, z - VALLEY_LAP_METRES), z }));
+    clip(alongX, (x, z) => ({ x, z: Math.max(z, x - VALLEY_LAP_METRES) }));
+    const geometry = mergeGeometries([alongZ, alongX]);
+    alongZ.dispose();
+    alongX.dispose();
+    return geometry;
+  });
+}
+
+/** Moves every corner of `geometry` across the ground as `to` says, keeping its height. */
+function clip(geometry: THREE.BufferGeometry, to: (x: number, z: number) => { x: number; z: number }): void {
+  const positions = geometry.getAttribute("position");
+  for (let v = 0; v < positions.count; v += 1) {
+    const moved = to(positions.getX(v), positions.getZ(v));
+    positions.setX(v, moved.x);
+    positions.setZ(v, moved.z);
+  }
+  geometry.computeVertexNormals();
+}
+
+/**
+ * Row `row` of planks, counted from the front, on a slope down to +z covering x0 to x1 across and z0 (the high back) to z1
+ * (the low front), as one shape. The planks of each row reach up under the row above. The top row stops at the back.
+ */
+function slopeRow(row: number, area: { x0: number; x1: number; z0: number; z1: number }, random: () => number): THREE.BufferGeometry {
+  const jitter = (size: number) => (random() * 2 - 1) * size;
+  const share = (area.z1 - area.z0) / ROWS;
+  const low = area.z1 - row * share;
+  const high = Math.max(area.z0, low - share * ROW_OVERLAP);
+  const count = Math.ceil((area.x1 - area.x0) / PLANK_WIDTH_METRES);
+  const width = (area.x1 - area.x0) / count;
+  const planks = Array.from({ length: count }, (_, i) => {
+    const middle = area.x0 + (i + 0.5) * width;
+    return plank(middle, width - PLANK_GAP_METRES, high, low + jitter(STAGGER_METRES), jitter);
+  });
+  const geometry = mergeGeometries(planks);
+  for (const one of planks) one.dispose();
+  return geometry;
+}
+
+/**
+ * One plank lying down the slope, `width` wide, its middle at `x`, from `high` at the back to `low` at the front, along z.
+ * Its lower end is torn ragged and darker. It lies a little less steep than the roof, its upper end on the rafters.
+ */
+function plank(x: number, width: number, high: number, low: number, jitter: (size: number) => number): THREE.BufferGeometry {
+  const run = low - high;
+  const length = run / Math.cos(ROOF_SLOPE_RADIANS);
+  const geometry = new THREE.BoxGeometry(width + jitter(0.006), PLANK_THICKNESS_METRES, length);
+  const positions = geometry.getAttribute("position");
+  // Tear the lower end, at +z: each of its two corners, top and bottom face alike, sits a different way along the plank.
+  const tears = [jitter(RAGGED_METRES), jitter(RAGGED_METRES)];
+  for (let v = 0; v < positions.count; v += 1) {
+    if (positions.getZ(v) > 0) positions.setZ(v, positions.getZ(v) + (tears[positions.getX(v) < 0 ? 0 : 1] ?? 0));
+  }
+  const colour = new THREE.Color(WEATHERED_PLANK_COLOURS[Math.floor((jitter(1) + 1) * 2.5) % WEATHERED_PLANK_COLOURS.length] ?? WEATHERED_PLANK_COLOURS[0]);
+  colour.multiplyScalar(1 + jitter(0.06));
+  const worn = colour.clone().multiplyScalar(WORN_END_SHARE);
+  const colours = new Float32Array(positions.count * 3);
+  for (let v = 0; v < positions.count; v += 1) {
+    const one = positions.getZ(v) > length / 2 - 0.05 ? worn : colour;
+    colours.set([one.r, one.g, one.b], v * 3);
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+  geometry.rotateX(ROOF_SLOPE_RADIANS - PLANK_KICK_RADIANS + jitter(0.01));
+  geometry.rotateY(jitter(0.012));
+  const middle = (high + low) / 2;
+  // Lift it so its upper end rests on the rafters, and its lower end stands clear of the row below.
+  const y = COVER_BASE_METRES + shapeHeight("straight", 0, middle) + PLANK_THICKNESS_METRES / 2 + (length / 2) * Math.sin(PLANK_KICK_RADIANS);
+  geometry.translate(x + jitter(0.004), y, middle);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/**
+ * How far the planks of a section placed at `place` reach past each edge, from the sections beside it.
+ * `neighbours` are the places of the sections beside each edge in EDGES order (back, front, left, right), undefined where there are none.
+ */
+export function plankReach(place: RoofPlace, neighbours: readonly (RoofPlace | undefined)[]): Reach {
+  const [back, front, left, right] = neighbours;
+  const side = (beside: RoofPlace | undefined) => (beside === undefined ? EAVE_REACH_METRES : NEIGHBOUR_LAP_METRES);
+  // Behind a section is the one above it on the same slope, which laps over it, or the other slope of a ridge.
+  const ridge = back !== undefined && (back.drawTurns - place.drawTurns + 4) % 4 === 2;
+  const lapsRidge = place.drawTurns === 0 || place.drawTurns === 3;
+  return {
+    back: back === undefined ? EAVE_REACH_METRES : ridge && lapsRidge ? RIDGE_LAP_METRES : 0,
+    front: side(front),
+    left: side(left),
+    right: side(right),
+  };
 }
 
 export function createRoofMeshes(entities: EntityStore): RoofMeshes {
   const group = new THREE.Group();
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
-  const grain = paintBarkGrain(seededRandom(ROOF_SEED + 1));
-  const barkMaterials = BARK_COLOURS.map((color) => new THREE.MeshStandardMaterial({ color, flatShading: true, vertexColors: true, map: grain }));
+  const planks = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
-  const barkOf = (index: number) => barkMaterials[index % barkMaterials.length] ?? blueprintMaterial;
 
-  const barkY = FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + BARK_THICKNESS_METRES / 2;
-  // The rafters rest on the beam over the front wall, at z = +half a square, and the bark on them rises towards the back.
-  const rise = (z: number) => (BUILD_GRID_METRES / 2 - z) * Math.tan(ROOF_SLOPE_RADIANS);
-  // Strips of bark run along x, side by side down the slope, from the front of the roof up to the back.
-  const barkSpan = BUILD_GRID_METRES + 2 * BARK_OVERHANG_METRES;
-  const stripShare = barkSpan / ROOF_BARK_COST;
-  const stripLength = (stripShare / Math.cos(ROOF_SLOPE_RADIANS)) * BARK_OVERLAP;
-
-  /** One strip of bark, made with its ragged lower edge at -z, then turned round to point down the slope, to the front. */
-  function strip(index: number, wobble: (size: number) => number): THREE.BufferGeometry {
-    const geometry = barkStrip(barkSpan + wobble(0.03), stripLength, index % BARK_COLOURS.length, wobble, ROOF_BARK_SHAPE);
-    spreadGrain(geometry, barkSpan, stripLength, wobble);
-    geometry.rotateY(Math.PI + wobble(0.01));
-    geometry.rotateZ(wobble(0.006));
-    geometry.rotateX(ROOF_SLOPE_RADIANS - BARK_KICK_RADIANS);
-    return geometry;
-  }
-
-  /** The strips of a straight section, in its own frame, laid from the front up. */
-  function straightStrips(): THREE.BufferGeometry[] {
-    const random = seededRandom(ROOF_SEED);
-    const jitter = (size: number) => (random() * 2 - 1) * size;
-    return Array.from({ length: ROOF_BARK_COST }, (_, i) => {
-      const geometry = strip(i, jitter);
-      const z = barkSpan / 2 - (i + 0.5) * stripShare;
-      return geometry.translate(jitter(0.01), barkY + BARK_LIFT_METRES + rise(z), z);
-    });
-  }
-
-  /**
-   * The strips of a hip or valley, drawn sloping down to +z and +x, laid from the eaves up. Each row has a strip on each slope.
-   * Each slope is drawn like a straight section in its own frame: turns 0 for the slope down to +z, and turns 3 for the
-   * slope down to +x. In those frames the line where the slopes meet runs along x = z and x = -z.
-   */
-  function cornerStrips(shape: "hip" | "valley"): THREE.BufferGeometry[] {
-    const cornerRandom = seededRandom(ROOF_SEED + (shape === "hip" ? 4 : 5));
-    const wobble = (size: number) => (cornerRandom() * 2 - 1) * size;
-    // On a hip, the slope down to +z covers the part left of its meeting line, and the slope down to +x the part right of it.
-    // On a valley it is the other way round.
-    const faces = [
-      { turns: 0 as QuarterTurns, side: shape === "hip" ? -1 : 1, meets: (z: number) => z },
-      { turns: 3 as QuarterTurns, side: shape === "hip" ? 1 : -1, meets: (z: number) => -z },
-    ];
-    return Array.from({ length: ROOF_BARK_COST }, (_, i) => {
-      const strips = faces.map((face, f) => {
-        const geometry = strip(i, wobble);
-        const z = barkSpan / 2 - (i + 0.5) * stripShare;
-        geometry.translate(wobble(0.01), barkY + BARK_LIFT_METRES + rise(z) + f * CORNER_FACE_LIFT_METRES, z);
-        // Cut the strip along the meeting line, a little past it, so the two slopes lap.
-        const positions = geometry.getAttribute("position");
-        for (let v = 0; v < positions.count; v += 1) {
-          const limit = face.meets(positions.getZ(v)) - face.side * CORNER_LAP_METRES;
-          const x = positions.getX(v);
-          positions.setX(v, face.side < 0 ? Math.min(x, limit) : Math.max(x, limit));
-        }
-        geometry.computeVertexNormals();
-        return geometry.rotateY(facingRadians(face.turns));
-      });
-      const geometry = mergeGeometries(strips);
-      for (const one of strips) one.dispose();
-      return geometry;
-    });
-  }
-
-  /** The strips of each shape, reaching a little past every edge, made once. The corner strips are made only when a roof first needs them. */
-  const stripsByShape = new Map<RoofShape, readonly THREE.BufferGeometry[]>();
-  function stripsOf(shape: RoofShape): readonly THREE.BufferGeometry[] {
-    const known = stripsByShape.get(shape);
+  /** The rows of each shape and reach past its edges, made once and shared. */
+  const rowsByKind = new Map<string, readonly THREE.BufferGeometry[]>();
+  function rowsOf(shape: RoofShape, reach: Reach): readonly THREE.BufferGeometry[] {
+    const name = `${shape}:${reach.back},${reach.front},${reach.left},${reach.right}`;
+    const known = rowsByKind.get(name);
     if (known !== undefined) return known;
-    const made = shape === "straight" ? straightStrips() : cornerStrips(shape);
-    stripsByShape.set(shape, made);
+    const made = plankRows(shape, reach);
+    rowsByKind.set(name, made);
     return made;
   }
 
-  /** The strips of each shape and set of open edges, made once and shared. */
-  const reachedStrips = new Map<string, readonly THREE.BufferGeometry[]>();
-  /**
-   * The strips of a section of `shape` whose edges in EDGES order are open where `open` says, with no section beside them.
-   * Past an open edge, the bark reaches further, keeping the slope, so it covers the frame's beams.
-   */
-  function stripsReaching(shape: RoofShape, open: readonly boolean[]): readonly THREE.BufferGeometry[] {
-    const name = `${shape}:${open.map((edge) => (edge ? 1 : 0)).join("")}`;
-    const known = reachedStrips.get(name);
-    if (known !== undefined) return known;
-    const half = BUILD_GRID_METRES / 2;
-    const [back, front, left, right] = open;
-    const made = stripsOf(shape).map((base) => {
-      const geometry = base.clone();
-      const positions = geometry.getAttribute("position");
-      for (let v = 0; v < positions.count; v += 1) {
-        const x = positions.getX(v);
-        const z = positions.getZ(v);
-        const outX = (x > half && right === true ? EAVE_REACH_METRES : 0) - (x < -half && left === true ? EAVE_REACH_METRES : 0);
-        const outZ = (z > half && front === true ? EAVE_REACH_METRES : 0) - (z < -half && back === true ? EAVE_REACH_METRES : 0);
-        if (outX === 0 && outZ === 0) continue;
-        positions.setXYZ(v, x + outX, positions.getY(v) + shapeHeight(shape, x + outX, z + outZ) - shapeHeight(shape, x, z), z + outZ);
-      }
-      geometry.computeVertexNormals();
-      return geometry;
-    });
-    reachedStrips.set(name, made);
-    return made;
-  }
-
-  /** Adds every strip of a roof section of `shape` to `root`, see-through. */
-  function addParts(root: THREE.Group, shape: RoofShape): Drawn["parts"] {
-    return stripsOf(shape).map((geometry, index) => {
-      const mesh = new THREE.Mesh(geometry, blueprintMaterial);
+  /** Adds a row of planks for each stage of a roof section to `root`, see-through. Their shapes are set later. */
+  function addParts(root: THREE.Group): Drawn["parts"] {
+    return Array.from({ length: ROWS }, () => {
+      const mesh = new THREE.Mesh(undefined, blueprintMaterial);
       mesh.castShadow = true;
       root.add(mesh);
-      const bark = barkOf(index);
-      const fading = bark.clone();
+      const fading = planks.clone();
       fading.transparent = true;
-      return { mesh, fading, bark };
+      return { mesh, fading };
     });
   }
 
-  const allOpen = EDGES.map(() => true);
+  function setRows(parts: Drawn["parts"], shape: RoofShape, reach: Reach): void {
+    const rows = rowsOf(shape, reach);
+    parts.forEach(({ mesh }, index) => {
+      const row = rows[index];
+      if (row !== undefined) mesh.geometry = row;
+    });
+  }
+
   const placingBlueprint = new THREE.Group();
   placingBlueprint.visible = false;
-  const placingParts = addParts(placingBlueprint, "straight");
-  stripsReaching("straight", allOpen).forEach((geometry, index) => {
-    const part = placingParts[index];
-    if (part !== undefined) part.mesh.geometry = geometry;
-  });
+  const placingParts = addParts(placingBlueprint);
+  setRows(placingParts, ALONE.shape, plankReach(ALONE, [undefined, undefined, undefined, undefined]));
   group.add(placingBlueprint);
 
   const drawn = new Map<Entity, Drawn>();
@@ -247,34 +275,33 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
   const blueprints = blueprintEntities(entities);
   const finished = cabinRoofEntities(entities);
 
-  function draw(entity: Section, shape: RoofShape): Drawn {
+  function draw(entity: Section): Drawn {
     const existing = drawn.get(entity);
-    if (existing?.shape === shape) return existing;
-    if (existing !== undefined) forget(entity);
+    if (existing !== undefined) return existing;
     const root = new THREE.Group();
-    const parts = addParts(root, shape);
+    const parts = addParts(root);
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
-    picker.position.y = barkY + PICK_THICKNESS_METRES / 2;
+    picker.position.y = COVER_BASE_METRES + PICK_THICKNESS_METRES / 2;
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
     group.add(root);
-    const result = { root, shape, parts, picker };
+    const result = { root, parts, picker };
     drawn.set(entity, result);
     return result;
   }
 
-  /** Shows how far construction has gone. Laid strips are solid and in place, the strip being laid moves through its stage, and the rest show see-through. */
+  /** Shows how far construction has gone. Laid rows are solid and in place, the row being laid moves through its stage, and the rest show see-through. */
   function showProgress(item: Drawn, progress: number): void {
     const stagesDone = progress * item.parts.length;
-    item.parts.forEach(({ mesh, fading, bark }, index) => {
+    item.parts.forEach(({ mesh, fading }, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
       if (share <= 0) {
         mesh.material = blueprintMaterial;
         mesh.position.y = 0;
       } else {
         fading.opacity = buildOpacity(share);
-        mesh.material = fading.opacity < 1 ? fading : bark;
+        mesh.material = fading.opacity < 1 ? fading : planks;
         mesh.position.y = buildLift(share);
       }
     });
@@ -300,15 +327,12 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       const show = (entity: Section, progress: number, visible: boolean) => {
         // A roof sits where the frame under it does, and takes its shape.
         const place = layout.placeAt(entity.position);
-        const item = draw(entity, place.shape);
+        const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y + raisedBy(place), entity.position.z);
         item.root.rotation.y = facingRadians(place.drawTurns);
         item.root.visible = visible;
-        const open = neighboursOf(layout, entity.position, place).map((beside) => beside === undefined);
-        stripsReaching(place.shape, open).forEach((geometry, index) => {
-          const part = item.parts[index];
-          if (part !== undefined) part.mesh.geometry = geometry;
-        });
+        const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
+        setRows(item.parts, place.shape, plankReach(place, beside));
         showProgress(item, progress);
         seen.add(entity);
       };
@@ -344,97 +368,9 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       placingBlueprint.rotation.y = facingRadians(shown.turns);
     },
     dispose() {
-      for (const item of [
-        ...[...stripsByShape.values(), ...reachedStrips.values()].flat(),
-        pickGeometry,
-        ...barkMaterials,
-        blueprintMaterial,
-        notAllowedMaterial,
-        pickMaterial,
-      ]) {
-        item.dispose();
-      }
-      grain?.dispose();
+      for (const item of [...[...rowsByKind.values()].flat(), pickGeometry, planks, blueprintMaterial, notAllowedMaterial, pickMaterial]) item.dispose();
       for (const item of drawn.values()) for (const { fading } of item.parts) fading.dispose();
       for (const { fading } of placingParts) fading.dispose();
     },
   };
-}
-
-/**
- * Lays the bark grain over a strip `width` long and `length` deep: one picture for each GRAIN_METRES, starting at a
- * different place on each strip, so no two strips show the same marks.
- */
-function spreadGrain(geometry: THREE.BufferGeometry, width: number, length: number, jitter: (size: number) => number): void {
-  const uvs = geometry.getAttribute("uv");
-  const start = { u: jitter(0.5) + 0.5, v: jitter(0.5) + 0.5 };
-  for (let i = 0; i < uvs.count; i += 1) {
-    uvs.setXY(i, start.u + (uvs.getX(i) * width) / GRAIN_METRES.along, start.v + (uvs.getY(i) * length) / GRAIN_METRES.across);
-  }
-}
-
-/**
- * Paints bark grain that repeats without seams: pale, so it only darkens the bark's colour in streaks along its length,
- * a few deep cracks, and a knot here and there. Without a page to paint on, as in tests, the bark has no grain.
- */
-function paintBarkGrain(random: () => number): THREE.Texture | null {
-  if (typeof document === "undefined") return null;
-  const { wide, high } = GRAIN_PIXELS;
-  const canvas = document.createElement("canvas");
-  canvas.width = wide;
-  canvas.height = high;
-  const context = canvas.getContext("2d");
-  if (context === null) return null;
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, wide, high);
-  context.lineCap = "round";
-  /** Draws a mark, and again across each edge it might cross, so the picture repeats without seams. */
-  const wrapped = (draw: (x: number, y: number) => void, x: number, y: number) => {
-    for (const shiftX of [-wide, 0, wide]) for (const shiftY of [-high, 0, high]) draw(x + shiftX, y + shiftY);
-  };
-  /** A wavy line along the bark, `long` pixels, `thick` pixels wide. */
-  const streak = (colour: string, long: number, thick: number) => {
-    const startX = random() * wide;
-    const startY = random() * high;
-    const sway = (random() - 0.5) * 6;
-    wrapped(
-      (x, y) => {
-        context.strokeStyle = colour;
-        context.lineWidth = thick;
-        context.beginPath();
-        context.moveTo(x, y);
-        context.bezierCurveTo(x + long / 3, y + sway, x + (2 * long) / 3, y - sway, x + long, y + sway / 2);
-        context.stroke();
-      },
-      startX,
-      startY,
-    );
-  };
-  for (let i = 0; i < 140; i += 1) streak(`rgba(40, 24, 12, ${0.12 + random() * 0.2})`, 60 + random() * 260, 1 + random() * 2);
-  for (let i = 0; i < 50; i += 1) streak(`rgba(255, 236, 210, ${0.1 + random() * 0.15})`, 40 + random() * 160, 1 + random() * 1.5);
-  for (let i = 0; i < 9; i += 1) streak(`rgba(25, 14, 6, ${0.45 + random() * 0.2})`, 120 + random() * 300, 2 + random() * 2);
-  for (let i = 0; i < 3; i += 1) {
-    const radius = 6 + random() * 6;
-    wrapped(
-      (x, y) => {
-        context.fillStyle = "rgba(255, 236, 210, 0.35)";
-        context.beginPath();
-        context.ellipse(x, y, radius * 2.4, radius * 1.4, 0, 0, Math.PI * 2);
-        context.fill();
-        context.fillStyle = "rgba(25, 14, 6, 0.7)";
-        context.beginPath();
-        context.ellipse(x, y, radius * 1.2, radius * 0.7, 0, 0, Math.PI * 2);
-        context.fill();
-      },
-      random() * wide,
-      random() * high,
-    );
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  // three.js lowers this to what the graphics card supports.
-  texture.anisotropy = 8;
-  return texture;
 }

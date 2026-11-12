@@ -155,7 +155,7 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
-  { structure: "roof", cost: [{ material: "bark", count: 4 }], placement: "onFrame" },
+  { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" },
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },

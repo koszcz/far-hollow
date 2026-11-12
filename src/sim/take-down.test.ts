@@ -12,7 +12,7 @@ import {
   LEAN_TO_STICK_COST,
   LOG_WALL_BUILD_SECONDS,
   LOG_WALL_LOG_COST,
-  ROOF_BARK_COST,
+  ROOF_PLANK_COST,
   ROOF_FRAME_LOG_COST,
   roofFrameOn,
   type QuarterTurns,
@@ -260,7 +260,7 @@ describe("what holds up what", () => {
     stepUntil(game, () => !game.entities.has(wall));
   });
 
-  it("lets a roof come down, giving back its bark and leaving its frame", () => {
+  it("lets a roof come down, giving back its planks and leaving its frame", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     finishedFoundationAt(game, square);
@@ -272,9 +272,25 @@ describe("what holds up what", () => {
     stepUntil(game, () => !game.entities.has(roof));
 
     expect(debarkedLogsOnGround(game)).toBe(logsBefore);
-    expect(onlyPlayer(game).backpack.contents.bark).toBe(ROOF_BARK_COST);
+    expect(onlyPlayer(game).backpack.contents.plank).toBe(ROOF_PLANK_COST);
     expect(roofFrameOn(game.entities, square)).toBeDefined();
     expect(cabinRoofOn(game.entities, square)).toBeUndefined();
+  });
+
+  it("lays the planks that do not fit in the backpack on the ground as one pile", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    finishedFoundationAt(game, square);
+    finishedPieceAt(game, "logWall", square, 2);
+    const roof = finishedRoofAt(game, square);
+    // Room for two planks only.
+    fillBackpackUntilFree(game, BACKPACK_WEIGHT_LIMIT_KG - 2 * CONTENT_WEIGHT_KG.plank);
+
+    send(game, { type: "takeDown", pieceId: idOf(game, roof) });
+    stepUntil(game, () => !game.entities.has(roof));
+
+    expect(onlyPlayer(game).backpack.contents.plank).toBe(2);
+    expect(game.entities.with("pile").entities.map(({ pile }) => pile)).toEqual([{ content: "plank", count: ROOF_PLANK_COST - 2 }]);
   });
 
   it("frees the edge a log wall blocked", () => {
@@ -344,7 +360,7 @@ function finishedRoofAt(game: Game, square: { x: number; z: number }): Entity {
   send(game, place("roof", square, 0));
   const blueprint = game.entities.with("blueprint", "position").entities.at(-1);
   if (blueprint?.blueprint.structure !== "roof") throw new Error("The blueprint was not placed");
-  give(game, "bark", ROOF_BARK_COST);
+  give(game, "plank", ROOF_PLANK_COST);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   const built: Entity = blueprint;
   stepUntil(game, () => built.blueprint === undefined);
@@ -414,7 +430,7 @@ function openLeanToSpot(game: Game): { x: number; z: number } {
   throw new Error("No open spot");
 }
 
-function give(game: Game, content: "stick" | "bark", count: number): void {
+function give(game: Game, content: "stick" | "bark" | "plank", count: number): void {
   const contents = onlyPlayer(game).backpack.contents;
   contents[content] = (contents[content] ?? 0) + count;
 }

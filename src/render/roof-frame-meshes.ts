@@ -3,15 +3,17 @@
 // - Beams: hewn timbers, debarked logs squared with an adze, lying level on the top of every wall and door frame on the
 //   square's edges. A log wall that runs along z sits half a course lower than one along x, so its beam is hewn taller, and
 //   every beam top is level. A beam reaches
-//   about 0.3 m past the walls where no frame carries on beyond its end, so the join between walls and roof hides under the
+//   about 0.15 m past the walls where no frame carries on beyond its end, so the join between walls and roof hides under the
 //   overhang. Where two frames share an edge, only one of them lays its beam.
-// - Rafters: three hewn timbers on the beams, sloping down the way the frame faces, 12 degrees, like the roof on them.
-//   Frames side by side work out their heights and their hip and valley shapes from each other, as roof-layout.ts says.
-//   A hip or valley has a rafter along each low edge and one corner to corner under the line where its two slopes meet.
-// - Fill: where a slope rises above the beams, as at the high side of a slope, courses of split boards stacked on the beams
-//   fill the gap up to the bark, their top boards cut to the slope. Beside a lower frame they rest on that frame's bark instead.
-// Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The fill
-// goes up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
+// - Rafters: three hewn timbers on the beams, sloping down the way the frame faces, 35 degrees, like the roof on them.
+//   Frames side by side work out their heights and their valleys from each other, as roof-layout.ts says. Where the front
+//   of a frame is an eave, its rafters reach on past the wall, under the roof's overhang. A valley has a rafter along each
+//   low edge and one corner to corner under the line where its two slopes meet.
+// - Gable ends: where a slope rises above the beams, as at each end of a ridge or the high side of a shed roof, upright
+//   planks stand on the beams and close the gap up to the roof (gable-end-shape.ts). Beside a lower roof, as where a taller
+//   wing stands beside a lower one, they stand on that roof's planks instead.
+// Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The gable
+// ends go up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
 // When the player stands under a cabin roof, the frames under that roof hide with it, so the player stays in view.
 // While the player places a frame from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
@@ -27,24 +29,25 @@ import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { CORNER_STAGGER_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { seededRandom } from "./lean-to-meshes";
-import { roofTopAt, type RoofPlace, type RoofShape } from "./roof-layout";
+import { gableEndFloors, gableEndPlanks } from "./gable-end-shape";
+import { ALONE, roofTopAt, type RoofPlace, type RoofShape } from "./roof-layout";
 import {
-  BARK_THICKNESS_METRES,
   BEAM_RADIUS_METRES,
+  COVER_THICKNESS_METRES,
+  coverUnderside,
+  EAVE_REACH_METRES,
   EDGES,
-  fillFloors,
-  fillLogs,
   FRAME_TOP_METRES,
   frameLayout,
   hewnTimber,
   isShown,
   neighboursOf,
   RAFTER_RADIUS_METRES,
-  rafterLog,
+  rafterBetween,
   raisedBy,
   ROOF_SEED,
-  ROOF_SLOPE_RADIANS,
   SECTION_RISE_METRES,
+  shapeHeight,
   type FrameLayout,
   type Section,
 } from "./roof-parts";
@@ -55,8 +58,15 @@ const BLUEPRINT_COLOUR = 0xbfe3ff;
 const BLUEPRINT_OPACITY = 0.35;
 /** A delivered log waiting in its place is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A beam reaches this far past the walls where no frame carries on beyond its end, in metres. */
-const BEAM_OVERHANG_METRES = 0.3;
+/**
+ * A beam reaches this far past the walls where no frame carries on beyond its end, in metres. Past an eave the roof slopes
+ * down steeply, so a beam reaching further would poke through it.
+ */
+const BEAM_OVERHANG_METRES = 0.15;
+/** Where the front of a frame is an eave, its rafters stop this far short of the edge of the roof's overhang, in metres. */
+const RAFTER_TAIL_SHORT_METRES = 0.06;
+/** A rafter stops this far short of the high edge of its square, in metres, so its square-cut end stays under a ridge. */
+const RAFTER_HEAD_SHORT_METRES = 0.04;
 /** How many stages lay beams: the beams along x, then the beams along z. The rest lay rafters. */
 const BEAM_STAGES = 2;
 /** How thick the invisible slab that catches clicks on a blueprint is, in metres. */
@@ -83,14 +93,6 @@ export interface RoofFrameMeshes {
   dispose(): void;
 }
 
-/** One part of a frame: its shape, and where it rests, from the middle of the deck below. */
-interface PartPlan {
-  readonly geometry: THREE.BufferGeometry;
-  readonly x: number;
-  readonly y: number;
-  readonly z: number;
-}
-
 /** A beam on one edge of a square: which side, what stands under it, and how far it reaches past each end. */
 interface BeamPlan {
   readonly side: QuarterTurns;
@@ -101,75 +103,69 @@ interface BeamPlan {
 
 interface Drawn {
   readonly root: THREE.Group;
-  /** Holds the rafters and fill, turned the way the frame is drawn and raised to its height. The beams stay level, in `root`. */
+  /** Holds the rafters and gable ends, turned the way the frame is drawn and raised to its height. The beams stay level, in `root`. */
   readonly turned: THREE.Group;
-  /** The shape its rafters were made for. A frame whose shape changes is drawn again. */
-  readonly shape: RoofShape;
   /** One part for each stage of construction, in order, each with its own see-through copy of the wood for fading in. */
-  readonly parts: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial; plan: PartPlan }[];
-  /** The logs that fill the gaps between the beams and the roof. They go up with the last rafter. */
-  readonly fill: THREE.Mesh;
+  readonly parts: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial }[];
+  /** The plank gable ends between the beams and the roof. They go up with the last rafter. */
+  readonly gables: THREE.Mesh;
+  /** A see-through copy of the gable planks' material, for fading them in. */
+  readonly gablesFading: THREE.MeshStandardMaterial;
   readonly picker: THREE.Mesh;
 }
 
 export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const group = new THREE.Group();
-  const random = seededRandom(ROOF_SEED);
-  const jitter = (size: number) => (random() * 2 - 1) * size;
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
   const wood = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true, vertexColors: true });
+  const gablePlanks = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
   const empty = new THREE.BufferGeometry();
 
-  const rafterY = FRAME_TOP_METRES + RAFTER_RADIUS_METRES;
-  // The rafters rest on the beam over the front wall, at z = +half a square, and rise towards the back.
-  const rise = (z: number) => (BUILD_GRID_METRES / 2 - z) * Math.tan(ROOF_SLOPE_RADIANS);
   const rafterCount = ROOF_FRAME_LOG_COST - BEAM_STAGES;
-  const straightRafters: readonly PartPlan[] = Array.from({ length: rafterCount }, (_, i) => {
-    const z = jitter(0.03);
-    return {
-      geometry: rafterLog(jitter).rotateX(ROOF_SLOPE_RADIANS),
-      x: -BUILD_GRID_METRES / 2 + RAFTER_RADIUS_METRES + (i * (BUILD_GRID_METRES - 2 * RAFTER_RADIUS_METRES)) / Math.max(1, rafterCount - 1),
-      y: rafterY + rise(z),
-      z,
-    };
-  });
-
-  /** The rafters of each shape, made once and shared. The corner rafters are made only when a frame first needs them. */
-  const raftersByShape = new Map<RoofShape, readonly PartPlan[]>([["straight", straightRafters]]);
-  function raftersOf(shape: RoofShape): readonly PartPlan[] {
-    const known = raftersByShape.get(shape);
+  /** The rafters of each shape, with or without tails past an eave at the front, made once and shared, in the order construction adds them. */
+  const raftersByKind = new Map<string, readonly THREE.BufferGeometry[]>();
+  function raftersOf(shape: RoofShape, eaveInFront: boolean): readonly THREE.BufferGeometry[] {
+    const name = `${shape}:${eaveInFront}`;
+    const known = raftersByKind.get(name);
     if (known !== undefined) return known;
-    const made = cornerRafters(shape === "hip" ? "hip" : "valley");
-    raftersByShape.set(shape, made);
+    const made = shape === "straight" ? straightRafters(eaveInFront) : valleyRafters();
+    raftersByKind.set(name, made);
     return made;
   }
 
-  /**
-   * The rafters of a hip or valley, drawn sloping down to +z and +x, in the order construction adds them: one along each low
-   * edge, and one corner to corner under the line where the slopes meet.
-   */
-  function cornerRafters(shape: "hip" | "valley"): PartPlan[] {
-    const cornerRandom = seededRandom(ROOF_SEED + (shape === "hip" ? 2 : 3));
-    const wobble = (size: number) => (cornerRandom() * 2 - 1) * size;
+  /** A point on the middle line of a rafter resting on the beams under a roof of `shape`, at (x, z), in the frame's own frame. */
+  const onRafterLine = (shape: RoofShape, x: number, z: number) => new THREE.Vector3(x, FRAME_TOP_METRES + RAFTER_RADIUS_METRES + shapeHeight(shape, x, z), z);
+
+  /** The rafters of a straight frame, side by side across it, from its high back edge down to its front, and past an eave there. */
+  function straightRafters(eaveInFront: boolean): THREE.BufferGeometry[] {
+    const random = seededRandom(ROOF_SEED);
+    const jitter = (size: number) => (random() * 2 - 1) * size;
     const half = BUILD_GRID_METRES / 2;
-    // On a hip, the slope down to +z covers the part left of its meeting line, and the slope down to +x the part right of it.
-    const edgeRafter = (turns: QuarterTurns, side: number): PartPlan => {
-      const z = wobble(0.03);
-      const geometry = rafterLog(wobble).rotateX(ROOF_SLOPE_RADIANS).rotateY(facingRadians(turns));
-      const offset = turnOffset({ x: side * (half - RAFTER_RADIUS_METRES), z }, turns);
-      return { geometry, x: offset.x, y: rafterY + rise(z), z: offset.z };
-    };
-    const downZ = edgeRafter(0, shape === "hip" ? -1 : 1);
-    // The rafter under the meeting line runs corner to corner, from the high corner at -x -z down to the low one at +x +z.
-    const diagonal = rafterLog(wobble, Math.SQRT2 * BUILD_GRID_METRES)
-      .rotateX(Math.atan(Math.tan(ROOF_SLOPE_RADIANS) / Math.SQRT2))
-      .rotateY(Math.PI / 4);
-    const downX = edgeRafter(3, shape === "hip" ? 1 : -1);
-    return [downZ, { geometry: diagonal, x: 0, y: rafterY + rise(0), z: 0 }, downX];
+    const front = half + (eaveInFront ? EAVE_REACH_METRES - RAFTER_TAIL_SHORT_METRES : 0);
+    return Array.from({ length: rafterCount }, (_, i) => {
+      const x = -half + RAFTER_RADIUS_METRES + (i * (BUILD_GRID_METRES - 2 * RAFTER_RADIUS_METRES)) / Math.max(1, rafterCount - 1) + jitter(0.01);
+      return rafterBetween(onRafterLine("straight", x, -half + RAFTER_HEAD_SHORT_METRES), onRafterLine("straight", x, front), jitter);
+    });
+  }
+
+  /**
+   * The rafters of a valley, drawn sloping down to +z and +x, in the order construction adds them: one along the low edge
+   * at +x, one corner to corner under the line where the slopes meet, and one along the low edge at +z.
+   */
+  function valleyRafters(): THREE.BufferGeometry[] {
+    const random = seededRandom(ROOF_SEED + 3);
+    const jitter = (size: number) => (random() * 2 - 1) * size;
+    const half = BUILD_GRID_METRES / 2;
+    const edge = half - RAFTER_RADIUS_METRES;
+    return [
+      rafterBetween(onRafterLine("valley", edge, -half), onRafterLine("valley", edge, half), jitter),
+      rafterBetween(onRafterLine("valley", -half, -half), onRafterLine("valley", half, half), jitter),
+      rafterBetween(onRafterLine("valley", -half, edge), onRafterLine("valley", half, edge), jitter),
+    ];
   }
 
   /** The merged beams of one stage, made once for each set of beams and shared. */
@@ -228,41 +224,41 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     });
   }
 
-  /** The fill for each shape and set of edge heights, made once and shared. */
-  const fills = new Map<string, THREE.BufferGeometry>();
-  function fillFor(shape: RoofShape, floors: readonly (number | undefined)[]): THREE.BufferGeometry {
+  /** The gable ends for each shape and set of edge heights, made once and shared. */
+  const gableGeometries = new Map<string, THREE.BufferGeometry>();
+  function gablesFor(shape: RoofShape, floors: readonly (number | undefined)[]): THREE.BufferGeometry {
     const name = `${shape}:${floors.map((floor) => floor?.toFixed(3) ?? "-").join(",")}`;
-    const known = fills.get(name);
+    const known = gableGeometries.get(name);
     if (known !== undefined) return known;
-    const logs = fillLogs(shape, floors);
-    const geometry = logs.length === 0 ? empty : mergeGeometries(logs);
-    for (const log of logs) log.dispose();
-    fills.set(name, geometry);
+    const planks = gableEndPlanks(coverUnderside(shape), floors);
+    const geometry = planks.length === 0 ? empty : mergeGeometries(planks);
+    for (const plank of planks) plank.dispose();
+    gableGeometries.set(name, geometry);
     return geometry;
   }
 
   /**
-   * The fill of a frame, from what is under its edges: a lower roof beside it, or else its own beams.
-   * The fill logs rest on a lower roof's bark and reach up to this frame's roof. An edge with neither a frame beside it nor a
-   * wall under it gets no fill, since nothing holds it up and the side is open anyway.
+   * The gable ends of a frame, from what is under its edges: a lower roof beside it, or else its own beams.
+   * Over a lower roof, they stand on that roof's planks and reach up to this frame's roof. An edge with neither a frame
+   * beside it nor a wall under it gets none, since nothing holds them up and the side is open anyway.
    */
-  function fillOf(layout: FrameLayout, section: Section, place: RoofPlace): THREE.BufferGeometry {
+  function gablesOf(layout: FrameLayout, section: Section, place: RoofPlace): THREE.BufferGeometry {
     const neighbours = neighboursOf(layout, section.position, place);
     const world = (x: number, z: number) => {
       const offset = turnOffset({ x, z }, place.drawTurns);
       return { x: section.position.x + offset.x, z: section.position.z + offset.z };
     };
-    const floors = fillFloors(place.shape, raisedBy(place), (edge, x, z) => {
+    const floors = gableEndFloors(coverUnderside(place.shape), raisedBy(place), (edge, x, z) => {
       const beside = neighbours[edge];
       if (beside === undefined) return wallUnder(section, place, edge) ? FRAME_TOP_METRES : Number.POSITIVE_INFINITY;
       const besidePlace = layout.placeAt(beside.position);
-      const barkTop =
-        FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + BARK_THICKNESS_METRES + roofTopAt(besidePlace, beside.position, world(x, z)) * SECTION_RISE_METRES;
+      const coverTop =
+        FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + COVER_THICKNESS_METRES + roofTopAt(besidePlace, beside.position, world(x, z)) * SECTION_RISE_METRES;
       // `roofTopAt` already counts the rises of the sections in front of it, so only the lift of odd columns is added.
       const lift = raisedBy(besidePlace) - besidePlace.inFront * SECTION_RISE_METRES;
-      return beside.position.y - section.position.y + lift + barkTop;
+      return beside.position.y - section.position.y + lift + coverTop;
     });
-    return fillFor(place.shape, floors);
+    return gablesFor(place.shape, floors);
   }
 
   /** Whether a finished wall or door frame stands under edge `edge`, in EDGES order, of a frame drawn turned by `place`. */
@@ -276,24 +272,30 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     return side !== undefined && edgePieceOn(entities, section.position, side) !== undefined;
   }
 
-  /** The fill of a frame alone, resting on beams on every side. */
-  const aloneFill = () =>
-    fillFor(
+  /** The gable ends of a frame alone, resting on beams on every side. */
+  const aloneGables = () =>
+    gablesFor(
       "straight",
-      fillFloors("straight", 0, () => FRAME_TOP_METRES),
+      gableEndFloors(coverUnderside("straight"), 0, () => FRAME_TOP_METRES),
     );
 
-  /** Adds a frame's parts to `root` and `turned`, see-through: its two beam stages, then its rafters. */
-  function addParts(root: THREE.Group, turned: THREE.Group, shape: RoofShape): Drawn["parts"] {
-    const beams = Array.from({ length: BEAM_STAGES }, (): PartPlan => ({ geometry: empty, x: 0, y: 0, z: 0 }));
-    return [...beams, ...raftersOf(shape)].map((plan, index) => {
-      const mesh = new THREE.Mesh(plan.geometry, blueprintMaterial);
+  /** Adds a frame's parts to `root` and `turned`, see-through: its two beam stages, then its rafters. Their shapes are set later. */
+  function addParts(root: THREE.Group, turned: THREE.Group): Drawn["parts"] {
+    return Array.from({ length: ROOF_FRAME_LOG_COST }, (_, index) => {
+      const mesh = new THREE.Mesh(empty, blueprintMaterial);
       mesh.castShadow = true;
-      mesh.position.set(plan.x, plan.y, plan.z);
       (index < BEAM_STAGES ? root : turned).add(mesh);
       const fading = wood.clone();
       fading.transparent = true;
-      return { mesh, fading, plan };
+      return { mesh, fading };
+    });
+  }
+
+  /** Gives the rafter stages of `parts` the rafters of a frame of `shape`, with tails past an eave in front where it has one. */
+  function setRafters(parts: Drawn["parts"], shape: RoofShape, eaveInFront: boolean): void {
+    const rafters = raftersOf(shape, eaveInFront);
+    parts.forEach(({ mesh }, stage) => {
+      if (stage >= BEAM_STAGES) mesh.geometry = rafters[stage - BEAM_STAGES] ?? empty;
     });
   }
 
@@ -301,13 +303,14 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   placingBlueprint.visible = false;
   const placingTurned = new THREE.Group();
   placingBlueprint.add(placingTurned);
-  const placingParts = addParts(placingBlueprint, placingTurned, "straight");
+  const placingParts = addParts(placingBlueprint, placingTurned);
   const allSides: BeamPlan[] = SIDES.map((side) => ({ side, under: "doorFrame", startReach: BEAM_OVERHANG_METRES, endReach: BEAM_OVERHANG_METRES }));
   placingParts.forEach(({ mesh }, stage) => {
     if (stage < BEAM_STAGES) mesh.geometry = beamsOf(allSides, stage);
   });
-  const placingFill = new THREE.Mesh(aloneFill(), blueprintMaterial);
-  placingTurned.add(placingFill);
+  setRafters(placingParts, ALONE.shape, true);
+  const placingGables = new THREE.Mesh(aloneGables(), blueprintMaterial);
+  placingTurned.add(placingGables);
   group.add(placingBlueprint);
 
   const drawn = new Map<Entity, Drawn>();
@@ -315,24 +318,25 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const blueprints = blueprintEntities(entities);
   const finished = roofFrameEntities(entities);
 
-  function draw(entity: Entity & { position: Vec3 }, shape: RoofShape): Drawn {
+  function draw(entity: Entity & { position: Vec3 }): Drawn {
     const existing = drawn.get(entity);
-    if (existing?.shape === shape) return existing;
-    if (existing !== undefined) forget(entity);
+    if (existing !== undefined) return existing;
     const root = new THREE.Group();
     const turned = new THREE.Group();
     root.add(turned);
-    const parts = addParts(root, turned, shape);
-    const fill = new THREE.Mesh(aloneFill(), blueprintMaterial);
-    fill.castShadow = true;
-    turned.add(fill);
+    const parts = addParts(root, turned);
+    const gables = new THREE.Mesh(aloneGables(), blueprintMaterial);
+    gables.castShadow = true;
+    turned.add(gables);
+    const gablesFading = gablePlanks.clone();
+    gablesFading.transparent = true;
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.position.y = EDGE_PIECE_HEIGHT_METRES + PICK_THICKNESS_METRES / 2;
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
     group.add(root);
-    const result = { root, turned, shape, parts, fill, picker };
+    const result = { root, turned, parts, gables, gablesFading, picker };
     drawn.set(entity, result);
     return result;
   }
@@ -340,23 +344,24 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   /**
    * Shows how far construction has gone. Built parts are solid. The part being built stays in its place and turns solid.
    * Parts whose log has been delivered wait half solid in their places, and the rest show see-through.
+   * The gable ends go up with the last rafter.
    */
   function showProgress(item: Drawn, progress: number, delivered: number): void {
     const stagesDone = progress * item.parts.length;
-    item.parts.forEach(({ mesh, fading, plan }, index) => {
+    item.parts.forEach(({ mesh, fading }, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
       if (share <= 0) {
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
-        mesh.position.y = plan.y;
       } else {
         fading.opacity = deliveredOpacity(DELIVERED_OPACITY, share);
         mesh.material = fading.opacity < 1 ? fading : wood;
-        mesh.position.y = plan.y;
       }
-      // The fill goes up with the last rafter.
-      if (index === item.parts.length - 1) {
-        item.fill.material = mesh.material;
-        item.fill.position.y = mesh.position.y - plan.y;
+      if (index !== item.parts.length - 1) return;
+      if (share <= 0) {
+        item.gables.material = mesh.material;
+      } else {
+        item.gablesFading.opacity = fading.opacity;
+        item.gables.material = fading.opacity < 1 ? item.gablesFading : gablePlanks;
       }
     });
   }
@@ -366,6 +371,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     if (item === undefined) return;
     group.remove(item.root);
     for (const { fading } of item.parts) fading.dispose();
+    item.gablesFading.dispose();
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
   }
@@ -380,7 +386,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       const hiddenRoofs = view === undefined ? [] : roofAbove(entities, view.player);
       const show = (entity: Section, progress: number, delivered: number) => {
         const place = layout.placeAt(entity.position);
-        const item = draw(entity, place.shape);
+        const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
         item.root.visible =
           entity.blueprint !== undefined || !hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
@@ -390,7 +396,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         item.parts.forEach(({ mesh }, stage) => {
           if (stage < BEAM_STAGES) mesh.geometry = beamsOf(beams, stage);
         });
-        item.fill.geometry = fillOf(layout, entity, place);
+        // The front edge, as drawn, is the second in EDGES order.
+        setRafters(item.parts, place.shape, neighboursOf(layout, entity.position, place)[1] === undefined);
+        item.gables.geometry = gablesOf(layout, entity, place);
         showProgress(item, progress, delivered);
         seen.add(entity);
       };
@@ -423,18 +431,19 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of [...placingParts.map(({ mesh }) => mesh), placingFill]) mesh.material = material;
+      for (const mesh of [...placingParts.map(({ mesh }) => mesh), placingGables]) mesh.material = material;
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
       placingTurned.rotation.y = facingRadians(shown.turns);
     },
     dispose() {
       for (const item of [
-        ...[...raftersByShape.values()].flatMap((rafters) => rafters.map(({ geometry }) => geometry)),
+        ...[...raftersByKind.values()].flat(),
         ...beamGeometries.values(),
-        ...fills.values(),
+        ...gableGeometries.values(),
         empty,
         pickGeometry,
         wood,
+        gablePlanks,
         blueprintMaterial,
         deliveredMaterial,
         notAllowedMaterial,
@@ -442,7 +451,10 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       ]) {
         item.dispose();
       }
-      for (const item of drawn.values()) for (const { fading } of item.parts) fading.dispose();
+      for (const item of drawn.values()) {
+        for (const { fading } of item.parts) fading.dispose();
+        item.gablesFading.dispose();
+      }
       for (const { fading } of placingParts) fading.dispose();
     },
   };

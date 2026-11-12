@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_BARK_COST, ROOF_FRAME_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_FRAME_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
 import { isUnderRoof } from "./roofs";
 import { LARGE_VALLEY_UPGRADES, readSave, ROOF_FRAMES_SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
@@ -12,14 +12,14 @@ import { isWalkable } from "./walk-map";
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the roof frame in the build menu", () => {
-  it("lists the roof frame between the door frame and the roof, costing debarked logs, and the roof costing only bark", () => {
+  it("lists the roof frame between the door frame and the roof, costing debarked logs, and the roof costing only planks", () => {
     const game = createGame({ seed: 42 });
 
     const menu = game.client.getView().buildMenu;
     const doorFrame = menu.findIndex(({ structure }) => structure === "doorFrame");
     expect(menu.slice(doorFrame + 1, doorFrame + 3)).toEqual([
       { structure: "roofFrame", cost: [{ material: "debarkedLog", count: ROOF_FRAME_LOG_COST }], placement: "overWalls" },
-      { structure: "roof", cost: [{ material: "bark", count: ROOF_BARK_COST }], placement: "onFrame" },
+      { structure: "roof", cost: [{ material: "plank", count: ROOF_PLANK_COST }], placement: "onFrame" },
     ]);
   });
 });
@@ -128,7 +128,7 @@ describe("a finished roof frame", () => {
 
     send(game, place("roof", square, 0));
     const roof = lastBlueprint(game, "roof");
-    give(game, "bark", ROOF_BARK_COST);
+    give(game, "plank", ROOF_PLANK_COST);
     send(game, { type: "build", blueprintId: idOf(game, roof) });
     stepUntil(game, () => roof.blueprint === undefined);
 
@@ -300,7 +300,7 @@ function lastBlueprint(game: Game, structure: StructureKind): Entity & { positio
   return blueprint;
 }
 
-function give(game: Game, content: "bark", count: number): void {
+function give(game: Game, content: "bark" | "plank", count: number): void {
   const contents = onlyPlayer(game).backpack.contents;
   contents[content] = (contents[content] ?? 0) + count;
 }

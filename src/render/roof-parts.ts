@@ -1,13 +1,14 @@
 // What the roof frame and the roof laid on it share: their sizes and slope, the frame layout both follow, and the hewn
-// timbers and split boards the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, and the bark ("roof") by roof-meshes.ts.
+// timbers the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, its plank gable ends
+// ("gable-end") by gable-end-shape.ts, and the planks of the roof ("roof") by roof-meshes.ts.
 // Heights here are in metres above the foundation's deck, in a section's own frame: drawn unturned, sloping down to +z.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, cabinRoofEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { turnOffset } from "../sim/structure-kind";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
-import { EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
-import { ALONE, gridCell, roofPlaces, type RoofPlace, type RoofShape } from "./roof-layout";
+import { COURSE_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
+import { ALONE, gridCell, roofPlaces, shapeTop, type RoofPlace, type RoofShape } from "./roof-layout";
 
 /** How thick a beam is across, in metres: the radius of the beams on walls that run along x. */
 export const BEAM_RADIUS_METRES = 0.09;
@@ -17,37 +18,30 @@ export const FRAME_TOP_METRES = EDGE_PIECE_HEIGHT_METRES + 2 * BEAM_RADIUS_METRE
 export const RAFTER_RADIUS_METRES = 0.07;
 /** A rafter is this much thinner at one end than the other, in metres, like a log from a young tree. */
 const RAFTER_TAPER_METRES = 0.012;
-/** A rafter, beam, and fill log has this many flat sides, like the other debarked logs. */
-export const LOG_SIDES = 7;
-/** The rafters reach this far past the walls at the front and back, in metres. */
-const RAFTER_OVERHANG_METRES = 0.12;
-/** How thick a strip of roof bark is, in metres. */
-export const BARK_THICKNESS_METRES = 0.04;
+/** How thick the planks of a roof are where their rows overlap, in metres: two planks, one on the other. */
+export const COVER_THICKNESS_METRES = 0.05;
+/** The weathered greys the planks of the roof and its gable ends are painted in, one picked for each plank. */
+export const WEATHERED_PLANK_COLOURS = [0x8e8a80, 0x7f7b72, 0x9a968c, 0x86807a, 0x928c82] as const;
+/** How wide a plank of the roof or a gable end is, in metres, at most. */
+export const PLANK_WIDTH_METRES = 0.17;
+/** The gap between two planks side by side, in metres. */
+export const PLANK_GAP_METRES = 0.008;
 /** How steeply each roof section slopes down to the front, in radians. */
-export const ROOF_SLOPE_RADIANS = THREE.MathUtils.degToRad(12);
-/** All roof frames and sections share this seed, so they all have the same ragged bark and crooked rafters, and line up. */
+export const ROOF_SLOPE_RADIANS = THREE.MathUtils.degToRad(35);
+/** All roof frames and sections share this seed, so they all have the same ragged planks and crooked rafters, and line up. */
 export const ROOF_SEED = 20261112;
 /** One section's rise over the section in front of it, in metres. */
 export const SECTION_RISE_METRES = BUILD_GRID_METRES * Math.tan(ROOF_SLOPE_RADIANS);
 /**
- * Sections in odd columns, across the slope, lie this much higher, in metres. Bark that overlaps a neighbour's at the same height flickers,
- * because the screen cannot tell which is on top.
+ * The roof reaches this far past an edge with no section beside it, in metres, measured from the middle of the wall:
+ * 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed roof.
+ */
+export const EAVE_REACH_METRES = 0.5 + COURSE_RADIUS_METRES;
+/**
+ * Sections in odd columns, across the slope, lie this much higher, in metres. Planks that overlap a neighbour's at the same
+ * height flicker, because the screen cannot tell which is on top.
  */
 const ODD_COLUMN_LIFT_METRES = 0.012;
-/** Each course of split boards that fills the gaps between the beams and the roof is this tall, in metres. */
-const FILL_COURSE_METRES = 0.2;
-/** A split board is this thick, in metres: a debarked log split down its middle and the halves split again. */
-const FILL_THICKNESS_METRES = 0.06;
-/** A fill board is left out where it would be shorter than this, in metres. */
-const FILL_SHORTEST_METRES = 0.1;
-/** A split board has this many flat faces round it, squashed flat, so its faces look rough-split rather than sawn. */
-const FILL_BOARD_SIDES = 6;
-/** Logs fill a gap under an edge only where it is this much more than the rafters' thickness, in metres. */
-const FILL_GAP_METRES = 0.01;
-/** A fill board is cut into this many lengths, so its top can follow the slope of the roof. */
-const FILL_LENGTHS = 12;
-/** How many points along an edge are checked for the height of the roof and of what is under it. */
-const EDGE_SAMPLES = 25;
 
 /**
  * The four edges of a section, drawn unturned: back (-z), front (+z), left (-x), and right (+x).
@@ -60,21 +54,17 @@ export const EDGES = [
   { axis: "z", across: 1, startEdge: 0, endEdge: 1 },
 ] as const;
 
-/** The underside of the bark at (x, z), in a section's own frame, drawn unturned. The fill logs reach up to it. */
-export function barkUnderside(shape: RoofShape): (x: number, z: number) => number {
+/** The underside of the planks at (x, z), in a section's own frame, drawn unturned. The gable ends reach up to it. */
+export function coverUnderside(shape: RoofShape): (x: number, z: number) => number {
   return (x, z) => FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + shapeHeight(shape, x, z);
 }
 
 /**
  * How high a section's roof is at (x, z) in its own frame, above its lowest edge, in metres. It carries on past the square's edges,
- * so bark reaching past an edge keeps the slope.
+ * so planks reaching past an edge keep the slope.
  */
 export function shapeHeight(shape: RoofShape, x: number, z: number): number {
-  const downZ = 0.5 - z / BUILD_GRID_METRES;
-  const downX = 0.5 - x / BUILD_GRID_METRES;
-  if (shape === "hip") return Math.min(downZ, downX) * SECTION_RISE_METRES;
-  if (shape === "valley") return Math.max(downZ, downX) * SECTION_RISE_METRES;
-  return downZ * SECTION_RISE_METRES;
+  return shapeTop(shape, x / BUILD_GRID_METRES, z / BUILD_GRID_METRES) * SECTION_RISE_METRES;
 }
 
 /** How much higher a section sits than its deck, in metres: a rise for each section in front of it, and the lift of odd columns. */
@@ -179,10 +169,16 @@ export function hewnTimber(
 /** How wide a rafter is across, as a share of its height. A rafter is hewn a little narrower than it is tall. */
 const RAFTER_WIDTH_SHARE = 0.85;
 
-/** One rafter: a hewn timber lying along z, reaching `span` plus an overhang at each end. */
-export function rafterLog(jitter: (size: number) => number, span = BUILD_GRID_METRES): THREE.BufferGeometry {
+/** One rafter: a hewn timber whose middle line runs straight from `from` to `to`, a little narrower than it is tall. */
+export function rafterBetween(from: THREE.Vector3, to: THREE.Vector3, jitter: (size: number) => number): THREE.BufferGeometry {
   const halfHeight = RAFTER_RADIUS_METRES;
-  return hewnTimber(span + 2 * RAFTER_OVERHANG_METRES + jitter(0.04), halfHeight, jitter, halfHeight * RAFTER_WIDTH_SHARE + jitter(0.004));
+  const along = new THREE.Vector3().subVectors(to, from);
+  const geometry = hewnTimber(along.length(), halfHeight, jitter, halfHeight * RAFTER_WIDTH_SHARE + jitter(0.004));
+  // Made along z, tip it to the slope of the line, turn it to face along the line, and move it to the line's middle.
+  const flat = Math.hypot(along.x, along.z);
+  geometry.rotateX(Math.atan2(-along.y, flat)).rotateY(Math.atan2(along.x, along.z));
+  const middle = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
+  return geometry.translate(middle.x, middle.y, middle.z);
 }
 
 /**
@@ -208,100 +204,6 @@ export function paleLog(geometry: THREE.BufferGeometry, endness: (normal: THREE.
 /** A number from 0 up to 1, from a jitter that gives numbers from -size to size. */
 function random01(jitter: (size: number) => number): number {
   return (jitter(1) + 1) / 2;
-}
-
-/**
- * Which edges of a section need fill logs, and the height each rests on, in the section's own frame.
- * `floorAt` gives the height of what is under a point on an edge, from the section's deck: the beam top, or a lower roof's
- * bark. An edge is left open where the roof already rests on it, with only the rafters between.
- */
-export function fillFloors(shape: RoofShape, raised: number, floorAt: (edge: number, x: number, z: number) => number): (number | undefined)[] {
-  const ceiling = barkUnderside(shape);
-  const half = BUILD_GRID_METRES / 2;
-  return EDGES.map((edge, index) => {
-    const points = samples(-half, half).map((t) => (edge.axis === "x" ? { x: t, z: edge.across * half } : { x: edge.across * half, z: t }));
-    const floor = Math.min(...points.map(({ x, z }) => floorAt(index, x, z))) - raised;
-    const gap = Math.max(...points.map(({ x, z }) => ceiling(x, z))) - floor;
-    return gap > 2 * RAFTER_RADIUS_METRES + FILL_GAP_METRES ? floor : undefined;
-  });
-}
-
-/**
- * The logs that fill the gaps between the roof and what is under its edges, for a section of `shape`, drawn unturned.
- * `floors` gives, for each edge in EDGES order, the height the logs rest on in the section's own frame. Undefined leaves that edge open.
- */
-export function fillLogs(shape: RoofShape, floors: readonly (number | undefined)[]): THREE.BufferGeometry[] {
-  const ceiling = barkUnderside(shape);
-  const half = BUILD_GRID_METRES / 2;
-  const logs: THREE.BufferGeometry[] = [];
-  EDGES.forEach((edge, index) => {
-    const floor = floors[index];
-    if (floor === undefined) return;
-    // A board reaches past an end where the edge meeting it there is filled too, so the two stacks meet at the corner.
-    const from = -half - (floors[edge.startEdge] === undefined ? 0 : FILL_THICKNESS_METRES / 2);
-    const to = half + (floors[edge.endEdge] === undefined ? 0 : FILL_THICKNESS_METRES / 2);
-    const across = edge.across * half;
-    const under = (t: number) => (edge.axis === "x" ? ceiling(t, across) : ceiling(across, t));
-    const top = Math.max(...samples(from, to).map(under));
-    for (let bottom = floor; bottom < top - 0.005; bottom += FILL_COURSE_METRES) {
-      // The board stops where the bark comes down to its bottom.
-      const reach = stretchAbove(from, to, (t) => under(t) - bottom);
-      if (reach !== undefined) logs.push(cutLog(bottom, reach.from, reach.to, edge.axis, across, ceiling));
-    }
-  });
-  return logs;
-}
-
-/** Evenly spaced points from `from` to `to`, both included. */
-function samples(from: number, to: number): number[] {
-  return Array.from({ length: EDGE_SAMPLES }, (_, i) => from + ((to - from) * i) / (EDGE_SAMPLES - 1));
-}
-
-/**
- * The stretch from `from` to `to` where `height` is above 0, with its ends where it crosses 0, or undefined if it never is.
- * A gap in the middle is filled over, so a log runs the whole stretch.
- */
-function stretchAbove(from: number, to: number, height: (t: number) => number): { from: number; to: number } | undefined {
-  const points = samples(from, to);
-  const above = points.map((t) => height(t) > FILL_GAP_METRES / 2);
-  const first = above.indexOf(true);
-  const last = above.lastIndexOf(true);
-  if (first < 0) return undefined;
-  /** Where the height crosses 0 between a point that is not above, `outside`, and the next point that is, `inside`. */
-  const crossing = (outside: number, inside: number) => {
-    const out = height(outside);
-    const into = height(inside);
-    return outside + ((inside - outside) * out) / (out - into);
-  };
-  const step = (to - from) / (EDGE_SAMPLES - 1);
-  const firstPoint = from + first * step;
-  const lastPoint = from + last * step;
-  const start = first === 0 ? from : crossing(firstPoint - step, firstPoint);
-  const end = last === points.length - 1 ? to : crossing(lastPoint + step, lastPoint);
-  return end - start > FILL_SHORTEST_METRES ? { from: start, to: end } : undefined;
-}
-
-/**
- * A split board resting at height `bottom`, running along `axis` from `from` to `to`, its middle at `across` on the other axis.
- * Its top is cut down to the bark's underside, so the top board of a stack fills the gap under the slope exactly.
- */
-function cutLog(bottom: number, from: number, to: number, axis: "x" | "z", across: number, ceiling: (x: number, z: number) => number): THREE.BufferGeometry {
-  const half = FILL_COURSE_METRES / 2;
-  const geometry = new THREE.CylinderGeometry(half, half, to - from, FILL_BOARD_SIDES, FILL_LENGTHS, false, Math.PI / FILL_BOARD_SIDES);
-  // The cylinder stands along y. Squash it flat across, in z, and keep it a little short of its course in x, so a groove shows between boards.
-  geometry.scale(0.94, 1, FILL_THICKNESS_METRES / FILL_COURSE_METRES);
-  // Laid along x, its x becomes its height.
-  geometry.rotateZ(Math.PI / 2);
-  // The cylinder now lies along x, standing tall in y. A board along z is turned round to it.
-  if (axis === "z") geometry.rotateY(Math.PI / 2);
-  const middle = (from + to) / 2;
-  geometry.translate(axis === "x" ? middle : across, bottom + half, axis === "x" ? across : middle);
-  const positions = geometry.getAttribute("position");
-  for (let i = 0; i < positions.count; i += 1) {
-    positions.setY(i, Math.max(bottom, Math.min(positions.getY(i), ceiling(positions.getX(i), positions.getZ(i)))));
-  }
-  geometry.computeVertexNormals();
-  return paleLog(geometry, (normal) => Math.abs(axis === "x" ? normal.x : normal.z));
 }
 
 /** Whether a picker and everything holding it are shown. A roof or frame hidden over the player cannot be picked. */

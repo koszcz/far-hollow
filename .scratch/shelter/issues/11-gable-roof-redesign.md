@@ -4,7 +4,7 @@
 
 **Blocked by:** 10 (Roof frame), crafting 03 (Cut planks)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** The owner approved these changes in chat on 2026-11-12:
 
@@ -35,19 +35,19 @@ All made by the owner on 2026-11-12.
 
 ## Tasks
 
-- [ ] Frames and roofs slope at 35 degrees. Sections one behind another still share one slope.
-- [ ] Two rows of frames that face away from each other meet at a ridge. The planks on one slope reach past the ridge, over the other slope.
-- [ ] Change the corner rule in `src/render/roof-layout.ts`: no hips. At an outside corner, the corner frame's turn picks the wing that runs through, and the other wing ends in valleys. The rule still looks only at a section's neighbours.
-- [ ] Plank gable ends close the triangle between the wall top and the roof at each end of a ridge or slope, with no gap. They replace the fill logs.
-- [ ] Where a butted wing is taller than the through-roof, a plank gable end fills the step. Steps between runs of different depth are filled with planks, not logs.
-- [ ] Lay 6 rows of planks per roof section. They overlap, and their ends are ragged and staggered, so each row casts a clear shadow line. The planks look grey and weathered.
-- [ ] The roof reaches 0.5 m past the eaves and the gable ends.
-- [ ] The roof section costs 6 planks, and the build menu shows this cost. Construction has 6 stages, one row each.
-- [ ] Construction stages, taking down, rain cover, and the hiding of a roof over the player work as they do now. Taking down a roof section gives back its planks.
-- [ ] Old saves load as described under Decisions. Bump the save version.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, changed or added as a draft (ADR 0006).
-- [ ] Unit tests cover the new corner rule, the taller butted wing, shed roofs, the roof cost, and loading old saves.
+- [x] Frames and roofs slope at 35 degrees. Sections one behind another still share one slope.
+- [x] Two rows of frames that face away from each other meet at a ridge. The planks on one slope reach past the ridge, over the other slope.
+- [x] Change the corner rule in `src/render/roof-layout.ts`: no hips. At an outside corner, the corner frame's turn picks the wing that runs through, and the other wing ends in valleys. The rule still looks only at a section's neighbours.
+- [x] Plank gable ends close the triangle between the wall top and the roof at each end of a ridge or slope, with no gap. They replace the fill logs.
+- [x] Where a butted wing is taller than the through-roof, a plank gable end fills the step. Steps between runs of different depth are filled with planks, not logs.
+- [x] Lay 6 rows of planks per roof section. They overlap, and their ends are ragged and staggered, so each row casts a clear shadow line. The planks look grey and weathered.
+- [x] The roof reaches 0.5 m past the eaves and the gable ends.
+- [x] The roof section costs 6 planks, and the build menu shows this cost. Construction has 6 stages, one row each.
+- [x] Construction stages, taking down, rain cover, and the hiding of a roof over the player work as they do now. Taking down a roof section gives back its planks.
+- [x] Old saves load as described under Decisions. Bump the save version.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, changed or added as a draft (ADR 0006).
+- [x] Unit tests cover the new corner rule, the taller butted wing, shed roofs, the roof cost, and loading old saves.
 
 ## Notes
 
@@ -57,3 +57,15 @@ All made by the owner on 2026-11-12.
 - The owner's reference is a photo of a reconstructed soldiers' log hut with a board roof and log gable ends. Ask the owner for it if you need it.
 
 ## Comments
+
+- 2026-11-13: Built in this session.
+- The roof section costs 6 planks and takes 12 seconds, 2 seconds a row. The build time was not in the ticket, so the owner may want to tune it.
+- The corner rule turned out simpler than expected. A wing ends against another where the section past the end of its run slopes at right angles. The corner frames' turns then pick the wing that runs through on their own.
+- Heights come in whole rises, so in each square one of the two slopes covers it all, or both start at the same height and meet in a valley. On wings deeper than two squares, the valleys run on up, one square further each rise.
+- To do this, the rule looks along a section's own run and at the section just past its end, not only at the squares next to it. It already counted the run for heights before this ticket.
+- A taller butted wing needs no special shape. Its slope starts higher than the through-roof's, so it covers the corner squares as straight sections. Its ridge runs on to the through-roof's ridge, and a plank gable end fills the step above the through-roof's back slope.
+- Gable ends are upright planks. They are 1.7 times paler than the roof planks, because vertical faces get little light and looked almost black.
+- Beams now reach 0.15 m past the walls, not 0.3 m. At 35 degrees a longer beam pokes through the eaves.
+- Rafters reach under the overhang only where the front of a frame is an eave.
+- Taking down a roof puts planks that do not fit in the backpack on the ground as one pile, since planks have no single form on the ground.
+- See the drafts with `?asset=roof`, `?asset=roof-frame`, `?asset=roof-corners`, and `?asset=gable-end`.

@@ -63,8 +63,11 @@ const CORNER_REACH_METRES = 0.2;
 const COURSE_LENGTH_METRES = BUILD_GRID_METRES + 2 * COURSE_OVERHANG_METRES;
 /** Two corner points closer than this, in metres, are the same point. */
 const SAME_POINT_METRES = 1e-6;
-/** The radius of a plain course, chosen so the stacked courses reach exactly the wall's height. */
-const COURSE_RADIUS_METRES = (() => {
+/**
+ * The radius of a plain course of a log wall, in metres, chosen so the stacked courses reach exactly the wall's height.
+ * It is also how far the wall reaches out from the edge it stands on.
+ */
+export const COURSE_RADIUS_METRES = (() => {
   const looks = Array.from({ length: COURSE_COUNT }, (_, i) => courseLook(i));
   const sunk = looks.slice(1).reduce((sum, look) => sum + look.thickness * (1 - COURSE_NOTCH_SHARE), 0);
   return EDGE_PIECE_HEIGHT_METRES / (2 * ((looks[0]?.thickness ?? 1) + sunk));

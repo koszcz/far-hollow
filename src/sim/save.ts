@@ -42,6 +42,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addRoofFrames,
   turnAwayLargeValley,
   addSleds,
+  layPlankRoofs,
 ];
 
 /** The version of the save format this code writes. */
@@ -78,6 +79,8 @@ export const LARGE_VALLEY_UPGRADES: readonly SaveUpgrade[] = SAVE_UPGRADES.slice
 export const ROOF_FRAMES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRoofFrames) + 2;
 /** The first save version that can hold sleds. */
 export const SLEDS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSleds) + 2;
+/** The first save version in which a roof section is planks rather than bark. */
+export const PLANK_ROOFS_SAVE_VERSION = SAVE_UPGRADES.indexOf(layPlankRoofs) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -440,4 +443,22 @@ function turnAwayLargeValley(): Record<string, unknown> {
  */
 function addSleds(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 23 to 24: a roof section is rows of planks, not strips of bark. A finished roof stores no material, so every
+ * finished bark roof loads as a finished plank roof, at no cost. Every roof blueprint keeps its turn and starts again,
+ * and any bark already spent on it goes back in the player's backpack.
+ */
+function layPlankRoofs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  let barkBack = 0;
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (blueprint?.structure !== "roof" || typeof blueprint.materialsSpent !== "number") return entity;
+    barkBack += blueprint.materialsSpent;
+    return { ...(entity as object), components: { ...components, blueprint: { ...blueprint, progress: 0, materialsSpent: 0 } } };
+  });
+  return giveBack({ ...save, entities }, "bark", barkBack);
 }

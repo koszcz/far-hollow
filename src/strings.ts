@@ -100,6 +100,7 @@ export const strings = {
     materials: {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
       bark: (count: number) => `${count} bark`,
+      plank: (count: number) => (count === 1 ? "1 plank" : `${count} planks`),
       log: (count: number) => (count === 1 ? "1 log" : `${count} logs`),
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },

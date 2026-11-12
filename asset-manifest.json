@@ -268,13 +268,12 @@
         "src/render/roof-layout.ts",
         "src/sim/structures.ts"
       ],
-      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Hewn beams, debarked logs squared with an adze, with chamfered corners, shallow adze marks, and pale cut ends, lie level on the top of every wall and door frame on the square's edges. Their square shape sets them apart from the round wall logs. The beams on the lower walls, which run along z, are hewn taller, so every beam top is level. A beam reaches about 0.3 m past the walls where no frame carries on beyond its end. Three hewn rafters, a little narrower than they are tall, rest on the beams and slope 12 degrees the way the frame faces, so the bark lies flat on them. Where a slope rises above the beams, courses of rough split boards stacked on the beams, the top one cut to the slope, fill the gap up to the roof. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the fill going up with the last rafter. Each part stays in its place and turns solid during its stage. It hides with the roof above the player.",
+      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Hewn beams, debarked logs squared with an adze, with chamfered corners, shallow adze marks, and pale cut ends, lie level on the top of every wall and door frame on the square's edges. Their square shape sets them apart from the round wall logs. The beams on the lower walls, which run along z, are hewn taller, so every beam top is level. A beam reaches about 0.15 m past the walls where no frame carries on beyond its end, so it stays under the steep eaves. Three hewn rafters, a little narrower than they are tall, rest on the beams and slope 35 degrees the way the frame faces, so the planks lie flat on them. Where the front of a frame is an eave, the rafters reach on past the wall, under the roof's overhang. Where a slope rises above the beams, as at each end of a ridge, the high side of a shed roof, or the step beside a lower roof, plank gable ends (the gable-end draft) close the gap up to the roof. The frame's cost pays for them. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the gable ends going up with the last rafter. Each part stays in its place and turns solid during its stage. It hides with the roof above the player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-12"
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/11-gable-roof-redesign.md"
       }
     },
     {
@@ -285,13 +284,12 @@
         "src/render/roof-parts.ts",
         "src/sim/roofs.ts"
       ],
-      "description": "The cabin roof section: bark laid on the roof frame of one foundation square. It slopes 12 degrees the way its frame does, and sections one behind another share one continuous slope. Four strips of bark, made like the lean-to's but pressed flatter, trimmed neater, and painted with a grain of streaks, cracks, and knots, lie on the frame's rafters like shingles from the front up, a little past the square's edges. Where an edge has no section beside it, the bark reaches further, past the ends of the frame's beams, keeping the slope. As a blueprint it shows see-through, and construction lays the bark one strip per stage. The roof above the player hides when they stand under it. The rafters and fill logs moved to the roof-frame draft in ticket 10, as the owner approved on 2026-11-11. Its hip and valley corner pieces are the separate draft asset roof-corners.",
+      "description": "The cabin roof section: planks laid on the roof frame of one foundation square, the same planks the sawhorse cuts. It slopes 35 degrees the way its frame does, and sections one behind another share one continuous slope. Two rows that slope away from each other meet at a ridge, where the planks of the slope down to +z or +x reach a little past it, over the other slope. Grey, weathered planks lie in 6 overlapping rows across the slope, from the eaves up. Each row is short planks side by side, running down the slope, with ragged, staggered lower ends that are a little darker. Each plank lies a little less steep than the roof, so its lower end lifts over the row below and every row casts a clear shadow line. Where an edge has no section beside it, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed roof. As a blueprint it shows see-through, and construction lays one row of planks per stage. The roof above the player hides when they stand under it. Its valley pieces are the separate draft asset roof-corners, and its gable ends the draft asset gable-end.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/11-gable-roof-redesign.md"
       }
     },
     {
@@ -302,12 +300,27 @@
         "src/render/roof-frame-meshes.ts",
         "src/render/roof-layout.ts"
       ],
-      "description": "The hip and valley corner pieces of the cabin roof and its frame. Where two frames that slope at right angles meet, the corner section changes shape on its own: an outside corner becomes a hip, where two slopes meet at a ridge, and an inside corner becomes a valley, where they meet in a gutter. The roof on the frame follows its shape. The frame has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Four rows of bark strips, made like the straight section's, are laid on both slopes from the eaves up, each cut along the meeting line and reaching a little past it, so on a hip each slope laps over the ridge and on a valley each slope tucks under the other. The frame's logs, cut to the slope, fill any gap above its beams or a lower roof beside it. Construction stages match the straight frame's and roof's.",
+      "description": "The valley pieces of the cabin roof and its frame. No roof has a hip. Where a frame's downhill neighbour slopes at right angles to it, one wing ends against another, and the frame becomes a valley, where the two slopes meet in a gutter. At the corner of an L-shaped or U-shaped cabin, the corner frames' own turns decide which wing runs through: the wing that slopes the same way as them. The player changes this by turning the corner frames with R. Where the butted wing is deeper, its slope starts higher and runs over the corner square as a straight section, and its ridge stands above the through-roof's. The frame has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Six rows of weathered planks, made like the straight section's, are laid on both slopes from the eaves up, each cut along the meeting line and reaching a little past it, so each slope tucks under the other. Construction stages match the straight frame's and roof's.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "draft",
-        "ticket": ".scratch/shelter/issues/10-roof-frame.md"
+        "ticket": ".scratch/shelter/issues/11-gable-roof-redesign.md"
+      }
+    },
+    {
+      "id": "gable-end",
+      "kind": "code",
+      "code": [
+        "src/render/gable-end-shape.ts",
+        "src/render/roof-frame-meshes.ts"
+      ],
+      "description": "The plank gable ends of the cabin roof. They close the gap between what is under an edge of a roof section and its planks: the triangle between the wall top and the roof at each end of a ridge or a shed roof, and the step where a taller wing's roof stands above a lower one. Each is a row of upright sawn planks, grey and weathered like the roof's, side by side along the edge with a thin gap between them. Each plank stands on the frame's beam or the lower roof and is cut at its top to the slope above, so the gable end meets the roof with no gap. They appear on their own, and go up with the last rafter of the roof frame, whose cost pays for them. The player never builds one alone.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/shelter/issues/11-gable-roof-redesign.md"
       }
     },
     {

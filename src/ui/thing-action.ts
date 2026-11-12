@@ -23,6 +23,8 @@ export type ActionId =
   | `take:${WoodpileWood}`
   | `load:${CarriedLog}`
   | "tipOut"
+  | "drag"
+  | "letGo"
   | "open"
   | "sleep"
   | "build"

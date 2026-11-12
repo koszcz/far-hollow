@@ -1,4 +1,17 @@
-import type { BedrollView, CampfireView, Command, GameClient, GameView, NearbyThing, NearbyViews, Notice, PileView, PlainNotice, PlayerAction } from "./api";
+import {
+  needsFreeHands,
+  type BedrollView,
+  type CampfireView,
+  type Command,
+  type GameClient,
+  type GameView,
+  type NearbyThing,
+  type NearbyViews,
+  type Notice,
+  type PileView,
+  type PlainNotice,
+  type PlayerAction,
+} from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, type Activity } from "./activity";
@@ -37,7 +50,7 @@ import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { NOTICE_MINUTES } from "./notices";
 import { createPiles } from "./piles";
-import { createSleds } from "./sleds";
+import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
 import { createTending } from "./tending";
@@ -193,6 +206,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       craftMenu: craftMenu(),
       action: currentAction(),
       carrying: player.carrying ?? null,
+      dragging: sleds.dragged() ?? null,
       nearby: nearbyThings(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -308,6 +322,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       case "tipOutSled":
         sleds.tipOut(command.sledId);
         return undefined;
+      case "dragSled":
+        sleds.drag(command.sledId);
+        return undefined;
     }
   }
 
@@ -408,6 +425,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     loadSled: tend,
     takeFromSled: tend,
     tipOutSled: tend,
+    dragSled: tend,
+    letGoOfSled: () => {
+      sleds.letGo();
+    },
     openChest: (command) => {
       cancelTasks();
       chests.open(command.chestId);
@@ -506,6 +527,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     firstNightOver = true;
     cancelTasks();
     carrying.drop();
+    // The sled stays where the player fell, with its load.
+    sleds.letGo();
     entities.removeComponent(player, "walkPath");
     const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
@@ -525,6 +548,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    */
   function sleepOn(bedroll: BedrollEntity): void {
     carrying.drop();
+    sleds.letGo();
     entities.removeComponent(player, "walkPath");
     const { x, z } = bedroll.position;
     player.respawnPoint = { x, z };
@@ -536,6 +560,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   function applyCommand(command: Command): void {
+    // While dragging a sled, the player's hands are busy until they let go.
+    if (player.dragging !== undefined && needsFreeHands(command)) {
+      showNotice("letGoFirst");
+      return;
+    }
     // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.
     const handle = commandHandlers[command.type] as (command: Command) => void;
     handle(command);
@@ -550,7 +579,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       }
       // A player with a low need moves and works more slowly, as if less time passed for them.
       const playerSeconds = (STEP_MS / 1000) * needsSpeed(player.needs);
-      walking.step(playerSeconds);
+      // Dragging a sled slows walking further, but not other work.
+      walking.step(player.dragging === undefined ? playerSeconds : playerSeconds * DRAG_SPEED);
+      sleds.follow();
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       stepCount += 1;

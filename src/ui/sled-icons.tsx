@@ -1,5 +1,5 @@
 // Icons for the sled, the draft "sled-icon" asset in asset-manifest.json. Built in code. Added by sled ticket 01.
-// The build menu shows the sled icon over the sled's cost, and the log icon for the logs it costs.
+// The build menu shows the sled icon over the sled's cost, and the log icon for the logs it costs. The hotbar's sled cell shows the sled icon too.
 // They are drawn on the same 24 by 24 grid, in the same shaded style, as the approved build icons in build-icons.tsx.
 import type { BackpackIconDrawing } from "./icon-drawing";
 

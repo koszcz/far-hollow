@@ -24,12 +24,13 @@ import type {
 } from "../sim/api";
 import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
-import { BackpackIcon } from "./backpack-icons";
+import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
 import type { PromptButton } from "./cursor-prompt-view";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
 import { placingHint } from "./placing-hint";
+import { SLED_DRAWING } from "./sled-icons";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
 function backpackContents(backpack: GameView["backpack"]): [BackpackContent, number][] {
@@ -86,10 +87,10 @@ function ContentGrid({
 }
 
 /**
- * The hotbar's cells: the log on the shoulder, then each kind in the backpack. Each shows its icon, its name, a count when
- * there is more than one, and its number key. A click calls `onUse`. A right-click calls `onOpenMenu` at the cursor.
- * A backpack cell sets `data-prompt-content` and the shoulder cell sets `data-prompt-shoulder`, so the cursor prompt
- * describes it (src/app/cursor-prompt-overlay.tsx).
+ * The hotbar's cells: the sled the player drags, the log on the shoulder, then each kind in the backpack. Each shows its icon,
+ * its name, a count when there is more than one, and its number key. A click calls `onUse`. A right-click calls `onOpenMenu` at the cursor.
+ * A backpack cell sets `data-prompt-content`, the shoulder cell sets `data-prompt-shoulder`, and the sled cell sets `data-prompt-sled`,
+ * so the cursor prompt describes it (src/app/cursor-prompt-overlay.tsx).
  */
 function HotbarGrid({
   view,
@@ -104,15 +105,16 @@ function HotbarGrid({
     <ul class="hud-hotbar-cells">
       {hotbarCells(view).map(({ target, name, count, key }) => (
         <li
-          key={target.kind === "backpackContent" ? target.content : "shoulder"}
-          class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : undefined}
+          key={target.kind === "backpackContent" ? target.content : target.kind}
+          class={target.kind === "backpackContent" ? undefined : "hud-hotbar-shoulder"}
           data-prompt-content={target.kind === "backpackContent" ? target.content : undefined}
           data-prompt-shoulder={target.kind === "shoulder" ? "" : undefined}
+          data-prompt-sled={target.kind === "sled" ? "" : undefined}
         >
           <button
             type="button"
             class="hud-content-move hud-hotbar-cell"
-            aria-label={target.kind === "shoulder" ? strings.hotbar.shoulder(name) : strings.hotbar.cell(strings.backpackContentCount(name, count), key)}
+            aria-label={hotbarCellLabel(target, name, count, key)}
             onClick={(event) => {
               onUse(target, event.shiftKey);
             }}
@@ -121,7 +123,7 @@ function HotbarGrid({
               onOpenMenu(target, event.clientX, event.clientY);
             }}
           >
-            {target.kind === "backpackContent" ? <BackpackIcon content={target.content} /> : <HudIcon name="log" />}
+            <HotbarCellIcon target={target} />
             <span class="hud-hotbar-name" aria-hidden="true">
               {name}
             </span>
@@ -140,6 +142,30 @@ function HotbarGrid({
       ))}
     </ul>
   );
+}
+
+/** The full name of a hotbar cell, for screen readers. */
+function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined): string {
+  switch (target.kind) {
+    case "shoulder":
+      return strings.hotbar.shoulder(name);
+    case "sled":
+      return strings.hotbar.dragging(name);
+    case "backpackContent":
+      return strings.hotbar.cell(strings.backpackContentCount(name, count), key);
+  }
+}
+
+/** A backpack content's icon, the log icon for the shoulder, or the draft "sled-icon" for the sled the player drags. */
+function HotbarCellIcon({ target }: { target: HotbarTarget }) {
+  switch (target.kind) {
+    case "backpackContent":
+      return <BackpackIcon content={target.content} />;
+    case "shoulder":
+      return <HudIcon name="log" />;
+    case "sled":
+      return <ShadedIcon drawing={SLED_DRAWING} className="backpack-icon" />;
+  }
 }
 
 export interface HudProps {

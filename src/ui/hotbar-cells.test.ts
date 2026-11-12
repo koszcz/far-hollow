@@ -5,6 +5,7 @@ describe("the hotbar cells", () => {
   it("shows the log on the shoulder first, then each kind in the backpack, numbered 1 to 9", () => {
     const cells = hotbarCells({
       carrying: "debarkedLog",
+      dragging: null,
       backpack: { axe: 1, berries: 3, stick: 2 },
     });
 
@@ -16,9 +17,23 @@ describe("the hotbar cells", () => {
     ]);
   });
 
+  it("shows the sled the player drags where the shoulder cell goes, with how many logs it holds", () => {
+    const cells = hotbarCells({
+      carrying: null,
+      dragging: { id: 9, contents: { log: 3, debarkedLog: 1 }, total: 4, capacity: 6 },
+      backpack: { axe: 1 },
+    });
+
+    expect(cells.map(({ target, name, count, key }) => [target, name, count, key])).toEqual([
+      [{ kind: "sled", sledId: 9 }, "Sled 4/6", 1, undefined],
+      [{ kind: "backpackContent", content: "axe" }, "Axe", 1, "1"],
+    ]);
+  });
+
   it("gives no key to the tenth kind and after", () => {
     const cells = hotbarCells({
       carrying: null,
+      dragging: null,
       backpack: {
         axe: 1,
         knife: 1,

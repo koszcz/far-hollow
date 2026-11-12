@@ -179,6 +179,7 @@ export const strings = {
     stillHoldsSomething: "Something is still in this. Empty it first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
     putLogDownFirst: "Put the log down first.",
+    letGoFirst: "Let go of the sled first.",
     /** The player tried a station recipe with no debarked log beside the station, such as "Lay a debarked log within 2 m of the sawhorse first." */
     noLogBesideStation: (station: string) => `Lay a debarked log within ${STATION_GROUND_METRES} m of the ${station.toLowerCase()} first.`,
     /** The player tried a recipe they cannot follow yet, such as "This needs the saw first." */
@@ -229,6 +230,10 @@ export const strings = {
     cell: (what: string, key: string | undefined) => (key === undefined ? what : `${what}, key ${key}`),
     /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
     shoulder: (name: string) => `On your shoulder: ${name}`,
+    /** The name of the sled cell, with how many logs the sled holds and its most, such as "Sled 4/6". */
+    sled: (total: number, capacity: number) => `Sled ${total}/${capacity}`,
+    /** The name of the sled cell for screen readers, such as "Dragging: Sled 4/6". */
+    dragging: (name: string) => `Dragging: ${name}`,
   },
   /** What the player can do to a thing, as the action menu and the cursor prompt name it. */
   actions: {
@@ -247,6 +252,8 @@ export const strings = {
     take: { log: "Take a log", debarkedLog: "Take a debarked log", firewood: "Take firewood" },
     loadSled: { log: "Put the log on the sled", debarkedLog: "Put the debarked log on the sled" },
     tipOut: "Tip out every log",
+    drag: "Drag the sled",
+    letGo: "Let go of the sled",
     open: "Open",
     sleep: "Sleep",
     build: "Build",
@@ -276,6 +283,7 @@ export const strings = {
     noPotOfWater: "no pot of water",
     woodpileFull: "the woodpile is full",
     sledFull: "the sled is full",
+    letGoFirst: "let go of the sled first",
     shoulderFull: "your shoulder is full",
     noLogCarried: "carrying no log",
     nothingToTake: "nothing to take",

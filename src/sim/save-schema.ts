@@ -49,7 +49,7 @@ const tendCommand: Check = (value) =>
   shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire"), campfireId: count })(value) ||
   shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value) ||
-  shape({ type: exactly("loadSled", "tipOutSled"), sledId: count })(value) ||
+  shape({ type: exactly("loadSled", "tipOutSled", "dragSled"), sledId: count })(value) ||
   shape({ type: exactly("takeFromSled"), sledId: count, log: exactly(...CARRIED_LOGS) })(value);
 
 /**
@@ -74,6 +74,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   debarkedLog: shape({ heading: finite }),
   debarkTask: shape({ logId: count, secondsDone: finite }),
   carrying: exactly(...CARRIED_LOGS),
+  dragging: shape({ sledId: count }),
   stick: exactly(true),
   stickPickUpTask: shape({ stickId: count }),
   bark: exactly(true),
@@ -95,6 +96,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   chest: shape({ contents: backpackContents }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count }),
+  dragHeading: finite,
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),
   roof: shape({ min: point, max: point }),
@@ -142,6 +144,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   stillHoldsSomething: {},
   saveBroken: {},
   putLogDownFirst: {},
+  letGoFirst: {},
   noLogBesideStation: { station: workStation },
   cannotCraftYet: { lacks: list(recipeLack) },
 };

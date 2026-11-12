@@ -9,6 +9,8 @@
 // A finished sled shows the logs and debarked logs lying on it, along the runners, from empty to full:
 // logs first, then debarked logs, stacked in a pyramid: three side by side on the cross pieces, two in the gaps above, and one on top.
 // They use the approved shapes from log-shape.ts and debarked-log-shape.ts, the "logs" and "debarked-log" assets.
+// Sled ticket 03 added dragging: a sled the player has dragged points the way it was last pulled, and a dragged sled
+// moves smoothly between logic steps with the player.
 import * as THREE from "three";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, sledEntities, type CarriedLog, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
@@ -48,8 +50,11 @@ export type SledHit = { kind: "blueprint"; entity: Entity } | { kind: "sled"; en
 
 export interface SledMeshes {
   readonly group: THREE.Group;
-  /** Brings every sled and sled blueprint up to date with game state. */
-  update(): void;
+  /**
+   * Brings every sled and sled blueprint up to date with game state.
+   * `player` is where the player is drawn this frame. The sled they drag is drawn moved as far as they are, so it keeps up smoothly.
+   */
+  update(player?: Vec3): void;
   /** What a ray from the camera hits first among sleds and sled blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: SledHit; distance: number } | undefined;
   /** The parts of a sled or sled blueprint, placed in the world. Empty once it is gone. */
@@ -183,6 +188,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const sleds = sledEntities(entities);
+  const draggers = entities.with("player", "position", "dragging");
 
   /** Adds every part, one per stage, to `root`, all in one material. */
   function addStages(root: THREE.Group): Stage[] {
@@ -230,7 +236,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
    */
   function showProgress(item: Drawn, entity: Entity & { position: Vec3 }, progress: number, delivered: number): void {
     item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    item.root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    item.root.rotation.y = entity.dragHeading ?? facingRadians(entity.facing?.turns ?? 0);
     const stagesDone = progress * parts.length;
     item.stages.forEach((stage, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
@@ -263,7 +269,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
 
   return {
     group,
-    update() {
+    update(player) {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "sled") continue;
@@ -277,6 +283,14 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
         showProgress(item, entity, 1, SLED_LOG_COST);
         showLoad(item, entity.sled);
         seen.add(entity);
+      }
+      // The player is drawn between logic steps. Move the sled they drag by as much, so it does not lag a step behind them.
+      for (const dragger of player === undefined ? [] : draggers) {
+        const sled = entities.entity(dragger.dragging.sledId);
+        const item = sled === undefined ? undefined : drawn.get(sled);
+        if (item === undefined || player === undefined) continue;
+        item.root.position.x += player.x - dragger.position.x;
+        item.root.position.z += player.z - dragger.position.z;
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },

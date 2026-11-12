@@ -1,7 +1,8 @@
 // Shows the cursor prompt for what the cursor is over. src/app/cursor-prompt.ts decides its words, and
 // src/ui/cursor-prompt-view.tsx draws them beside the cursor. The view renders again only when the words change.
 // The scene reports what the cursor is over through setSceneTarget. HUD elements mark themselves, and the overlay finds them itself:
-// data-prompt-content names a backpack content, data-prompt-shoulder marks the carried log, and data-prompt-button names "build" or "craft".
+// data-prompt-content names a backpack content, data-prompt-shoulder marks the carried log, data-prompt-sled marks the dragged sled,
+// and data-prompt-button names "build" or "craft".
 import { render } from "preact";
 import type { ScenePick } from "../render/scene-renderer";
 import type { BackpackContent, GameClient } from "../sim/api";
@@ -18,7 +19,7 @@ export interface CursorPromptOverlay {
 }
 
 /** The HUD elements that ask for a prompt. */
-const PROMPT_SELECTOR = "[data-prompt-content], [data-prompt-shoulder], [data-prompt-button]";
+const PROMPT_SELECTOR = "[data-prompt-content], [data-prompt-shoulder], [data-prompt-sled], [data-prompt-button]";
 
 export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
   const container = document.createElement("div");
@@ -44,6 +45,10 @@ export function attachCursorPrompt(client: GameClient): CursorPromptOverlay {
     if (source.dataset.promptShoulder !== undefined) {
       const log = client.getView().carrying;
       return log === null ? undefined : promptFor({ kind: "shoulder", log }, client);
+    }
+    if (source.dataset.promptSled !== undefined) {
+      const sled = client.getView().dragging;
+      return sled === null ? undefined : promptFor({ kind: "sled", sledId: sled.id }, client);
     }
     const content = source.dataset.promptContent;
     if (content !== undefined && content in strings.backpackContents) {

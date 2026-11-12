@@ -30,6 +30,7 @@ const BASE_VIEW: GameView = {
   ],
   action: null,
   carrying: null,
+  dragging: null,
   nearby: [],
   warmth: 0.9,
   needs: { hunger: 1, thirst: 0.8, warmth: 0.9, fatigue: 1 },

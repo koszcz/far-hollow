@@ -13,6 +13,7 @@ export const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   chestFull: 4,
   saveBroken: 10,
   putLogDownFirst: 4,
+  letGoFirst: 4,
   noLogBesideStation: 4,
   cannotCraftYet: 4,
 };

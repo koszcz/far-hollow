@@ -41,6 +41,10 @@ describe("a click on a hotbar cell", () => {
   it("drops the log on the shoulder", () => {
     expect(clickHotbarCell({ kind: "shoulder", log: "log" }, readerWith({ carrying: "log" }), false)).toEqual({ type: "dropLog" });
   });
+
+  it("lets go of the sled the player drags", () => {
+    expect(clickHotbarCell({ kind: "sled", sledId: 9 }, readerWith({ draggingSledId: 9 }), false)).toEqual({ type: "letGoOfSled" });
+  });
 });
 
 describe("the number keys", () => {
@@ -73,13 +77,17 @@ function readerWith({
   backpack = {},
   carrying = null,
   openChestId,
+  draggingSledId,
 }: {
   backpack?: Partial<Record<BackpackContent, number>>;
   carrying?: GameView["carrying"];
   openChestId?: number;
+  draggingSledId?: number;
 }): ActionReader {
+  const dragging: GameView["dragging"] =
+    draggingSledId === undefined ? null : { id: draggingSledId, contents: { log: 0, debarkedLog: 0 }, total: 0, capacity: 6 };
   const nearby: GameView["nearby"] =
     openChestId === undefined ? [] : [{ kind: "openChest", view: { id: openChestId, contents: {}, weight: 0, weightLimit: 30 } }];
-  const view: GameView = { ...START.getView(), backpack, carrying, nearby };
+  const view: GameView = { ...START.getView(), backpack, carrying, nearby, dragging };
   return { ...START, getView: () => view };
 }

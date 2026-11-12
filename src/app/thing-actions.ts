@@ -2,7 +2,7 @@
 // The action menu lists them all. The cursor prompt, a left-click, and the E key use the main one.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
-import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, needsFreeHands, WOODPILE_WOODS } from "../sim/api";
 import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, RecipeLack, SledView, WoodpileView, WoodpileWood } from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
@@ -22,6 +22,10 @@ type Offer = Omit<ThingAction, "isMain">;
 /** Every action the target offers, main first. Empty for nothing. Ground gives one main "walk". */
 export function actionsFor(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
   const view = reader.getView();
+  return view.dragging === null ? targetActions(target, reader, view) : targetActions(target, reader, view).map(withHandsBusy);
+}
+
+function targetActions(target: ActionTarget, reader: ActionReader, view: GameView): readonly ThingAction[] {
   switch (target.kind) {
     case "scene":
       return sceneActions(target.pick, reader, view);
@@ -29,7 +33,15 @@ export function actionsFor(target: ActionTarget, reader: ActionReader): readonly
       return backpackContentActions(target.content, view);
     case "shoulder":
       return shoulderActions(target.log, view);
+    case "sled":
+      return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
   }
+}
+
+/** While the player drags a sled, their hands are busy, so an action that needs them is off until they let go. */
+function withHandsBusy(action: ThingAction): ThingAction {
+  if (!action.enabled || action.command === undefined || !needsFreeHands(action.command)) return action;
+  return { ...action, enabled: false, reason: strings.actionReasons.letGoFirst };
 }
 
 /** The target's name for the prompt title, such as "Tree", "Campfire", or "Berries". */
@@ -39,6 +51,8 @@ export function targetName(target: ActionTarget, reader: ActionReader): string {
       return strings.backpackContents[target.content];
     case "shoulder":
       return strings.things[target.log];
+    case "sled":
+      return strings.things.sled;
     case "scene":
       return pickName(target.pick, reader);
   }
@@ -267,12 +281,15 @@ function woodpileActions(woodpile: WoodpileView, view: GameView): readonly Thing
 }
 
 /**
- * Put the log on the shoulder on the sled, take one of each kind the sled holds, tip out every log, then take it down.
- * Main: put the log on the shoulder on the sled, or take a log if the player carries nothing.
+ * Put the log on the shoulder on the sled, drag it, take one of each kind the sled holds, tip out every log, then take it down.
+ * Main: put the log on the shoulder on the sled, or drag it if the player carries nothing.
+ * While the player drags this sled, they can only let go of it.
  */
 function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
   const sledId = sled.id;
   const reasons = strings.actionReasons;
+  if (view.dragging?.id === sledId) return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+  const drag = offerUnless(view.dragging === null ? undefined : reasons.letGoFirst, "drag", strings.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
   const load =
     view.carrying === null
       ? []
@@ -306,8 +323,8 @@ function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
     { hud: "log" },
     { type: "tipOutSled", sledId },
   );
-  const offers = [...load, ...take, tipOut, takeDown(sledId, sled.total > 0 ? reasons.emptyFirst : undefined)];
-  return withMain(offers, view.carrying === null ? take[0]?.id : `load:${view.carrying}`);
+  const offers = [...load, drag, ...take, tipOut, takeDown(sledId, sled.total > 0 ? reasons.emptyFirst : undefined)];
+  return withMain(offers, view.carrying === null ? "drag" : `load:${view.carrying}`);
 }
 
 /** Main: add the carried material if the blueprint still needs it, otherwise build. Then taking it down. */

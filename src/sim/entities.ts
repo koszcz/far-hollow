@@ -26,7 +26,7 @@ export type TendTask =
   | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire"; campfireId: number }
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
-  | { type: "loadSled" | "tipOutSled"; sledId: number }
+  | { type: "loadSled" | "tipOutSled" | "dragSled"; sledId: number }
   | { type: "takeFromSled"; sledId: number; log: CarriedLog };
 
 /** Every game object is an entity made of plain data components (ADR 0003). */
@@ -78,6 +78,8 @@ export interface Entity {
   debarkTask?: { logId: number; secondsDone: number };
   /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
   carrying?: CarriedLog;
+  /** The sled the player drags behind them, given by its entity id. Their hands are busy until they let go. Only the player has one. */
+  dragging?: { sledId: number };
   /** Marks a stick lying on the forest floor. Its position is the middle of the stick. */
   stick?: true;
   /** The stick on the ground the player is walking to pick up, given by its entity id. */
@@ -160,6 +162,11 @@ export interface Entity {
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */
   sled?: Record<CarriedLog, number>;
+  /**
+   * The way a sled points once the player has dragged it, in radians about the vertical axis, as `facingRadians` gives for `facing`.
+   * Its runners run along this turn. Drawing uses it in place of `facing`, which keeps the nearest quarter turn.
+   */
+  dragHeading?: number;
   /**
    * Marks a finished work station, such as a sawhorse, with its kind. A blueprint of a work station does not have it.
    * Its position is the middle of the ground it covers. Its `facing` says which way it is turned.

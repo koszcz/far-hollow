@@ -100,6 +100,10 @@ export type Command =
   | { type: "takeFromSled"; sledId: number; log: CarriedLog }
   /** Lay every log on a parked sled on the ground beside it, each on its own. The player walks beside it first if needed. */
   | { type: "tipOutSled"; sledId: number }
+  /** Start dragging a parked sled behind the player. The player walks beside it first if needed. They drag one sled at a time. */
+  | { type: "dragSled"; sledId: number }
+  /** Let go of the sled the player drags. It stays where it is, with its load. */
+  | { type: "letGoOfSled" }
   /** Walk the player beside a finished chest, given by its entity id, and open it. It stays open until the player walks away or does something else. */
   | { type: "openChest"; chestId: number }
   /** Move one of a kind from the backpack into the open chest, or with `all` as many of that kind as fit. Logs never go in a chest. */
@@ -170,6 +174,8 @@ export interface GameView {
   readonly action: PlayerAction | null;
   /** What the player carries on their shoulder, or null if nothing. */
   readonly carrying: CarriedLog | null;
+  /** The sled the player drags behind them, or null if none. */
+  readonly dragging: SledView | null;
   /**
    * The things within the player's reach that the HUD shows a panel for, at most one of each kind, in the order the HUD shows them.
    * `nearbyOf` finds one kind.
@@ -197,6 +203,7 @@ export interface GameView {
  * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something, or a campfire with a pot on it.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
+ * `letGoFirst`: the player tried to shoulder a log, gather, chop, build, or craft while dragging a sled.
  * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the `station`.
  * `cannotCraftYet`: the player tried a recipe while lacking the tool, work station, or materials it needs, listed in `lacks`.
  */
@@ -210,7 +217,7 @@ export type GameNotice = Notice["kind"];
 
 /** A notice that needs nothing more than its kind to say what happened. */
 export type PlainNotice =
-  "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst";
+  "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst" | "letGoFirst";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -347,6 +354,35 @@ export type NearbyThing = { readonly [Kind in keyof NearbyViews]: { readonly kin
 export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: Kind): NearbyViews[Kind] | null {
   const found = view.nearby.find((thing) => thing.kind === kind);
   return found === undefined ? null : (found.view as NearbyViews[Kind]);
+}
+
+/**
+ * Whether a command needs the player's hands free, so it is refused while they drag a sled:
+ * shouldering a log, gathering, chopping, building, or crafting. Taking firewood goes in the backpack, so it does not.
+ */
+export function needsFreeHands(command: Command): boolean {
+  switch (command.type) {
+    case "pickUpLog":
+    case "takeFromSled":
+    case "pickUpStick":
+    case "pickUpBark":
+    case "forage":
+    case "pickUpPile":
+    case "chopTree":
+    case "splitLog":
+    case "debarkLog":
+    case "build":
+    case "deliverToBlueprint":
+    case "takeDown":
+    case "craft":
+      return true;
+    case "takeFromWoodpile":
+      return command.wood !== "firewood";
+    case "placeBlueprint":
+      return command.thenBuild === true;
+    default:
+      return false;
+  }
 }
 
 /**

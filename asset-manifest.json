@@ -746,7 +746,7 @@
       "code": [
         "src/render/sled-meshes.ts"
       ],
-      "description": "The sled: two log runners with their bark on, 1.8 m long, lying side by side 0.8 m apart, with four sticks laid across them. The runners show dark bark and pale cut ends, and the sticks are the stick colour. As a blueprint it shows see-through, each delivered log waits pale and half solid in its runner's place, and construction lays one runner per log, then one cross piece per stick. A finished sled shows the 0 to 6 logs and debarked logs on it, lying along the runners: logs first, then debarked logs, stacked in a pyramid of three on the cross pieces, two above, and one on top. They use the logs and debarked-log shapes.",
+      "description": "The sled: two log runners with their bark on, 1.8 m long, lying side by side 0.8 m apart, with four sticks laid across them. The runners show dark bark and pale cut ends, and the sticks are the stick colour. As a blueprint it shows see-through, each delivered log waits pale and half solid in its runner's place, and construction lays one runner per log, then one cross piece per stick. A finished sled shows the 0 to 6 logs and debarked logs on it, lying along the runners: logs first, then debarked logs, stacked in a pyramid of three on the cross pieces, two above, and one on top. They use the logs and debarked-log shapes. A sled the player has dragged points the way it was last pulled, at any angle.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -760,7 +760,7 @@
       "code": [
         "src/ui/sled-icons.tsx"
       ],
-      "description": "Icons drawn in the build icons' shaded style: the sled, two dark log runners seen from the side with four sticks across them, shown on the sled's build menu tile, and the log, a log on its side with dark bark and a pale cut end, shown in the sled's cost. Sled ticket 03 may reuse the sled icon for the hotbar's sled cell.",
+      "description": "Icons drawn in the build icons' shaded style: the sled, two dark log runners seen from the side with four sticks across them, shown on the sled's build menu tile, and the log, a log on its side with dark bark and a pale cut end, shown in the sled's cost. The sled icon also shows on the hotbar's sled cell while the player drags a sled.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

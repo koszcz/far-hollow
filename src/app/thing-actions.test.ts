@@ -151,13 +151,14 @@ describe("a woodpile's actions", () => {
 const SLED: ActionTarget = { kind: "scene", pick: { kind: "sled", id: 9 } };
 
 describe("a sled's actions", () => {
-  it("puts the log on the player's shoulder on the sled, then lists each kind to take, tipping out, and taking it down", () => {
+  it("puts the log on the player's shoulder on the sled, then lists dragging, each kind to take, tipping out, and taking it down", () => {
     const reader = readerWith({ carrying: "debarkedLog", sled: { contents: { log: 2, debarkedLog: 1 }, total: 3 } });
 
     const actions = actionsFor(SLED, reader);
 
     expect(summary(actions)).toEqual([
       "load:debarkedLog main",
+      "drag",
       "take:log off: your shoulder is full",
       "take:debarkedLog off: your shoulder is full",
       "tipOut",
@@ -167,15 +168,16 @@ describe("a sled's actions", () => {
     expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out every log", command: { type: "tipOutSled", sledId: 9 } });
   });
 
-  it("takes one log when the player carries nothing, offering only the kinds the sled holds", () => {
+  it("drags the sled when the player carries nothing, then takes one log, offering only the kinds the sled holds", () => {
     const logsOnly = readerWith({ sled: { contents: { log: 2, debarkedLog: 0 }, total: 2 } });
-    expect(summary(actionsFor(SLED, logsOnly))).toEqual(["take:log main", "tipOut", "takeDown off: empty it first"]);
+    expect(summary(actionsFor(SLED, logsOnly))).toEqual(["drag main", "take:log", "tipOut", "takeDown off: empty it first"]);
+    expect(find(actionsFor(SLED, logsOnly), "drag")).toMatchObject({ label: "Drag the sled", command: { type: "dragSled", sledId: 9 } });
 
     const empty = readerWith({ sled: { contents: { log: 0, debarkedLog: 0 }, total: 0 } });
-    expect(summary(actionsFor(SLED, empty))).toEqual(["take:log main off: nothing to take", "tipOut off: nothing to take", "takeDown"]);
+    expect(summary(actionsFor(SLED, empty))).toEqual(["drag main", "take:log off: nothing to take", "tipOut off: nothing to take", "takeDown"]);
 
     const mixed = actionsFor(SLED, readerWith({ sled: { contents: { log: 1, debarkedLog: 1 }, total: 2 } }));
-    expect(summary(mixed).slice(0, 2)).toEqual(["take:log main", "take:debarkedLog"]);
+    expect(summary(mixed).slice(0, 3)).toEqual(["drag main", "take:log", "take:debarkedLog"]);
     expect(find(mixed, "take:debarkedLog")?.command).toEqual({ type: "takeFromSled", sledId: 9, log: "debarkedLog" });
   });
 
@@ -183,6 +185,41 @@ describe("a sled's actions", () => {
     const full = readerWith({ carrying: "log", sled: { contents: { log: 6, debarkedLog: 0 }, total: 6 } });
 
     expect(summary(actionsFor(SLED, full))[0]).toBe("load:log main off: the sled is full");
+  });
+
+  it("only lets go of the sled the player drags", () => {
+    const dragging = readerWith({ sled: { contents: { log: 2, debarkedLog: 0 }, total: 2 }, dragging: 9 });
+
+    const actions = actionsFor(SLED, dragging);
+
+    expect(summary(actions)).toEqual(["letGo main"]);
+    expect(actions[0]).toMatchObject({ label: "Let go of the sled", command: { type: "letGoOfSled" } });
+  });
+
+  it("drags one sled at a time", () => {
+    const draggingAnother = readerWith({ sled: { contents: { log: 0, debarkedLog: 0 }, total: 0 }, dragging: 12 });
+
+    expect(summary(actionsFor(SLED, draggingAnother))[0]).toBe("drag main off: let go of the sled first");
+  });
+});
+
+describe("actions while dragging a sled", () => {
+  it("turns off shouldering a log, gathering, chopping, and building, since the player's hands are busy", () => {
+    const scene = (pick: Extract<ActionTarget, { kind: "scene" }>["pick"]): ActionTarget => ({ kind: "scene", pick });
+    const reader = readerWith({ backpack: { axe: 1, drawknife: 1 }, dragging: 12 });
+
+    expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), reader))).toEqual(["chop main off: let go of the sled first"]);
+    expect(summary(actionsFor(scene({ kind: "log", id: 4 }), reader))).toEqual([
+      "pickUp main off: let go of the sled first",
+      "debark off: let go of the sled first",
+    ]);
+    expect(summary(actionsFor(scene({ kind: "stick", id: 5 }), reader))[0]).toBe("pickUp main off: let go of the sled first");
+  });
+
+  it("still lets the player eat and drink", () => {
+    const reader = readerWith({ backpack: { berries: 2 }, dragging: 12 });
+
+    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, reader))).toEqual(["use main", "drop"]);
   });
 });
 
@@ -283,14 +320,18 @@ function readerWith({
   campfire,
   woodpile,
   sled,
+  dragging,
 }: {
   backpack?: Partial<Record<BackpackContent, number>>;
   carrying?: GameView["carrying"];
   campfire?: Partial<CampfireView>;
   woodpile?: Partial<WoodpileView>;
   sled?: Partial<SledView>;
+  /** The id of the sled the player drags, if any. */
+  dragging?: number;
 }): ActionReader {
-  const view: GameView = { ...START_VIEW, backpack, carrying };
+  const draggedSled: SledView | null = dragging === undefined ? null : { id: dragging, contents: { log: 0, debarkedLog: 0 }, total: 0, capacity: 6 };
+  const view: GameView = { ...START_VIEW, backpack, carrying, dragging: draggedSled };
   const fullCampfire: CampfireView = {
     id: 7,
     lit: false,

@@ -169,7 +169,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       woodpiles.update();
       chests.update();
       sawhorses.update();
-      sleds.update();
+      sleds.update(player);
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([

@@ -41,12 +41,13 @@
         "src/render/tree-far-shape.ts",
         "src/render/forest-meshes.ts"
       ],
-      "description": "Cheap stand-ins for the standing trees, drawn only at least 150 m from the camera. Each tree type gets a seven-sided trunk as tall and wide as its real trunk, and a crown turned from the real crown's outline at six heights, in the real tree's colours. Shadows still come from the real trees.",
+      "description": "Cheap stand-ins for the standing trees, drawn only at least 150 m from the camera. Each tree type gets a seven-sided trunk as tall and wide as its real trunk, and a crown turned from the real crown's outline, keeping each tier's wide lip and the notch above it, in the real tree's colours. Shadows still come from the real trees.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/performance/issues/03-far-trees.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-12"
       }
     },
     {

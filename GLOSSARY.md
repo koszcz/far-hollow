@@ -99,6 +99,14 @@ _Avoid_: Equipment, gear
 What the player carries small materials and tools in. It has a weight limit.
 _Avoid_: Inventory, bag
 
+**Backpack content**:
+One kind of thing in the backpack, such as berries or the axe, together with how many there are.
+_Avoid_: Item, slot
+
+**Shoulder**:
+Where the player carries a single log or debarked log, outside the backpack.
+_Avoid_: Hands, carry slot
+
 **Drop**:
 To put something the player carries on the ground at their feet. Anything in the backpack or on the player's shoulder can be dropped. Dropped things stay where they lie until the player picks them up again.
 _Avoid_: Discard, throw away
@@ -114,6 +122,40 @@ _Avoid_: Cart, wagon, wheelbarrow
 **Drag**:
 To pull a sled behind the player as they walk. The player drags one sled at a time.
 _Avoid_: Pull, tow, push
+
+## Acting
+
+**Main action**:
+The one action a plain click on a thing does, such as chopping a tree, lighting a campfire, or eating berries.
+_Avoid_: Default action, primary action, left-click action
+
+**Use**:
+To do a thing's main action. The player uses a thing by clicking it, by pressing E when it is the nearest thing in reach, or, for a backpack content, by pressing its number key.
+_Avoid_: Interact, activate
+
+**Reach**:
+How close the player must stand to act on a thing. If the player is out of reach, they walk to the thing first, then act.
+_Avoid_: Range, interaction distance
+
+**Tend**:
+To add fuel to a campfire, or to stack things on or take things off a woodpile.
+_Avoid_: Feed, refuel, manage
+
+**Action menu**:
+The list of every action a thing offers, with its main action first. An action the player cannot do yet shows greyed, with the reason.
+_Avoid_: Right-click menu, context menu
+
+**Cursor prompt**:
+The small label beside the cursor that names the thing under it and says what each mouse button does.
+_Avoid_: Tooltip, hint, hover label
+
+**Hotbar**:
+The row at the bottom of the screen that shows the backpack contents and anything on the shoulder.
+_Avoid_: Inventory bar, toolbar, quick bar
+
+**Panel**:
+A box above the hotbar that shows the state of a nearby thing, such as how much fuel a campfire has. A panel only shows state. The player acts on the thing itself.
+_Avoid_: Context panel, window, popup
 
 ## Food
 
@@ -158,12 +200,16 @@ A set of foundation squares closed in on every side by log walls or door frames,
 _Avoid_: Interior, enclosure
 
 **Build menu**:
-The list, opened with B, of every structure the player can build and what it costs.
-_Avoid_: Build bar, construction menu
+The menu, opened with B, of every structure the player can build and what it costs. It shows as a wheel in the middle of the screen.
+_Avoid_: Build bar, build wheel, construction menu
 
 **Blueprint**:
 A see-through outline of a building piece the player has placed but not finished. It shows where the piece will go and how far along it is.
 _Avoid_: Ghost, preview, plan
+
+**Take down**:
+To remove a blueprint or a finished structure and get back the materials in it. Taking down a finished structure is timed work.
+_Avoid_: Demolish, deconstruct, destroy
 
 **Construction**:
 The timed work of turning a blueprint into a finished building piece. The player can stop partway and come back later.
@@ -184,8 +230,8 @@ A recipe the player can follow anywhere, using only what is in their backpack.
 A recipe the player follows while standing at a work station. Besides what is in the backpack, it can use logs lying next to the station or on a sled parked next to it.
 
 **Craft menu**:
-The list, opened with C, of every recipe in the game. Recipes the player cannot follow yet show the tool or work station they are missing.
-_Avoid_: Crafting window, recipe book
+The menu, opened with C, of every recipe in the game. It shows as a wheel in the middle of the screen. Recipes the player cannot follow yet show the tool or work station they are missing.
+_Avoid_: Crafting window, craft wheel, recipe book
 
 **Work station**:
 A built object where the player does a specific kind of processing.

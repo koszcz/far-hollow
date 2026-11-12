@@ -1042,7 +1042,7 @@ export function showAsset(
   const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
-  const bedrolls = createBedrollMeshes(store);
+  const bedrolls = createBedrollMeshes(store, groundAt);
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   // Rain shows only where the stage has rain falling.

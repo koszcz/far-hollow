@@ -6,6 +6,7 @@ import { isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 describe("lighting a campfire", () => {
   it("walks the player to a campfire they click on, and shows it as the nearby campfire", () => {
@@ -93,9 +94,8 @@ describe("fuelling a campfire", () => {
     const { game, campfire } = gameWithCampfire();
     give(game, "bark", 1);
     tend(game, campfire);
-    send(game, { type: "setPaused", paused: true });
-
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" });
+    send(game, { type: "setPaused", paused: true });
     send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
 
     expect(game.client.getView().backpack.bark).toBe(0);
@@ -246,6 +246,7 @@ function walkAway(game: Game): void {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function give(game: Game, content: BackpackContent, count: number): void {

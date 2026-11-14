@@ -9,6 +9,7 @@ import { BOIL_MINUTES } from "./pot-state";
 import { readSave, writeSave } from "./save";
 import { distanceToRiver, type GroundPoint } from "./valley";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 describe("the pot", () => {
   it("is in the backpack, empty, when a new game starts", () => {
@@ -67,15 +68,19 @@ describe("filling the pot", () => {
 describe("boiling water", () => {
   it("boils the water in a full pot on a lit campfire after a short wait", () => {
     const { game, campfireId } = gameWithLitCampfire();
-    send(game, { type: "setPaused", paused: true });
     send(game, { type: "putPotOnFire", campfireId });
+    send(game, { type: "setPaused", paused: true });
     expect(game.client.getView().backpack.potOfRiverWater).toBe(0);
-    expect(nearbyOf(game.client.getView(), "campfire")?.pot).toEqual({ water: "river", boilProgress: 0 });
+    // The pot has heated only for the moment the player took to straighten up.
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot?.water).toBe("river");
+    const heatedWhileStraightening = nearbyOf(game.client.getView(), "campfire")?.pot?.boilProgress ?? 1;
+    expect(heatedWhileStraightening).toBeLessThan(0.15);
 
     skipMinutes(game, BOIL_MINUTES / 2);
     expect(nearbyOf(game.client.getView(), "campfire")?.pot?.water).toBe("river");
-    expect(nearbyOf(game.client.getView(), "campfire")?.pot?.boilProgress).toBeCloseTo(0.5, 1);
+    expect(nearbyOf(game.client.getView(), "campfire")?.pot?.boilProgress).toBeCloseTo(0.5 + heatedWhileStraightening, 1);
     skipMinutes(game, BOIL_MINUTES / 2 + 1);
+    resume(game);
 
     expect(nearbyOf(game.client.getView(), "campfire")?.pot).toEqual({ water: "boiled", boilProgress: 1 });
     send(game, { type: "takePotOffFire", campfireId });
@@ -87,9 +92,11 @@ describe("boiling water", () => {
     const { game, campfireId } = gameWithLitCampfire("stick");
     // A stick burns for 20 minutes. Let most of it burn first, so the fire goes out partway through boiling.
     skipMinutes(game, FUEL_BURN_MINUTES.stick - BOIL_MINUTES / 2);
+    resume(game);
     send(game, { type: "putPotOnFire", campfireId });
 
     skipMinutes(game, BOIL_MINUTES * 2);
+    resume(game);
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
     expect(nearbyOf(game.client.getView(), "campfire")?.pot?.water).toBe("river");
 
@@ -215,6 +222,11 @@ function skipMinutes(game: Game, minutes: number): void {
   send(game, { type: "skipTime", hours: minutes / 60 });
 }
 
+/** Unpauses the game, so the player can reach for things again after skipping time. */
+function resume(game: Game): void {
+  game.client.send({ type: "setPaused", paused: false });
+}
+
 /** An open spot on the building grid, a few metres from the player. */
 function openSpotNearPlayer(game: Game): { x: number; z: number } {
   const player = onlyPlayer(game);
@@ -275,6 +287,7 @@ function runUntilStill(game: Game): void {
     if (i > 100_000) throw new Error("The player never stopped");
     game.step();
   }
+  finishReach(game);
 }
 
 function give(game: Game, content: BackpackContent, count: number): void {
@@ -292,4 +305,5 @@ function onlyPlayer(game: Game) {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }

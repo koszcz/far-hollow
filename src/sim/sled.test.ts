@@ -6,6 +6,7 @@ import { readSave, ROOF_FRAMES_SAVE_VERSION, SAVE_VERSION, SLEDS_SAVE_VERSION, w
 import { SLED_BUILD_SECONDS, SLED_LOG_COST, SLED_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 describe("the sled in the build menu", () => {
   it("lists the sled, placed anywhere, with its cost of 2 logs and 4 sticks and the axe it needs", () => {
@@ -434,6 +435,7 @@ function shoulder(game: Game, log: "log" | "debarkedLog"): void {
 function sendAndSettle(game: Game, command: Command): void {
   send(game, command);
   stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).tendTask === undefined);
+  finishReach(game);
 }
 
 /** Places a sled blueprint on open ground near the player. */
@@ -503,6 +505,7 @@ function onlyBlueprint(game: Game): Entity & { position: NonNullable<Entity["pos
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): void {

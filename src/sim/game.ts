@@ -57,6 +57,26 @@ import { createChests } from "./chests";
 import { createTending } from "./tending";
 import { nearestInReach } from "./reach";
 import { createStickFallSystem } from "./stick-fall";
+import { createHandReach } from "./hand-reach";
+import type { GroundPoint } from "./valley";
+import type { ReachHeight } from "./entities";
+
+/**
+ * How the player reaches to carry out each campfire, woodpile, or sled command: to the ground at a campfire, at waist
+ * height at a woodpile or sled. Lighting a fire and taking a sled's ropes need motions of their own, so they have none.
+ */
+const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = {
+  addFuel: "low",
+  lightCampfire: undefined,
+  putPotOnFire: "low",
+  takePotOffFire: "low",
+  stackOnWoodpile: "waist",
+  takeFromWoodpile: "waist",
+  loadSled: "waist",
+  takeFromSled: "waist",
+  tipOutSled: "waist",
+  dragSled: undefined,
+};
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -134,24 +154,25 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   else restoreEntities(entities, structuredClone(progress.entities));
   const walking = createWalking(entities, valley);
   const player = progress === undefined ? addNewPlayer(entities, walking, valley) : savedPlayer(entities);
+  const handReach = createHandReach(entities);
   const chopping = createChopping(entities, walking, valley);
-  const carrying = createCarrying(entities, walking, valley);
+  const carrying = createCarrying(entities, walking, valley, handReach);
   const debarking = createDebarking(entities, walking);
   const crafting = createCrafting(entities, walking);
-  const gathering = createGathering(entities, walking);
-  const foraging = createForaging(entities, walking);
-  const building = createBuilding(entities, walking, valley, freeBuilding);
+  const gathering = createGathering(entities, walking, handReach);
+  const foraging = createForaging(entities, walking, handReach);
+  const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
-  const bedrolls = createBedrolls(entities, walking, valley);
+  const bedrolls = createBedrolls(entities, walking, valley, handReach);
   const woodpiles = createWoodpiles(entities, walking);
   const sleds = createSleds(entities, walking, valley);
   const chests = createChests(entities, walking);
   const drinking = createDrinking(entities, walking, valley);
-  const pot = createPot(entities, walking, valley, campfires);
-  const piles = createPiles(entities, walking, valley);
+  const pot = createPot(entities, walking, valley, campfires, handReach);
+  const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
-  const tending = createTending(entities, { campfires, woodpiles, sleds }, tendNow);
+  const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
     chopping,
@@ -176,6 +197,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     chests,
     piles,
     tending,
+    // Last, so a reach started by a step above moves on in that same step.
+    handReach,
   ];
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
@@ -224,6 +247,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? noticeView(notice) : null,
       lastSleep,
+      reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
     });
   }
 
@@ -335,11 +359,42 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /**
+   * Starts the player reaching to carry out a command on a campfire, woodpile, or sled within reach. The command is
+   * carried out when the hand gets there. A command with no reach of its own, such as lighting a fire, is carried out now.
+   */
+  function reachToTend(command: TendTask): PlainNotice | undefined {
+    const height = TEND_REACH[command.type];
+    if (height === undefined) return tendNow(command);
+    handReach.start(height, placeOf(command), () => tendNow(command));
+    return undefined;
+  }
+
+  /** Where the campfire, woodpile, or sled a command works on stands, if it still exists. */
+  function placeOf(command: TendTask): GroundPoint | undefined {
+    const id = "campfireId" in command ? command.campfireId : "woodpileId" in command ? command.woodpileId : command.sledId;
+    return entities.entity(id)?.position;
+  }
+
+  /** Starts the player reaching down to put something at their feet. `put` runs when the hand gets to the ground. */
+  function putDown(put: () => void): void {
+    handReach.start("low", undefined, () => {
+      put();
+      return undefined;
+    });
+  }
+
+  /** Reaches for a thing the player is walking to, once they stop beside it, if the thing exists. */
+  function reachOnArrival(height: ReachHeight, thingId: number): void {
+    const position = entities.entity(thingId)?.position;
+    if (position !== undefined) handReach.startOnArrival(height, position);
+  }
+
+  /**
    * Carries out a command on a campfire or woodpile now if the player stands within its reach.
    * Otherwise the player stops what they were doing, walks beside it, and carries the command out there.
    */
   function tend(command: TendTask): void {
-    if (tending.inReach(command)) refuseWith(tendNow(command));
+    if (tending.inReach(command)) refuseWith(reachToTend(command));
     else {
       cancelTasks();
       tending.walkThen(command);
@@ -374,13 +429,16 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       startNew(() => crafting.start(command.recipe, command.stationId));
     },
     pickUpStick: (command) => {
-      startNew(() => gathering.pickUpStick(command.stickId));
+      cancelTasks();
+      gathering.pickUpStick(command.stickId);
     },
     pickUpBark: (command) => {
-      startNew(() => gathering.pickUpBark(command.barkId));
+      cancelTasks();
+      gathering.pickUpBark(command.barkId);
     },
     forage: (command) => {
-      startNew(() => foraging.forage(command.spotId));
+      cancelTasks();
+      foraging.forage(command.spotId);
     },
     eat: (command) => {
       foraging.eat(command.food);
@@ -389,17 +447,26 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       startNew(() => gathering.splitLog());
     },
     dropLog: () => {
-      carrying.drop();
+      if (player.carrying !== undefined) {
+        putDown(() => {
+          carrying.drop();
+        });
+      }
     },
     dropLogAt: (command) => {
       cancelTasks();
       carrying.dropAt({ x: command.x, z: command.z });
     },
     dropFromBackpack: (command) => {
-      piles.drop(command.content);
+      if ((player.backpack.contents[command.content] ?? 0) > 0) {
+        putDown(() => {
+          piles.drop(command.content);
+        });
+      }
     },
     pickUpPile: (command) => {
-      startNew(() => piles.pickUp(command.pileId));
+      cancelTasks();
+      piles.pickUp(command.pileId);
     },
     placeBlueprint: (command) => {
       const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
@@ -424,11 +491,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     tendCampfire: (command) => {
       cancelTasks();
       campfires.tend(command.campfireId);
+      reachOnArrival("low", command.campfireId);
     },
     addFuel: tend,
     tendWoodpile: (command) => {
       cancelTasks();
       woodpiles.tend(command.woodpileId);
+      reachOnArrival("waist", command.woodpileId);
     },
     stackOnWoodpile: tend,
     takeFromWoodpile: tend,
@@ -442,16 +511,23 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     openChest: (command) => {
       cancelTasks();
       chests.open(command.chestId);
+      reachOnArrival("waist", command.chestId);
     },
     putInChest: (command) => {
-      refuseWith(chests.put(command.chestId, command.content, command.all));
+      if (chests.opened()?.id !== command.chestId) return;
+      handReach.start("waist", entities.entity(command.chestId)?.position, () => chests.put(command.chestId, command.content, command.all));
     },
     takeFromChest: (command) => {
-      refuseWith(chests.take(command.chestId, command.content, command.all));
+      if (chests.opened()?.id !== command.chestId) return;
+      handReach.start("waist", entities.entity(command.chestId)?.position, () => chests.take(command.chestId, command.content, command.all));
     },
     lightCampfire: tend,
     layBedroll: () => {
-      bedrolls.lay();
+      if ((player.backpack.contents.bedroll ?? 0) > 0) {
+        putDown(() => {
+          bedrolls.lay();
+        });
+      }
     },
     pickUpBedroll: (command) => {
       cancelTasks();
@@ -578,6 +654,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       showNotice("letGoFirst");
       return;
     }
+    // Any new command cancels a reach in progress. If the hand has not got to the thing yet, its command is never carried out.
+    if (command.type !== "setPaused") handReach.cancel();
     // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.
     const handle = commandHandlers[command.type] as (command: Command) => void;
     handle(command);

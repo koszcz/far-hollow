@@ -3,6 +3,7 @@ import { addToBackpack } from "./backpack";
 import { BARK_PER_LOG, DEBARK_SECONDS, DEBARK_STAND_METRES } from "./debarking";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { finishReach } from "./test-steps";
 
 describe("debarking a log", () => {
   it("walks the player to a log on the ground, then works at it for a while", () => {
@@ -134,6 +135,7 @@ describe("carrying a debarked log", () => {
     const game = gameWithLogsOnGround();
     game.client.send({ type: "dropLog" });
     game.step();
+    finishReach(game);
     const log = farthestLogOnGround(game);
     debark(game, log);
     const debarked = game.entities.with("debarkedLog", "position").first;
@@ -153,6 +155,7 @@ describe("carrying a debarked log", () => {
 
     game.client.send({ type: "dropLog" });
     game.step();
+    finishReach(game);
     expect(game.client.getView().carrying).toBeNull();
     expect(game.entities.with("debarkedLog", "position").size).toBe(1);
   });
@@ -161,6 +164,7 @@ describe("carrying a debarked log", () => {
     const game = gameWithLogsOnGround();
     game.client.send({ type: "dropLog" });
     game.step();
+    finishReach(game);
     const log = farthestLogOnGround(game);
     debark(game, log);
     const debarked = game.entities.with("debarkedLog", "position").first;

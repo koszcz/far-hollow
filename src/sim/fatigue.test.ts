@@ -4,6 +4,7 @@ import { nearbyOf } from "./api";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, needsSpeed } from "./needs";
 import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
+import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -279,4 +280,5 @@ function startChoppingNearestTree(game: Game): void {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }

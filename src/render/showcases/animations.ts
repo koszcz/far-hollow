@@ -2,6 +2,7 @@
 import { CHOP_SECONDS } from "../../sim/chopping";
 import { DEBARK_SECONDS } from "../../sim/debarking";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
+import { HAND_AT_SECONDS, REACH_SECONDS } from "../../sim/hand-reach";
 import { BUILD_STONES_SHARE, buildProgressAtStickStage } from "../campfire-meshes";
 import { BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE } from "../structure-look";
 import { CAMPFIRE_BUILD_SECONDS } from "../../sim/structures";
@@ -47,6 +48,9 @@ function poseSleeper({ player, movePlayer }: Stage, seconds: number): void {
 
 /** How many build cycles the "player-build-animation" plays before it stops, mid-press, to show the player standing up. */
 const BUILD_PLAY_CYCLES = 2.5;
+
+/** How long the player stands between reaches in the "pick-up-animation" live loop, in seconds. */
+const REACH_PLAY_REST_SECONDS = 0.8;
 
 /** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
 const CHOP_PLAY_REST_SECONDS = 1.2;
@@ -140,6 +144,37 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose({ player }, seconds) {
         const cycle = seconds % (BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS + BUILD_PLAY_REST_SECONDS);
         player.setBuilding(cycle < BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS ? cycle : undefined);
+        return undefined;
+      },
+    },
+  },
+  "pick-up-animation": {
+    radius: 1.3,
+    focus: { x: 0, y: 0.7, z: 0.3 },
+    // The reach to the ground, from the side: bending, the hand at the stick, and straightening. Then the reach at waist height.
+    shots: [
+      { label: "bending to the stick", seconds: HAND_AT_SECONDS / 2 },
+      { label: "hand at the stick", seconds: HAND_AT_SECONDS },
+      { label: "straightening", seconds: (HAND_AT_SECONDS + REACH_SECONDS) / 2 },
+      { label: "hand out at waist height", seconds: HAND_AT_SECONDS },
+    ].map(({ label, seconds }) => ({ label, yaw: 90, pitch: 10, seconds })),
+    build({ place, movePlayer }) {
+      // A stick on the ground in front of the player, where the hand reaches.
+      place(0, 0.5, { stick: true });
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      player.setReaching({ height: shot.label.includes("waist") ? "waist" : "low", seconds: shot.seconds ?? 0 });
+    },
+    // The player reaches to the ground, stands a moment, reaches out at waist height, stands a moment, and again.
+    play: {
+      shot: { label: "to the ground, then at waist height", yaw: 70, pitch: 12 },
+      pose({ player }, seconds) {
+        const one = REACH_SECONDS + REACH_PLAY_REST_SECONDS;
+        const cycle = seconds % (2 * one);
+        const height = cycle < one ? "low" : "waist";
+        const into = cycle % one;
+        player.setReaching(into < REACH_SECONDS ? { height, seconds: into } : undefined);
         return undefined;
       },
     },

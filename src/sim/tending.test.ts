@@ -5,6 +5,7 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 describe("tending a campfire from out of reach", () => {
   it("walks the player to the campfire, then adds the fuel", () => {
@@ -15,6 +16,7 @@ describe("tending a campfire from out of reach", () => {
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" });
     stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
     game.step();
+    finishReach(game);
 
     expect(campfire.campfire.fuelMinutes).toBe(20);
     expect(game.client.getView().backpack.bark).toBe(0);
@@ -87,6 +89,7 @@ describe("tending a campfire from out of reach", () => {
     expect(onlyPlayer(restored).tendTask).toEqual({ type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" });
     stepUntil(restored, () => onlyPlayer(restored).walkPath === undefined);
     restored.step();
+    finishReach(restored);
 
     expect(restored.entities.with("campfire").first?.campfire.fuelMinutes).toBe(20);
   });
@@ -171,6 +174,7 @@ function arriveAfter(game: Game, command: Command): void {
   send(game, command);
   stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
   game.step();
+  finishReach(game);
 }
 
 function buildWoodpile(game: Game): Entity & Required<Pick<Entity, "woodpile" | "position">> {
@@ -213,6 +217,7 @@ function walkAway(game: Game): void {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function give(game: Game, content: BackpackContent, count: number): void {

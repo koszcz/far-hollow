@@ -4,6 +4,7 @@ import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack, type P
 import type { Campfires } from "./campfires";
 import { canReachRiver } from "./drinking";
 import { playerEntities, setComponent, type EntityStore } from "./entities";
+import type { HandReach } from "./hand-reach";
 import { FULL_NEED } from "./needs";
 import { BOIL_MINUTES, type PotWater } from "./pot-state";
 import { catchSickness } from "./sickness";
@@ -18,12 +19,12 @@ const FULL_POT: Readonly<Record<PotWater, PotContent>> = {
 };
 
 export interface Pot {
-  /** Walks the player to the riverbank nearest them, then fills the empty pot there. */
+  /** Walks the player to the riverbank nearest them, then reaches down and fills the empty pot there. */
   fill(): void;
   /** Stops the player walking to fill the pot. */
   cancel(): void;
-  /** Fills the pot once the player has reached the bank. Returns a notice if the backpack had no room for the water. */
-  step(): PlainNotice | undefined;
+  /** Starts the player reaching down to fill the pot once they have walked to the bank. Run it after walking has moved the player. */
+  step(): undefined;
   /** Puts the full pot from the backpack on a lit campfire within the player's reach. */
   putOnFire(campfireId: number): void;
   /** Takes the pot off a campfire within the player's reach and puts it in the backpack. Returns a notice if it does not fit. */
@@ -37,7 +38,7 @@ export interface Pot {
   drink(): void;
 }
 
-export function createPot(entities: EntityStore, walking: Walking, valley: Valley, campfires: Campfires): Pot {
+export function createPot(entities: EntityStore, walking: Walking, valley: Valley, campfires: Campfires, hand: Pick<HandReach, "start">): Pot {
   const players = playerEntities(entities);
   const fillers = entities.with("player", "fillPotTask", "position", "backpack");
   const backpacks = entities.with("player", "backpack");
@@ -61,15 +62,18 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
       for (const player of [...fillers]) entities.removeComponent(player, "fillPotTask");
     },
     step() {
-      let notice: PlainNotice | undefined;
       // Copy the list first, because players who fill the pot leave the query while it is being walked.
       for (const player of [...fillers]) {
         if (player.walkPath !== undefined) continue;
+        const river = player.fillPotTask;
         entities.removeComponent(player, "fillPotTask");
         if (!canReachRiver(valley, player.position) || !hasInBackpack(player.backpack, "pot")) continue;
-        if (!swapPot(player.backpack, "pot", "potOfRiverWater")) notice = "backpackFull";
+        hand.start("low", river, (): PlainNotice | undefined => {
+          if (!hasInBackpack(player.backpack, "pot")) return undefined;
+          return swapPot(player.backpack, "pot", "potOfRiverWater") ? undefined : "backpackFull";
+        });
       }
-      return notice;
+      return undefined;
     },
     putOnFire(campfireId) {
       const campfire = campfireInReach(campfireId);

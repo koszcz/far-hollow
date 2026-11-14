@@ -1,6 +1,7 @@
-import { addToBackpack, fitsInBackpack, removeFromBackpack } from "./backpack";
+import { addToBackpack, removeFromBackpack } from "./backpack";
 import { bedrollEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
+import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -13,8 +14,9 @@ export interface Bedrolls {
   /** Takes the bedroll out of the backpack and lays it on the ground at the player's feet. Does nothing if the backpack holds none. */
   lay(): void;
   /**
-   * Puts a laid bedroll back in the backpack, walking the player to it first if it is out of reach.
-   * Does nothing if the entity is not a laid bedroll or the backpack has no room for it.
+   * Puts a laid bedroll back in the backpack, walking the player to it first if it is out of reach. They reach down for it there.
+   * Does nothing if the entity is not a laid bedroll. If the backpack has no room for it when the hand gets to it,
+   * it stays laid and the reach gives "backpackFull".
    */
   pickUp(bedrollId: number): void;
   /**
@@ -31,7 +33,7 @@ export interface Bedrolls {
 }
 
 /** Lets the player lay a bedroll on the ground, pick it up again, and go to sleep on it. */
-export function createBedrolls(entities: EntityStore, walking: Walking, valley: Valley): Bedrolls {
+export function createBedrolls(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Bedrolls {
   const players = playerEntities(entities);
   const bedrolls = bedrollEntities(entities);
   const walkers = entities.with("bedrollTask", "position", "backpack");
@@ -46,9 +48,15 @@ export function createBedrolls(entities: EntityStore, walking: Walking, valley: 
     return groundDistance(bedroll.position, at) <= BEDROLL_REACH_METRES;
   }
 
-  /** Puts the bedroll back in the backpack, if there is room. */
-  function pickUpNow(bedroll: BedrollEntity, player: Entity): void {
-    if (player.backpack !== undefined && addToBackpack(player.backpack, "bedroll", 1)) entities.remove(bedroll);
+  /** Reaches down for the bedroll. When the hand gets to it, it goes back in the backpack if it is still there and fits. */
+  function pickUpNow(bedrollId: number, bedroll: BedrollEntity, player: Entity & { position: GroundPoint }): void {
+    hand.start("low", bedroll.position, () => {
+      const still = bedrollById(bedrollId);
+      if (still === undefined || !withinReach(still, player.position) || player.backpack === undefined) return undefined;
+      if (!addToBackpack(player.backpack, "bedroll", 1)) return "backpackFull";
+      entities.remove(still);
+      return undefined;
+    });
   }
 
   /** Walks the player to a bedroll out of reach, to act on it there. Returns true if the player is already within reach. */
@@ -77,8 +85,8 @@ export function createBedrolls(entities: EntityStore, walking: Walking, valley: 
       const bedroll = bedrollById(bedrollId);
       if (bedroll === undefined) return;
       for (const player of players) {
-        if (player.backpack === undefined || !fitsInBackpack(player.backpack, "bedroll", 1)) continue;
-        if (goTo(bedrollId, bedroll, "pickUp")) pickUpNow(bedroll, player);
+        if (player.backpack === undefined) continue;
+        if (goTo(bedrollId, bedroll, "pickUp")) pickUpNow(bedrollId, bedroll, player);
       }
     },
     sleep(bedrollId) {
@@ -98,7 +106,7 @@ export function createBedrolls(entities: EntityStore, walking: Walking, valley: 
         entities.removeComponent(walker, "bedrollTask");
         const bedroll = bedrollById(bedrollId);
         if (bedroll === undefined || !withinReach(bedroll, walker.position)) continue;
-        if (then === "pickUp") pickUpNow(bedroll, walker);
+        if (then === "pickUp") pickUpNow(bedrollId, bedroll, walker);
         else sleepOn = bedroll;
       }
       return sleepOn;

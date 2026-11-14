@@ -6,6 +6,7 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -328,6 +329,7 @@ function openSpotNearPlayer(game: Game): { x: number; z: number } {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function give(game: Game, content: BackpackContent, count: number): void {

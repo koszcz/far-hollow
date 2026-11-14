@@ -43,15 +43,20 @@ describe("picking up sticks", () => {
     expect(player.backpack?.contents.stick ?? 0).toBe(0);
   });
 
-  it("tells the player the backpack is full when it has no room for the stick", () => {
+  it("tells the player the backpack is full when the hand reaches a stick with no room for it", () => {
     const game = createGame({ seed: 42 });
     fillBackpack(game);
     const stick = nearestToPlayer(game, "stick");
 
     game.client.send({ type: "pickUpStick", stickId: idOf(game, stick) });
-    game.step();
+    stepUntil(game, () => game.client.getView().reach !== null);
+    expect(game.client.getView().notice).toBeNull();
+    stepUntil(game, () => game.client.getView().notice !== null);
 
     expect(game.client.getView().notice?.kind).toBe("backpackFull");
+    // The player straightens empty-handed, and the stick stays on the ground.
+    expect(game.client.getView().reach).not.toBeNull();
+    expect(game.entities.has(stick)).toBe(true);
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { CHOP_SECONDS, LOGS_PER_TREE } from "./chopping";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { finishReach } from "./test-steps";
 
 describe("the backpack", () => {
   it("starts with an axe, a knife, a drawknife, a steel and flint, a bedroll, an empty pot, and a saw blade", () => {
@@ -87,6 +88,7 @@ describe("carrying a log", () => {
 
     game.client.send({ type: "dropLog" });
     game.step();
+    finishReach(game);
 
     expect(game.client.getView().carrying).toBeNull();
     const logs = [...game.entities.with("log", "position")];
@@ -114,6 +116,7 @@ describe("carrying a log", () => {
     fell(game, nearestTreeToPlayer(game));
     game.client.send({ type: "dropLog" });
     game.step();
+    finishReach(game);
     const player = onlyPlayer(game);
     const logs = [...game.entities.with("log", "position")];
     const distance = (log: (typeof logs)[number]) => Math.hypot(log.position.x - player.position.x, log.position.z - player.position.z);
@@ -148,6 +151,7 @@ describe("carrying a log", () => {
     const game = createGame({ seed: 42 });
     game.client.send({ type: "dropLog" });
     game.step();
+    finishReach(game);
     expect(game.entities.with("log").size).toBe(0);
   });
 });

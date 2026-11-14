@@ -18,6 +18,7 @@ import {
   type SaveUpgrade,
 } from "./save";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -395,6 +396,7 @@ function nearestTo<T extends Entity & { position: { x: number; z: number } }>(ga
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function give(game: Game, content: "stick", count: number): void {

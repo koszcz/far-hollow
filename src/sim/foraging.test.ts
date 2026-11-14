@@ -5,6 +5,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds } from "./needs";
 import { LARGE_VALLEY_UPGRADES, readSave, writeSave } from "./save";
 import { distanceToRiver, generateValley, groundDistance } from "./valley";
+import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -90,8 +91,9 @@ describe("foraging", () => {
     fillBackpack(game);
     const bush = nearestSpot(game, "berries");
 
+    // The player walks to the bush and reaches for the food before finding it does not fit.
     send(game, { type: "forage", spotId: idOf(game, bush) });
-    expect(game.client.getView().notice?.kind).toBe("backpackFull");
+    stepUntil(game, () => game.client.getView().notice?.kind === "backpackFull");
     runSeconds(game, 60);
 
     expect(game.client.getView().backpack.berries).toBeUndefined();
@@ -250,6 +252,7 @@ function nearestSpot(game: Game, food: "berries" | "mushroom") {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): void {

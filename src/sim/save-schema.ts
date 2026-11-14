@@ -83,6 +83,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   splitTask: shape({ secondsDone: finite }),
   // Crafting in progress is never saved, so no save holds it.
   craftTask: () => false,
+  // Nor is a reach in progress.
+  handReach: () => false,
   blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),

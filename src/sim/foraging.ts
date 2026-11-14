@@ -1,7 +1,8 @@
-import { addToBackpack, fitsInBackpack, removeFromBackpack, type Food } from "./backpack";
-import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { addToBackpack, removeFromBackpack, type Food } from "./backpack";
+import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import type { HandReach } from "./hand-reach";
 import { fillNeed } from "./needs";
-import { groundDistance, terrainHeightAt, type Valley } from "./valley";
+import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can forage a bush or mushroom patch from this far away, in metres. */
@@ -18,43 +19,43 @@ export type ForageRefusal = "backpackFull";
 
 export interface Foraging {
   /**
-   * Sets the player walking to a bush or mushroom patch to put its food in the backpack.
-   * Does nothing if the entity is not a forage spot, or the backpack has no room for all its food.
-   * Returns "backpackFull" when the backpack has no room.
+   * Sets the player walking to a bush or mushroom patch. Once there, they reach down and put its food in the backpack.
+   * Does nothing if the entity is not a forage spot. If the backpack has no room for all its food when the hand gets
+   * there, the food stays and the reach gives "backpackFull".
    */
-  forage(spotId: number): ForageRefusal | undefined;
+  forage(spotId: number): void;
   /** Eats one of this food from the backpack, which fills hunger. Does nothing if the backpack holds none. */
   eat(food: Food): void;
   /** Stops the player walking to forage. */
   cancel(): void;
-  /** Forages the spots the player has reached. Run it after walking has moved the player. */
+  /** Starts the player reaching to forage the spots they have walked to. Run it after walking has moved the player. */
   step(): undefined;
   /** Grows foraged spots back by this many game minutes. */
   grow(gameMinutes: number): void;
 }
 
 /** Lets the player forage wild food into the backpack and eat it. Foraged spots grow back over a few days. */
-export function createForaging(entities: EntityStore, walking: Walking): Foraging {
+export function createForaging(entities: EntityStore, walking: Walking, hand: Pick<HandReach, "start">): Foraging {
   const players = playerEntities(entities);
   const foragers = entities.with("forageTask", "position", "backpack");
   const regrowing = entities.with("forageSpot", "regrowing");
 
+  /** The forage spot with this id, if it has food and is within the player's reach. */
+  function spotInReach(spotId: number, player: { position: GroundPoint }) {
+    const spot = entityWith(entities, spotId, "forageSpot", "position");
+    if (spot === undefined || spot.regrowing !== undefined || groundDistance(spot.position, player.position) > FORAGE_REACH_METRES) return undefined;
+    return spot;
+  }
+
   return {
     forage(spotId) {
       const spot = entities.entity(spotId);
-      if (spot?.forageSpot === undefined || spot.position === undefined) return undefined;
-      const food = spot.forageSpot.food;
-      let refusal: ForageRefusal | undefined;
+      if (spot?.forageSpot === undefined || spot.position === undefined) return;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        if (spot.regrowing === undefined && !fitsInBackpack(player.backpack, food, FOOD_PER_FORAGE[food])) {
-          refusal = "backpackFull";
-          continue;
-        }
         walking.walkTo(spot.position);
         setComponent(entities, player, "forageTask", { spotId });
       }
-      return refusal;
     },
     eat(food) {
       for (const player of players) {
@@ -69,14 +70,18 @@ export function createForaging(entities: EntityStore, walking: Walking): Foragin
       // Copy the list first, because players who finish leave the query while it is being walked.
       for (const forager of [...foragers]) {
         if (forager.walkPath) continue;
-        const spot = entities.entity(forager.forageTask.spotId);
+        const { spotId } = forager.forageTask;
         entities.removeComponent(forager, "forageTask");
-        if (spot?.forageSpot === undefined || spot.position === undefined || spot.regrowing !== undefined) continue;
-        if (groundDistance(spot.position, forager.position) > FORAGE_REACH_METRES) continue;
-        const food = spot.forageSpot.food;
-        if (addToBackpack(forager.backpack, food, FOOD_PER_FORAGE[food])) {
-          entities.addComponent(spot, "regrowing", { minutesLeft: REGROW_MINUTES });
-        }
+        const spot = spotInReach(spotId, forager);
+        if (spot === undefined) continue;
+        hand.start("low", spot.position, (): ForageRefusal | undefined => {
+          const still = spotInReach(spotId, forager);
+          if (still === undefined) return undefined;
+          const food = still.forageSpot.food;
+          if (!addToBackpack(forager.backpack, food, FOOD_PER_FORAGE[food])) return "backpackFull";
+          entities.addComponent(still, "regrowing", { minutesLeft: REGROW_MINUTES });
+          return undefined;
+        });
       }
     },
     grow(gameMinutes) {

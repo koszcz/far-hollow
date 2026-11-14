@@ -198,6 +198,18 @@ export interface GameView {
    * sleep, so drawing can tell a new one. `at` is the middle of the bedroll. Drawing plays the sleep animation from it.
    */
   readonly lastSleep: SleepView | null;
+  /**
+   * The player's reach to pick something up or put something down, or null if they are not reaching.
+   * `height` is "low" for the ground and "waist" for a woodpile, chest, or sled. The hand gets to the thing, and the
+   * command is carried out, `seconds` = HAND_AT_SECONDS into the reach. See hand-reach.ts.
+   */
+  readonly reach: ReachView | null;
+}
+
+/** A reach in progress. See `GameView.reach`. */
+export interface ReachView {
+  readonly height: "low" | "waist";
+  readonly seconds: number;
 }
 
 /** One sleep on a bedroll. See `GameView.lastSleep`. */

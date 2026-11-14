@@ -15,6 +15,7 @@ import {
   type StructureKind,
 } from "./structures";
 import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import type { HandReach } from "./hand-reach";
 import type { Walking } from "./walking";
 
 /** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
@@ -58,7 +59,7 @@ export interface Building {
  * Lets the player place blueprints, add materials to them, and turn them into finished building pieces.
  * With `freeBuilding`, building spends no materials and needs no tools. The playground uses it.
  */
-export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley, freeBuilding = false): Building {
+export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">, freeBuilding = false): Building {
   const players = playerEntities(entities);
   const blueprints = blueprintEntities(entities);
   const builders = entities.with("buildTask", "position", "backpack");
@@ -161,13 +162,19 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       // Copy each list first, because players who finish or give up leave the query while it is being walked.
       for (const deliverer of [...deliverers]) {
         if (deliverer.walkPath) continue;
-        const reached = reachedBlueprint(deliverer, deliverer.deliverTask.blueprintId);
+        const { blueprintId } = deliverer.deliverTask;
         entities.removeComponent(deliverer, "deliverTask");
-        const carried = deliverer.carrying;
-        // Everything carried on the shoulder, a log or a debarked log, is a material some structure is built from.
-        if (reached === undefined || carried === undefined || !needsMore(reached.blueprint, carried)) continue;
-        entities.removeComponent(deliverer, "carrying");
-        reached.blueprint.delivered[carried] = (reached.blueprint.delivered[carried] ?? 0) + 1;
+        const reached = reachedBlueprint(deliverer, blueprintId);
+        if (reached === undefined || !canDeliver(deliverer, reached.blueprint)) continue;
+        // The player lays the log down by the blueprint, then hands it over when the hand gets there.
+        hand.start("low", reached.position, () => {
+          const still = reachedBlueprint(deliverer, blueprintId);
+          const carried = deliverer.carrying;
+          if (still === undefined || carried === undefined || !canDeliver(deliverer, still.blueprint)) return undefined;
+          entities.removeComponent(deliverer, "carrying");
+          still.blueprint.delivered[carried] = (still.blueprint.delivered[carried] ?? 0) + 1;
+          return undefined;
+        });
       }
       for (const builder of [...builders]) {
         if (builder.walkPath) continue;
@@ -185,6 +192,12 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       }
     },
   };
+}
+
+/** Whether the deliverer carries something on the shoulder that the blueprint still needs. */
+function canDeliver(deliverer: Entity, blueprint: Blueprint): boolean {
+  // Everything carried on the shoulder, a log or a debarked log, is a material some structure is built from.
+  return deliverer.carrying !== undefined && needsMore(blueprint, deliverer.carrying);
 }
 
 /** Whether a blueprint still needs more of a material carried to it. */

@@ -8,6 +8,7 @@ import { isUnderRoof } from "./roofs";
 import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST, type QuarterTurns } from "./structures";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -383,6 +384,7 @@ function idOf(game: Game, entity: Entity): number {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function stepUntil(game: Game, done: () => boolean): void {

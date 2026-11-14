@@ -22,6 +22,9 @@ export type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
  * Work on a campfire, woodpile, or sled that needs the player within its reach. Out of reach, the player walks there first.
  * Each kind has the shape of the command in api.ts that asks for it, so the command can be stored as it is.
  */
+/** How low the player reaches: to the ground, or out at waist height. */
+export type ReachHeight = "low" | "waist";
+
 export type TendTask =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire"; campfireId: number }
@@ -189,6 +192,11 @@ export interface Entity {
   bedroll?: true;
   /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
+  /**
+   * The player is reaching to pick something up or put something down: to the ground or at waist height,
+   * `seconds` into the reach, toward the thing's middle if it has one. It is never saved. See hand-reach.ts.
+   */
+  handReach?: { height: ReachHeight; seconds: number; toward?: GroundPoint };
   /** The campfire or woodpile command the player is walking to carry out. They carry it out once they stop beside it. */
   tendTask?: TendTask;
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
@@ -231,19 +239,20 @@ export interface SavedEntity {
 
 /**
  * Lists every entity with its id, in id order. An entity that had no id yet gets one.
- * Crafting in progress is left out, because it is never saved.
+ * Crafting in progress and a reach in progress are left out, because they are never saved.
  */
 export function saveEntities(store: EntityStore): SavedEntity[] {
   const saved: SavedEntity[] = [];
   for (const entity of store.entities) {
     const id = store.id(entity);
     if (id === undefined) continue;
-    if (entity.craftTask === undefined) {
+    if (entity.craftTask === undefined && entity.handReach === undefined) {
       saved.push({ id, components: entity });
       continue;
     }
     const components = { ...entity };
     delete components.craftTask;
+    delete components.handReach;
     saved.push({ id, components });
   }
   return saved.sort((a, b) => a.id - b.id);

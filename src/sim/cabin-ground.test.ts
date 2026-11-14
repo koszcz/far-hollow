@@ -8,6 +8,7 @@ import { createGame, type Game } from "./game";
 import { structureOf, type EdgePieceKind, type QuarterTurns, type StructureKind } from "./structures";
 import type { GroundPoint } from "./valley";
 import { isWalkable } from "./walk-map";
+import { finishReach } from "./test-steps";
 
 describe("a lean-to and foundations", () => {
   it("cannot go over a finished foundation", () => {
@@ -226,6 +227,7 @@ function walkTo(game: Game, to: GroundPoint): void {
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();
+  finishReach(game);
 }
 
 function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): void {

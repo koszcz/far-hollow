@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { SleepView, StructureKind, ThingInReach } from "../sim/api";
 import { playerActivity } from "../sim/activity";
+import { REACH_SECONDS } from "../sim/hand-reach";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
@@ -172,6 +173,11 @@ export function createSceneRenderer(
   const players = playerEntities(entities);
   /** Whether the camera has looked at the player yet. */
   let cameraPlaced = false;
+  /**
+   * The reach drawn now: when it began on the frame clock, in seconds, and the logic step's seconds it was last seen at.
+   * Game logic moves a reach on once per step, so drawing runs its own clock from the start to keep the motion smooth.
+   */
+  let reachDrawn: { since: number; seenSeconds: number } | undefined;
   /** Total metres the player has walked, which keeps the legs in step with the ground. */
   let playerWalkedMetres = 0;
   /** The hour of the day the sky showed last frame. */
@@ -226,7 +232,23 @@ export function createSceneRenderer(
     const swinging = activity?.kind === "chop" || activity?.kind === "craft";
     playerMesh.setChopping(swinging ? nowSeconds : undefined);
     if (activity?.kind === "build" || activity?.kind === "chop" || activity?.kind === "debark") faceTarget();
-    if (activity !== undefined && activity.kind !== "takeDown") return;
+    if (activity !== undefined && activity.kind !== "takeDown") {
+      playerMesh.setReaching(undefined);
+      return;
+    }
+    // Reaching to pick something up or put it down. The player faces the thing first.
+    const reach = player.handReach;
+    if (reach !== undefined) {
+      // A reach that starts over, as when a second command follows the first, shows as a new reach.
+      if (reachDrawn === undefined || reach.seconds < reachDrawn.seenSeconds) reachDrawn = { since: nowSeconds - reach.seconds, seenSeconds: reach.seconds };
+      reachDrawn.seenSeconds = reach.seconds;
+      if (reach.toward !== undefined) playerMesh.setHeading(Math.atan2(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z));
+      playerMesh.setWalking(undefined);
+      playerMesh.setReaching({ height: reach.height, seconds: Math.min(nowSeconds - reachDrawn.since, REACH_SECONDS) });
+      return;
+    }
+    reachDrawn = undefined;
+    playerMesh.setReaching(undefined);
     const dx = playerDrawn.x - playerDrawnBefore.x;
     const dz = playerDrawn.z - playerDrawnBefore.z;
     const travelled = Math.hypot(dx, dz);

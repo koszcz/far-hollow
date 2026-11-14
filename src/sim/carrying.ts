@@ -1,5 +1,6 @@
 import { playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
+import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -8,7 +9,7 @@ const PICK_UP_REACH_METRES = 2;
 
 export interface Carrying {
   /**
-   * Sets the player walking to a log or debarked log on the ground to shoulder it.
+   * Sets the player walking to a log or debarked log on the ground. Once there, they reach down and shoulder it.
    * Does nothing if the entity is not one of those or the player already carries one.
    */
   pickUp(logId: number): void;
@@ -17,16 +18,16 @@ export interface Carrying {
   /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
   drop(): void;
   /**
-   * Sets the player walking to a spot to lay the carried log there. The log goes down when they stop within reach of the spot.
+   * Sets the player walking to a spot to lay the carried log there. When they stop within reach of the spot, they reach down and the log goes down.
    * Does nothing if the player carries nothing.
    */
   dropAt(spot: GroundPoint): void;
-  /** Picks up logs the player has reached, and drops logs at spots they have reached. Run it after walking has moved the player. */
+  /** Starts the player reaching to pick up logs and drop logs where they have walked to. Run it after walking has moved the player. */
   step(): undefined;
 }
 
 /** Keeps track of what the player carries on their shoulder. One log or debarked log fits at a time. */
-export function createCarrying(entities: EntityStore, walking: Walking, valley: Valley): Carrying {
+export function createCarrying(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Carrying {
   const players = playerEntities(entities);
   const pickers = entities.with("logPickUpTask", "position");
   const droppers = entities.with("logDropTask", "position");
@@ -37,6 +38,12 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
     entities.removeComponent(player, "carrying");
     const { x, z } = player.position;
     entities.add({ [carried]: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
+  }
+
+  /** The entity with this id, if it is within the player's reach. */
+  function logInReach(logId: number, player: { position: GroundPoint }): Entity | undefined {
+    const log = entities.entity(logId);
+    return log?.position === undefined || groundDistance(log.position, player.position) > PICK_UP_REACH_METRES ? undefined : log;
   }
 
   return {
@@ -70,16 +77,25 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
         if (dropper.walkPath) continue;
         const spot = dropper.logDropTask;
         entities.removeComponent(dropper, "logDropTask");
-        if (groundDistance(spot, dropper.position) <= PICK_UP_REACH_METRES) dropFrom(dropper);
+        if (groundDistance(spot, dropper.position) <= PICK_UP_REACH_METRES) {
+          hand.start("low", spot, () => {
+            dropFrom(dropper);
+            return undefined;
+          });
+        }
       }
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const picker of [...pickers]) {
         if (picker.walkPath) continue;
-        const log = entities.entity(picker.logPickUpTask.logId);
+        const { logId } = picker.logPickUpTask;
         entities.removeComponent(picker, "logPickUpTask");
+        const log = logInReach(logId, picker);
         if (log?.position === undefined) continue;
-        const distance = groundDistance(log.position, picker.position);
-        if (distance <= PICK_UP_REACH_METRES) shoulderLog(entities, picker, log);
+        hand.start("low", log.position, () => {
+          const still = logInReach(logId, picker);
+          if (still !== undefined) shoulderLog(entities, picker, still);
+          return undefined;
+        });
       }
     },
   };

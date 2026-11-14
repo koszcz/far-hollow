@@ -6,11 +6,15 @@
 // While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
 // pulling a drawknife, and the axe goes on the back. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down, Lie_Idle, and Lie_StandUp clips. The owner approved it.
+// Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
+// ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
+// The asset is a draft.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
-import type { CarriedLog } from "../sim/entities";
+import type { CarriedLog, ReachHeight } from "../sim/entities";
+import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
@@ -35,6 +39,8 @@ const SPLIT_CLIP = "2H_Melee_Attack_Chop";
 const LIE_DOWN_CLIP = "Lie_Down";
 const LIE_IDLE_CLIP = "Lie_Idle";
 const STAND_UP_CLIP = "Lie_StandUp";
+/** The clips for reaching to the ground, and out at waist height. */
+const REACH_CLIPS: Readonly<Record<ReachHeight, string>> = { low: "PickUp", waist: "Interact" };
 /** The clip that holds both arms still while the right hand steadies a log on the shoulder. */
 const CARRY_CLIP = "Walking_B";
 
@@ -101,6 +107,11 @@ export interface PlayerMesh {
    * player reached the bedroll, or undefined while not sleeping.
    */
   setSleeping(seconds: number | undefined): void;
+  /**
+   * Bends down, or reaches out at waist height, to pick something up or put it down. Pass the seconds since the reach
+   * began, from 0 to REACH_SECONDS, or undefined while not reaching. The hand gets to the thing at HAND_AT_SECONDS.
+   */
+  setReaching(reach: { height: ReachHeight; seconds: number } | undefined): void;
   dispose(): void;
 }
 
@@ -159,6 +170,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const split = clip(SPLIT_CLIP);
   const carry = clip(CARRY_CLIP);
   const sleepClips = { lieDown: clip(LIE_DOWN_CLIP), lieIdle: clip(LIE_IDLE_CLIP), standUp: clip(STAND_UP_CLIP) };
+  const reachClips = { low: clip(REACH_CLIPS.low), waist: clip(REACH_CLIPS.waist) };
   let playing: THREE.AnimationAction | undefined;
   /** Shows `action` frozen `seconds` into its clip. */
   function showClip(action: THREE.AnimationAction, seconds: number): void {
@@ -170,6 +182,29 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     const duration = action.getClip().duration;
     action.time = ((seconds % duration) + duration) % duration;
     mixer.update(0);
+  }
+
+  /**
+   * The moment in each reach clip when a hand gets to the thing: the lowest a wrist goes in the clip to the ground,
+   * and the furthest forward a wrist goes in the clip at waist height. The player faces +z.
+   */
+  const reachContact: Record<ReachHeight, number> = {
+    low: contactSeconds(reachClips.low, (wrist) => -wrist.y),
+    waist: contactSeconds(reachClips.waist, (wrist) => wrist.z),
+  };
+  function contactSeconds(action: THREE.AnimationAction, score: (wrist: THREE.Vector3) => number): number {
+    const wrist = new THREE.Vector3();
+    const duration = action.getClip().duration;
+    let best = { seconds: duration / 2, score: -Infinity };
+    for (let seconds = 0; seconds < duration; seconds += 1 / 60) {
+      showClip(action, seconds);
+      group.updateMatrixWorld(true);
+      for (const arm of [leftArm, rightArm]) {
+        const scored = score(group.worldToLocal(arm.end.getWorldPosition(wrist)));
+        if (scored > best.score) best = { seconds, score: scored };
+      }
+    }
+    return best.seconds;
   }
 
   // Stand in the idle pose, then fit the beanie to the head as it is now, and fix it to the head bone.
@@ -216,6 +251,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let splittingAt: number | undefined;
   /** Seconds since the player reached the bedroll, while sleeping. */
   let sleepingAt: number | undefined;
+  /** How far the player is through a reach, while reaching. */
+  let reaching: { height: ReachHeight; seconds: number } | undefined;
   /** The clock time building began, or undefined while not building. */
   let buildingSince: number | undefined;
   /** The clock time it is now, while building. */
@@ -309,7 +346,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with building. */
   function updateAxe(): void {
     const swinging = choppingAt !== undefined || splittingAt !== undefined;
-    placeAxe(!swinging && (carrying || buildingSince !== undefined || debarkingSince !== undefined || sleepingAt !== undefined));
+    const handsBusy = carrying || reaching !== undefined || buildingSince !== undefined || debarkingSince !== undefined || sleepingAt !== undefined;
+    placeAxe(!swinging && handsBusy);
   }
 
   /** Shows the clip for what the player is doing now. */
@@ -395,12 +433,28 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       showClip(split, splittingAt * SPLIT_STRIKES_PER_SECOND * split.getClip().duration);
       return;
     }
+    if (reaching !== undefined) {
+      showClip(reachClips[reaching.height], reachClipSeconds(reaching.height, reaching.seconds));
+      return;
+    }
     if (walkedMetres !== undefined) {
       showClip(walk, (walkedMetres / STRIDE_METRES) * walk.getClip().duration);
     } else {
       // Standing still, the player breathes on a steady clock of its own.
       showClip(carrying ? carry : idle, carrying ? 0 : performance.now() / 1000);
     }
+  }
+  /**
+   * Where in its clip a reach `seconds` in is. The clip is stretched or squeezed on each side of the hand's moment,
+   * so the hand gets to the thing at HAND_AT_SECONDS and the player stands again at REACH_SECONDS.
+   */
+  function reachClipSeconds(height: ReachHeight, seconds: number): number {
+    const contact = reachContact[height];
+    // A reach plays once, so the clip holds its last frame rather than start again.
+    const last = reachClips[height].getClip().duration - 0.001;
+    if (seconds <= HAND_AT_SECONDS) return (Math.max(0, seconds) / HAND_AT_SECONDS) * contact;
+    const after = Math.min(1, (seconds - HAND_AT_SECONDS) / (REACH_SECONDS - HAND_AT_SECONDS));
+    return contact + after * (last - contact);
   }
   pose();
 
@@ -471,6 +525,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
         }
         buildingAt = nowSeconds;
       }
+      pose();
+    },
+    setReaching(reach) {
+      const changed = (reach === undefined) !== (reaching === undefined);
+      reaching = reach;
+      if (changed) updateAxe();
       pose();
     },
     setSleeping(seconds) {

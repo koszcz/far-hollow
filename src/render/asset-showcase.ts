@@ -91,6 +91,7 @@ export function showAsset(
     "debarking-animation",
     "sleep-animation",
     "player-build-animation",
+    "pick-up-animation",
     "sky-lighting",
     "hud",
     "log-wall",

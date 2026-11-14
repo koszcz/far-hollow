@@ -923,12 +923,13 @@
         "src/render/fishing-pile-shapes.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "How the fishing line, the fishing rod, raw fish, and cooked fish look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with 30 cm of pale line trailing from its tip. A raw fish is a 30 cm trout lying on its side: a grey-green body, a pale belly along its lower side, a dark eye, and a flat tail. A cooked fish is the same trout with browned skin and a golden belly. The fishing animation hangs the same fish from the line.",
+      "description": "How the fishing line, the fishing rod, raw fish, and cooked fish look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle, with a small wire hook caught in the line. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with a 25 cm cord-wrapped grip, spare line wound just above the grip, and 30 cm of pale line trailing from its tip to a hook. A raw fish is a 30 cm trout lying on its side: a body that tapers from a blunt head to a forked tail, a fin on its back and a smaller one under its tail, a grey-green back, a pale belly along its lower side, and a dark eye. A cooked fish is the same trout with browned skin, a golden belly, and three dark char marks across its upper side. The fishing animation hangs the same raw fish from the line, and the campfire uses it too.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fishing/issues/01-fishing-rod.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

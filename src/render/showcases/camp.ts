@@ -212,26 +212,27 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       );
     },
   },
-  // The draft "fishing-piles": one and several of the fishing line, the fishing rod, raw fish, and cooked fish, with a knife for size.
+  // "fishing-piles": one and several of the fishing line, the fishing rod, raw fish, and cooked fish, with a knife for size.
+  // The small things sit in a row of single piles in front, with their larger piles behind. The rods lie off to one side.
   "fishing-piles": {
-    radius: 2.2,
-    focus: { x: 0, y: 0.05, z: 0 },
+    radius: 1.5,
+    focus: { x: 0.3, y: 0.05, z: 0 },
     shots: [
-      { label: "all fishing piles", yaw: 0, pitch: 40 },
-      { label: "fishing lines, one and many", yaw: 20, pitch: 50, radius: 0.7, focus: { x: -0.9, y: 0, z: 0 } },
-      { label: "fishing rods, one and many", yaw: -25, pitch: 35, radius: 2.4, focus: { x: 0.6, y: 0, z: 0.4 } },
-      { label: "raw fish, one and many, beside a knife", yaw: 30, pitch: 40, radius: 1.5, focus: { x: -0.4, y: 0, z: 0.2 } },
+      { label: "all fishing piles", yaw: 0, pitch: 45 },
+      { label: "fishing lines, one and many, beside a knife", yaw: 0, pitch: 55, radius: 0.35, focus: { x: -0.95, y: 0, z: -0.3 } },
+      { label: "raw and cooked fish, one and many", yaw: 0, pitch: 50, radius: 0.55, focus: { x: -0.15, y: 0, z: -0.3 } },
+      { label: "fishing rods, one and many", yaw: 0, pitch: 45, radius: 1.1, focus: { x: 1.3, y: 0, z: 0 } },
     ],
     build({ place }) {
-      place(-0.9, -0.7, { pile: { content: "fishingLine", count: 1 } });
-      place(-0.6, -0.7, { pile: { content: "knife", count: 1 } });
-      place(-0.9, 0.4, { pile: { content: "fishingLine", count: 5 } });
-      place(0.2, -0.3, { pile: { content: "fishingRod", count: 1 } });
-      place(1, 0.6, { pile: { content: "fishingRod", count: 4 } });
-      place(-0.25, -0.75, { pile: { content: "rawFish", count: 1 } });
-      place(-0.3, 1.1, { pile: { content: "rawFish", count: 5 } });
-      place(0.35, -0.9, { pile: { content: "cookedFish", count: 1 } });
-      place(0.4, 1.3, { pile: { content: "cookedFish", count: 4 } });
+      place(-1, -0.6, { pile: { content: "fishingLine", count: 1 } });
+      place(-0.85, -0.6, { pile: { content: "knife", count: 1 } });
+      place(-0.95, -0.1, { pile: { content: "fishingLine", count: 5 } });
+      place(-0.35, -0.6, { pile: { content: "rawFish", count: 1 } });
+      place(-0.35, 0, { pile: { content: "rawFish", count: 5 } });
+      place(0.05, -0.6, { pile: { content: "cookedFish", count: 1 } });
+      place(0.1, 0, { pile: { content: "cookedFish", count: 4 } });
+      place(0.9, -0.3, { pile: { content: "fishingRod", count: 1 } });
+      place(1.7, 0.3, { pile: { content: "fishingRod", count: 4 } });
     },
   },
   // The draft "fish-on-fire": up to 3 fish on skewers leaning over a campfire. They darken from raw to cooked.

@@ -9,6 +9,15 @@
             "timeout": 300
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/scripts/require-worktree.sh\"",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }

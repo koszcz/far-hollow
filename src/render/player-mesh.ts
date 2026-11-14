@@ -11,7 +11,7 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
-// While fishing, the draft "fishing-animation", posed in code by player-fish-pose.ts, casts the draft "fishing-rod",
+// While fishing, the draft "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
 // built by fishing-rod-model.ts, waits, then reels in a raw fish from the draft "fishing-piles". The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.

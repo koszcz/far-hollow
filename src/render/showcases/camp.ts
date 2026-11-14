@@ -134,20 +134,22 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       }
     },
   },
-  // The draft "fishing-rod" the player holds while fishing, lying level along x, with the line tied at its tip.
+  // The approved "fishing-rod" the player holds while fishing, lying along x with the butt to -x and the line tied at its tip.
+  // It lies on its side, so its bow curves across the ground, as a held rod's bow would hang down.
   "fishing-rod": {
     radius: 1,
     focus: { x: 0, y: 0.03, z: 0 },
     shots: [
       { label: "whole rod, side", yaw: 0, pitch: 20 },
-      { label: "whole rod, from above", yaw: 0, pitch: 70 },
-      { label: "butt and grip, close", yaw: 30, pitch: 25, radius: 0.3, focus: { x: -0.65, y: 0.02, z: 0 } },
-      { label: "joint and tip, close", yaw: -30, pitch: 25, radius: 0.45, focus: { x: 0.25, y: 0.02, z: 0 } },
+      { label: "whole rod, from above, showing the bow", yaw: 0, pitch: 80 },
+      { label: "grip, spare line, and knots, close", yaw: 30, pitch: 35, radius: 0.45, focus: { x: -0.4, y: 0.02, z: 0 } },
+      { label: "lashed joint and tip, close", yaw: -30, pitch: 35, radius: 0.5, focus: { x: 0.3, y: 0.02, z: 0 } },
     ],
     build({ addProp }) {
-      // The rod points along +z from its butt. Centred, then a quarter turn lays it along x with the butt to -x.
+      // The rod points along +z from its butt and bows to -y. A quarter turn about z lays the bow flat, then it is
+      // centred, and a quarter turn about y lays it along x.
       for (const { geometry, material } of createFishingRod().parts) {
-        addProp(geometry.translate(0, 0, -FISHING_ROD_LENGTH_METRES / 2), material, 0, 0, 0.015, Math.PI / 2);
+        addProp(geometry.rotateZ(Math.PI / 2).translate(0, 0, -FISHING_ROD_LENGTH_METRES / 2), material, 0, 0, 0.018, Math.PI / 2);
       }
     },
   },

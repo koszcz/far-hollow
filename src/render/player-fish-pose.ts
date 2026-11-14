@@ -3,7 +3,7 @@
 // to the water. They wait with the rod held out in both hands, its tip bobbing a little. When a fish bites, they lift
 // the rod and reel in, and the fish comes up out of the water on the line. Then they cast again.
 // It is posed in code on top of the idle clip with the build pose's bones, so it has no clip of its own.
-// The rod is the draft "fishing-rod", built by fishing-rod-model.ts. player-mesh.ts draws the line and the fish.
+// The rod is the approved "fishing-rod", built by fishing-rod-model.ts. player-mesh.ts draws the line and the fish.
 import { scaleBuildPose, type BuildPose, type HandSpot } from "./player-build-pose";
 
 /** Seconds a cast takes: swing the rod back, whip it forward, and settle into the wait. */

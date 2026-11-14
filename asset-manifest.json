@@ -659,12 +659,13 @@
         "src/ui/icon-drawing.ts",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Backpack icons for fishing gear and fish, drawn in the same style as backpack-icons: the fishing line, a wooden winder with pale line wound round its middle and a steel hook on the loose end; the fishing rod, a thin rod lying at a slant, thicker at the butt and lashed with twine, with the line and hook hanging from its tip; raw fish, a whole trout lying on its side with a grey-green back, a pale belly, a pink stripe along its side, a dark eye, and a forked tail; and cooked fish, the same trout with browned skin, a golden belly, three dark marks from the fire across its side, and a pale cooked eye. The campfire's panel shows the raw or cooked fish icon beside each fish on the fire.",
+      "description": "Backpack icons for fishing gear and fish, drawn in the same style as backpack-icons: the fishing line, a loose hank of pale line coiled twice round, tied in two places with twine, with a small barbed steel hook on the loose end; the fishing rod, a rod lying at a slant, thicker at the butt and lashed with two bands of twine, with the line and hook hanging from its tip; raw fish, a whole trout lying on its side with a grey-green back, a pale belly, a pink stripe along its side, a gill line, a ringed eye, and a forked tail; and cooked fish, the same trout with browned skin, a golden belly, three dark marks from the fire across its side, and a small, cloudy, half-closed eye. The campfire's panel shows the raw or cooked fish icon beside each fish on the fire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fishing/issues/01-fishing-rod.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

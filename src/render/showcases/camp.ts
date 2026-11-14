@@ -237,16 +237,16 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(1.7, 0.3, { pile: { content: "fishingRod", count: 4 } });
     },
   },
-  // The draft "fish-on-fire": up to 3 fish on skewers leaning over a campfire. They darken from raw to cooked.
+  // The approved "fish-on-fire": up to 3 fish on skewers leaning over a campfire. They darken and char from raw to cooked.
   // The middle fire holds the pot as well, to show they keep clear of it.
   "fish-on-fire": {
     radius: 1.3,
     focus: { x: 0, y: 0.4, z: 0 },
     shots: [
-      { label: "raw, half, and cooked, beside the pot", yaw: 20, pitch: 25 },
+      { label: "raw, half, and cooked, beside the pot", yaw: 20, pitch: 20, radius: 0.85 },
       { label: "from above, clear of the pot", yaw: 0, pitch: 75, radius: 2.4 },
-      { label: "one raw fish on an unlit fire", yaw: 30, pitch: 25, focus: { x: -2.2, y: 0.4, z: 0 } },
-      { label: "three cooked fish at night", yaw: -30, pitch: 20, focus: { x: 2.2, y: 0.4, z: 0 }, hour: NIGHT },
+      { label: "one raw fish on an unlit fire", yaw: 30, pitch: 20, radius: 0.85, focus: { x: -2.2, y: 0.4, z: 0 } },
+      { label: "three cooked fish at night, char marks showing", yaw: 34, pitch: 20, radius: 0.85, focus: { x: 2.2, y: 0.4, z: 0 }, hour: NIGHT },
     ],
     build({ place }) {
       place(0, 0, {

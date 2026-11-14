@@ -957,12 +957,13 @@
         "src/render/fishing-pile-shapes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "Up to 3 fish cooking on a campfire, spread round the stone ring. Each fish is the trout from fishing-piles, skewered lengthwise and snout up on a pale peeled stick 80 cm long. The stick is pushed into the ground just outside the stones and leans in over the edge of the fire, so the fish's flat side faces the flames and stays clear of the pot nested on the fire's sticks. As a fish cooks, its grey-green back darkens to brown and its pale belly turns golden. A fish keeps its colour while the fire is out.",
+      "description": "Up to 3 fish cooking on a campfire, spread round the stone ring. Each fish is the trout from fishing-piles, skewered lengthwise and snout up on a pale peeled stick 80 cm long, whose pointed tip pokes out past the snout. The stick is pushed into the ground just outside the stones and leans in a little, so the fish hangs above the stones with its flat side to the flames, well below the pot nested on the fire's sticks. As a fish cooks, its grey-green back darkens to brown, its pale belly turns golden, and dark char marks show on both its flat sides. A fish keeps its colour while the fire is out.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fishing/issues/03-cook-fish.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

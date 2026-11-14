@@ -43,7 +43,7 @@ const FISH_BACK_COLOUR = 0x6f8a76;
 const FISH_BELLY_COLOUR = 0xd8cdb4;
 const FISH_EYE_COLOUR = 0x231f1c;
 /** The scorched stripes the fire leaves across a cooked fish. */
-const CHAR_COLOUR = 0x2e1d12;
+export const CHAR_COLOUR = 0x2e1d12;
 
 /** How long the cord-wrapped grip at the rod's butt is, in metres. */
 const GRIP_LENGTH_METRES = 0.25;
@@ -255,8 +255,8 @@ export function fishParts(material: MakeMaterial, track: Track, colours: FishCol
   ];
 }
 
-/** Three dark stripes the fire scorches across the upper side of a cooked fish, slanting a little. */
-function charMarkPart(material: MakeMaterial, track: Track): FishingPilePart {
+/** Three dark stripes the fire scorches across the upper side of a cooked fish, slanting a little. The fish on a campfire use them too. */
+export function charMarkPart(material: MakeMaterial, track: Track): FishingPilePart {
   const marks = [-0.045, 0, 0.045].map((offset) =>
     new THREE.BoxGeometry(FISH_DEPTH_METRES * 0.6, 0.006, 0.007)
       .rotateY(0.35)

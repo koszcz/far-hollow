@@ -2,6 +2,7 @@
 import type { BackpackContent, GameNotice } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
+import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
 import { EDGE_PIECE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, STRUCTURES } from "./structures";
@@ -46,7 +47,7 @@ const wood = exactly(...WOODPILE_WOODS);
 /** A campfire, woodpile, or sled command the player is walking to carry out. */
 const tendCommand: Check = (value) =>
   shape({ type: exactly("addFuel"), campfireId: count, fuel })(value) ||
-  shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire"), campfireId: count })(value) ||
+  shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire", "cookFish", "takeFishOff"), campfireId: count })(value) ||
   shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value) ||
   shape({ type: exactly("loadSled", "tipOutSled", "dragSled"), sledId: count })(value) ||
@@ -117,6 +118,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   sickness: shape({ minutesLeft: finite }),
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
+  fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
   // Saves from before falls were owed have no `owed`.
   stickFall: shape({ minutesToNext: finite, falls: count, owed: count }, ["owed"]),

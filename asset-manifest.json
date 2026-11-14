@@ -659,7 +659,7 @@
         "src/ui/icon-drawing.ts",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Backpack icons for fishing gear and fish, drawn in the same style as backpack-icons: the fishing line, a loose hank of pale line coiled twice round, tied in two places with twine, with a small barbed steel hook on the loose end; the fishing rod, a rod lying at a slant, thicker at the butt and lashed with two bands of twine, with the line and hook hanging from its tip; and raw fish, a whole trout lying on its side with a grey-green back, a pale belly, a pink stripe along its side, a gill line, a ringed eye, and a forked tail.",
+      "description": "Backpack icons for fishing gear and fish, drawn in the same style as backpack-icons: the fishing line, a loose hank of pale line coiled twice round, tied in two places with twine, with a small barbed steel hook on the loose end; the fishing rod, a rod lying at a slant, thicker at the butt and lashed with two bands of twine, with the line and hook hanging from its tip; raw fish, a whole trout lying on its side with a grey-green back, a pale belly, a pink stripe along its side, a gill line, a ringed eye, and a forked tail; and cooked fish, the same trout with browned skin, a golden belly, three dark marks from the fire across its side, and a small, cloudy, half-closed eye. The campfire's panel shows the raw or cooked fish icon beside each fish on the fire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -924,7 +924,7 @@
         "src/render/fishing-pile-shapes.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "How the fishing line, the fishing rod, and raw fish look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with 30 cm of pale line trailing from its tip. A raw fish is a 30 cm trout lying on its side: a grey-green body, a pale belly along its lower side, a dark eye, and a flat tail. The fishing animation hangs the same fish from the line.",
+      "description": "How the fishing line, the fishing rod, raw fish, and cooked fish look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with 30 cm of pale line trailing from its tip. A raw fish is a 30 cm trout lying on its side: a grey-green body, a pale belly along its lower side, a dark eye, and a flat tail. A cooked fish is the same trout with browned skin and a golden belly. The fishing animation hangs the same fish from the line.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -945,6 +945,22 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/fishing/issues/02-catch-fish.md"
+      }
+    },
+    {
+      "id": "fish-on-fire",
+      "kind": "code",
+      "code": [
+        "src/render/fish-on-fire-meshes.ts",
+        "src/render/fishing-pile-shapes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "Up to 3 fish cooking on a campfire, spread round the stone ring. Each fish is the trout from fishing-piles, skewered lengthwise and snout up on a pale peeled stick 80 cm long. The stick is pushed into the ground just outside the stones and leans in over the edge of the fire, so the fish's flat side faces the flames and stays clear of the pot nested on the fire's sticks. As a fish cooks, its grey-green back darkens to brown and its pale belly turns golden. A fish keeps its colour while the fire is out.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fishing/issues/03-cook-fish.md"
       }
     },
     {

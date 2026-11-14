@@ -214,6 +214,8 @@ function readerWith({ backpack = {}, carrying = null, campfire, woodpile, bluepr
     canLight: false,
     fits: { stick: true, firewood: true, bark: true },
     pot: null,
+    fish: [],
+    fitsFish: true,
     ...campfire,
   };
   const fullWoodpile: WoodpileView = { id: 8, contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20, ...woodpile };

@@ -327,6 +327,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     fishingLine: spread(0.08),
     fishingRod: spread(0.1),
     rawFish: spread(0.12),
+    cookedFish: spread(0.12),
     berries: spread(0.06),
     mushroom: spread(0.1),
     bedroll: spread(0.3),

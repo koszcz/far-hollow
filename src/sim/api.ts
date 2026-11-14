@@ -145,6 +145,16 @@ export type Command =
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
   | { type: "takePotOffFire"; campfireId: number }
   /**
+   * Put one raw fish from the backpack on a lit campfire. It becomes cooked fish after 8 game minutes on the lit fire.
+   * Nothing happens if the fire is out or already holds 3 fish. The player walks beside it first if needed.
+   */
+  | { type: "cookFish"; campfireId: number }
+  /**
+   * Take every fish off a campfire, raw or cooked, and put them in the backpack as far as they fit. The rest stay on the fire.
+   * The player walks beside it first if needed.
+   */
+  | { type: "takeFishOff"; campfireId: number }
+  /**
    * Start crafting a recipe, given by its name. A hand recipe is crafted where the player stands, as timed work.
    * For a station recipe, the player walks to the finished work station given by `stationId`, or without one to the nearest
    * finished station of the right kind, and works there. A blueprint is not a station.
@@ -232,7 +242,7 @@ export interface SleepView {
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
  * `chestFull`: the open chest had no room for what the player tried to put in it.
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
- * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something, or a campfire with a pot on it.
+ * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something, or a campfire with a pot or fish on it.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
  * `letGoFirst`: the player tried to shoulder a log, gather, chop, build, or craft while dragging a sled.
@@ -286,6 +296,13 @@ export interface CampfireView {
    * `boilProgress` runs from 0 to 1 while the water boils on the lit fire.
    */
   readonly pot: { readonly water: PotWater; readonly boilProgress: number } | null;
+  /**
+   * The fish on the campfire, in the order they went on. `cookProgress` runs from 0 to 1 while a fish cooks on the lit fire.
+   * At 1 it is `cooked`, and it never burns.
+   */
+  readonly fish: readonly { readonly cooked: boolean; readonly cookProgress: number }[];
+  /** True if one more fish fits on the fire. A campfire holds up to 3, beside the pot. */
+  readonly fitsFish: boolean;
 }
 
 /** One structure in the build menu. */

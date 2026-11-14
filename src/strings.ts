@@ -23,6 +23,7 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   fishingLine: (count) => (count === 1 ? "A fishing line" : `${count} fishing lines`),
   fishingRod: (count) => (count === 1 ? "A fishing rod" : `${count} fishing rods`),
   rawFish: (count) => (count === 1 ? "1 raw fish" : `${count} raw fish`),
+  cookedFish: (count) => (count === 1 ? "1 cooked fish" : `${count} cooked fish`),
 };
 
 export const strings = {
@@ -155,6 +156,9 @@ export const strings = {
   campfireFuel: "Fuel",
   potBoiling: "Boiling",
   potBoiled: "The water has boiled.",
+  /** One fish on the campfire, as the campfire's panel lists it. */
+  fishCooking: "Cooking",
+  fishCooked: "Cooked",
   woodpile: {
     title: "Woodpile",
     fill: "Stacked",
@@ -209,6 +213,7 @@ export const strings = {
     fishingLine: "Fishing line",
     fishingRod: "Fishing rod",
     rawFish: "Raw fish",
+    cookedFish: "Cooked fish",
   },
   chest: {
     title: "Chest",
@@ -252,6 +257,8 @@ export const strings = {
     addFuel: { firewood: "Add firewood", stick: "Add a stick", bark: "Add bark" },
     putPotOn: "Put the pot on",
     takePotOff: "Take the pot off",
+    cookFish: "Cook fish",
+    takeFishOff: "Take fish off",
     stack: { log: "Stack the log", debarkedLog: "Stack the debarked log", firewood: "Stack firewood" },
     stackAllFirewood: "Stack all firewood",
     take: { log: "Take a log", debarkedLog: "Take a debarked log", firewood: "Take firewood" },
@@ -287,6 +294,8 @@ export const strings = {
     fireFull: "the fire is full",
     lightFirst: "light the fire first",
     noPotOfWater: "no pot of water",
+    noRawFish: "no raw fish",
+    fireFullOfFish: "the fire holds 3 fish",
     woodpileFull: "the woodpile is full",
     sledFull: "the sled is full",
     letGoFirst: "let go of the sled first",
@@ -296,6 +305,7 @@ export const strings = {
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",
     potOnFire: "take the pot off first",
+    fishOnFire: "take the fish off first",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

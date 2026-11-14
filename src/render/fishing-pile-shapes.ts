@@ -1,8 +1,10 @@
 // How fishing gear and fish look lying in a pile, the draft "fishing-piles" asset in asset-manifest.json. Built in code.
-// Added by fishing ticket 01. Fishing ticket 02 added raw fish. pile-meshes.ts lays these shapes out like the other things in a pile.
+// Added by fishing ticket 01. Fishing ticket 02 added raw fish, and ticket 03 cooked fish. pile-meshes.ts lays these shapes out
+// like the other things in a pile.
 // The fishing line is a flat wooden winder with pale line wound round its middle.
 // The fishing rod is a long, thin rod, thicker at the butt, with a short length of line trailing from its tip.
 // A raw fish is a trout lying on its side: a grey-green back, a pale belly, a dark eye, and a flat tail.
+// A cooked fish is the same trout, its skin browned and its belly golden.
 // Each shape lies flat, its pivot at the middle of its underside, its long side along z.
 import * as THREE from "three";
 import type { Fish, FishingContent } from "../sim/backpack";
@@ -26,7 +28,7 @@ export const FISH_LENGTH_METRES = 0.3;
 const FISH_BODY_LENGTH_METRES = 0.24;
 /** How deep the fish's body is from back to belly, and how thick it is from side to side, in metres. */
 const FISH_DEPTH_METRES = 0.07;
-const FISH_THICKNESS_METRES = 0.035;
+export const FISH_THICKNESS_METRES = 0.035;
 
 const WOOD_COLOUR = 0x9b7350;
 const LINE_COLOUR = 0xe8e2cc;
@@ -34,13 +36,24 @@ const FISH_BACK_COLOUR = 0x6f8a76;
 const FISH_BELLY_COLOUR = 0xd8cdb4;
 const FISH_EYE_COLOUR = 0x231f1c;
 
+/** The colours of a fish's back and belly. */
+export interface FishColours {
+  readonly back: number;
+  readonly belly: number;
+}
+
+/** A raw trout: a grey-green back and a pale belly. */
+export const RAW_FISH_COLOURS: FishColours = { back: FISH_BACK_COLOUR, belly: FISH_BELLY_COLOUR };
+/** A cooked trout: browned, crisp skin and a golden belly. */
+export const COOKED_FISH_COLOURS: FishColours = { back: 0x6b4526, belly: 0xc9944f };
+
 /** Makes a material from a colour. The caller disposes it. */
 type MakeMaterial = (colour: number) => THREE.Material;
 /** Hands a geometry to the caller to dispose, and returns it. */
 type Track = <T extends { dispose(): void }>(resource: T) => T;
 
 /**
- * The fishing line, the fishing rod, and raw fish, as parts to lie in a pile.
+ * The fishing line, the fishing rod, raw fish, and cooked fish, as parts to lie in a pile.
  * `material` makes a material from a colour, and the caller disposes it. `track` hands each geometry to the caller to dispose.
  */
 export function fishingPileParts(material: MakeMaterial, track: Track): Readonly<Record<FishingContent | Fish, readonly FishingPilePart[]>> {
@@ -68,6 +81,7 @@ export function fishingPileParts(material: MakeMaterial, track: Track): Readonly
       { geometry: track(trailing), material: line },
     ],
     rawFish: rawFishParts(material, track),
+    cookedFish: fishParts(material, track, COOKED_FISH_COLOURS),
   };
 }
 
@@ -76,8 +90,17 @@ export function fishingPileParts(material: MakeMaterial, track: Track): Readonly
  * The fishing animation hangs the same fish from the line as the player lifts it out of the water.
  */
 export function rawFishParts(material: MakeMaterial, track: Track): readonly FishingPilePart[] {
-  const back = material(FISH_BACK_COLOUR);
-  const belly = material(FISH_BELLY_COLOUR);
+  return fishParts(material, track, RAW_FISH_COLOURS);
+}
+
+/**
+ * A fish lying on its side in these colours, its snout towards +z and its back towards -x. Its pivot is the middle of its underside.
+ * The parts come in this order: the body and the tail in the back colour, the belly, then the eye.
+ * The fish on a campfire use the same shape, and darken from raw to cooked.
+ */
+export function fishParts(material: MakeMaterial, track: Track, colours: FishColours): readonly FishingPilePart[] {
+  const back = material(colours.back);
+  const belly = material(colours.belly);
   const eye = material(FISH_EYE_COLOUR);
   const half = FISH_THICKNESS_METRES / 2;
   const tailLength = (FISH_LENGTH_METRES - FISH_BODY_LENGTH_METRES) * 1.4;

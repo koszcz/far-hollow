@@ -175,6 +175,14 @@ _Avoid_: Harvest, pick
 A fish the player catches at the river with the fishing rod. It is food the player carries in the backpack. Eating it raw makes the player sick.
 _Avoid_: Trout, catch
 
+**Cook**:
+To put raw fish on a lit campfire until it becomes cooked fish. Cooking needs no tool and no pot. A campfire holds up to 3 fish beside the pot.
+_Avoid_: Roast, grill, fry
+
+**Cooked fish**:
+Raw fish that has cooked on a lit campfire. It is food the player carries in the backpack. It fills hunger more than raw fish and does not make the player sick. It never burns.
+_Avoid_: Roast fish, grilled fish
+
 **Snare**:
 A trap the player sets to catch rabbits.
 

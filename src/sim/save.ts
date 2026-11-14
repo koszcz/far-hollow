@@ -44,6 +44,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addSleds,
   layPlankRoofs,
   giveFishingLine,
+  cookFishOnCampfires,
 ];
 
 /** The version of the save format this code writes. */
@@ -84,6 +85,8 @@ export const SLEDS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSleds) + 2;
 export const PLANK_ROOFS_SAVE_VERSION = SAVE_UPGRADES.indexOf(layPlankRoofs) + 2;
 /** The first save version in which the player has a fishing line, for crafting the fishing rod. */
 export const FISHING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveFishingLine) + 2;
+/** The first save version that can hold cooked fish and fish on a campfire. */
+export const COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookFishOnCampfires) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -244,7 +247,7 @@ function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<strin
 
 /**
  * For a version that added something older saves never hold, such as a new kind of structure. The save carries over unchanged.
- * Versions 10, 11, 12, 17, 19, and 23 did this. New kinds no longer need a version of their own.
+ * Versions 10, 11, 12, 17, 19, 23, and 26 did this. New kinds no longer need a version of their own.
  */
 function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
@@ -472,4 +475,12 @@ function layPlankRoofs(save: Readonly<Record<string, unknown>>): Record<string, 
  */
 function giveFishingLine(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return giveStartingItem(save, "fishingLine", ["fishingRod"]);
+}
+
+/**
+ * Version 25 to 26: the player can cook fish on a campfire, and carry cooked fish. A save from before then has no fish on
+ * any campfire and no cooked fish, so it carries over unchanged.
+ */
+function cookFishOnCampfires(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

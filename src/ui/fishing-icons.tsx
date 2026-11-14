@@ -1,5 +1,5 @@
 // Backpack icons for fishing gear and fish, the approved "fishing-icons" asset in asset-manifest.json. Built in code.
-// Added by fishing ticket 01. Fishing ticket 02 added raw fish. The owner approved the polished version, with the coiled hank of line, on 2026-11-14. BackpackIcon in backpack-icons.tsx draws them, in the same style as the approved "backpack-icons".
+// Added by fishing ticket 01. Fishing ticket 02 added raw fish, and ticket 03 cooked fish. The owner approved the polished version, with the coiled hank of line, on 2026-11-14. BackpackIcon in backpack-icons.tsx draws them, in the same style as the approved "backpack-icons".
 import type { BackpackContent, Fish, FishingContent } from "../sim/api";
 import type { BackpackIconDrawing } from "./icon-drawing";
 
@@ -14,6 +14,13 @@ const FISH_BACK = "#7f9a86";
 const FISH_BELLY = "#e4d9c2";
 const FISH_STRIPE = "#d99a94";
 const FISH_EYE = "#2a2622";
+/** A cooked trout: browned skin, a golden belly, and dark grill marks from the fire. */
+const COOKED_BACK = "#8a5a32";
+const COOKED_BELLY = "#d9a35c";
+const COOKED_MARK = "#3d2614";
+/** A cooked eye turns small, pale, and cloudy, half hidden under a browned lid of skin. */
+const COOKED_EYE = "#d2c5ad";
+const COOKED_LID = "#6e4526";
 const GILL = "#4c6354";
 
 /** A thin steel hook with a barb, drawn as a filled J so it stays finer than a stroked line. One hangs from the hank, one from the rod tip. */
@@ -58,6 +65,17 @@ export const FISHING_DRAWINGS: Readonly<Record<FishingContent | Fish, BackpackIc
       { d: "M8.4 8.9c1 1.5 1 3.7 0 5.2", as: "shine", colour: GILL },
       { d: "M4.9 10.4a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0-2.8 0", as: "fill", colour: FISH_BELLY },
       { d: "M5.6 10.4a.7 .7 0 1 0 1.4 0a.7 .7 0 1 0-1.4 0", as: "fill", colour: FISH_EYE },
+    ],
+  },
+  /** The same trout, cooked: browned skin, a golden belly, dark marks from the fire across its side, and a small, cloudy, half-closed eye. */
+  cookedFish: {
+    colour: COOKED_BACK,
+    parts: [
+      { d: "M2.5 12c3-4.5 9-5.5 14-2.5L21.5 6v12l-5-3.5c-5 3-11 2-14-2.5z", as: "fill" },
+      { d: "M4.5 13.5c3.5 2.5 8 2.6 11.5.6", as: "line", colour: COOKED_BELLY },
+      { d: "M8.5 9.5l-1 5M11.5 9l-1 6M14.5 9.5l-1 5", as: "line", colour: COOKED_MARK },
+      { d: "M5.25 10.5a1.05 1.05 0 1 0 2.1 0a1.05 1.05 0 1 0-2.1 0", as: "fill", colour: COOKED_EYE },
+      { d: "M5.2 10.6a1.1 1.1 0 0 1 2.2 0z", as: "fill", colour: COOKED_LID },
     ],
   },
 };

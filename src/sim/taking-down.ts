@@ -54,7 +54,7 @@ type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
 /**
  * Why the player could not take a structure down.
- * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a chest or woodpile that still holds something, or a campfire with a pot on it.
+ * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a chest or woodpile that still holds something, or a campfire with a pot or fish on it.
  */
 export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
 
@@ -62,7 +62,7 @@ export interface TakingDown {
   /**
    * Sets the player walking to a blueprint or finished structure to take it down.
    * Does nothing if the entity is not one the player can take down. Returns a refusal if another structure stands on it,
-   * or if it is a chest or woodpile that still holds something, or a campfire with a pot on it.
+   * or if it is a chest or woodpile that still holds something, or a campfire with a pot or fish on it.
    */
   start(structureId: number): TakeDownRefusal | undefined;
   /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
@@ -234,12 +234,12 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
 }
 
 /**
- * Whether a structure is a chest or woodpile with anything in it, or a campfire with a pot on it.
+ * Whether a structure is a chest or woodpile with anything in it, or a campfire with a pot or fish on it.
  * It must be emptied before it comes down, so nothing in it is lost.
  * A loaded sled can come down: its logs are laid on the ground beside it first.
  */
 export function holdsSomething(structure: Entity): boolean {
-  if (structure.potOnFire !== undefined) return true;
+  if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined) return true;
   const counts = [...Object.values(structure.chest?.contents ?? {}), ...Object.values(structure.woodpile ?? {})];
   return counts.some((count) => count > 0);
 }

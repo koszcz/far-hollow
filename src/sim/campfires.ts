@@ -2,6 +2,7 @@ import type { CampfireFuel, CampfireView } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridSquare } from "./build-grid";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
+import { cookProgress, FISH_ON_FIRE_LIMIT, isCooked } from "./fish-on-fire";
 import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./valley";
@@ -95,7 +96,7 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       if (campfire === undefined) return undefined;
       const { lit, fuelMinutes } = campfire.campfire;
       const fits = (fuel: CampfireFuel): boolean => fuelMinutes + FUEL_BURN_MINUTES[fuel] <= CAMPFIRE_FUEL_LIMIT_MINUTES;
-      const { potOnFire } = campfire;
+      const { potOnFire, fishOnFire = [] } = campfire;
       return Object.freeze({
         id: campfireId,
         lit,
@@ -104,6 +105,8 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
         canLight: canLight(campfire),
         fits: Object.freeze({ stick: fits("stick"), firewood: fits("firewood"), bark: fits("bark") }),
         pot: potOnFire === undefined ? null : Object.freeze({ water: potOnFire.water, boilProgress: boilProgress(potOnFire) }),
+        fish: Object.freeze(fishOnFire.map((fish) => Object.freeze({ cooked: isCooked(fish), cookProgress: cookProgress(fish) }))),
+        fitsFish: fishOnFire.length < FISH_ON_FIRE_LIMIT,
       });
     },
     light(campfireId) {

@@ -1,4 +1,4 @@
-// Where the player is drawn while sawing planks, part of the draft "sawing-animation" in asset-manifest.json.
+// Where the player is drawn while sawing planks, part of the "sawing-animation" in asset-manifest.json. The owner approved it.
 // Game logic stops the player anywhere near the sawhorse. To saw, they step up beside its beam and face it, with the
 // log lying along the beam in front of them. When sawing stops, they step back to where game logic has them.
 // Game logic's record of where the player stands does not change.

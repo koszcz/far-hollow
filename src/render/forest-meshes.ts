@@ -1,4 +1,5 @@
-// Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs" (approved), and "sticks" (draft) in asset-manifest.json.
+// Places trees, stumps, logs, and sticks in the valley: "trees", "stumps", "logs" (approved), and "sticks" (approved) in asset-manifest.json.
+// Sticks come in the four ground shapes from stick-shape.ts, one batch per shape.
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
 // Trees far from the camera draw with the "far-trees" asset (approved), built in tree-far-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
@@ -26,7 +27,7 @@ import { facingRadians } from "./structure-look";
 import { createFarTreeShape, FAR_TREE_METRES } from "./tree-far-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
-import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
+import { createGroundStickGeometry, GROUND_STICK_SHAPE_COUNT, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
@@ -94,12 +95,32 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   // Shadows always come from the real shape.
   const trees = [...treeEntities(entities)];
   const trunkMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
-    dark: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.trunk.dark, flatShading: true })),
-    light: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.trunk.light, flatShading: true })),
+    dark: track(
+      new THREE.MeshStandardMaterial({
+        color: TREE_COLOURS.trunk.dark,
+        flatShading: true,
+      }),
+    ),
+    light: track(
+      new THREE.MeshStandardMaterial({
+        color: TREE_COLOURS.trunk.light,
+        flatShading: true,
+      }),
+    ),
   };
   const crownMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
-    dark: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.crown.dark, flatShading: true })),
-    light: track(new THREE.MeshStandardMaterial({ color: TREE_COLOURS.crown.light, flatShading: true })),
+    dark: track(
+      new THREE.MeshStandardMaterial({
+        color: TREE_COLOURS.crown.dark,
+        flatShading: true,
+      }),
+    ),
+    light: track(
+      new THREE.MeshStandardMaterial({
+        color: TREE_COLOURS.crown.light,
+        flatShading: true,
+      }),
+    ),
   };
   const seeThrough = addTreeSeeThrough([...Object.values(trunkMaterials), ...Object.values(crownMaterials)]);
   for (const shape of treeShapes) {
@@ -121,12 +142,22 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   const treesOfMesh = new Map<THREE.Object3D, { batch: CulledBatch; trees: Tree[] }>();
   const treeBatches = treeShapes.map((shape, type) => {
     const ofType = treesOfType[type] ?? [];
-    const trunk = { geometry: shape.trunk, material: trunkMaterials[shape.trunkTone] };
-    const crown = { geometry: shape.crown, material: crownMaterials[shape.crownTone] };
+    const trunk = {
+      geometry: shape.trunk,
+      material: trunkMaterials[shape.trunkTone],
+    };
+    const crown = {
+      geometry: shape.crown,
+      material: crownMaterials[shape.crownTone],
+    };
     const farShape = createFarTreeShape(shape);
     track(farShape.trunk);
     track(farShape.crown);
-    const near = track(createCulledBatch([trunk, crown], ofType.length, true, { to: FAR_TREE_METRES }));
+    const near = track(
+      createCulledBatch([trunk, crown], ofType.length, true, {
+        to: FAR_TREE_METRES,
+      }),
+    );
     const far = track(
       createCulledBatch(
         [
@@ -156,7 +187,12 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
 
   // Stumps: one batch per bark tone. A tree's stump keeps the tree's size and turn, and its foot is as wide as the trunk's.
   const stumpGeometry = track(stumpShape.geometry);
-  const cutMaterial = track(new THREE.MeshStandardMaterial({ color: STUMP_TOP_COLOUR, flatShading: true }));
+  const cutMaterial = track(
+    new THREE.MeshStandardMaterial({
+      color: STUMP_TOP_COLOUR,
+      flatShading: true,
+    }),
+  );
   const stumpFits = treeShapes.map((shape) => stumpFit(shape.trunk, stumpShape));
   const stumpBatches: Record<TreeTone, THREE.InstancedMesh> = {
     dark: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], Math.max(1, trees.length))),
@@ -172,7 +208,12 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   const logGeometry = track(logShape.geometry);
   const logMaterials = [
     track(new THREE.MeshStandardMaterial({ color: LOG_COLOUR, flatShading: true })),
-    track(new THREE.MeshStandardMaterial({ color: LOG_CUT_COLOUR, flatShading: true })),
+    track(
+      new THREE.MeshStandardMaterial({
+        color: LOG_CUT_COLOUR,
+        flatShading: true,
+      }),
+    ),
   ];
   const logCapacity = Math.max(1, trees.length * LOGS_PER_TREE);
   const logs = track(new THREE.InstancedMesh(logGeometry, logMaterials, logCapacity));
@@ -183,31 +224,60 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
 
   // Debarked logs on the ground: the same shape as logs, painted pale, with room for every log the valley's trees can give.
   const debarkedLogGeometry = track(createDebarkedLogGeometry(logShape.geometry));
-  const debarkedLogMaterial = track(new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true }));
+  const debarkedLogMaterial = track(
+    new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      flatShading: true,
+      vertexColors: true,
+    }),
+  );
   const debarkedLogs = track(new THREE.InstancedMesh(debarkedLogGeometry, debarkedLogMaterial, logCapacity));
   debarkedLogs.count = 0;
   debarkedLogs.frustumCulled = false;
   group.add(debarkedLogs);
   let debarkedLogsDrawn: Entity[] = [];
 
-  // Sticks on the ground: one batch, with room for every stick the valley starts with.
-  // Taking down a structure can leave more sticks than that, so the batch grows when it runs out of room.
-  const stickGeometry = track(createStickGeometry());
+  // Sticks on the ground: one batch per stick shape, each with room for every stick the valley starts with.
+  // Taking down a structure can leave more sticks than that, so the batches grow when they run out of room.
+  const stickGeometries = Array.from({ length: GROUND_STICK_SHAPE_COUNT }, (_, shape) => track(createGroundStickGeometry(shape)));
+  // Each shape's length along x, so its pick box is as long as the stick.
+  const stickLengths = stickGeometries.map((geometry) => {
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox ?? new THREE.Box3();
+    return {
+      length: box.max.x - box.min.x,
+      middle: (box.max.x + box.min.x) / 2,
+    };
+  });
   // The stick geometry carries pale cut ends as vertex colours. Each stick also gets its own shade of bark.
-  const stickMaterial = track(new THREE.MeshStandardMaterial({ color: STICK_COLOUR, flatShading: true, vertexColors: true }));
+  const stickMaterial = track(
+    new THREE.MeshStandardMaterial({
+      color: STICK_COLOUR,
+      flatShading: true,
+      vertexColors: true,
+    }),
+  );
   // An invisible, wider copy of each stick that clicks are tested against, because the drawn sticks are too thin to hit.
   const stickPickGeometry = track(new THREE.BoxGeometry(STICK_LENGTH_METRES, STICK_PICK_WIDTH_METRES, STICK_PICK_WIDTH_METRES));
   const stickPickMaterial = track(new THREE.MeshBasicMaterial());
   let stickCapacity = 0;
-  let sticks = new THREE.InstancedMesh(stickGeometry, stickMaterial, 1);
+  let sticks = stickGeometries.map((geometry) => new THREE.InstancedMesh(geometry, stickMaterial, 1));
   let stickPickers = new THREE.InstancedMesh(stickPickGeometry, stickPickMaterial, 1);
   makeRoomForSticks(Math.max(1, stickEntities(entities).size));
   let sticksDrawn: Entity[] = [];
+  /** Where each drawn stick sits: its shape's batch and its place in that batch. In the same order as `sticksDrawn`. */
+  let stickSlots: { shape: number; slot: number }[] = [];
   const stickShade = new THREE.Color();
+  const pickMatrix = new THREE.Matrix4();
+  const pickOffset = new THREE.Matrix4();
 
   // Falling trees: a few short-lived meshes that share the tree shapes.
   /** `axis` is what the pivot turns about to tip the tree's top away from the player. */
-  const falling: { pivot: THREE.Group; axis: THREE.Vector3; startSeconds: number | undefined }[] = [];
+  const falling: {
+    pivot: THREE.Group;
+    axis: THREE.Vector3;
+    startSeconds: number | undefined;
+  }[] = [];
   const players = playerEntities(entities);
 
   const standing = treeEntities(entities).connect();
@@ -354,14 +424,19 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
 
   /** Swaps the stick batches for bigger ones, with room for `capacity` sticks. The old batches are thrown away. */
   function makeRoomForSticks(capacity: number): void {
-    group.remove(sticks);
-    sticks.dispose();
+    for (const batch of sticks) {
+      group.remove(batch);
+      batch.dispose();
+    }
     stickPickers.dispose();
     stickCapacity = capacity;
-    sticks = new THREE.InstancedMesh(stickGeometry, stickMaterial, capacity);
-    sticks.count = 0;
-    sticks.frustumCulled = false;
-    group.add(sticks);
+    sticks = stickGeometries.map((geometry) => {
+      const batch = new THREE.InstancedMesh(geometry, stickMaterial, capacity);
+      batch.count = 0;
+      batch.frustumCulled = false;
+      group.add(batch);
+      return batch;
+    });
     stickPickers = new THREE.InstancedMesh(stickPickGeometry, stickPickMaterial, capacity);
     stickPickers.count = 0;
   }
@@ -370,21 +445,35 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     // Double the room each time it runs out, so a few more sticks do not rebuild the batch every time.
     if (stickQuery.size > stickCapacity) makeRoomForSticks(Math.max(stickQuery.size, stickCapacity * 2));
     sticksDrawn = [];
+    stickSlots = [];
+    for (const batch of sticks) batch.count = 0;
     for (const stick of stickQuery) {
       // Each stick lies at its own steady angle, picked from its spot.
       logRotation.setFromAxisAngle(up, lookFor(stick.position.x, stick.position.z) * Math.PI * 2);
       logPosition.set(stick.position.x, stick.position.y, stick.position.z);
       matrix.compose(logPosition, logRotation, logScale);
-      sticks.setMatrixAt(sticksDrawn.length, matrix);
-      stickPickers.setMatrixAt(sticksDrawn.length, matrix);
+      // Each stick's shape is picked from its spot too, so neighbouring sticks rarely match.
+      const shape = Math.min(GROUND_STICK_SHAPE_COUNT - 1, Math.floor(lookFor(stick.position.x + 0.5, stick.position.z - 0.5) * GROUND_STICK_SHAPE_COUNT));
+      const batch = sticks[shape];
+      const size = stickLengths[shape];
+      if (batch === undefined || size === undefined) continue;
+      const slot = batch.count;
+      batch.count += 1;
+      batch.setMatrixAt(slot, matrix);
+      // The pick box is stretched and moved along the stick to cover this shape.
+      pickOffset.makeTranslation(size.middle, 0, 0).scale(new THREE.Vector3(size.length / STICK_LENGTH_METRES, 1, 1));
+      pickMatrix.multiplyMatrices(matrix, pickOffset);
+      stickPickers.setMatrixAt(sticksDrawn.length, pickMatrix);
       stickShade.setScalar(1 + (lookFor(stick.position.z, stick.position.x) * 2 - 1) * STICK_SHADE_SPREAD);
-      sticks.setColorAt(sticksDrawn.length, stickShade);
+      batch.setColorAt(slot, stickShade);
       sticksDrawn.push(stick);
+      stickSlots.push({ shape, slot });
     }
-    sticks.count = sticksDrawn.length;
     stickPickers.count = sticksDrawn.length;
-    sticks.instanceMatrix.needsUpdate = true;
-    if (sticks.instanceColor !== null) sticks.instanceColor.needsUpdate = true;
+    for (const batch of sticks) {
+      batch.instanceMatrix.needsUpdate = true;
+      if (batch.instanceColor !== null) batch.instanceColor.needsUpdate = true;
+    }
     stickPickers.instanceMatrix.needsUpdate = true;
     // Clicks test this sphere first, so it must cover the sticks as they lie now.
     stickPickers.computeBoundingSphere();
@@ -432,17 +521,29 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         if (hit.instanceId === undefined) continue;
         if (hit.object === logs) {
           const log = logsDrawn[hit.instanceId];
-          if (log?.log !== undefined) return { hit: { kind: "log", entity: log }, distance: hit.distance };
+          if (log?.log !== undefined)
+            return {
+              hit: { kind: "log", entity: log },
+              distance: hit.distance,
+            };
           continue;
         }
         if (hit.object === debarkedLogs) {
           const log = debarkedLogsDrawn[hit.instanceId];
-          if (log?.debarkedLog !== undefined) return { hit: { kind: "debarkedLog", entity: log }, distance: hit.distance };
+          if (log?.debarkedLog !== undefined)
+            return {
+              hit: { kind: "debarkedLog", entity: log },
+              distance: hit.distance,
+            };
           continue;
         }
         if (hit.object === stickPickers) {
           const stick = sticksDrawn[hit.instanceId];
-          if (stick?.stick === true) return { hit: { kind: "stick", entity: stick }, distance: hit.distance };
+          if (stick?.stick === true)
+            return {
+              hit: { kind: "stick", entity: stick },
+              distance: hit.distance,
+            };
           continue;
         }
         const drawn = treesOfMesh.get(hit.object);
@@ -476,10 +577,18 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       }
       if (hit.kind === "debarkedLog") {
         const index = debarkedLogsDrawn.indexOf(hit.entity);
-        return index < 0 ? [] : [{ geometry: debarkedLogGeometry, matrix: placed(debarkedLogs, index) }];
+        return index < 0
+          ? []
+          : [
+              {
+                geometry: debarkedLogGeometry,
+                matrix: placed(debarkedLogs, index),
+              },
+            ];
       }
-      const index = sticksDrawn.indexOf(hit.entity);
-      return index < 0 ? [] : [{ geometry: stickGeometry, matrix: placed(sticks, index) }];
+      const where = stickSlots[sticksDrawn.indexOf(hit.entity)];
+      const batch = where === undefined ? undefined : sticks[where.shape];
+      return where === undefined || batch === undefined ? [] : [{ geometry: batch.geometry, matrix: placed(batch, where.slot) }];
     },
     dispose() {
       standing.disconnect();
@@ -489,7 +598,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       stickQuery.disconnect();
       for (const item of disposables) item.dispose();
       // The stick batches are swapped when they grow, so they are not in `disposables`.
-      sticks.dispose();
+      for (const batch of sticks) batch.dispose();
       stickPickers.dispose();
     },
   };

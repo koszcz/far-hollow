@@ -6,6 +6,7 @@ import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "..
 import { type PotLook, type PotMesh } from "../pot-shape";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "../firewood-shape";
 import { createSaw, SAW_TEETH_BELOW_GRIP_METRES } from "../saw-model";
+import { createFishingRod, FISHING_ROD_LENGTH_METRES } from "../fishing-rod-model";
 import { FOUR_ANGLES, NIGHT, BUILD_PLAY_REST_SECONDS, type Showcase } from "./types";
 
 /** How many stages a lean-to takes to build: one for each stick and each piece of bark. */
@@ -132,6 +133,23 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       }
     },
   },
+  // The draft "fishing-rod" the player holds while fishing, lying level along x, with the line tied at its tip.
+  "fishing-rod": {
+    radius: 1,
+    focus: { x: 0, y: 0.03, z: 0 },
+    shots: [
+      { label: "whole rod, side", yaw: 0, pitch: 20 },
+      { label: "whole rod, from above", yaw: 0, pitch: 70 },
+      { label: "butt and grip, close", yaw: 30, pitch: 25, radius: 0.3, focus: { x: -0.65, y: 0.02, z: 0 } },
+      { label: "joint and tip, close", yaw: -30, pitch: 25, radius: 0.45, focus: { x: 0.25, y: 0.02, z: 0 } },
+    ],
+    build({ addProp }) {
+      // The rod points along +z from its butt. Centred, then a quarter turn lays it along x with the butt to -x.
+      for (const { geometry, material } of createFishingRod().parts) {
+        addProp(geometry.translate(0, 0, -FISHING_ROD_LENGTH_METRES / 2), material, 0, 0, 0.015, Math.PI / 2);
+      }
+    },
+  },
   "steel-and-flint": {
     radius: 0.12,
     focus: { x: 0, y: 0.008, z: 0 },
@@ -193,7 +211,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       );
     },
   },
-  // The draft "fishing-piles": one and several of the fishing line and the fishing rod, with a knife for size.
+  // The draft "fishing-piles": one and several of the fishing line, the fishing rod, and raw fish, with a knife for size.
   "fishing-piles": {
     radius: 2.2,
     focus: { x: 0, y: 0.05, z: 0 },
@@ -201,7 +219,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "all fishing piles", yaw: 0, pitch: 40 },
       { label: "fishing lines, one and many", yaw: 20, pitch: 50, radius: 0.7, focus: { x: -0.9, y: 0, z: 0 } },
       { label: "fishing rods, one and many", yaw: -25, pitch: 35, radius: 2.4, focus: { x: 0.6, y: 0, z: 0.4 } },
-      { label: "beside a knife, close", yaw: 60, pitch: 25, radius: 0.6, focus: { x: -0.9, y: 0, z: -0.7 } },
+      { label: "raw fish, one and many, beside a knife", yaw: 30, pitch: 40, radius: 1.5, focus: { x: -0.4, y: 0, z: 0.2 } },
     ],
     build({ place }) {
       place(-0.9, -0.7, { pile: { content: "fishingLine", count: 1 } });
@@ -209,6 +227,8 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(-0.9, 0.4, { pile: { content: "fishingLine", count: 5 } });
       place(0.2, -0.3, { pile: { content: "fishingRod", count: 1 } });
       place(1, 0.6, { pile: { content: "fishingRod", count: 4 } });
+      place(-0.25, -0.75, { pile: { content: "rawFish", count: 1 } });
+      place(-0.3, 1.1, { pile: { content: "rawFish", count: 5 } });
     },
   },
   "fire-effect": {

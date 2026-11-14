@@ -493,6 +493,7 @@ const actionLabels = {
   build: strings.building,
   takeDown: strings.takingDown,
   craft: strings.crafting,
+  fish: strings.fishing,
 } as const;
 
 const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
@@ -502,6 +503,7 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
   build: "campfire",
   takeDown: "axe",
   craft: "axe",
+  fish: "droplet",
 };
 
 /** At or above this share of its limit, the backpack weight turns amber. */

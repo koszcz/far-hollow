@@ -3,7 +3,7 @@ import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
-export type { BackpackContent, CraftingContent, FishingContent, Food } from "./backpack";
+export type { BackpackContent, CraftingContent, Fish, FishingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
@@ -129,6 +129,13 @@ export type Command =
    * River water is not boiled, so drinking it fills thirst but makes the player sick.
    */
   | ({ type: "drinkFromRiver" } & GroundPoint)
+  /**
+   * Walk the player to the river bank nearest a spot on the river, given in metres, and fish there with the fishing rod.
+   * Each cast waits a random 15 to 45 game minutes for a fish, which goes in the backpack. The player casts again until
+   * they do something else or a fish gets away because the backpack is full. It is refused while they carry a log,
+   * and does nothing without a fishing rod.
+   */
+  | ({ type: "fish" } & GroundPoint)
   /** Walk the player to the riverbank nearest them and fill the empty pot with river water. */
   | { type: "fillPot" }
   /** Drink the water in the full pot. Boiled water fills thirst safely. Unboiled river water makes the player sick. */
@@ -231,6 +238,7 @@ export interface SleepView {
  * `letGoFirst`: the player tried to shoulder a log, gather, chop, build, or craft while dragging a sled.
  * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the `station`.
  * `cannotCraftYet`: the player tried a recipe while lacking the tool, work station, or materials it needs, listed in `lacks`.
+ * `fishGotAway`: a fish bit while the backpack was full, so it got away and the player stopped fishing.
  */
 export type Notice =
   | { readonly kind: PlainNotice }
@@ -242,7 +250,16 @@ export type GameNotice = Notice["kind"];
 
 /** A notice that needs nothing more than its kind to say what happened. */
 export type PlainNotice =
-  "collapsed" | "survivedFirstNight" | "backpackFull" | "chestFull" | "holdsUpPiece" | "stillHoldsSomething" | "saveBroken" | "putLogDownFirst" | "letGoFirst";
+  | "collapsed"
+  | "survivedFirstNight"
+  | "backpackFull"
+  | "chestFull"
+  | "holdsUpPiece"
+  | "stillHoldsSomething"
+  | "saveBroken"
+  | "putLogDownFirst"
+  | "letGoFirst"
+  | "fishGotAway";
 
 /**
  * What one save slot holds, as the start screen shows it.
@@ -388,7 +405,7 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 
 /**
  * Whether a command needs the player's hands free, so it is refused while they drag a sled:
- * shouldering a log, gathering, chopping, building, or crafting. Taking firewood goes in the backpack, so it does not.
+ * shouldering a log, gathering, chopping, building, crafting, or fishing. Taking firewood goes in the backpack, so it does not.
  */
 export function needsFreeHands(command: Command): boolean {
   switch (command.type) {
@@ -405,6 +422,7 @@ export function needsFreeHands(command: Command): boolean {
     case "deliverToBlueprint":
     case "takeDown":
     case "craft":
+    case "fish":
       return true;
     case "takeFromWoodpile":
       return command.wood !== "firewood";
@@ -428,9 +446,9 @@ export type ThingInReach =
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };
 
 export interface PlayerAction {
-  /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, or crafting. */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft";
-  /** How far along the work is, from 0 to 1. */
+  /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting, or fishing. */
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish";
+  /** How far along the work is, from 0 to 1. While fishing, how far through the wait for the next fish. */
   readonly progress: number;
 }
 

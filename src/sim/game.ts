@@ -44,6 +44,7 @@ import type { WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
+import { createFishing } from "./fishing";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
@@ -169,6 +170,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const sleds = createSleds(entities, walking, valley);
   const chests = createChests(entities, walking);
   const drinking = createDrinking(entities, walking, valley);
+  const fishing = createFishing(entities, walking, valley, seed);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
@@ -193,6 +195,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       },
     },
     drinking,
+    // Fish bite after a wait in game time, which a player slowed by a low need does not stretch.
+    {
+      cancel: () => {
+        fishing.cancel();
+      },
+      step: () => fishing.step(STEP_MS / REAL_MS_PER_GAME_MINUTE),
+    },
     pot,
     chests,
     piles,
@@ -541,6 +550,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     drinkFromRiver: (command) => {
       cancelTasks();
       drinking.drinkFromRiver({ x: command.x, z: command.z });
+    },
+    fish: (command) => {
+      startNew(() => fishing.fish({ x: command.x, z: command.z }));
     },
     putPotOnFire: tend,
     takePotOffFire: tend,

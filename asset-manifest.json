@@ -659,7 +659,7 @@
         "src/ui/icon-drawing.ts",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Backpack icons for fishing gear, drawn in the same style as backpack-icons: the fishing line, a wooden winder with pale line wound round its middle and a steel hook on the loose end; and the fishing rod, a thin rod lying at a slant, thicker at the butt and lashed with twine, with the line and hook hanging from its tip.",
+      "description": "Backpack icons for fishing gear and fish, drawn in the same style as backpack-icons: the fishing line, a wooden winder with pale line wound round its middle and a steel hook on the loose end; the fishing rod, a thin rod lying at a slant, thicker at the butt and lashed with twine, with the line and hook hanging from its tip; and raw fish, a whole trout lying on its side with a grey-green back, a pale belly, a pink stripe along its side, a dark eye, and a forked tail.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -923,12 +923,44 @@
         "src/render/fishing-pile-shapes.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "How the fishing line and the fishing rod look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with 30 cm of pale line trailing from its tip.",
+      "description": "How the fishing line, the fishing rod, and raw fish look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with 30 cm of pale line trailing from its tip. A raw fish is a 30 cm trout lying on its side: a grey-green body, a pale belly along its lower side, a dark eye, and a flat tail. The fishing animation hangs the same fish from the line.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "draft",
         "ticket": ".scratch/fishing/issues/01-fishing-rod.md"
+      }
+    },
+    {
+      "id": "fishing-rod",
+      "kind": "code",
+      "code": [
+        "src/render/fishing-rod-model.ts",
+        "src/render/player-mesh.ts"
+      ],
+      "description": "The fishing rod in the player's hands while they fish, matching the rod in fishing-piles: a thin wooden rod, 1.5 m long, made of two sticks joined end to end. It tapers from the butt to the tip, with a grip of twine where the right hand holds the butt, a lashing of twine where the sticks meet, and a knot of pale line at the tip. The player holds it at true size. The line runs from the tip and is drawn with the fishing animation.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fishing/issues/02-catch-fish.md"
+      }
+    },
+    {
+      "id": "fishing-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-fish-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts",
+        "src/sim/fishing.ts"
+      ],
+      "description": "The player fishing from the river bank, facing the spot on the river they clicked. The right hand holds the butt of the fishing rod and the left hand grips it a little further up. Each cast takes 1.4 seconds: the player swings the rod back over the right shoulder, leaning back a little, then whips it forward so the line flies out and lands on the water just past the edge. Then they wait with the rod held out over the water at chest height, its tip bobbing gently. In the last 1.6 seconds before a fish bites, they lift the rod high and draw the hands back, the line shortens, and a raw fish comes up out of the water hanging head down on the line. Then the next cast starts from there, as the fish goes in the backpack. The line is a thin pale strand from the rod tip. The axe goes on the back, and the rod shows in the hands only while fishing. The player lifts the rod from standing over 0.35 seconds, and lowers it the same way when fishing stops. It is posed in code over the idle clip.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fishing/issues/02-catch-fish.md"
       }
     },
     {

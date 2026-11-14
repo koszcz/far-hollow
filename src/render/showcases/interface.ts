@@ -58,14 +58,14 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the fishing line and the fishing rod in the backpack and the craft menu.
+  // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the fishing line, the fishing rod, and raw fish in the backpack and the craft menu.
   "fishing-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
       { label: "HUD: fishing line and the craft menu", yaw: 20, pitch: 35 },
       { label: "HUD: crafting the fishing rod", yaw: -20, pitch: 35 },
-      { label: "HUD: the fishing rod, made, with lines", yaw: 40, pitch: 35 },
+      { label: "HUD: the fishing rod, lines, and raw fish", yaw: 40, pitch: 35 },
       { label: "Icons, large", yaw: 20, pitch: 35 },
     ],
     build({ movePlayer }) {

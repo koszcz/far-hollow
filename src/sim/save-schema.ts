@@ -111,6 +111,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   tendTask: tendCommand,
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
+  fishTask: shape({ x: finite, z: finite, minutesWaited: finite, biteAfterMinutes: finite }),
+  fishCasts: count,
   drinkTask: point,
   sickness: shape({ minutesLeft: finite }),
   fillPotTask: point,
@@ -152,6 +154,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   letGoFirst: {},
   noLogBesideStation: { station: workStation },
   cannotCraftYet: { lacks: list(recipeLack) },
+  fishGotAway: {},
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

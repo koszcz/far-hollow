@@ -3,7 +3,7 @@
 // The owner approved the steel and flint icon, a C-steel, a flint shard, and sparks, on 2026-11-12.
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
 import { useId } from "preact/hooks";
-import type { BackpackContent, CraftingContent, FishingContent } from "../sim/api";
+import type { BackpackContent, CraftingContent, Fish, FishingContent } from "../sim/api";
 import { CRAFTING_DRAWINGS, isCraftingContent } from "./crafting-icons";
 import { FISHING_DRAWINGS, isFishingContent } from "./fishing-icons";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
@@ -41,9 +41,9 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear in the draft "fishing-icons" asset.
+ * and fishing gear and fish in the draft "fishing-icons" asset.
  */
-const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent | FishingContent>, BackpackIconDrawing>> = {
+const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent | FishingContent | Fish>, BackpackIconDrawing>> = {
   /** A steel axe head on a red-painted handle. */
   axe: {
     colour: STEEL,

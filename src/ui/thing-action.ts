@@ -10,6 +10,7 @@ export type ActionIcon = { readonly hud: HudIconName } | { readonly content: Bac
 export type ActionId =
   | "walk"
   | "drink"
+  | "fish"
   | "chop"
   | "pickUp"
   | "debark"

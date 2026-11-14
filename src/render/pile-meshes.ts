@@ -6,7 +6,7 @@
 // the "pot", the bedroll lies as the "rolled-bedroll", and the steel and flint as the "steel-and-flint". The other tools and
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
-// The fishing line and the fishing rod are the draft "fishing-piles" asset, built in fishing-pile-shapes.ts.
+// The fishing line, the fishing rod, and raw fish are the draft "fishing-piles" asset, built in fishing-pile-shapes.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
@@ -326,6 +326,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     plank: spread(0.12),
     fishingLine: spread(0.08),
     fishingRod: spread(0.1),
+    rawFish: spread(0.12),
     berries: spread(0.06),
     mushroom: spread(0.1),
     bedroll: spread(0.3),

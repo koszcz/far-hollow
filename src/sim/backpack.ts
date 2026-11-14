@@ -13,8 +13,14 @@ export type CraftingContent = "sawBlade" | "saw" | "plank";
 /** Fishing gear: the fishing line, from the starting kit, and the fishing rod, a tool crafted from it. */
 export type FishingContent = "fishingLine" | "fishingRod";
 
-/** Wild food the player forages and eats. One "berries" is a handful of berries. */
-export type Food = "berries" | "mushroom";
+/** Wild food the player forages. One "berries" is a handful of berries. */
+export type WildFood = "berries" | "mushroom";
+
+/** Fish the player catches at the river. Raw fish makes the player sick if they eat it. */
+export type Fish = "rawFish";
+
+/** Everything the player can eat from the backpack. */
+export type Food = WildFood | Fish;
 
 /**
  * The pot, by what it holds. The player has one pot, so the backpack holds at most one of these.
@@ -53,6 +59,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   plank: 2,
   fishingLine: 0.1,
   fishingRod: 0.5,
+  rawFish: 0.5,
 };
 
 /** What the player starts a new game with. */

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { SleepView, StructureKind, ThingInReach } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { REACH_SECONDS } from "../sim/hand-reach";
+import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
@@ -14,7 +15,7 @@ import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
-import { createPlayerMesh } from "./player-mesh";
+import { createPlayerMesh, type Fishing } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
@@ -30,6 +31,14 @@ import { createValleyMeshes } from "./valley-meshes";
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
 const CAMERA_NEAR_METRES = 0.1;
 const CAMERA_FAR_METRES = 4000;
+/** How far the fishing line lands beyond the water's edge, in metres. */
+const FLOAT_PAST_EDGE_METRES = 1;
+/** The line lands at least this far, and at most this far, in front of the player's feet, in metres. */
+const FLOAT_MIN_METRES = 2;
+const FLOAT_MAX_METRES = 6;
+/** Drawing keeps its own clock for each cast. It starts the cast again if game logic is this many seconds away from it. */
+const FISHING_DRIFT_SECONDS = 0.5;
+
 /** The player turns to face where they walk only when they move further than this in one frame, in metres. */
 const TURN_MIN_TRAVEL_METRES = 0.001;
 
@@ -194,6 +203,43 @@ export function createSceneRenderer(
   /** Steps the drawn player up to the sawhorse to saw planks, and back when sawing stops. */
   const sawingStep = createSawingStep();
 
+  /**
+   * The cast drawn now: when it began on the frame clock, in seconds, and where its line lands, from the player's feet.
+   * Game logic moves fishing on once per step, so drawing runs its own clock from the cast to keep the motion smooth.
+   */
+  let castDrawn: { since: number; floatForward: number; floatHeight: number } | undefined;
+
+  /** How the player fishes this frame, from the fishing in game logic. The player stands at `from`, facing the water. */
+  function fishingDrawn(nowSeconds: number, task: NonNullable<Entity["fishTask"]>, from: { x: number; y: number; z: number }): Fishing {
+    const secondsPerMinute = REAL_MS_PER_GAME_MINUTE / 1000;
+    const loggedSinceCast = task.minutesWaited * secondsPerMinute;
+    if (castDrawn === undefined || Math.abs(nowSeconds - castDrawn.since - loggedSinceCast) > FISHING_DRIFT_SECONDS) {
+      castDrawn = { since: nowSeconds - loggedSinceCast, ...floatSpot(task, from) };
+    }
+    const sinceCast = nowSeconds - castDrawn.since;
+    return {
+      nowSeconds,
+      sinceCast,
+      toBite: Math.max(0, task.biteAfterMinutes * secondsPerMinute - sinceCast),
+      floatForward: castDrawn.floatForward,
+      floatHeight: castDrawn.floatHeight,
+    };
+  }
+
+  /** Where the line lands: just past the water's edge, towards the spot the player fishes, from their feet. */
+  function floatSpot(spot: GroundPoint, from: { x: number; y: number; z: number }): { floatForward: number; floatHeight: number } {
+    const away = Math.hypot(spot.x - from.x, spot.z - from.z) || 1;
+    const along = (metres: number): GroundPoint => ({ x: from.x + ((spot.x - from.x) / away) * metres, z: from.z + ((spot.z - from.z) / away) * metres });
+    let edge = FLOAT_MIN_METRES;
+    for (let metres = 0; metres <= FLOAT_MAX_METRES; metres += 0.25) {
+      edge = metres;
+      if (distanceToRiver(valley.river, along(metres)) <= valley.river.width / 2) break;
+    }
+    const forward = Math.min(FLOAT_MAX_METRES, Math.max(FLOAT_MIN_METRES, edge + FLOAT_PAST_EDGE_METRES));
+    const edgeSpot = along(edge);
+    return { floatForward: forward, floatHeight: terrainHeightAt(valley.terrain, edgeSpot.x, edgeSpot.z) - from.y };
+  }
+
   const moving = movingEntities(entities);
   const blended = { x: 0, y: 0, z: 0 };
   const raycaster = new THREE.Raycaster();
@@ -233,6 +279,11 @@ export function createSceneRenderer(
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
     playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
+    // Fishing casts the line out over the water, waits, and reels a fish in, facing the spot on the river.
+    const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;
+    if (fishTask === undefined) castDrawn = undefined;
+    playerMesh.setFishing(fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
+    if (fishTask !== undefined) playerMesh.setHeading(Math.atan2(fishTask.x - playerDrawn.x, fishTask.z - playerDrawn.z));
     // Cutting planks saws. Making the saw, a hand recipe, swings instead. The player steps up beside the beam to saw, and back when sawing stops.
     const sawhorse = activity?.kind === "craft" && player.craftTask?.recipe === "planks" && target?.position !== undefined ? target : undefined;
     playerMesh.setSawing(sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);

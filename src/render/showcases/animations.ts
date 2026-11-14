@@ -1,4 +1,5 @@
 // Showcases for player and world animations. Each one plays live with &play. The registry is src/render/showcases/index.ts.
+import * as THREE from "three";
 import { CHOP_SECONDS } from "../../sim/chopping";
 import { PLANKS_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
@@ -13,6 +14,9 @@ import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_R
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "../player-mesh";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
+import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
+import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
+import { FISH_CAST_SECONDS, FISH_OUT_OF_WATER_SHARE, FISH_REEL_SECONDS, FISH_SWUNG_BACK_SHARE, FISH_WHIPPED_SHARE } from "../player-fish-pose";
 import {
   SLEEP_DARK_AT,
   SLEEP_LAID_DOWN_AT,
@@ -58,6 +62,29 @@ const REACH_SHOWCASE_METRES = 0.45;
 
 /** How long the player stands after sawing before the "sawing-animation" plays again, in seconds. */
 const SAW_PLAY_REST_SECONDS = 1.2;
+
+/**
+ * How long each wait for a fish lasts in the "fishing-animation" showcase, in seconds: the shortest wait in the game.
+ * The player casts this many times, then lowers the rod and rests before it plays again.
+ */
+const FISH_PLAY_WAIT_SECONDS = (FISH_MIN_WAIT_MINUTES * REAL_MS_PER_GAME_MINUTE) / 1000;
+const FISH_PLAY_CASTS = 2;
+const FISH_PLAY_REST_SECONDS = 1.5;
+/** Where the line lands in the "fishing-animation" showcase, in front of the player's feet, in metres. */
+const FISH_SHOWCASE_FLOAT_METRES = 3.5;
+/** A flat stand-in for the water in the "fishing-animation" showcase, which stands on flat ground away from the river. */
+const FISH_SHOWCASE_POOL = { from: 2.2, to: 6.5, width: 5, lift: 0.01, colour: 0x3f8f9c };
+
+/** Fishing as the "fishing-animation" showcase shows it, `sinceCast` seconds into a cast that waits FISH_PLAY_WAIT_SECONDS. */
+function fishingAt(nowSeconds: number, sinceCast: number) {
+  return {
+    nowSeconds,
+    sinceCast,
+    toBite: Math.max(0, FISH_PLAY_WAIT_SECONDS - sinceCast),
+    floatForward: FISH_SHOWCASE_FLOAT_METRES,
+    floatHeight: FISH_SHOWCASE_POOL.lift,
+  };
+}
 
 /** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
 const CHOP_PLAY_REST_SECONDS = 1.2;
@@ -302,6 +329,40 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose({ player }, seconds) {
         const cycle = seconds % (PLANKS_CRAFT_SECONDS + SAW_PLAY_REST_SECONDS);
         player.setSawing(cycle < PLANKS_CRAFT_SECONDS ? { nowSeconds: cycle, progress: cycle / PLANKS_CRAFT_SECONDS } : undefined);
+        return undefined;
+      },
+    },
+  },
+  // The draft "fishing-animation": the player casts the draft "fishing-rod" out over a stand-in pool, waits, and reels in a raw fish.
+  "fishing-animation": {
+    radius: 2.6,
+    focus: { x: 0, y: 1, z: 1.4 },
+    shots: [
+      { label: "rod swung back", seconds: FISH_SWUNG_BACK_SHARE * FISH_CAST_SECONDS },
+      { label: "whipped forward", seconds: FISH_WHIPPED_SHARE * FISH_CAST_SECONDS },
+      { label: "waiting for a bite", seconds: FISH_CAST_SECONDS + 3 },
+      { label: "reeling the fish in", seconds: FISH_PLAY_WAIT_SECONDS - FISH_REEL_SECONDS * (1 - (FISH_OUT_OF_WATER_SHARE + 1) / 2) },
+    ].map(({ label, seconds }) => ({ label, yaw: 70, pitch: 12, seconds })),
+    build({ addProp, movePlayer }) {
+      const pool = FISH_SHOWCASE_POOL;
+      const water = new THREE.PlaneGeometry(pool.width, pool.to - pool.from).rotateX(-Math.PI / 2);
+      addProp(water, new THREE.MeshStandardMaterial({ color: pool.colour, roughness: 0.3 }), 0, (pool.from + pool.to) / 2, pool.lift);
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      // Start fishing afresh for each view, with the rod already lifted, so the view shows the cast `shot.seconds` in.
+      const seconds = shot.seconds ?? 0;
+      player.setFishing(undefined);
+      player.setFishing(fishingAt(0, seconds));
+      player.setFishing(fishingAt(10, seconds));
+    },
+    // The player casts and catches a fish twice, at the shortest wait the game has, lowers the rod, rests, then starts again.
+    play: {
+      shot: { label: "casting, waiting, and reeling in", yaw: 70, pitch: 12 },
+      pose({ player }, seconds) {
+        const fishing = FISH_PLAY_WAIT_SECONDS * FISH_PLAY_CASTS;
+        const cycle = seconds % (fishing + FISH_PLAY_REST_SECONDS);
+        player.setFishing(cycle < fishing ? fishingAt(cycle, cycle % FISH_PLAY_WAIT_SECONDS) : undefined);
         return undefined;
       },
     },

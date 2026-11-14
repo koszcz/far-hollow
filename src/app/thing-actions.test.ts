@@ -231,6 +231,13 @@ describe("actions while dragging a sled", () => {
     expect(summary(actionsFor(scene({ kind: "stick", id: 5 }), reader))[0]).toBe("pickUp main off: let go of the sled first");
   });
 
+  it("turns off fishing, but not drinking", () => {
+    const river: ActionTarget = { kind: "scene", pick: { kind: "river", spot: { x: 1, z: 2 } } };
+    const reader = readerWith({ backpack: { fishingRod: 1 }, dragging: 12 });
+
+    expect(summary(actionsFor(river, reader))).toEqual(["drink main", "fish off: let go of the sled first"]);
+  });
+
   it("still lets the player eat and drink", () => {
     const reader = readerWith({ backpack: { berries: 2 }, dragging: 12 });
 
@@ -249,6 +256,30 @@ describe("other things' actions", () => {
     const actions = actionsFor(scene({ kind: "ground", spot: { x: 1, z: 2 } }), readerWith({ carrying: "debarkedLog" }));
     expect(summary(actions)).toEqual(["walk main", "dropHere"]);
     expect(actions[1]?.command).toEqual({ type: "dropLogAt", x: 1, z: 2 });
+  });
+
+  it("drinks from the river, then fishes there with the fishing rod", () => {
+    const actions = actionsFor(scene({ kind: "river", spot: { x: 1, z: 2 } }), readerWith({ backpack: { fishingRod: 1 } }));
+
+    expect(summary(actions)).toEqual(["drink main", "fish"]);
+    expect(find(actions, "fish")).toMatchObject({ label: "Fish", command: { type: "fish", x: 1, z: 2 } });
+  });
+
+  it("says fishing needs the fishing rod, and free hands", () => {
+    const river = scene({ kind: "river", spot: { x: 1, z: 2 } });
+
+    expect(summary(actionsFor(river, readerWith({ backpack: { fishingLine: 1 } })))).toEqual(["drink main", "fish off: needs the fishing rod"]);
+    expect(summary(actionsFor(river, readerWith({ backpack: { fishingRod: 1 }, carrying: "log" })))).toEqual([
+      "drink main",
+      "fish off: put the log down first",
+    ]);
+  });
+
+  it("eats raw fish from the backpack", () => {
+    const actions = actionsFor({ kind: "backpackContent", content: "rawFish" }, readerWith({ backpack: { rawFish: 2 } }));
+
+    expect(summary(actions)).toEqual(["use main", "drop"]);
+    expect(actions[0]).toMatchObject({ label: "Eat", command: { type: "eat", food: "rawFish" } });
   });
 
   it("chops a tree, and says it needs the axe without one", () => {

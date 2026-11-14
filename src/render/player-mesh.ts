@@ -11,6 +11,8 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
+// While fishing, the draft "fishing-animation", posed in code by player-fish-pose.ts, casts the draft "fishing-rod",
+// built by fishing-rod-model.ts, waits, then reels in a raw fish from the draft "fishing-piles". The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -24,6 +26,9 @@ import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
 import { createSaw } from "./saw-model";
+import { createFishingRod } from "./fishing-rod-model";
+import { rawFishParts } from "./fishing-pile-shapes";
+import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt } from "./sleep-animation";
@@ -112,6 +117,8 @@ export interface PlayerMesh {
   setSawing(sawing: { nowSeconds: number; progress: number } | undefined): void;
   /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setBuilding(nowSeconds: number | undefined): void;
+  /** Fishes with the rod held out over the water, as player-fish-pose.ts poses it. Pass undefined to stand upright. */
+  setFishing(fishing: Fishing | undefined): void;
   /**
    * Lies the player down to sleep, and gets them up again, as sleep-animation.ts times it. Pass the seconds since the
    * player reached the bedroll, or undefined while not sleeping.
@@ -125,6 +132,25 @@ export interface PlayerMesh {
   setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
   dispose(): void;
 }
+
+/**
+ * What the player mesh needs to pose fishing. `nowSeconds` is a steady real-time clock. `sinceCast` is the seconds since
+ * the latest cast began, and `toBite` the seconds until a fish bites. The line reaches the water `floatForward` metres in
+ * front of the player's feet and `floatHeight` metres above them.
+ */
+export interface Fishing {
+  readonly nowSeconds: number;
+  readonly sinceCast: number;
+  readonly toBite: number;
+  readonly floatForward: number;
+  readonly floatHeight: number;
+}
+
+/** How thick the fishing line is drawn, as a radius, in metres. It is thicker than true so it shows from the camera. */
+const FISHING_LINE_RADIUS_METRES = 0.004;
+/** How far the line hangs below the rod tip while it is drawn in, in metres. */
+const FISHING_LINE_SHORT_METRES = 0.45;
+const FISHING_LINE_COLOUR = 0xe8e2cc;
 
 /** playerModel is the loaded Barbarian, from loadPlayerModel. logShape is the loaded log, from loadLogShape. */
 export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): PlayerMesh {
@@ -292,6 +318,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * pose then, and how many seconds standing up takes.
    */
   let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt>; seconds: number } | undefined;
+  /** While fishing: when it began on the steady clock. `fishingAt` is the latest moment passed to `setFishing`. */
+  let fishingSince: number | undefined;
+  let fishingAt: Fishing | undefined;
 
   // The drawknife rides between the hands while debarking, placed from the wrists each frame.
   const drawknife = createDrawknife();
@@ -303,6 +332,28 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   saw.group.visible = false;
   saw.group.scale.setScalar(SAW_IN_HAND_SCALE);
   group.add(saw.group);
+  // The fishing rod rides in the right hand while fishing, its butt at the wrist. The line runs from its tip.
+  const rod = createFishingRod();
+  rod.group.visible = false;
+  group.add(rod.group);
+  const lineGeometry = new THREE.CylinderGeometry(FISHING_LINE_RADIUS_METRES, FISHING_LINE_RADIUS_METRES, 1, 4).translate(0, 0.5, 0);
+  geometries.push(lineGeometry);
+  const fishingLine = new THREE.Mesh(lineGeometry, material(FISHING_LINE_COLOUR, { roughness: 0.8 }));
+  fishingLine.visible = false;
+  group.add(fishingLine);
+  // The caught fish hangs head down from the end of the line.
+  const caughtFish = new THREE.Group();
+  const keepGeometry = <T extends { dispose(): void }>(made: T): T => {
+    if (made instanceof THREE.BufferGeometry) geometries.push(made);
+    return made;
+  };
+  for (const part of rawFishParts((colour) => material(colour), keepGeometry)) {
+    const mesh = new THREE.Mesh(part.geometry, part.material);
+    mesh.castShadow = true;
+    caughtFish.add(mesh);
+  }
+  caughtFish.visible = false;
+  group.add(caughtFish);
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -383,6 +434,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       buildingSince !== undefined ||
       debarkingSince !== undefined ||
       sawingSince !== undefined ||
+      fishingSince !== undefined ||
       sleepingAt !== undefined;
     placeAxe(!swinging && handsBusy);
   }
@@ -404,6 +456,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     blendFromReach();
     placeDrawknife();
     placeSaw();
+    placeFishingRod();
   }
 
   /** Every bone of the model, for blending whole poses. */
@@ -454,6 +507,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       pose = debarkPoseAt(debarkingAt - debarkingSince);
     } else if (sawingSince !== undefined) {
       pose = sawPoseAt(sawingAt.nowSeconds - sawingSince, sawingAt.progress, logThickness);
+    } else if (fishingSince !== undefined && fishingAt !== undefined) {
+      pose = fishPoseAt(fishingAt.sinceCast, fishingAt.toBite, fishingAt.nowSeconds - fishingSince).body;
     } else if (leavingBuild !== undefined) {
       const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
       // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
@@ -503,6 +558,41 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     if (!saw.group.visible) return;
     group.updateWorldMatrix(true, true);
     group.worldToLocal(rightArm.end.getWorldPosition(saw.group.position));
+  }
+
+  const rodTip = new THREE.Vector3();
+  const lineEnd = new THREE.Vector3();
+  const lineFloat = new THREE.Vector3();
+  const lineDirection = new THREE.Vector3();
+  const UP = new THREE.Vector3(0, 1, 0);
+  /** Shows the fishing rod in the right hand while fishing, lifted as the pose says, with the line and any fish on it. */
+  function placeFishingRod(): void {
+    const fishing = fishingSince === undefined ? undefined : fishingAt;
+    rod.group.visible = fishing !== undefined;
+    fishingLine.visible = fishing !== undefined;
+    caughtFish.visible = false;
+    if (fishing === undefined || fishingSince === undefined) return;
+    const fishPose = fishPoseAt(fishing.sinceCast, fishing.toBite, fishing.nowSeconds - fishingSince);
+    group.updateWorldMatrix(true, true);
+    group.worldToLocal(rightArm.end.getWorldPosition(rod.group.position));
+    // The rod points the way the player faces, lifted from level. Turning about -x lifts +z towards +y.
+    rod.group.rotation.set(-fishPose.rodLift, 0, 0);
+    rod.group.updateMatrix();
+    rodTip.copy(rod.tip).applyMatrix4(rod.group.matrix);
+    // Drawn in, the line hangs short below the tip. Cast out, it reaches the float on the water.
+    lineEnd.set(rodTip.x, rodTip.y - FISHING_LINE_SHORT_METRES, rodTip.z);
+    lineEnd.lerp(lineFloat.set(rodTip.x, fishing.floatHeight, fishing.floatForward), fishPose.lineOut);
+    lineDirection.subVectors(lineEnd, rodTip);
+    const length = lineDirection.length();
+    fishingLine.position.copy(rodTip);
+    if (length > 1e-6) fishingLine.quaternion.setFromUnitVectors(UP, lineDirection.divideScalar(length));
+    fishingLine.scale.set(1, Math.max(length, 1e-3), 1);
+    if (fishPose.fishShown) {
+      caughtFish.visible = true;
+      caughtFish.position.copy(lineEnd);
+      // The fish's snout points along its +z, so a quarter turn about x hangs it head down from the line.
+      caughtFish.rotation.set(Math.PI / 2, 0, 0);
+    }
   }
 
   function posePlayingClip(): void {
@@ -617,6 +707,24 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       }
       pose();
     },
+    setFishing(fishing) {
+      if (fishing === undefined) {
+        if (fishingSince !== undefined && fishingAt !== undefined) {
+          const pose = fishPoseAt(fishingAt.sinceCast, fishingAt.toBite, fishingAt.nowSeconds - fishingSince).body;
+          leavingBuild = { at: performance.now() / 1000, pose, seconds: FISH_ENTER_SECONDS };
+          fishingSince = undefined;
+          updateAxe();
+        }
+      } else {
+        if (fishingSince === undefined) {
+          fishingSince = fishing.nowSeconds;
+          leavingBuild = undefined;
+          updateAxe();
+        }
+        fishingAt = { ...fishing };
+      }
+      pose();
+    },
     setBuilding(nowSeconds) {
       if (nowSeconds === undefined) {
         if (buildingSince !== undefined) {
@@ -657,6 +765,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       backpack.dispose();
       drawknife.dispose();
       saw.dispose();
+      rod.dispose();
     },
   };
 }

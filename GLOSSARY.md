@@ -171,6 +171,10 @@ _Avoid_: Context panel, window, popup
 To gather wild food, such as berries and mushrooms, by hand.
 _Avoid_: Harvest, pick
 
+**Raw fish**:
+A fish the player catches at the river with the fishing rod. It is food the player carries in the backpack. Eating it raw makes the player sick.
+_Avoid_: Trout, catch
+
 **Snare**:
 A trap the player sets to catch rabbits.
 

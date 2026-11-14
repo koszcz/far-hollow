@@ -22,6 +22,7 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   plank: (count) => (count === 1 ? "1 plank" : `${count} planks`),
   fishingLine: (count) => (count === 1 ? "A fishing line" : `${count} fishing lines`),
   fishingRod: (count) => (count === 1 ? "A fishing rod" : `${count} fishing rods`),
+  rawFish: (count) => (count === 1 ? "1 raw fish" : `${count} raw fish`),
 };
 
 export const strings = {
@@ -54,6 +55,7 @@ export const strings = {
   takingDown: "Taking down",
   takeDown: "Take down",
   crafting: "Crafting",
+  fishing: "Fishing",
   craftMenu: {
     open: "Craft",
     title: "Craft",
@@ -180,6 +182,7 @@ export const strings = {
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
     putLogDownFirst: "Put the log down first.",
     letGoFirst: "Let go of the sled first.",
+    fishGotAway: "A fish got away. Your backpack is full.",
     /** The player tried a station recipe with no debarked log beside the station, such as "Lay a debarked log within 2 m of the sawhorse first." */
     noLogBesideStation: (station: string) => `Lay a debarked log within ${STATION_GROUND_METRES} m of the ${station.toLowerCase()} first.`,
     /** The player tried a recipe they cannot follow yet, such as "This needs the saw first." */
@@ -205,6 +208,7 @@ export const strings = {
     plank: "Plank",
     fishingLine: "Fishing line",
     fishingRod: "Fishing rod",
+    rawFish: "Raw fish",
   },
   chest: {
     title: "Chest",
@@ -239,6 +243,7 @@ export const strings = {
   actions: {
     walk: "Walk here",
     drink: "Drink",
+    fish: "Fish",
     chop: "Chop",
     pickUp: "Pick up",
     forage: "Forage",
@@ -286,6 +291,7 @@ export const strings = {
     sledFull: "the sled is full",
     letGoFirst: "let go of the sled first",
     shoulderFull: "your shoulder is full",
+    putLogDownFirst: "put the log down first",
     noLogCarried: "carrying no log",
     nothingToTake: "nothing to take",
     emptyFirst: "empty it first",

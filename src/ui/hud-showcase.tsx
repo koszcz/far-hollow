@@ -201,7 +201,7 @@ const FISHING_ROD_RECIPE: GameView["craftMenu"][number] = {
   lacks: [],
 };
 
-/** The draft "fishing-icons" asset: the fishing line and the fishing rod in the backpack, with the craft menu and crafting under way. The last view is the icon sheet. */
+/** The draft "fishing-icons" asset: the fishing line, the fishing rod, and raw fish in the backpack, with the craft menu and crafting under way. The last view is the icon sheet. */
 const FISHING_ICON_STATES: readonly ShowcaseState[] = [
   {
     view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, fishingLine: 1, stick: 2 }, craftMenu: [...BASE_VIEW.craftMenu, FISHING_ROD_RECIPE] },
@@ -214,7 +214,7 @@ const FISHING_ICON_STATES: readonly ShowcaseState[] = [
     buildMenuOpen: false,
     placing: null,
   },
-  { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, fishingRod: 1, fishingLine: 2, stick: 3 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, fishingRod: 1, fishingLine: 2, stick: 3, rawFish: 3 } }, buildMenuOpen: false, placing: null },
   // IconSheet replaces this view.
   { view: BASE_VIEW, buildMenuOpen: false, placing: null },
 ];
@@ -286,7 +286,7 @@ function IconSheet({ contents }: { contents: readonly BackpackContent[] }) {
 /** The icons each icon sheet draws large. */
 const ICON_SHEETS = {
   "crafting-icons": { states: CRAFTING_ICON_STATES, contents: ["sawBlade", "saw", "plank"] },
-  "fishing-icons": { states: FISHING_ICON_STATES, contents: ["fishingLine", "fishingRod"] },
+  "fishing-icons": { states: FISHING_ICON_STATES, contents: ["fishingLine", "fishingRod", "rawFish"] },
 } as const;
 
 /** A client that always shows `view` and ignores commands. */

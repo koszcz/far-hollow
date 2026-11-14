@@ -93,6 +93,7 @@ export function showAsset(
     "player-build-animation",
     "pick-up-animation",
     "sawing-animation",
+    "fishing-animation",
     "sky-lighting",
     "hud",
     "log-wall",

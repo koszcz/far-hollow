@@ -116,7 +116,7 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       return withMain([walk, ...dropHere], "walk");
     }
     case "river":
-      return withMain([offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x: pick.spot.x, z: pick.spot.z })], "drink");
+      return riverActions(pick.spot, view);
     case "tree":
       return withMain([offerUnless(needsTool(view, "axe"), "chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId: pick.id })], "chop");
     case "log":
@@ -179,6 +179,18 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
         "openMenu",
       );
   }
+}
+
+/** Drink, then fish. Drinking is the main action. Fishing needs the fishing rod and free hands. */
+function riverActions({ x, z }: { readonly x: number; readonly z: number }, view: GameView): readonly ThingAction[] {
+  const fishReason = needsTool(view, "fishingRod") ?? (view.carrying === null ? undefined : strings.actionReasons.putLogDownFirst);
+  return withMain(
+    [
+      offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
+      offerUnless(fishReason, "fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
+    ],
+    "drink",
+  );
 }
 
 /**
@@ -356,6 +368,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
   switch (content) {
     case "berries":
     case "mushroom":
+    case "rawFish":
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };

@@ -7,6 +7,7 @@ import { choppingNow } from "./chopping";
 import { craftingNow } from "./crafting";
 import { debarkingNow } from "./debarking";
 import type { Entity, EntityStore } from "./entities";
+import { fishingNow } from "./fishing";
 import { splittingNow } from "./gathering";
 import { takingDownNow } from "./taking-down";
 
@@ -36,6 +37,7 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["debark", (_entities, player) => debarkingNow(player)],
   ["split", (_entities, player) => splittingNow(player)],
   ["chop", (_entities, player) => choppingNow(player)],
+  ["fish", (_entities, player) => fishingNow(player)],
 ];
 
 /** The timed work the player is doing now, or undefined if none. Walking to the work does not count. */

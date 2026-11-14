@@ -1,18 +1,21 @@
-import { addToBackpack, removeFromBackpack, type Food } from "./backpack";
+import { addToBackpack, removeFromBackpack, type Food, type WildFood } from "./backpack";
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import type { HandReach } from "./hand-reach";
 import { fillNeed } from "./needs";
+import { catchSickness } from "./sickness";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** The player can forage a bush or mushroom patch from this far away, in metres. */
 const FORAGE_REACH_METRES = 2;
 /** How much food one bush or mushroom patch gives when foraged. */
-export const FOOD_PER_FORAGE: Readonly<Record<Food, number>> = { berries: 3, mushroom: 2 };
+export const FOOD_PER_FORAGE: Readonly<Record<WildFood, number>> = { berries: 3, mushroom: 2 };
 /** How long a foraged bush or mushroom patch takes to grow back, in game minutes. Three days. */
 export const REGROW_MINUTES = 3 * 24 * 60;
-/** How much one of each food fills hunger, out of 1. Neither food makes the player sick. */
-export const HUNGER_FILLED_BY: Readonly<Record<Food, number>> = { berries: 0.1, mushroom: 0.15 };
+/** How much one of each food fills hunger, out of 1. */
+export const HUNGER_FILLED_BY: Readonly<Record<Food, number>> = { berries: 0.1, mushroom: 0.15, rawFish: 0.15 };
+/** Whether eating each food makes the player sick, as unboiled river water does. */
+export const MAKES_SICK: Readonly<Record<Food, boolean>> = { berries: false, mushroom: false, rawFish: true };
 
 /** Why the player could not start foraging. */
 export type ForageRefusal = "backpackFull";
@@ -24,7 +27,7 @@ export interface Foraging {
    * there, the food stays and the reach gives "backpackFull".
    */
   forage(spotId: number): void;
-  /** Eats one of this food from the backpack, which fills hunger. Does nothing if the backpack holds none. */
+  /** Eats one of this food from the backpack, which fills hunger. Raw fish makes the player sick. Does nothing if the backpack holds none. */
   eat(food: Food): void;
   /** Stops the player walking to forage. */
   cancel(): void;
@@ -60,7 +63,9 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
     eat(food) {
       for (const player of players) {
         if (player.backpack === undefined || player.needs === undefined) continue;
-        if (removeFromBackpack(player.backpack, food, 1)) fillNeed(player.needs, "hunger", HUNGER_FILLED_BY[food]);
+        if (!removeFromBackpack(player.backpack, food, 1)) continue;
+        fillNeed(player.needs, "hunger", HUNGER_FILLED_BY[food]);
+        if (MAKES_SICK[food]) setComponent(entities, player, "sickness", catchSickness());
       }
     },
     cancel() {
@@ -96,7 +101,7 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
 
 /** The berry bushes and mushroom patches a valley starts with, all with food on them. */
 export function valleyForageSpots(valley: Valley): Entity[] {
-  const spot = (food: Food, { x, z }: { x: number; z: number }): Entity => ({
+  const spot = (food: WildFood, { x, z }: { x: number; z: number }): Entity => ({
     forageSpot: { food },
     position: { x, y: terrainHeightAt(valley.terrain, x, z), z },
   });

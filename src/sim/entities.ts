@@ -1,6 +1,6 @@
 import { World } from "miniplex";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
-import type { Backpack, BackpackContent, BackpackContents, Food } from "./backpack";
+import type { Backpack, BackpackContent, BackpackContents, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { PotOnFire } from "./pot-state";
@@ -183,7 +183,7 @@ export interface Entity {
   /** The ground a roof covers. A player standing there is under a roof, so rain does not fall on them. */
   roof?: GroundRect;
   /** Marks a berry bush or a patch of mushrooms the player can forage. Its position is the middle of the plant. */
-  forageSpot?: { food: Food };
+  forageSpot?: { food: WildFood };
   /** A foraged bush or mushroom patch growing back. It has food again when `minutesLeft` game minutes have passed. */
   regrowing?: { minutesLeft: number };
   /** The bush or mushroom patch the player is walking to forage, given by its entity id. */
@@ -203,6 +203,13 @@ export interface Entity {
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
+  /**
+   * The player is walking to the river bank to fish, or fishing there. The spot is where they clicked on the river.
+   * `minutesWaited` counts the game minutes since the latest cast, not walking. A fish bites after `biteAfterMinutes`.
+   */
+  fishTask?: { x: number; z: number; minutesWaited: number; biteAfterMinutes: number };
+  /** How many times the player has cast a fishing line so far. It picks the wait for the next cast. Missing before the first. */
+  fishCasts?: number;
   /** The player is walking to the riverbank to drink. The spot is where they clicked on the river. */
   drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */

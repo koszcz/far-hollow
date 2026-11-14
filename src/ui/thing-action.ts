@@ -19,6 +19,8 @@ export type ActionId =
   | `addFuel:${CampfireFuel}`
   | "putPotOn"
   | "takePotOff"
+  | "cookFish"
+  | "takeFishOff"
   | `stack:${WoodpileWood}`
   | "stack:firewood:all"
   | `take:${WoodpileWood}`

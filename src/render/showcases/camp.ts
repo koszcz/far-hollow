@@ -1,6 +1,7 @@
 // Showcases for the camp: firewood, the player and their gear, the campfire, shelters, piles, pots, and bark. The registry is src/render/showcases/index.ts.
 import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
+import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { type Entity } from "../../sim/entities";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../../sim/structures";
 import { type PotLook, type PotMesh } from "../pot-shape";
@@ -211,7 +212,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       );
     },
   },
-  // The draft "fishing-piles": one and several of the fishing line, the fishing rod, and raw fish, with a knife for size.
+  // The draft "fishing-piles": one and several of the fishing line, the fishing rod, raw fish, and cooked fish, with a knife for size.
   "fishing-piles": {
     radius: 2.2,
     focus: { x: 0, y: 0.05, z: 0 },
@@ -229,6 +230,37 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(1, 0.6, { pile: { content: "fishingRod", count: 4 } });
       place(-0.25, -0.75, { pile: { content: "rawFish", count: 1 } });
       place(-0.3, 1.1, { pile: { content: "rawFish", count: 5 } });
+      place(0.35, -0.9, { pile: { content: "cookedFish", count: 1 } });
+      place(0.4, 1.3, { pile: { content: "cookedFish", count: 4 } });
+    },
+  },
+  // The draft "fish-on-fire": up to 3 fish on skewers leaning over a campfire. They darken from raw to cooked.
+  // The middle fire holds the pot as well, to show they keep clear of it.
+  "fish-on-fire": {
+    radius: 1.3,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: [
+      { label: "raw, half, and cooked, beside the pot", yaw: 20, pitch: 25 },
+      { label: "from above, clear of the pot", yaw: 0, pitch: 75, radius: 2.4 },
+      { label: "one raw fish on an unlit fire", yaw: 30, pitch: 25, focus: { x: -2.2, y: 0.4, z: 0 } },
+      { label: "three cooked fish at night", yaw: -30, pitch: 20, focus: { x: 2.2, y: 0.4, z: 0 }, hour: NIGHT },
+    ],
+    build({ place }) {
+      place(0, 0, {
+        campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES },
+        potOnFire: { water: "river", minutesBoiling: 0 },
+        fishOnFire: [{ minutesCooked: 0 }, { minutesCooked: COOK_MINUTES / 2 }, { minutesCooked: COOK_MINUTES }],
+      });
+      place(-2.2, 0, { campfire: { lit: false, fuelMinutes: 0 }, fishOnFire: [{ minutesCooked: 0 }] });
+      place(2.2, 0, {
+        campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES },
+        fishOnFire: [{ minutesCooked: COOK_MINUTES }, { minutesCooked: COOK_MINUTES }, { minutesCooked: COOK_MINUTES }],
+      });
+    },
+    // The flames move all the time, so the fire burns live with the fish on it.
+    play: {
+      shot: { label: "cooking on a lit campfire", yaw: 20, pitch: 18, radius: 1.8, focus: { x: 0, y: 0.4, z: 0 }, hour: 19 },
+      pose: () => undefined,
     },
   },
   "fire-effect": {

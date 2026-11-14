@@ -6,7 +6,7 @@ import { actionsFor, mainAction, type ActionReader, type ActionTarget, type Thin
 const CAMPFIRE: ActionTarget = { kind: "scene", pick: { kind: "campfire", id: 7 } };
 
 describe("a campfire's actions", () => {
-  it("offers to light an unlit fire with fuel, then each fuel, then the pot, then taking it down", () => {
+  it("offers to light an unlit fire with fuel, then each fuel, then the pot, then cooking fish, then taking it down", () => {
     const reader = readerWith({ backpack: { steelAndFlint: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
 
     const actions = actionsFor(CAMPFIRE, reader);
@@ -17,6 +17,7 @@ describe("a campfire's actions", () => {
       "addFuel:stick",
       "addFuel:bark off: no bark",
       "putPotOn off: light the fire first",
+      "cookFish off: light the fire first",
       "takeDown",
     ]);
     expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: 7 });
@@ -33,6 +34,7 @@ describe("a campfire's actions", () => {
       "addFuel:firewood off: no firewood",
       "addFuel:stick off: no sticks",
       "putPotOn off: light the fire first",
+      "cookFish off: light the fire first",
       "takeDown",
     ]);
   });
@@ -76,6 +78,39 @@ describe("a campfire's actions", () => {
     const potOn = actionsFor(CAMPFIRE, readerWith({ campfire: { ...lit, pot: { water: "river", boilProgress: 0.5 } } }));
     expect(find(potOn, "putPotOn")).toBeUndefined();
     expect(find(potOn, "takePotOff")).toMatchObject({ enabled: true, command: { type: "takePotOffFire", campfireId: 7 } });
+  });
+
+  it("puts a raw fish on a lit fire, and says why it cannot", () => {
+    const lit = { lit: true, fuelMinutes: 60 };
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: lit })), "cookFish")).toMatchObject({
+      enabled: true,
+      label: "Cook fish",
+      command: { type: "cookFish", campfireId: 7 },
+    });
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: {} })), "cookFish")?.reason).toBe("light the fire first");
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { cookedFish: 2 }, campfire: lit })), "cookFish")?.reason).toBe("no raw fish");
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: { ...lit, fitsFish: false } })), "cookFish")?.reason).toBe(
+      "the fire holds 3 fish",
+    );
+  });
+
+  it("takes fish off only when fish are on the fire", () => {
+    const lit = { lit: true, fuelMinutes: 60 };
+    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: lit })), "takeFishOff")).toBeUndefined();
+
+    const fishOn = actionsFor(CAMPFIRE, readerWith({ campfire: { ...lit, fish: [{ cooked: true, cookProgress: 1 }] } }));
+    expect(find(fishOn, "takeFishOff")).toMatchObject({
+      enabled: true,
+      label: "Take fish off",
+      icon: { content: "cookedFish" },
+      command: { type: "takeFishOff", campfireId: 7 },
+    });
+  });
+
+  it("greys taking down a fire with fish on it, and says to take the fish off first", () => {
+    const fishOn = actionsFor(CAMPFIRE, readerWith({ campfire: { lit: false, fuelMinutes: 0, fish: [{ cooked: false, cookProgress: 0.4 }] } }));
+
+    expect(summary(fishOn).at(-1)).toBe("takeDown off: take the fish off first");
   });
 
   it("greys taking down a fire with a pot on it, and says to take the pot off first", () => {
@@ -282,6 +317,13 @@ describe("other things' actions", () => {
     expect(actions[0]).toMatchObject({ label: "Eat", command: { type: "eat", food: "rawFish" } });
   });
 
+  it("eats cooked fish from the backpack", () => {
+    const actions = actionsFor({ kind: "backpackContent", content: "cookedFish" }, readerWith({ backpack: { cookedFish: 2 } }));
+
+    expect(summary(actions)).toEqual(["use main", "drop"]);
+    expect(actions[0]).toMatchObject({ label: "Eat", command: { type: "eat", food: "cookedFish" } });
+  });
+
   it("chops a tree, and says it needs the axe without one", () => {
     expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({ backpack: { axe: 1 } })))).toEqual(["chop main"]);
     expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({})))).toEqual(["chop main off: needs the axe"]);
@@ -410,6 +452,8 @@ function readerWith({
     canLight: false,
     fits: { stick: true, firewood: true, bark: true },
     pot: null,
+    fish: [],
+    fitsFish: true,
     ...campfire,
   };
   const fullWoodpile: WoodpileView = { id: 8, contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20, ...woodpile };

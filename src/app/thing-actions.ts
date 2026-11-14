@@ -194,7 +194,7 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, view
 }
 
 /**
- * Light, each fuel, the pot, then Take down. A fire with a pot on it cannot be taken down until the pot comes off.
+ * Light, each fuel, the pot, the fish, then Take down. A fire with a pot or fish on it cannot be taken down until they come off.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
 function campfireActions(campfire: CampfireView, view: GameView): readonly ThingAction[] {
@@ -222,8 +222,18 @@ function campfireActions(campfire: CampfireView, view: GameView): readonly Thing
           { type: "putPotOnFire", campfireId },
         )
       : offer("takePotOff", strings.actions.takePotOff, { content: "pot" }, { type: "takePotOffFire", campfireId });
+  const cookFish = offerUnless(
+    !campfire.lit ? reasons.lightFirst : !has(view, "rawFish") ? reasons.noRawFish : !campfire.fitsFish ? reasons.fireFullOfFish : undefined,
+    "cookFish",
+    strings.actions.cookFish,
+    { content: "rawFish" },
+    { type: "cookFish", campfireId },
+  );
+  const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
+  const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
   const light = campfire.lit ? [] : [offerUnless(lightReason, "light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const offers = [...light, ...fuels, pot, takeDown(campfireId, campfire.pot === null ? undefined : reasons.potOnFire)];
+  const takeDownReason = campfire.pot !== null ? reasons.potOnFire : campfire.fish.length > 0 ? reasons.fishOnFire : undefined;
+  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, takeDown(campfireId, takeDownReason)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);
@@ -369,6 +379,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
     case "berries":
     case "mushroom":
     case "rawFish":
+    case "cookedFish":
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };

@@ -50,6 +50,7 @@ import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
+import { createCooking } from "./cooking";
 import { NOTICE_MINUTES } from "./notices";
 import { createPiles } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
@@ -71,6 +72,8 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
   lightCampfire: undefined,
   putPotOnFire: "low",
   takePotOffFire: "low",
+  cookFish: "low",
+  takeFishOff: "low",
   stackOnWoodpile: "waist",
   takeFromWoodpile: "waist",
   loadSled: "waist",
@@ -172,6 +175,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const drinking = createDrinking(entities, walking, valley);
   const fishing = createFishing(entities, walking, valley, seed);
   const pot = createPot(entities, walking, valley, campfires, handReach);
+  const cooking = createCooking(entities, campfires);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
@@ -347,6 +351,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         return undefined;
       case "takePotOffFire":
         return pot.takeOffFire(command.campfireId);
+      case "cookFish":
+        cooking.cookFish(command.campfireId);
+        return undefined;
+      case "takeFishOff":
+        return cooking.takeFishOff(command.campfireId);
       case "stackOnWoodpile":
         woodpiles.stack(command.woodpileId, command.wood, command.all);
         return undefined;
@@ -556,6 +565,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     putPotOnFire: tend,
     takePotOffFire: tend,
+    cookFish: tend,
+    takeFishOff: tend,
     drinkFromPot: () => {
       pot.drink();
     },
@@ -592,6 +603,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       foraging.grow(minutes);
       stickFall.pass(minutes);
       pot.heat(minutes);
+      cooking.cook(minutes);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
@@ -635,6 +647,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     foraging.grow(asleepMinutes);
     stickFall.pass(asleepMinutes);
     pot.heat(asleepMinutes);
+    cooking.cook(asleepMinutes);
     const { x, z } = player.respawnPoint;
     Object.assign(player.position, { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z });
     Object.assign(player.previousPosition, player.position);

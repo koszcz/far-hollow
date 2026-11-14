@@ -3,6 +3,7 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
+import type { FishOnFire } from "./fish-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
@@ -27,7 +28,7 @@ export type ReachHeight = "low" | "waist";
 
 export type TendTask =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
-  | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire"; campfireId: number }
+  | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff"; campfireId: number }
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
   | { type: "loadSled" | "tipOutSled" | "dragSled"; sledId: number }
@@ -218,6 +219,8 @@ export interface Entity {
   fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */
   potOnFire?: PotOnFire;
+  /** The fish on this campfire, raw or cooked, in the order they went on. Only campfires have them. Missing when it holds none. */
+  fishOnFire?: FishOnFire[];
   /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
   rain?: Rain;
   /** When the next sticks fall from the trees. Only one entity, the valley's stick fall, has it. */

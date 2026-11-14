@@ -440,6 +440,10 @@ body {
 .hud-meter .hud-icon {
   color: var(--hud-bar);
 }
+.hud-meter .backpack-icon {
+  width: 26px;
+  height: 26px;
+}
 .hud-meter progress {
   flex: 1;
   height: 8px;

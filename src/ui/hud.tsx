@@ -412,7 +412,24 @@ function HudToolButton({
   );
 }
 
-/** Shows whether the campfire beside the player burns, how much fuel it has, and how far the pot on it has boiled. Its actions are on the campfire itself. */
+/** The colour of the bar that shows how far a fish on the fire has cooked: the browned skin of cooked fish. */
+const COOKING_COLOUR = "#c98a4b";
+
+/** One fish on a campfire: its icon, raw or cooked, and a bar for how far it has cooked. */
+function FishOnFireMeter({ fish }: { fish: CampfireView["fish"][number] }) {
+  return (
+    <label class="hud-meter" style={{ "--hud-bar": COOKING_COLOUR }}>
+      <BackpackIcon content={fish.cooked ? "cookedFish" : "rawFish"} />
+      <span class="hud-meter-label">{fish.cooked ? strings.fishCooked : strings.fishCooking}</span>
+      <progress max={1} value={fish.cookProgress} />
+    </label>
+  );
+}
+
+/**
+ * Shows whether the campfire beside the player burns, how much fuel it has, how far the pot on it has boiled, and how far
+ * each fish on it has cooked. Its actions are on the campfire itself.
+ */
 function CampfirePanel({ campfire }: { campfire: CampfireView }) {
   return (
     <section class="hud-section hud-campfire" aria-label={strings.campfire}>
@@ -428,6 +445,9 @@ function CampfirePanel({ campfire }: { campfire: CampfireView }) {
         ) : (
           <Meter icon="droplet" label={strings.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
         ))}
+      {campfire.fish.map((fish, index) => (
+        <FishOnFireMeter key={index} fish={fish} />
+      ))}
     </section>
   );
 }

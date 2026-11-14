@@ -34,7 +34,7 @@ describe("loading a save from before fishing", () => {
   }
 
   it("raises the save version", () => {
-    expect(FISHING_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(FISHING_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     expect(FISHING_SAVE_VERSION).toBeGreaterThan(PLANK_ROOFS_SAVE_VERSION);
   });
 

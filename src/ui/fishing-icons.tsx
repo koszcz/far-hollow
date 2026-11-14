@@ -1,5 +1,5 @@
 // Backpack icons for fishing gear, the draft "fishing-icons" asset in asset-manifest.json. Built in code.
-// Added by fishing ticket 01. Fishing ticket 02 added raw fish. BackpackIcon in backpack-icons.tsx draws them, in the same style as the approved "backpack-icons".
+// Added by fishing ticket 01. Fishing ticket 02 added raw fish, and ticket 03 cooked fish. BackpackIcon in backpack-icons.tsx draws them, in the same style as the approved "backpack-icons".
 import type { BackpackContent, Fish, FishingContent } from "../sim/api";
 import type { BackpackIconDrawing } from "./icon-drawing";
 
@@ -14,6 +14,10 @@ const FISH_BACK = "#7f9a86";
 const FISH_BELLY = "#e4d9c2";
 const FISH_STRIPE = "#d99a94";
 const FISH_EYE = "#2a2622";
+/** A cooked trout: browned skin, a golden belly, and dark grill marks from the fire. */
+const COOKED_BACK = "#8a5a32";
+const COOKED_BELLY = "#d9a35c";
+const COOKED_MARK = "#3d2614";
 
 /** True if `content` is fishing gear or a fish, so this module draws its icon. */
 export function isFishingContent(content: BackpackContent): content is FishingContent | Fish {
@@ -50,6 +54,16 @@ export const FISHING_DRAWINGS: Readonly<Record<FishingContent | Fish, BackpackIc
       { d: "M4.5 13.5c3.5 2.5 8 2.6 11.5.6", as: "line", colour: FISH_BELLY },
       { d: "M5.5 11.8c3.5-.6 7-.4 10 .4", as: "shine", colour: FISH_STRIPE },
       { d: "M6.2 10.3h.1", as: "line", colour: FISH_EYE },
+    ],
+  },
+  /** The same trout, cooked: browned skin, a golden belly, dark marks from the fire across its side, and a pale cooked eye. */
+  cookedFish: {
+    colour: COOKED_BACK,
+    parts: [
+      { d: "M2.5 12c3-4.5 9-5.5 14-2.5L21.5 6v12l-5-3.5c-5 3-11 2-14-2.5z", as: "fill" },
+      { d: "M4.5 13.5c3.5 2.5 8 2.6 11.5.6", as: "line", colour: COOKED_BELLY },
+      { d: "M8.5 9.5l-1 5M11.5 9l-1 6M14.5 9.5l-1 5", as: "line", colour: COOKED_MARK },
+      { d: "M6.2 10.3h.1", as: "line", colour: FISH_BELLY },
     ],
   },
 };

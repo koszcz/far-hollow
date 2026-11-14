@@ -7,6 +7,7 @@ import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createChestMeshes } from "./chest-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
+import { createFishOnFireMeshes } from "./fish-on-fire-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { createLeanToMeshes } from "./lean-to-meshes";
@@ -73,7 +74,9 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const chests = createChestMeshes(entities);
   const sawhorses = createSawhorseMeshes(entities);
   const sleds = createSledMeshes(entities, logShape);
-  const all = [campfires, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses, sleds];
+  // The fish on each campfire are a draft asset of their own, so they draw apart from the approved campfire.
+  const fishOnFire = createFishOnFireMeshes(entities, groundAt);
+  const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses, sleds];
   const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
 
   const group = new THREE.Group();
@@ -160,6 +163,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     group,
     update({ nowSeconds, camera, player }) {
       campfires.update(nowSeconds);
+      fishOnFire.update();
       leanTos.update();
       foundations.update();
       edgePieces.update(camera !== undefined && player !== undefined ? { camera, player } : undefined);

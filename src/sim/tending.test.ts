@@ -110,6 +110,8 @@ describe("describing a campfire or woodpile by its id", () => {
       canLight: true,
       fits: { stick: true, bark: true, firewood: false },
       pot: null,
+      fish: [],
+      fitsFish: true,
     });
   });
 

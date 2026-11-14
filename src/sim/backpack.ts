@@ -16,8 +16,8 @@ export type FishingContent = "fishingLine" | "fishingRod";
 /** Wild food the player forages. One "berries" is a handful of berries. */
 export type WildFood = "berries" | "mushroom";
 
-/** Fish the player catches at the river. Raw fish makes the player sick if they eat it. */
-export type Fish = "rawFish";
+/** Fish the player catches at the river, raw or cooked on a campfire. Raw fish makes the player sick if they eat it. */
+export type Fish = "rawFish" | "cookedFish";
 
 /** Everything the player can eat from the backpack. */
 export type Food = WildFood | Fish;
@@ -60,6 +60,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   fishingLine: 0.1,
   fishingRod: 0.5,
   rawFish: 0.5,
+  cookedFish: 0.5,
 };
 
 /** What the player starts a new game with. */

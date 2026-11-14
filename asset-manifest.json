@@ -463,6 +463,39 @@
       ]
     },
     {
+      "id": "sawing-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-saw-pose.ts",
+        "src/render/sawing-stance.ts",
+        "src/render/player-mesh.ts",
+        "src/render/forest-meshes.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player sawing a debarked log into planks at the sawhorse. While the player cuts planks, the log they cut is drawn lying along the top of the sawhorse beam. Game logic keeps it in its spot on the ground, and it is drawn back there if the player stops partway. A log taken from a sled parked beside the sawhorse stays drawn on the sled, so the player saws over the bare beam. The player steps up beside the beam, 0.6 m from it on the side they came from, and faces it, with the feet planted. The left hand rests on the log to hold it still. The right hand holds the bow saw, the draft saw-model, and pushes it away and pulls it back across the log in long, even strokes, one a second. The shoulders rock a little with each push. The blade sinks from the top of the log at the start of the cut to its underside at the end. The axe goes on the back, and the saw shows in the hand only while sawing. The player steps up and lifts the hands over 0.45 seconds, and steps back the same way when sawing stops. It is posed in code over the idle clip, and reads apart from the chop's side swing and the debark's pull along the log. Making the saw, a hand recipe, keeps the chopping swing.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/player-animations/issues/02-sawing-planks.md"
+      }
+    },
+    {
+      "id": "saw-model",
+      "kind": "code",
+      "code": [
+        "src/render/saw-model.ts",
+        "src/render/player-mesh.ts"
+      ],
+      "description": "The bow saw the player holds while sawing planks: a thin steel blade with big teeth along its lower edge, 0.55 m long, strung across the ends of a stick bent into a bow that rises 0.2 m over it, and lashed on with twine at each end. It matches the saw in the approved crafting-icons. The player holds it by the near end of the bow, 1.3 times true size, like the other tools in the hand, because the player's head and beard are big for the body.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/player-animations/issues/02-sawing-planks.md"
+      }
+    },
+    {
       "id": "sleep-animation",
       "kind": "file",
       "file": "public/assets/player/barbarian.glb",

@@ -1,5 +1,6 @@
 // Showcases for player and world animations. Each one plays live with &play. The registry is src/render/showcases/index.ts.
 import { CHOP_SECONDS } from "../../sim/chopping";
+import { PLANKS_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../../sim/hand-reach";
@@ -11,6 +12,7 @@ import { DEBARK_BITE_SHARE, DEBARK_ENTER_SECONDS, DEBARK_PULLED_SHARE, DEBARK_RE
 import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_REACHED_SHARE, CROUCH_SETTLED_SHARE } from "../player-build-pose";
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "../player-mesh";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
+import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
 import {
   SLEEP_DARK_AT,
   SLEEP_LAID_DOWN_AT,
@@ -53,6 +55,9 @@ const BUILD_PLAY_CYCLES = 2.5;
 const REACH_PLAY_REST_SECONDS = 0.8;
 /** How far in front of the player's feet the stick lies in the pick-up-animation showcase, in metres. */
 const REACH_SHOWCASE_METRES = 0.45;
+
+/** How long the player stands after sawing before the "sawing-animation" plays again, in seconds. */
+const SAW_PLAY_REST_SECONDS = 1.2;
 
 /** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
 const CHOP_PLAY_REST_SECONDS = 1.2;
@@ -260,6 +265,43 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose({ player }, seconds) {
         const cycle = seconds % (DEBARK_SECONDS + DEBARK_PLAY_REST_SECONDS);
         player.setDebarking(cycle < DEBARK_SECONDS ? cycle : undefined);
+        return undefined;
+      },
+    },
+  },
+  "sawing-animation": {
+    radius: 1.4,
+    focus: { x: 0, y: 0.85, z: -0.25 },
+    // Each view is a moment of one cut through the log, which takes as long as the game takes to cut planks.
+    // Whole strokes are pulled back and half strokes pushed away. The blade sinks lower in each later view.
+    shots: [
+      { label: "pulled back, cut starting", seconds: 1 },
+      { label: "pushed away, cut starting", seconds: 1.5 },
+      { label: "pushed away, over the shoulder", seconds: 4.5, yaw: 160, pitch: 45 },
+      { label: "pulled back, cut nearly through", seconds: 7, yaw: 240 },
+    ].map(({ label, seconds, yaw = 290, pitch = 10 }) => ({ label, yaw, pitch, seconds: seconds * SAW_STROKE_SECONDS })),
+    build({ store, place, movePlayer }) {
+      // A sawhorse with its beam along x, a debarked log beside it, and the player cutting planks there.
+      const sawhorse = place(0, 0, { workStation: "sawhorse", facing: { turns: 0 } });
+      place(0, 1.2, { debarkedLog: { heading: Math.PI / 2 } });
+      const player = store.with("player").first;
+      const stationId = store.id(sawhorse);
+      if (player !== undefined && stationId !== undefined) store.addComponent(player, "craftTask", { recipe: "planks", secondsDone: 1, stationId });
+      movePlayer(0, -SAW_STANCE_METRES, 0);
+    },
+    pose({ player }, shot) {
+      // Start sawing afresh at time 0 for each view, so the view shows the cut `shot.seconds` in.
+      const seconds = shot.seconds ?? 0;
+      player.setSawing(undefined);
+      player.setSawing({ nowSeconds: 0, progress: 0 });
+      player.setSawing({ nowSeconds: seconds, progress: seconds / PLANKS_CRAFT_SECONDS });
+    },
+    // The player saws through the log for as long as the game takes, stands up, rests, then starts again.
+    play: {
+      shot: { label: "sawing through the log, then standing up", yaw: 250, pitch: 18, radius: 1.8 },
+      pose({ player }, seconds) {
+        const cycle = seconds % (PLANKS_CRAFT_SECONDS + SAW_PLAY_REST_SECONDS);
+        player.setSawing(cycle < PLANKS_CRAFT_SECONDS ? { nowSeconds: cycle, progress: cycle / PLANKS_CRAFT_SECONDS } : undefined);
         return undefined;
       },
     },

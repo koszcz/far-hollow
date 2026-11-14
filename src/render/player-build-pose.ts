@@ -31,7 +31,16 @@ export interface BuildPose {
   /** How far the wrists move from where the clip holds them toward `hands`: 0 not at all, 1 all the way. */
   readonly reach: number;
   /** Where both wrists go: `forward` in front of the feet, `height` above the ground, `spread` out from the middle. */
-  readonly hands: { readonly forward: number; readonly height: number; readonly spread: number };
+  readonly hands: HandSpot;
+  /** Where the right wrist goes instead of `hands`, when the hands do different jobs. Missing if it goes to `hands` too. */
+  readonly rightHand?: HandSpot;
+}
+
+/** Where a wrist goes: `forward` in front of the feet, `height` above the ground, `spread` out from the middle. */
+export interface HandSpot {
+  readonly forward: number;
+  readonly height: number;
+  readonly spread: number;
 }
 
 /** Crouched with both hands holding the piece just above its place. */
@@ -58,7 +67,8 @@ const BUILD_PRESS_POSE: BuildPose = {
 
 /** Standing as the clip holds the player, with the hands where `from` left them. */
 function standing(from: BuildPose): BuildPose {
-  return { hipsDrop: 0, hipsBack: 0, hipsLean: 0, chestLean: 0, headTilt: 0, reach: 0, hands: from.hands };
+  const still: BuildPose = { hipsDrop: 0, hipsBack: 0, hipsLean: 0, chestLean: 0, headTilt: 0, reach: 0, hands: from.hands };
+  return from.rightHand === undefined ? still : { ...still, rightHand: from.rightHand };
 }
 
 /** How far the hands bounce back up after pressing the piece home, in metres, before the jolt dies away. */
@@ -66,6 +76,19 @@ const BUILD_JOLT_METRES = 0.03;
 
 const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+
+const blendHand = (a: HandSpot, b: HandSpot, t: number): HandSpot => ({
+  forward: lerp(a.forward, b.forward, t),
+  height: lerp(a.height, b.height, t),
+  spread: lerp(a.spread, b.spread, t),
+});
+
+/** Blends two poses. A right hand that only one pose places follows `hands` in the other. */
+export function blendBuildPoses(a: BuildPose, b: BuildPose, t: number): BuildPose {
+  const blended = blend(a, b, t);
+  if (a.rightHand === undefined && b.rightHand === undefined) return blended;
+  return { ...blended, rightHand: blendHand(a.rightHand ?? a.hands, b.rightHand ?? b.hands, t) };
+}
 
 function blend(a: BuildPose, b: BuildPose, t: number): BuildPose {
   return {
@@ -106,7 +129,7 @@ export function buildPoseAt(seconds: number): BuildPose {
 
 /** Scales every movement of a pose by `weight`, from 0 (standing as the clip holds the player) to 1 (the full pose). */
 export function scaleBuildPose(pose: BuildPose, weight: number): BuildPose {
-  return blend(standing(pose), pose, weight);
+  return blendBuildPoses(standing(pose), pose, weight);
 }
 
 /** Where the knees point while crouching, from the player's feet, in metres: forward and a little out. */
@@ -227,7 +250,8 @@ export function applyBuildPose(group: THREE.Object3D, bones: BuildBones, pose: B
   arms.forEach((arm, index) => {
     const from = wrists[index];
     if (from === undefined || pose.reach === 0) return;
-    const to = local(pose.hands.spread * arm.side, pose.hands.height, pose.hands.forward);
+    const spot = arm.side === -1 && pose.rightHand !== undefined ? pose.rightHand : pose.hands;
+    const to = local(spot.spread * arm.side, spot.height, spot.forward);
     reach(arm, from.lerp(to, pose.reach), local(ELBOW_POLE.x * arm.side, ELBOW_POLE.y, ELBOW_POLE.z));
   });
 }

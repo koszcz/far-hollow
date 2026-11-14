@@ -182,6 +182,35 @@ export interface Crafting {
 /** An entity with a place in the world, such as a work station or a log lying on the ground. */
 type PlacedEntity = Entity & Required<Pick<Entity, "position">>;
 
+/** True if `entity` is a finished work station of this kind. A blueprint is not. */
+function isStation(entity: Entity | undefined, station: WorkStationKind): entity is PlacedEntity {
+  return entity?.position !== undefined && entity.workStation === station;
+}
+
+/** The logs in `logs` lying within STATION_GROUND_METRES of `station`, nearest first. A station recipe uses them in this order. */
+function groundLogsBeside(logs: readonly PlacedEntity[], station: PlacedEntity): PlacedEntity[] {
+  return logs
+    .filter((log) => groundDistance(log.position, station.position) <= STATION_GROUND_METRES)
+    .sort((a, b) => groundDistance(a.position, station.position) - groundDistance(b.position, station.position));
+}
+
+/**
+ * The log or debarked log lying on the ground that the player works on now at a work station, with the station.
+ * It is the one the recipe uses up first when the work finishes.
+ * Undefined if the player is not working at a station now, or the recipe takes its log from a sled. Walking there does not count.
+ */
+export function logWorkedNow(entities: EntityStore, player: Entity): { log: PlacedEntity; station: PlacedEntity } | undefined {
+  const task = player.craftTask;
+  if (task === undefined || player.walkPath !== undefined || task.stationId === undefined) return undefined;
+  const recipe = recipeOf(task.recipe);
+  const station = entities.entity(task.stationId);
+  const material = recipe.besideStation?.[0]?.material;
+  if (material === undefined || recipe.station === undefined || !isStation(station, recipe.station)) return undefined;
+  const logs = material === "log" ? logEntities(entities).entities : debarkedLogEntities(entities).entities;
+  const log = groundLogsBeside(logs, station)[0];
+  return log === undefined ? undefined : { log, station };
+}
+
 /** Lets the player craft: turn materials into something new that goes in the backpack, by timed work. */
 export function createCrafting(entities: EntityStore, walking: Walking): Crafting {
   const players = playerEntities(entities);
@@ -190,11 +219,6 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
     log: logEntities(entities),
     debarkedLog: debarkedLogEntities(entities),
   };
-
-  /** True if `entity` is a finished work station of this kind. A blueprint is not. */
-  function isStation(entity: Entity | undefined, station: WorkStationKind): entity is PlacedEntity {
-    return entity?.position !== undefined && entity.workStation === station;
-  }
 
   function hasStation(station: WorkStationKind): boolean {
     return workStationEntities(entities).entities.some((entity) => isStation(entity, station));
@@ -223,10 +247,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
       .filter(({ distance }) => distance <= STATION_GROUND_METRES)
       .sort((a, b) => a.distance - b.distance);
     for (const { material, count } of recipe.besideStation ?? []) {
-      const near = groundLogs[material].entities
-        .filter((log) => groundDistance(log.position, station.position) <= STATION_GROUND_METRES)
-        .sort((a, b) => groundDistance(a.position, station.position) - groundDistance(b.position, station.position))
-        .map((log) => () => entities.remove(log));
+      const near = groundLogsBeside(groundLogs[material].entities, station).map((log) => () => entities.remove(log));
       const onSleds = sleds.flatMap(({ sled }) =>
         Array.from({ length: sled.sled[material] }, () => () => {
           takeOffSled(sled, material);

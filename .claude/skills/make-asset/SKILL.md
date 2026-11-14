@@ -35,9 +35,9 @@ Run `"$s" list` first. Never pick an asset that another session holds.
 
 If the owner named an asset id, use it. If another session holds it, tell the owner which worktree holds it and stop. Otherwise run `make drafts`, leave out the drafts on the board, and ask the owner which draft to polish. For a new asset, agree its id, a one-line description, and what in the game will use it.
 
-Then rename the session after the asset, so the owner can tell sessions apart. Use the title `Asset: <id>`, for example `Asset: pot`. In the Claude desktop app, call the `set_session_title` tool. If no tool can rename the session, skip this and tell the owner.
+Do not rename the session. Herdr names sessions.
 
-Done when one catalogue id is fixed for this session and the session is named after it.
+Done when one catalogue id is fixed for this session.
 
 ### 2. Open a branch
 

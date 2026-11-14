@@ -90,10 +90,12 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 0.05, z: 0 },
     shots: FOUR_ANGLES,
     build({ place }) {
+      // Each spot picks a different one of the four stick shapes.
       for (const [x, z] of [
-        [-0.6, 0],
-        [0.5, -0.4],
-        [0.3, 0.6],
+        [-0.66, -0.45],
+        [0.56, -0.5],
+        [-0.46, 0.55],
+        [0.68, 0.5],
       ] as const)
         place(x, z, { stick: true });
     },

@@ -74,7 +74,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const chests = createChestMeshes(entities);
   const sawhorses = createSawhorseMeshes(entities);
   const sleds = createSledMeshes(entities, logShape);
-  // The fish on each campfire are a draft asset of their own, so they draw apart from the approved campfire.
+  // The fish on each campfire are an asset of their own, so they draw apart from the campfire.
   const fishOnFire = createFishOnFireMeshes(entities, groundAt);
   const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses, sleds];
   const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];

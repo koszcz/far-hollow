@@ -7,8 +7,9 @@
 // row casts a clear shadow line. The roof slopes 35 degrees the way its frame does, and sits where its frame's layout puts
 // it, as roof-layout.ts works out: sections one behind another share one slope, two rows that slope away from each other
 // meet at a ridge, and a wing that ends against another meets it in valleys. At a ridge, the planks of the slope down to
-// +z or +x reach a little past it, over the other slope. A valley (the "roof-corners" draft) has planks on both its slopes,
-// each cut along the line where they meet and reaching a little past it, so each slope tucks under the other.
+// +z or +x reach a little past it, over the other slope. A valley (the approved "roof-corners" asset) has two dark valley boards in
+// its gutter, one on each slope. The planks on both slopes stop a hand's width short of the line where the slopes meet,
+// cut a little ragged, so the boards show between them.
 // The planks reach a little past the square's edges where a section is beside it, so the sections overlap. Where an edge
 // has none, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed.
 // Construction has one stage per plank, and lays one row each stage. A blueprint shows see-through. The row being laid fades
@@ -70,10 +71,24 @@ const WORN_END_SHARE = 0.82;
 const NEIGHBOUR_LAP_METRES = 0.06;
 /** At a ridge, the planks of the slope down to +z or +x reach this far past it, in metres, over the other slope. */
 const RIDGE_LAP_METRES = 0.07;
-/** Valley planks reach this far past the line where the two slopes meet, in metres, so the slopes lap. */
-const VALLEY_LAP_METRES = 0.06;
-/** In a valley, the planks on the slope down to +x lie this much higher, in metres, so the two slopes do not flicker. */
-const VALLEY_FACE_LIFT_METRES = 0.006;
+/**
+ * In a valley, the planks of each slope stop this far short of the line where the slopes meet, in metres, measured along
+ * the slope's own rows, so the valley boards show between them.
+ */
+const VALLEY_GAP_METRES = 0.1;
+/** How far the cut ends of valley planks wander either side of their line, at most, in metres, so the cut looks sawn by hand. */
+const VALLEY_RAGGED_METRES = 0.012;
+/** How wide each of the two valley boards is, in metres, across the valley. The planks lap over its outer edge. */
+const VALLEY_BOARD_WIDTH_METRES = 0.16;
+/** How thick a valley board is, in metres. */
+const VALLEY_BOARD_THICKNESS_METRES = 0.015;
+/**
+ * The valley boards lie this much higher than the rafters' line, in metres. The corner-to-corner rafter slopes less
+ * steeply than the roof, so its top stands a little above that line. The boards rest on it, and it stays hidden under them.
+ */
+const VALLEY_BOARD_LIFT_METRES = RAFTER_RADIUS_METRES * (1 / Math.cos(Math.atan(Math.tan(ROOF_SLOPE_RADIANS) / Math.SQRT2)) - 1) + 0.002;
+/** The valley boards are darker than the roof planks, stained by the water that runs down them. */
+const VALLEY_BOARD_COLOUR = 0x5f5a52;
 /** How thick the invisible slab that catches clicks on a blueprint is, in metres. */
 const PICK_THICKNESS_METRES = 0.3;
 
@@ -134,18 +149,62 @@ export function plankRows(shape: RoofShape, reach: Reach, layout = 0): THREE.Buf
   }
   // A valley: the slope down to +z covers the part of the square right of the line x = z, and the slope down to +x the
   // part left of it. Each is laid like a straight section, the one down to +x turned a quarter round to face +x.
+  // Two dark valley boards lie in the gutter under them, one on each slope, laid with the first row.
   const random = seededRandom(ROOF_SEED + 5);
+  const ragged = (along: number) => VALLEY_RAGGED_METRES * Math.sin(along * 41 + 1.3) * Math.cos(along * 17);
   return Array.from({ length: ROWS }, (_, row) => {
     const alongZ = slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -half - reach.back, z1: half + reach.front }, random);
-    const alongX = slopeRow(row, { x0: -half - reach.front, x1: half + reach.back, z0: -half - reach.left, z1: half + reach.right }, random)
-      .rotateY(facingRadians(3))
-      .translate(0, VALLEY_FACE_LIFT_METRES, 0);
-    // Cut each slope along the line where they meet, a little past it. Moving a point across its own slope keeps its height.
-    clip(alongZ, (x, z) => ({ x: Math.max(x, z - VALLEY_LAP_METRES), z }));
-    clip(alongX, (x, z) => ({ x, z: Math.max(z, x - VALLEY_LAP_METRES) }));
-    const geometry = mergeGeometries([alongZ, alongX]);
-    alongZ.dispose();
-    alongX.dispose();
+    const alongX = slopeRow(row, { x0: -half - reach.front, x1: half + reach.back, z0: -half - reach.left, z1: half + reach.right }, random).rotateY(
+      facingRadians(3),
+    );
+    // Cut each slope short of the line where they meet. Moving a point across its own slope keeps its height.
+    clip(alongZ, (x, z) => ({ x: Math.max(x, z + VALLEY_GAP_METRES + ragged(z)), z }));
+    clip(alongX, (x, z) => ({ x, z: Math.max(z, x + VALLEY_GAP_METRES + ragged(x + 0.5)) }));
+    const parts = row === 0 ? [alongZ, alongX, ...valleyBoards(reach)] : [alongZ, alongX];
+    const geometry = mergeGeometries(parts);
+    for (const part of parts) part.dispose();
+    return geometry;
+  });
+}
+
+/**
+ * The two boards that line the gutter of a valley, drawn unturned. Each lies on one slope with its inner edge on the line
+ * x = z, where the slopes meet, so the two make a shallow V. They run from the high corner of the square to the low one,
+ * and on under the eaves. They rest on the rafters, under the planks.
+ */
+function valleyBoards(reach: Reach): THREE.BufferGeometry[] {
+  const half = BUILD_GRID_METRES / 2;
+  // Past the low corner they reach on under the eaves only where both low edges are eaves. Over a section beside them,
+  // they would stand proud of its planks.
+  const lowReach = Math.min(reach.front, reach.right);
+  const start = -half;
+  const end = half + (lowReach > NEIGHBOUR_LAP_METRES ? lowReach : 0);
+  // The line runs at 45 degrees, so a board reaches this far out from it along both x and z.
+  const out = VALLEY_BOARD_WIDTH_METRES / Math.SQRT2;
+  const colour = new THREE.Color(VALLEY_BOARD_COLOUR);
+  // The slope down to +z, right of the line, rises as z falls. The slope down to +x, left of it, rises as x falls.
+  const sides = [
+    { across: { x: out, z: -out }, height: (_x: number, z: number) => shapeHeight("straight", 0, z), shade: 1 },
+    { across: { x: -out, z: out }, height: (x: number) => shapeHeight("straight", 0, x), shade: 0.94 },
+  ];
+  return sides.map(({ across, height, shade }) => {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const positions = geometry.getAttribute("position");
+    for (let v = 0; v < positions.count; v += 1) {
+      // A unit box: its z runs along the line, its x out across it, and its y from the board's underside to its top.
+      const along = start + (positions.getZ(v) + 0.5) * (end - start);
+      const share = positions.getX(v) + 0.5;
+      const x = along + across.x * share;
+      const z = along + across.z * share;
+      // It rests on the corner-to-corner rafter. It is thinner than a plank, so where a plank laps over it, it stays hidden inside.
+      const underside = COVER_BASE_METRES + VALLEY_BOARD_LIFT_METRES + height(x, z);
+      positions.setXYZ(v, x, positions.getY(v) > 0 ? underside + VALLEY_BOARD_THICKNESS_METRES : underside, z);
+    }
+    geometry.computeVertexNormals();
+    const tint = colour.clone().multiplyScalar(shade);
+    const colours = new Float32Array(positions.count * 3);
+    for (let v = 0; v < positions.count; v += 1) colours.set([tint.r, tint.g, tint.b], v * 3);
+    geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
     return geometry;
   });
 }

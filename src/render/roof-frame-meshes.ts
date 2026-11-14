@@ -226,6 +226,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   /**
    * The rafters of a valley, drawn sloping down to +z and +x, in the order construction adds them: one along the low edge
    * at +x, one corner to corner under the line where the slopes meet, and one along the low edge at +z.
+   * Each low-edge rafter runs up its own slope and stops where it meets the corner-to-corner rafter, so it stays under the planks.
    */
   function valleyRafters(): THREE.BufferGeometry[] {
     const random = seededRandom(ROOF_SEED + 3);
@@ -233,9 +234,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const half = BUILD_GRID_METRES / 2;
     const edge = half - RAFTER_RADIUS_METRES;
     return [
-      rafterBetween(onRafterLine("valley", edge, -half), onRafterLine("valley", edge, half), jitter),
+      rafterBetween(onRafterLine("valley", edge, -half), onRafterLine("valley", edge, edge), jitter),
       rafterBetween(onRafterLine("valley", -half, -half), onRafterLine("valley", half, half), jitter),
-      rafterBetween(onRafterLine("valley", -half, edge), onRafterLine("valley", half, edge), jitter),
+      rafterBetween(onRafterLine("valley", -half, edge), onRafterLine("valley", edge, edge), jitter),
     ];
   }
 

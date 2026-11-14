@@ -1,5 +1,6 @@
 // Works out how each cabin roof section is drawn from the sections round it: how high it sits, and whether it is a
-// straight section or a valley. The game rules store only each section's turn (ADR 0006 drafts, tickets 09 and 11).
+// straight section or a valley. The game rules store only each section's turn (tickets 09 and 11). The valleys are the
+// "roof-corners" asset, approved by the owner.
 // A section facing `turns` slopes down the way `turnOffset` turns +z. Each slope rises from its own downhill wall: a
 // section sits one rise higher for each section in front of it, in its own slope direction, that slopes the same way.
 // Two rows that slope away from each other meet at a ridge. A run whose sections all slope the same way is a shed roof.

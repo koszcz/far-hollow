@@ -271,10 +271,10 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     // slope like the wing along z, so it runs through instead. The left cabin's inner valley is a roof blueprint on its
     // frame, then with half its rows laid, then finished.
     shots: [
-      { label: "valley frame, roof blueprint", yaw: 20, pitch: 45, seconds: 0, radius: 3, focus: { x: -3, y: 2.2, z: 0.5 } },
-      { label: "valley, half its rows laid", yaw: 20, pitch: 45, seconds: 0.5, radius: 3, focus: { x: -3, y: 2.2, z: 0.5 } },
-      { label: "wing along x runs through", yaw: 35, pitch: 30, seconds: 1, radius: 3, focus: { x: -3.5, y: 1.6, z: 0.5 } },
-      { label: "wing along z runs through", yaw: 35, pitch: 30, seconds: 1, radius: 3, focus: { x: 3.5, y: 1.6, z: 0.5 } },
+      { label: "valley frame, roof blueprint", yaw: 20, pitch: 50, seconds: 0, radius: 2, focus: { x: -3, y: 2.3, z: 0.1 } },
+      { label: "valley, half its rows laid", yaw: 20, pitch: 50, seconds: 0.5, radius: 2, focus: { x: -3, y: 2.3, z: 0.1 } },
+      { label: "wing along x runs through", yaw: 0, pitch: 40, seconds: 1, radius: 3, focus: { x: -2.5, y: 2.2, z: 0.2 } },
+      { label: "wing along z runs through", yaw: -60, pitch: 40, seconds: 1, radius: 3, focus: { x: 3.6, y: 2.2, z: -0.4 } },
     ],
     build(stage) {
       // Turns 0 slopes down to +z, 1 to -x, 2 to -z, and 3 to +x.

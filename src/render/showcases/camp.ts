@@ -5,6 +5,7 @@ import { type Entity } from "../../sim/entities";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../../sim/structures";
 import { type PotLook, type PotMesh } from "../pot-shape";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "../firewood-shape";
+import { createSaw, SAW_TEETH_BELOW_GRIP_METRES } from "../saw-model";
 import { FOUR_ANGLES, NIGHT, BUILD_PLAY_REST_SECONDS, type Showcase } from "./types";
 
 /** How many stages a lean-to takes to build: one for each stick and each piece of bark. */
@@ -117,6 +118,18 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES,
     build({ place }) {
       place(0, 0, { pile: { content: "bedroll", count: 1 } });
+    },
+  },
+  // The bow saw the player holds while sawing planks, standing on its teeth with its blade along z.
+  "saw-model": {
+    radius: 0.45,
+    focus: { x: 0, y: 0.12, z: 0.27 },
+    shots: FOUR_ANGLES,
+    build({ addProp }) {
+      // The stage disposes each part's shape and paint. Disposing a paint two lashings share twice does no harm.
+      for (const { geometry, material, position } of createSaw().parts) {
+        addProp(geometry, material, position.x, position.z, position.y + SAW_TEETH_BELOW_GRIP_METRES);
+      }
     },
   },
   "steel-and-flint": {

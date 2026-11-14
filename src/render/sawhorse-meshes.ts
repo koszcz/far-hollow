@@ -20,7 +20,7 @@ const BLUEPRINT_OPACITY = 0.35;
 /** A part whose log has been delivered is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
 /** How high the top of the beam is above the ground, in metres. */
-const BEAM_TOP_METRES = 0.75;
+export const BEAM_TOP_METRES = 0.75;
 /** The radius of the beam, in metres. */
 const BEAM_RADIUS_METRES = 0.09;
 /** The radius of each leg, in metres. */

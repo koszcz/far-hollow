@@ -3,9 +3,11 @@
 // Trees far from the camera draw with the "far-trees" asset (approved), built in tree-far-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
 // Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
+// While the player saws a debarked log into planks, it is drawn lying along the sawhorse beam. Game logic keeps it on the ground.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { LOGS_PER_TREE } from "../sim/chopping";
+import { logWorkedNow } from "../sim/crafting";
 import {
   debarkedLogEntities,
   logEntities,
@@ -19,6 +21,8 @@ import {
 } from "../sim/entities";
 import { createCulledBatch, type CulledBatch, type CullViews } from "./culled-batch";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
+import { BEAM_TOP_METRES } from "./sawhorse-meshes";
+import { facingRadians } from "./structure-look";
 import { createFarTreeShape, FAR_TREE_METRES } from "./tree-far-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
@@ -313,17 +317,38 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     return drawn;
   }
 
+  /** The log the player works on at a work station, as drawn last: lying along the station's beam. */
+  let worked: { log: Entity; station: Entity } | undefined;
+  /** Where a log lying at `position`, turned `heading`, is drawn: on the sawhorse beam while the player works on it. */
+  function lyingSpot(entity: Entity, heading: number, position: Vec3): { entity: Entity; heading: number; position: Vec3 } {
+    const station = worked?.log === entity ? worked.station : undefined;
+    if (station?.position === undefined) return { entity, heading, position };
+    // The beam runs along x when the station faces the default way. The log's length runs along z before it is turned.
+    const beamHeading = facingRadians(station.facing?.turns ?? 0) + Math.PI / 2;
+    return { entity, heading: beamHeading, position: { ...station.position, y: station.position.y + BEAM_TOP_METRES } };
+  }
+
+  /** Notes which log the player works on now. A change redraws the logs, so it moves onto the beam or back to the ground. */
+  function updateWorkedLog(): void {
+    const player = players.first;
+    const now = player === undefined ? undefined : logWorkedNow(entities, player);
+    if (now?.log === worked?.log && now?.station === worked?.station) return;
+    worked = now;
+    logsDirty = true;
+    debarkedLogsDirty = true;
+  }
+
   function rebuildLogs(): void {
     logsDrawn = rebuildLogBatch(
       logs,
-      [...logQuery].map((log) => ({ entity: log, heading: log.log.heading, position: log.position })),
+      [...logQuery].map((log) => lyingSpot(log, log.log.heading, log.position)),
     );
   }
 
   function rebuildDebarkedLogs(): void {
     debarkedLogsDrawn = rebuildLogBatch(
       debarkedLogs,
-      [...debarkedLogQuery].map((log) => ({ entity: log, heading: log.debarkedLog.heading, position: log.position })),
+      [...debarkedLogQuery].map((log) => lyingSpot(log, log.debarkedLog.heading, log.position)),
     );
   }
 
@@ -374,6 +399,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       seeThrough.setPlayer(player);
     },
     update(nowSeconds) {
+      updateWorkedLog();
       if (stumpsDirty) rebuildStumps();
       if (logsDirty) rebuildLogs();
       if (debarkedLogsDirty) rebuildDebarkedLogs();

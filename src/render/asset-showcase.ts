@@ -92,6 +92,7 @@ export function showAsset(
     "sleep-animation",
     "player-build-animation",
     "pick-up-animation",
+    "sawing-animation",
     "sky-lighting",
     "hud",
     "log-wall",

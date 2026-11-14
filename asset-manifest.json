@@ -970,16 +970,18 @@
       "kind": "code",
       "code": [
         "src/render/player-fish-pose.ts",
+        "src/render/fishing-tackle.ts",
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts",
         "src/sim/fishing.ts"
       ],
-      "description": "The player fishing from the river bank, facing the spot on the river they clicked. The right hand holds the butt of the fishing rod and the left hand grips it a little further up. Each cast takes 1.4 seconds: the player swings the rod back over the right shoulder, leaning back a little, then whips it forward so the line flies out and lands on the water just past the edge. Then they wait with the rod held out over the water at chest height, its tip bobbing gently. In the last 1.6 seconds before a fish bites, they lift the rod high and draw the hands back, the line shortens, and a raw fish comes up out of the water hanging head down on the line. Then the next cast starts from there, as the fish goes in the backpack. The line is a thin pale strand from the rod tip. The axe goes on the back, and the rod shows in the hands only while fishing. The player lifts the rod from standing over 0.35 seconds, and lowers it the same way when fishing stops. It is posed in code over the idle clip.",
+      "description": "The player fishing from the river bank with a fixed line on a pole, facing the spot on the river they clicked. The rod has no reel, so the player fishes the way people fish with a cane pole: they flick the rod back past the right shoulder, pause while the line straightens behind, then drive it forward and stop it sharply so the line rolls out in an arc and lands on the water. The right hand holds the butt and the left hand grips a little further up. The weight rocks back on the back cast and forward on the forward cast. The rod tip lags behind the swing and springs past at the stop. While they wait, the rod is held out at chest height with its tip bobbing gently, and the slack line sags to a small cork float with a painted top and a quill. When a fish bites, the float bobs and goes under and the rod tip jerks down. The player snaps the rod up to set the hook, the rod bends hard, and the line goes taut. They lift the rod high, the raw fish comes up out of the water hanging head up from the hook, thrashing, and swings in on the line. The left hand lets go of the rod and catches it, 1.6 seconds after the bite. The next cast starts from there, as the fish goes in the backpack. The cast takes 1.4 seconds. The axe goes on the back, and the rod shows in the hands only while fishing. The player lifts the rod from standing over 0.35 seconds, and lowers it the same way when fishing stops. It is posed in code over the idle clip.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fishing/issues/02-catch-fish.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

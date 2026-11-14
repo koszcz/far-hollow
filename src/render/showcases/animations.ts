@@ -16,7 +16,15 @@ import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
 import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
 import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
-import { FISH_CAST_SECONDS, FISH_OUT_OF_WATER_SHARE, FISH_REEL_SECONDS, FISH_SWUNG_BACK_SHARE, FISH_WHIPPED_SHARE } from "../player-fish-pose";
+import {
+  FISH_CAST_SECONDS,
+  FISH_HOLD_SHARE,
+  FISH_LIFTED_SHARE,
+  FISH_REEL_SECONDS,
+  FISH_STRUCK_SHARE,
+  FISH_SWUNG_BACK_SHARE,
+  FISH_WHIPPED_SHARE,
+} from "../player-fish-pose";
 import {
   SLEEP_DARK_AT,
   SLEEP_LAID_DOWN_AT,
@@ -333,16 +341,16 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
-  // The draft "fishing-animation": the player casts the approved "fishing-rod" out over a stand-in pool, waits, and reels in a raw fish.
+  // The approved "fishing-animation": the player casts the approved "fishing-rod" out over a stand-in pool, waits, and lands a raw fish.
   "fishing-animation": {
     radius: 2.6,
     focus: { x: 0, y: 1, z: 1.4 },
     shots: [
-      { label: "rod swung back", seconds: FISH_SWUNG_BACK_SHARE * FISH_CAST_SECONDS },
-      { label: "whipped forward", seconds: FISH_WHIPPED_SHARE * FISH_CAST_SECONDS },
-      { label: "waiting for a bite", seconds: FISH_CAST_SECONDS + 3 },
-      { label: "reeling the fish in", seconds: FISH_PLAY_WAIT_SECONDS - FISH_REEL_SECONDS * (1 - (FISH_OUT_OF_WATER_SHARE + 1) / 2) },
-    ].map(({ label, seconds }) => ({ label, yaw: 70, pitch: 12, seconds })),
+      { label: "rod swung back", seconds: ((FISH_SWUNG_BACK_SHARE + FISH_HOLD_SHARE) / 2) * FISH_CAST_SECONDS },
+      { label: "line rolling out", seconds: ((FISH_WHIPPED_SHARE + 1) / 2) * FISH_CAST_SECONDS },
+      { label: "hook set, rod bent", seconds: FISH_PLAY_WAIT_SECONDS - FISH_REEL_SECONDS * (1 - FISH_STRUCK_SHARE) },
+      { label: "fish swinging in", seconds: FISH_PLAY_WAIT_SECONDS - FISH_REEL_SECONDS * (1 - (FISH_LIFTED_SHARE + 0.1)) },
+    ].map(({ label, seconds }) => ({ label, yaw: -55, pitch: 12, seconds })),
     build({ addProp, movePlayer }) {
       const pool = FISH_SHOWCASE_POOL;
       const water = new THREE.PlaneGeometry(pool.width, pool.to - pool.from).rotateX(-Math.PI / 2);
@@ -358,7 +366,7 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
     // The player casts and catches a fish twice, at the shortest wait the game has, lowers the rod, rests, then starts again.
     play: {
-      shot: { label: "casting, waiting, and reeling in", yaw: 70, pitch: 12 },
+      shot: { label: "casting, waiting, and reeling in", yaw: -55, pitch: 12 },
       pose({ player }, seconds) {
         const fishing = FISH_PLAY_WAIT_SECONDS * FISH_PLAY_CASTS;
         const cycle = seconds % (fishing + FISH_PLAY_REST_SECONDS);

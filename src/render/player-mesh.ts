@@ -11,8 +11,9 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
-// While fishing, the draft "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
-// built by fishing-rod-model.ts, waits, then reels in a raw fish from the draft "fishing-piles". The axe goes on the back.
+// While fishing, the approved "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
+// built by fishing-rod-model.ts, waits for the float to dip, then lifts out a raw fish from "fishing-piles" and catches
+// it in the left hand. fishing-tackle.ts bends the rod and draws the line and the float. The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -27,7 +28,8 @@ import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./p
 import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
 import { createSaw } from "./saw-model";
 import { createFishingRod } from "./fishing-rod-model";
-import { rawFishParts } from "./fishing-pile-shapes";
+import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
+import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
@@ -148,8 +150,10 @@ export interface Fishing {
 
 /** How thick the fishing line is drawn, as a radius, in metres. It is thicker than true so it shows from the camera. */
 const FISHING_LINE_RADIUS_METRES = 0.004;
-/** How far the line hangs below the rod tip while it is drawn in, in metres. */
-const FISHING_LINE_SHORT_METRES = 0.45;
+/** How much larger than true the caught fish is drawn, so it shows from the camera as it swings in on the line. */
+const CAUGHT_FISH_SCALE = 1.6;
+/** How far the float rides above the hook while the line is out of the water, in metres. */
+const FLOAT_ABOVE_HOOK_METRES = 0.25;
 const FISHING_LINE_COLOUR = 0xe8e2cc;
 
 /** playerModel is the loaded Barbarian, from loadPlayerModel. logShape is the loaded log, from loadLogShape. */
@@ -336,13 +340,20 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const rod = createFishingRod();
   rod.group.visible = false;
   group.add(rod.group);
-  const lineGeometry = new THREE.CylinderGeometry(FISHING_LINE_RADIUS_METRES, FISHING_LINE_RADIUS_METRES, 1, 4).translate(0, 0.5, 0);
-  geometries.push(lineGeometry);
-  const fishingLine = new THREE.Mesh(lineGeometry, material(FISHING_LINE_COLOUR, { roughness: 0.8 }));
-  fishingLine.visible = false;
-  group.add(fishingLine);
-  // The caught fish hangs head down from the end of the line.
+  const rodBend = createRodBend(rod);
+  const fishingLine = createFishingLine(FISHING_LINE_RADIUS_METRES, material(FISHING_LINE_COLOUR, { roughness: 0.8 }));
+  fishingLine.mesh.visible = false;
+  group.add(fishingLine.mesh);
+  const linePoints = Array.from({ length: fishingLine.pointCount }, () => new THREE.Vector3());
+  const fishingFloat = createFishingFloat();
+  fishingFloat.group.visible = false;
+  group.add(fishingFloat.group);
+  // The caught fish hangs head up from the end of the line, hooked by the mouth. The inner group puts the snout at the
+  // outer group's origin, so the outer group turns the fish about the hook.
   const caughtFish = new THREE.Group();
+  const caughtFishBody = new THREE.Group();
+  caughtFishBody.position.z = -FISH_LENGTH_METRES / 2;
+  caughtFish.add(caughtFishBody);
   const keepGeometry = <T extends { dispose(): void }>(made: T): T => {
     if (made instanceof THREE.BufferGeometry) geometries.push(made);
     return made;
@@ -350,9 +361,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   for (const part of rawFishParts((colour) => material(colour), keepGeometry)) {
     const mesh = new THREE.Mesh(part.geometry, part.material);
     mesh.castShadow = true;
-    caughtFish.add(mesh);
+    caughtFishBody.add(mesh);
   }
   caughtFish.visible = false;
+  caughtFish.scale.setScalar(CAUGHT_FISH_SCALE);
   group.add(caughtFish);
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
@@ -562,37 +574,80 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
 
   const rodTip = new THREE.Vector3();
   const lineEnd = new THREE.Vector3();
+  const lineHang = new THREE.Vector3();
   const lineFloat = new THREE.Vector3();
-  const lineDirection = new THREE.Vector3();
-  const UP = new THREE.Vector3(0, 1, 0);
-  /** Shows the fishing rod in the right hand while fishing, lifted as the pose says, with the line and any fish on it. */
+  const leftHand = new THREE.Vector3();
+  const lineSpot = new THREE.Vector3();
+  const FISH_HANG = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+  const fishTwist = new THREE.Quaternion();
+  const fishKick = new THREE.Quaternion();
+  const AXIS_Y = new THREE.Vector3(0, 1, 0);
+  const AXIS_Z = new THREE.Vector3(0, 0, 1);
+  /**
+   * Shows the fishing rod in the right hand while fishing, lifted and bent as the pose says, with the line, the float,
+   * and any fish on it. Everything is placed in the player's own space, where the player faces +z and their right is -x.
+   */
   function placeFishingRod(): void {
     const fishing = fishingSince === undefined ? undefined : fishingAt;
     rod.group.visible = fishing !== undefined;
-    fishingLine.visible = fishing !== undefined;
+    fishingLine.mesh.visible = fishing !== undefined;
+    fishingFloat.group.visible = fishing !== undefined;
     caughtFish.visible = false;
     if (fishing === undefined || fishingSince === undefined) return;
     const fishPose = fishPoseAt(fishing.sinceCast, fishing.toBite, fishing.nowSeconds - fishingSince);
     group.updateWorldMatrix(true, true);
     group.worldToLocal(rightArm.end.getWorldPosition(rod.group.position));
-    // The rod points the way the player faces, lifted from level. Turning about -x lifts +z towards +y.
-    rod.group.rotation.set(-fishPose.rodLift, 0, 0);
+    group.worldToLocal(leftArm.end.getWorldPosition(leftHand));
+    // The rod lifts from level about -x, which turns +z towards +y, then leans out to the right about +z.
+    rod.group.rotation.set(-fishPose.rodLift, 0, fishPose.rodLean, "ZYX");
     rod.group.updateMatrix();
-    rodTip.copy(rod.tip).applyMatrix4(rod.group.matrix);
-    // Drawn in, the line hangs short below the tip. Cast out, it reaches the float on the water.
-    lineEnd.set(rodTip.x, rodTip.y - FISHING_LINE_SHORT_METRES, rodTip.z);
-    lineEnd.lerp(lineFloat.set(rodTip.x, fishing.floatHeight, fishing.floatForward), fishPose.lineOut);
-    lineDirection.subVectors(lineEnd, rodTip);
-    const length = lineDirection.length();
-    fishingLine.position.copy(rodTip);
-    if (length > 1e-6) fishingLine.quaternion.setFromUnitVectors(UP, lineDirection.divideScalar(length));
-    fishingLine.scale.set(1, Math.max(length, 1e-3), 1);
+    rodBend.bend(fishPose.rodBend);
+    rodTip.copy(rodBend.tip).applyMatrix4(rod.group.matrix);
+
+    // Drawn in, the line hangs below the tip, streaming back as the rod swings. Cast out, it reaches the float on the
+    // water, flying in an arc on the way. The left hand can take hold of its end.
+    lineHang
+      .set(0, -(1 - fishPose.lineTrail * 0.8), -fishPose.lineTrail)
+      .normalize()
+      .multiplyScalar(fishPose.lineHang)
+      .add(rodTip);
+    lineHang.z += fishPose.fishSwing;
+    lineFloat.set(rodTip.x, fishing.floatHeight, fishing.floatForward);
+    lineEnd.lerpVectors(lineHang, lineFloat, fishPose.lineOut);
+    lineEnd.y += fishPose.lineArc;
+    lineEnd.lerp(leftHand, fishPose.lineInHand);
+    // The line sags in the middle, most of all when it lies slack out to the water.
+    const last = linePoints.length - 1;
+    linePoints.forEach((point, index) => {
+      const t = index / last;
+      point.lerpVectors(rodTip, lineEnd, t);
+      point.y -= fishPose.lineSag * 4 * t * (1 - t);
+    });
+    fishingLine.setPoints(linePoints);
+
+    // The float sits on the water at the end of the line, or rides up the line above the hook once the line leaves it.
+    const lineLength = rodTip.distanceTo(lineEnd) || 1;
+    pointOnLine(1 - Math.min(0.9, (FLOAT_ABOVE_HOOK_METRES * fishPose.floatUp) / lineLength), lineSpot);
+    fishingFloat.group.position.copy(lineSpot);
+    fishingFloat.group.position.y -= fishPose.floatDip * (1 - fishPose.floatUp);
+
     if (fishPose.fishShown) {
       caughtFish.visible = true;
       caughtFish.position.copy(lineEnd);
-      // The fish's snout points along its +z, so a quarter turn about x hangs it head down from the line.
-      caughtFish.rotation.set(Math.PI / 2, 0, 0);
+      // The fish hangs head up from the hook, twisting about the line and kicking its tail out to the side.
+      fishTwist.setFromAxisAngle(AXIS_Y, fishPose.fishThrash);
+      fishKick.setFromAxisAngle(AXIS_Z, fishPose.fishThrash * 0.5);
+      caughtFish.quaternion.copy(fishTwist).multiply(fishKick).multiply(FISH_HANG);
     }
+  }
+
+  /** The point `t` of the way along the line drawn now, from the tip to the end. */
+  function pointOnLine(t: number, out: THREE.Vector3): THREE.Vector3 {
+    const at = Math.min(Math.max(t, 0), 1) * (linePoints.length - 1);
+    const index = Math.min(Math.floor(at), linePoints.length - 2);
+    const from = linePoints[index];
+    const to = linePoints[index + 1];
+    return from === undefined || to === undefined ? out.copy(lineEnd) : out.lerpVectors(from, to, at - index);
   }
 
   function posePlayingClip(): void {
@@ -766,6 +821,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       drawknife.dispose();
       saw.dispose();
       rod.dispose();
+      rodBend.dispose();
+      fishingLine.dispose();
+      fishingFloat.dispose();
     },
   };
 }

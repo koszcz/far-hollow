@@ -1,5 +1,5 @@
 // What the roof frame and the roof laid on it share: their sizes and slope, the frame layout both follow, and the hewn
-// timbers the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, its plank gable ends
+// timbers and rafters the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, its plank gable ends
 // ("gable-end") by gable-end-shape.ts, and the planks of the roof ("roof") by roof-meshes.ts.
 // Heights here are in metres above the foundation's deck, in a section's own frame: drawn unturned, sloping down to +z.
 import * as THREE from "three";
@@ -169,16 +169,45 @@ export function hewnTimber(
 /** How wide a rafter is across, as a share of its height. A rafter is hewn a little narrower than it is tall. */
 const RAFTER_WIDTH_SHARE = 0.85;
 
-/** One rafter: a hewn timber whose middle line runs straight from `from` to `to`, a little narrower than it is tall. */
-export function rafterBetween(from: THREE.Vector3, to: THREE.Vector3, jitter: (size: number) => number): THREE.BufferGeometry {
+/**
+ * One rafter: a hewn timber whose middle line runs straight from `from` to `to`, a little narrower than it is tall.
+ * With `plumb`, both ends are cut upright, as a carpenter cuts a rafter's head at the ridge and its tail at the eave.
+ */
+export function rafterBetween(from: THREE.Vector3, to: THREE.Vector3, jitter: (size: number) => number, plumb = false): THREE.BufferGeometry {
   const halfHeight = RAFTER_RADIUS_METRES;
   const along = new THREE.Vector3().subVectors(to, from);
-  const geometry = hewnTimber(along.length(), halfHeight, jitter, halfHeight * RAFTER_WIDTH_SHARE + jitter(0.004));
+  const length = along.length();
+  const geometry = hewnTimber(length, halfHeight, jitter, halfHeight * RAFTER_WIDTH_SHARE + jitter(0.004));
+  // Before it is tipped, the timber lies along z, so its end corners are the ones near either end of z.
+  const positions = geometry.getAttribute("position");
+  const ends = Array.from({ length: positions.count }, (_, i) => {
+    const z = positions.getZ(i);
+    return Math.abs(z) > length / 2 - 0.02 ? Math.sign(z) : 0;
+  });
   // Made along z, tip it to the slope of the line, turn it to face along the line, and move it to the line's middle.
   const flat = Math.hypot(along.x, along.z);
   geometry.rotateX(Math.atan2(-along.y, flat)).rotateY(Math.atan2(along.x, along.z));
   const middle = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
-  return geometry.translate(middle.x, middle.y, middle.z);
+  geometry.translate(middle.x, middle.y, middle.z);
+  if (plumb && flat > 0) {
+    // Slide each end corner along the rafter until it lies on the upright plane through the end of the middle line.
+    const direction = along.clone().normalize();
+    const level = new THREE.Vector3(along.x, 0, along.z).normalize();
+    const corner = new THREE.Vector3();
+    ends.forEach((end, i) => {
+      if (end === 0) return;
+      corner.fromBufferAttribute(positions, i);
+      const past =
+        corner
+          .clone()
+          .sub(end > 0 ? to : from)
+          .dot(level) / direction.dot(level);
+      corner.addScaledVector(direction, -past);
+      positions.setXYZ(i, corner.x, corner.y, corner.z);
+    });
+    positions.needsUpdate = true;
+  }
+  return geometry;
 }
 
 /**

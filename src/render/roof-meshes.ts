@@ -1,7 +1,8 @@
-// Draws cabin roof sections and their blueprints: the "roof" asset in asset-manifest.json, a draft built in code (ticket 11).
+// Draws cabin roof sections and their blueprints: the "roof" asset in asset-manifest.json, built in code and approved by the owner.
 // A roof section is the planks laid on the roof frame of one foundation square (roof-frame-meshes.ts), the same planks the
 // sawhorse cuts. They are grey and weathered, and lie in 6 overlapping rows across the slope, from the eaves up. Each row
-// is short planks side by side, running down the slope, with a thin gap between them. Their lower ends are ragged and
+// is short planks of different widths side by side, running down the slope, with a thin gap between them. Each square
+// lays them in one of a few layouts, so squares side by side differ. Their lower ends are ragged and
 // staggered, and each plank lies a little less steep than the roof, so its lower end lifts over the row below and every
 // row casts a clear shadow line. The roof slopes 35 degrees the way its frame does, and sits where its frame's layout puts
 // it, as roof-layout.ts works out: sections one behind another share one slope, two rows that slope away from each other
@@ -24,7 +25,7 @@ import { roofAbove } from "../sim/roofs";
 import { ROOF_PLANK_COST } from "../sim/structures";
 import type { OutlinePart } from "./hover-outline";
 import { seededRandom } from "./lean-to-meshes";
-import { ALONE, type RoofPlace, type RoofShape } from "./roof-layout";
+import { ALONE, gridCell, type RoofPlace, type RoofShape } from "./roof-layout";
 import {
   EAVE_REACH_METRES,
   FRAME_TOP_METRES,
@@ -32,7 +33,6 @@ import {
   isShown,
   neighboursOf,
   PLANK_GAP_METRES,
-  PLANK_WIDTH_METRES,
   RAFTER_RADIUS_METRES,
   raisedBy,
   ROOF_SEED,
@@ -48,8 +48,14 @@ const BLUEPRINT_COLOUR = 0xbfe3ff;
 const BLUEPRINT_OPACITY = 0.35;
 /** How many rows of planks a section has: one for each plank it costs, laid one per stage. */
 const ROWS = ROOF_PLANK_COST;
-/** How thick a plank is, in metres. */
-const PLANK_THICKNESS_METRES = 0.02;
+/** How thick a plank is, in metres. Thick enough that the edge of the roof shows over the eaves. */
+const PLANK_THICKNESS_METRES = 0.03;
+/** The narrowest and widest a plank of the roof is, in metres, before the gap between planks. Each plank is picked between them. */
+const PLANK_WIDTHS_METRES = { least: 0.2, most: 0.32 } as const;
+/** How much the shade of one plank differs from its paint colour, at most, as a share. Kept small so the roof reads calm. */
+const SHADE_SHARE = 0.025;
+/** How many different layouts of planks a straight section has. Each square picks one, so squares side by side differ. */
+const LAYOUTS = 4;
 /** Each plank is this much longer than its row's share of the slope, so the rows overlap. */
 const ROW_OVERLAP = 1.6;
 /** Each plank lies this much less steep than the roof, in radians, so its lower end lifts over the row below it. */
@@ -115,12 +121,13 @@ const COVER_BASE_METRES = FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES;
 
 /**
  * The rows of planks of a section of `shape`, drawn unturned, reaching past its edges as `reach` says, from the eaves up.
+ * A straight section lays its planks in layout `layout`, from 0 to LAYOUTS - 1, so squares side by side can differ.
  * Each is one shape coloured per plank. Draw them with `vertexColors: true`, `flatShading: true`, and the material colour white.
  */
-export function plankRows(shape: RoofShape, reach: Reach): THREE.BufferGeometry[] {
+export function plankRows(shape: RoofShape, reach: Reach, layout = 0): THREE.BufferGeometry[] {
   const half = BUILD_GRID_METRES / 2;
   if (shape === "straight") {
-    const random = seededRandom(ROOF_SEED);
+    const random = seededRandom(ROOF_SEED + 101 * layout);
     return Array.from({ length: ROWS }, (_, row) =>
       slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -half - reach.back, z1: half + reach.front }, random),
     );
@@ -163,11 +170,21 @@ function slopeRow(row: number, area: { x0: number; x1: number; z0: number; z1: n
   const share = (area.z1 - area.z0) / ROWS;
   const low = area.z1 - row * share;
   const high = Math.max(area.z0, low - share * ROW_OVERLAP);
-  const count = Math.ceil((area.x1 - area.x0) / PLANK_WIDTH_METRES);
-  const width = (area.x1 - area.x0) / count;
-  const planks = Array.from({ length: count }, (_, i) => {
-    const middle = area.x0 + (i + 0.5) * width;
-    return plank(middle, width - PLANK_GAP_METRES, high, low + jitter(STAGGER_METRES), jitter);
+  // Pick a width for each plank until the row is covered, then stretch them all a little so they fill it exactly.
+  const span = area.x1 - area.x0;
+  const widths: number[] = [];
+  for (let covered = 0; covered < span;) {
+    const width = PLANK_WIDTHS_METRES.least + random() * (PLANK_WIDTHS_METRES.most - PLANK_WIDTHS_METRES.least);
+    widths.push(width);
+    covered += width;
+  }
+  const stretch = span / widths.reduce((sum, width) => sum + width, 0);
+  let left = area.x0;
+  const planks = widths.map((width) => {
+    const fitted = width * stretch;
+    const middle = left + fitted / 2;
+    left += fitted;
+    return plank(middle, fitted - PLANK_GAP_METRES, high, low + jitter(STAGGER_METRES), jitter);
   });
   const geometry = mergeGeometries(planks);
   for (const one of planks) one.dispose();
@@ -189,7 +206,7 @@ function plank(x: number, width: number, high: number, low: number, jitter: (siz
     if (positions.getZ(v) > 0) positions.setZ(v, positions.getZ(v) + (tears[positions.getX(v) < 0 ? 0 : 1] ?? 0));
   }
   const colour = new THREE.Color(WEATHERED_PLANK_COLOURS[Math.floor((jitter(1) + 1) * 2.5) % WEATHERED_PLANK_COLOURS.length] ?? WEATHERED_PLANK_COLOURS[0]);
-  colour.multiplyScalar(1 + jitter(0.06));
+  colour.multiplyScalar(1 + jitter(SHADE_SHARE));
   const worn = colour.clone().multiplyScalar(WORN_END_SHARE);
   const colours = new Float32Array(positions.count * 3);
   for (let v = 0; v < positions.count; v += 1) {
@@ -225,6 +242,12 @@ export function plankReach(place: RoofPlace, neighbours: readonly (RoofPlace | u
   };
 }
 
+/** Which layout of planks the section on the square at `position` uses. Squares side by side get different ones. */
+function layoutOf(position: Vec3): number {
+  const { column, row } = gridCell(position);
+  return (((column * 3 + row * 2) % LAYOUTS) + LAYOUTS) % LAYOUTS;
+}
+
 export function createRoofMeshes(entities: EntityStore): RoofMeshes {
   const group = new THREE.Group();
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
@@ -233,13 +256,13 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
-  /** The rows of each shape and reach past its edges, made once and shared. */
+  /** The rows of each shape, reach past its edges, and layout, made once and shared. */
   const rowsByKind = new Map<string, readonly THREE.BufferGeometry[]>();
-  function rowsOf(shape: RoofShape, reach: Reach): readonly THREE.BufferGeometry[] {
-    const name = `${shape}:${reach.back},${reach.front},${reach.left},${reach.right}`;
+  function rowsOf(shape: RoofShape, reach: Reach, layout: number): readonly THREE.BufferGeometry[] {
+    const name = `${shape}:${reach.back},${reach.front},${reach.left},${reach.right}:${layout}`;
     const known = rowsByKind.get(name);
     if (known !== undefined) return known;
-    const made = plankRows(shape, reach);
+    const made = plankRows(shape, reach, layout);
     rowsByKind.set(name, made);
     return made;
   }
@@ -256,8 +279,8 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
     });
   }
 
-  function setRows(parts: Drawn["parts"], shape: RoofShape, reach: Reach): void {
-    const rows = rowsOf(shape, reach);
+  function setRows(parts: Drawn["parts"], shape: RoofShape, reach: Reach, layout = 0): void {
+    const rows = rowsOf(shape, reach, layout);
     parts.forEach(({ mesh }, index) => {
       const row = rows[index];
       if (row !== undefined) mesh.geometry = row;
@@ -332,7 +355,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
         item.root.rotation.y = facingRadians(place.drawTurns);
         item.root.visible = visible;
         const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
-        setRows(item.parts, place.shape, plankReach(place, beside));
+        setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "straight" ? layoutOf(entity.position) : 0);
         showProgress(item, progress);
         seen.add(entity);
       };

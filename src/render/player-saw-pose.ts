@@ -14,7 +14,7 @@ export const SAW_ENTER_SECONDS = 0.45;
 /** How much bigger the saw is in the hand than true size. The player's head and beard are big for the body, like the axe. */
 export const SAW_IN_HAND_SCALE = 1.3;
 /** How far the player's feet stand from the middle of the sawhorse beam, across it, in metres. */
-export const SAW_STANCE_METRES = 0.6;
+export const SAW_STANCE_METRES = 0.8;
 
 /** How far right of the middle the saw cuts, in metres. The right hand holds the saw there. */
 const CUT_SPREAD = 0.16;
@@ -46,12 +46,12 @@ export function sawPoseAt(seconds: number, progress: number, logThickness: numbe
   const pulledBack = SAW_STANCE_METRES + logThickness / 2 - bladeIn + 0.05;
   const pose: BuildPose = {
     hipsDrop: 0.03 + 0.04 * cut,
-    hipsBack: 0.04,
-    hipsLean: 0.12 + 0.05 * cut,
+    hipsBack: 0.06,
+    hipsLean: 0.05 + 0.03 * cut,
     // The shoulders follow the saw a little, rocking forward with each push.
-    chestLean: 0.2 + 0.08 * push + 0.05 * cut,
+    chestLean: 0.06 + 0.05 * push + 0.03 * cut,
     // The head bows to watch the cut.
-    headTilt: 0.2,
+    headTilt: 0.1,
     reach: 1,
     hands: { forward: SAW_STANCE_METRES, height: logTop + PALM_ABOVE_LOG, spread: STEADY_SPREAD },
     rightHand: {

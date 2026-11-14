@@ -275,9 +275,9 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
     // Each view is a moment of one cut through the log, which takes as long as the game takes to cut planks.
     // Whole strokes are pulled back and half strokes pushed away. The blade sinks lower in each later view.
     shots: [
-      { label: "pulled back, cut starting", seconds: 1 },
+      { label: "pulled back, cut starting, side on", seconds: 1, yaw: 270, pitch: 0 },
       { label: "pushed away, cut starting", seconds: 1.5 },
-      { label: "pushed away, over the shoulder", seconds: 4.5, yaw: 160, pitch: 45 },
+      { label: "pushed away, from above", seconds: 4.5, yaw: 270, pitch: 85 },
       { label: "pulled back, cut nearly through", seconds: 7, yaw: 240 },
     ].map(({ label, seconds, yaw = 290, pitch = 10 }) => ({ label, yaw, pitch, seconds: seconds * SAW_STROKE_SECONDS })),
     build({ store, place, movePlayer }) {

@@ -485,15 +485,17 @@
       "kind": "code",
       "code": [
         "src/render/player-mesh.ts",
+        "src/render/player-reach-pose.ts",
         "src/render/scene-renderer.ts",
         "src/sim/hand-reach.ts"
       ],
-      "description": "The player reaching to pick something up or put it down. The player faces the thing, then bends at the hips and knees to the ground, or reaches out at waist height to a woodpile, chest, or sled, and straightens again. The whole motion takes 0.9 seconds. The hand gets to the thing 0.4 seconds in, which is when game logic hands it over. The low reach plays KayKit's PickUp clip and the waist-height reach its Interact clip, both from the approved player file, public/assets/player/barbarian.glb. Code stretches each clip so a wrist is lowest, or furthest forward, at the 0.4-second mark. The axe goes on the back while the hands reach. It reads apart from the build's repeated squat and press: it is one quick dip and rise.",
+      "description": "The player reaching to pick something up or put it down. The player faces the thing, then bends at the hips and knees to the ground, or reaches out at waist height to a woodpile, chest, or sled, and straightens again. The whole motion takes 0.9 seconds. The hand gets to the thing 0.4 seconds in, which is when game logic hands it over. The low reach plays KayKit's PickUp clip and the waist-height reach its Interact clip, both from the approved player file, public/assets/player/barbarian.glb. Code stretches each clip so a wrist is lowest, or furthest forward, at the 0.4-second mark. On top of the clip, code bends the player deeper at the hips and steers that hand to the thing, up to 0.5 m ahead on the ground or 0.55 m ahead at waist height. The player blends into the reach over 0.15 seconds and out of it over 0.25 seconds, so there is no jump at either end, or when one reach cuts into the next. The axe goes on the back while the hands reach. It reads apart from the build's repeated squat and press: it is one quick dip and rise.",
       "source": "Timed in code in this project. Clips PickUp and Interact from KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers, Characters/gltf/Barbarian.glb, unchanged",
       "license": "Project code. The clips are CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/player-animations/issues/01-pick-up-and-put-down.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

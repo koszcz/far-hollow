@@ -242,9 +242,16 @@ export function createSceneRenderer(
       // A reach that starts over, as when a second command follows the first, shows as a new reach.
       if (reachDrawn === undefined || reach.seconds < reachDrawn.seenSeconds) reachDrawn = { since: nowSeconds - reach.seconds, seenSeconds: reach.seconds };
       reachDrawn.seenSeconds = reach.seconds;
-      if (reach.toward !== undefined) playerMesh.setHeading(Math.atan2(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z));
+      const seconds = Math.min(nowSeconds - reachDrawn.since, REACH_SECONDS);
       playerMesh.setWalking(undefined);
-      playerMesh.setReaching({ height: reach.height, seconds: Math.min(nowSeconds - reachDrawn.since, REACH_SECONDS) });
+      if (reach.toward === undefined) {
+        playerMesh.setReaching({ height: reach.height, seconds });
+      } else {
+        playerMesh.setHeading(Math.atan2(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z));
+        // The hand reaches toward the thing, as far as a bend allows.
+        const distance = Math.hypot(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z);
+        playerMesh.setReaching({ height: reach.height, seconds, distance });
+      }
       return;
     }
     reachDrawn = undefined;

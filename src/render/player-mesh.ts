@@ -8,7 +8,7 @@
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down, Lie_Idle, and Lie_StandUp clips. The owner approved it.
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
-// The asset is a draft.
+// player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -20,6 +20,7 @@ import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones } from "./
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
+import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt } from "./sleep-animation";
 import type { PlayerModel } from "./player-model";
@@ -110,8 +111,9 @@ export interface PlayerMesh {
   /**
    * Bends down, or reaches out at waist height, to pick something up or put it down. Pass the seconds since the reach
    * began, from 0 to REACH_SECONDS, or undefined while not reaching. The hand gets to the thing at HAND_AT_SECONDS.
+   * `distance` is how far the thing is in front of the player's feet, in metres, if known. The hand reaches toward it.
    */
-  setReaching(reach: { height: ReachHeight; seconds: number } | undefined): void;
+  setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
   dispose(): void;
 }
 
@@ -188,23 +190,24 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * The moment in each reach clip when a hand gets to the thing: the lowest a wrist goes in the clip to the ground,
    * and the furthest forward a wrist goes in the clip at waist height. The player faces +z.
    */
-  const reachContact: Record<ReachHeight, number> = {
+  const reachContact: Record<ReachHeight, { seconds: number; arm: typeof leftArm }> = {
     low: contactSeconds(reachClips.low, (wrist) => -wrist.y),
     waist: contactSeconds(reachClips.waist, (wrist) => wrist.z),
   };
-  function contactSeconds(action: THREE.AnimationAction, score: (wrist: THREE.Vector3) => number): number {
+  /** The moment in a clip when a wrist scores best, and the arm that wrist belongs to: the arm that reaches. */
+  function contactSeconds(action: THREE.AnimationAction, score: (wrist: THREE.Vector3) => number): { seconds: number; arm: typeof leftArm } {
     const wrist = new THREE.Vector3();
     const duration = action.getClip().duration;
-    let best = { seconds: duration / 2, score: -Infinity };
+    let best = { seconds: duration / 2, arm: rightArm, score: -Infinity };
     for (let seconds = 0; seconds < duration; seconds += 1 / 60) {
       showClip(action, seconds);
       group.updateMatrixWorld(true);
       for (const arm of [leftArm, rightArm]) {
         const scored = score(group.worldToLocal(arm.end.getWorldPosition(wrist)));
-        if (scored > best.score) best = { seconds, score: scored };
+        if (scored > best.score) best = { seconds, arm, score: scored };
       }
     }
-    return best.seconds;
+    return { seconds: best.seconds, arm: best.arm };
   }
 
   // Stand in the idle pose, then fit the beanie to the head as it is now, and fix it to the head bone.
@@ -252,7 +255,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Seconds since the player reached the bedroll, while sleeping. */
   let sleepingAt: number | undefined;
   /** How far the player is through a reach, while reaching. */
-  let reaching: { height: ReachHeight; seconds: number } | undefined;
+  let reaching: { height: ReachHeight; seconds: number; distance?: number } | undefined;
+  /**
+   * The pose the player held when a reach started, started again, or ended, which fades into the pose now.
+   * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
+   */
+  let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
   /** The clock time building began, or undefined while not building. */
   let buildingSince: number | undefined;
   /** The clock time it is now, while building. */
@@ -363,7 +371,48 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       rightForearm.quaternion.multiply(CARRY_FOREARM_TURN);
     }
     poseBuilding();
+    poseReaching();
+    blendFromReach();
     placeDrawknife();
+  }
+
+  /** Every bone of the model, for blending whole poses. */
+  const skeletonBones: THREE.Object3D[] = [];
+  model.traverse((object) => {
+    if (object instanceof THREE.Bone) skeletonBones.push(object);
+  });
+  /** Starts a blend from the pose shown now. Pass `endedAt` when the reach has ended. */
+  function startReachBlend(endedAt?: number): void {
+    const from = new Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>();
+    for (const posed of skeletonBones) from.set(posed, { position: posed.position.clone(), quaternion: posed.quaternion.clone() });
+    reachBlend = endedAt === undefined ? { from } : { from, endedAt };
+  }
+  /** Fades the pose a reach started from, or ended in, into the pose now, so the player never jumps between frames. */
+  function blendFromReach(): void {
+    if (reachBlend === undefined) return;
+    const left =
+      reachBlend.endedAt === undefined
+        ? blendLeftAt(reaching?.seconds ?? 0, REACH_BLEND_IN_SECONDS)
+        : blendLeftAt(performance.now() / 1000 - reachBlend.endedAt, REACH_BLEND_OUT_SECONDS);
+    if (left <= 0) {
+      reachBlend = undefined;
+      return;
+    }
+    rememberClipPose(...skeletonBones);
+    for (const [posed, was] of reachBlend.from) {
+      posed.position.lerp(was.position, left);
+      posed.quaternion.slerp(was.quaternion, left);
+    }
+  }
+
+  /** Bends deeper and steers the reaching hand to the thing, on top of the reach clip. */
+  function poseReaching(): void {
+    if (reaching === undefined) return;
+    const reachPose = reachPoseAt(reaching.height, reaching.seconds, reaching.distance);
+    // A hand steadying a log on the shoulder stays there, so the left hand reaches instead.
+    const arm = carrying ? leftArm : reachContact[reaching.height].arm;
+    rememberClipPose(...buildPosedBones);
+    applyBuildPose(group, buildBones, reachPose, [arm]);
   }
 
   /** Crouches over the clip while building, or stands back up for a moment after building stops. */
@@ -449,7 +498,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * so the hand gets to the thing at HAND_AT_SECONDS and the player stands again at REACH_SECONDS.
    */
   function reachClipSeconds(height: ReachHeight, seconds: number): number {
-    const contact = reachContact[height];
+    const contact = reachContact[height].seconds;
     // A reach plays once, so the clip holds its last frame rather than start again.
     const last = reachClips[height].getClip().duration - 0.001;
     if (seconds <= HAND_AT_SECONDS) return (Math.max(0, seconds) / HAND_AT_SECONDS) * contact;
@@ -529,6 +578,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     },
     setReaching(reach) {
       const changed = (reach === undefined) !== (reaching === undefined);
+      // A reach that starts, starts again, or ends blends from the pose shown now.
+      const startsAgain = reach !== undefined && reaching !== undefined && (reach.seconds < reaching.seconds || reach.height !== reaching.height);
+      if (changed || startsAgain) startReachBlend(reach === undefined ? performance.now() / 1000 : undefined);
       reaching = reach;
       if (changed) updateAxe();
       pose();

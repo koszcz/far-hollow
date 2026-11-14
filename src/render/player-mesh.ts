@@ -7,7 +7,7 @@
 // pulling a drawknife, and the axe goes on the back. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down, Lie_Idle, and Lie_StandUp clips. The owner approved it.
 // While sawing planks, "sawing-animation", posed in code by player-saw-pose.ts, holds the log on the sawhorse with the
-// left hand and saws it with the right. The saw is the draft "saw-model", built by saw-model.ts. The axe goes on the back.
+// left hand and saws it with the right. The saw is the approved "saw-model", built by saw-model.ts. The axe goes on the back.
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.

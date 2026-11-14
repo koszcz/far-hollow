@@ -7,7 +7,9 @@
 //   overhang. Where two frames share an edge, only one of them lays its beam.
 // - Rafters: three hewn timbers on the beams, sloping down the way the frame faces, 35 degrees, like the roof on them.
 //   Frames side by side work out their heights and their valleys from each other, as roof-layout.ts says. Where the front
-//   of a frame is an eave, its rafters reach on past the wall, under the roof's overhang. A valley has a rafter along each
+//   of a frame is an eave, its rafters reach on past the wall, under the roof's overhang. Both ends of a rafter are cut
+//   upright. Where two frames slope away from each other, their rafters meet in pegged pairs over a hewn ridge pole, which
+//   the frame sloping down to +z or +x lays with its last rafter. The beams are a shade darker than the wall logs. A valley has a rafter along each
 //   low edge and one corner to corner under the line where its two slopes meet.
 // - Gable ends: where a slope rises above the beams, as at each end of a ridge or the high side of a shed roof, upright
 //   planks stand on the beams and close the gap up to the roof (gable-end-shape.ts). Beside a lower roof, as where a taller
@@ -35,6 +37,7 @@ import {
   BEAM_RADIUS_METRES,
   COVER_THICKNESS_METRES,
   coverUnderside,
+  paleLog,
   EAVE_REACH_METRES,
   EDGES,
   FRAME_TOP_METRES,
@@ -46,6 +49,7 @@ import {
   rafterBetween,
   raisedBy,
   ROOF_SEED,
+  ROOF_SLOPE_RADIANS,
   SECTION_RISE_METRES,
   shapeHeight,
   type FrameLayout,
@@ -65,8 +69,18 @@ const DELIVERED_OPACITY = 0.7;
 const BEAM_OVERHANG_METRES = 0.15;
 /** Where the front of a frame is an eave, its rafters stop this far short of the edge of the roof's overhang, in metres. */
 const RAFTER_TAIL_SHORT_METRES = 0.06;
-/** A rafter stops this far short of the high edge of its square, in metres, so its square-cut end stays under a ridge. */
-const RAFTER_HEAD_SHORT_METRES = 0.04;
+/** The beams are hewn from older, darker logs than the walls, so they read as their own part: their colour is the log colour times this. */
+const BEAM_SHADE = 0.8;
+/** How tall and wide the ridge pole is across, in metres, from its middle line. */
+const RIDGE_HALF_HEIGHT_METRES = 0.08;
+const RIDGE_HALF_WIDTH_METRES = 0.07;
+/** Where no frame carries the ridge on, the ridge pole reaches this far past the wall, under the roof's overhang, in metres. */
+const RIDGE_OVERHANG_METRES = EAVE_REACH_METRES - 0.1;
+/** The wooden pegs through each pair of rafters at the ridge: how thick across, and how far past the ridge line, in metres. */
+const PEG_RADIUS_METRES = 0.014;
+const PEG_FROM_RIDGE_METRES = 0.11;
+/** A peg sticks out this far past each side of its rafter, in metres. */
+const PEG_PROUD_METRES = 0.018;
 /** How many stages lay beams: the beams along x, then the beams along z. The rest lay rafters. */
 const BEAM_STAGES = 2;
 /** How thick the invisible slab that catches clicks on a blueprint is, in metres. */
@@ -105,8 +119,10 @@ interface Drawn {
   readonly root: THREE.Group;
   /** Holds the rafters and gable ends, turned the way the frame is drawn and raised to its height. The beams stay level, in `root`. */
   readonly turned: THREE.Group;
-  /** One part for each stage of construction, in order, each with its own see-through copy of the wood for fading in. */
-  readonly parts: { mesh: THREE.Mesh; fading: THREE.MeshStandardMaterial }[];
+  /** One part for each stage of construction, in order, each with its wood when built and a see-through copy of it for fading in. */
+  readonly parts: { mesh: THREE.Mesh; solid: THREE.MeshStandardMaterial; fading: THREE.MeshStandardMaterial }[];
+  /** The ridge pole and its pegs, where the frame lays one. It goes up with the last rafter. */
+  readonly ridge: THREE.Mesh;
   /** The plank gable ends between the beams and the roof. They go up with the last rafter. */
   readonly gables: THREE.Mesh;
   /** A see-through copy of the gable planks' material, for fading them in. */
@@ -118,6 +134,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const group = new THREE.Group();
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
   const wood = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true, vertexColors: true });
+  const beamWood = wood.clone();
+  beamWood.color.multiplyScalar(BEAM_SHADE);
   const gablePlanks = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
@@ -147,9 +165,62 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const half = BUILD_GRID_METRES / 2;
     const front = half + (eaveInFront ? EAVE_REACH_METRES - RAFTER_TAIL_SHORT_METRES : 0);
     return Array.from({ length: rafterCount }, (_, i) => {
-      const x = -half + RAFTER_RADIUS_METRES + (i * (BUILD_GRID_METRES - 2 * RAFTER_RADIUS_METRES)) / Math.max(1, rafterCount - 1) + jitter(0.01);
-      return rafterBetween(onRafterLine("straight", x, -half + RAFTER_HEAD_SHORT_METRES), onRafterLine("straight", x, front), jitter);
+      const x = rafterX(i) + jitter(0.01);
+      return rafterBetween(onRafterLine("straight", x, -half), onRafterLine("straight", x, front), jitter, true);
     });
+  }
+
+  /** Where rafter `i` of a straight frame lies across it, before its small wobble. The rafters of the two slopes of a ridge line up in pairs. */
+  const rafterX = (i: number) =>
+    -BUILD_GRID_METRES / 2 + RAFTER_RADIUS_METRES + (i * (BUILD_GRID_METRES - 2 * RAFTER_RADIUS_METRES)) / Math.max(1, rafterCount - 1);
+
+  /** The ridge pole of a straight frame and the pegs through its rafter pairs, made once for each pair of reaches and shared. */
+  const ridgeGeometries = new Map<string, THREE.BufferGeometry>();
+  /**
+   * The ridge pole along the high back edge of a straight frame, in its own frame: a hewn timber under the planks where the
+   * two slopes meet, reaching `startReach` past the -x end and `endReach` past the +x end. A wooden peg runs through each
+   * pair of rafters on either side of it.
+   */
+  function ridgeOf(startReach: number, endReach: number): THREE.BufferGeometry {
+    const name = `${startReach}:${endReach}`;
+    const known = ridgeGeometries.get(name);
+    if (known !== undefined) return known;
+    const random = seededRandom(ROOF_SEED + 20);
+    const wobble = (size: number) => (random() * 2 - 1) * size;
+    const half = BUILD_GRID_METRES / 2;
+    const pole = hewnTimber(BUILD_GRID_METRES + startReach + endReach, RIDGE_HALF_HEIGHT_METRES, wobble, RIDGE_HALF_WIDTH_METRES, 0.006);
+    // Logs are made along z. The ridge runs along x, low enough that its top corners stay under the planks sloping away from it.
+    const top = coverUnderside("straight")(0, -half) - RIDGE_HALF_WIDTH_METRES * Math.tan(ROOF_SLOPE_RADIANS);
+    pole.rotateY(Math.PI / 2).translate((endReach - startReach) / 2, top - RIDGE_HALF_HEIGHT_METRES, -half);
+    const pegLength = 2 * RAFTER_RADIUS_METRES + 2 * PEG_PROUD_METRES;
+    const pegs = Array.from({ length: rafterCount }, (_, i) =>
+      [-1, 1].map((side) => {
+        const at = onRafterLine("straight", rafterX(i), -half + PEG_FROM_RIDGE_METRES);
+        const peg = new THREE.CylinderGeometry(PEG_RADIUS_METRES, PEG_RADIUS_METRES, pegLength, 6).rotateZ(Math.PI / 2);
+        // The partner rafter, on the other slope, has its peg as far past the ridge line on its own side, at the same height.
+        return paleLog(peg.translate(at.x, at.y, -half + side * PEG_FROM_RIDGE_METRES), () => 1);
+      }),
+    ).flat();
+    const parts = [pole, ...pegs];
+    const geometry = mergeGeometries(parts);
+    for (const part of parts) part.dispose();
+    ridgeGeometries.set(name, geometry);
+    return geometry;
+  }
+
+  /**
+   * How far the ridge pole of the frame `section` reaches past each end, or undefined if it lays none.
+   * A ridge forms where a straight frame's high back edge meets one sloping the other way, as high. Only the frame sloping
+   * down to +z or +x lays the ridge pole, so a ridge has one.
+   */
+  function ridgeReach(layout: FrameLayout, section: Section, place: RoofPlace): { start: number; end: number } | undefined {
+    if (place.shape !== "straight" || (place.drawTurns !== 0 && place.drawTurns !== 3)) return undefined;
+    const [back, , left, right] = neighboursOf(layout, section.position, place);
+    if (back === undefined) return undefined;
+    const backPlace = layout.placeAt(back.position);
+    const facesAway = backPlace.shape === "straight" && backPlace.drawTurns === (place.drawTurns + 2) % 4;
+    if (!facesAway || backPlace.inFront !== place.inFront || Math.abs(back.position.y - section.position.y) > 0.01) return undefined;
+    return { start: left === undefined ? RIDGE_OVERHANG_METRES : 0, end: right === undefined ? RIDGE_OVERHANG_METRES : 0 };
   }
 
   /**
@@ -285,9 +356,10 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       const mesh = new THREE.Mesh(empty, blueprintMaterial);
       mesh.castShadow = true;
       (index < BEAM_STAGES ? root : turned).add(mesh);
-      const fading = wood.clone();
+      const solid = index < BEAM_STAGES ? beamWood : wood;
+      const fading = solid.clone();
       fading.transparent = true;
-      return { mesh, fading };
+      return { mesh, solid, fading };
     });
   }
 
@@ -328,6 +400,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const gables = new THREE.Mesh(aloneGables(), blueprintMaterial);
     gables.castShadow = true;
     turned.add(gables);
+    const ridge = new THREE.Mesh(empty, blueprintMaterial);
+    ridge.castShadow = true;
+    turned.add(ridge);
     const gablesFading = gablePlanks.clone();
     gablesFading.transparent = true;
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
@@ -336,7 +411,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     root.add(picker);
     pickers.push(picker);
     group.add(root);
-    const result = { root, turned, parts, gables, gablesFading, picker };
+    const result = { root, turned, parts, ridge, gables, gablesFading, picker };
     drawn.set(entity, result);
     return result;
   }
@@ -344,19 +419,20 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   /**
    * Shows how far construction has gone. Built parts are solid. The part being built stays in its place and turns solid.
    * Parts whose log has been delivered wait half solid in their places, and the rest show see-through.
-   * The gable ends go up with the last rafter.
+   * The ridge pole and the gable ends go up with the last rafter.
    */
   function showProgress(item: Drawn, progress: number, delivered: number): void {
     const stagesDone = progress * item.parts.length;
-    item.parts.forEach(({ mesh, fading }, index) => {
+    item.parts.forEach(({ mesh, solid, fading }, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
       if (share <= 0) {
         mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
       } else {
         fading.opacity = deliveredOpacity(DELIVERED_OPACITY, share);
-        mesh.material = fading.opacity < 1 ? fading : wood;
+        mesh.material = fading.opacity < 1 ? fading : solid;
       }
       if (index !== item.parts.length - 1) return;
+      item.ridge.material = mesh.material;
       if (share <= 0) {
         item.gables.material = mesh.material;
       } else {
@@ -399,6 +475,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         // The front edge, as drawn, is the second in EDGES order.
         setRafters(item.parts, place.shape, neighboursOf(layout, entity.position, place)[1] === undefined);
         item.gables.geometry = gablesOf(layout, entity, place);
+        const ridge = ridgeReach(layout, entity, place);
+        item.ridge.geometry = ridge === undefined ? empty : ridgeOf(ridge.start, ridge.end);
         showProgress(item, progress, delivered);
         seen.add(entity);
       };
@@ -440,9 +518,11 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         ...[...raftersByKind.values()].flat(),
         ...beamGeometries.values(),
         ...gableGeometries.values(),
+        ...ridgeGeometries.values(),
         empty,
         pickGeometry,
         wood,
+        beamWood,
         gablePlanks,
         blueprintMaterial,
         deliveredMaterial,

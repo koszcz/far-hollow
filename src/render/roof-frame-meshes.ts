@@ -11,8 +11,8 @@
 //   upright. Where two frames slope away from each other, their rafters meet in pegged pairs over a hewn ridge pole, which
 //   the frame sloping down to +z or +x lays with its last rafter. The beams are a shade darker than the wall logs. A valley has a rafter along each
 //   low edge and one corner to corner under the line where its two slopes meet.
-// - Gable ends: where a slope rises above the beams, as at each end of a ridge or the high side of a shed roof, upright
-//   planks stand on the beams and close the gap up to the roof (gable-end-shape.ts). Beside a lower roof, as where a taller
+// - Gable ends: where a slope rises above the beams, as at each end of a ridge or the high side of a shed roof, stacked
+//   debarked logs stand on the beams and close the gap up to the roof (gable-end-shape.ts). Beside a lower roof, as where a taller
 //   wing stands beside a lower one, they stand on that roof's planks instead.
 // Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The gable
 // ends go up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
@@ -31,7 +31,7 @@ import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { CORNER_STAGGER_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { seededRandom } from "./lean-to-meshes";
-import { gableEndFloors, gableEndPlanks } from "./gable-end-shape";
+import { gableEndFloors, gableEndLogs } from "./gable-end-shape";
 import { ALONE, roofTopAt, type RoofPlace, type RoofShape } from "./roof-layout";
 import {
   BEAM_RADIUS_METRES,
@@ -123,9 +123,9 @@ interface Drawn {
   readonly parts: { mesh: THREE.Mesh; solid: THREE.MeshStandardMaterial; fading: THREE.MeshStandardMaterial }[];
   /** The ridge pole and its pegs, where the frame lays one. It goes up with the last rafter. */
   readonly ridge: THREE.Mesh;
-  /** The plank gable ends between the beams and the roof. They go up with the last rafter. */
+  /** The log gable ends between the beams and the roof. They go up with the last rafter. */
   readonly gables: THREE.Mesh;
-  /** A see-through copy of the gable planks' material, for fading them in. */
+  /** A see-through copy of the gable logs' material, for fading them in. */
   readonly gablesFading: THREE.MeshStandardMaterial;
   readonly picker: THREE.Mesh;
 }
@@ -136,7 +136,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const wood = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true, vertexColors: true });
   const beamWood = wood.clone();
   beamWood.color.multiplyScalar(BEAM_SHADE);
-  const gablePlanks = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
+  const gableLogs = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
@@ -302,9 +302,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const name = `${shape}:${floors.map((floor) => floor?.toFixed(3) ?? "-").join(",")}`;
     const known = gableGeometries.get(name);
     if (known !== undefined) return known;
-    const planks = gableEndPlanks(coverUnderside(shape), floors);
-    const geometry = planks.length === 0 ? empty : mergeGeometries(planks);
-    for (const plank of planks) plank.dispose();
+    const logs = gableEndLogs(coverUnderside(shape), floors);
+    const geometry = logs.length === 0 ? empty : mergeGeometries(logs);
+    for (const log of logs) log.dispose();
     gableGeometries.set(name, geometry);
     return geometry;
   }
@@ -404,7 +404,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const ridge = new THREE.Mesh(empty, blueprintMaterial);
     ridge.castShadow = true;
     turned.add(ridge);
-    const gablesFading = gablePlanks.clone();
+    const gablesFading = gableLogs.clone();
     gablesFading.transparent = true;
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.position.y = EDGE_PIECE_HEIGHT_METRES + PICK_THICKNESS_METRES / 2;
@@ -438,7 +438,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         item.gables.material = mesh.material;
       } else {
         item.gablesFading.opacity = fading.opacity;
-        item.gables.material = fading.opacity < 1 ? item.gablesFading : gablePlanks;
+        item.gables.material = fading.opacity < 1 ? item.gablesFading : gableLogs;
       }
     });
   }
@@ -524,7 +524,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         pickGeometry,
         wood,
         beamWood,
-        gablePlanks,
+        gableLogs,
         blueprintMaterial,
         deliveredMaterial,
         notAllowedMaterial,

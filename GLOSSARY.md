@@ -212,7 +212,7 @@ The top line of a roof, where two slopes that face away from each other meet.
 _Avoid_: Peak, apex
 
 **Gable end**:
-The triangle of planks that closes the space between the wall top and the roof at the end of a ridge. It comes with the roof frame, so the player never builds it on its own.
+The triangle of stacked logs that closes the space between the wall top and the roof at the end of a ridge. It comes with the roof frame, so the player never builds it on its own.
 _Avoid_: Gable wall, end wall
 
 **Valley**:

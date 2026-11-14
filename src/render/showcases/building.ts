@@ -305,13 +305,13 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   "gable-end": {
     radius: 3.5,
     focus: { x: 0, y: 1.8, z: 0 },
-    // On the left, a 2 by 2 cabin with a ridge across it: a plank gable end closes the triangle under each end of the ridge.
-    // Beside it, a shed roof one square deep that slopes down to the front, closed by a plank triangle at each side.
+    // On the left, a 2 by 2 cabin with a ridge across it: a log gable end closes the triangle under each end of the ridge.
+    // Beside it, a shed roof one square deep that slopes down to the front, closed by a log triangle at each side.
     // On the right, a wing two squares deep runs through, and a wing four squares wide butts against its front, so the
     // butted wing's ridge stands above the through-roof's ridge, and a gable end fills the step above it.
     shots: [
       { label: "gable ends of a ridge", yaw: 270, pitch: 15, seconds: 1, radius: 3, focus: { x: -5.5, y: 2, z: -0.5 } },
-      { label: "shed roof", yaw: 45, pitch: 15, seconds: 1, radius: 2.6, focus: { x: -2, y: 1.8, z: 0 } },
+      { label: "shed roof", yaw: 315, pitch: 15, seconds: 1, radius: 2.6, focus: { x: -2, y: 1.8, z: 0 } },
       { label: "step above a lower ridge", yaw: 200, pitch: 25, seconds: 1, radius: 2.6, focus: { x: 4, y: 2.3, z: 0 } },
       { label: "taller butted wing", yaw: 30, pitch: 30, seconds: 1, radius: 3.2, focus: { x: 4, y: 1.8, z: 1 } },
     ],

@@ -318,12 +318,13 @@
         "src/render/gable-end-shape.ts",
         "src/render/roof-frame-meshes.ts"
       ],
-      "description": "The plank gable ends of the cabin roof. They close the gap between what is under an edge of a roof section and its planks: the triangle between the wall top and the roof at each end of a ridge or a shed roof, and the step where a taller wing's roof stands above a lower one. Each is a row of upright sawn planks, grey and weathered like the roof's, side by side along the edge with a thin gap between them. Each plank stands on the frame's beam or the lower roof and is cut at its top to the slope above, so the gable end meets the roof with no gap. They appear on their own, and go up with the last rafter of the roof frame, whose cost pays for them. The player never builds one alone.",
+      "description": "The log gable ends of the cabin roof. They close the gap between what is under an edge of a roof section and its planks: the triangle between the wall top and the roof at each end of a ridge or a shed roof, and the step where a taller wing's roof stands above a lower one. Each is a stack of debarked logs laid along the edge, like the log wall below it, standing on the frame's beam or the lower roof. Each course is a little shorter than the one below, and the roof's slope cuts its ends and top, so the gable end meets the roof with no gap. Where two gable ends meet at a corner, their logs reach past it and take turns, like the log walls' corners. They appear on their own, and go up with the last rafter of the roof frame, whose cost pays for them. The player never builds one alone.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/shelter/issues/11-gable-roof-redesign.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

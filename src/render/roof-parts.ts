@@ -1,5 +1,5 @@
 // What the roof frame and the roof laid on it share: their sizes and slope, the frame layout both follow, and the hewn
-// timbers and rafters the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, its plank gable ends
+// timbers and rafters the frame is made from. The frame ("roof-frame" asset) is drawn by roof-frame-meshes.ts, its log gable ends
 // ("gable-end") by gable-end-shape.ts, and the planks of the roof ("roof") by roof-meshes.ts.
 // Heights here are in metres above the foundation's deck, in a section's own frame: drawn unturned, sloping down to +z.
 import * as THREE from "three";
@@ -20,9 +20,9 @@ export const RAFTER_RADIUS_METRES = 0.07;
 const RAFTER_TAPER_METRES = 0.012;
 /** How thick the planks of a roof are where their rows overlap, in metres: two planks, one on the other. */
 export const COVER_THICKNESS_METRES = 0.05;
-/** The weathered greys the planks of the roof and its gable ends are painted in, one picked for each plank. */
+/** The weathered greys the planks of the roof are painted in, one picked for each plank. */
 export const WEATHERED_PLANK_COLOURS = [0x8e8a80, 0x7f7b72, 0x9a968c, 0x86807a, 0x928c82] as const;
-/** How wide a plank of the roof or a gable end is, in metres, at most. */
+/** How wide a plank of the roof is, in metres, at most. */
 export const PLANK_WIDTH_METRES = 0.17;
 /** The gap between two planks side by side, in metres. */
 export const PLANK_GAP_METRES = 0.008;

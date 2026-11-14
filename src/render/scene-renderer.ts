@@ -233,8 +233,8 @@ export function createSceneRenderer(
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
     playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
-    // Crafting at a sawhorse saws. The player steps up beside the beam to saw, and back when sawing stops.
-    const sawhorse = activity?.kind === "craft" && target?.workStation === "sawhorse" && target.position !== undefined ? target : undefined;
+    // Cutting planks saws. Making the saw, a hand recipe, swings instead. The player steps up beside the beam to saw, and back when sawing stops.
+    const sawhorse = activity?.kind === "craft" && player.craftTask?.recipe === "planks" && target?.position !== undefined ? target : undefined;
     playerMesh.setSawing(sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
     const stance = sawingStep.drawnAt(
       nowSeconds,

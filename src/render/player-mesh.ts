@@ -282,12 +282,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let sawingSince: number | undefined;
   /** The clock time it is now, and how far through the log the saw is, while sawing. */
   let sawingAt = { nowSeconds: 0, progress: 0 };
-  /** How tall a log lying on its side is, in metres. */
+  // Measure the log shape once, for how tall the log on the sawhorse is.
   const logShapeBox =
     logShape.geometry.boundingBox ?? new THREE.Box3().setFromBufferAttribute(logShape.geometry.getAttribute("position") as THREE.BufferAttribute);
+  /** How tall a log lying on its side is, in metres. */
   const logThickness = logShapeBox.max.y - logShapeBox.min.y;
   /**
-   * While standing up after building or debarking stops: when it stopped, on the performance clock in seconds, the
+   * While standing up after building, debarking, or sawing stops: when it stopped, on the performance clock in seconds, the
    * pose then, and how many seconds standing up takes.
    */
   let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt>; seconds: number } | undefined;

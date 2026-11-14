@@ -2,6 +2,7 @@
 // Game logic stops the player anywhere near the sawhorse. To saw, they step up beside its beam and face it, with the
 // log lying along the beam in front of them. When sawing stops, they step back to where game logic has them.
 // Game logic's record of where the player stands does not change.
+import type { QuarterTurns } from "../sim/structure-kind";
 import type { GroundPoint } from "../sim/valley";
 import { SAW_ENTER_SECONDS, SAW_STANCE_METRES } from "./player-saw-pose";
 import { facingRadians } from "./structure-look";
@@ -16,7 +17,7 @@ export interface StanceSpot {
 /** A sawhorse: where its middle is, and which way it is turned. Its beam runs along x when it faces the default way. */
 export interface SawhorseSpot {
   readonly position: GroundPoint;
-  readonly turns: number;
+  readonly turns: QuarterTurns;
 }
 
 /** Where the player stands to saw at `sawhorse`, coming from `from`: beside the beam on the side nearer them, facing it. */
@@ -48,6 +49,7 @@ interface Step {
   readonly since: number;
 }
 
+/** Steps the drawn player up to a sawhorse to saw, and back to where game logic has them when sawing stops. */
 export interface SawingStep {
   /**
    * Where to draw the player now, given the sawhorse they saw at, or undefined while not sawing, and where game logic

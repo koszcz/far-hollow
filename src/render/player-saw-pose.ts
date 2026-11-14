@@ -2,7 +2,7 @@
 // that lies along its beam. The left hand rests on the log to hold it still. The right hand pushes the bow saw away
 // and pulls it back in long, even strokes, across the log. The blade sinks from the top of the log to the bottom as
 // the cut goes on. It is posed in code on top of the idle clip with the build pose's bones, so it has no clip of its
-// own. The owner approved it. The bow saw is the draft "saw-model", built by saw-model.ts.
+// own. The owner approved it. The bow saw is the approved "saw-model", built by saw-model.ts.
 import { scaleBuildPose, type BuildPose } from "./player-build-pose";
 import { SAW_BLADE_LENGTH_METRES, SAW_TEETH_BELOW_GRIP_METRES } from "./saw-model";
 import { BEAM_TOP_METRES } from "./sawhorse-meshes";

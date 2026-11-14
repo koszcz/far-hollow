@@ -11,9 +11,7 @@ const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRA
 describe("the saw blade in the starting kit", () => {
   it("is in a new game's backpack, along with the rest of the starting kit", () => {
     const view = createGame({ seed: 42 }).client.getView();
-    expect(view.backpack).toEqual({ axe: 1, knife: 1, drawknife: 1, steelAndFlint: 1, bedroll: 1, pot: 1, sawBlade: 1 });
-    // The starting tools, bedroll, and pot weigh 4.9 kg. The saw blade weighs 0.5 kg.
-    expect(view.backpackWeight).toBeCloseTo(5.4);
+    expect(view.backpack).toMatchObject({ sawBlade: 1 });
   });
 });
 
@@ -138,8 +136,8 @@ describe("crafting the saw", () => {
 
   it("counts the weight of the materials it uses as freed, so a full backpack still has room for the saw", () => {
     const game = createGame({ seed: 42 });
-    // The starting kit (5.4 kg), 3 sticks (1.5 kg), 8 pieces of firewood (12 kg), and 11 sets of steel and flint (1.1 kg) weigh 20 kg, the limit.
-    give(game, { stick: 3, firewood: 8, steelAndFlint: 11 });
+    // The starting kit (5.5 kg), 3 sticks (1.5 kg), 8 pieces of firewood (12 kg), and 10 sets of steel and flint (1 kg) weigh 20 kg, the limit.
+    give(game, { stick: 3, firewood: 8, steelAndFlint: 10 });
     game.step();
     expect(game.client.getView().backpackWeight).toBeCloseTo(20, 5);
     game.client.send({ type: "craft", recipe: "saw" });

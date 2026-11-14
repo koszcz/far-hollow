@@ -43,6 +43,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   turnAwayLargeValley,
   addSleds,
   layPlankRoofs,
+  giveFishingLine,
 ];
 
 /** The version of the save format this code writes. */
@@ -81,6 +82,8 @@ export const ROOF_FRAMES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRoofFrames) + 2
 export const SLEDS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSleds) + 2;
 /** The first save version in which a roof section is planks rather than bark. */
 export const PLANK_ROOFS_SAVE_VERSION = SAVE_UPGRADES.indexOf(layPlankRoofs) + 2;
+/** The first save version in which the player has a fishing line, for crafting the fishing rod. */
+export const FISHING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveFishingLine) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -414,7 +417,7 @@ function nameStationInNotice(save: Readonly<Record<string, unknown>>): Record<st
  */
 function giveStartingItem(
   save: Readonly<Record<string, unknown>>,
-  item: "bedroll" | "pot" | "drawknife" | "sawBlade",
+  item: "bedroll" | "pot" | "drawknife" | "sawBlade" | "fishingLine",
   madeFrom: readonly BackpackContent[] = [],
 ): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
@@ -461,4 +464,12 @@ function layPlankRoofs(save: Readonly<Record<string, unknown>>): Record<string, 
     return { ...(entity as object), components: { ...components, blueprint: { ...blueprint, progress: 0, materialsSpent: 0 } } };
   });
   return giveBack({ ...save, entities }, "bark", barkBack);
+}
+
+/**
+ * Version 24 to 25: a new game now starts with a fishing line, for crafting the fishing rod. A player saved before then
+ * gets one too, unless they already hold a fishing rod.
+ */
+function giveFishingLine(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return giveStartingItem(save, "fishingLine", ["fishingRod"]);
 }

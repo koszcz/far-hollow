@@ -3,7 +3,7 @@ import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
-export type { BackpackContent, CraftingContent, Food } from "./backpack";
+export type { BackpackContent, CraftingContent, FishingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";

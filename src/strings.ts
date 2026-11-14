@@ -20,6 +20,8 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   sawBlade: (count) => (count === 1 ? "A saw blade" : `${count} saw blades`),
   saw: (count) => (count === 1 ? "A saw" : `${count} saws`),
   plank: (count) => (count === 1 ? "1 plank" : `${count} planks`),
+  fishingLine: (count) => (count === 1 ? "A fishing line" : `${count} fishing lines`),
+  fishingRod: (count) => (count === 1 ? "A fishing rod" : `${count} fishing rods`),
 };
 
 export const strings = {
@@ -58,6 +60,7 @@ export const strings = {
     recipes: {
       saw: "Saw",
       planks: "Cut planks",
+      fishingRod: "Fishing rod",
     },
     /** What a station recipe uses from the ground beside its station, such as "1 debarked log by the sawhorse". */
     besideStation: (materials: string, station: string) => `${materials} by the ${station.toLowerCase()}`,
@@ -200,6 +203,8 @@ export const strings = {
     sawBlade: "Saw blade",
     saw: "Saw",
     plank: "Plank",
+    fishingLine: "Fishing line",
+    fishingRod: "Fishing rod",
   },
   chest: {
     title: "Chest",

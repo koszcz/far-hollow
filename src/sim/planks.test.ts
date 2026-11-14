@@ -137,7 +137,7 @@ describe("cutting planks at the sawhorse", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
     debarkedLogBeside(game, sawhorse, 1);
-    // The starting kit (5.4 kg) and the saw (1 kg) weigh 6.4 kg. Seven pieces of firewood (10.5 kg) bring it to 16.9 kg,
+    // The starting kit (5.5 kg) and the saw (1 kg) weigh 6.5 kg. Seven pieces of firewood (10.5 kg) bring it to 17 kg,
     // so four planks (8 kg) would go over the 20 kg limit.
     give(game, { saw: 1, firewood: 7 });
 
@@ -149,8 +149,8 @@ describe("cutting planks at the sawhorse", () => {
     onlyPlayer(game).backpack.contents.firewood = 3;
     send(game, { type: "craft", recipe: "planks" });
     stepUntil(game, () => game.client.getView().backpack.plank !== undefined);
-    // 6.4 kg, 4.5 kg of firewood, and 8 kg of planks.
-    expect(game.client.getView().backpackWeight).toBeCloseTo(18.9);
+    // 6.5 kg, 4.5 kg of firewood, and 8 kg of planks.
+    expect(game.client.getView().backpackWeight).toBeCloseTo(19);
   });
 });
 

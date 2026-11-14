@@ -652,6 +652,22 @@
       }
     },
     {
+      "id": "fishing-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/fishing-icons.tsx",
+        "src/ui/icon-drawing.ts",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "Backpack icons for fishing gear, drawn in the same style as backpack-icons: the fishing line, a wooden winder with pale line wound round its middle and a steel hook on the loose end; and the fishing rod, a thin rod lying at a slant, thicker at the butt and lashed with twine, with the line and hook hanging from its tip.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fishing/issues/01-fishing-rod.md"
+      }
+    },
+    {
       "id": "berry-bush",
       "kind": "file",
       "file": "public/assets/berry-bush/berry-bush.glb",
@@ -899,6 +915,21 @@
       "approvalNotes": [
         "2026-11-11: The owner approved keeping rough draft shapes for the saw blade, the saw, and the plank in the pile until they are polished."
       ]
+    },
+    {
+      "id": "fishing-piles",
+      "kind": "code",
+      "code": [
+        "src/render/fishing-pile-shapes.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "How the fishing line and the fishing rod look lying in a pile, laid out like the other things in the approved pile. The fishing line is a flat wooden winder, 10 cm long with a crossbar at each end, and pale line wound round its middle. The fishing rod is a thin wooden rod, 1.5 m long and thicker at the butt, with 30 cm of pale line trailing from its tip.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fishing/issues/01-fishing-rod.md"
+      }
     },
     {
       "id": "rolled-bedroll",

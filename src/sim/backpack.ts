@@ -4,10 +4,14 @@
  */
 
 /** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in CONTENT_WEIGHT_KG. */
-export type BackpackContent = "axe" | "knife" | "drawknife" | "steelAndFlint" | "bedroll" | "stick" | "firewood" | "bark" | Food | PotContent | CraftingContent;
+export type BackpackContent =
+  "axe" | "knife" | "drawknife" | "steelAndFlint" | "bedroll" | "stick" | "firewood" | "bark" | Food | PotContent | CraftingContent | FishingContent;
 
 /** Things that crafting uses or makes: the saw blade, a material, the saw, a tool made from it, and planks, cut at the sawhorse. */
 export type CraftingContent = "sawBlade" | "saw" | "plank";
+
+/** Fishing gear: the fishing line, from the starting kit, and the fishing rod, a tool crafted from it. */
+export type FishingContent = "fishingLine" | "fishingRod";
 
 /** Wild food the player forages and eats. One "berries" is a handful of berries. */
 export type Food = "berries" | "mushroom";
@@ -47,11 +51,13 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   sawBlade: 0.5,
   saw: 1,
   plank: 2,
+  fishingLine: 0.1,
+  fishingRod: 0.5,
 };
 
 /** What the player starts a new game with. */
 export function createStartingBackpack(): Backpack {
-  return { contents: { axe: 1, knife: 1, drawknife: 1, steelAndFlint: 1, bedroll: 1, pot: 1, sawBlade: 1 } };
+  return { contents: { axe: 1, knife: 1, drawknife: 1, steelAndFlint: 1, bedroll: 1, pot: 1, sawBlade: 1, fishingLine: 1 } };
 }
 
 export function countInBackpack(backpack: Backpack, content: BackpackContent): number {

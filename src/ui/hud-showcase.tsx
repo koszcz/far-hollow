@@ -1,7 +1,7 @@
-// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, /?asset=crafting-icons, or /?asset=build-icons, once in each of the four views, each in a
+// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/showcases/interface.ts and src/render/showcases/camp.ts. Development builds only.
 import { render } from "preact";
-import type { GameClient, GameView, StructureKind } from "../sim/api";
+import type { BackpackContent, GameClient, GameView, StructureKind } from "../sim/api";
 import { BackpackIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
 import { Hud } from "./hud";
@@ -188,6 +188,37 @@ const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
   { view: BASE_VIEW, buildMenuOpen: false, placing: null },
 ];
 
+/** The fishing rod recipe as the craft menu lists it, with what the player has. */
+const FISHING_ROD_RECIPE: GameView["craftMenu"][number] = {
+  kind: "fishingRod",
+  materials: [
+    { material: "fishingLine", count: 1 },
+    { material: "stick", count: 2 },
+  ],
+  result: { content: "fishingRod", count: 1 },
+  seconds: 5,
+  tool: "knife",
+  lacks: [],
+};
+
+/** The draft "fishing-icons" asset: the fishing line and the fishing rod in the backpack, with the craft menu and crafting under way. The last view is the icon sheet. */
+const FISHING_ICON_STATES: readonly ShowcaseState[] = [
+  {
+    view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, fishingLine: 1, stick: 2 }, craftMenu: [...BASE_VIEW.craftMenu, FISHING_ROD_RECIPE] },
+    buildMenuOpen: false,
+    placing: null,
+    craftMenuOpen: true,
+  },
+  {
+    view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, fishingLine: 1, stick: 2 }, action: { kind: "craft", progress: 0.4 } },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  { view: { ...BASE_VIEW, backpack: { axe: 1, knife: 1, fishingRod: 1, fishingLine: 2, stick: 3 } }, buildMenuOpen: false, placing: null },
+  // IconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
+];
+
 /** The "build-icons" first view: every build icon drawn large, with its name, so the owner can judge the drawings. */
 function BuildIconSheet() {
   const cell = {
@@ -223,11 +254,11 @@ function BuildIconSheet() {
   );
 }
 
-/** The "crafting-icons" last view: each crafting icon drawn large, with its name, so the owner can judge the drawings. */
-function CraftingIconSheet() {
+/** The last view of "crafting-icons" or "fishing-icons": each icon drawn large, with its name, so the owner can judge the drawings. */
+function IconSheet({ contents }: { contents: readonly BackpackContent[] }) {
   return (
     <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
-      {(["sawBlade", "saw", "plank"] as const).map((content) => (
+      {contents.map((content) => (
         <div
           key={content}
           style={{
@@ -252,6 +283,12 @@ function CraftingIconSheet() {
   );
 }
 
+/** The icons each icon sheet draws large. */
+const ICON_SHEETS = {
+  "crafting-icons": { states: CRAFTING_ICON_STATES, contents: ["sawBlade", "saw", "plank"] },
+  "fishing-icons": { states: FISHING_ICON_STATES, contents: ["fishingLine", "fishingRod"] },
+} as const;
+
 /** A client that always shows `view` and ignores commands. */
 function stillClient(view: GameView): GameClient {
   return {
@@ -273,12 +310,13 @@ const STATES_BY_ASSET = {
   bark: BARK_STATES,
   "backpack-icons": BACKPACK_ICON_STATES,
   "crafting-icons": CRAFTING_ICON_STATES,
+  "fishing-icons": FISHING_ICON_STATES,
   "build-icons": BUILD_ICON_STATES,
   // The sled's icons show in the build menu, so the "sled-icon" showcase is the build menu's.
   "sled-icon": BUILD_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", "build-icons", or "sled-icon" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", or "sled-icon" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
     const quarter = document.createElement("div");
@@ -292,8 +330,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         return;
       }
     }
-    if (asset === "crafting-icons" && index === CRAFTING_ICON_STATES.length - 1) {
-      render(<CraftingIconSheet />, quarter);
+    if ((asset === "crafting-icons" || asset === "fishing-icons") && index === ICON_SHEETS[asset].states.length - 1) {
+      render(<IconSheet contents={ICON_SHEETS[asset].contents} />, quarter);
       return;
     }
     render(

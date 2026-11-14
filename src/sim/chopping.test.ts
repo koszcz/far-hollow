@@ -5,9 +5,9 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { finishReach } from "./test-steps";
 
 describe("the backpack", () => {
-  it("starts with an axe, a knife, a drawknife, a steel and flint, a bedroll, an empty pot, and a saw blade", () => {
+  it("starts with an axe, a knife, a drawknife, a steel and flint, a bedroll, an empty pot, a saw blade, and a fishing line", () => {
     const game = createGame({ seed: 42 });
-    expect(game.client.getView().backpack).toEqual({ axe: 1, knife: 1, drawknife: 1, steelAndFlint: 1, bedroll: 1, pot: 1, sawBlade: 1 });
+    expect(game.client.getView().backpack).toEqual({ axe: 1, knife: 1, drawknife: 1, steelAndFlint: 1, bedroll: 1, pot: 1, sawBlade: 1, fishingLine: 1 });
   });
 });
 

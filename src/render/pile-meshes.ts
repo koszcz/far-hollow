@@ -6,6 +6,7 @@
 // the "pot", the bedroll lies as the "rolled-bedroll", and the steel and flint as the "steel-and-flint". The other tools and
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
+// The fishing line and the fishing rod are the draft "fishing-piles" asset, built in fishing-pile-shapes.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
@@ -14,6 +15,7 @@ import type { BackpackContent } from "../sim/backpack";
 import { pileEntities, type Entity, type EntityStore } from "../sim/entities";
 import { barkParts } from "./bark-meshes";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
+import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
 import type { OutlinePart } from "./hover-outline";
 import type { MushroomsShape } from "./mushrooms-model";
@@ -309,6 +311,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     // The plank: a flat board of pale sawn wood. A rough draft shape.
     plank: [{ geometry: track(new THREE.BoxGeometry(0.1, 0.025, 0.8).translate(0, 0.0125, 0)), material: material(0xd9b07a) }],
     bedroll: rolledBedroll.parts,
+    ...fishingPileParts((colour) => material(colour), track),
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });
   const LAYOUTS: Readonly<Record<Exclude<BackpackContent, "stick">, Layout>> = {
@@ -321,6 +324,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     sawBlade: spread(0.1),
     saw: spread(0.12),
     plank: spread(0.12),
+    fishingLine: spread(0.08),
+    fishingRod: spread(0.1),
     berries: spread(0.06),
     mushroom: spread(0.1),
     bedroll: spread(0.3),

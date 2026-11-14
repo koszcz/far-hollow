@@ -117,8 +117,8 @@ describe("moving all of a kind", () => {
     const chest = buildChest(game);
     chest.chest.contents.firewood = 30;
     open(game, chest);
-    // The starting backpack weighs 5.4 kg, so 9 pieces of firewood at 1.5 kg fill it to 18.9 kg of its 20. A tenth does not fit.
-    expect(game.client.getView().backpackWeight).toBeCloseTo(5.4, 5);
+    // The starting backpack weighs 5.5 kg, so 9 pieces of firewood at 1.5 kg fill it to 19 kg of its 20. A tenth does not fit.
+    expect(game.client.getView().backpackWeight).toBeCloseTo(5.5, 5);
 
     send(game, { type: "takeFromChest", chestId: idOf(game, chest), content: "firewood", all: true });
 

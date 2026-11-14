@@ -270,6 +270,14 @@ The metal blade the player brings into the valley. It is a material, not a tool.
 **Saw**:
 A bow saw: a saw blade in a wooden frame. The player needs it to cut planks at a sawhorse.
 
+**Fishing line**:
+The line and hook the player brings into the valley, wound on a small wooden winder. It is a material, not a tool. The player crafts it into a fishing rod.
+_Avoid_: String, hook
+
+**Fishing rod**:
+A tool made from a fishing line tied to two sticks. The player crafts it by hand with the knife, and needs it to catch fish at the river.
+_Avoid_: Pole
+
 **Furniture**:
 An object placed freely inside or around a building, such as a bed, table, or shelf. Furniture does not snap to the grid.
 _Avoid_: Decoration, prop

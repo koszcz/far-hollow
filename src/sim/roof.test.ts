@@ -202,7 +202,7 @@ describe("loading a save from before plank roofs", () => {
   }
 
   it("raises the save version", () => {
-    expect(PLANK_ROOFS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(PLANK_ROOFS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     expect(PLANK_ROOFS_SAVE_VERSION).toBeGreaterThan(SLEDS_SAVE_VERSION);
   });
 

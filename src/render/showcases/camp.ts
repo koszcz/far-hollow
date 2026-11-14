@@ -193,6 +193,24 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       );
     },
   },
+  // The draft "fishing-piles": one and several of the fishing line and the fishing rod, with a knife for size.
+  "fishing-piles": {
+    radius: 2.2,
+    focus: { x: 0, y: 0.05, z: 0 },
+    shots: [
+      { label: "all fishing piles", yaw: 0, pitch: 40 },
+      { label: "fishing lines, one and many", yaw: 20, pitch: 50, radius: 0.7, focus: { x: -0.9, y: 0, z: 0 } },
+      { label: "fishing rods, one and many", yaw: -25, pitch: 35, radius: 2.4, focus: { x: 0.6, y: 0, z: 0.4 } },
+      { label: "beside a knife, close", yaw: 60, pitch: 25, radius: 0.6, focus: { x: -0.9, y: 0, z: -0.7 } },
+    ],
+    build({ place }) {
+      place(-0.9, -0.7, { pile: { content: "fishingLine", count: 1 } });
+      place(-0.6, -0.7, { pile: { content: "knife", count: 1 } });
+      place(-0.9, 0.4, { pile: { content: "fishingLine", count: 5 } });
+      place(0.2, -0.3, { pile: { content: "fishingRod", count: 1 } });
+      place(1, 0.6, { pile: { content: "fishingRod", count: 4 } });
+    },
+  },
   "fire-effect": {
     radius: 2,
     focus: { x: 0, y: 0.5, z: 0 },

@@ -3,8 +3,9 @@
 // The owner approved the steel and flint icon, a C-steel, a flint shard, and sparks, on 2026-11-12.
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
 import { useId } from "preact/hooks";
-import type { BackpackContent, CraftingContent } from "../sim/api";
+import type { BackpackContent, CraftingContent, FishingContent } from "../sim/api";
 import { CRAFTING_DRAWINGS, isCraftingContent } from "./crafting-icons";
+import { FISHING_DRAWINGS, isFishingContent } from "./fishing-icons";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
 
 /** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` and `.hud-build-entry` in style.css. */
@@ -38,8 +39,11 @@ const POT: readonly IconPart[] = [
 /** A wave across the pot body, showing the water inside. */
 const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
-/** The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead. */
-const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent>, BackpackIconDrawing>> = {
+/**
+ * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
+ * and fishing gear in the draft "fishing-icons" asset.
+ */
+const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent | FishingContent>, BackpackIconDrawing>> = {
   /** A steel axe head on a red-painted handle. */
   axe: {
     colour: STEEL,
@@ -215,6 +219,6 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
 
 /** Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it. */
 export function BackpackIcon({ content }: { content: BackpackContent }) {
-  const drawing = isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : DRAWINGS[content];
+  const drawing = isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : isFishingContent(content) ? FISHING_DRAWINGS[content] : DRAWINGS[content];
   return <ShadedIcon drawing={drawing} className="backpack-icon" />;
 }

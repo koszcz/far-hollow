@@ -27,4 +27,4 @@
 
 ## Comments
 
-- 2026-11-14: Done. The drawn player steps up beside the beam to saw, 0.8 m from it, and steps back when sawing stops. Game logic's record of where the player stands does not change. A log taken from a sled stays on the sled, so the player saws over the bare beam then.
+- 2026-11-14: Done. The drawn player steps up beside the beam to saw, 0.7 m from it, upright so the head stays clear of the log, and steps back when sawing stops. Game logic's record of where the player stands does not change. A log taken from a sled stays on the sled, so the player saws over the bare beam then.

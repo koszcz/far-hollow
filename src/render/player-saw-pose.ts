@@ -14,16 +14,18 @@ export const SAW_ENTER_SECONDS = 0.45;
 /** How much bigger the saw is in the hand than true size. The player's head and beard are big for the body, like the axe. */
 export const SAW_IN_HAND_SCALE = 1.3;
 /** How far the player's feet stand from the middle of the sawhorse beam, across it, in metres. */
-export const SAW_STANCE_METRES = 0.8;
+export const SAW_STANCE_METRES = 0.7;
 
 /** How far right of the middle the saw cuts, in metres. The right hand holds the saw there. */
 const CUT_SPREAD = 0.16;
 /** How far left of the middle the left hand rests on the log, in metres. */
 const STEADY_SPREAD = 0.24;
+/** How far in from the log's near edge the left hand rests, in metres, so it reaches without stretching. */
+const PALM_IN_FROM_EDGE = 0.03;
 /** How far above the log's top the left wrist rests, in metres, so the palm lies on the wood. */
 const PALM_ABOVE_LOG = 0.035;
 /** How far the right hand moves on each stroke, along the saw, in metres. */
-const STROKE_METRES = 0.3;
+const STROKE_METRES = 0.24;
 
 const smoothstep = (t: number): number => t * t * (3 - 2 * t);
 
@@ -42,18 +44,21 @@ export function sawPoseAt(seconds: number, progress: number, logThickness: numbe
   // The teeth sit in the bottom of the cut, which sinks from the top of the log to its underside.
   const teeth = logTop - cut * logThickness;
   const bladeIn = SAW_BLADE_LENGTH_METRES * SAW_IN_HAND_SCALE;
-  // Pulled back, the far end of the blade still lies over the far side of the log. Pushed away, the near end still does.
-  const pulledBack = SAW_STANCE_METRES + logThickness / 2 - bladeIn + 0.05;
+  // Pulled back, the far end of the blade still lies just over the far side of the log. The stroke stays close to the
+  // body, because the arms are short for a log this high.
+  const pulledBack = SAW_STANCE_METRES + logThickness / 2 - bladeIn + 0.02;
+  const nearEdge = SAW_STANCE_METRES - logThickness / 2;
   const pose: BuildPose = {
-    hipsDrop: 0.03 + 0.04 * cut,
-    hipsBack: 0.06,
-    hipsLean: 0.05 + 0.03 * cut,
+    // The player stands nearly upright with the hips set back, so the big head stays clear of the log at chin height.
+    hipsDrop: 0.02 + 0.03 * cut,
+    hipsBack: 0.08,
+    hipsLean: 0,
     // The shoulders follow the saw a little, rocking forward with each push.
-    chestLean: 0.06 + 0.05 * push + 0.03 * cut,
-    // The head bows to watch the cut.
-    headTilt: 0.1,
+    chestLean: 0.03 * push,
+    // The chin lifts a little so the beard clears the log.
+    headTilt: -0.08,
     reach: 1,
-    hands: { forward: SAW_STANCE_METRES, height: logTop + PALM_ABOVE_LOG, spread: STEADY_SPREAD },
+    hands: { forward: nearEdge + PALM_IN_FROM_EDGE, height: logTop + PALM_ABOVE_LOG, spread: STEADY_SPREAD },
     rightHand: {
       forward: pulledBack + STROKE_METRES * push,
       height: teeth + SAW_TEETH_BELOW_GRIP_METRES * SAW_IN_HAND_SCALE,

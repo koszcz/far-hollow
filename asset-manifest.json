@@ -940,12 +940,13 @@
         "src/render/fishing-rod-model.ts",
         "src/render/player-mesh.ts"
       ],
-      "description": "The fishing rod in the player's hands while they fish, matching the rod in fishing-piles: a thin wooden rod, 1.5 m long, made of two sticks joined end to end. It tapers from the butt to the tip, with a grip of twine where the right hand holds the butt, a lashing of twine where the sticks meet, and a knot of pale line at the tip. The player holds it at true size. The line runs from the tip and is drawn with the fishing animation.",
+      "description": "The fishing rod in the player's hands while they fish, matching the rod in fishing-piles: a thin wooden rod, 1.5 m long, made of two sticks joined end to end. It tapers from the butt to the tip and bows gently down towards the tip. A dark cord grip wraps the butt where the right hand holds it, with spare pale line wound just above. Dark cord lashes the sticks where they meet, two trimmed twig knots stand on the lower stick, and a knot of pale line is tied at the tip. The player holds it at true size. The line runs from the tip and is drawn with the fishing animation.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fishing/issues/02-catch-fish.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-14"
       }
     },
     {

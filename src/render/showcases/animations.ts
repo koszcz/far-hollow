@@ -333,7 +333,7 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
-  // The draft "fishing-animation": the player casts the draft "fishing-rod" out over a stand-in pool, waits, and reels in a raw fish.
+  // The draft "fishing-animation": the player casts the approved "fishing-rod" out over a stand-in pool, waits, and reels in a raw fish.
   "fishing-animation": {
     radius: 2.6,
     focus: { x: 0, y: 1, z: 1.4 },

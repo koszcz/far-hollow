@@ -3,7 +3,10 @@ import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, ROOF_FRAMES_SAVE_VERSION, SAVE_VERSION, SLEDS_SAVE_VERSION, writeSave } from "./save";
-import { SLED_BUILD_SECONDS, SLED_LOG_COST, SLED_STICK_COST } from "./structures";
+import { distanceOutside } from "./building";
+import { findPath } from "./pathfinding";
+import { USE_REACH_METRES } from "./reach";
+import { footprintOfEntity, SLED_BUILD_SECONDS, SLED_LOG_COST, SLED_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";
@@ -248,6 +251,80 @@ describe("loading a sled", () => {
   });
 });
 
+describe("walking to a sled", () => {
+  it("stops beside the sled's long side, 1.3 m from its middle, on open ground", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledInOpenGround(game);
+    const player = onlyPlayer(game);
+    standAt(game, { x: sled.position.x, z: sled.position.z - 5 });
+
+    shoulder(game, "log");
+    sendAndSettle(game, { type: "loadSled", sledId: idOf(game, sled) });
+
+    expect(player.position.x).toBeCloseTo(sled.position.x, 6);
+    expect(player.position.z).toBeCloseTo(sled.position.z - 1.3, 6);
+    expect(sled.sled.log).toBe(1);
+  });
+
+  it("walks the short way round a tree between the player and the sled, and loads the log from within reach", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledInOpenGround(game);
+    const player = onlyPlayer(game);
+    const start = standAt(game, { x: sled.position.x, z: sled.position.z - 8 });
+    // The tree covers the spot 1.3 m from the sled's middle, on the line towards the player, where the walk used to aim.
+    const tree = { x: sled.position.x, z: sled.position.z - 2.4 };
+    game.entities.add({ tree: true, position: { ...tree, y: 0 }, blocksWalking: { radius: 1.2 } });
+    const oldRoute = pathLength(start, findPath(game.walkMap, start, { x: sled.position.x, z: sled.position.z - 1.3 }));
+
+    shoulder(game, "log");
+    send(game, { type: "loadSled", sledId: idOf(game, sled) });
+    let walked = 0;
+    let at = { x: player.position.x, z: player.position.z };
+    stepUntil(game, () => {
+      walked += Math.hypot(player.position.x - at.x, player.position.z - at.z);
+      at = { x: player.position.x, z: player.position.z };
+      return player.walkPath === undefined && player.tendTask === undefined;
+    });
+    finishReach(game);
+
+    // The old route went round the tree, then back in to the one spot in line with the player.
+    expect(walked).toBeLessThan(oldRoute - 0.5);
+    expect(Math.hypot(player.position.x - tree.x, player.position.z - tree.z)).toBeGreaterThan(1);
+    expect(distanceOutside(footprintOfEntity(sled), player.position)).toBeLessThanOrEqual(USE_REACH_METRES);
+    expect(sled.sled.log).toBe(1);
+  });
+
+  it("loads the log from the side of a woodpile beside the sled", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledInOpenGround(game);
+    const woodpile = woodpileBeside(game, sled);
+    const player = onlyPlayer(game);
+    standAt(game, { x: woodpile.position.x, z: woodpile.position.z + 5 });
+
+    shoulder(game, "log");
+    sendAndSettle(game, { type: "loadSled", sledId: idOf(game, sled) });
+
+    expect(distanceOutside(footprintOfEntity(sled), player.position)).toBeLessThanOrEqual(USE_REACH_METRES);
+    expect(player.position.z).toBeGreaterThan(sled.position.z);
+    expect(sled.sled.log).toBe(1);
+  });
+
+  it("does not walk when the player already stands within reach of the sled's edge", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledInOpenGround(game);
+    const player = onlyPlayer(game);
+    // 2.2 m from the sled's end, but 3.1 m from its middle.
+    const spot = standAt(game, { x: sled.position.x + 3.1, z: sled.position.z });
+
+    shoulder(game, "log");
+    send(game, { type: "loadSled", sledId: idOf(game, sled) });
+
+    expect(player.walkPath).toBeUndefined();
+    expect(player.position).toMatchObject(spot);
+    expect(sled.sled.log).toBe(1);
+  });
+});
+
 describe("the sled's limit", () => {
   it("holds up to 6 logs and debarked logs in any mix, and keeps the seventh on the player's shoulder", () => {
     const game = createGame({ seed: 42 });
@@ -431,6 +508,55 @@ function finishedSledNearPlayer(game: Game) {
   const blueprint = sledBlueprintNearPlayer(game);
   buildFully(game, blueprint);
   return blueprint;
+}
+
+/** Builds a finished, empty sled facing along x, in the middle of open ground that reaches at least 9 m from it every way. */
+function finishedSledInOpenGround(game: Game) {
+  const player = onlyPlayer(game);
+  const clear = (square: { x: number; z: number }) => {
+    for (let ax = -9; ax <= 9; ax += 1) {
+      for (let az = -9; az <= 9; az += 1) if (!isWalkable(game.walkMap, { x: square.x + ax, z: square.z + az })) return false;
+    }
+    return true;
+  };
+  for (let distance = 3; distance < 60; distance += 1) {
+    for (const [dx, dz] of [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+    ] as const) {
+      const square = { x: Math.floor(player.position.x + dx * distance) + 0.5, z: Math.floor(player.position.z + dz * distance) + 0.5 };
+      if (!clear(square)) continue;
+      send(game, place("sled", square.x, square.z, 0));
+      const blueprint = onlyBlueprint(game);
+      buildFully(game, blueprint);
+      const sled = game.entities.with("sled", "position").first;
+      if (sled === undefined) throw new Error("No sled");
+      return sled;
+    }
+  }
+  throw new Error("No open ground");
+}
+
+/** Moves the player straight to a spot, standing still. Returns the spot. */
+function standAt(game: Game, spot: { x: number; z: number }): { x: number; z: number } {
+  const player = onlyPlayer(game);
+  game.entities.removeComponent(player, "walkPath");
+  player.position.x = spot.x;
+  player.position.z = spot.z;
+  return spot;
+}
+
+/** How far the player walks along a path from `from`. */
+function pathLength(from: { x: number; z: number }, path: readonly { x: number; z: number }[]): number {
+  let length = 0;
+  let at = from;
+  for (const spot of path) {
+    length += Math.hypot(spot.x - at.x, spot.z - at.z);
+    at = spot;
+  }
+  return length;
 }
 
 /** Puts a log or debarked log straight on the player's shoulder. */

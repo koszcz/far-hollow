@@ -1,5 +1,5 @@
 import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
-import { findPath, findPathWithin } from "./pathfinding";
+import { distanceToTarget, findPath, findPathWithin, type WalkTarget } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, startSpotBeside, type GroundPoint, type Valley } from "./valley";
 import {
@@ -29,9 +29,10 @@ export interface Walking {
   walkTo(target: GroundPoint): void;
   /**
    * Sets the player walking the shortest way to a spot within `distance` of a target, around anything in the way.
+   * The distance is measured to a point, or to a rectangle's edge.
    * The player stays put if they already stand within it. If no such spot can be reached, the player walks as close as they can.
    */
-  walkWithin(target: GroundPoint, distance: number): void;
+  walkWithin(target: WalkTarget, distance: number): void;
   /** Moves every walking entity along its path by one logic step. */
   step(stepSeconds: number): void;
 }
@@ -70,15 +71,15 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
 }
 
 /**
- * Walks the player to stand `standMetres` from something, on their own side of it, unless they are already within `reachMetres`.
- * For things that block walking, such as a campfire, chest, or woodpile, so the player stops beside them rather than on them.
+ * Walks the player the shortest way to stand within `standMetres` of something, unless they are already within `reachMetres`.
+ * Both distances are measured to a point's centre, or to a rectangle's edge, such as a sled's footprint.
+ * On open ground the player stops `standMetres` from it, on their own side. `standMetres` must be less than `reachMetres`,
+ * so the player always stops within reach. For things that block walking, such as a campfire, chest, or woodpile,
+ * this stops the player beside them rather than on them.
  */
-export function walkBeside(walking: Walking, from: GroundPoint, target: GroundPoint, reachMetres: number, standMetres: number): void {
-  const dx = from.x - target.x;
-  const dz = from.z - target.z;
-  const distance = Math.hypot(dx, dz);
-  if (distance <= reachMetres) return;
-  walking.walkTo({ x: target.x + (dx / distance) * standMetres, z: target.z + (dz / distance) * standMetres });
+export function walkBeside(walking: Walking, from: GroundPoint, target: WalkTarget, reachMetres: number, standMetres: number): void {
+  if (distanceToTarget(target, from) <= reachMetres) return;
+  walking.walkWithin(target, standMetres);
 }
 
 /** Moves an entity up to `distance` metres along its path. Returns true once it has reached the end. */

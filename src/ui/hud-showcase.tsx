@@ -55,7 +55,12 @@ const STATES: readonly ShowcaseState[] = [
   {
     view: {
       ...BASE_VIEW,
-      nearby: [{ kind: "openChest", view: { id: 3, contents: { stick: 8, firewood: 4, bark: 2, berries: 6, pot: 1 }, weight: 9.4, weightLimit: 60 } }],
+      nearby: [
+        {
+          kind: "openChest",
+          view: { id: 3, furniture: "chest", contents: { stick: 8, firewood: 4, bark: 2, berries: 6, pot: 1 }, weight: 9.4, weightLimit: 60 },
+        },
+      ],
     },
     buildMenuOpen: true,
     placing: null,
@@ -178,7 +183,8 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame" },
   { structure: "woodpile", cost: [], placement: "onGround" },
-  { structure: "chest", cost: [{ material: "debarkedLog", count: 2 }], tool: "axe", placement: "anywhere" },
+  { structure: "chest", cost: [{ material: "plank", count: 4 }], tool: "axe", placement: "anywhere" },
+  { structure: "shelf", cost: [{ material: "plank", count: 4 }], placement: "anywhere" },
   { structure: "bed", cost: [{ material: "plank", count: 8 }], placement: "anywhere" },
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
   {
@@ -365,7 +371,7 @@ const STATES_BY_ASSET = {
   "build-icons": BUILD_ICON_STATES,
   // The sled's icons show in the build menu, so the "sled-icon" showcase is the build menu's.
   "sled-icon": BUILD_ICON_STATES,
-  // The furniture icons show in the build menu too, so the "furniture-icons" showcase is the build menu's.
+  // The furniture icons show in the build menu too, so the "furniture-icons" showcase is the build menu's as well.
   "furniture-icons": BUILD_ICON_STATES,
 } as const;
 

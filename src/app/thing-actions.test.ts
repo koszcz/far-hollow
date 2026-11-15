@@ -392,6 +392,8 @@ describe("other things' actions", () => {
 
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(scene({ kind: "chest", id: 6 }), readerWith({})))).toEqual(["open main", "takeDown"]);
+    expect(summary(actionsFor(scene({ kind: "shelf", id: 7 }), readerWith({})))).toEqual(["open main", "takeDown"]);
+    expect(find(actionsFor(scene({ kind: "shelf", id: 7 }), readerWith({})), "open")?.command).toEqual({ type: "openChest", chestId: 7 });
   });
 
   it("builds a blueprint, adds a carried debarked log it needs first, and takes it down", () => {
@@ -449,12 +451,25 @@ describe("other things' actions", () => {
     expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
     expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
 
-    const chest = { id: 12, contents: {}, weight: 0, weightLimit: 30 };
+    const chest = { id: 12, furniture: "chest" as const, contents: {}, weight: 0, weightLimit: 60 };
     const withChest = readerWith({ backpack: { berries: 2 } });
     const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
     const actions = actionsFor({ kind: "backpackContent", content: "berries" }, chestReader);
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
     expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
+    expect(find(actions, "putInChest")?.label).toBe("Put one in the chest");
+  });
+
+  it("puts things on an open shelf first, named as a shelf", () => {
+    const shelf = { id: 14, furniture: "shelf" as const, contents: {}, weight: 0, weightLimit: 30 };
+    const withShelf = readerWith({ backpack: { stick: 2 } });
+    const shelfReader: ActionReader = { ...withShelf, getView: () => ({ ...withShelf.getView(), nearby: [{ kind: "openChest", view: shelf }] }) };
+    const actions = actionsFor({ kind: "backpackContent", content: "stick" }, shelfReader);
+
+    expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "drop"]);
+    expect(find(actions, "putInChest")?.label).toBe("Put one on the shelf");
+    expect(find(actions, "putInChest:all")?.label).toBe("Put all on the shelf");
+    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 14, content: "stick", all: true });
   });
 
   it("drops the log on the shoulder, or splits it with the axe", () => {

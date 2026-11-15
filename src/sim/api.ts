@@ -268,8 +268,9 @@ export interface SleepView {
  * `survivedFirstNight`: the player reached the first morning without a collapse.
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
  * `chestFull`: the open chest had no room for what the player tried to put in it.
+ * `shelfFull`: the open shelf had no room for what the player tried to put in it.
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
- * `stillHoldsSomething`: the player tried to take down a chest or woodpile that still holds something, or a campfire with a pot or fish on it.
+ * `stillHoldsSomething`: the player tried to take down a chest, shelf, or woodpile that still holds something, or a campfire with a pot or fish on it.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
  * `letGoFirst`: the player tried to shoulder a log, gather, chop, build, or craft while dragging a sled.
@@ -294,6 +295,7 @@ export type PlainNotice =
   | "survivedFirstNight"
   | "backpackFull"
   | "chestFull"
+  | "shelfFull"
   | "holdsUpPiece"
   | "stillHoldsSomething"
   | "saveBroken"
@@ -388,10 +390,18 @@ export interface WoodpileView {
   readonly capacity: number;
 }
 
-/** An open chest, with what it holds. It holds small materials, tools, and food, grouped by kind like the backpack. */
+/** A chest or a shelf: the furniture that holds small materials, tools, and food, and opens in the chest panel. */
+export type ChestOrShelf = "chest" | "shelf";
+
+/**
+ * An open chest or shelf, with what it holds. It holds small materials, tools, and food, grouped by kind like the backpack.
+ * A shelf opens in the same panel as a chest.
+ */
 export interface ChestView {
-  /** The chest's entity id. */
+  /** The chest's or shelf's entity id. */
   readonly id: number;
+  /** Whether it is a chest or a shelf. */
+  readonly furniture: ChestOrShelf;
   /** How many of each kind of thing it holds. Kinds it does not hold are missing. */
   readonly contents: Readonly<BackpackContents>;
   /** How much its contents weigh, in kilograms. */
@@ -491,7 +501,21 @@ export function needsFreeHands(command: Command): boolean {
 export type ThingInReach =
   | {
       readonly kind:
-        "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | "chest" | "bed" | "bedroll" | "pile" | "sled";
+        | "tree"
+        | "log"
+        | "debarkedLog"
+        | "stick"
+        | "bark"
+        | "forage"
+        | "blueprint"
+        | "campfire"
+        | "woodpile"
+        | "chest"
+        | "shelf"
+        | "bed"
+        | "bedroll"
+        | "pile"
+        | "sled";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };

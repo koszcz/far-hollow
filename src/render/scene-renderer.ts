@@ -145,6 +145,7 @@ export function createSceneRenderer(
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
     chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
+    shelf: (entity) => structureMeshes.outlineOf({ kind: "shelf", entity }),
     bed: (entity) => structureMeshes.outlineOf({ kind: "bed", entity }),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),

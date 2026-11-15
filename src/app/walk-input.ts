@@ -45,9 +45,9 @@ export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAc
 export interface MenuRequest {
   readonly x: number;
   readonly y: number;
-  /** True when the ring should sit wholly above the point, such as above a hotbar cell, rather than around it. */
+  /** True when the menu should sit wholly above the point, such as above a hotbar cell, rather than beside it. */
   readonly above?: boolean;
-  /** Every action the thing offers, main first, at 12 o'clock. */
+  /** Every action the thing offers, main first, at the top of the list. */
   readonly actions: readonly ThingAction[];
 }
 
@@ -111,8 +111,8 @@ export interface WalkInput {
 }
 
 /**
- * A click on plain ground walks there. With a log on the shoulder, it opens a ring to walk there or drop the log there instead. A click on a thing opens its action menu: a ring of every action it offers, as `thing-actions.ts`
- * names them, with the main action at 12 o'clock. Picking one sends it, and the player walks to the thing first when needed.
+ * A click on plain ground walks there. With a log on the shoulder, it opens a menu to walk there or drop the log there instead. A click on a thing opens its action menu: a list of every action it offers, as `thing-actions.ts`
+ * names them, with the main action on top. Picking one sends it, and the player walks to the thing first when needed.
  * A click on a finished structure opens its menu, which offers what is under it and taking it down.
  * Pressing Escape, or a click elsewhere, closes the menu. Escape also stops building.
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
@@ -206,7 +206,7 @@ export function attachWalkInput({
     press = { x: event.clientX, y: event.clientY };
   }
 
-  /** Opens the ring of every action the thing offers around a point on the page, if it offers any. */
+  /** Opens the list of every action the thing offers beside a point on the page, if it offers any. */
   function showMenu(x: number, y: number, pick: ScenePick): void {
     const actions = menuFor(pick, client);
     if (actions !== undefined) onMenuChange?.({ x, y, actions });

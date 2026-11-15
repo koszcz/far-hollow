@@ -594,7 +594,8 @@
         "2026-11-12: The owner asked in chat for the HUD redesign: labelled build and craft buttons with key labels, named need bars, and a placing hint that names its keys. See .scratch/hud-redesign/issues/06-labelled-build-craft-and-needs.md.",
         "2026-11-12: The owner asked in chat for bigger icons across the HUD and more space under the hotbar names, and approved the result.",
         "2026-11-12: The owner asked in chat for a more compact hotbar with the same icon sizes: smaller cells and the build and craft buttons stacked.",
-        "2026-11-12: The owner asked in chat to replace the build and craft wheels with lists that open above their buttons."
+        "2026-11-12: The owner asked in chat to replace the build and craft wheels with lists that open above their buttons.",
+        "2026-11-15: The owner chose the list beside the pointer from four mockups, to replace the action menu ring. See .scratch/action-menu-alternatives/mockups.html."
       ]
     },
     {
@@ -837,6 +838,34 @@
       }
     },
     {
+      "id": "shelf",
+      "kind": "code",
+      "code": [
+        "src/render/shelf-meshes.ts"
+      ],
+      "description": "The shelf: a standing frame of pale sawn planks, 0.9 m wide, 0.4 m deep, and 1.2 m tall. Two upright side planks hold three shelf boards, the lowest just above the ground, and three planks stand side by side as its back. Each plank is a slightly different shade. It does not show what it holds. A blueprint shows see-through. A part whose planks the blueprint already has waits pale and half solid in its place. Construction stands up the sides with the lowest board first, then adds the upper boards and the back.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/03-shelf.md"
+      }
+    },
+    {
+      "id": "furniture-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/furniture-icons.tsx"
+      ],
+      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. The shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The table and stool icons join them later. Furniture ticket 03 added the shelf icon, and ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/03-shelf.md"
+      }
+    },
+    {
       "id": "sawhorse",
       "kind": "code",
       "code": [
@@ -1045,20 +1074,6 @@
         "src/render/bed-sleep.ts"
       ],
       "description": "The bed: a plank frame 1 m wide and 2 m long on four short square legs, with rails round it, seven slats across it, a tall headboard of two planks at the head end, a low footboard of two planks at the foot, and a pale linen mattress with a pillow and a folded blue wool blanket over the foot half. Each plank is a slightly different shade of pale sawn wood. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in four stages: the frame, the slats, the head and foot boards, then the bedding. To sleep, the player steps up onto the mattress, turned to lie along the bed, plays the approved sleep animation there, and steps back down beside the bed once standing.",
-      "source": "Built in code in this project",
-      "license": "Project code",
-      "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/02-bed.md"
-      }
-    },
-    {
-      "id": "furniture-icons",
-      "kind": "code",
-      "code": [
-        "src/ui/furniture-icons.tsx"
-      ],
-      "description": "Build menu icons for furniture, in the same shaded style as build-icons. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The shelf, table, and stool icons join it in later furniture tickets.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

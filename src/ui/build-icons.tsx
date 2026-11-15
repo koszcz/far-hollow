@@ -72,7 +72,10 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
   return { d: `M${left(yTop)} ${yTop}H${right(yTop)}${edge}z`, as: "fill", colour };
 }
 
-/** The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx, and the draft furniture icons are in furniture-icons.tsx, so they are not listed here. */
+/**
+ * The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx, so it is not listed here.
+ * The shelf's and bed's icons are the draft "furniture-icons" asset, drawn in furniture-icons.tsx, so they are not listed here either.
+ */
 const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | FurnitureWithOwnIcon>, IconDrawing>> = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {

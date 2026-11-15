@@ -154,7 +154,7 @@ To add fuel to a campfire, to stack things on or take things off a woodpile, or 
 _Avoid_: Feed, refuel, manage
 
 **Action menu**:
-The ring of every action a thing offers, which opens when the player clicks the thing. The main action sits at the top, at 12 o'clock, and the rest follow clockwise. The ring has no background: only the options show. An action the player cannot do yet shows greyed, with the reason.
+The list of every action a thing offers, which opens beside the pointer when the player clicks the thing. The main action sits at the top in bold, and the rest follow below. An action the player cannot do yet shows greyed, with the reason under its name.
 _Avoid_: Right-click menu, context menu, radial menu, pie menu
 
 **Hotbar**:

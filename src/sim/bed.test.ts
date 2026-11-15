@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave } from "./save";
+import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, SHELVES_SAVE_VERSION, writeSave } from "./save";
 import { BED_BUILD_SECONDS, BED_PLANK_COST } from "./structures";
 import { isWalkable } from "./walk-map";
 
@@ -252,7 +252,7 @@ describe("saving beds", () => {
   it("raises the save version for beds, and loads a save from before then", () => {
     const game = createGame({ seed: 42 });
     expect(BEDS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
-    expect(BEDS_SAVE_VERSION).toBeGreaterThan(SLED_PLANKS_SAVE_VERSION);
+    expect(BEDS_SAVE_VERSION).toBeGreaterThan(SHELVES_SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = BEDS_SAVE_VERSION - 1;
 

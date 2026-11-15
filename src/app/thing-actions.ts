@@ -67,7 +67,7 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
 }
 
 /**
- * The actions the action menu lists for a target, in ring order: the main action first, at 12 o'clock, then the rest.
+ * The actions the action menu lists for a target, in list order: the main action first, at the top, then the rest.
  * Actions that send no command, such as a work station's "open menu", are left out. Empty when the target offers none.
  */
 export function menuActions(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
@@ -159,6 +159,7 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       return sled === null ? withMain([takeDown(pick.id)], undefined) : sledActions(sled, view);
     }
     case "chest":
+    case "shelf":
       return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(pick.id)], "open");
     case "bed":
       return withMain([offer("sleep", strings.actions.sleep, { hud: "moon" }, { type: "sleepInBed", bedId: pick.id }), takeDown(pick.id)], "sleep");
@@ -425,7 +426,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
   }
 }
 
-/** Use it, when it has a use, then drop it. With a chest open, putting it in the chest comes first. */
+/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. */
 function backpackContentActions(content: BackpackContent, view: GameView): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
@@ -434,8 +435,18 @@ function backpackContentActions(content: BackpackContent, view: GameView): reado
     chest === undefined
       ? []
       : [
-          offer("putInChest", strings.actions.putInChest, icon, { type: "putInChest", chestId: chest.view.id, content, all: false }),
-          offer("putInChest:all", strings.actions.putAllInChest, icon, { type: "putInChest", chestId: chest.view.id, content, all: true }),
+          offer("putInChest", strings.actions.putInChest[chest.view.furniture], icon, {
+            type: "putInChest",
+            chestId: chest.view.id,
+            content,
+            all: false,
+          }),
+          offer("putInChest:all", strings.actions.putAllInChest[chest.view.furniture], icon, {
+            type: "putInChest",
+            chestId: chest.view.id,
+            content,
+            all: true,
+          }),
         ];
   const offers = [
     ...intoChest,

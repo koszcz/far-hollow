@@ -74,7 +74,7 @@ export interface PlacementSite {
 
 /** The components that mark a finished structure. */
 export type FinishedMarker =
-  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "bed" | "workStation" | "sled";
+  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "shelf" | "bed" | "workStation" | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -441,6 +441,38 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
   finish: () => ({ chest: { contents: {} }, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } }),
 };
 
+/** How many planks a shelf costs. Construction spends one at the start of each stage. */
+export const SHELF_PLANK_COST = 4;
+/** How long the player holds the build action to build a shelf, in seconds. */
+export const SHELF_BUILD_SECONDS = 8;
+/** A shelf is this wide, along its front, in metres. */
+export const SHELF_WIDTH_METRES = 0.9;
+/** A shelf is this deep, from front to back, in metres. */
+export const SHELF_DEPTH_METRES = 0.4;
+/**
+ * A finished shelf stops the player walking within this many metres of its centre.
+ * Like a chest, it is placed freely, so this reaches the centre of every 1 m walk-map cell it covers, even where four cells meet.
+ */
+export const SHELF_WALK_BLOCK_RADIUS_METRES = 0.71;
+
+/**
+ * A shelf: standing furniture that holds small materials, tools, and food, like a chest, but less of them.
+ * It is placed freely, wherever the mouse points, and R turns it. It stands on the ground or on a foundation's deck.
+ * Building it needs no tool.
+ */
+const shelf: StructureDefinition & { readonly kind: "shelf" } = {
+  kind: "shelf",
+  placement: "anywhere",
+  finishedAs: "shelf",
+  cost: [{ material: "plank", count: SHELF_PLANK_COST }],
+  buildSeconds: SHELF_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, SHELF_WIDTH_METRES / 2, SHELF_DEPTH_METRES / 2, turns),
+  snap: (_site, at) => ({ x: at.x, z: at.z }),
+  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
+  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, SHELF_WIDTH_METRES / 2, SHELF_DEPTH_METRES / 2),
+  finish: () => ({ shelf: { contents: {} }, blocksWalking: { radius: SHELF_WALK_BLOCK_RADIUS_METRES } }),
+};
+
 /** How many planks a bed costs. Construction spends one at the start of each stage. */
 export const BED_PLANK_COST = 8;
 /** How long the player holds the build action to build a bed, in seconds. */
@@ -609,6 +641,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   roof,
   woodpile,
   chest,
+  shelf,
   bed,
   sawhorse,
   sled,
@@ -722,8 +755,12 @@ function isClearOfTreesAndStructures(
  */
 const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "campfire", "leanTo", "roofFrame", "roof"]);
 
-/** Whether `rect` keeps clear of every finished chest and sled, and every blueprint of one. */
+/** Whether `rect` keeps clear of every finished piece of furniture and sled, and every blueprint of one. */
 function isClearOfFreelyPlaced(entities: EntityStore, rect: GroundRect): boolean {
+  for (const { entity, kind } of placedStructures(entities)) {
+    if (isPlacedFreely(kind) && rectsOverlap(rect, structureOf(kind).footprint(entity.position, entity.facing?.turns ?? 0))) return false;
+  }
+  return true;
   return placedStructures(entities).every(({ entity, kind }) => !isPlacedFreely(kind) || !rectsOverlap(rect, footprintOfEntity(entity)));
 }
 

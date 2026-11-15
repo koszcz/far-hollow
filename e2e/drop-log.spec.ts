@@ -30,7 +30,7 @@ async function findClickableThing(page: Page): Promise<{ x: number; y: number }>
   throw new Error("Found nothing to click in the scene");
 }
 
-test("a click on the ground while carrying a log opens a ring to walk there or drop the log there", async ({ page }) => {
+test("a click on the ground while carrying a log opens a menu to walk there or drop the log there", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
 
@@ -45,7 +45,7 @@ test("a click on the ground while carrying a log opens a ring to walk there or d
   await menu.getByRole("button", { name: "Chop" }).click();
   await expect.poll(async () => (await view(page)).carrying, { timeout: 30_000 }).toBe("log");
 
-  // Plain ground now opens a ring instead of walking at once. Felled logs may lie near the player, so try spots until one is plain ground.
+  // Plain ground now opens a menu instead of walking at once. Felled logs may lie near the player, so try spots until one is plain ground.
   const box = await page.locator("#scene").boundingBox();
   if (box === null) throw new Error("The canvas has no size");
   const walkHere = menu.getByRole("button", { name: "Walk here" });

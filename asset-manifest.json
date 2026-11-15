@@ -859,7 +859,7 @@
       "code": [
         "src/ui/furniture-icons.tsx"
       ],
-      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. The shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The table and stool icons join them later. Furniture ticket 03 added the shelf icon, and ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon.",
+      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. The shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The table: a plank table seen from the front and a little above, with a top of planks, the rail under it, two front legs, and two back legs in shadow. The stool icon joins them later. Furniture ticket 03 added the shelf icon, ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon, and ticket 04 (.scratch/furniture/issues/04-table.md) added the table icon.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1081,6 +1081,21 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/furniture/issues/02-bed.md"
+      }
+    },
+    {
+      "id": "table",
+      "kind": "code",
+      "code": [
+        "src/render/table-meshes.ts",
+        "src/render/plank-furniture-meshes.ts"
+      ],
+      "description": "The table: a top 1.2 m long, 0.8 m deep, and 0.75 m high, made of four planks laid along its length with thin gaps between them, on a frame of four rails, on four square legs set a little in from the corners. Each plank is a slightly different shade of pale sawn wood. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in three stages: the legs, the rails, then the top.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/04-table.md"
       }
     }
   ]

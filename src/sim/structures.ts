@@ -74,7 +74,7 @@ export interface PlacementSite {
 
 /** The components that mark a finished structure. */
 export type FinishedMarker =
-  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "shelf" | "bed" | "workStation" | "sled";
+  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "shelf" | "bed" | "table" | "workStation" | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -510,6 +510,36 @@ const bed: StructureDefinition & { readonly kind: "bed" } = {
   }),
 };
 
+/** How many planks a table costs. Construction spends one at the start of each stage. */
+export const TABLE_PLANK_COST = 6;
+/** How long the player holds the build action to build a table, in seconds. */
+export const TABLE_BUILD_SECONDS = 10;
+/** A table is this wide, along its long side, in metres. Its length runs along x when it faces the default way. */
+export const TABLE_WIDTH_METRES = 1.2;
+/** A table is this deep, across its top, in metres. */
+export const TABLE_DEPTH_METRES = 0.8;
+
+/**
+ * A table: furniture the player eats beside. Food eaten within reach of a finished table fills more hunger.
+ * It is placed freely, wherever the mouse points, and R turns it. Like a chest, it stands on the ground or on a foundation's deck.
+ * Building it needs no tool. A finished table stops the player walking on every walk-map cell it reaches over, as a bed does.
+ */
+const table: StructureDefinition & { readonly kind: "table" } = {
+  kind: "table",
+  placement: "anywhere",
+  finishedAs: "table",
+  cost: [{ material: "plank", count: TABLE_PLANK_COST }],
+  buildSeconds: TABLE_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, TABLE_WIDTH_METRES / 2, TABLE_DEPTH_METRES / 2, turns),
+  snap: (_site, at) => ({ x: at.x, z: at.z }),
+  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
+  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, TABLE_WIDTH_METRES / 2, TABLE_DEPTH_METRES / 2),
+  finish: (spot, turns) => ({
+    table: true,
+    blocksWalkingSpots: spotsAcross(turnedRect(spot, TABLE_WIDTH_METRES / 2 - EDGE_INSET_METRES, TABLE_DEPTH_METRES / 2 - EDGE_INSET_METRES, turns)),
+  }),
+};
+
 /** How many debarked logs a sawhorse costs: one for its legs and one for the beam across them. */
 export const SAWHORSE_LOG_COST = 2;
 /** How long the player holds the build action to build a sawhorse, in seconds. */
@@ -609,8 +639,9 @@ function canPlaceFreely({ entities, walkMap, valley }: PlacementSite, spot: Grou
   // A cabin roof overhead and a foundation underfoot are not in the way. Every other structure is.
   for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
   for (const frame of walkBlockerSpotEntities(entities)) {
-    // A bed blocks walking at spots too, but it is furniture, so only the ground it covers is in the way.
-    if (frame.bed === true) continue;
+    // A bed or table blocks walking at spots too, but it is furniture, so only the ground it covers is in the way.
+    const kind = structureKindOf(frame);
+    if (kind !== undefined && isPlacedFreely(kind)) continue;
     for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
   }
   return isClearOfTreesAndStructures(entities, rect, { ignoreCabinRoofs: true });
@@ -643,6 +674,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   chest,
   shelf,
   bed,
+  table,
   sawhorse,
   sled,
 };
@@ -757,10 +789,6 @@ const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["found
 
 /** Whether `rect` keeps clear of every finished piece of furniture and sled, and every blueprint of one. */
 function isClearOfFreelyPlaced(entities: EntityStore, rect: GroundRect): boolean {
-  for (const { entity, kind } of placedStructures(entities)) {
-    if (isPlacedFreely(kind) && rectsOverlap(rect, structureOf(kind).footprint(entity.position, entity.facing?.turns ?? 0))) return false;
-  }
-  return true;
   return placedStructures(entities).every(({ entity, kind }) => !isPlacedFreely(kind) || !rectsOverlap(rect, footprintOfEntity(entity)));
 }
 

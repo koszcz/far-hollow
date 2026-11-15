@@ -390,6 +390,10 @@ describe("other things' actions", () => {
     expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: 7 });
   });
 
+  it("offers only taking down a table, since eating at it needs no new action", () => {
+    expect(summary(actionsFor(scene({ kind: "table", id: 8 }), readerWith({})))).toEqual(["takeDown"]);
+  });
+
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(scene({ kind: "chest", id: 6 }), readerWith({})))).toEqual(["open main", "takeDown"]);
     expect(summary(actionsFor(scene({ kind: "shelf", id: 7 }), readerWith({})))).toEqual(["open main", "takeDown"]);

@@ -49,6 +49,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   putPlanksOnSleds,
   addShelves,
   addBeds,
+  addTables,
 ];
 
 /** The version of the save format this code writes. */
@@ -99,6 +100,8 @@ export const SLED_PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(putPlanksOnSleds) 
 export const SHELVES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addShelves) + 2;
 /** The first save version that can hold beds. */
 export const BEDS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addBeds) + 2;
+/** The first save version that can hold tables. */
+export const TABLES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTables) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -536,5 +539,10 @@ function addShelves(save: Readonly<Record<string, unknown>>): Record<string, unk
 
 /** Version 29 to 30: the player can build beds. A save from before then has none, so it carries over unchanged. */
 function addBeds(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 30 to 31: the player can build tables. A save from before then has none, so it carries over unchanged. */
+function addTables(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

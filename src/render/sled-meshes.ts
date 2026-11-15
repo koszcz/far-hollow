@@ -12,7 +12,7 @@
 // A finished sled shows the logs and debarked logs lying on it, along the runners, from empty to full:
 // logs first, then debarked logs, stacked in a pyramid: three side by side on the cross pieces, two in the gaps above, and one on top.
 // They use the approved shapes from log-shape.ts and debarked-log-shape.ts, the "logs" and "debarked-log" assets.
-// The planks on a sled are the draft "sled-planks" asset, drawn by sled-plank-meshes.ts on top of the logs.
+// The planks on a sled are the "sled-planks" asset, drawn by sled-plank-meshes.ts on top of the logs.
 // A sled the player has dragged points the way it was last dragged, and a dragged sled
 // moves smoothly between logic steps with the player.
 import * as THREE from "three";

@@ -157,6 +157,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   noLogBesideStation: { station: workStation },
   cannotCraftYet: { lacks: list(recipeLack) },
   fishGotAway: {},
+  droppedBesideStation: { content: exactly(...(Object.keys(CONTENT_WEIGHT_KG) as BackpackContent[])), count, station: workStation },
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

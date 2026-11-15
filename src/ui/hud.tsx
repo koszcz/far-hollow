@@ -202,6 +202,8 @@ function noticeText(notice: Notice): string {
       return strings.notices.noLogBesideStation(strings.buildMenu.structures[notice.station]);
     case "cannotCraftYet":
       return strings.notices.cannotCraftYet(notice.lacks.map(lackingText));
+    case "droppedBesideStation":
+      return strings.notices.droppedBesideStation(strings.pile.holds(notice.content, notice.count), strings.buildMenu.structures[notice.station]);
     default:
       return strings.notices[notice.kind];
   }

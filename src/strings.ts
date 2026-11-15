@@ -191,6 +191,8 @@ export const strings = {
     noLogBesideStation: (station: string) => `Lay a debarked log within ${STATION_GROUND_METRES} m of the ${station.toLowerCase()} first.`,
     /** The player tried a recipe they cannot follow yet, such as "This needs the saw first." */
     cannotCraftYet: (lacking: readonly string[]) => `This needs ${lacking.join(" and ")} first.`,
+    /** Crafting finished, but some of the result did not fit in the backpack, such as "2 planks dropped beside the sawhorse." */
+    droppedBesideStation: (what: string, station: string) => `${what} dropped beside the ${station.toLowerCase()}.`,
   },
   backpack: "Backpack",
   backpackContents: {

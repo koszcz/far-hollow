@@ -1,8 +1,8 @@
-import { addToBackpack, countInBackpack, fitsInBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
+import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack, type BackpackContent } from "./backpack";
 import { entityWith, pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
-import { groundDistance, nearestWithin, type GroundPoint, type Valley } from "./valley";
+import { groundDistance, nearestWithin, type GroundPoint, type Terrain, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
@@ -65,15 +65,6 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
     return pile === undefined || groundDistance(pile.position, player.position) > PICK_UP_REACH_METRES ? undefined : pile;
   }
 
-  /** The nearest pile of `content` within JOIN_PILE_METRES of a spot, if any. */
-  function nearestPileOf(content: BackpackContent, at: GroundPoint): PileEntity | undefined {
-    return nearestWithin(
-      at,
-      piles.entities.filter((pile) => pile.pile.content === content),
-      JOIN_PILE_METRES,
-    );
-  }
-
   return {
     drop(content) {
       for (const player of players) {
@@ -87,13 +78,7 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
           }
           continue;
         }
-        const near = nearestPileOf(content, player.position);
-        if (near !== undefined) {
-          near.pile.count += count;
-          continue;
-        }
-        const { x, z } = player.position;
-        entities.add({ pile: { content, count }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
+        addToPileAt(entities, valley.terrain, content, count, player.position);
       }
     },
     pickUp(pileId) {
@@ -136,9 +121,21 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
   };
 }
 
-/** How many of `content`, up to `count`, fit in the backpack within its weight limit. */
-function howManyFit(backpack: Backpack, content: BackpackContent, count: number): number {
-  let fit = count;
-  while (fit > 0 && !fitsInBackpack(backpack, content, fit)) fit -= 1;
-  return fit;
+/**
+ * Lays `count` of `content` on the ground at `spot`, as one pile.
+ * If a pile of the same kind lies within JOIN_PILE_METRES of the spot, they join that pile instead.
+ * Not for sticks, which never form piles.
+ */
+export function addToPileAt(entities: EntityStore, terrain: Terrain, content: BackpackContent, count: number, spot: GroundPoint): void {
+  const near = nearestWithin(
+    spot,
+    pileEntities(entities).entities.filter((pile) => pile.pile.content === content),
+    JOIN_PILE_METRES,
+  );
+  if (near !== undefined) {
+    near.pile.count += count;
+    return;
+  }
+  const { x, z } = spot;
+  entities.add({ pile: { content, count }, position: { x, y: standingHeightAt(entities, terrain, { x, z }), z } });
 }

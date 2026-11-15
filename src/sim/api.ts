@@ -249,11 +249,14 @@ export interface SleepView {
  * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the `station`.
  * `cannotCraftYet`: the player tried a recipe while lacking the tool, work station, or materials it needs, listed in `lacks`.
  * `fishGotAway`: a fish bit while the backpack was full, so it got away and the player stopped fishing.
+ * `droppedBesideStation`: crafting at the `station` finished, and `count` of the result, `content`, did not fit in the backpack,
+ * so they dropped in a pile beside the station.
  */
 export type Notice =
   | { readonly kind: PlainNotice }
   | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind }
-  | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] };
+  | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] }
+  | { readonly kind: "droppedBesideStation"; readonly content: BackpackContent; readonly count: number; readonly station: WorkStationKind };
 
 /** The kind of each notice. */
 export type GameNotice = Notice["kind"];

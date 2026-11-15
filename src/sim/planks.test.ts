@@ -133,24 +133,105 @@ describe("cutting planks at the sawhorse", () => {
     expect(game.client.getView().backpack.plank).toBeUndefined();
   });
 
-  it("weighs 2 kg a plank, and does not start if four planks would not fit in the backpack", () => {
+  it("weighs 2 kg a plank", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
     debarkedLogBeside(game, sawhorse, 1);
-    // The starting kit (5.5 kg) and the saw (1 kg) weigh 6.5 kg. Seven pieces of firewood (10.5 kg) bring it to 17 kg,
-    // so four planks (8 kg) would go over the 20 kg limit.
+    // The starting kit (5.5 kg) and the saw (1 kg) weigh 6.5 kg.
+    give(game, { saw: 1 });
+
+    send(game, { type: "craft", recipe: "planks" });
+    stepUntil(game, () => game.client.getView().backpack.plank !== undefined);
+    expect(game.client.getView().backpackWeight).toBeCloseTo(14.5);
+  });
+});
+
+describe("cutting planks when the backpack is too full for them", () => {
+  // The starting kit (5.5 kg) and the saw (1 kg) weigh 6.5 kg, and the limit is 20 kg. A plank weighs 2 kg.
+
+  it("puts all four planks in the backpack, drops none, and says nothing, when all of them fit", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    give(game, { saw: 1 });
+
+    cutPlanks(game);
+
+    expect(game.client.getView().backpack.plank).toBe(4);
+    expect(plankPiles(game)).toEqual([]);
+    expect(game.client.getView().notice).toBeNull();
+  });
+
+  it("starts, puts the planks that fit in the backpack, and drops the rest in one pile beside the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    // Seven pieces of firewood (10.5 kg) bring the backpack to 17 kg, so one plank fits and three do not.
     give(game, { saw: 1, firewood: 7 });
 
     send(game, { type: "craft", recipe: "planks" });
-    expect(game.client.getView().notice?.kind).toBe("backpackFull");
-    runSeconds(game, 10);
-    expect(game.client.getView().backpack.plank).toBeUndefined();
+    expect(game.client.getView().notice).toBeNull();
+    cutPlanks(game);
 
-    onlyPlayer(game).backpack.contents.firewood = 3;
+    expect(game.client.getView().backpack.plank).toBe(1);
+    const piles = plankPiles(game);
+    expect(piles.map(({ pile }) => pile)).toEqual([{ content: "plank", count: 3 }]);
+    expect(groundDistance(piles[0]?.position ?? { x: Infinity, z: Infinity }, sawhorse.position)).toBeLessThanOrEqual(2);
+    expect(game.client.getView().notice).toEqual({ kind: "droppedBesideStation", content: "plank", count: 3, station: "sawhorse" });
+  });
+
+  it("starts with no room at all, and drops all four planks beside the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const log = debarkedLogBeside(game, sawhorse, 1);
+    // Nine pieces of firewood (13.5 kg) bring the backpack to exactly 20 kg.
+    give(game, { saw: 1, firewood: 9 });
+
     send(game, { type: "craft", recipe: "planks" });
-    stepUntil(game, () => game.client.getView().backpack.plank !== undefined);
-    // 6.5 kg, 4.5 kg of firewood, and 8 kg of planks.
-    expect(game.client.getView().backpackWeight).toBeCloseTo(19);
+    expect(game.client.getView().notice).toBeNull();
+    cutPlanks(game);
+
+    expect(game.entities.has(log)).toBe(false);
+    expect(game.client.getView().backpack.plank).toBeUndefined();
+    expect(plankPiles(game).map(({ pile }) => pile)).toEqual([{ content: "plank", count: 4 }]);
+    expect(game.client.getView().notice).toEqual({ kind: "droppedBesideStation", content: "plank", count: 4, station: "sawhorse" });
+  });
+
+  it("adds the planks to a plank pile already lying within 1 m, as dropped things do", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    debarkedLogBeside(game, sawhorse, 1.5);
+    give(game, { saw: 1, firewood: 9 });
+
+    cutPlanks(game);
+    cutPlanks(game);
+
+    expect(plankPiles(game).map(({ pile }) => pile)).toEqual([{ content: "plank", count: 8 }]);
+  });
+
+  it("does not show the planks as lacking anything in the craft menu when the backpack is full", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    give(game, { saw: 1, firewood: 9 });
+    game.step();
+
+    expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([]);
+  });
+
+  it("keeps the notice about dropped planks in a save", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    give(game, { saw: 1, firewood: 9 });
+    cutPlanks(game);
+    const notice = game.client.getView().notice;
+    expect(notice?.kind).toBe("droppedBesideStation");
+
+    const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
+    if (!loaded.ok) throw new Error("The save was rejected");
+    expect(loaded.game.client.getView().notice).toEqual(notice);
   });
 });
 
@@ -328,6 +409,18 @@ describe("saving a notice about crafting", () => {
     expect(loaded.game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
   });
 });
+
+/** Starts cutting planks at the nearest sawhorse and waits until the work is done. */
+function cutPlanks(game: Game): void {
+  send(game, { type: "craft", recipe: "planks" });
+  stepUntil(game, () => game.client.getView().action?.kind === "craft");
+  stepUntil(game, () => game.client.getView().action === null);
+}
+
+/** Every pile of planks lying on the ground. */
+function plankPiles(game: Game) {
+  return game.entities.with("pile", "position").entities.filter(({ pile }) => pile.content === "plank");
+}
 
 /** Walks the player to a spot 5 m from the sawhorse, on its far side from the log. */
 function walkAwayFrom(game: Game, sawhorse: Entity & { position: NonNullable<Entity["position"]> }): void {

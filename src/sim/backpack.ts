@@ -92,6 +92,13 @@ export function fitsInBackpack(backpack: Backpack, content: BackpackContent, cou
   return backpackWeight(backpack) + count * CONTENT_WEIGHT_KG[content] <= BACKPACK_WEIGHT_LIMIT_KG + 1e-9;
 }
 
+/** How many of `content`, up to `count`, fit in the backpack within its weight limit. */
+export function howManyFit(backpack: Backpack, content: BackpackContent, count: number): number {
+  let fit = count;
+  while (fit > 0 && !fitsInBackpack(backpack, content, fit)) fit -= 1;
+  return fit;
+}
+
 /**
  * Puts `count` of `content` in the backpack if they all fit within the weight limit.
  * Returns false, and changes nothing, if they do not.

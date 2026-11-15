@@ -14,7 +14,7 @@
 - [x] With an empty queue, a queued action starts at once.
 - [x] When the action under way is finished, the next one starts.
 - [x] If the next action cannot be done when its turn comes, the game shows why, drops it, and starts the one after.
-- [x] Fishing and sitting stop as soon as another action waits behind them. Sleeping runs until the player wakes, then the queue carries on.
+- [x] Sitting stops as soon as another action waits behind it. Fishing stops once a fish bites, so each queued fishing trip catches one fish. Sleeping runs until the player wakes, then the queue carries on.
 - [x] A plain click, E, or number key empties the queue and starts that action at once.
 - [x] Walking with the movement keys, and a plain click on the ground, empty the queue.
 - [x] A collapse empties the queue.
@@ -30,4 +30,4 @@
 - The game view lists the queue as `actionQueue`: a list of commands, with the action under way first. Ticket 02 can pick each icon from its command.
 - A plain action that does not stop the work under way, such as eating, drops the actions waiting, but the work under way stays first in the queue.
 - After loading a game, the work under way is not in the queue. A Shift action then starts at once and stops that work.
-- An endless action ends as soon as its endless part begins with an action waiting. For example, the player walks to the river bank, then goes straight on to the next action without casting.
+- The owner changed the fishing rule after the first landing: with an action waiting, fishing catches one fish, then stops. Queueing fishing 3 times catches 3 fish.

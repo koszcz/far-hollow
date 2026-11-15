@@ -22,7 +22,8 @@ describe("debarking a log", () => {
 
   it("stands the player just off the nearer end of the log, on its line, so each stroke runs along it", () => {
     const game = gameWithLogsOnGround();
-    const log = farthestLogOnGround(game);
+    // The farthest log lies against another tree, which blocks both its ends. The nearest has open ground at each end.
+    const log = nearestLogOnGround(game);
     const heading = log.log.heading;
     const startedAt = { ...onlyPlayer(game).position };
 
@@ -196,6 +197,15 @@ function gameWithLogsOnGround(): Game {
 function debark(game: Game, log: Entity): void {
   game.client.send({ type: "debarkLog", logId: idOf(game, log) });
   stepUntil(game, () => log.log === undefined);
+}
+
+function nearestLogOnGround(game: Game) {
+  const player = onlyPlayer(game);
+  const logs = [...game.entities.with("log", "position")];
+  const distance = (log: (typeof logs)[number]) => Math.hypot(log.position.x - player.position.x, log.position.z - player.position.z);
+  const nearest = logs.sort((a, b) => distance(a) - distance(b))[0];
+  if (nearest === undefined) throw new Error("No log on the ground");
+  return nearest;
 }
 
 function farthestLogOnGround(game: Game) {

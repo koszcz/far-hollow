@@ -7,9 +7,9 @@ export const TREE_MAX_SIZE = 1.25;
 
 /** How many logs a tree gives, by size: below the first limit it gives the fewest, at or above the last it gives the most. */
 const LOG_COUNT_SIZE_LIMITS = [0.95, 1.1] as const;
-const FEWEST_LOGS = 2;
+export const FEWEST_LOGS_PER_TREE = 3;
 /** The most logs any tree gives. */
-export const MOST_LOGS_PER_TREE = FEWEST_LOGS + LOG_COUNT_SIZE_LIMITS.length;
+export const MOST_LOGS_PER_TREE = FEWEST_LOGS_PER_TREE + LOG_COUNT_SIZE_LIMITS.length;
 
 /** How long the player chops at a tree of size 1 before it falls, in seconds. */
 export const CHOP_SECONDS = 4;
@@ -30,7 +30,7 @@ export function treeSizeAt(x: number, z: number): number {
 
 /** How many logs a tree of this size gives when felled. */
 export function logsForTreeSize(size: number): number {
-  return FEWEST_LOGS + LOG_COUNT_SIZE_LIMITS.filter((limit) => size >= limit).length;
+  return FEWEST_LOGS_PER_TREE + LOG_COUNT_SIZE_LIMITS.filter((limit) => size >= limit).length;
 }
 
 /** How long the player chops at a tree of this size before it falls, in seconds. It grows with the trunk's cross-section. */

@@ -3,7 +3,7 @@ import { CHOP_SECONDS } from "./chopping";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { finishReach } from "./test-steps";
-import { chopSecondsForTreeSize, logsForTreeSize, MOST_LOGS_PER_TREE, treeSizeAt } from "./tree-size";
+import { chopSecondsForTreeSize, FEWEST_LOGS_PER_TREE, logsForTreeSize, MOST_LOGS_PER_TREE, treeSizeAt } from "./tree-size";
 
 describe("the backpack", () => {
   it("starts with an axe, a knife, a drawknife, a steel and flint, a bedroll, an empty pot, a saw blade, and a fishing line", () => {
@@ -83,14 +83,14 @@ describe("chopping a tree", () => {
 
 describe("tree size", () => {
   it("gives more logs from a bigger tree, but takes longer to chop", () => {
-    const small = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === 2);
+    const small = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === FEWEST_LOGS_PER_TREE);
     const big = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === MOST_LOGS_PER_TREE);
 
     const smallSteps = fellCounting(small.game, small.tree);
     const bigSteps = fellCounting(big.game, big.tree);
 
     // The player shoulders one log, and the rest lie on the ground.
-    expect(small.game.entities.with("log").size).toBe(2 - 1);
+    expect(small.game.entities.with("log").size).toBe(FEWEST_LOGS_PER_TREE - 1);
     expect(big.game.entities.with("log").size).toBe(MOST_LOGS_PER_TREE - 1);
     expect(chopSecondsOf(big.tree)).toBeGreaterThan(chopSecondsOf(small.tree) * 1.5);
     expect(bigSteps).toBeGreaterThan(smallSteps);

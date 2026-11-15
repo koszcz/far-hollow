@@ -47,6 +47,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   cookFishOnCampfires,
   payChestsInPlanks,
   putPlanksOnSleds,
+  addShelves,
 ];
 
 /** The version of the save format this code writes. */
@@ -93,6 +94,8 @@ export const COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookFishOnCampfires) +
 export const PLANK_CHESTS_SAVE_VERSION = SAVE_UPGRADES.indexOf(payChestsInPlanks) + 2;
 /** The first save version in which a sled can carry planks. */
 export const SLED_PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(putPlanksOnSleds) + 2;
+/** The first save version that can hold shelves. */
+export const SHELVES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addShelves) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -253,7 +256,7 @@ function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<strin
 
 /**
  * For a version that added something older saves never hold, such as a new kind of structure. The save carries over unchanged.
- * Versions 10, 11, 12, 17, 19, 23, and 26 did this. New kinds no longer need a version of their own.
+ * Versions 10, 11, 12, 17, 19, 23, 26, and 29 did this. New kinds no longer need a version of their own.
  */
 function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
@@ -521,4 +524,9 @@ function putPlanksOnSleds(save: Readonly<Record<string, unknown>>): Record<strin
     return { ...(entity as object), components: { ...components, sled: { ...sled, plank: 0 } } };
   });
   return { ...save, entities };
+}
+
+/** Version 28 to 29: the player can build shelves. A save from before then has none, so it carries over unchanged. */
+function addShelves(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

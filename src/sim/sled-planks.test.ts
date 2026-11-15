@@ -249,7 +249,7 @@ describe("saving planks on a sled", () => {
     };
     for (const { components } of save.entities) if (components.sled !== undefined) components.sled = { log: 3, debarkedLog: 1 };
 
-    expect(SLED_PLANKS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(SLED_PLANKS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The older save did not load");
     expect(loaded.game.entities.with("sled").first?.sled).toEqual({ log: 3, debarkedLog: 1, plank: 0 });

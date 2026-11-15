@@ -9,7 +9,7 @@ export const WORK_STATION_KINDS = ["sawhorse"] as const;
 export type WorkStationKind = (typeof WORK_STATION_KINDS)[number];
 
 /** The pieces of furniture the build menu can list. Furniture is placed freely and does not snap to the building grid. */
-export type FurnitureKind = "chest";
+export type FurnitureKind = "chest" | "shelf";
 
 /** The building pieces that stand on the edge of a foundation square, on the line between it and the square beside it. */
 export const EDGE_PIECE_KINDS = ["logWall", "doorFrame"] as const;

@@ -30,7 +30,8 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
       id === "build-icons" ||
       id === "crafting-icons" ||
       id === "fishing-icons" ||
-      id === "sled-icon"
+      id === "sled-icon" ||
+      id === "furniture-icons"
     ) {
       const { renderHudShowcase } = await import("../ui/hud-showcase");
       renderHudShowcase(ui, id);

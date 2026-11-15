@@ -159,6 +159,7 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       return sled === null ? withMain([takeDown(pick.id)], undefined) : sledActions(sled, view);
     }
     case "chest":
+    case "shelf":
       return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(pick.id)], "open");
     case "bedroll":
       return withMain(
@@ -423,17 +424,28 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
   }
 }
 
-/** Use it, when it has a use, then drop it. With a chest open, putting it in the chest comes first. */
+/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. */
 function backpackContentActions(content: BackpackContent, view: GameView): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
+  const onShelf = chest?.view.furniture === "shelf";
   const intoChest =
     chest === undefined
       ? []
       : [
-          offer("putInChest", strings.actions.putInChest, icon, { type: "putInChest", chestId: chest.view.id, content, all: false }),
-          offer("putInChest:all", strings.actions.putAllInChest, icon, { type: "putInChest", chestId: chest.view.id, content, all: true }),
+          offer("putInChest", onShelf ? strings.actions.putOnShelf : strings.actions.putInChest, icon, {
+            type: "putInChest",
+            chestId: chest.view.id,
+            content,
+            all: false,
+          }),
+          offer("putInChest:all", onShelf ? strings.actions.putAllOnShelf : strings.actions.putAllInChest, icon, {
+            type: "putInChest",
+            chestId: chest.view.id,
+            content,
+            all: true,
+          }),
         ];
   const offers = [
     ...intoChest,

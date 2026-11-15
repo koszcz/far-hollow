@@ -682,30 +682,31 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
 }
 
 /**
- * The open chest, above the backpack: what it holds, as a grid of icons grouped by kind, like the backpack.
+ * The open chest or shelf, above the backpack: what it holds, as a grid of icons grouped by kind, like the backpack.
  * A click on an icon takes one of that kind out into the backpack. A shift-click takes all that fit.
  */
 function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView }) {
+  const text = strings[chest.furniture];
   const empty = backpackContents(chest.contents).length === 0;
   return (
-    <section class="hud-section hud-backpack hud-chest" aria-label={strings.chest.title}>
+    <section class="hud-section hud-backpack hud-chest" aria-label={text.title}>
       <h2>
         <HudIcon name="backpack" />
-        {strings.chest.title}
+        {text.title}
         <span class="hud-backpack-weight">{strings.backpackWeight(chest.weight, chest.weightLimit)}</span>
       </h2>
       {empty ? (
-        <p class="hud-hint">{strings.chest.empty}</p>
+        <p class="hud-hint">{text.empty}</p>
       ) : (
         <ContentGrid
           contents={chest.contents}
-          label={strings.chest.take}
+          label={text.take}
           onClick={(content, all) => {
             client.send({ type: "takeFromChest", chestId: chest.id, content, all });
           }}
         />
       )}
-      <p class="hud-hint">{strings.chest.hint}</p>
+      <p class="hud-hint">{text.hint}</p>
     </section>
   );
 }

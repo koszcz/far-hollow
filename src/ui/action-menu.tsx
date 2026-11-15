@@ -14,9 +14,12 @@ export interface ActionMenuProps {
   x: number;
   y: number;
   above?: boolean;
-  /** Every action the thing offers, the most likely first. The first tops the list. Actions that send no command are left out. */
-  actions: readonly ThingAction[];
-  /** Called when the player picks an action, after its command is sent, or presses anywhere outside the menu, so the menu can close. */
+  /**
+   * Reads every action the thing offers now, the most likely first, or undefined once it offers none. The first tops the list.
+   * Actions that send no command are left out. The menu reads again after each logic step, so it stays current while it is open.
+   */
+  readActions: () => readonly ThingAction[] | undefined;
+  /** Called when the player picks an action, after its command is sent, presses anywhere outside the menu, or the thing offers no actions any more, so the menu can close. */
   onClose: () => void;
 }
 
@@ -24,7 +27,19 @@ export interface ActionMenuProps {
  * A list of actions beside the spot the player clicked. Each row is an icon with the action's name. Picking one sends its command.
  * The main action tops the list in bold. An action the player cannot do yet is greyed, says why under its name, and does nothing.
  */
-export function ActionMenu({ client, x, y, above = false, actions, onClose }: ActionMenuProps) {
+export function ActionMenu({ client, x, y, above = false, readActions, onClose }: ActionMenuProps) {
+  // Actions change as the game runs, such as "pick up" turning on once the player has put a log down.
+  const [actions, setActions] = useState(readActions);
+  useEffect(
+    () =>
+      client.subscribe(() => {
+        const next = readActions();
+        if (next === undefined) onClose();
+        else setActions((shown) => (shown !== undefined && sameActions(shown, next) ? shown : next));
+      }),
+    [client, readActions, onClose],
+  );
+
   useEffect(() => {
     // A press anywhere outside the list, such as on the HUD, closes the menu. Presses on the scene close it through walk input too.
     function onPointerDown(event: PointerEvent): void {
@@ -36,7 +51,9 @@ export function ActionMenu({ client, x, y, above = false, actions, onClose }: Ac
     };
   }, [onClose]);
 
-  const shown = actions.filter(({ command }) => command !== undefined);
+  const shown = (actions ?? []).filter(({ command }) => command !== undefined);
+  // Greying an action adds its reason under its name, which can change the list's size.
+  const sizeKey = shown.map(({ label, enabled, reason }) => `${label}|${enabled ? "" : (reason ?? "")}`).join("\n");
 
   // The list's place depends on its size, so measure it before the first paint, then move it there.
   const listRef = useRef<HTMLElement>(null);
@@ -46,7 +63,7 @@ export function ActionMenu({ client, x, y, above = false, actions, onClose }: Ac
     if (list === null) return;
     const { width, height } = list.getBoundingClientRect();
     setPlace(placeActionMenu({ x, y, above, width, height, viewWidth: window.innerWidth, viewHeight: window.innerHeight }));
-  }, [x, y, above, shown.length]);
+  }, [x, y, above, sizeKey]);
 
   return (
     <nav
@@ -87,6 +104,11 @@ export function ActionMenu({ client, x, y, above = false, actions, onClose }: Ac
       </ul>
     </nav>
   );
+}
+
+/** True if both lists show the same actions the same way, so the menu need not draw again. */
+function sameActions(a: readonly ThingAction[], b: readonly ThingAction[]): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function capitalise(text: string): string {

@@ -16,8 +16,8 @@ import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
 import { pressHotbarKey } from "./hotbar";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
-import { menuActions } from "./thing-actions";
-import { attachWalkInput, type MenuRequest } from "./walk-input";
+import type { ThingAction } from "./thing-actions";
+import { attachWalkInput, menuForTarget, type MenuRequest } from "./walk-input";
 
 /** Most logic steps one frame may run to catch up after a pause, such as a hidden tab. */
 const MAX_STEPS_PER_FRAME = 10;
@@ -164,7 +164,7 @@ const walkInput = attachWalkInput({
     sceneRenderer.showPlacingBlueprint(placing);
   },
   onMenuChange: (menu) => {
-    uiState.menu = menu;
+    setMenu(menu);
     menuCameraView = menu === undefined ? null : cameraViewKey();
     renderUi();
   },
@@ -192,10 +192,22 @@ function cameraViewKey(): string {
   return JSON.stringify(sceneRenderer.cameraRig.view());
 }
 
+/** Reads the open action menu's actions now. Each menu gets its own function, so the menu keeps it while it is open. */
+let readMenuActions: () => readonly ThingAction[] | undefined = () => undefined;
+/** Counts opened menus, so a newly opened menu starts afresh rather than keeping the old one's state. */
+let menuCount = 0;
+
+function setMenu(menu: MenuRequest | undefined): void {
+  uiState.menu = menu;
+  if (menu === undefined) return;
+  menuCount += 1;
+  readMenuActions = () => menuForTarget(menu.target, game.client);
+}
+
 /** Closes the action menu, if one is open. */
 function closeMenu(): void {
   if (uiState.menu === undefined) return;
-  uiState.menu = undefined;
+  setMenu(undefined);
   menuCameraView = null;
   renderUi();
 }
@@ -240,7 +252,9 @@ function renderUi(): void {
   const { buildMode, menu } = uiState;
   render(
     <>
-      {menu !== undefined && <ActionMenu client={game.client} x={menu.x} y={menu.y} above={menu.above ?? false} actions={menu.actions} onClose={closeMenu} />}
+      {menu !== undefined && (
+        <ActionMenu key={menuCount} client={game.client} x={menu.x} y={menu.y} above={menu.above ?? false} readActions={readMenuActions} onClose={closeMenu} />
+      )}
       <Hud
         client={game.client}
         buildMenuOpen={buildMode.menuOpen}
@@ -256,7 +270,7 @@ function renderUi(): void {
           setCraftMenuOpen(!uiState.craftMenuOpen);
         }}
         onOpenHotbarMenu={(target, x, y) => {
-          uiState.menu = { x, y, above: true, actions: menuActions(target, game.client) };
+          setMenu({ x, y, above: true, target });
           // A hotbar menu sits on the HUD, which stays put when the camera moves.
           menuCameraView = null;
           renderUi();

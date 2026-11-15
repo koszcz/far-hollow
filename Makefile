@@ -1,7 +1,7 @@
 # Shortcuts for the Bun scripts in package.json.
 # Run `make` on its own to start the dev server.
 
-.PHONY: run test e2e check fmt build drafts land
+.PHONY: run test e2e check fmt build drafts shot land
 
 run:
 	bun run dev
@@ -25,6 +25,10 @@ build:
 # List draft assets waiting for polish.
 drafts:
 	bun run assets:drafts
+
+# Screenshot a page: make shot URL="/?asset=bed" OUT=/tmp/bed.png. For more options, run bun scripts/shot.ts.
+shot:
+	bun scripts/shot.ts "$(URL)" "$(OUT)" $(ARGS)
 
 # Land this worktree's branch on main, push main, and delete the branch. Retries when other sessions land first.
 land:

@@ -4,7 +4,7 @@ import { playerEntities, setComponent, type Entity, type EntityStore } from "./e
 import { shoulderRefusal, toolRefusal } from "./refusals";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint } from "./valley";
-import type { Walking } from "./walking";
+import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up a stick from this far away, in metres. */
 const PICK_UP_REACH_METRES = 2;
@@ -73,7 +73,7 @@ export function createGathering(entities: EntityStore, walking: Walking, hand: P
     if (lying?.[material] !== true || lying.position === undefined) return;
     for (const player of players) {
       if (player.backpack === undefined) continue;
-      walking.walkTo(lying.position);
+      walkOntoOrWithinReach(walking, lying.position, lying.position, PICK_UP_REACH_METRES);
       setTask(player);
     }
   }

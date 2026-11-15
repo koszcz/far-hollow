@@ -3,7 +3,7 @@ import { entityWith, pileEntities, playerEntities, setComponent, type Entity, ty
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, nearestWithin, type GroundPoint, type Terrain, type Valley } from "./valley";
-import type { Walking } from "./walking";
+import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
 export const JOIN_PILE_METRES = 1;
@@ -86,7 +86,7 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
       if (pile === undefined) return;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        walking.walkTo(pile.position);
+        walkOntoOrWithinReach(walking, pile.position, pile.position, PICK_UP_REACH_METRES);
         setComponent(entities, player, "pileTask", { pileId });
       }
     },

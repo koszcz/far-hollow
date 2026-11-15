@@ -31,7 +31,7 @@ import {
 } from "./structures";
 import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { HandReach } from "./hand-reach";
-import type { Walking } from "./walking";
+import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
 export const BUILD_STAND_METRES = 0.7;
@@ -472,7 +472,8 @@ export function distanceOutside(rect: GroundRect, spot: GroundPoint): number {
  */
 export function walkWithinReach(walking: Walking, footprint: GroundRect, centre: GroundPoint, player: GroundPoint): void {
   const outside = distanceOutside(footprint, player);
-  if (outside > BUILD_REACH_METRES || outside === 0) walking.walkTo(standSpot(footprint, centre, player));
+  if (outside === 0) walking.walkTo(standSpot(footprint, centre, player));
+  else if (outside > BUILD_REACH_METRES) walkOntoOrWithinReach(walking, standSpot(footprint, centre, player), footprint, BUILD_REACH_METRES);
 }
 
 /** Where the player stands to build: just outside the blueprint, on the line from its centre towards the player. */

@@ -22,6 +22,13 @@ const LOG_SPACING_METRES = 1.1;
 
 /** The player can chop a tree from this far beyond the edge of the ground the tree blocks, in metres. */
 const CHOP_REACH_METRES = 1;
+/** The player walks this far inside the chopping reach, so they are surely within it when they stop, in metres. */
+const CHOP_WALK_MARGIN_METRES = 0.2;
+
+/** How far from a tree's centre the player can chop it, in metres. */
+function chopReach(tree: Entity): number {
+  return (tree.blocksWalking?.radius ?? 0) + CHOP_REACH_METRES;
+}
 
 export interface Chopping {
   /** Sets the player walking to a standing tree to chop it. Does nothing if the entity is not a standing tree or the player has no axe. */
@@ -44,7 +51,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
       if (tree?.tree !== true || tree.position === undefined) return;
       for (const player of players) {
         if (toolRefusal(player, "axe") !== undefined) continue;
-        walking.walkTo(tree.position);
+        walking.walkWithin(tree.position, chopReach(tree) - CHOP_WALK_MARGIN_METRES);
         const task = { treeId, secondsDone: 0 };
         setComponent(entities, player, "chopTask", task);
       }
@@ -64,8 +71,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
           entities.removeComponent(chopper, "chopTask");
           continue;
         }
-        const reach = (tree.blocksWalking?.radius ?? 0) + CHOP_REACH_METRES;
-        if (groundDistance(tree.position, chopper.position) > reach) {
+        if (groundDistance(tree.position, chopper.position) > chopReach(tree)) {
           // The player walked as close as they could but the tree is out of reach.
           entities.removeComponent(chopper, "chopTask");
           continue;

@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { CHOP_SECONDS, LOGS_PER_TREE } from "./chopping";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { findPath, findPathWithin } from "./pathfinding";
 import { finishReach } from "./test-steps";
+import type { GroundPoint } from "./valley";
+import { nearestWalkableSpot } from "./walk-map";
 
 describe("the backpack", () => {
   it("starts with an axe, a knife, a drawknife, a steel and flint, a bedroll, an empty pot, a saw blade, and a fishing line", () => {
@@ -26,6 +29,35 @@ describe("chopping a tree", () => {
     runSeconds(game, CHOP_SECONDS / 2);
     expect(tree.tree).toBe(true);
     expect(game.client.getView().action?.progress).toBeCloseTo(0.5, 1);
+  });
+
+  it("chops from the side facing the player, though the open spot nearest the tree's centre is on the far side", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    const start = { x: player.position.x, z: player.position.z };
+    const tree = treesNearestPlayer(game)
+      .slice(0, 12)
+      .find((candidate) => {
+        const nearestOpen = nearestWalkableSpot(game.walkMap, candidate.position);
+        return nearestOpen !== undefined && towardStart(candidate.position, nearestOpen, start) < 0;
+      });
+    if (tree === undefined) throw new Error("No tree whose nearest open spot is on the far side");
+
+    game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => game.client.getView().action?.kind === "chop");
+
+    expect(towardStart(tree.position, player.position, start)).toBeGreaterThan(0);
+  });
+
+  it("walks no further than straight to the tree's centre would, for each of the 12 trees nearest the start", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    for (const tree of treesNearestPlayer(game).slice(0, 12)) {
+      const toCentre = pathLength(player.position, findPath(game.walkMap, player.position, tree.position));
+      // 2 m is the walk the chop asks for: the tree's 1.2 m blocked circle, plus 1 m reach, less a 0.2 m margin.
+      const toReach = pathLength(player.position, findPathWithin(game.walkMap, player.position, tree.position, 2));
+      expect(toReach).toBeLessThanOrEqual(toCentre);
+    }
   });
 
   it("fells the tree into a stump that still blocks walking, and gives logs", () => {
@@ -182,12 +214,33 @@ function onlyPlayer(game: Game) {
 }
 
 function nearestTreeToPlayer(game: Game) {
+  const nearest = treesNearestPlayer(game)[0];
+  if (nearest === undefined) throw new Error("No trees");
+  return nearest;
+}
+
+/** Every standing tree, nearest to the player first. */
+function treesNearestPlayer(game: Game) {
   const player = onlyPlayer(game);
   const trees = [...game.entities.with("tree", "position")];
   const distance = (tree: (typeof trees)[number]) => Math.hypot(tree.position.x - player.position.x, tree.position.z - player.position.z);
-  const nearest = trees.sort((a, b) => distance(a) - distance(b))[0];
-  if (nearest === undefined) throw new Error("No trees");
-  return nearest;
+  return trees.sort((a, b) => distance(a) - distance(b));
+}
+
+/** Above 0 when `spot` lies on the side of `centre` that faces `start`, and below 0 on the far side. */
+function towardStart(centre: GroundPoint, spot: GroundPoint, start: GroundPoint): number {
+  return (spot.x - centre.x) * (start.x - centre.x) + (spot.z - centre.z) * (start.z - centre.z);
+}
+
+/** How far the player walks from `from` along a path. */
+function pathLength(from: GroundPoint, path: readonly GroundPoint[]): number {
+  let total = 0;
+  let at = from;
+  for (const spot of path) {
+    total += Math.hypot(spot.x - at.x, spot.z - at.z);
+    at = spot;
+  }
+  return total;
 }
 
 function idOf(game: Game, entity: Entity): number {

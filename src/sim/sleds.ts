@@ -32,8 +32,11 @@ export const SLED_CAPACITY = 6;
 export const PLANKS_PER_LOG_SPACE = 4;
 /** The plank pile tipped out of a sled lies this far behind the back end of the sled, in metres. */
 const TIPPED_PLANKS_BEHIND_METRES = 0.5;
-/** The player walks to a spot this far from a sled's middle to use it, in metres. */
-const SLED_STAND_METRES = 1.3;
+/**
+ * The player walks to within this far of a sled's edge to use it, in metres.
+ * Beside the sled's long side, that is 1.3 m from its middle, where the player has always stood.
+ */
+const SLED_STAND_METRES = 1.3 - SLED_WIDTH_METRES / 2;
 /** A log tipped out of a sled lies this far out from the sled's side, in metres. Each further log on that side lies this much further out. */
 const TIPPED_LOG_SPACING_METRES = 0.35;
 /** While dragging a sled, the player walks at this fraction of their normal speed. It stacks with the slowdown from neglected needs. */
@@ -220,7 +223,8 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     tend(sledId) {
       const sled = sledById(sledId);
       if (sled === undefined || userOf(sled) !== undefined) return;
-      for (const player of players) walkBeside(walking, player.position, sled.position, 0, SLED_STAND_METRES);
+      // Measure to the footprint's edge, as the reach check does, so the player never stops out of reach of a long sled.
+      for (const player of players) walkBeside(walking, player.position, footprintOfEntity(sled), USE_REACH_METRES, SLED_STAND_METRES);
     },
     refusal(command) {
       const sled = sledById(command.sledId);

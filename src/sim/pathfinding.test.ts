@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { findPath, findPathWithin } from "./pathfinding";
+import { distanceToTarget, findPath, findPathWithin } from "./pathfinding";
 import type { GroundPoint } from "./valley";
 import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";
 
@@ -130,6 +130,45 @@ describe("findPathWithin", () => {
     expect(distanceBetween(end, pen)).toBeGreaterThan(6);
     expect(distanceBetween(end, pen)).toBeLessThan(7.5);
   });
+
+  describe("to a rectangle, such as a sled's footprint", () => {
+    const sled = { min: { x: 9.1, z: -0.4 }, max: { x: 10.9, z: 0.4 } };
+    const STAND = 0.9;
+
+    it("measures the distance to the rectangle's edge, and walks straight there on open ground", () => {
+      const map = createWalkMap({ size: 100 });
+      const from = { x: 10, z: -10 };
+
+      const path = findPathWithin(map, from, sled, STAND);
+
+      expect(path).toHaveLength(1);
+      expect(path[0]?.x).toBeCloseTo(10, 6);
+      expect(path[0]?.z).toBeCloseTo(-0.4 - STAND, 6);
+      expect(distanceToTarget(sled, path[0] ?? from)).toBeCloseTo(STAND, 6);
+    });
+
+    it("stays put when the player already stands within the distance of the edge, though further from the middle", () => {
+      const map = createWalkMap({ size: 100 });
+
+      expect(findPathWithin(map, { x: 11.5, z: 0.5 }, sled, STAND)).toEqual([]);
+    });
+
+    it("walks the short way round a tree between the player and the rectangle, and stops within the distance of its edge", () => {
+      const map = createWalkMap({ size: 100 });
+      const tree = { x: 10, z: -2.5 };
+      blockCircle(map, tree, TREE_RADIUS);
+      const from = { x: 10, z: -10 };
+
+      const path = findPathWithin(map, from, sled, STAND);
+
+      const end = path.at(-1) ?? from;
+      expect(distanceToTarget(sled, end)).toBeLessThanOrEqual(STAND);
+      expect(closestApproach([from, ...path], [tree])).toBeGreaterThan(TREE_RADIUS - 0.75);
+      // The player stops on the side they came from, beside the sled's corner, rather than walking on to its middle.
+      expect(end.z).toBeLessThan(0);
+      expect(pathLength(from, path)).toBeLessThan(pathLength(from, findPath(map, from, { x: 10, z: -0.4 - STAND })));
+    });
+  });
 });
 
 describe("findPath from a spot something now blocks", () => {
@@ -238,6 +277,17 @@ const TREE_RADIUS = 1.5;
 
 function distanceBetween(a: GroundPoint, b: GroundPoint): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+/** How far the player walks along a path from `from`. */
+function pathLength(from: GroundPoint, path: readonly GroundPoint[]): number {
+  let length = 0;
+  let at = from;
+  for (const spot of path) {
+    length += distanceBetween(at, spot);
+    at = spot;
+  }
+  return length;
 }
 
 /** Trees 3 m apart along a line of constant x. */

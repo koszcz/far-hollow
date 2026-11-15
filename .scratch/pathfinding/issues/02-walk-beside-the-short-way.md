@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Chop a tree from the near side)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -24,9 +24,19 @@
 
 ## Acceptance criteria
 
-- [ ] On open ground, the player stops in the same place as before for each of these things.
-- [ ] A sled with a tree between it and the player: the player walks the short way round and stops within reach. A unit test covers this.
-- [ ] A woodpile beside a sled: putting a log on the sled from the woodpile's side still walks the player within reach of the sled.
-- [ ] After each walk, the action is carried out. The player never stops out of reach.
-- [ ] A player already within reach does not walk.
-- [ ] Existing tests pass, including `src/sim/sled.test.ts`, `src/sim/campfires.test.ts`, `src/sim/chest.test.ts`, and `src/sim/stool.test.ts`.
+- [x] On open ground, the player stops in the same place as before for each of these things.
+- [x] A sled with a tree between it and the player: the player walks the short way round and stops within reach. A unit test covers this.
+- [x] A woodpile beside a sled: putting a log on the sled from the woodpile's side still walks the player within reach of the sled.
+- [x] After each walk, the action is carried out. The player never stops out of reach.
+- [x] A player already within reach does not walk.
+- [x] Existing tests pass, including `src/sim/sled.test.ts`, `src/sim/campfires.test.ts`, `src/sim/chest.test.ts`, and `src/sim/stool.test.ts`.
+
+## Comments
+
+Done on 2026-11-16.
+
+- `findPathWithin` and `Walking.walkWithin` now take a point or a rectangle. For a rectangle, they measure the distance to its edge. `distanceToTarget` in `src/sim/pathfinding.ts` measures it the same way.
+- `walkBeside` keeps the reach check, then calls `walkWithin` with the stand distance. On open ground, the player stops at exactly the spot the old code chose for campfires, woodpiles, chests, stools, and stations.
+- Note for the owner: the sled could not keep both rules. Its stand distance used to be 1.3 m from the middle. It is now 0.9 m from the edge, so the player stops at the old spot when they come from the long side. When they come from an end, they stop 1.8 m from the middle, 0.5 m further away than before, but still well within reach.
+- The sled now passes the real reach, `USE_REACH_METRES`, to `walkBeside`. It used to pass 0. A player who walks within reach while doing something else therefore keeps their old path. Tending removes that path first, so the result is the same.
+- Tests: three rectangle tests in `src/sim/pathfinding.test.ts`, and four tests under "walking to a sled" in `src/sim/sled.test.ts`. The test with a tree between the player and the sled fails on the old code. With the old code, the walk was 9.3 m. With the new code, it is 8.3 m.

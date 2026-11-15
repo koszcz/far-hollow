@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Far Hollow: action menu alternatives</title>
+    <style>
+      :root {
+        --bark: rgb(42 29 20 / 0.86);
+        --edge: #6b4a2f;
+        --text: #f3e6d3;
+        --muted: #c9b8a3;
+        --accent: #e8833a;
+        --chip: #6b4a2f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #17110c;
+        color: var(--text);
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+      }
+      header {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 16px;
+        background: #22180f;
+        border-bottom: 1px solid var(--edge);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      header h1 {
+        font-size: 15px;
+        margin: 0 16px 0 0;
+        font-weight: 600;
+      }
+      header button {
+        font: inherit;
+        color: var(--text);
+        background: #3a2818;
+        border: 1px solid var(--edge);
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      header button.on {
+        background: #6b4a2f;
+        border-color: var(--accent);
+      }
+      header .hint {
+        margin-left: auto;
+        color: var(--muted);
+      }
+      .caption {
+        max-width: 1280px;
+        margin: 14px auto 10px;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      .caption h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      .caption p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .stage {
+        display: flex;
+        justify-content: center;
+        padding: 0 16px 24px;
+      }
+      .frame-wrap {
+        position: relative;
+      }
+      .frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1280px;
+        height: 800px;
+        transform-origin: 0 0;
+        background: #33402a url(scene.png) 0 0 / 1280px 800px;
+        overflow: hidden;
+        border-radius: 6px;
+        display: none;
+      }
+      .frame.on {
+        display: block;
+      }
+
+      /* Shared bits */
+      .abs {
+        position: absolute;
+      }
+      .panel {
+        background: var(--bark);
+        border: 1px solid var(--edge);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+      }
+      .shadowtext {
+        text-shadow:
+          0 0 3px #000,
+          0 1px 2px #000,
+          0 0 6px rgb(0 0 0 / 0.8);
+      }
+      .icon {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 42px;
+        height: 42px;
+        background: var(--chip);
+        border: 2px solid #8a6544;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
+      }
+      .icon svg {
+        width: 26px;
+        height: 26px;
+      }
+      .off {
+        opacity: 0.45;
+      }
+      .key {
+        display: inline-grid;
+        place-items: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #2a1d14;
+        background: #f3e6d3;
+        border-radius: 4px;
+        box-shadow: 0 2px 0 #a88b6a;
+        text-shadow: none;
+      }
+      .key.dim {
+        background: #8d7a66;
+        box-shadow: 0 2px 0 #5b4a3a;
+      }
+      .cursor {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        pointer-events: none;
+        filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+      }
+      .campfire {
+        position: absolute;
+        left: 700px;
+        top: 372px;
+        width: 76px;
+        height: 64px;
+      }
+      .glow {
+        position: absolute;
+        left: 650px;
+        top: 330px;
+        width: 180px;
+        height: 150px;
+        border-radius: 50%;
+        background: radial-gradient(rgb(255 160 60 / 0.35), transparent 65%);
+      }
+      .outline {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid rgb(255 214 140 / 0.95);
+        box-shadow:
+          0 0 14px rgb(255 190 90 / 0.8),
+          inset 0 0 10px rgb(255 190 90 / 0.4);
+      }
+
+      /* Option 0: today's ring */
+      .ring-opt {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transform: translate(-50%, -50%);
+        white-space: nowrap;
+      }
+      .ring-opt.above {
+        flex-direction: column-reverse;
+      }
+      .ring-opt.below {
+        flex-direction: column;
+      }
+      .ring-opt.left {
+        flex-direction: row-reverse;
+        transform: translate(calc(-100% + 21px), -50%);
+      }
+      .ring-opt.right {
+        transform: translate(-21px, -50%);
+      }
+      .ring-opt.hover .icon {
+        background: #82593a;
+        border-color: var(--accent);
+      }
+
+      /* Option 1: list at the cursor */
+      .list {
+        width: 250px;
+        padding: 6px;
+      }
+      .list .title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 4px 8px 8px;
+        border-bottom: 1px solid #4a3322;
+        margin-bottom: 4px;
+      }
+      .list .title b {
+        font-size: 14px;
+      }
+      .list .title span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 5px 8px;
+        border-radius: 7px;
+      }
+      .row .icon {
+        width: 30px;
+        height: 30px;
+        border-width: 1px;
+      }
+      .row .icon svg {
+        width: 18px;
+        height: 18px;
+      }
+      .row .name {
+        flex: 1;
+      }
+      .row .why {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .row.hover {
+        background: #6b4a2f;
+        outline: 1px solid var(--accent);
+      }
+      .row.main .name {
+        font-weight: 700;
+      }
+      .row.off .name {
+        color: var(--muted);
+      }
+
+      /* Option 2: key prompts */
+      .prompts {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        align-items: flex-start;
+      }
+      .prompt {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 10px 4px 5px;
+        background: rgb(42 29 20 / 0.72);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .prompt.main {
+        padding: 6px 14px 6px 6px;
+        font-size: 15px;
+        font-weight: 700;
+        background: rgb(42 29 20 / 0.9);
+        border: 1px solid var(--accent);
+      }
+      .prompt.main .key {
+        min-width: 26px;
+        height: 26px;
+        font-size: 13px;
+      }
+      .prompt.off {
+        color: var(--muted);
+      }
+      .prompt .why {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .thing-name {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0 0 2px 4px;
+      }
+      .tail {
+        position: absolute;
+        width: 2px;
+        background: linear-gradient(rgb(243 230 211 / 0.7), transparent);
+      }
+
+      /* Option 3: action bar above the hotbar */
+      .bar {
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 8px 10px 10px;
+        width: 600px;
+      }
+      .bar .head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .bar .head b {
+        font-size: 14px;
+      }
+      .meter {
+        flex: 1;
+        height: 6px;
+        background: #3a2818;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .meter i {
+        display: block;
+        height: 100%;
+        width: 62%;
+        background: var(--accent);
+      }
+      .bar .head .close {
+        color: var(--muted);
+      }
+      .btns {
+        display: flex;
+        gap: 6px;
+      }
+      .btn {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 4px 6px;
+        background: #3a2818;
+        border: 1px solid #5a3d27;
+        border-radius: 8px;
+        font-size: 11.5px;
+        text-align: center;
+      }
+      .btn .icon {
+        width: 34px;
+        height: 34px;
+        border-width: 1px;
+        box-shadow: none;
+      }
+      .btn .icon svg {
+        width: 20px;
+        height: 20px;
+      }
+      .btn .key {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        min-width: 16px;
+        height: 16px;
+        font-size: 10px;
+      }
+      .btn.main {
+        border-color: var(--accent);
+        background: #4c3420;
+      }
+      .btn.off {
+        color: var(--muted);
+      }
+      .btn.off .icon {
+        opacity: 0.45;
+      }
+      .btn .why {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .needs-shift {
+        position: absolute;
+        left: 442px;
+        top: 622px;
+        width: 397px;
+        height: 66px;
+      }
+
+      /* Option 4: held item */
+      .slot-on {
+        position: absolute;
+        left: 237px;
+        top: 704px;
+        width: 74px;
+        height: 76px;
+        border: 2px solid var(--accent);
+        border-radius: 8px;
+        box-shadow: 0 0 12px rgb(232 131 58 / 0.8);
+      }
+      .verb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px 4px 4px;
+        white-space: nowrap;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .verb .icon {
+        width: 28px;
+        height: 28px;
+        border-width: 1px;
+      }
+      .verb .icon svg {
+        width: 17px;
+        height: 17px;
+      }
+      .verb.alt {
+        font-weight: 400;
+        font-size: 12px;
+        color: var(--muted);
+        padding: 2px 8px;
+        background: rgb(42 29 20 / 0.6);
+        border-radius: 6px;
+      }
+      .tree-outline {
+        position: absolute;
+        left: 527px;
+        top: 2px;
+        width: 82px;
+        height: 176px;
+        border-radius: 40% 40% 20% 20%;
+        border: 2px solid rgb(255 214 140 / 0.9);
+        box-shadow: 0 0 14px rgb(255 190 90 / 0.7);
+      }
+      .callout {
+        position: absolute;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: #2a1d14;
+        background: #f3e6d3;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+        max-width: 230px;
+        line-height: 1.35;
+      }
+      .callout::before {
+        content: "Mockup note";
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8a6544;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Action menu alternatives</h1>
+      <button data-go="0">Today: ring</button>
+      <button data-go="1">1 · List at cursor</button>
+      <button data-go="2">2 · Key prompts</button>
+      <button data-go="3">3 · Action bar</button>
+      <button data-go="4">4 · Held item decides</button>
+      <span class="hint">Keys 0–4 or ← → switch</span>
+    </header>
+    <div class="caption" id="caption"></div>
+    <div class="stage">
+      <div class="frame-wrap" id="wrap">
+        <!-- Reusable SVG icons -->
+        <svg width="0" height="0" style="position: absolute">
+          <defs>
+            <symbol id="i-firewood" viewBox="0 0 24 24">
+              <path d="M3 15l12-7 3 3-12 7z" fill="#b07a4a" />
+              <path d="M6 19l12-7 2 3-12 7z" fill="#8e5c33" />
+              <circle cx="16.5" cy="9.5" r="2" fill="#e2b98a" />
+            </symbol>
+            <symbol id="i-stick" viewBox="0 0 24 24">
+              <path d="M4 20L20 4" stroke="#a87445" stroke-width="2.6" stroke-linecap="round" />
+              <path d="M12 12l4 2" stroke="#a87445" stroke-width="2" stroke-linecap="round" />
+            </symbol>
+            <symbol id="i-bark" viewBox="0 0 24 24">
+              <path d="M6 4c4 1 8 1 12 0v16c-4 1-8 1-12 0z" fill="#6e4a2c" />
+              <path d="M9 6v12M12 5v14M15 6v12" stroke="#4a301b" stroke-width="1.4" />
+            </symbol>
+            <symbol id="i-pot" viewBox="0 0 24 24">
+              <path d="M4 9h16l-2 10H6z" fill="#c9cdd2" />
+              <rect x="3" y="7" width="18" height="3" rx="1.5" fill="#e8ebee" />
+              <path d="M8 7c0-3 8-3 8 0" stroke="#e8ebee" stroke-width="1.6" fill="none" />
+            </symbol>
+            <symbol id="i-fish" viewBox="0 0 24 24">
+              <path d="M3 12c4-6 11-6 15 0-4 6-11 6-15 0z" fill="#9ab8c9" />
+              <path d="M18 12l4-4v8z" fill="#7d9fb2" />
+              <circle cx="7" cy="11" r="1.2" fill="#223" />
+            </symbol>
+            <symbol id="i-down" viewBox="0 0 24 24">
+              <path d="M5 20l9-9" stroke="#c9b8a3" stroke-width="2.4" stroke-linecap="round" />
+              <path d="M11 6l7 7 3-3-7-7z" fill="#9aa3ab" />
+            </symbol>
+            <symbol id="i-axe" viewBox="0 0 24 24">
+              <path d="M6 21L16 7" stroke="#a87445" stroke-width="2.6" stroke-linecap="round" />
+              <path d="M13 3c4 0 7 3 7 7l-6-1z" fill="#d84b3a" />
+              <path d="M13 3l1 6 6 1" fill="#b9c0c6" />
+            </symbol>
+            <symbol id="i-cursor" viewBox="0 0 24 24">
+              <path d="M3 2l15 10-7 1.5L7 21z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round" />
+            </symbol>
+            <symbol id="i-campfire" viewBox="0 0 76 64">
+              <ellipse cx="38" cy="50" rx="32" ry="11" fill="#6f6a63" />
+              <ellipse cx="38" cy="48" rx="24" ry="7" fill="#2a2018" />
+              <circle cx="10" cy="48" r="5" fill="#8d877f" />
+              <circle cx="20" cy="56" r="5" fill="#7c766e" />
+              <circle cx="38" cy="59" r="5" fill="#8d877f" />
+              <circle cx="56" cy="56" r="5" fill="#7c766e" />
+              <circle cx="66" cy="48" r="5" fill="#8d877f" />
+              <circle cx="26" cy="40" r="4" fill="#7c766e" />
+              <circle cx="50" cy="40" r="4" fill="#7c766e" />
+              <path d="M18 50l38-10" stroke="#7a4e2c" stroke-width="6" stroke-linecap="round" />
+              <path d="M20 40l38 10" stroke="#8e5c33" stroke-width="6" stroke-linecap="round" />
+              <path d="M38 6c6 10 14 16 10 28-2 6-18 6-20 0-4-10 6-14 10-28z" fill="#f08a2c" />
+              <path d="M38 20c3 6 8 9 5 16-2 3-9 3-10 0-2-6 3-8 5-16z" fill="#ffd25a" />
+            </symbol>
+          </defs>
+        </svg>
+
+        <!-- 0: Today's ring -->
+        <div class="frame" data-frame="0">
+          <div class="glow"></div>
+          <svg class="campfire"><use href="#i-campfire" /></svg>
+          <div id="ring"></div>
+        </div>
+
+        <!-- 1: List at the cursor -->
+        <div class="frame" data-frame="1">
+          <div class="glow"></div>
+          <svg class="campfire"><use href="#i-campfire" /></svg>
+          <div class="outline" style="left: 692px; top: 398px; width: 92px; height: 46px"></div>
+          <div class="panel list abs" style="left: 766px; top: 300px">
+            <div class="title"><b>Campfire</b><span>Fuel 62%</span></div>
+            <div class="row main hover">
+              <span class="icon"
+                ><svg><use href="#i-firewood" /></svg></span
+              ><span class="name">Add firewood</span><span class="key">E</span>
+            </div>
+            <div class="row">
+              <span class="icon"
+                ><svg><use href="#i-stick" /></svg></span
+              ><span class="name">Add a stick</span>
+            </div>
+            <div class="row off">
+              <span class="icon off"
+                ><svg><use href="#i-bark" /></svg></span
+              ><span class="name">Add bark<span class="why">No bark</span></span>
+            </div>
+            <div class="row">
+              <span class="icon"
+                ><svg><use href="#i-pot" /></svg></span
+              ><span class="name">Put the pot on</span>
+            </div>
+            <div class="row off">
+              <span class="icon off"
+                ><svg><use href="#i-fish" /></svg></span
+              ><span class="name">Cook fish<span class="why">No raw fish</span></span>
+            </div>
+            <div class="row">
+              <span class="icon"
+                ><svg><use href="#i-down" /></svg></span
+              ><span class="name">Take down</span>
+            </div>
+          </div>
+          <svg class="cursor" style="left: 752px; top: 322px"><use href="#i-cursor" /></svg>
+          <div class="callout" style="left: 1030px; top: 230px">
+            Opens at the cursor, to its right. Flips left near the screen edge. Main action is bold and on top.
+          </div>
+        </div>
+
+        <!-- 2: Key prompts near the thing -->
+        <div class="frame" data-frame="2">
+          <div class="glow"></div>
+          <svg class="campfire"><use href="#i-campfire" /></svg>
+          <div class="tail" style="left: 737px; top: 318px; height: 54px"></div>
+          <div class="abs prompts shadowtext" style="left: 722px; top: 178px">
+            <div class="thing-name">Campfire</div>
+            <div class="prompt main"><span class="key">E</span>Add firewood</div>
+            <div class="prompt"><span class="key">F</span>Add a stick</div>
+            <div class="prompt"><span class="key">R</span>Put the pot on</div>
+            <div class="prompt off"><span class="key dim">G</span>Cook fish <span class="why">· no raw fish</span></div>
+            <div class="prompt off" style="opacity: 0.75"><span class="key dim">Tab</span>More…</div>
+          </div>
+          <div class="callout" style="left: 930px; top: 200px">
+            Shows for the nearest thing in reach. No click needed. E is always the main action. Rare actions like "Take down" hide behind Tab.
+          </div>
+        </div>
+
+        <!-- 3: Action bar above the hotbar -->
+        <div class="frame" data-frame="3">
+          <div class="glow"></div>
+          <svg class="campfire"><use href="#i-campfire" /></svg>
+          <div class="outline" style="left: 692px; top: 398px; width: 92px; height: 46px"></div>
+          <div class="panel bar abs" style="top: 484px">
+            <div class="head">
+              <b>Campfire</b><span style="color: var(--muted)">Fuel</span>
+              <div class="meter"><i></i></div>
+              <span>62%</span><span class="close">✕ Esc</span>
+            </div>
+            <div class="btns">
+              <div class="btn main">
+                <span class="key">Z</span
+                ><span class="icon"
+                  ><svg><use href="#i-firewood" /></svg></span
+                >Add firewood
+              </div>
+              <div class="btn">
+                <span class="key">X</span
+                ><span class="icon"
+                  ><svg><use href="#i-stick" /></svg></span
+                >Add a stick
+              </div>
+              <div class="btn off">
+                <span class="key dim">C</span
+                ><span class="icon"
+                  ><svg><use href="#i-bark" /></svg></span
+                >Add bark<span class="why">No bark</span>
+              </div>
+              <div class="btn">
+                <span class="key">V</span
+                ><span class="icon"
+                  ><svg><use href="#i-pot" /></svg></span
+                >Put the pot on
+              </div>
+              <div class="btn off">
+                <span class="key dim">B</span
+                ><span class="icon"
+                  ><svg><use href="#i-fish" /></svg></span
+                >Cook fish<span class="why">No raw fish</span>
+              </div>
+              <div class="btn">
+                <span class="key">N</span
+                ><span class="icon"
+                  ><svg><use href="#i-down" /></svg></span
+                >Take down
+              </div>
+            </div>
+          </div>
+          <div class="callout" style="left: 960px; top: 470px">
+            Click selects the thing. The bar always sits in the same spot, above the needs bars. It merges with today's Panel.
+          </div>
+        </div>
+
+        <!-- 4: Held item decides the action -->
+        <div class="frame" data-frame="4">
+          <div class="slot-on"></div>
+          <div class="tree-outline"></div>
+          <svg class="cursor" style="left: 566px; top: 120px"><use href="#i-cursor" /></svg>
+          <div class="abs" style="left: 588px; top: 132px; display: flex; flex-direction: column; gap: 4px">
+            <div class="verb panel">
+              <span class="icon"
+                ><svg><use href="#i-axe" /></svg></span
+              >Chop
+            </div>
+            <div class="verb alt shadowtext">Right-click: all actions</div>
+          </div>
+          <div class="abs shadowtext" style="left: 244px; top: 672px; font-weight: 700; color: var(--accent)">Holding</div>
+          <div class="callout" style="left: 780px; top: 90px">
+            Pick a tool with 1–8. The cursor shows the verb it gives. Axe on tree: Chop. Pot on river: Fill. Empty hands: Pick up.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const captions = [
+        ["Today: the ring", "Click a thing. Its actions circle the click, main action at 12 o'clock. Positions change with the number of actions."],
+        [
+          "1 · List at the cursor",
+          "Click a thing. A short list opens beside the cursor. Long names and greyed reasons fit easily. Scales to any number of actions.",
+        ],
+        ["2 · Key prompts near the thing", "Walk near a thing. Its actions float above it with a key each. Press a key to act. No click, no menu."],
+        ["3 · Action bar above the hotbar", "Click a thing to select it. Its state and actions show in one fixed bar above the hotbar, with keys Z to N."],
+        ["4 · Held item decides the action", "The tool you hold sets what a click does. The cursor shows the verb. Right-click still lists everything."],
+      ];
+
+      // Today's ring, laid out like src/ui/action-menu.tsx.
+      const ringActions = [
+        ["Add firewood", "i-firewood", true],
+        ["Add a stick", "i-stick", true],
+        ["Add bark: no bark", "i-bark", false],
+        ["Put the pot on", "i-pot", true],
+        ["Cook fish: no raw fish", "i-fish", false],
+        ["Take down", "i-down", true],
+      ];
+      const cx = 738,
+        cy = 405;
+      const radius = Math.max(58, (80 * ringActions.length) / (2 * Math.PI));
+      const ring = document.getElementById("ring");
+      ringActions.forEach(([name, icon, on], i) => {
+        const a = (i / ringActions.length) * 2 * Math.PI;
+        const dx = Math.sin(a) * radius,
+          dy = -Math.cos(a) * radius;
+        const side = Math.abs(dx) < 1e-6 || Math.abs(dy) > Math.abs(dx) * 1.5 ? (dy < 0 ? "above" : "below") : dx > 0 ? "right" : "left";
+        const el = document.createElement("div");
+        el.className = `ring-opt ${side}${i === 0 ? " hover" : ""}`;
+        el.style.left = `${cx + dx}px`;
+        el.style.top = `${cy + dy}px`;
+        el.innerHTML = `<span class="icon${on ? "" : " off"}"><svg><use href="#${icon}"/></svg></span><span class="shadowtext" style="color:${on ? "inherit" : "var(--muted)"}">${name}</span>`;
+        ring.appendChild(el);
+      });
+
+      const frames = [...document.querySelectorAll(".frame")];
+      const buttons = [...document.querySelectorAll("header button")];
+      let current = 0;
+      function show(n) {
+        current = (n + frames.length) % frames.length;
+        frames.forEach((f, i) => f.classList.toggle("on", i === current));
+        buttons.forEach((b, i) => b.classList.toggle("on", i === current));
+        const [title, text] = captions[current];
+        document.getElementById("caption").innerHTML = `<h2>${title}</h2><p>${text}</p>`;
+        location.hash = String(current);
+      }
+      function fit() {
+        const scale = Math.min(1, (innerWidth - 32) / 1280, (innerHeight - 150) / 800);
+        const wrap = document.getElementById("wrap");
+        wrap.style.width = `${1280 * scale}px`;
+        wrap.style.height = `${800 * scale}px`;
+        frames.forEach((f) => (f.style.transform = `scale(${scale})`));
+      }
+      buttons.forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.go))));
+      addEventListener("keydown", (e) => {
+        if (e.key >= "0" && e.key <= "4") show(Number(e.key));
+        if (e.key === "ArrowRight") show(current + 1);
+        if (e.key === "ArrowLeft") show(current - 1);
+      });
+      addEventListener("resize", fit);
+      fit();
+      show(Number(location.hash.slice(1)) || 0);
+    </script>
+  </body>
+</html>

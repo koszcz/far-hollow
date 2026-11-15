@@ -116,15 +116,15 @@ describe("the main action on other things", () => {
 describe("clicking a thing", () => {
   const ids = (pick: ScenePick, state: ReaderState = {}) => menuFor(pick, readerWith(state))?.map(({ id }) => id);
 
-  it("opens a ring with the main action on top, then the rest", () => {
+  it("opens a menu with the main action on top, then the rest", () => {
     expect(ids({ kind: "log", id: 3 })).toEqual(["pickUp", "split", "debark"]);
   });
 
-  it("opens a ring even when the thing offers only its main action", () => {
+  it("opens a menu even when the thing offers only its main action", () => {
     expect(ids({ kind: "stick", id: 4 })).toEqual(["pickUp"]);
   });
 
-  it("keeps an action the player cannot do yet, so the ring can grey it and say why", () => {
+  it("keeps an action the player cannot do yet, so the menu can grey it and say why", () => {
     expect(menuFor({ kind: "tree", id: 2 }, readerWith({}))?.[0]).toMatchObject({ id: "chop", enabled: false });
   });
 
@@ -138,11 +138,11 @@ describe("clicking a thing", () => {
     expect(ids({ kind: "workStation", station: "sawhorse", id: 11 })?.includes("openMenu")).toBe(false);
   });
 
-  it("opens no ring on plain ground, where a click walks", () => {
+  it("opens no menu on plain ground, where a click walks", () => {
     expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({}))).toBeUndefined();
   });
 
-  it("opens a ring on plain ground to walk or drop the log, while the player carries one", () => {
+  it("opens a menu on plain ground to walk or drop the log, while the player carries one", () => {
     expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({ carrying: "log" }))?.map(({ id }) => id)).toEqual(["walk", "dropHere"]);
   });
 });

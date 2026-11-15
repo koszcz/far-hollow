@@ -67,7 +67,7 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
 }
 
 /**
- * The actions the action menu lists for a target, in ring order: the main action first, at 12 o'clock, then the rest.
+ * The actions the action menu lists for a target, in list order: the main action first, at the top, then the rest.
  * Actions that send no command, such as a work station's "open menu", are left out. Empty when the target offers none.
  */
 export function menuActions(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {

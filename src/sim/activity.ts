@@ -40,6 +40,45 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["fish", (_entities, player) => fishingNow(player)],
 ];
 
+/** Each part of the player that means they are walking to do something, or doing it. */
+type TaskPart = Extract<keyof Entity, `${string}Task`> | "walkPath" | "handReach" | "sitting";
+
+/** Every task part. TypeScript reports a missing one, so a new kind of task counts at once. */
+const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
+  walkPath: true,
+  handReach: true,
+  sitting: true,
+  chopTask: true,
+  logPickUpTask: true,
+  logDropTask: true,
+  debarkTask: true,
+  stickPickUpTask: true,
+  barkPickUpTask: true,
+  splitTask: true,
+  craftTask: true,
+  buildTask: true,
+  takeDownTask: true,
+  deliverTask: true,
+  forageTask: true,
+  bedrollTask: true,
+  bedTask: true,
+  stoolTask: true,
+  tendTask: true,
+  fishTask: true,
+  drinkTask: true,
+  fillPotTask: true,
+  pileTask: true,
+  layBedrollTask: true,
+};
+
+/**
+ * Whether the player has anything left to do: walking somewhere, reaching, sitting, or any task.
+ * When they have nothing, the action under way in the action queue is finished.
+ */
+export function playerIsBusy(player: Entity): boolean {
+  return Object.keys(TASK_PARTS).some((part) => player[part as TaskPart] !== undefined);
+}
+
 /** The timed work the player is doing now, or undefined if none. Walking to the work does not count. */
 export function playerActivity(entities: EntityStore, player: Entity): PlayerActivity | undefined {
   for (const [kind, now] of TIMED_WORK) {

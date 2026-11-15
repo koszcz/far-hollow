@@ -2,6 +2,7 @@ import { addToBackpack, removeFromBackpack } from "./backpack";
 import { bedrollEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
+import { leanToBedrollSpot } from "./structures";
 import { groundDistance, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -13,6 +14,11 @@ export type BedrollEntity = Entity & { bedroll: true; position: NonNullable<Enti
 export interface Bedrolls {
   /** Takes the bedroll out of the backpack and lays it on the ground at the player's feet. Does nothing if the backpack holds none. */
   lay(): void;
+  /**
+   * Walks the player into a finished lean-to, given by its entity id, and lays the bedroll from the backpack across its open front,
+   * under the roof, where they stand. Does nothing if the backpack holds no bedroll or the entity is not a finished lean-to.
+   */
+  layInLeanTo(leanToId: number): void;
   /**
    * Puts a laid bedroll back in the backpack, walking the player to it first if it is out of reach. They reach down for it there.
    * Does nothing if the entity is not a laid bedroll. If the backpack has no room for it when the hand gets to it,
@@ -26,7 +32,7 @@ export interface Bedrolls {
   sleep(bedrollId: number): void;
   /** Stops the player walking to a bedroll. */
   cancel(): void;
-  /** Acts on a bedroll the player has reached: picks it up, or puts them to sleep on it. Run it after walking. */
+  /** Acts on a bedroll or lean-to the player has reached: picks the bedroll up, puts them to sleep on it, or lays it in the lean-to. Run it after walking. */
   step(): undefined;
   /** The laid bedroll nearest the player that is within their reach, if any. */
   nearby(): BedrollEntity | undefined;
@@ -43,6 +49,26 @@ export function createBedrolls(
   const players = playerEntities(entities);
   const bedrolls = bedrollEntities(entities);
   const walkers = entities.with("bedrollTask", "position", "backpack");
+  const layers = entities.with("layBedrollTask", "position", "backpack");
+
+  /** Where a bedroll laid in the lean-to would lie, and which way it would face, if the entity is a finished lean-to. */
+  function spotInLeanTo(leanToId: number): ReturnType<typeof leanToBedrollSpot> | undefined {
+    const leanTo = entities.entity(leanToId);
+    if (leanTo?.leanTo !== true || leanTo.position === undefined) return undefined;
+    return leanToBedrollSpot(leanTo.position, leanTo.facing?.turns ?? 0);
+  }
+
+  /** Reaches down and lays the bedroll from the backpack in the lean-to, if it still stands and the backpack still holds one. */
+  function layInLeanToNow(leanToId: number, at: GroundPoint): void {
+    hand.start("low", at, () => {
+      const place = spotInLeanTo(leanToId);
+      const player = players.first;
+      if (place === undefined || player?.backpack === undefined || !removeFromBackpack(player.backpack, "bedroll", 1)) return undefined;
+      const { x, z } = place.spot;
+      entities.add({ bedroll: true, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z }, facing: { turns: place.turns } });
+      return undefined;
+    });
+  }
 
   function bedrollById(bedrollId: number): BedrollEntity | undefined {
     const entity = entities.entity(bedrollId);
@@ -87,6 +113,16 @@ export function createBedrolls(
         entities.add({ bedroll: true, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
       }
     },
+    layInLeanTo(leanToId) {
+      const place = spotInLeanTo(leanToId);
+      if (place === undefined) return;
+      for (const player of players) {
+        if ((player.backpack?.contents.bedroll ?? 0) === 0) continue;
+        // The player always walks in to the spot, even from close by, so they never lay it through the lean-to's back or sides.
+        walking.walkTo(place.spot);
+        setComponent(entities, player, "layBedrollTask", { leanToId });
+      }
+    },
     pickUp(bedrollId) {
       const bedroll = bedrollById(bedrollId);
       if (bedroll === undefined) return;
@@ -100,7 +136,10 @@ export function createBedrolls(
       if (bedroll !== undefined && goTo(bedrollId, bedroll, "sleep")) sleepOn(bedroll);
     },
     cancel() {
-      for (const player of players) entities.removeComponent(player, "bedrollTask");
+      for (const player of players) {
+        entities.removeComponent(player, "bedrollTask");
+        entities.removeComponent(player, "layBedrollTask");
+      }
     },
     step() {
       let reached: BedrollEntity | undefined;
@@ -113,6 +152,13 @@ export function createBedrolls(
         if (bedroll === undefined || !withinReach(bedroll, walker.position)) continue;
         if (then === "pickUp") pickUpNow(bedrollId, bedroll, walker);
         else reached = bedroll;
+      }
+      for (const layer of [...layers]) {
+        if (layer.walkPath !== undefined) continue;
+        const { leanToId } = layer.layBedrollTask;
+        entities.removeComponent(layer, "layBedrollTask");
+        const place = spotInLeanTo(leanToId);
+        if (place !== undefined && groundDistance(place.spot, layer.position) <= BEDROLL_REACH_METRES) layInLeanToNow(leanToId, place.spot);
       }
       // Sleep passes time, so it starts only once every walker has been handled.
       if (reached !== undefined) sleepOn(reached);

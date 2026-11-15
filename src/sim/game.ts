@@ -1,4 +1,6 @@
+import { ACTION_QUEUE_LIMIT } from "./api";
 import type {
+  ActionCommand,
   BedrollView,
   CampfireView,
   Command,
@@ -17,7 +19,7 @@ import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
 import { createStools } from "./stools";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
-import { playerActivity, type Activity } from "./activity";
+import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
 import { createTakingDown } from "./taking-down";
 import { STRUCTURES } from "./structures";
@@ -46,7 +48,7 @@ import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
-import { createFishing } from "./fishing";
+import { createFishing, fishingNow } from "./fishing";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
@@ -96,17 +98,21 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
  *   `run` checks the same rule again when it acts, through the module that does the work.
  * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
  * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
+ * - `queue`: how the command meets the action queue. Without it, the command can be queued, and sent on its own it empties the queue.
+ *   "plainOnly": it is never queued. Sent to the queue, it runs as if sent on its own. "apart": as "plainOnly", and sent on its own
+ *   it leaves the queue as it is, unless it stops what the player was doing.
  */
-interface CommandRule<C extends Command> {
+interface CommandRule<C extends ActionCommand> {
   readonly start: "fresh" | "alongside";
   readonly run: (command: C) => Notice | PlainNotice | undefined;
   readonly refusal?: (command: C) => Refusal | undefined;
   readonly needsFreeHands?: true | ((command: C) => boolean);
   readonly keepsPlayerSitting?: true;
+  readonly queue?: "plainOnly" | "apart";
 }
 
-/** The rule for each kind of command. */
-type CommandRules = { readonly [Type in Command["type"]]: CommandRule<Extract<Command, { type: Type }>> };
+/** The rule for each kind of command. Queueing an action is handled before any rule. */
+type CommandRules = { readonly [Type in ActionCommand["type"]]: CommandRule<Extract<ActionCommand, { type: Type }>> };
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -252,6 +258,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** The player's last sleep since the game was loaded. It is not saved. */
   let lastSleep: SleepView | null = null;
   let stepCount = progress?.stepCount ?? 0;
+  /** The action queue: the action under way first, then those waiting their turn. It is not saved. */
+  const actionQueue: ActionCommand[] = [];
+  /** How many times cancelTasks has run, so sending a command can tell whether it stopped what the player was doing. */
+  let cancelCount = 0;
   if (startNotice !== undefined) showNotice(startNotice);
   let view = snapshot();
 
@@ -285,6 +295,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       lastSleep,
       sittingOn: player.sitting?.stoolId ?? null,
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
+      actionQueue: deepFreeze(structuredClone(actionQueue)),
     });
   }
 
@@ -346,6 +357,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /** Stops whatever the player was walking to do, before they start something else. */
   function cancelTasks(): void {
+    cancelCount += 1;
     for (const activity of activities) activity.cancel();
   }
 
@@ -451,22 +463,23 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /** Whether the player's hands are busy dragging a sled, and the command needs them free. */
-  function handsBusy(command: Command): boolean {
+  function handsBusy(command: ActionCommand): boolean {
     if (player.dragging === undefined) return false;
     const needs = ruleOf(command).needsFreeHands;
     return typeof needs === "function" ? needs(command) : needs === true;
   }
 
   /** The rule for a command. */
-  function ruleOf(command: Command): CommandRule<Command> {
+  function ruleOf(command: ActionCommand): CommandRule<ActionCommand> {
     // TypeScript cannot tell that the rule picked by `command.type` takes this same command, so we say so.
-    return commandRules[command.type] as CommandRule<Command>;
+    return commandRules[command.type] as CommandRule<ActionCommand>;
   }
 
   const commandRules: CommandRules = {
     setPaused: {
       start: "alongside",
       keepsPlayerSitting: true,
+      queue: "apart",
       run: (command) => {
         paused = command.paused;
       },
@@ -582,6 +595,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     placeBlueprint: {
       // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
       start: "alongside",
+      queue: "apart",
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {
         const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
@@ -613,6 +627,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     stopBuilding: {
       start: "alongside",
+      queue: "apart",
       run: () => {
         building.cancel();
       },
@@ -659,6 +674,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     openChest: {
       start: "fresh",
+      // Opening a chest opens its panel, a menu, so it is never queued.
+      queue: "plainOnly",
       run: (command) => {
         chests.open(command.chestId);
         reachOnArrival(storageReach(command.chestId), command.chestId);
@@ -666,6 +683,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     putInChest: {
       start: "alongside",
+      queue: "apart",
       run: (command) => {
         if (chests.opened()?.id !== command.chestId) return;
         handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
@@ -675,6 +693,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     takeFromChest: {
       start: "alongside",
+      queue: "apart",
       run: (command) => {
         if (chests.opened()?.id !== command.chestId) return;
         handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
@@ -689,6 +708,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
           putDown(() => {
             bedrolls.lay();
           });
+      },
+    },
+    layBedrollInLeanTo: {
+      start: "fresh",
+      run: (command) => {
+        bedrolls.layInLeanTo(command.leanToId);
       },
     },
     pickUpBedroll: {
@@ -742,6 +767,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     skipTime: {
       start: "alongside",
       keepsPlayerSitting: true,
+      queue: "apart",
       run: (command) => {
         // Time only moves forward. Ignore a negative or broken amount.
         if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
@@ -750,6 +776,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     skipToRainChange: {
       start: "alongside",
       keepsPlayerSitting: true,
+      queue: "apart",
       run: () => {
         const wasFalling = rain.falling;
         // Slice by slice, so the skip stops on the minute rain starts or stops, or at a collapse.
@@ -812,6 +839,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     // A collapse before the first morning means the player did not survive the first night.
     firstNightOver = true;
     cancelTasks();
+    actionQueue.length = 0;
     stools.standUp();
     carrying.drop();
     // The sled stays where the player fell, with its load.
@@ -843,7 +871,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     Object.assign(player.position, bedroll.position);
     Object.assign(player.previousPosition, player.position);
     sleep("bedroll");
-    reportSleep(bedroll.position);
+    reportSleep(bedroll.position, undefined, bedroll.facing === undefined ? undefined : { turns: bedroll.facing.turns });
   }
 
   /**
@@ -860,11 +888,19 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     reportSleep(bed.position, { turns: bed.facing?.turns ?? 0 });
   }
 
-  /** Records a sleep at `spot` for drawing to play. `bed` says which way the bed faces, for a sleep in a bed. */
-  function reportSleep(spot: GroundPoint, bed?: SleepView["bed"]): void {
+  /**
+   * Records a sleep at `spot` for drawing to play. `bed` says which way the bed faces, for a sleep in a bed.
+   * `bedroll` says which way a turned bedroll faces, for a sleep on one.
+   */
+  function reportSleep(spot: GroundPoint, bed?: SleepView["bed"], bedroll?: SleepView["bedroll"]): void {
     const at = Object.freeze({ x: spot.x, z: spot.z });
     const count = (lastSleep?.count ?? 0) + 1;
-    lastSleep = Object.freeze(bed === undefined ? { count, at } : { count, at, bed: Object.freeze({ ...bed }) });
+    lastSleep = Object.freeze({
+      count,
+      at,
+      ...(bed === undefined ? {} : { bed: Object.freeze({ ...bed }) }),
+      ...(bedroll === undefined ? {} : { bedroll: Object.freeze({ ...bedroll }) }),
+    });
   }
 
   /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */
@@ -887,7 +923,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 
-  function applyCommand(command: Command): void {
+  function applyCommand(command: ActionCommand): void {
     // While dragging a sled, the player's hands are busy until they let go.
     if (handsBusy(command)) {
       showNotice("letGoFirst");
@@ -902,15 +938,83 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     refuseWith(rule.run(command));
   }
 
+  /** Carries out a command the UI sent: it adds an action to the action queue, or it runs on its own. */
+  function receive(command: Command): void {
+    if (command.type === "queueAction") queueAction(command.action);
+    else sendOnItsOwn(command);
+  }
+
+  /**
+   * Carries out a command sent on its own, as a plain click does. An action empties the actions waiting in the queue.
+   * If it stops what the player was doing, or starts something while the queue is empty, it becomes the action under way.
+   * A command apart from the queue, such as pausing, leaves the queue as it is, unless it stops what the player was doing.
+   */
+  function sendOnItsOwn(command: ActionCommand): void {
+    const apart = ruleOf(command).queue === "apart";
+    if (!apart) actionQueue.splice(1);
+    const cancelsBefore = cancelCount;
+    applyCommand(command);
+    if (cancelCount !== cancelsBefore || (!apart && actionQueue.length === 0 && playerIsBusy(player))) actionQueue.splice(0, actionQueue.length, command);
+  }
+
+  /**
+   * Adds an action to the end of the action queue, as a Shift-click does. With an empty queue, it starts at once.
+   * It is turned away, with a notice saying why, when the queue is full or the game refuses the action now.
+   */
+  function queueAction(command: ActionCommand): void {
+    if (ruleOf(command).queue !== undefined) {
+      sendOnItsOwn(command);
+      return;
+    }
+    if (actionQueue.length >= ACTION_QUEUE_LIMIT) {
+      showNotice("queueFull");
+      return;
+    }
+    const refusal = refusalOf(command);
+    if (refusal !== null) {
+      showNotice({ kind: "cannotQueue", refusal });
+      return;
+    }
+    actionQueue.push(command);
+    if (actionQueue.length === 1) applyCommand(command);
+  }
+
+  /**
+   * Moves the action queue on, once a logic step has run. When the player has nothing left to do for the action under way,
+   * it leaves the queue and the next one starts. An endless action, such as fishing or sitting, ends as soon as another
+   * action waits behind it. An action the game refuses when its turn comes is dropped, with a notice saying why.
+   */
+  function moveQueueOn(): void {
+    const underWay = actionQueue[0];
+    if (underWay === undefined) return;
+    if (playerIsBusy(player)) {
+      const endless = player.sitting !== undefined || fishingNow(player) !== undefined;
+      if (!endless || actionQueue.length === 1) return;
+      cancelTasks();
+      stools.standUp();
+    }
+    actionQueue.shift();
+    for (let next = actionQueue[0]; next !== undefined; next = actionQueue[0]) {
+      const refusal = refusalOf(next);
+      if (refusal === null) {
+        applyCommand(next);
+        return;
+      }
+      showNotice({ kind: "actionSkipped", refusal });
+      actionQueue.shift();
+    }
+  }
+
   /** Why the game would turn a command away now: its own rule first, then the player's hands being busy with a sled. */
   function refusalOf(command: Command): Refusal | null {
+    if (command.type === "queueAction") return refusalOf(command.action);
     const refusal = ruleOf(command).refusal?.(command);
     if (refusal !== undefined) return Object.freeze(refusal);
     return handsBusy(command) ? Object.freeze({ kind: "letGoFirst" }) : null;
   }
 
   function step(): void {
-    for (const command of pendingCommands.splice(0)) applyCommand(command);
+    for (const command of pendingCommands.splice(0)) receive(command);
 
     if (!paused) {
       for (const entity of moving) {
@@ -923,6 +1027,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       sleds.follow();
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
+      moveQueueOn();
       stepCount += 1;
     }
 

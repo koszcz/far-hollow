@@ -240,7 +240,7 @@ window.addEventListener("keydown", (event) => {
   // Let typing keep working in form fields.
   const target = event.target instanceof HTMLElement ? event.target : null;
   const typing = target?.closest("input, textarea, select") != null;
-  const hotbarCommand = pressHotbarKey(event.code, game.client, { typing });
+  const hotbarCommand = pressHotbarKey(event.code, game.client, { typing, shift: event.shiftKey });
   if (hotbarCommand !== undefined) game.client.send(hotbarCommand);
   if (event.code !== "Escape" && typing) return;
   const result = pressCraftKey(uiState.craftMenuOpen, event.code);

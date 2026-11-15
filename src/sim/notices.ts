@@ -19,4 +19,7 @@ export const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   cannotCraftYet: 4,
   fishGotAway: 4,
   droppedBesideStation: 4,
+  queueFull: 4,
+  cannotQueue: 4,
+  actionSkipped: 4,
 };

@@ -5,22 +5,10 @@
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
-import type {
-  BackpackContent,
-  BuildLack,
-  CampfireView,
-  CarriedLog,
-  Command,
-  GameClient,
-  GameView,
-  RecipeLack,
-  Refusal,
-  SledView,
-  WoodpileView,
-  WoodpileWood,
-} from "../sim/api";
+import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, SledView, WoodpileView, WoodpileWood } from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
+import { refusalText } from "../ui/refusal-text";
 import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 
 export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
@@ -96,7 +84,18 @@ function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[]
   if (pick.kind !== "structure") return thingActions(pick, context);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
   const under = pick.under === undefined ? [] : thingActions(pick.under, context);
-  return [...under, { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false }];
+  const [own] = structureOffers(pick, context);
+  const takeDownStructure: ThingAction = { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false };
+  if (own === undefined) return [...under, takeDownStructure];
+  // The structure's own action is the main one when nothing under it has one, such as when the pointer is on the lean-to's roof.
+  if (under[0]?.isMain === true) return [...under, { ...own, isMain: false }, takeDownStructure];
+  return [{ ...own, isMain: true }, ...under, takeDownStructure];
+}
+
+/** What a finished structure itself offers, besides being taken down. A lean-to offers to lay the bedroll in it while the backpack holds one. */
+function structureOffers(pick: Extract<ScenePick, { kind: "structure" }>, { view, offer }: Context): readonly Offer[] {
+  if (pick.structure !== "leanTo" || !has(view, "bedroll")) return [];
+  return [offer("layBedroll", strings.actions.layBedrollHere, { content: "bedroll" }, { type: "layBedrollInLeanTo", leanToId: pick.id })];
 }
 
 function thingActions(pick: GroundOrThingPick, context: Context): readonly ThingAction[] {
@@ -340,48 +339,4 @@ function shoulderActions(log: CarriedLog, { offer }: Context): readonly ThingAct
   const drop = offer("drop", strings.actions.drop, { hud: "log" }, { type: "dropLog" });
   const split = log === "log" ? [offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
   return withMain([drop, ...split], "drop");
-}
-
-/** Says why the game refuses a command, as a greyed-out action shows it, such as "needs the axe". */
-function refusalText(refusal: Refusal): string {
-  const reasons = strings.actionReasons;
-  switch (refusal.kind) {
-    case "needsTool":
-      return reasons.needsTool(strings.backpackContents[refusal.tool]);
-    case "noContent":
-      return reasons.noContent[refusal.content];
-    case "cannotBuildYet":
-      return buildLackText(refusal.lacks);
-    case "cannotCraftYet":
-      return strings.craftMenu.needs(refusal.lacks.map(lackingText));
-    default:
-      return reasons[refusal.kind];
-  }
-}
-
-/** Why the player cannot build a blueprint's next stage. */
-function buildLackText(lacks: BuildLack): string {
-  const reasons = strings.actionReasons;
-  if (lacks.kind === "tool") return reasons.needsTool(strings.backpackContents[lacks.tool]);
-  switch (lacks.material) {
-    case "stick":
-    case "bark":
-    case "plank":
-      return reasons.noContent[lacks.material];
-    case "log":
-    case "debarkedLog":
-      return reasons.bringFirst[lacks.material];
-  }
-}
-
-/** Names one thing a recipe lacks, such as "the saw". */
-function lackingText(lack: RecipeLack): string {
-  switch (lack.kind) {
-    case "tool":
-      return strings.craftMenu.lacking.tool(strings.backpackContents[lack.tool]);
-    case "station":
-      return strings.craftMenu.lacking.station(strings.buildMenu.structures[lack.station]);
-    case "materials":
-      return strings.craftMenu.lacking.materials;
-  }
 }

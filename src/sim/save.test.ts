@@ -37,7 +37,8 @@ describe("saving and loading a game", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(loaded.game.client.getView()).toEqual(game.client.getView());
+    // The action queue is not saved, so the loaded game has only the work under way.
+    expect(loaded.game.client.getView()).toEqual({ ...game.client.getView(), actionQueue: [] });
   });
 
   it("restores debarked logs, bark, a debarked log on the shoulder, and debarking under way", () => {
@@ -63,7 +64,8 @@ describe("saving and loading a game", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(loaded.game.client.getView()).toEqual(game.client.getView());
+    // The action queue is not saved, so the loaded game has only the work under way.
+    expect(loaded.game.client.getView()).toEqual({ ...game.client.getView(), actionQueue: [] });
     expect(loaded.game.client.getView().backpack.bark).toBeGreaterThan(0);
   });
 
@@ -201,7 +203,8 @@ describe("saving foundations", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    expect(loaded.game.client.getView()).toEqual(game.client.getView());
+    // The action queue is not saved, so the loaded game has only the work under way.
+    expect(loaded.game.client.getView()).toEqual({ ...game.client.getView(), actionQueue: [] });
   });
 });
 

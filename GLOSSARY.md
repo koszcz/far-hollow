@@ -88,10 +88,14 @@ _Avoid_: Pile, cluster, bundle
 Split pieces of a log, made with the axe. Firewood is used as fuel and burns longer than sticks.
 
 **Stump**:
-What is left after a tree is felled. A stump slowly regrows into a tree over many days.
+What is left after a tree is felled. A sapling sprouts from it after a day, and it grows back into a full tree over 6 game days.
 
 **Sapling**:
-A young tree the player can plant. It grows into a tree over many days.
+A small young tree, either growing from a stump or planted by the player. The player can dig one up into the backpack and plant it elsewhere. It grows into a young tree, then a full tree, over 5 game days.
+_Avoid_: Seedling, sprout
+
+**Young tree**:
+The stage between a sapling and a full tree. It blocks walking but is too young to chop.
 
 ## Tools and carrying
 
@@ -156,6 +160,10 @@ _Avoid_: Feed, refuel, manage
 **Action menu**:
 The list of every action a thing offers, which opens beside the pointer when the player clicks the thing. The main action sits at the top in bold, and the rest follow below. An action the player cannot do yet shows greyed, with the reason under its name.
 _Avoid_: Right-click menu, context menu, radial menu, pie menu
+
+**Action queue**:
+The actions the player has lined up to do in order, at most 4, counting the one under way. Shift with a click on an action, with E, or with a number key adds an action to the end. When the action under way is finished, the next one starts. A plain click, E, or number key empties the queue and starts that action at once.
+_Avoid_: Task list, job queue, command queue, to-do list
 
 **Hotbar**:
 The row at the bottom of the screen that shows the backpack contents, anything on the shoulder, and the sled the player drags.

@@ -270,7 +270,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   const pickOffset = new THREE.Matrix4();
 
   // Falling trees: a few short-lived meshes that share the tree shapes.
-  /** `axis` is what the pivot turns about to tip the tree's top away from the player. */
+  /** `axis` is what the pivot turns about to tip the tree's top the way it falls. */
   const falling: {
     pivot: THREE.Group;
     axis: THREE.Vector3;
@@ -286,7 +286,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     if (index === undefined || type === undefined || batch === undefined) return;
     // Hide this tree in its batch. Its falling copy takes over.
     for (const shapeBatch of batch.batches) shapeBatch.set(index, undefined);
-    startFall(tree.position, type);
+    startFall(tree.position, type, tree.fellHeading);
   });
   // A tree that stands again, such as in the asset showcase's looping chop, shows again in its batch.
   standing.onEntityAdded.subscribe((tree) => {
@@ -326,10 +326,11 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   stickQuery.onEntityAdded.subscribe(markSticks);
   stickQuery.onEntityRemoved.subscribe(markSticks);
 
-  function startFall(at: Vec3, type: number): void {
+  /** Starts a tree falling toward `heading`, as the simulation chose it. Without one, as in the asset showcase, the tree falls away from the player. */
+  function startFall(at: Vec3, type: number, heading: number | undefined): void {
     const player = players.first;
-    const awayX = player ? at.x - player.position.x : 1;
-    const awayZ = player ? at.z - player.position.z : 0;
+    const awayX = heading !== undefined ? Math.sin(heading) : player ? at.x - player.position.x : 1;
+    const awayZ = heading !== undefined ? Math.cos(heading) : player ? at.z - player.position.z : 0;
     const length = Math.hypot(awayX, awayZ) || 1;
     const pivot = new THREE.Group();
     pivot.position.set(at.x, at.y, at.z);

@@ -202,6 +202,16 @@ const LEAN_TO_BLOCKED_SQUARES: readonly GroundPoint[] = [
   { x: 1.5, z: 0.5 },
 ];
 
+/**
+ * Where a bedroll laid in a lean-to lies: across the middle of its open front, along its width, under the roof.
+ * That strip is the part of the lean-to the player can walk on. `spot` and `turns` are the lean-to's middle and facing.
+ * Returns the bedroll's middle and which way it faces. A bedroll facing the default way lies along z, so it turns a quarter more.
+ */
+export function leanToBedrollSpot(spot: GroundPoint, turns: QuarterTurns): { spot: GroundPoint; turns: QuarterTurns } {
+  const offset = turnOffset({ x: 0, z: LEAN_TO_DEPTH_METRES / 4 }, turns);
+  return { spot: { x: spot.x + offset.x, z: spot.z + offset.z }, turns: ((turns + 1) % 4) as QuarterTurns };
+}
+
 const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {
   kind: "leanTo",
   placement: "onGround",

@@ -50,6 +50,13 @@ describe("the number keys", () => {
     expect(pressHotbarKey("Numpad3", reader, NOT_TYPING)).toEqual({ type: "eat", food: "berries" });
   });
 
+  it("with Shift, add the backpack content's main action to the action queue", () => {
+    const reader = readerWith({ backpack: { berries: 2 } });
+
+    expect(pressHotbarKey("Digit1", reader, { typing: false, shift: true })).toEqual({ type: "queueAction", action: { type: "eat", food: "berries" } });
+    expect(pressHotbarKey("Digit2", reader, { typing: false, shift: true })).toBeUndefined();
+  });
+
   it("do nothing for an empty cell or another key", () => {
     const reader = readerWith({ backpack: { berries: 2 } });
 

@@ -113,6 +113,52 @@ describe("chopping a tree", () => {
   });
 });
 
+describe("where a felled tree falls", () => {
+  it("falls straight away from the player when the ground there is clear", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTreeToPlayer(game);
+    clearAround(game, tree);
+    game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => game.client.getView().action?.kind === "chop");
+    const standing = { ...onlyPlayer(game).position };
+    stepUntil(game, () => tree.stump === true);
+
+    const away = Math.atan2(tree.position.x - standing.x, tree.position.z - standing.z);
+    expect(angleBetween(tree.fellHeading ?? Number.NaN, away)).toBeLessThan(0.01);
+  });
+
+  it("falls to one side when another tree stands in the way, so no log lies on a tree", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTreeToPlayer(game);
+    clearAround(game, tree);
+    game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => game.client.getView().action?.kind === "chop");
+    const player = onlyPlayer(game);
+    const away = Math.atan2(tree.position.x - player.position.x, tree.position.z - player.position.z);
+    // A tree right where the trunk would land.
+    const blockerAt = { x: tree.position.x + Math.sin(away) * 2.5, z: tree.position.z + Math.cos(away) * 2.5 };
+    game.entities.add({ tree: true, position: { ...blockerAt, y: tree.position.y }, blocksWalking: { radius: 1.2 } });
+    stepUntil(game, () => tree.stump === true);
+
+    expect(angleBetween(tree.fellHeading ?? Number.NaN, away)).toBeGreaterThan(0.1);
+    for (const log of game.entities.with("log", "position")) {
+      expect(Math.hypot(log.position.x - blockerAt.x, log.position.z - blockerAt.z)).toBeGreaterThan(1);
+    }
+  });
+
+  it("keeps every log off the other trees in a real stand of forest", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTreeToPlayer(game);
+    fell(game, tree);
+
+    const others = [...game.entities.with("tree", "position")];
+    for (const log of game.entities.with("log", "position")) {
+      const nearest = Math.min(...others.map((other) => Math.hypot(other.position.x - log.position.x, other.position.z - log.position.z)));
+      expect(nearest).toBeGreaterThan(0.6);
+    }
+  });
+});
+
 describe("tree size", () => {
   it("gives more logs from a bigger tree, but takes longer to chop", () => {
     const small = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === FEWEST_LOGS_PER_TREE);
@@ -222,6 +268,20 @@ describe("carrying a log", () => {
 function fell(game: Game, tree: Entity): void {
   game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
   stepUntil(game, () => tree.stump === true);
+}
+
+/** Removes every other tree within 8 metres of this one, so its trunk can fall any way. */
+function clearAround(game: Game, tree: Entity & { position: { x: number; z: number } }): void {
+  for (const other of [...game.entities.with("tree", "position")]) {
+    if (other === tree) continue;
+    if (Math.hypot(other.position.x - tree.position.x, other.position.z - tree.position.z) < 8) game.entities.remove(other);
+  }
+}
+
+/** The smallest turn between two headings, in radians. */
+function angleBetween(a: number, b: number): number {
+  const turn = Math.abs(a - b) % (Math.PI * 2);
+  return Math.min(turn, Math.PI * 2 - turn);
 }
 
 /** How many logs the tree at this spot gives. */

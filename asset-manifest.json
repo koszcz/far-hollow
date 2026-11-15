@@ -1084,12 +1084,13 @@
         "src/render/table-meshes.ts",
         "src/render/plank-furniture-meshes.ts"
       ],
-      "description": "The table: a top 1.2 m long, 0.8 m deep, and 0.75 m high, made of four planks laid along its length with thin gaps between them, on a frame of four rails, on four square legs set a little in from the corners. Each plank is a slightly different shade of pale sawn wood. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in three stages: the legs, the rails, then the top.",
+      "description": "The table: a top 1.2 m long, 0.8 m deep, and 0.75 m high, in the style of a farmhouse table. The top is four planks laid along its length with thin gaps between them, held between two cleats across its ends, with a dark peg through each cleat into each plank. The top overhangs a frame of four rails, with a dark peg where each long rail meets a leg. Four thick square legs stand under the frame, joined near the ground by an H-shaped stretcher. Each plank is a slightly different shade of pale sawn wood. As a blueprint, the table shows see-through. Stages whose planks it already has show pale and half solid. Construction builds it in three stages: the legs with the stretcher, the rails, then the top.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/04-table.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     },
     {

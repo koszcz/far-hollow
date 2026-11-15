@@ -149,7 +149,8 @@ export type Command =
   | { type: "pickUpBedroll"; bedrollId: number }
   /**
    * Walk the player to a laid bedroll, given by its entity id, and sleep on it. It becomes the player's respawn point.
-   * At night the player sleeps until morning. By day they sleep until fatigue is restored.
+   * At night the player sleeps until morning. By day they sleep until fatigue is restored,
+   * but a sleep that would end in the night lasts until morning.
    * Other needs change for the time slept, and a collapse cuts sleep short.
    */
   | { type: "sleep"; bedrollId: number }

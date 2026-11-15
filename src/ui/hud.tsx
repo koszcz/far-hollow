@@ -1,5 +1,5 @@
 // The HUD, the "hud" asset in asset-manifest.json: smoked walnut glass over the scene, in the "hotbar and wheel" layout the owner chose, with build and craft changed to lists.
-// The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the panels and the open chest.
+// The backpack is a hotbar at the bottom centre, with the need gauges to its left, and above them the panels and the open chest.
 // The clock sits top left, the pause button top right, and banners top centre. Build and craft open as lists above their buttons.
 // Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 // The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the approved "build-icons" asset.
@@ -29,6 +29,7 @@ import { MaterialIcon, StructureIcon } from "./build-icons";
 import { dayShare, timeOfDayWord } from "./clock-face";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
+import { needPulses, needRingShare } from "./need-gauge";
 import { placingHint } from "./placing-hint";
 import { SLED_DRAWING } from "./sled-icons";
 
@@ -337,8 +338,6 @@ function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"
 /** Warmth's bar colour runs from this cold blue at 0 to the ember orange at 1. */
 const COLD_RGB = [111, 168, 214] as const;
 const WARM_RGB = [232, 131, 58] as const;
-/** At or below this level a need's bar pulses, to warn the player. */
-const LOW_NEED = 0.25;
 /** A cool river blue for the thirst bar. */
 const THIRST_COLOUR = "#5aa9e6";
 /** A berry red for the hunger bar. */
@@ -353,13 +352,29 @@ function warmthColour(warmth: number): string {
   return `rgb(${mix(COLD_RGB[0], WARM_RGB[0])} ${mix(COLD_RGB[1], WARM_RGB[1])} ${mix(COLD_RGB[2], WARM_RGB[2])})`;
 }
 
-/** One row of a bar with an icon and a label. Needs such as warmth, and the progress of timed work, use it. */
-function Meter({ icon, label, value, colour, low = false }: { icon: HudIconName; label: string; value: number; colour: string; low?: boolean }) {
+/** One row of a bar with an icon and a label. The progress of timed work, and campfire fuel, use it. */
+function Meter({ icon, label, value, colour }: { icon: HudIconName; label: string; value: number; colour: string }) {
   return (
-    <label class={low ? "hud-meter hud-meter-low" : "hud-meter"} style={{ "--hud-bar": colour }}>
+    <label class="hud-meter" style={{ "--hud-bar": colour }}>
       <HudIcon name={icon} />
       <span class="hud-meter-label">{label}</span>
       <progress max={1} value={value} />
+    </label>
+  );
+}
+
+/**
+ * One need as a round gauge: a ring in the need's colour that fills with its level, the need's icon inside, and its name below.
+ * A low need pulses. A hidden progress bar in the label lets screen readers read the need's name and level.
+ */
+function NeedGauge({ icon, label, value, colour }: { icon: HudIconName; label: string; value: number; colour: string }) {
+  return (
+    <label class={needPulses(value) ? "hud-need hud-need-low" : "hud-need"} style={{ "--hud-bar": colour, "--hud-level": needRingShare(value) }}>
+      <span class="hud-need-ring">
+        <HudIcon name={icon} />
+      </span>
+      <span class="hud-need-label">{label}</span>
+      <progress class="hud-sr-only" max={1} value={value} />
     </label>
   );
 }
@@ -638,49 +653,51 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
             ))}
           </div>
         )}
-        <section class="hud-needs" aria-label={strings.needs}>
-          <Meter icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} low={view.warmth <= LOW_NEED} />
-          <Meter icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} low={view.needs.hunger <= LOW_NEED} />
-          <Meter icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} low={view.needs.thirst <= LOW_NEED} />
-          <Meter icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} low={view.needs.fatigue <= LOW_NEED} />
-          {view.sick && <p class="hud-hint">{strings.sick}</p>}
-        </section>
-        <div class="hud-panel hud-hotbar">
-          <section class="hud-backpack" aria-label={strings.backpack}>
-            <HotbarGrid view={view} onOpenMenu={onOpenHotbarMenu} />
-            <span
-              class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}
-            >
-              {strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}
-            </span>
+        <div class="hud-dock-bottom">
+          <section class="hud-needs" aria-label={strings.needs}>
+            <NeedGauge icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} />
+            <NeedGauge icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} />
+            <NeedGauge icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} />
+            <NeedGauge icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} />
+            {view.sick && <p class="hud-hint">{strings.sick}</p>}
           </section>
-          <div class="hud-hotbar-tools">
-            <HudToolButton
-              icon="place"
-              label={strings.buildMenu.open}
-              shortcut={strings.hudLabels.buildKey}
-              pressed={buildMenuOpen}
-              disabled={placing !== null}
-              onClick={onToggleBuildMenu}
-            />
-            <HudToolButton
-              icon="axe"
-              label={strings.craftMenu.open}
-              shortcut={strings.hudLabels.craftKey}
-              pressed={craftMenuOpen}
-              onClick={onToggleCraftMenu}
-            />
-            {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
-            {craftMenuOpen && (
-              <CraftMenu
-                view={view}
-                onChoose={(recipe) => {
-                  client.send({ type: "craft", recipe });
-                  onToggleCraftMenu();
-                }}
-                onClose={onToggleCraftMenu}
+          <div class="hud-panel hud-hotbar">
+            <section class="hud-backpack" aria-label={strings.backpack}>
+              <HotbarGrid view={view} onOpenMenu={onOpenHotbarMenu} />
+              <span
+                class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}
+              >
+                {strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}
+              </span>
+            </section>
+            <div class="hud-hotbar-tools">
+              <HudToolButton
+                icon="place"
+                label={strings.buildMenu.open}
+                shortcut={strings.hudLabels.buildKey}
+                pressed={buildMenuOpen}
+                disabled={placing !== null}
+                onClick={onToggleBuildMenu}
               />
-            )}
+              <HudToolButton
+                icon="axe"
+                label={strings.craftMenu.open}
+                shortcut={strings.hudLabels.craftKey}
+                pressed={craftMenuOpen}
+                onClick={onToggleCraftMenu}
+              />
+              {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
+              {craftMenuOpen && (
+                <CraftMenu
+                  view={view}
+                  onChoose={(recipe) => {
+                    client.send({ type: "craft", recipe });
+                    onToggleCraftMenu();
+                  }}
+                  onClose={onToggleCraftMenu}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>

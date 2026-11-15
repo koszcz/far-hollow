@@ -284,6 +284,7 @@ export const strings = {
     eat: "Eat",
     layOut: "Lay it out",
     fillPot: "Fill it at the river",
+    fillPotHere: "Fill the pot",
     drinkFromPot: "Drink",
     drop: "Drop",
     dropHere: { log: "Drop the log here", debarkedLog: "Drop the debarked log here" },

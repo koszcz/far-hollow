@@ -11,8 +11,9 @@ export interface Carrying {
   /**
    * Sets the player walking to a log or debarked log on the ground. Once there, they reach down and shoulder it.
    * Does nothing if the entity is not one of those or the player already carries one.
+   * With `thenSplit`, the player starts splitting it into firewood once it is on their shoulder, if it is a log.
    */
-  pickUp(logId: number): void;
+  pickUp(logId: number, thenSplit?: boolean): void;
   /** Stops the player walking to pick up or drop a log. */
   cancel(): void;
   /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
@@ -47,13 +48,13 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
   }
 
   return {
-    pickUp(logId) {
+    pickUp(logId, thenSplit = false) {
       const log = entities.entity(logId);
       if (log === undefined || logKind(log) === undefined || log.position === undefined) return;
       for (const player of players) {
         if (player.carrying !== undefined) continue;
         walking.walkTo(log.position);
-        setComponent(entities, player, "logPickUpTask", { logId });
+        setComponent(entities, player, "logPickUpTask", thenSplit ? { logId, thenSplit: true } : { logId });
       }
     },
     cancel() {
@@ -87,13 +88,15 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const picker of [...pickers]) {
         if (picker.walkPath) continue;
-        const { logId } = picker.logPickUpTask;
+        const { logId, thenSplit } = picker.logPickUpTask;
         entities.removeComponent(picker, "logPickUpTask");
         const log = logInReach(logId, picker);
         if (log?.position === undefined) continue;
         hand.start("low", log.position, () => {
           const still = logInReach(logId, picker);
-          if (still !== undefined) shoulderLog(entities, picker, still);
+          const shouldered = still !== undefined && shoulderLog(entities, picker, still);
+          // Splitting checks the axe and the backpack's room each step, so it stops on its own if either is missing.
+          if (shouldered && thenSplit === true && picker.carrying === "log") setComponent(entities, picker, "splitTask", { secondsDone: 0 });
           return undefined;
         });
       }

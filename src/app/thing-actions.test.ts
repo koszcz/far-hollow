@@ -285,6 +285,7 @@ describe("actions while dragging a sled", () => {
     expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), reader))).toEqual(["chop main off: let go of the sled first"]);
     expect(summary(actionsFor(scene({ kind: "log", id: 4 }), reader))).toEqual([
       "pickUp main off: let go of the sled first",
+      "split off: let go of the sled first",
       "debark off: let go of the sled first",
     ]);
     expect(summary(actionsFor(scene({ kind: "stick", id: 5 }), reader))[0]).toBe("pickUp main off: let go of the sled first");
@@ -353,12 +354,30 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({})))).toEqual(["chop main off: needs the axe"]);
   });
 
-  it("picks up a log, then debarks it", () => {
-    expect(summary(actionsFor(scene({ kind: "log", id: 4 }), readerWith({ backpack: { drawknife: 1 } })))).toEqual(["pickUp main", "debark"]);
-    expect(summary(actionsFor(scene({ kind: "log", id: 4 }), readerWith({ carrying: "log" })))).toEqual([
+  it("picks up a log, splits it, or debarks it", () => {
+    const log = scene({ kind: "log", id: 4 });
+    const actions = actionsFor(log, readerWith({ backpack: { axe: 1, drawknife: 1 } }));
+    expect(summary(actions)).toEqual(["pickUp main", "split", "debark"]);
+    expect(find(actions, "split")).toMatchObject({ label: "Split into firewood", command: { type: "splitLog", logId: 4 } });
+    expect(summary(actionsFor(log, readerWith({ backpack: { axe: 1 }, carrying: "log" })))).toEqual([
       "pickUp main off: your shoulder is full",
+      "split off: your shoulder is full",
       "debark off: needs the drawknife",
     ]);
+    expect(summary(actionsFor(log, readerWith({})))[1]).toBe("split off: needs the axe");
+  });
+
+  it("only picks up a debarked log", () => {
+    expect(summary(actionsFor(scene({ kind: "debarkedLog", id: 4 }), readerWith({ backpack: { axe: 1 } })))).toEqual(["pickUp main"]);
+  });
+
+  it("fills the empty pot at the river", () => {
+    const river = scene({ kind: "river", spot: { x: 1, z: 2 } });
+    const actions = actionsFor(river, readerWith({ backpack: { pot: 1 } }));
+
+    expect(summary(actions)).toEqual(["drink main", "fillPot", "fish off: needs the fishing rod"]);
+    expect(find(actions, "fillPot")).toMatchObject({ label: "Fill the pot", command: { type: "fillPot" } });
+    expect(summary(actionsFor(river, readerWith({ backpack: { potOfRiverWater: 1 } })))).not.toContain("fillPot");
   });
 
   it("sleeps on a laid bedroll, or picks it up", () => {

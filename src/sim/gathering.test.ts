@@ -79,6 +79,37 @@ describe("splitting a log into firewood", () => {
     expect(game.client.getView().backpack.firewood).toBe(FIREWOOD_PER_LOG);
   });
 
+  it("walks to a log on the ground, shoulders it, then splits it", () => {
+    const game = createGame({ seed: 42 });
+    fellNearestTree(game);
+    const log = dropCarriedLog(game);
+
+    game.client.send({ type: "splitLog", logId: idOf(game, log) });
+    stepUntil(game, () => game.client.getView().action?.kind === "split");
+    runSeconds(game, SPLIT_SECONDS + 0.1);
+
+    expect(game.entities.has(log)).toBe(false);
+    expect(game.client.getView().carrying).toBeNull();
+    expect(game.client.getView().backpack.firewood).toBe(FIREWOOD_PER_LOG);
+  });
+
+  it("leaves a log on the ground when the backpack has no room for its firewood", () => {
+    const game = createGame({ seed: 42 });
+    fellNearestTree(game);
+    const log = dropCarriedLog(game);
+    const backpack = onlyPlayer(game).backpack;
+    if (backpack === undefined) throw new Error("No backpack");
+    backpack.contents.stick = 28;
+
+    game.client.send({ type: "splitLog", logId: idOf(game, log) });
+    game.step();
+    expect(game.client.getView().notice?.kind).toBe("backpackFull");
+    runSeconds(game, SPLIT_SECONDS * 2);
+
+    expect(game.entities.has(log)).toBe(true);
+    expect(game.client.getView().carrying).toBeNull();
+  });
+
   it("does nothing when the player carries no log", () => {
     const game = createGame({ seed: 42 });
     game.client.send({ type: "splitLog" });
@@ -167,7 +198,14 @@ function onlyPlayer(game: Game) {
   return player;
 }
 
-function nearestToPlayer(game: Game, kind: "stick" | "tree") {
+/** Lays the carried log at the player's feet, and returns it. */
+function dropCarriedLog(game: Game): Entity {
+  game.client.send({ type: "dropLog" });
+  stepUntil(game, () => game.client.getView().carrying === null);
+  return nearestToPlayer(game, "log");
+}
+
+function nearestToPlayer(game: Game, kind: "stick" | "tree" | "log") {
   const player = onlyPlayer(game);
   const candidates = [...game.entities.with(kind, "position")];
   const distance = (entity: (typeof candidates)[number]) => Math.hypot(entity.position.x - player.position.x, entity.position.z - player.position.z);

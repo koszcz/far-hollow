@@ -124,8 +124,19 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       const shoulderFull = view.carrying === null ? undefined : strings.actionReasons.shoulderFull;
       const pickUp = offerUnless(shoulderFull, "pickUp", strings.actions.pickUp, { hud: "log" }, { type: "pickUpLog", logId: pick.id });
       if (pick.kind === "debarkedLog") return withMain([pickUp], "pickUp");
+      // Splitting picks the log up first, so it also needs a free shoulder.
+      const split = offerUnless(
+        needsTool(view, "axe") ?? shoulderFull,
+        "split",
+        strings.actions.split,
+        { content: "firewood" },
+        {
+          type: "splitLog",
+          logId: pick.id,
+        },
+      );
       const debark = offerUnless(needsTool(view, "drawknife"), "debark", strings.actions.debark, { content: "bark" }, { type: "debarkLog", logId: pick.id });
-      return withMain([pickUp, debark], "pickUp");
+      return withMain([pickUp, split, debark], "pickUp");
     }
     case "stick":
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "stick" }, { type: "pickUpStick", stickId: pick.id })], "pickUp");
@@ -181,12 +192,17 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
   }
 }
 
-/** Drink, then fish. Drinking is the main action. Fishing needs the fishing rod and free hands. */
+/**
+ * Drink, fill the empty pot, then fish. Drinking is the main action. Filling the pot shows only when the backpack holds the empty pot.
+ * Fishing needs the fishing rod and free hands.
+ */
 function riverActions({ x, z }: { readonly x: number; readonly z: number }, view: GameView): readonly ThingAction[] {
   const fishReason = needsTool(view, "fishingRod") ?? (view.carrying === null ? undefined : strings.actionReasons.putLogDownFirst);
+  const fillPot = has(view, "pot") ? [offer("fillPot", strings.actions.fillPotHere, { content: "potOfRiverWater" }, { type: "fillPot" })] : [];
   return withMain(
     [
       offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
+      ...fillPot,
       offerUnless(fishReason, "fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
     ],
     "drink",

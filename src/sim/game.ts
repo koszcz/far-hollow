@@ -468,8 +468,21 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     eat: (command) => {
       foraging.eat(command.food);
     },
-    splitLog: () => {
-      startNew(() => gathering.splitLog());
+    splitLog: (command) => {
+      const { logId } = command;
+      if (logId === undefined) {
+        startNew(() => gathering.splitLog());
+        return;
+      }
+      // Only a log on the ground can be split this way. A debarked log cannot be split.
+      if (entities.entity(logId)?.log === undefined) return;
+      startNew(() => {
+        const refusal = gathering.splitRefusal();
+        if (refusal === "noAxe") return undefined;
+        if (refusal !== undefined) return refusal;
+        carrying.pickUp(logId, true);
+        return undefined;
+      });
     },
     dropLog: () => {
       if (player.carrying !== undefined) {

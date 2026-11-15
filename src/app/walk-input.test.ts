@@ -117,7 +117,7 @@ describe("clicking a thing", () => {
   const ids = (pick: ScenePick, state: ReaderState = {}) => menuFor(pick, readerWith(state))?.map(({ id }) => id);
 
   it("opens a ring with the main action on top, then the rest", () => {
-    expect(ids({ kind: "log", id: 3 })).toEqual(["pickUp", "debark"]);
+    expect(ids({ kind: "log", id: 3 })).toEqual(["pickUp", "split", "debark"]);
   });
 
   it("opens a ring even when the thing offers only its main action", () => {

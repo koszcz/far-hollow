@@ -36,6 +36,11 @@ export interface Gathering {
    * Returns "backpackFull" when the backpack has no room for the firewood.
    */
   splitLog(): GatherRefusal | undefined;
+  /**
+   * Why the player could not split a log now, checked before they pick one up to split: "noAxe" without the axe,
+   * or "backpackFull" when the backpack has no room for all the firewood. Undefined when they could.
+   */
+  splitRefusal(): GatherRefusal | "noAxe" | undefined;
   /** Stops the player walking to pick up a stick or piece of bark, or splitting a log. */
   cancel(): void;
   /** Starts the player reaching for sticks and bark they have walked to, and moves splitting on by one logic step. Run it after walking has moved the player. */
@@ -113,6 +118,13 @@ export function createGathering(entities: EntityStore, walking: Walking, hand: P
         setComponent(entities, player, "splitTask", { secondsDone: 0 });
       }
       return refusal;
+    },
+    splitRefusal() {
+      for (const player of players) {
+        if (player.backpack === undefined || !hasInBackpack(player.backpack, "axe")) return "noAxe";
+        if (!canSplitInto(player.backpack)) return "backpackFull";
+      }
+      return undefined;
     },
     cancel() {
       for (const player of players) {

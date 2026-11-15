@@ -52,8 +52,11 @@ export type Command =
   | { type: "forage"; spotId: number }
   /** Eat one of this food from the backpack. It fills hunger. */
   | { type: "eat"; food: Food }
-  /** Split the log the player carries into firewood with the axe. The firewood goes in the backpack, if it all fits. */
-  | { type: "splitLog" }
+  /**
+   * Split a log into firewood with the axe. The firewood goes in the backpack, if it all fits.
+   * Without `logId`, the player splits the log they carry. With `logId`, they walk to that log on the ground, shoulder it, then split it.
+   */
+  | { type: "splitLog"; logId?: number }
   /** Lay the log or debarked log the player carries on the ground at their feet. */
   | { type: "dropLog" }
   /** Walk the player to a spot on the ground, given in metres from the valley's centre, and lay the log or debarked log they carry there. */

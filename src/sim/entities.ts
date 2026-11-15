@@ -74,8 +74,11 @@ export interface Entity {
    * `secondsDone` counts only the time spent chopping, not walking.
    */
   chopTask?: { treeId: number; secondsDone: number };
-  /** The log or debarked log on the ground the player is walking to pick up, given by its entity id. */
-  logPickUpTask?: { logId: number };
+  /**
+   * The log or debarked log on the ground the player is walking to pick up, given by its entity id.
+   * With `thenSplit`, they split it into firewood once it is on their shoulder.
+   */
+  logPickUpTask?: { logId: number; thenSplit?: true };
   /** The spot on the ground the player is walking to, to lay the log on their shoulder there. */
   logDropTask?: { x: number; z: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. */

@@ -1078,13 +1078,10 @@
         "src/render/plank-furniture-meshes.ts",
         "src/render/bed-sleep.ts"
       ],
-      "description": "The bed: a plank frame 1 m wide and 2 m long on four short square legs, with rails round it, seven slats across it, a tall headboard of two planks at the head end, a low footboard of two planks at the foot, and a pale linen mattress with a pillow and a folded blue wool blanket over the foot half. Each plank is a slightly different shade of pale sawn wood. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in four stages: the frame, the slats, the head and foot boards, then the bedding. To sleep, the player steps up onto the mattress, turned to lie along the bed, plays the approved sleep animation there, and steps back down beside the bed once standing.",
+      "description": "The bed: a cabin bed 1 m wide and 2 m long. Four square corner posts with capped tops stand tall at the head and low at the foot, joined by rails, with seven slats across them. The headboard is five upright planks under a top rail, the footboard four. Each plank is a slightly different shade of pale sawn wood. On the slats lies a pale linen mattress with a soft top edge and a plump pillow, and a blue wool blanket covers the foot half, hanging down over the side rails, with its top edge turned back. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in four stages: the frame, the slats, the head and foot boards, then the bedding. To sleep, the player steps up onto the mattress, turned to lie along the bed, plays the approved sleep animation there, and steps back down beside the bed once standing.",
       "source": "Built in code in this project",
       "license": "Project code",
-      "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/02-bed.md"
-      }
+      "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
     },
     {
       "id": "table",

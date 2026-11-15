@@ -1115,12 +1115,13 @@
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player sitting on a stool, resting, and standing up. The player steps up to the stool over 0.5 seconds, turning their back to it to face the way it faces, and sits down. They rest there, breathing, for as long as they sit. When they walk or act, they stand up and step back to where they stood. The body plays KayKit's Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips from the approved player file, public/assets/player/barbarian.glb; code times the step to the stool and back. The axe goes on the back while the player sits.",
+      "description": "The player sitting on a stool, resting, and standing up. The player steps up to the stool over 0.5 seconds, turning their back to it to face the way it faces, and sits down. They rest there, breathing, for as long as they sit. When they walk or act, they stand up and step back to where they stood. If they stand while still sitting down, they rise along the same path. The seated body rests on the seat, and the short legs hang just above the ground. The body plays KayKit's Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips from the approved player file, public/assets/player/barbarian.glb; code times the step to the stool and back. The axe goes on the back while the player sits.",
       "source": "Timed in code in this project. Clips Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp from KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers, Characters/gltf/Barbarian.glb, unchanged",
       "license": "Project code. The clips are CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/05-stool-and-sitting.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     }
   ]

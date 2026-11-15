@@ -84,7 +84,7 @@ function poseSitter({ player, movePlayer }: Stage, seconds: number): void {
     movePlayer(SIT_PLAY_FROM.x, SIT_PLAY_FROM.z, SIT_PLAY_FROM.heading);
     return;
   }
-  const spot = standSpotFrom(seat, SIT_PLAY_FROM, rising);
+  const spot = standSpotFrom(seat, SIT_PLAY_FROM, rising, SIT_PLAY_STAND_AT);
   movePlayer(spot.x, spot.z, spot.heading);
   player.group.position.y -= standSinkAt(rising, SIT_PLAY_STAND_AT);
   player.setSitting(standBodyAt(rising, SIT_PLAY_STAND_AT));
@@ -322,7 +322,7 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: [
       { label: "stepping up to the stool", seconds: SIT_STEP_ON_SECONDS * 0.6, yaw: 60, pitch: 20 },
       { label: "sitting down", seconds: (SIT_STEP_ON_SECONDS + SIT_SEATED_AT) / 2, yaw: 60, pitch: 20 },
-      { label: "resting, front", seconds: SIT_SEATED_AT + 1, yaw: 0, pitch: 15 },
+      { label: "resting, front", seconds: SIT_SEATED_AT + 1, yaw: 30, pitch: 15 },
       { label: "resting, side", seconds: SIT_SEATED_AT + 1, yaw: 90, pitch: 15 },
     ],
     build({ place }) {

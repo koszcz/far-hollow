@@ -7,7 +7,7 @@
 // pulling a drawknife, and the axe goes on the back. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down and Lie_Idle clips, rolls onto the back into Death_A_Pose and
 // breathes slowly, then rolls back and plays Lie_StandUp. The owner approved it.
-// While sitting on a stool, the draft "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
+// While sitting on a stool, the approved "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
 // While sawing planks, "sawing-animation", posed in code by player-saw-pose.ts, holds the log on the sawhorse with the
 // left hand and saws it with the right. The saw is the approved "saw-model", built by saw-model.ts. The axe goes on the back.
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
@@ -58,7 +58,7 @@ const STAND_UP_CLIP = "Lie_StandUp";
 const ON_BACK_CLIP = "Death_A_Pose";
 /** How far the chest turns up on a full slow breath while asleep, in radians about the chest's own x axis. */
 const SLEEP_BREATH_RADIANS = 0.035;
-/** The clips for sitting down on a stool, resting there, and standing up: the draft "sit-animation". */
+/** The clips for sitting down on a stool, resting there, and standing up: the approved "sit-animation". */
 const SIT_CLIPS = { sitDown: "Sit_Chair_Down", sitIdle: "Sit_Chair_Idle", standUp: "Sit_Chair_StandUp" } as const;
 /** The clips for reaching to the ground, and out at waist height. */
 const REACH_CLIPS: Readonly<Record<ReachHeight, string>> = { low: "PickUp", waist: "Interact" };

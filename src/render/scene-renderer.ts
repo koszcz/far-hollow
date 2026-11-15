@@ -21,7 +21,7 @@ import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
 import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
-import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, STAND_SECONDS, standBodyAt, standSinkAt, standSpotFrom } from "./sit-animation";
+import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
@@ -393,8 +393,8 @@ export function createSceneRenderer(
     }
     if (rising !== undefined) {
       const seconds = nowSeconds - rising.since;
-      if (seconds < STAND_SECONDS) {
-        const spot = standSpotFrom(rising.seat, playerDrawn, seconds);
+      if (seconds < standSecondsAfter(rising.seatedFor)) {
+        const spot = standSpotFrom(rising.seat, playerDrawn, seconds, rising.seatedFor);
         showSittingAt(spot, playerDrawn.y - standSinkAt(seconds, rising.seatedFor));
         playerMesh.setSitting(standBodyAt(seconds, rising.seatedFor));
         return true;

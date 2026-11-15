@@ -217,8 +217,12 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
   );
 }
 
+/** The drawing of one kind of backpack content's icon. */
+export function backpackDrawing(content: BackpackContent): BackpackIconDrawing {
+  return isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : isFishingContent(content) ? FISHING_DRAWINGS[content] : DRAWINGS[content];
+}
+
 /** Draws the icon for one kind of backpack content. Screen readers skip it, because a hidden text label always goes with it. */
 export function BackpackIcon({ content }: { content: BackpackContent }) {
-  const drawing = isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : isFishingContent(content) ? FISHING_DRAWINGS[content] : DRAWINGS[content];
-  return <ShadedIcon drawing={drawing} className="backpack-icon" />;
+  return <ShadedIcon drawing={backpackDrawing(content)} className="backpack-icon" />;
 }

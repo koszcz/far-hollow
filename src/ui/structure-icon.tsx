@@ -4,10 +4,15 @@ import type { StructureKind } from "../sim/api";
 import { ShadedIcon } from "./backpack-icons";
 import { STRUCTURE_DRAWINGS } from "./build-icons";
 import { FURNITURE_DRAWINGS, hasFurnitureIcon } from "./furniture-icons";
+import type { BackpackIconDrawing } from "./icon-drawing";
 import { SLED_DRAWING } from "./sled-icons";
+
+/** The drawing of one structure's icon. The action queue draws it too. */
+export function structureDrawing(structure: StructureKind): BackpackIconDrawing {
+  return structure === "sled" ? SLED_DRAWING : hasFurnitureIcon(structure) ? FURNITURE_DRAWINGS[structure] : STRUCTURE_DRAWINGS[structure];
+}
 
 /** Draws the icon for one structure in the build menu. Screen readers skip it, because a text label always goes with it. */
 export function StructureIcon({ structure }: { structure: StructureKind }) {
-  const drawing = structure === "sled" ? SLED_DRAWING : hasFurnitureIcon(structure) ? FURNITURE_DRAWINGS[structure] : STRUCTURE_DRAWINGS[structure];
-  return <ShadedIcon drawing={drawing} className="build-icon" />;
+  return <ShadedIcon drawing={structureDrawing(structure)} className="build-icon" />;
 }

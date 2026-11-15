@@ -3,7 +3,7 @@
 // One icon per structure the player can build, and one for each build material that is not a backpack content.
 // Each icon is drawn from its structure's approved model: pale debarked logs, curled bark strips, and stones, in the model's own colours.
 // They use the same shaded style and renderer as the backpack icons in backpack-icons.tsx, drawn on a 24 by 24 grid.
-import type { BuildMaterial, FurnitureKind, StructureKind } from "../sim/api";
+import type { BuildMaterial, CarriedLog, FurnitureKind, StructureKind } from "../sim/api";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import type { BackpackIconDrawing as IconDrawing, IconPart } from "./icon-drawing";
 import { LOG_DRAWING } from "./sled-icons";
@@ -223,6 +223,11 @@ const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = 
     ],
   },
 };
+
+/** The drawing of a log or a debarked log. The action queue draws it too. */
+export function carriedLogDrawing(log: CarriedLog): IconDrawing {
+  return log === "log" ? LOG_DRAWING : MATERIAL_DRAWINGS.debarkedLog;
+}
 
 /** Draws the icon for one build material. Sticks, bark, and planks reuse their backpack icons. */
 export function MaterialIcon({ material }: { material: BuildMaterial }) {

@@ -429,18 +429,17 @@ function backpackContentActions(content: BackpackContent, view: GameView): reado
   const icon: ActionIcon = { content };
   const use = useCommand(content);
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
-  const onShelf = chest?.view.furniture === "shelf";
   const intoChest =
     chest === undefined
       ? []
       : [
-          offer("putInChest", onShelf ? strings.actions.putOnShelf : strings.actions.putInChest, icon, {
+          offer("putInChest", strings.actions.putInChest[chest.view.furniture], icon, {
             type: "putInChest",
             chestId: chest.view.id,
             content,
             all: false,
           }),
-          offer("putInChest:all", onShelf ? strings.actions.putAllOnShelf : strings.actions.putAllInChest, icon, {
+          offer("putInChest:all", strings.actions.putAllInChest[chest.view.furniture], icon, {
             type: "putInChest",
             chestId: chest.view.id,
             content,

@@ -842,7 +842,7 @@
       "code": [
         "src/render/shelf-meshes.ts"
       ],
-      "description": "The shelf: a standing frame of pale sawn planks, 0.9 m wide, 0.4 m deep, and 1.2 m tall. Two upright side planks hold three shelf boards, the lowest just above the ground, and three planks stand side by side as its back. Each plank is a slightly different shade. It does not show what it holds. As a blueprint it shows see-through, each part whose planks it already has waits pale and half solid in its place, and construction stands up the sides with the lowest board in the first stage and adds the upper boards and the back in the second.",
+      "description": "The shelf: a standing frame of pale sawn planks, 0.9 m wide, 0.4 m deep, and 1.2 m tall. Two upright side planks hold three shelf boards, the lowest just above the ground, and three planks stand side by side as its back. Each plank is a slightly different shade. It does not show what it holds. A blueprint shows see-through. A part whose planks the blueprint already has waits pale and half solid in its place. Construction stands up the sides with the lowest board first, then adds the upper boards and the back.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

@@ -383,8 +383,8 @@ export interface WoodpileView {
   readonly capacity: number;
 }
 
-/** The furniture that stores small materials, tools, and food, and opens in the chest panel. */
-export type StorageFurniture = "chest" | "shelf";
+/** A chest or a shelf: the furniture that holds small materials, tools, and food, and opens in the chest panel. */
+export type ChestOrShelf = "chest" | "shelf";
 
 /**
  * An open chest or shelf, with what it holds. It holds small materials, tools, and food, grouped by kind like the backpack.
@@ -394,7 +394,7 @@ export interface ChestView {
   /** The chest's or shelf's entity id. */
   readonly id: number;
   /** Whether it is a chest or a shelf. */
-  readonly furniture: StorageFurniture;
+  readonly furniture: ChestOrShelf;
   /** How many of each kind of thing it holds. Kinds it does not hold are missing. */
   readonly contents: Readonly<BackpackContents>;
   /** How much its contents weigh, in kilograms. */

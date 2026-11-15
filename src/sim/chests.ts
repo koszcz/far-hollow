@@ -1,6 +1,6 @@
 // Opening a chest or shelf, and moving small materials, tools, and food between it and the backpack.
 // A shelf works the same way as a chest and uses the same panel. It only holds less.
-import type { ChestView, StorageFurniture } from "./api";
+import type { ChestView, ChestOrShelf } from "./api";
 import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
 import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { groundDistance } from "./valley";
@@ -10,22 +10,24 @@ import { walkBeside, type Walking } from "./walking";
 export const CHEST_WEIGHT_LIMIT_KG = 60;
 /** The most a shelf can hold, in kilograms. */
 export const SHELF_WEIGHT_LIMIT_KG = 30;
-/** The most each piece of storage furniture can hold, in kilograms. */
-const WEIGHT_LIMIT_KG: Readonly<Record<StorageFurniture, number>> = { chest: CHEST_WEIGHT_LIMIT_KG, shelf: SHELF_WEIGHT_LIMIT_KG };
+/** The most a chest and a shelf can hold, in kilograms. */
+const WEIGHT_LIMIT_KG: Readonly<Record<ChestOrShelf, number>> = { chest: CHEST_WEIGHT_LIMIT_KG, shelf: SHELF_WEIGHT_LIMIT_KG };
+/** The notice that a chest or shelf has no room left. */
+const FULL_NOTICE = { chest: "chestFull", shelf: "shelfFull" } as const satisfies Record<ChestOrShelf, string>;
 /** The player walks to a spot this far from a chest's middle to open it, in metres. */
 const CHEST_STAND_METRES = 1.1;
 /** The player can use a chest from this far from its middle, in metres. */
 const CHEST_REACH_METRES = 2;
 
 /** A finished chest or shelf: the piece of furniture it is, where it stands, and what it holds. */
-interface Store {
-  readonly furniture: StorageFurniture;
+interface ChestOrShelfEntity {
+  readonly furniture: ChestOrShelf;
   readonly position: Vec3;
   readonly holding: { contents: BackpackContents };
 }
 
 /** The finished chest or shelf an entity is, if it is one. */
-export function storeOf(entity: Entity | undefined): Store | undefined {
+export function chestOrShelfOf(entity: Entity | undefined): ChestOrShelfEntity | undefined {
   if (entity?.position === undefined) return undefined;
   if (entity.chest !== undefined) return { furniture: "chest", position: entity.position, holding: entity.chest };
   if (entity.shelf !== undefined) return { furniture: "shelf", position: entity.position, holding: entity.shelf };
@@ -68,10 +70,10 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
   /** Whether the player has stood within reach of the open chest since opening it. */
   let reached = false;
 
-  const chestById = (chestId: number): Store | undefined => storeOf(entities.entity(chestId));
+  const chestById = (chestId: number): ChestOrShelfEntity | undefined => chestOrShelfOf(entities.entity(chestId));
 
   /** The open chest or shelf, while the player stands still within reach of it. */
-  function openChest(): Store | undefined {
+  function openChest(): ChestOrShelfEntity | undefined {
     const chest = openId === undefined ? undefined : chestById(openId);
     if (chest === undefined) return undefined;
     for (const player of players) {
@@ -126,7 +128,7 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
       const room = WEIGHT_LIMIT_KG[chest.furniture] - contentsWeight(chest.holding.contents);
       // The small allowance stops rounding errors in the weights from refusing the last thing that fits.
       const moved = Math.min(wanted, Math.floor((room + 1e-9) / CONTENT_WEIGHT_KG[content]));
-      if (moved <= 0) return chest.furniture === "shelf" ? "shelfFull" : "chestFull";
+      if (moved <= 0) return FULL_NOTICE[chest.furniture];
       removeFromBackpack(backpack, content, moved);
       chest.holding.contents[content] = (chest.holding.contents[content] ?? 0) + moved;
       return undefined;

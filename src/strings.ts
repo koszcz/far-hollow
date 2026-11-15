@@ -298,10 +298,9 @@ export const strings = {
     drinkFromPot: "Drink",
     drop: "Drop",
     dropHere: { log: "Drop the log here", debarkedLog: "Drop the debarked log here" },
-    putInChest: "Put one in the chest",
-    putAllInChest: "Put all in the chest",
-    putOnShelf: "Put one on the shelf",
-    putAllOnShelf: "Put all on the shelf",
+    /** Putting a backpack content in the open chest or on the open shelf. */
+    putInChest: { chest: "Put one in the chest", shelf: "Put one on the shelf" },
+    putAllInChest: { chest: "Put all in the chest", shelf: "Put all on the shelf" },
     split: "Split into firewood",
     /** A disabled action with the reason it is off, such as "Add bark: no bark". */
     withReason: (action: string, reason: string) => `${action}: ${reason}`,

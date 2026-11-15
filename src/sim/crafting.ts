@@ -1,6 +1,15 @@
 // Crafting: timed work that turns materials into something new that goes in the backpack.
 // Every recipe is listed in RECIPES. A new recipe needs only a new entry there, with its name in the strings file.
-import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG, countInBackpack, hasInBackpack, type Backpack, type BackpackContent } from "./backpack";
+import {
+  BACKPACK_WEIGHT_LIMIT_KG,
+  backpackWeight,
+  CONTENT_WEIGHT_KG,
+  countInBackpack,
+  hasInBackpack,
+  howManyFit,
+  type Backpack,
+  type BackpackContent,
+} from "./backpack";
 import { distanceOutside } from "./building";
 import {
   debarkedLogEntities,
@@ -14,10 +23,11 @@ import {
   type EntityStore,
 } from "./entities";
 import type { RecipeKind } from "./recipe-kind";
+import { addToPileAt } from "./piles";
 import { isParked, takeOffSled } from "./sleds";
 import type { WorkStationKind } from "./structure-kind";
 import { footprintOfEntity } from "./structures";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint, type Terrain } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 
 export type { RecipeKind } from "./recipe-kind";
@@ -57,6 +67,12 @@ export interface Recipe {
   readonly tool?: BackpackContent;
   /** The work station the player follows it at. Missing for a hand recipe. */
   readonly station?: WorkStationKind;
+  /**
+   * True if the part of the result that does not fit in the backpack drops in a pile beside the station, at the player's feet.
+   * The recipe then starts even when the backpack is full. Only a station recipe can have it.
+   * Missing if the recipe refuses to start when the result would not fit.
+   */
+  readonly dropsWhatDoesNotFit?: true;
 }
 
 /** How long crafting the saw takes, in seconds. */
@@ -96,6 +112,7 @@ const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind:
     seconds: PLANKS_CRAFT_SECONDS,
     tool: "saw",
     station: "sawhorse",
+    dropsWhatDoesNotFit: true,
   },
   // The fishing rod: a hand recipe that ties the fishing line to a rod made of sticks. The knife cuts and trims the sticks.
   fishingRod: {
@@ -149,10 +166,12 @@ export function recipeLacks(recipe: Recipe, backpack: Backpack, hasStation: (sta
 }
 
 /**
- * True if the result fits in the backpack once the materials the recipe uses are taken out.
+ * True if the result fits in the backpack once the materials the recipe uses are taken out,
+ * or if the recipe drops what does not fit beside its station.
  * The small allowance stops rounding errors in the weights from refusing a result that fits.
  */
 function resultFits(recipe: Recipe, backpack: Backpack): boolean {
+  if (recipe.dropsWhatDoesNotFit === true) return true;
   const freed = recipe.materials.reduce((total, { material, count }) => total + count * CONTENT_WEIGHT_KG[material], 0);
   const added = recipe.result.count * CONTENT_WEIGHT_KG[recipe.result.content];
   return backpackWeight(backpack) - freed + added <= BACKPACK_WEIGHT_LIMIT_KG + 1e-9;
@@ -170,6 +189,14 @@ export type CraftRefusal =
   | { readonly kind: "backpackFull" }
   | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind };
 
+/** What finished crafting dropped in a pile beside the `station`, because it did not fit in the backpack. */
+export interface DroppedBesideStation {
+  readonly kind: "droppedBesideStation";
+  readonly content: BackpackContent;
+  readonly count: number;
+  readonly station: WorkStationKind;
+}
+
 export interface Crafting {
   /**
    * Starts the player crafting. A hand recipe is crafted where the player stands.
@@ -185,9 +212,11 @@ export interface Crafting {
   /**
    * Moves crafting on by one logic step. Run it after walking has moved the player.
    * When the work finishes, the materials are used up and the result goes in the backpack.
+   * For a recipe that drops what does not fit, the rest of the result drops in a pile at the player's feet beside the station.
    * Returns why crafting stopped, if the player reached the station and the logs it uses no longer lie beside it.
+   * Returns what dropped, if some of the result did not fit.
    */
-  step(stepSeconds: number): CraftRefusal | undefined;
+  step(stepSeconds: number): CraftRefusal | DroppedBesideStation | undefined;
   /** Everything the player lacks to follow a recipe now. Empty when they can follow it. */
   lacks(kind: RecipeKind): readonly RecipeLack[];
 }
@@ -225,7 +254,7 @@ export function logWorkedNow(entities: EntityStore, player: Entity): { log: Plac
 }
 
 /** Lets the player craft: turn materials into something new that goes in the backpack, by timed work. */
-export function createCrafting(entities: EntityStore, walking: Walking): Crafting {
+export function createCrafting(entities: EntityStore, walking: Walking, terrain: Terrain): Crafting {
   const players = playerEntities(entities);
   const crafters = entities.with("craftTask", "backpack", "position");
   const groundLogs: { readonly [Material in CarriedLog]: { readonly entities: readonly PlacedEntity[] } } = {
@@ -324,7 +353,7 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
       for (const player of players) entities.removeComponent(player, "craftTask");
     },
     step(stepSeconds) {
-      let refusal: CraftRefusal | undefined;
+      let refusal: CraftRefusal | DroppedBesideStation | undefined;
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const crafter of [...crafters]) {
         if (crafter.walkPath) continue;
@@ -349,7 +378,13 @@ export function createCrafting(entities: EntityStore, walking: Walking): Craftin
         entities.removeComponent(crafter, "craftTask");
         for (const useUp of logs) useUp();
         for (const { material, count } of recipe.materials) crafter.backpack.contents[material] = countInBackpack(crafter.backpack, material) - count;
-        crafter.backpack.contents[recipe.result.content] = countInBackpack(crafter.backpack, recipe.result.content) + recipe.result.count;
+        const { content, count } = recipe.result;
+        const fit = howManyFit(crafter.backpack, content, count);
+        if (fit > 0) crafter.backpack.contents[content] = countInBackpack(crafter.backpack, content) + fit;
+        if (fit < count && recipe.station !== undefined) {
+          addToPileAt(entities, terrain, content, count - fit, crafter.position);
+          refusal = { kind: "droppedBesideStation", content, count: count - fit, station: recipe.station };
+        }
       }
       return refusal;
     },

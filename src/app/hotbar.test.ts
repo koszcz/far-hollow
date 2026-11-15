@@ -79,7 +79,9 @@ function readerWith({
   draggingSledId?: number;
 }): ActionReader {
   const dragging: GameView["dragging"] =
-    draggingSledId === undefined ? null : { id: draggingSledId, contents: { log: 0, debarkedLog: 0 }, total: 0, capacity: 6 };
+    draggingSledId === undefined
+      ? null
+      : { id: draggingSledId, contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0, capacity: 6, logsThatFit: 6, planksThatFit: 24 };
   const nearby: GameView["nearby"] =
     openChestId === undefined ? [] : [{ kind: "openChest", view: { id: openChestId, contents: {}, weight: 0, weightLimit: 30 } }];
   const view: GameView = { ...START.getView(), backpack, carrying, nearby, dragging };

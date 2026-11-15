@@ -12,16 +12,18 @@
 // A finished sled shows the logs and debarked logs lying on it, along the runners, from empty to full:
 // logs first, then debarked logs, stacked in a pyramid: three side by side on the cross pieces, two in the gaps above, and one on top.
 // They use the approved shapes from log-shape.ts and debarked-log-shape.ts, the "logs" and "debarked-log" assets.
+// The planks on a sled are the draft "sled-planks" asset, drawn by sled-plank-meshes.ts on top of the logs.
 // A sled the player has dragged points the way it was last dragged, and a dragged sled
 // moves smoothly between logic steps with the player.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
-import { blueprintEntities, sledEntities, type CarriedLog, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, sledEntities, type CarriedLog, type Entity, type EntityStore, type SledLoad, type Vec3 } from "../sim/entities";
 import { SLED_CAPACITY } from "../sim/sleds";
 import { SLED_LENGTH_METRES, SLED_LOG_COST, SLED_STICK_COST, SLED_WIDTH_METRES } from "../sim/structures";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, LOG_LENGTH_METRES, type LogShape } from "./log-shape";
+import { createSledPlankShapes } from "./sled-plank-meshes";
 import { createStickSegment } from "./stick-shape";
 import type { OutlinePart } from "./hover-outline";
 
@@ -104,7 +106,7 @@ interface Drawn {
   readonly root: THREE.Group;
   readonly stages: Stage[];
   readonly picker: THREE.Mesh;
-  /** The logs lying on a finished sled, and the load they show, such as "2,1". */
+  /** The logs and planks lying on a finished sled, and the load they show, such as "2,1,8". */
   readonly load: THREE.Group;
   loadKey: string;
 }
@@ -365,9 +367,11 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
     return new THREE.Vector3(END_JITTER_METRES[index] ?? 0, bottomLayerHeight + layer * layerSpacing, z);
   }
 
-  /** Shows the logs and debarked logs lying on a finished sled: logs first, then debarked logs. */
-  function showLoad(item: Drawn, contents: Readonly<Record<CarriedLog, number>> | undefined): void {
-    const key = contents === undefined ? "" : `${contents.log},${contents.debarkedLog}`;
+  const plankShapes = createSledPlankShapes();
+
+  /** Shows the logs, debarked logs, and planks lying on a finished sled: logs first, then debarked logs, then planks on top. */
+  function showLoad(item: Drawn, contents: Readonly<SledLoad> | undefined): void {
+    const key = contents === undefined ? "" : `${contents.log},${contents.debarkedLog},${contents.plank}`;
     if (key === item.loadKey) return;
     item.loadKey = key;
     item.load.clear();
@@ -384,6 +388,8 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
       log.receiveShadow = true;
       item.load.add(log);
     });
+    const logsTop = kinds.reduce((top, _kind, index) => Math.max(top, loadPlace(index).y + logRadius), 2 * RUNNER_RADIUS_METRES + 2 * CROSS_RADIUS_METRES);
+    plankShapes.addPlanks(item.load, contents.plank, logsTop);
   }
 
   const drawn = new Map<Entity, Drawn>();
@@ -545,6 +551,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
       ]) {
         item.dispose();
       }
+      plankShapes.dispose();
       disposeFading(placingStages);
       for (const item of drawn.values()) disposeFading(item.stages);
     },

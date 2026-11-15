@@ -46,6 +46,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   giveFishingLine,
   cookFishOnCampfires,
   payChestsInPlanks,
+  putPlanksOnSleds,
 ];
 
 /** The version of the save format this code writes. */
@@ -90,6 +91,8 @@ export const FISHING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveFishingLine) + 2;
 export const COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookFishOnCampfires) + 2;
 /** The first save version in which a new chest costs planks, and a blueprint keeps the planks it has had. */
 export const PLANK_CHESTS_SAVE_VERSION = SAVE_UPGRADES.indexOf(payChestsInPlanks) + 2;
+/** The first save version in which a sled can carry planks. */
+export const SLED_PLANKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(putPlanksOnSleds) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -504,6 +507,18 @@ function payChestsInPlanks(save: Readonly<Record<string, unknown>>): Record<stri
     }
     if (blueprint?.structure !== "roof" || typeof blueprint.materialsSpent !== "number" || blueprint.materialsSpent <= 0) return entity;
     return { ...(entity as object), components: { ...components, blueprint: { ...blueprint, delivered: { plank: blueprint.materialsSpent } } } };
+  });
+  return { ...save, entities };
+}
+
+/** Version 27 to 28: a sled can carry planks as well as logs. Every sled saved before then holds no planks. */
+function putPlanksOnSleds(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> } | null)?.components;
+    const sled = components?.sled;
+    if (typeof sled !== "object" || sled === null) return entity;
+    return { ...(entity as object), components: { ...components, sled: { ...sled, plank: 0 } } };
   });
   return { ...save, entities };
 }

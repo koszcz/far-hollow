@@ -52,7 +52,7 @@ const tendCommand: Check = (value) =>
   shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire", "cookFish", "takeFishOff"), campfireId: count })(value) ||
   shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value) ||
-  shape({ type: exactly("loadSled", "tipOutSled", "dragSled"), sledId: count })(value) ||
+  shape({ type: exactly("loadSled", "tipOutSled", "dragSled", "loadPlanksOnSled", "takePlanksFromSled"), sledId: count })(value) ||
   shape({ type: exactly("takeFromSled"), sledId: count, log: exactly(...CARRIED_LOGS) })(value);
 
 /**
@@ -102,7 +102,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   onFoundation: point,
   chest: shape({ contents: backpackContents }),
   workStation: exactly(...WORK_STATION_KINDS),
-  sled: shape({ log: count, debarkedLog: count }),
+  sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,
   leanTo: exactly(true),
   woodpile: shape({ log: count, debarkedLog: count, firewood: count }),

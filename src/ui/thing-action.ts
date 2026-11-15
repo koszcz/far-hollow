@@ -25,6 +25,8 @@ export type ActionId =
   | "stack:firewood:all"
   | `take:${WoodpileWood}`
   | `load:${CarriedLog}`
+  | "load:plank"
+  | "take:plank"
   | "tipOut"
   | "drag"
   | "letGo"

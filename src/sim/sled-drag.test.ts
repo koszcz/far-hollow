@@ -13,14 +13,21 @@ describe("starting and stopping dragging a sled", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
     const sledId = idOf(game, sled);
-    sled.sled = { log: 3, debarkedLog: 1 };
+    sled.sled = { log: 3, debarkedLog: 1, plank: 0 };
 
     sendAndSettle(game, { type: "dragSled", sledId });
-    expect(game.client.getView().dragging).toEqual({ id: sledId, contents: { log: 3, debarkedLog: 1 }, total: 4, capacity: 6 });
+    expect(game.client.getView().dragging).toEqual({
+      id: sledId,
+      contents: { log: 3, debarkedLog: 1, plank: 0 },
+      total: 4,
+      capacity: 6,
+      logsThatFit: 2,
+      planksThatFit: 8,
+    });
 
     sendAndSettle(game, { type: "letGoOfSled" });
     expect(game.client.getView().dragging).toBeNull();
-    expect(sled.sled).toEqual({ log: 3, debarkedLog: 1 });
+    expect(sled.sled).toEqual({ log: 3, debarkedLog: 1, plank: 0 });
   });
 
   it("drags one sled at a time", () => {
@@ -50,7 +57,7 @@ describe("a dragged sled", () => {
   it("follows behind the player, with its load, wherever they walk", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 2, debarkedLog: 0 };
+    sled.sled = { log: 2, debarkedLog: 0, plank: 0 };
     sendAndSettle(game, { type: "dragSled", sledId: idOf(game, sled) });
     const start = { ...onlyPlayer(game).position };
     const target = openSpotAway(game, start, 12);
@@ -65,7 +72,7 @@ describe("a dragged sled", () => {
     // Behind the player: on the side they came from.
     const walked = { x: player.x - start.x, z: player.z - start.z };
     expect((sled.position.x - player.x) * walked.x + (sled.position.z - player.z) * walked.z).toBeLessThan(0);
-    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0, plank: 0 });
     // E still reaches it, to let go.
     expect(game.client.nearestInReach()).toEqual({ kind: "sled", id: idOf(game, sled) });
   });
@@ -115,7 +122,7 @@ describe("the player's hands while dragging", () => {
   it("refuses shouldering a log, gathering, chopping, building, and crafting, and says to let go first", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 1, debarkedLog: 0 };
+    sled.sled = { log: 1, debarkedLog: 0, plank: 0 };
     sendAndSettle(game, { type: "dragSled", sledId: idOf(game, sled) });
     const tree = game.entities.with("tree").first;
     const stick = game.entities.with("stick").first;
@@ -138,7 +145,7 @@ describe("the player's hands while dragging", () => {
       expect(onlyPlayer(game).walkPath).toBeUndefined();
     }
     expect(game.client.getView().dragging?.id).toBe(idOf(game, sled));
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 0 });
   });
 
   it("refuses building a blueprint", () => {
@@ -158,7 +165,7 @@ describe("collapsing while dragging", () => {
   it("lets go, and leaves the sled with its load where the player fell", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 4, debarkedLog: 0 };
+    sled.sled = { log: 4, debarkedLog: 0, plank: 0 };
     sendAndSettle(game, { type: "dragSled", sledId: idOf(game, sled) });
     const start = { ...onlyPlayer(game).position };
     const away = openSpotAway(game, start, 10);
@@ -171,7 +178,7 @@ describe("collapsing while dragging", () => {
     expect(game.client.getView().notice).toEqual({ kind: "collapsed" });
     expect(game.client.getView().dragging).toBeNull();
     expect(sled.position).toEqual(where);
-    expect(sled.sled).toEqual({ log: 4, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 4, debarkedLog: 0, plank: 0 });
   });
 });
 

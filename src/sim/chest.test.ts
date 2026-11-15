@@ -347,7 +347,7 @@ describe("chests from a save made before chests cost planks", () => {
 
 describe("saving chests", () => {
   it("raises the save version for plank chests", () => {
-    expect(PLANK_CHESTS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(PLANK_CHESTS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
   });
 
   it("keeps plank chests, and the planks a chest blueprint has had", () => {

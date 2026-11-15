@@ -240,7 +240,7 @@ describe("cutting planks with a debarked log on a sled", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
     // The sled's middle is 2.4 m away, so its near side, 0.4 m from the middle, is 2 m from the sawhorse.
-    const sled = sledBeside(game, sawhorse, 2.4, { log: 1, debarkedLog: 1 });
+    const sled = sledBeside(game, sawhorse, 2.4, { log: 1, debarkedLog: 1, plank: 0 });
     give(game, { saw: 1 });
     walkAwayFrom(game, sawhorse);
 
@@ -249,26 +249,26 @@ describe("cutting planks with a debarked log on a sled", () => {
     runSeconds(game, 8.1);
 
     expect(game.client.getView().backpack.plank).toBe(4);
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 0 });
   });
 
   it("does not count a sled parked further than 2 m from the sawhorse", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
-    const sled = sledBeside(game, sawhorse, 3, { log: 0, debarkedLog: 1 });
+    const sled = sledBeside(game, sawhorse, 3, { log: 0, debarkedLog: 1, plank: 0 });
     give(game, { saw: 1 });
 
     send(game, { type: "craft", recipe: "planks" });
     expect(game.client.getView().notice).toEqual({ kind: "noLogBesideStation", station: "sawhorse" });
     runSeconds(game, 10);
-    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1, plank: 0 });
     expect(game.client.getView().backpack.plank).toBeUndefined();
   });
 
   it("uses a debarked log lying on the ground before one on a sled", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
-    const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
+    const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1, plank: 0 });
     const log = debarkedLogBeside(game, sawhorse, 1.8);
     give(game, { saw: 1 });
 
@@ -276,13 +276,13 @@ describe("cutting planks with a debarked log on a sled", () => {
     stepUntil(game, () => game.client.getView().backpack.plank !== undefined);
 
     expect(game.entities.has(log)).toBe(false);
-    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1, plank: 0 });
   });
 
   it("shows nothing lacking in the craft menu when the only debarked log is on a sled by the sawhorse", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
-    sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
+    sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1, plank: 0 });
     give(game, { saw: 1 });
     game.step();
 
@@ -292,7 +292,7 @@ describe("cutting planks with a debarked log on a sled", () => {
   it("does not count a sled the player is dragging", () => {
     const game = createGame({ seed: 42 });
     const sawhorse = finishedSawhorseNearPlayer(game);
-    const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1 });
+    const sled = sledBeside(game, sawhorse, 1.5, { log: 0, debarkedLog: 1, plank: 0 });
     give(game, { saw: 1 });
     const sledId = game.entities.id(sled);
     if (sledId === undefined) throw new Error("The sled is not in the store");
@@ -304,8 +304,66 @@ describe("cutting planks with a debarked log on a sled", () => {
     send(game, { type: "craft", recipe: "planks" });
     expect(game.client.getView().notice).toMatchObject({ kind: "letGoFirst" });
     runSeconds(game, 10);
-    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1 });
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 1, plank: 0 });
     expect(game.client.getView().backpack.plank).toBeUndefined();
+  });
+});
+
+describe("cutting planks next to a parked sled when the backpack is too full for them", () => {
+  it("puts the planks that do not fit in the backpack on a sled parked within 2 m of the sawhorse, and drops none", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    const sled = sledBeside(game, sawhorse, 2.4, { log: 1, debarkedLog: 0, plank: 0 });
+    // Seven pieces of firewood (10.5 kg) bring the backpack to 17 kg, so one plank fits and three do not.
+    give(game, { saw: 1, firewood: 7 });
+
+    cutPlanks(game);
+
+    expect(game.client.getView().backpack.plank).toBe(1);
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 3 });
+    expect(plankPiles(game)).toEqual([]);
+    expect(game.client.getView().notice).toBeNull();
+  });
+
+  it("drops the planks the sled has no room for in a pile beside the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    // Five logs leave one log space: room for 4 planks, 3 of which are taken.
+    const sled = sledBeside(game, sawhorse, 2.4, { log: 5, debarkedLog: 0, plank: 3 });
+    give(game, { saw: 1, firewood: 9 });
+
+    cutPlanks(game);
+
+    expect(sled.sled).toEqual({ log: 5, debarkedLog: 0, plank: 4 });
+    expect(plankPiles(game).map(({ pile }) => pile)).toEqual([{ content: "plank", count: 3 }]);
+    expect(game.client.getView().notice).toEqual({ kind: "droppedBesideStation", content: "plank", count: 3, station: "sawhorse" });
+  });
+
+  it("frees the space of a debarked log it cuts from the sled, and puts the planks there", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    const sled = sledBeside(game, sawhorse, 2.4, { log: 5, debarkedLog: 1, plank: 0 });
+    give(game, { saw: 1, firewood: 9 });
+
+    cutPlanks(game);
+
+    expect(sled.sled).toEqual({ log: 5, debarkedLog: 0, plank: 4 });
+    expect(plankPiles(game)).toEqual([]);
+  });
+
+  it("does not put planks on a sled parked further than 2 m from the sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    const sawhorse = finishedSawhorseNearPlayer(game);
+    debarkedLogBeside(game, sawhorse, 1);
+    const sled = sledBeside(game, sawhorse, 3, { log: 0, debarkedLog: 0, plank: 0 });
+    give(game, { saw: 1, firewood: 9 });
+
+    cutPlanks(game);
+
+    expect(sled.sled.plank).toBe(0);
+    expect(plankPiles(game).map(({ pile }) => pile)).toEqual([{ content: "plank", count: 4 }]);
   });
 });
 
@@ -439,8 +497,8 @@ function sledBeside(
   game: Game,
   sawhorse: Entity & { position: NonNullable<Entity["position"]> },
   metres: number,
-  contents: Record<"log" | "debarkedLog", number>,
-): Entity & { sled: Record<"log" | "debarkedLog", number> } {
+  contents: Record<"log" | "debarkedLog" | "plank", number>,
+): Entity & { sled: Record<"log" | "debarkedLog" | "plank", number> } {
   const { x, y, z } = sawhorse.position;
   const sled = { ...contents };
   return Object.assign(game.entities.add({ sled, facing: { turns: 0 }, position: { x, y, z: z + metres } }), { sled });

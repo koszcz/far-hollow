@@ -508,7 +508,7 @@ const sled: StructureDefinition & { readonly kind: "sled" } = {
   snap: (_site, at) => ({ x: at.x, z: at.z }),
   heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
   canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, SLED_LENGTH_METRES / 2, SLED_WIDTH_METRES / 2),
-  finish: () => ({ sled: { log: 0, debarkedLog: 0 } }),
+  finish: () => ({ sled: { log: 0, debarkedLog: 0, plank: 0 } }),
 };
 
 /** A stump this close to a structure placed anywhere, such as a chest or a sled, in metres, is in its way. */

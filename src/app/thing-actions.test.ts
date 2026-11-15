@@ -202,7 +202,7 @@ const SLED: ActionTarget = { kind: "scene", pick: { kind: "sled", id: 9 } };
 
 describe("a sled's actions", () => {
   it("puts the log on the player's shoulder on the sled, then lists dragging, each kind to take, tipping out, and taking it down", () => {
-    const reader = readerWith({ carrying: "debarkedLog", sled: { contents: { log: 2, debarkedLog: 1 }, total: 3 } });
+    const reader = readerWith({ carrying: "debarkedLog", sled: { contents: { log: 2, debarkedLog: 1, plank: 0 }, total: 3 } });
 
     const actions = actionsFor(SLED, reader);
 
@@ -215,30 +215,54 @@ describe("a sled's actions", () => {
       "takeDown",
     ]);
     expect(find(actions, "load:debarkedLog")).toMatchObject({ label: "Put the debarked log on the sled", command: { type: "loadSled", sledId: 9 } });
-    expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out every log", command: { type: "tipOutSled", sledId: 9 } });
+    expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out everything", command: { type: "tipOutSled", sledId: 9 } });
   });
 
   it("drags the sled when the player carries nothing, then takes one log, offering only the kinds the sled holds", () => {
-    const logsOnly = readerWith({ sled: { contents: { log: 2, debarkedLog: 0 }, total: 2 } });
+    const logsOnly = readerWith({ sled: { contents: { log: 2, debarkedLog: 0, plank: 0 }, total: 2 } });
     expect(summary(actionsFor(SLED, logsOnly))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
     expect(find(actionsFor(SLED, logsOnly), "drag")).toMatchObject({ label: "Drag the sled", command: { type: "dragSled", sledId: 9 } });
 
-    const empty = readerWith({ sled: { contents: { log: 0, debarkedLog: 0 }, total: 0 } });
+    const empty = readerWith({ sled: { contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0 } });
     expect(summary(actionsFor(SLED, empty))).toEqual(["drag main", "take:log off: nothing to take", "tipOut off: nothing to take", "takeDown"]);
 
-    const mixed = actionsFor(SLED, readerWith({ sled: { contents: { log: 1, debarkedLog: 1 }, total: 2 } }));
+    const mixed = actionsFor(SLED, readerWith({ sled: { contents: { log: 1, debarkedLog: 1, plank: 0 }, total: 2 } }));
     expect(summary(mixed).slice(0, 3)).toEqual(["drag main", "take:log", "take:debarkedLog"]);
     expect(find(mixed, "take:debarkedLog")?.command).toEqual({ type: "takeFromSled", sledId: 9, log: "debarkedLog" });
   });
 
   it("says the sled is full", () => {
-    const full = readerWith({ carrying: "log", sled: { contents: { log: 6, debarkedLog: 0 }, total: 6 } });
+    const full = readerWith({ carrying: "log", sled: { contents: { log: 6, debarkedLog: 0, plank: 0 }, total: 6 } });
 
     expect(summary(actionsFor(SLED, full))[0]).toBe("load:log main off: the sled is full");
   });
 
+  it("loads planks when the backpack holds some, and takes planks when the sled holds some", () => {
+    const reader = readerWith({ backpack: { plank: 3 }, sled: { contents: { log: 1, debarkedLog: 0, plank: 5 } } });
+
+    const actions = actionsFor(SLED, reader);
+
+    expect(summary(actions)).toEqual(["drag main", "load:plank", "take:log", "take:plank", "tipOut", "takeDown"]);
+    expect(find(actions, "load:plank")).toMatchObject({ label: "Load planks", command: { type: "loadPlanksOnSled", sledId: 9 } });
+    expect(find(actions, "take:plank")).toMatchObject({ label: "Take planks", command: { type: "takePlanksFromSled", sledId: 9 } });
+  });
+
+  it("offers no plank actions when neither the backpack nor the sled holds planks", () => {
+    const reader = readerWith({ sled: { contents: { log: 1, debarkedLog: 0, plank: 0 } } });
+
+    expect(summary(actionsFor(SLED, reader))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+  });
+
+  it("says the sled is full of planks, and refuses a log when no whole log space is free", () => {
+    const planksFull = readerWith({ backpack: { plank: 1 }, sled: { contents: { log: 0, debarkedLog: 0, plank: 24 } } });
+    expect(summary(actionsFor(SLED, planksFull))).toContain("load:plank off: the sled is full");
+
+    const oneQuarterLeft = readerWith({ carrying: "log", sled: { contents: { log: 5, debarkedLog: 0, plank: 1 } } });
+    expect(summary(actionsFor(SLED, oneQuarterLeft))[0]).toBe("load:log main off: the sled is full");
+  });
+
   it("only lets go of the sled the player drags", () => {
-    const dragging = readerWith({ sled: { contents: { log: 2, debarkedLog: 0 }, total: 2 }, dragging: 9 });
+    const dragging = readerWith({ sled: { contents: { log: 2, debarkedLog: 0, plank: 0 }, total: 2 }, dragging: 9 });
 
     const actions = actionsFor(SLED, dragging);
 
@@ -247,7 +271,7 @@ describe("a sled's actions", () => {
   });
 
   it("drags one sled at a time", () => {
-    const draggingAnother = readerWith({ sled: { contents: { log: 0, debarkedLog: 0 }, total: 0 }, dragging: 12 });
+    const draggingAnother = readerWith({ sled: { contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0 }, dragging: 12 });
 
     expect(summary(actionsFor(SLED, draggingAnother))[0]).toBe("drag main off: let go of the sled first");
   });
@@ -442,7 +466,8 @@ function readerWith({
   /** The id of the sled the player drags, if any. */
   dragging?: number;
 }): ActionReader {
-  const draggedSled: SledView | null = dragging === undefined ? null : { id: dragging, contents: { log: 0, debarkedLog: 0 }, total: 0, capacity: 6 };
+  const draggedSled: SledView | null =
+    dragging === undefined ? null : { id: dragging, contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0, capacity: 6, logsThatFit: 6, planksThatFit: 24 };
   const view: GameView = { ...START_VIEW, backpack, carrying, dragging: draggedSled };
   const fullCampfire: CampfireView = {
     id: 7,
@@ -462,6 +487,13 @@ function readerWith({
     describeBlueprint: () => null,
     describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
     describeWoodpile: (id) => (id === 8 && woodpile !== undefined ? fullWoodpile : null),
-    describeSled: (id) => (id === 9 && sled !== undefined ? { id: 9, contents: { log: 0, debarkedLog: 0 }, total: 0, capacity: 6, ...sled } : null),
+    describeSled: (id) => (id === 9 && sled !== undefined ? { ...sledView(9, sled.contents ?? { log: 0, debarkedLog: 0, plank: 0 }), ...sled } : null),
   };
+}
+
+/** A sled with this load, as the game describes it: 6 log spaces, each holding a log, a debarked log, or 4 planks. */
+function sledView(id: number, contents: SledView["contents"]): SledView {
+  const logs = contents.log + contents.debarkedLog;
+  const planksThatFit = (6 - logs) * 4 - contents.plank;
+  return { id, contents, total: logs + contents.plank / 4, capacity: 6, logsThatFit: Math.floor(planksThatFit / 4), planksThatFit };
 }

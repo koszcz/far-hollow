@@ -110,7 +110,14 @@ export type Command =
   | { type: "loadSled"; sledId: number }
   /** Take one log or debarked log off a parked sled onto the player's free shoulder. The player walks beside it first if needed. */
   | { type: "takeFromSled"; sledId: number; log: CarriedLog }
-  /** Lay every log on a parked sled on the ground beside it, each on its own. The player walks beside it first if needed. */
+  /** Move every plank in the backpack onto a parked sled, as far as it has room. The player walks beside it first if needed. */
+  | { type: "loadPlanksOnSled"; sledId: number }
+  /** Move as many planks from a parked sled into the backpack as fit. The player walks beside it first if needed. */
+  | { type: "takePlanksFromSled"; sledId: number }
+  /**
+   * Lay every log on a parked sled on the ground beside it, each on its own, and drop its planks in one pile behind it.
+   * The player walks beside it first if needed.
+   */
   | { type: "tipOutSled"; sledId: number }
   /** Start dragging a parked sled behind the player. The player walks beside it first if needed. They drag one sled at a time. */
   | { type: "dragSled"; sledId: number }
@@ -388,16 +395,20 @@ export interface BedrollView {
   readonly id: number;
 }
 
-/** A parked sled, with how many logs and debarked logs lie on it. */
+/** A parked sled, with how many logs, debarked logs, and planks lie on it. */
 export interface SledView {
   /** The sled's entity id. */
   readonly id: number;
-  /** How many of each kind of log lie on it. */
-  readonly contents: Readonly<Record<CarriedLog, number>>;
-  /** How many logs it holds in all. */
+  /** How many logs, debarked logs, and planks lie on it. */
+  readonly contents: Readonly<Record<CarriedLog | "plank", number>>;
+  /** How many of its log spaces are full. Each plank fills a quarter of a log space, so it can be a fraction, such as 1.5. */
   readonly total: number;
-  /** The most logs it holds in all, in any mix. */
+  /** How many log spaces it has. Each holds one log, one debarked log, or four planks. */
   readonly capacity: number;
+  /** How many more logs or debarked logs fit on it. */
+  readonly logsThatFit: number;
+  /** How many more planks fit on it. */
+  readonly planksThatFit: number;
 }
 
 /** A pile of things the player dropped on the ground. */

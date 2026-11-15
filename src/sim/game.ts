@@ -78,6 +78,8 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
   takeFromWoodpile: "waist",
   loadSled: "waist",
   takeFromSled: "waist",
+  loadPlanksOnSled: "waist",
+  takePlanksFromSled: "waist",
   tipOutSled: "waist",
   dragSled: undefined,
 };
@@ -367,6 +369,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       case "takeFromSled":
         sleds.take(command.sledId, command.log);
         return undefined;
+      case "loadPlanksOnSled":
+        sleds.loadPlanks(command.sledId);
+        return undefined;
+      case "takePlanksFromSled":
+        return sleds.takePlanks(command.sledId);
       case "tipOutSled":
         sleds.tipOut(command.sledId);
         return undefined;
@@ -521,6 +528,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     takeFromWoodpile: tend,
     loadSled: tend,
     takeFromSled: tend,
+    loadPlanksOnSled: tend,
+    takePlanksFromSled: tend,
     tipOutSled: tend,
     dragSled: tend,
     letGoOfSled: () => {

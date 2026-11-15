@@ -243,8 +243,11 @@ export const strings = {
     cell: (what: string, key: string | undefined) => (key === undefined ? what : `${what}, key ${key}`),
     /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
     shoulder: (name: string) => `On your shoulder: ${name}`,
-    /** The name of the sled cell, with how many logs the sled holds and its most, such as "Sled 4/6". */
-    sled: (total: number, capacity: number) => `Sled ${total}/${capacity}`,
+    /**
+     * The name of the sled cell, with how many log spaces the sled's load fills and how many it has, such as "Sled 4/6".
+     * Each plank fills a quarter of a log space, so the load can be a fraction, such as "Sled 1.5/6".
+     */
+    sled: (total: number, capacity: number) => `Sled ${Number(total.toFixed(2))}/${capacity}`,
     /** The name of the sled cell for screen readers, such as "Dragging: Sled 4/6". */
     dragging: (name: string) => `Dragging: ${name}`,
   },
@@ -267,7 +270,9 @@ export const strings = {
     stackAllFirewood: "Stack all firewood",
     take: { log: "Take a log", debarkedLog: "Take a debarked log", firewood: "Take firewood" },
     loadSled: { log: "Put the log on the sled", debarkedLog: "Put the debarked log on the sled" },
-    tipOut: "Tip out every log",
+    loadPlanks: "Load planks",
+    takePlanks: "Take planks",
+    tipOut: "Tip out everything",
     drag: "Drag the sled",
     letGo: "Let go of the sled",
     open: "Open",

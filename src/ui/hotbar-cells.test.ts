@@ -20,7 +20,7 @@ describe("the hotbar cells", () => {
   it("shows the sled the player drags where the shoulder cell goes, with how many logs it holds", () => {
     const cells = hotbarCells({
       carrying: null,
-      dragging: { id: 9, contents: { log: 3, debarkedLog: 1 }, total: 4, capacity: 6 },
+      dragging: { id: 9, contents: { log: 3, debarkedLog: 1, plank: 0 }, total: 4, capacity: 6, logsThatFit: 2, planksThatFit: 8 },
       backpack: { axe: 1 },
     });
 
@@ -28,6 +28,16 @@ describe("the hotbar cells", () => {
       [{ kind: "sled", sledId: 9 }, "Sled 4/6", 1, undefined],
       [{ kind: "backpackContent", content: "axe" }, "Axe", 1, "1"],
     ]);
+  });
+
+  it("counts each plank on the sled as a quarter of a log space", () => {
+    const cells = hotbarCells({
+      carrying: null,
+      dragging: { id: 9, contents: { log: 1, debarkedLog: 0, plank: 2 }, total: 1.5, capacity: 6, logsThatFit: 4, planksThatFit: 18 },
+      backpack: {},
+    });
+
+    expect(cells[0]?.name).toBe("Sled 1.5/6");
   });
 
   it("gives no key to the tenth kind and after", () => {

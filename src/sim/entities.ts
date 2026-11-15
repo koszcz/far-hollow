@@ -31,8 +31,11 @@ export type TendTask =
   | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff"; campfireId: number }
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
-  | { type: "loadSled" | "tipOutSled" | "dragSled"; sledId: number }
+  | { type: "loadSled" | "tipOutSled" | "dragSled" | "loadPlanksOnSled" | "takePlanksFromSled"; sledId: number }
   | { type: "takeFromSled"; sledId: number; log: CarriedLog };
+
+/** What lies on a sled: how many logs, debarked logs, and planks. */
+export type SledLoad = Record<CarriedLog | "plank", number>;
 
 /** Every game object is an entity made of plain data components (ADR 0003). */
 export interface Entity {
@@ -171,10 +174,10 @@ export interface Entity {
    */
   chest?: { contents: BackpackContents };
   /**
-   * Marks a finished sled, with how many logs and debarked logs lie on it. Its position is the middle of the ground it covers.
+   * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */
-  sled?: Record<CarriedLog, number>;
+  sled?: SledLoad;
   /**
    * The way a sled points once the player has dragged it, in radians about the vertical axis, as `facingRadians` gives for `facing`.
    * Its runners run along this turn. Drawing uses it in place of `facing`, which keeps the nearest quarter turn.
@@ -424,6 +427,12 @@ export function chestEntities(store: EntityStore) {
 /** Finished sleds. */
 export function sledEntities(store: EntityStore) {
   return store.with("sled", "position");
+}
+
+/** Whether a sled is parked: no player drags it. A dragged sled is not parked. */
+export function isParked(store: EntityStore, sled: Entity): boolean {
+  const id = store.id(sled);
+  return playerEntities(store).entities.every((player) => player.dragging?.sledId !== id);
 }
 
 /** Finished work stations, such as sawhorses. Blueprints are not among them. */

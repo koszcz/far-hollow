@@ -210,12 +210,35 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
         // A finished sled shows its load. Before then it is a blueprint being built.
         if (progress >= 1) {
           store.removeComponent(entity, "blueprint");
-          setComponent(store, entity, "sled", { log: 4, debarkedLog: 2 });
+          setComponent(store, entity, "sled", { log: 4, debarkedLog: 2, plank: 0 });
         } else {
           store.removeComponent(entity, "sled");
           setComponent(store, entity, "blueprint", { structure: "sled", progress, materialsSpent: 0, delivered: { log: 1 } });
         }
       }
+    },
+  },
+  "sled-planks": {
+    radius: 1.8,
+    focus: { x: 0, y: 0.15, z: 0 },
+    // A finished sled with a few planks, a full load of 24 planks, and planks on top of logs. `seconds` picks the load.
+    shots: [
+      { label: "5 planks", yaw: 30, pitch: 35, seconds: 0 },
+      { label: "24 planks, the most a sled holds", yaw: 30, pitch: 35, seconds: 1 },
+      { label: "3 logs with 12 planks on top", yaw: 140, pitch: 30, seconds: 2 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { sled: { log: 0, debarkedLog: 0, plank: 5 }, facing: { turns: 0 } });
+      movePlayer(0.3, 1, Math.PI);
+    },
+    pose({ store }, shot) {
+      const loads = [
+        { log: 0, debarkedLog: 0, plank: 5 },
+        { log: 0, debarkedLog: 0, plank: 24 },
+        { log: 2, debarkedLog: 1, plank: 12 },
+      ];
+      const load = loads[shot.seconds ?? 0] ?? loads[0];
+      for (const entity of store.with("sled")) Object.assign(entity.sled, load);
     },
   },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),

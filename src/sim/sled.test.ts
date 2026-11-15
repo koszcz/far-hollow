@@ -101,7 +101,7 @@ describe("building a sled", () => {
     send(game, { type: "build", blueprintId: id });
     stepUntil(game, () => blueprint.blueprint === undefined);
 
-    expect(blueprint.sled).toEqual({ log: 0, debarkedLog: 0 });
+    expect(blueprint.sled).toEqual({ log: 0, debarkedLog: 0, plank: 0 });
     expect(blueprint.facing).toEqual({ turns: 0 });
     expect(contents.stick ?? 0).toBe(0);
     // A parked sled blocks no walking, since the player drags it about.
@@ -176,7 +176,7 @@ describe("saving sleds", () => {
 
     const sleds = loaded.game.entities.with("sled", "position").entities;
     expect(sleds.map(({ position, facing, sled }) => ({ x: position.x, z: position.z, facing, sled }))).toEqual([
-      { x: square.x, z: square.z, facing: { turns: 1 }, sled: { log: 0, debarkedLog: 0 } },
+      { x: square.x, z: square.z, facing: { turns: 1 }, sled: { log: 0, debarkedLog: 0, plank: 0 } },
     ]);
     const plans = loaded.game.entities.with("blueprint", "position").entities;
     expect(plans.map(({ blueprint, position, facing }) => ({ structure: blueprint.structure, x: position.x, facing, delivered: blueprint.delivered }))).toEqual(
@@ -187,7 +187,7 @@ describe("saving sleds", () => {
   it("keeps what each sled holds, and a sled command the player is walking to carry out", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 3, debarkedLog: 2 };
+    sled.sled = { log: 3, debarkedLog: 2, plank: 0 };
     send(game, { type: "walkTo", x: sled.position.x + 10, z: sled.position.z });
     stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
     send(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
@@ -196,9 +196,9 @@ describe("saving sleds", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
     const loadedSled = loaded.game.entities.with("sled").first;
-    expect(loadedSled?.sled).toEqual({ log: 3, debarkedLog: 2 });
+    expect(loadedSled?.sled).toEqual({ log: 3, debarkedLog: 2, plank: 0 });
     stepUntil(loaded.game, () => loaded.game.client.getView().carrying !== null);
-    expect(loadedSled?.sled).toEqual({ log: 3, debarkedLog: 1 });
+    expect(loadedSled?.sled).toEqual({ log: 3, debarkedLog: 1, plank: 0 });
   });
 
   it("raises the save version, and upgrades an older save when it is loaded", () => {
@@ -235,9 +235,16 @@ describe("loading a sled", () => {
     shoulder(game, "debarkedLog");
     sendAndSettle(game, { type: "loadSled", sledId: idOf(game, sled) });
 
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 1 });
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 1, plank: 0 });
     expect(game.client.getView().carrying).toBeNull();
-    expect(game.client.describeSled(idOf(game, sled))).toEqual({ id: idOf(game, sled), contents: { log: 1, debarkedLog: 1 }, total: 2, capacity: 6 });
+    expect(game.client.describeSled(idOf(game, sled))).toEqual({
+      id: idOf(game, sled),
+      contents: { log: 1, debarkedLog: 1, plank: 0 },
+      total: 2,
+      capacity: 6,
+      logsThatFit: 4,
+      planksThatFit: 16,
+    });
   });
 });
 
@@ -252,7 +259,7 @@ describe("the sled's limit", () => {
       sendAndSettle(game, { type: "loadSled", sledId });
     }
 
-    expect(sled.sled).toEqual({ log: 4, debarkedLog: 2 });
+    expect(sled.sled).toEqual({ log: 4, debarkedLog: 2, plank: 0 });
     expect(game.client.getView().carrying).toBe("debarkedLog");
   });
 });
@@ -261,31 +268,31 @@ describe("taking a log off a sled", () => {
   it("puts one log of the kind asked for on the player's free shoulder", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 2, debarkedLog: 1 };
+    sled.sled = { log: 2, debarkedLog: 1, plank: 0 };
 
     sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
     expect(game.client.getView().carrying).toBe("debarkedLog");
-    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0, plank: 0 });
 
     // The shoulder is full now, so the next log stays on the sled.
     sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "log" });
-    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 2, debarkedLog: 0, plank: 0 });
 
     send(game, { type: "dropLog" });
     sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "log" });
     expect(game.client.getView().carrying).toBe("log");
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 0 });
   });
 
   it("takes nothing of a kind the sled does not hold", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 1, debarkedLog: 0 };
+    sled.sled = { log: 1, debarkedLog: 0, plank: 0 };
 
     sendAndSettle(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
 
     expect(game.client.getView().carrying).toBeNull();
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 0 });
   });
 });
 
@@ -293,13 +300,13 @@ describe("tipping out a sled", () => {
   it("lays every log on the ground beside the sled, each on its own, and leaves the sled empty", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 4, debarkedLog: 2 };
+    sled.sled = { log: 4, debarkedLog: 2, plank: 0 };
     const logsBefore = game.entities.with("log").size;
     const debarkedBefore = game.entities.with("debarkedLog").size;
 
     sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
 
-    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0, plank: 0 });
     expect(game.entities.with("log").size).toBe(logsBefore + 4);
     expect(game.entities.with("debarkedLog").size).toBe(debarkedBefore + 2);
     const tipped = [...game.entities.with("position").entities].filter(
@@ -323,12 +330,12 @@ describe("tipping out a sled next to a woodpile", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
     const woodpile = woodpileBeside(game, sled);
-    sled.sled = { log: 4, debarkedLog: 2 };
+    sled.sled = { log: 4, debarkedLog: 2, plank: 0 };
     const lyingBefore = logsLyingNear(game, sled).length;
 
     sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
 
-    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0, plank: 0 });
     expect(woodpile.woodpile).toEqual({ log: 4, debarkedLog: 2, firewood: 0 });
     expect(logsLyingNear(game, sled)).toHaveLength(lyingBefore);
   });
@@ -338,12 +345,12 @@ describe("tipping out a sled next to a woodpile", () => {
     const sled = finishedSledNearPlayer(game);
     const woodpile = woodpileBeside(game, sled);
     woodpile.woodpile.firewood = 18;
-    sled.sled = { log: 4, debarkedLog: 2 };
+    sled.sled = { log: 4, debarkedLog: 2, plank: 0 };
     const lyingBefore = logsLyingNear(game, sled).length;
 
     sendAndSettle(game, { type: "tipOutSled", sledId: idOf(game, sled) });
 
-    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0 });
+    expect(sled.sled).toEqual({ log: 0, debarkedLog: 0, plank: 0 });
     // A woodpile holds 20 in all, so 2 logs fit. The other 2 logs and both debarked logs go on the ground.
     expect(woodpile.woodpile).toEqual({ log: 2, debarkedLog: 0, firewood: 18 });
     const laid = logsLyingNear(game, sled).slice(lyingBefore);
@@ -370,7 +377,7 @@ describe("taking down a sled", () => {
   it("lays any logs on a loaded sled on the ground beside it first, so none is lost", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    sled.sled = { log: 3, debarkedLog: 2 };
+    sled.sled = { log: 3, debarkedLog: 2, plank: 0 };
     const { x, z } = sled.position;
     const logsBefore = game.entities.with("log").size;
     const debarkedBefore = game.entities.with("debarkedLog").size;

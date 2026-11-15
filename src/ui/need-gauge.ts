@@ -4,17 +4,14 @@
 import { LOW_NEED as SLOWING_NEED, type NeedKind } from "../sim/api";
 import { strings } from "../strings";
 
-/** At or below this level a need's gauge pulses, to warn the player. */
-export const LOW_NEED = 0.25;
-
 /** The share of a need's ring that fills at `level`, from 0 (empty) to 1 (full). Levels outside that range stay at the nearest end. */
 export function needRingShare(level: number): number {
   return Math.min(1, Math.max(0, level));
 }
 
-/** Whether a need's gauge pulses at `level`, because the need is low. */
+/** Whether a need's gauge pulses at `level`, because the need is low enough to slow the player. The low needs hint shows at the same level. */
 export function needPulses(level: number): boolean {
-  return level <= LOW_NEED;
+  return level < SLOWING_NEED;
 }
 
 /** The order the HUD shows the needs in, left to right. The hint lists low needs in the same order. */
@@ -26,7 +23,7 @@ const HUD_NEED_ORDER: readonly NeedKind[] = ["warmth", "hunger", "thirst", "fati
  * When a need is empty, it also warns that the player will collapse.
  */
 export function lowNeedsHint(needs: Readonly<Record<NeedKind, number>>): string | null {
-  const low = HUD_NEED_ORDER.filter((kind) => needs[kind] < SLOWING_NEED);
+  const low = HUD_NEED_ORDER.filter((kind) => needPulses(needs[kind]));
   if (low.length === 0) return null;
   const text = strings.lowNeeds;
   const slowed = text.slowed(

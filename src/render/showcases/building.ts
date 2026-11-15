@@ -200,12 +200,12 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   shelf: {
     radius: 1.8,
     focus: { x: 0, y: 0.6, z: 0 },
-    // A blueprint holding 2 of its 4 planks, the upper boards and back being set down, then the finished shelf from the front and side.
+    // A blueprint holding 2 of its 4 planks, the back being set down, then the finished shelf from the front and from behind, where the brace shows.
     shots: [
       { label: "blueprint, 2 of 4 planks", yaw: 30, pitch: 25, seconds: 0 },
-      { label: "upper boards and back above their place", yaw: 30, pitch: 25, seconds: (1 + BUILD_FADE_SHARE) / SHELF_MODEL_STAGES },
-      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
-      { label: "built, from the side", yaw: 110, pitch: 25, seconds: 1 },
+      { label: "back above its place", yaw: 30, pitch: 25, seconds: (2 + BUILD_FADE_SHARE) / SHELF_MODEL_STAGES },
+      { label: "built, front", yaw: 20, pitch: 12, seconds: 1 },
+      { label: "built, from behind", yaw: 150, pitch: 25, seconds: 1 },
     ],
     build({ place, movePlayer }) {
       place(0, 0, { blueprint: { structure: "shelf", progress: 0, materialsSpent: 0, delivered: { plank: 2 } }, facing: { turns: 0 } });

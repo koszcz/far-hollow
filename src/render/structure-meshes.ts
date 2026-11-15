@@ -12,6 +12,7 @@ import { createFishOnFireMeshes } from "./fish-on-fire-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { createLeanToMeshes } from "./lean-to-meshes";
+import type { FurnitureMeshes } from "./plank-furniture-meshes";
 import type { LogShape } from "./log-shape";
 import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
@@ -143,7 +144,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       },
     },
     shelf: {
-      outlineBlueprint: (entity) => shelves.outlineOf({ kind: "blueprint", entity }),
+      outlineBlueprint: (entity) => shelves.outlineOf(entity),
       showPlacing: (placing) => {
         shelves.showPlacingBlueprint(placing);
       },
@@ -168,10 +169,14 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     },
   };
 
-  /** What a ray hits first among beds and bed blueprints, as a structure hit. */
-  function bedHit(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined {
-    const found = beds.pick(raycaster);
-    return found && { hit: { kind: found.hit.kind === "finished" ? "bed" : "blueprint", entity: found.hit.entity }, distance: found.distance };
+  /** What a ray hits first among one kind of plank furniture and its blueprints, as a structure hit. */
+  function furnitureHit(
+    meshes: FurnitureMeshes,
+    finishedKind: "shelf" | "bed",
+    raycaster: THREE.Raycaster,
+  ): { hit: StructureHit; distance: number } | undefined {
+    const found = meshes.pick(raycaster);
+    return found && { hit: { kind: found.hit.kind === "finished" ? finishedKind : "blueprint", entity: found.hit.entity }, distance: found.distance };
   }
 
   /** Keeps whichever candidate is nearest. */
@@ -209,8 +214,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         roofs.pick(raycaster),
         woodpiles.pick(raycaster),
         chests.pick(raycaster),
-        shelves.pick(raycaster),
-        bedHit(raycaster),
+        furnitureHit(shelves, "shelf", raycaster),
+        furnitureHit(beds, "bed", raycaster),
         sawhorses.pick(raycaster),
         sleds.pick(raycaster),
       ]);
@@ -229,7 +234,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         case "chest":
           return chests.outlineOf({ kind, entity });
         case "shelf":
-          return shelves.outlineOf({ kind, entity });
+          return shelves.outlineOf(entity);
         case "bed":
           return beds.outlineOf(entity);
         case "sled":

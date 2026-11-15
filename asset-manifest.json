@@ -841,14 +841,16 @@
       "id": "shelf",
       "kind": "code",
       "code": [
-        "src/render/shelf-meshes.ts"
+        "src/render/shelf-meshes.ts",
+        "src/render/plank-furniture-meshes.ts"
       ],
-      "description": "The shelf: a standing frame of pale sawn planks, 0.9 m wide, 0.4 m deep, and 1.2 m tall. Two upright side planks hold three shelf boards, the lowest just above the ground, and three planks stand side by side as its back. Each plank is a slightly different shade. It does not show what it holds. A blueprint shows see-through. A part whose planks the blueprint already has waits pale and half solid in its place. Construction stands up the sides with the lowest board first, then adds the upper boards and the back.",
+      "description": "The shelf: a rustic frame of pale sawn planks, 0.9 m wide, 0.4 m deep, and 1.2 m tall. Four square corner posts stand on the ground as short feet and hold two shelf boards and a top that overhangs a little. Each board rests on a rail at each side, has a lip under its front edge, and is pegged to the front posts with dark pegs. Three planks stand side by side as the back, with a slanted brace across them. Each plank is a slightly different shade. It does not show what it holds. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in three stages: the posts with the lowest board, the middle board and the top, then the back.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/03-shelf.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     },
     {

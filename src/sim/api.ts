@@ -5,6 +5,9 @@ export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from 
 
 export type { BackpackContent, CraftingContent, Fish, FishingContent, Food } from "./backpack";
 import type { TimeOfDay } from "./clock";
+
+/** The HUD clock uses these to name the time of day. */
+export { HOURS_PER_DAY, MORNING_HOUR, NIGHT_START_HOUR, type TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 

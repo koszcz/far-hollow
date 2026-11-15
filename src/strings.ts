@@ -87,6 +87,13 @@ export const strings = {
   },
   /** The HUD clock in the top left corner, such as "Day 2 · 14:20". */
   clock: (day: number, hour: number, minute: number) => `Day ${day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  /** The time of day the HUD clock names after the time, in secondary text. */
+  timeOfDay: {
+    morning: "morning",
+    afternoon: "afternoon",
+    evening: "evening",
+    night: "night",
+  },
   buildMenu: {
     open: "Build",
     title: "Build",

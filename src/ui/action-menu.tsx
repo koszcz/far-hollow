@@ -55,6 +55,9 @@ export function ActionMenu({ client, x, y, above = false, actions, onClose }: Ac
       style={place === null ? { left: "0px", top: "0px", visibility: "hidden" } : { left: `${place.left}px`, top: `${place.top}px` }}
       aria-label={strings.actionMenu}
     >
+      <h3 class="action-menu-title" aria-hidden="true">
+        {strings.actionMenu}
+      </h3>
       <ul>
         {shown.map(({ id, label, icon, enabled, reason, command, isMain }) => {
           const name = enabled || reason === undefined ? label : strings.actions.withReason(label, reason);

@@ -15,12 +15,54 @@ body {
   inset: 0;
   pointer-events: none;
 }
-/* The HUD, the "hud" asset in asset-manifest.json: woodland panels of dark bark with warm text. Approved by the owner. */
+/* The HUD, the "hud" asset in asset-manifest.json: "smoked walnut" glass boxes with warm text and amber accents. Approved by the owner. */
+/* These values come from .scratch/hud-restyle/spec.md. The start screen and the action menu use them too. */
+:root {
+  --hud-glass: rgb(38 24 15 / 0.62);
+  /* Where the browser cannot blur what lies behind a box, the glass is nearly opaque so text stays readable. */
+  --hud-glass-solid: rgb(38 24 15 / 0.9);
+  --hud-blur: blur(12px) saturate(1.2);
+  --hud-edge: rgb(255 214 170 / 0.16);
+  --hud-amber: #f0a04b;
+  --hud-amber-tint: rgb(240 160 75 / 0.16);
+  --hud-warning: #e0573a;
+  --hud-text: #f6ead8;
+  --hud-text-secondary: rgb(246 234 216 / 0.6);
+  --hud-fill: rgb(255 230 200 / 0.08);
+  --hud-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  --hud-font: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+/* The glass every HUD box uses: the clock, pause button, banners, need group, hotbar, panels, menus, and save-slot cards. */
+.hud-panel,
+.hud-needs,
+.hud-banner,
+.hud-menu,
+.action-menu,
+.start-screen-slot,
+.hud-hotbar::before {
+  background: var(--hud-glass-solid);
+  border: 1px solid var(--hud-edge);
+  box-shadow: var(--hud-shadow);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .hud-panel,
+  .hud-needs,
+  .hud-banner,
+  .hud-menu,
+  .action-menu,
+  .start-screen-slot,
+  .hud-hotbar::before {
+    background: var(--hud-glass);
+    -webkit-backdrop-filter: var(--hud-blur);
+    backdrop-filter: var(--hud-blur);
+  }
+}
 /* The "hotbar and wheel" layout: the clock top left, pause top right, and a dock at the bottom centre. The dock stacks the open chest, */
 /* the panel, the needs bars, and the hotbar, from top to bottom. Build and craft open as lists above their buttons. */
 .hud {
   position: absolute;
-  color: #f3e6d3;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
   font-size: 13px;
   line-height: 1.35;
 }
@@ -28,19 +70,55 @@ body {
   top: 12px;
   left: 12px;
 }
+/* The clock is a pill. Its icon sits in a ring that fills as the day passes, and the time of day follows as a word. */
 .hud-clock .hud-panel {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   margin: 0;
-  padding: 6px 10px;
+  padding: 6px 14px 6px 6px;
+  font-weight: 500;
+  border-radius: 999px;
+}
+.hud-clock-ring {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--hud-amber) calc(var(--hud-day) * 1turn), rgb(255 255 255 / 0.1) 0);
+}
+.hud-clock-ring .hud-icon {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  box-sizing: content-box;
+  color: var(--hud-amber);
+  background: #2b1c12;
+  border-radius: 50%;
+}
+.hud-clock-word {
+  margin-left: -2px;
+  font-size: inherit;
+  color: var(--hud-text-secondary);
 }
 .hud-pause {
   top: 12px;
   right: 12px;
 }
+/* The pause button is a round glass button. */
 .hud-pause .hud-panel {
-  padding: 4px;
+  padding: 0;
+  border-radius: 50%;
+}
+.hud-pause .hud-icon-button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 50%;
+}
+.hud-pause .hud-icon-button:hover:not(:disabled) {
+  background: var(--hud-fill);
 }
 .hud-dock {
   right: 12px;
@@ -67,9 +145,8 @@ body {
   max-width: 100%;
   box-sizing: border-box;
   gap: 4px 18px;
-  padding: 5px 10px;
-  background: rgb(42 29 20 / 0.6);
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 18px;
   pointer-events: auto;
 }
 .hud-needs .hud-meter {
@@ -95,6 +172,8 @@ body {
 }
 /* The hotbar stays one row high. Its cells narrow to fit, and on a very small screen the cells scroll sideways. */
 .hud-hotbar {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-wrap: nowrap;
   max-width: 100%;
@@ -102,7 +181,24 @@ body {
   gap: 6px;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 8px;
+}
+/* The hotbar draws its glass on a layer behind its cells. A blur on the hotbar itself would trap the build and craft menus, */
+/* and the clear layer that closes them, inside the hotbar. */
+.hud-panel.hud-hotbar {
+  padding: 8px;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.hud-hotbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 18px;
 }
 .hud-hotbar .hud-backpack {
   display: flex;
@@ -182,7 +278,7 @@ body {
   align-items: stretch;
   margin-left: auto;
   padding-left: 10px;
-  border-left: 1px solid #6b4a2f;
+  border-left: 1px solid var(--hud-edge);
 }
 .hud-button.hud-tool-button {
   gap: 7px;
@@ -196,8 +292,8 @@ body {
   height: 28px;
 }
 .hud-tool-button[aria-pressed="true"] {
-  background: #82593a;
-  border-color: #e8833a;
+  background: var(--hud-amber-tint);
+  border-color: var(--hud-amber);
 }
 /* The key that does the same as a button, such as "B" on the build button. */
 .hud-key {
@@ -210,9 +306,9 @@ body {
   font: inherit;
   font-size: 11px;
   line-height: 1;
-  color: #f3e6d3;
-  background: #1f150e;
-  border: 1px solid #6b4a2f;
+  color: var(--hud-text);
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid var(--hud-edge);
   border-bottom-width: 2px;
   border-radius: 4px;
 }
@@ -266,8 +362,8 @@ body {
   height: 26px;
 }
 .hud-icon-button[aria-pressed="true"] {
-  background: #82593a;
-  border-color: #e8833a;
+  background: var(--hud-amber-tint);
+  border-color: var(--hud-amber);
 }
 .hud [data-tip] {
   position: relative;
@@ -278,13 +374,13 @@ body {
   bottom: calc(100% + 4px);
   left: 50%;
   z-index: 1;
-  padding: 3px 7px;
+  padding: 3px 9px;
   font-size: 12px;
   white-space: nowrap;
-  color: #f3e6d3;
-  background: #1f150e;
-  border: 1px solid #6b4a2f;
-  border-radius: 5px;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -311,12 +407,21 @@ body {
   width: 300px;
   max-height: calc(100vh - 140px);
   overflow-y: auto;
-  padding: 4px;
-  background: rgb(42 29 20 / 0.95);
-  border: 1px solid #6b4a2f;
-  border-radius: 8px;
-  box-shadow: 0 2px 14px rgb(0 0 0 / 0.45);
+  padding: 6px;
+  box-sizing: border-box;
+  border-radius: 14px;
   pointer-events: auto;
+}
+/* Each menu has a heading in small capitals. */
+.hud-menu-title,
+.action-menu-title {
+  margin: 0;
+  padding: 4px 8px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--hud-text-secondary);
 }
 .hud-menu ul {
   display: flex;
@@ -339,7 +444,7 @@ body {
   text-align: left;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
 }
 .hud-menu-entry .build-icon,
@@ -347,19 +452,21 @@ body {
   width: 36px;
   height: 36px;
 }
+/* The pointed or focused row gets an amber tint. A focused row also gets an amber outline. */
 .hud-menu-entry:hover,
 .hud-menu-entry:focus-visible {
-  background: #5a3f2a;
-  border-color: #e8833a;
-  outline: none;
+  background: var(--hud-amber-tint);
+}
+.hud-menu-entry:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: -2px;
 }
 .hud-menu-entry-dimmed {
   opacity: 0.55;
   cursor: default;
 }
-.hud-menu-entry-dimmed:hover,
-.hud-menu-entry-dimmed:focus-visible {
-  border-color: #8a6544;
+.hud-menu-entry-dimmed:hover {
+  background: var(--hud-fill);
 }
 .hud-menu-text {
   display: flex;
@@ -373,15 +480,15 @@ body {
   display: flex;
   flex-direction: column;
   font-size: 11px;
-  color: #cdb898;
+  color: var(--hud-text-secondary);
 }
 .hud-menu-note {
-  color: #e8a93a;
+  color: var(--hud-amber);
 }
 .hud-menu-entry .hud-build-cost {
   flex-wrap: nowrap;
   justify-content: flex-end;
-  color: #cdb898;
+  color: var(--hud-text-secondary);
 }
 .hud-panel > .hud-section:first-child {
   margin-top: 0;
@@ -390,10 +497,7 @@ body {
 }
 .hud-panel {
   padding: 10px 12px;
-  background: rgb(42 29 20 / 0.86);
-  border: 1px solid #6b4a2f;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+  border-radius: 16px;
   pointer-events: auto;
 }
 /* Banners sit apart from the dock at the top centre, so the dock never jumps when they come and go. */
@@ -408,15 +512,26 @@ body {
   max-width: min(420px, calc(100% - 24px));
   transform: translateX(-50%);
 }
+/* A banner is a pill led by a small glowing amber dot. */
 .hud-banner {
   margin: 0;
-  padding: 6px 10px;
-  color: #f3e6d3;
+  padding: 7px 18px;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
   font-size: 13px;
-  background: rgb(42 29 20 / 0.86);
-  border: 1px solid #6b4a2f;
-  border-left: 3px solid #e8833a;
-  border-radius: 0;
+  font-weight: 500;
+  border-radius: 999px;
+}
+.hud-banner::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 9px;
+  vertical-align: 1px;
+  background: var(--hud-amber);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--hud-amber);
 }
 .hud-notice {
   font-weight: 600;
@@ -481,20 +596,20 @@ body {
   padding: 4px 9px;
   font: inherit;
   font-size: 12px;
-  color: #f3e6d3;
-  background: #6b4a2f;
-  border: 1px solid #8a6544;
-  border-radius: 6px;
+  color: var(--hud-text);
+  background: var(--hud-fill);
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
   cursor: pointer;
 }
 .hud-button:hover:not(:disabled) {
-  background: #82593a;
+  background: var(--hud-amber-tint);
 }
 .hud-button:active:not(:disabled) {
   transform: translateY(1px);
 }
 .hud-button:focus-visible {
-  outline: 2px solid #e8833a;
+  outline: 2px solid var(--hud-amber);
   outline-offset: 1px;
 }
 .hud-button:disabled {
@@ -509,13 +624,13 @@ body {
   margin: 8px 0 0;
   padding: 6px 8px;
   font-size: 12px;
-  background: rgb(232 131 58 / 0.18);
-  border-radius: 6px;
+  background: var(--hud-amber-tint);
+  border-radius: 10px;
 }
 .hud-section {
   margin: 10px 0 0;
   padding: 8px 0 0;
-  border-top: 1px solid #6b4a2f;
+  border-top: 1px solid var(--hud-edge);
 }
 .hud-section h2 {
   display: flex;
@@ -530,12 +645,12 @@ body {
   padding: 1px 7px;
   font-size: 11px;
   font-weight: 400;
-  background: #3d2b1e;
-  border-radius: 9px;
+  background: var(--hud-fill);
+  border-radius: 999px;
 }
 .hud-tag-lit {
   color: #2a1d14;
-  background: #e8833a;
+  background: var(--hud-amber);
 }
 /* The build menu is a grid of tiles. Each tile shows a structure's icon over its cost, and its name when the player points at it. */
 .build-icon {
@@ -589,6 +704,10 @@ body {
 .hud-content-move:focus-visible {
   background: #5a3f2a;
 }
+.hud-content-move:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: -2px;
+}
 .hud-pile h2 .backpack-icon {
   width: 28px;
   height: 28px;
@@ -617,13 +736,11 @@ body {
   width: max-content;
   min-width: 180px;
   max-width: 280px;
-  padding: 4px;
-  color: #f3e6d3;
+  padding: 6px;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
   font-size: 13px;
-  background: rgb(42 29 20 / 0.95);
-  border: 1px solid #6b4a2f;
-  border-radius: 8px;
-  box-shadow: 0 2px 14px rgb(0 0 0 / 0.45);
+  border-radius: 14px;
   pointer-events: auto;
   animation: action-menu-open 120ms ease-out;
   /* Above the HUD, which comes later in the page. */
@@ -649,7 +766,7 @@ body {
   text-align: left;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
 }
 .action-menu-icon {
@@ -658,9 +775,8 @@ body {
   flex: none;
   width: 30px;
   height: 30px;
-  background: #6b4a2f;
-  border: 1px solid #8a6544;
-  border-radius: 50%;
+  background: var(--hud-fill);
+  border-radius: 9px;
 }
 .action-menu-icon .hud-icon,
 .action-menu-icon .backpack-icon {
@@ -677,13 +793,16 @@ body {
 }
 .action-menu-reason {
   font-size: 11px;
-  color: #cdb898;
+  color: var(--hud-text-secondary);
 }
+/* The pointed or focused row gets an amber tint. A focused row also gets an amber outline. */
 .action-menu-option:hover:not(:disabled),
 .action-menu-option:focus-visible {
-  background: #5a3f2a;
-  border-color: #e8833a;
-  outline: none;
+  background: var(--hud-amber-tint);
+}
+.action-menu-option:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: -2px;
 }
 .action-menu-option:active:not(:disabled) .action-menu-icon {
   transform: scale(0.94);
@@ -695,7 +814,7 @@ body {
   opacity: 0.45;
 }
 .action-menu-option:disabled .action-menu-name {
-  color: #c9b8a3;
+  color: var(--hud-text-secondary);
 }
 @keyframes action-menu-open {
   from {
@@ -735,14 +854,15 @@ body {
   background: #1b2420;
   transition: opacity 0.4s;
 }
-/* The start screen uses the woodland look of the approved "hud" asset: dark bark panels, warm text, and HUD buttons. */
+/* The start screen uses the look of the approved "hud" asset: glass save-slot cards, warm text, and HUD buttons. */
 .start-screen {
   position: absolute;
   inset: 0;
   overflow: auto;
   padding: 48px 16px;
   background: #1b2420;
-  color: #f3e6d3;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
   font-size: 14px;
   line-height: 1.4;
   pointer-events: auto;
@@ -765,10 +885,7 @@ body {
 }
 .start-screen-slot {
   padding: 12px 14px;
-  background: rgb(42 29 20 / 0.86);
-  border: 1px solid #6b4a2f;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+  border-radius: 16px;
 }
 .start-screen-slot h2 {
   margin: 0 0 4px;
@@ -777,7 +894,7 @@ body {
 }
 .start-screen-slot p {
   margin: 0 0 8px;
-  color: #cdb898;
+  color: var(--hud-text-secondary);
 }
 .start-screen-slot p:last-child {
   display: flex;
@@ -794,13 +911,13 @@ body {
   width: 12em;
   padding: 4px 8px;
   font: inherit;
-  color: #f3e6d3;
-  background: #3d2b1e;
-  border: 1px solid #6b4a2f;
-  border-radius: 6px;
+  color: var(--hud-text);
+  background: rgb(0 0 0 / 0.25);
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
 }
 .start-screen-slot input:focus-visible {
-  outline: 2px solid #e8833a;
+  outline: 2px solid var(--hud-amber);
   outline-offset: 1px;
 }
 .start-screen-slot form .hud-button {
@@ -812,9 +929,9 @@ body {
 }
 .start-screen-warning {
   padding: 6px 8px;
-  color: #f3e6d3;
-  background: rgb(232 131 58 / 0.18);
-  border-radius: 6px;
+  color: var(--hud-text);
+  background: var(--hud-amber-tint);
+  border-radius: 10px;
 }
 .loading.done {
   opacity: 0;

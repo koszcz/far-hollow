@@ -1,4 +1,4 @@
-// The HUD, the "hud" asset in asset-manifest.json: woodland panels over the scene, in the "hotbar and wheel" layout the owner chose, with build and craft changed to lists.
+// The HUD, the "hud" asset in asset-manifest.json: smoked walnut glass over the scene, in the "hotbar and wheel" layout the owner chose, with build and craft changed to lists.
 // The backpack is a hotbar at the bottom centre, with the needs bars just above it, and above them the panels and the open chest.
 // The clock sits top left, the pause button top right, and banners top centre. Build and craft open as lists above their buttons.
 // Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
@@ -26,6 +26,7 @@ import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon, StructureIcon } from "./build-icons";
+import { dayShare, timeOfDayWord } from "./clock-face";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
 import { placingHint } from "./placing-hint";
@@ -218,6 +219,9 @@ function ListMenu({ title, entries, onClose }: { title: string; entries: readonl
     <>
       <div class="hud-menu-backdrop" onClick={onClose} />
       <section class="hud-menu" aria-label={title}>
+        <h3 class="hud-menu-title" aria-hidden="true">
+          {title}
+        </h3>
         <ul>
           {entries.map((entry) => (
             <li key={entry.key}>
@@ -599,8 +603,11 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
       )}
       <div class="hud hud-clock">
         <p class="hud-panel">
-          <HudIcon name={daylight ? "sun" : "moon"} />
+          <span class="hud-clock-ring" style={{ "--hud-day": dayShare(view.time.hourOfDay) }}>
+            <HudIcon name={daylight ? "sun" : "moon"} />
+          </span>
           {strings.clock(view.time.day, view.time.hour, view.time.minute)}
+          <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay)]}</small>
         </p>
       </div>
       <div class="hud hud-pause">

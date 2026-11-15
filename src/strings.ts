@@ -100,6 +100,7 @@ export const strings = {
       roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
+      shelf: "Shelf",
       sawhorse: "Sawhorse",
       sled: "Sled",
     },
@@ -183,6 +184,7 @@ export const strings = {
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",
+    shelfFull: "The shelf is full.",
     holdsUpPiece: "Something stands on this. Take that down first.",
     stillHoldsSomething: "Something is still in this. Empty it first.",
     saveBroken: "Your saved game could not be loaded, so a new game has started.",
@@ -225,6 +227,14 @@ export const strings = {
     /** The full name of a chest cell, for screen readers. */
     take: (name: string) => `Take ${name.toLowerCase()} from the chest`,
     hint: "Click something in the backpack to put one in the chest. Click something in the chest to take one out. Shift-click moves all that fit.",
+  },
+  /** The chest panel, when the player has a shelf open. */
+  shelf: {
+    title: "Shelf",
+    empty: "The shelf is empty.",
+    /** The full name of a shelf cell, for screen readers. */
+    take: (name: string) => `Take ${name.toLowerCase()} from the shelf`,
+    hint: "Click something in the backpack to put one on the shelf. Click something on the shelf to take one off. Shift-click moves all that fit.",
   },
   pile: {
     title: "Pile",
@@ -288,8 +298,9 @@ export const strings = {
     drinkFromPot: "Drink",
     drop: "Drop",
     dropHere: { log: "Drop the log here", debarkedLog: "Drop the debarked log here" },
-    putInChest: "Put one in the chest",
-    putAllInChest: "Put all in the chest",
+    /** Putting a backpack content in the open chest or on the open shelf. */
+    putInChest: { chest: "Put one in the chest", shelf: "Put one on the shelf" },
+    putAllInChest: { chest: "Put all in the chest", shelf: "Put all on the shelf" },
     split: "Split into firewood",
     /** A disabled action with the reason it is off, such as "Add bark: no bark". */
     withReason: (action: string, reason: string) => `${action}: ${reason}`,

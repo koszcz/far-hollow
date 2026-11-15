@@ -838,6 +838,34 @@
       }
     },
     {
+      "id": "shelf",
+      "kind": "code",
+      "code": [
+        "src/render/shelf-meshes.ts"
+      ],
+      "description": "The shelf: a standing frame of pale sawn planks, 0.9 m wide, 0.4 m deep, and 1.2 m tall. Two upright side planks hold three shelf boards, the lowest just above the ground, and three planks stand side by side as its back. Each plank is a slightly different shade. It does not show what it holds. A blueprint shows see-through. A part whose planks the blueprint already has waits pale and half solid in its place. Construction stands up the sides with the lowest board first, then adds the upper boards and the back.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/03-shelf.md"
+      }
+    },
+    {
+      "id": "furniture-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/furniture-icons.tsx"
+      ],
+      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. So far it holds the shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed, table, and stool icons join it later.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/03-shelf.md"
+      }
+    },
+    {
       "id": "sawhorse",
       "kind": "code",
       "code": [

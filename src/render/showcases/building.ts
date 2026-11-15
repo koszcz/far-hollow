@@ -2,6 +2,7 @@
 import { setComponent, type Entity, type EntityStore } from "../../sim/entities";
 import { BUILD_FADE_SHARE } from "../structure-look";
 import { CHEST_MODEL_STAGES } from "../chest-meshes";
+import { SHELF_MODEL_STAGES } from "../shelf-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
 import {
   DOOR_FRAME_LOG_COST,
@@ -165,6 +166,24 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     build({ place, movePlayer }) {
       place(0, 0, { blueprint: { structure: "chest", progress: 0, materialsSpent: 0, delivered: { plank: 2 } }, facing: { turns: 0 } });
       movePlayer(1, 0.2, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+  },
+  shelf: {
+    radius: 1.8,
+    focus: { x: 0, y: 0.6, z: 0 },
+    // A blueprint holding 2 of its 4 planks, the upper boards and back being set down, then the finished shelf from the front and side.
+    shots: [
+      { label: "blueprint, 2 of 4 planks", yaw: 30, pitch: 25, seconds: 0 },
+      { label: "upper boards and back above their place", yaw: 30, pitch: 25, seconds: (1 + BUILD_FADE_SHARE) / SHELF_MODEL_STAGES },
+      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, from the side", yaw: 110, pitch: 25, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { structure: "shelf", progress: 0, materialsSpent: 0, delivered: { plank: 2 } }, facing: { turns: 0 } });
+      movePlayer(1.1, 0.3, -Math.PI / 2);
     },
     pose({ store }, shot) {
       for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;

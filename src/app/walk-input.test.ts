@@ -99,6 +99,7 @@ describe("the main action on other things", () => {
     expect(clickSends({ kind: "bedroll", id: 9 })).toEqual({ type: "sleep", bedrollId: 9 });
     expect(clickSends({ kind: "pile", id: 4 })).toEqual({ type: "pickUpPile", pileId: 4 });
     expect(clickSends({ kind: "chest", id: 6 })).toEqual({ type: "openChest", chestId: 6 });
+    expect(clickSends({ kind: "shelf", id: 7 })).toEqual({ type: "openChest", chestId: 7 });
     expect(clickSends({ kind: "river", spot: { x: 3, z: -4 } })).toEqual({ type: "drinkFromRiver", x: 3, z: -4 });
     expect(clickSends({ kind: "tree", id: 2 }, { backpack: { axe: 1 } })).toEqual({ type: "chopTree", treeId: 2 });
   });

@@ -177,6 +177,12 @@ export interface Entity {
    */
   chest?: { contents: BackpackContents };
   /**
+   * Marks a finished shelf: standing furniture that holds small materials, tools, and food, like a chest.
+   * `contents` says how many of each kind it holds, up to SHELF_WEIGHT_LIMIT_KG in all. Logs never go on a shelf.
+   * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
+   */
+  shelf?: { contents: BackpackContents };
+  /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */
@@ -425,6 +431,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished chests. */
 export function chestEntities(store: EntityStore) {
   return store.with("chest", "position");
+}
+
+/** Finished shelves. */
+export function shelfEntities(store: EntityStore) {
+  return store.with("shelf", "position");
 }
 
 /** Finished sleds. */

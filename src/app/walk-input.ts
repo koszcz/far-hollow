@@ -2,7 +2,7 @@ import type { CameraRig, CameraView } from "../render/camera-rig";
 import type { PlacingBlueprint, ScenePick } from "../render/scene-renderer";
 import type { GameClient, StructureKind, ThingInReach } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
-import { actionsFor, mainAction, menuActions, type ActionReader, type ThingAction } from "./thing-actions";
+import { actionsFor, mainAction, menuActions, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
 /**
  * A thing's main action, if the player can do it now. E does it on the thing nearest the player.
@@ -41,14 +41,21 @@ export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAc
   return actions.length === 0 ? undefined : actions;
 }
 
+/** What a menu on any target lists now: a thing in the world as `menuFor` decides, or a hotbar cell's actions. Undefined when it offers none. */
+export function menuForTarget(target: ActionTarget, reader: ActionReader): readonly ThingAction[] | undefined {
+  if (target.kind === "scene") return menuFor(target.pick, reader);
+  const actions = menuActions(target, reader);
+  return actions.length === 0 ? undefined : actions;
+}
+
 /** An action menu to show at a point on the page, in page pixels. */
 export interface MenuRequest {
   readonly x: number;
   readonly y: number;
   /** True when the menu should sit wholly above the point, such as above a hotbar cell, rather than beside it. */
   readonly above?: boolean;
-  /** Every action the thing offers, main first, at the top of the list. */
-  readonly actions: readonly ThingAction[];
+  /** What the menu is for. The menu reads its actions with `menuForTarget`, again after each logic step, so they stay current. */
+  readonly target: ActionTarget;
 }
 
 /**
@@ -208,8 +215,7 @@ export function attachWalkInput({
 
   /** Opens the list of every action the thing offers beside a point on the page, if it offers any. */
   function showMenu(x: number, y: number, pick: ScenePick): void {
-    const actions = menuFor(pick, client);
-    if (actions !== undefined) onMenuChange?.({ x, y, actions });
+    if (menuFor(pick, client) !== undefined) onMenuChange?.({ x, y, target: { kind: "scene", pick } });
   }
 
   function onPointerUp(event: PointerEvent): void {

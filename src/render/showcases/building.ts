@@ -29,6 +29,8 @@ const BED_PLAY_BEDTIME = 19;
 const BED_PLAY_MORNING = 9;
 /** Where the player stands beside the bed before stepping onto it, in metres from its middle, and which way they face. */
 const BED_PLAY_FROM = { x: 0.3, z: 1, heading: Math.PI };
+/** The bed in the showcase is turned a quarter, so it lies across the view. */
+const BED_PLAY_TURNS = 1;
 
 /** Poses the player going to sleep in the bed at the stage's middle, turned a quarter, `seconds` after they reached it. */
 function poseBedSleeper({ player, movePlayer }: Stage, seconds: number): void {
@@ -37,7 +39,7 @@ function poseBedSleeper({ player, movePlayer }: Stage, seconds: number): void {
     movePlayer(BED_PLAY_FROM.x, BED_PLAY_FROM.z, BED_PLAY_FROM.heading);
     return;
   }
-  const spot = bedSleepSpotFrom(BED_PLAY_FROM, { x: 0, z: 0 }, 1, seconds);
+  const spot = bedSleepSpotFrom(BED_PLAY_FROM, { x: 0, z: 0 }, BED_PLAY_TURNS, seconds);
   movePlayer(spot.x, spot.z, spot.heading);
   player.group.position.y += spot.lift;
   player.setSleeping(Math.min(seconds, SLEEP_SECONDS));
@@ -219,7 +221,7 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
         for (const entity of [...stage.store.with("blueprint")]) {
           stage.store.removeComponent(entity, "blueprint");
           stage.store.addComponent(entity, "bed", true);
-          stage.store.addComponent(entity, "facing", { turns: 1 });
+          stage.store.addComponent(entity, "facing", { turns: BED_PLAY_TURNS });
         }
         poseBedSleeper(stage, seconds % (BED_SLEEP_SECONDS + BED_PLAY_REST_SECONDS));
         return undefined;

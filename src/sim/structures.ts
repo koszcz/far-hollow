@@ -449,7 +449,10 @@ export const BED_BUILD_SECONDS = 12;
 export const BED_WIDTH_METRES = 1;
 /** A bed is this long, from head to foot, in metres. Its length runs along z when it faces the default way. */
 export const BED_LENGTH_METRES = 2;
-/** How far inside the edges of a structure placed freely its placement rule, and a bed's walk blocking, look, in metres. */
+/**
+ * A small gap, in metres. Some checks on a structure placed freely look this far inside its edges.
+ * Then an edge that lies on the line between two squares does not count as over the square beyond.
+ */
 const EDGE_INSET_METRES = 0.01;
 
 /**
@@ -467,8 +470,8 @@ const bed: StructureDefinition & { readonly kind: "bed" } = {
   snap: (_site, at) => ({ x: at.x, z: at.z }),
   heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
   canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, BED_WIDTH_METRES / 2, BED_LENGTH_METRES / 2),
-  // The spots are no further apart than half a walk-map cell, so every cell the bed reaches over holds one of them.
-  // They keep just inside its edges, so a bed whose edge lies on the line between two cells leaves the cell beyond open.
+  // The bed blocks every walk-map cell under it. The spots are at most half a cell apart, so each of those cells holds one.
+  // The spots stay a little inside the bed's edges. Then a cell that only touches the bed's edge stays open.
   finish: (spot, turns) => ({
     bed: true,
     blocksWalkingSpots: spotsAcross(turnedRect(spot, BED_WIDTH_METRES / 2 - EDGE_INSET_METRES, BED_LENGTH_METRES / 2 - EDGE_INSET_METRES, turns)),

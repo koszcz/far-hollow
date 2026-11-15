@@ -33,6 +33,7 @@ const MATTRESS_COLOUR = 0xe8dcc0;
 const PILLOW_COLOUR = 0xf2ead8;
 const BLANKET_COLOUR = 0x6f819c;
 
+/** Draws every bed and bed blueprint, and the bed blueprint the player is placing. */
 export function createBedMeshes(entities: EntityStore): FurnitureMeshes {
   const width = BED_WIDTH_METRES;
   const length = BED_LENGTH_METRES;

@@ -137,6 +137,9 @@ export interface GameProgress {
   entities: SavedEntity[];
 }
 
+/** What the player sleeps on. */
+type SleepPlace = "bedroll" | "bed";
+
 /** The player entity, with the components every player has. */
 type Player = Entity & Required<Pick<Entity, "position" | "previousPosition" | "backpack" | "needs" | "respawnPoint">>;
 
@@ -625,7 +628,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    * Rain starts and stops as it goes. A collapse ends the stretch early, and then this returns false.
    * `asleepIn` says what the player sleeps on through it, if they sleep.
    */
-  function passTime(gameMinutes: number, asleepIn?: "bedroll" | "bed"): boolean {
+  function passTime(gameMinutes: number, asleepIn?: SleepPlace): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
@@ -700,7 +703,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     Object.assign(player.position, bedroll.position);
     Object.assign(player.previousPosition, player.position);
     sleep("bedroll");
-    lastSleep = Object.freeze({ count: (lastSleep?.count ?? 0) + 1, at: Object.freeze({ x: bedroll.position.x, z: bedroll.position.z }) });
+    reportSleep(bedroll.position);
   }
 
   /**
@@ -714,8 +717,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     Object.assign(player.position, bed.position);
     if (sleep("bed")) Object.assign(player.position, standing);
     Object.assign(player.previousPosition, player.position);
-    const at = Object.freeze({ x: bed.position.x, z: bed.position.z });
-    lastSleep = Object.freeze({ count: (lastSleep?.count ?? 0) + 1, at, bed: Object.freeze({ turns: bed.facing?.turns ?? 0 }) });
+    reportSleep(bed.position, { turns: bed.facing?.turns ?? 0 });
+  }
+
+  /** Records a sleep at `spot` for drawing to play. `bed` says which way the bed faces, for a sleep in a bed. */
+  function reportSleep(spot: GroundPoint, bed?: SleepView["bed"]): void {
+    const at = Object.freeze({ x: spot.x, z: spot.z });
+    const count = (lastSleep?.count ?? 0) + 1;
+    lastSleep = Object.freeze(bed === undefined ? { count, at } : { count, at, bed: Object.freeze({ ...bed }) });
   }
 
   /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */
@@ -730,7 +739,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    * The player sleeps where they lie. At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
    * Returns false if a collapse cut sleep short.
    */
-  function sleep(asleepIn: "bedroll" | "bed"): boolean {
+  function sleep(asleepIn: SleepPlace): boolean {
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const night = isNight(readClock(clock.minutes).hourOfDay);
     const toRestFully = minutesToRestFully(player.needs, isUnderRoof(entities, player.position), asleepIn === "bed");

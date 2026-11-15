@@ -8,8 +8,10 @@ import type { Walking } from "./walking";
 /** The player can lie down in a bed from this far outside its edges, in metres. */
 export const BED_REACH_METRES = 1;
 
+/** A finished bed, standing somewhere. */
 export type BedEntity = Entity & Required<Pick<Entity, "bed" | "position">>;
 
+/** Going to sleep in beds. */
 export interface Beds {
   /**
    * Returns the bed to sleep in now, if the player stands within reach of it.

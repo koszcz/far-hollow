@@ -42,6 +42,7 @@ export interface FurnitureModel {
 /** What a click on the piece or its blueprint landed on. */
 export type FurnitureHit = { kind: "blueprint" | "finished"; entity: Entity };
 
+/** The meshes of one kind of plank furniture. */
 export interface FurnitureMeshes {
   readonly group: THREE.Group;
   /** Brings every piece of this kind, and every blueprint of one, up to date with game state. */
@@ -69,6 +70,7 @@ interface Drawn {
   readonly picker: THREE.Mesh;
 }
 
+/** Draws every piece of one kind of plank furniture, and every blueprint of one, from its model. */
 export function createFurnitureMeshes(entities: EntityStore, model: FurnitureModel): FurnitureMeshes {
   const group = new THREE.Group();
   const stageCount = model.stages.length;

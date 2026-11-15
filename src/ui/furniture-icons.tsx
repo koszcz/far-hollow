@@ -5,10 +5,16 @@
 import type { FurnitureKind } from "../sim/api";
 import type { BackpackIconDrawing } from "./icon-drawing";
 
-/** The furniture whose icons live here, rather than in the approved build icons. */
-export type DraftIconFurniture = Exclude<FurnitureKind, "chest">;
+/** The furniture whose icons are drawn here. The chest's icon is in the approved build icons instead. */
+export type FurnitureWithOwnIcon = Exclude<FurnitureKind, "chest">;
 
-export const FURNITURE_DRAWINGS: Readonly<Record<DraftIconFurniture, BackpackIconDrawing>> = {
+/** Whether a structure's build menu icon is drawn here. */
+export function hasFurnitureIcon(structure: string): structure is FurnitureWithOwnIcon {
+  return structure in FURNITURE_DRAWINGS;
+}
+
+/** The build menu icon of each piece of furniture drawn here. */
+export const FURNITURE_DRAWINGS: Readonly<Record<FurnitureWithOwnIcon, BackpackIconDrawing>> = {
   /** A plank bed frame seen from the foot end and a little above: a tall headboard, a pale mattress, and a folded blanket. */
   bed: {
     colour: "#cf9f62",

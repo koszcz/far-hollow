@@ -200,7 +200,7 @@ export function createSceneRenderer(
    * The sleep animation, while it plays: when it began, on the performance clock in seconds, where the player stood and
    * faced then, the middle of the bedroll or bed, the hour the sky keeps showing until the view is dark, and which way a bed faces.
    */
-  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: { turns: number } } | undefined;
+  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: SleepView["bed"] } | undefined;
 
   /** Steps the drawn player up to the sawhorse to saw planks, and back when sawing stops. */
   const sawingStep = createSawingStep();

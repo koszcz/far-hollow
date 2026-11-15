@@ -862,12 +862,13 @@
       "code": [
         "src/ui/furniture-icons.tsx"
       ],
-      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. The shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The table: a plank table seen from the front and a little above, with a top of planks, the rail under it, two front legs, and two back legs in shadow. The stool: a small plank stool seen from the front and a little above, with a square seat of two boards, four splayed legs, and a rail between the front legs. Furniture ticket 03 added the shelf icon, ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon, ticket 04 (.scratch/furniture/issues/04-table.md) the table icon, and ticket 05 (.scratch/furniture/issues/05-stool-and-sitting.md) the stool icon.",
+      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. Each icon is drawn from its furniture's model, seen from the front and a little above, as the chest's build icon is. The shelf: three dark back planks, two shelf boards, an overhanging top, two front posts that stand on the ground as feet, and a dark peg where each board meets a post. The bed: seen from the foot end, a headboard of two planks, a linen mattress inside the frame, a pillow, a blue blanket over the foot half, a footboard of two planks, and two legs. The table: seen from its long side, a top of four planks, the rail under it, two front legs, and two back legs in shadow. The stool: a low square seat of two boards, four straight legs, the rail between the front legs, and a lower rail along each side. Furniture ticket 03 added the shelf icon, ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon, ticket 04 (.scratch/furniture/issues/04-table.md) the table icon, and ticket 05 (.scratch/furniture/issues/05-stool-and-sitting.md) the stool icon.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/03-shelf.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     },
     {

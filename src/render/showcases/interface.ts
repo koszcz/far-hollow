@@ -16,7 +16,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft furniture icons, such as the shelf and the bed, show among the build icons, so this showcase draws the same views as "build-icons".
+  // The approved furniture icons, such as the shelf and the bed, show among the build icons, so this showcase draws the same views as "build-icons".
   "furniture-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },

@@ -8,10 +8,10 @@ import type { Vec3 } from "../sim/entities";
 export const SEE_THROUGH_INNER_METRES = 2.5;
 /** A tree starts to fade when its trunk stands this close to that line, in metres. */
 export const SEE_THROUGH_OUTER_METRES = 5;
-/** A tree this close to the player, measured towards the camera, stays solid, so the player sees the tree they work on. */
-export const SEE_THROUGH_SOLID_NEAR_PLAYER_METRES = 3;
-/** A tree fades fully once it stands this much closer to the camera than the player, in metres. */
-export const SEE_THROUGH_FULL_FROM_PLAYER_METRES = 5;
+/** A tree beside or beyond the player stays solid. It starts to fade once it stands this much closer to the camera than the player, in metres. */
+export const SEE_THROUGH_SOLID_NEAR_PLAYER_METRES = 0.5;
+/** A tree fades fully once it stands this much closer to the camera than the player, in metres, so a tree right in front of the player hides nothing. */
+export const SEE_THROUGH_FULL_FROM_PLAYER_METRES = 1.5;
 /** The share of a fully faded tree's pixels that still draw, so the player can tell where the trees are. */
 export const SEE_THROUGH_LEFT_SHOWING = 0.2;
 
@@ -23,7 +23,7 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 /**
  * How much a tree standing at `foot` fades, from 0 (solid) to 1 (fully faded).
  * It measures, seen from above, how far the foot is from the line between the camera and the player.
- * Only trees between the camera and the player fade. Trees next to the player stay solid, such as the one being chopped.
+ * Only trees between the camera and the player fade, even one right in front of the player. Trees beside or beyond the player stay solid.
  * The tree shader works this out the same way.
  */
 export function seeThroughAmount(foot: Readonly<Vec3>, eye: Readonly<Vec3>, player: Readonly<Vec3>): number {
@@ -81,7 +81,7 @@ export function addTreeSeeThrough(materials: readonly THREE.Material[]): TreeSee
             "float seeThroughAlong = seeThroughLength == 0.0 ? 1.0 : clamp( seeThroughAlongMetres / seeThroughLength, 0.0, 1.0 );",
             "float seeThroughAway = distance( seeThroughFoot, cameraPosition.xz + seeThroughLine * seeThroughAlong );",
             `float seeThroughNearLine = 1.0 - smoothstep( ${SEE_THROUGH_INNER_METRES.toFixed(2)}, ${SEE_THROUGH_OUTER_METRES.toFixed(2)}, seeThroughAway );`,
-            // Trees next to the player stay solid, such as the one being chopped.
+            // Trees beside or beyond the player stay solid.
             `float seeThroughInFront = smoothstep( ${SEE_THROUGH_SOLID_NEAR_PLAYER_METRES.toFixed(2)}, ${SEE_THROUGH_FULL_FROM_PLAYER_METRES.toFixed(2)}, seeThroughLength - seeThroughAlongMetres );`,
             "seeThroughFade = seeThroughEnabled * seeThroughNearLine * seeThroughInFront;",
           ].join("\n"),

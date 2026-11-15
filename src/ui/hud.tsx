@@ -30,7 +30,7 @@ import { StructureIcon } from "./structure-icon";
 import { dayShare, timeOfDayWord } from "./clock-face";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
-import { needPulses, needRingShare } from "./need-gauge";
+import { lowNeedsHint, needPulses, needRingShare } from "./need-gauge";
 import { placingHint } from "./placing-hint";
 import { SLED_DRAWING } from "./sled-icons";
 import { weightRingShare, weightRingWarns } from "./weight-ring";
@@ -629,6 +629,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
   const nearbyPanels = view.nearby.filter(hasPanel);
 
   const hasContext = view.action !== null || placing !== null || nearbyPanels.length > 0;
+  const lowNeeds = lowNeedsHint(view.needs);
   const daylight = view.time.hourOfDay >= 6 && view.time.hourOfDay < 20;
 
   return (
@@ -683,11 +684,16 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
         )}
         <div class="hud-dock-bottom">
           <section class="hud-needs" aria-label={strings.needs}>
+            {lowNeeds !== null && (
+              <p class="hud-hint" role="status">
+                {lowNeeds}
+              </p>
+            )}
+            {view.sick && <p class="hud-hint">{strings.sick}</p>}
             <NeedGauge icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} />
             <NeedGauge icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} />
             <NeedGauge icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} />
             <NeedGauge icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} />
-            {view.sick && <p class="hud-hint">{strings.sick}</p>}
           </section>
           <div class="hud-panel hud-hotbar">
             <section class="hud-backpack" aria-label={strings.backpack}>

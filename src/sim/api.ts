@@ -34,6 +34,9 @@ export type {
 import { FURNITURE } from "./furniture";
 import { FURNITURE_KINDS } from "./structure-kind";
 
+/** The HUD uses these to tell the player when a low need slows them, and which needs there are. */
+export { LOW_NEED, NEED_KINDS, type NeedKind } from "./needs";
+
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
 
@@ -149,7 +152,8 @@ export type Command =
   | { type: "pickUpBedroll"; bedrollId: number }
   /**
    * Walk the player to a laid bedroll, given by its entity id, and sleep on it. It becomes the player's respawn point.
-   * At night the player sleeps until morning. By day they sleep until fatigue is restored.
+   * At night the player sleeps until morning. By day they sleep until fatigue is restored,
+   * but a sleep that would end in the night lasts until morning.
    * Other needs change for the time slept, and a collapse cuts sleep short.
    */
   | { type: "sleep"; bedrollId: number }

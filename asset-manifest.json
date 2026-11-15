@@ -511,14 +511,10 @@
         "src/app/main.tsx",
         "src/sim/game.ts"
       ],
-      "description": "The player going to sleep on a laid bedroll and waking. A person going to bed on a mat steps onto it, sits, and lies back with the head at the rolled blanket, then lies still. The view dims to black while the night passes, and lights up on the morning. Then the person sits up, gets their feet under them, and stands. The body plays KayKit's Lie_Down, Lie_Idle, and Lie_StandUp clips, a little faster than made; code times the step onto the bedroll, the dimming, and the sky change. Game logic waits while it plays. It reads apart from the build's squat: the whole body goes down flat.",
-      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clips Lie_Down, Lie_Idle, and Lie_StandUp",
+      "description": "The player going to sleep on a laid bedroll or in a bed, and waking. A person going to bed sits down, lies back on their side with the head at the head end, then rolls onto their back and sleeps there, the chest rising and falling in slow breaths. The view dims to black while the night passes, and lights up on the morning. Then the person rolls onto their side again, sits up, gets their feet under them, and stands. The body plays KayKit's Lie_Down and Lie_Idle clips, blends over 0.7 s into Death_A_Pose as the back-lying pose, blends back, and plays Lie_StandUp; the lie-down and stand-up clips play a little faster than made. Code times the step onto the bedroll, the rolls, the breathing, the dimming, and the sky change. Game logic waits while it plays. It reads apart from the build's squat: the whole body goes down flat.",
+      "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clips Lie_Down, Lie_Idle, Death_A_Pose, and Lie_StandUp",
       "license": "CC0 1.0",
-      "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-12"
-      }
+      "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
     },
     {
       "id": "pick-up-animation",

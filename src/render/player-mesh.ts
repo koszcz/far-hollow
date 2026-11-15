@@ -5,7 +5,8 @@
 // While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
 // While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
 // pulling a drawknife, and the axe goes on the back. The owner approved it.
-// While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down, Lie_Idle, and Lie_StandUp clips. The owner approved it.
+// While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down and Lie_Idle clips, rolls onto the back into Death_A_Pose and
+// breathes slowly, then rolls back and plays Lie_StandUp. The owner approved it.
 // While sitting on a stool, the draft "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
 // While sawing planks, "sawing-animation", posed in code by player-saw-pose.ts, holds the log on the sawhorse with the
 // left hand and saws it with the right. The saw is the approved "saw-model", built by saw-model.ts. The axe goes on the back.
@@ -34,7 +35,7 @@ import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
-import { sleepBodyAt } from "./sleep-animation";
+import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
 
@@ -53,6 +54,10 @@ const SPLIT_CLIP = "2H_Melee_Attack_Chop";
 const LIE_DOWN_CLIP = "Lie_Down";
 const LIE_IDLE_CLIP = "Lie_Idle";
 const STAND_UP_CLIP = "Lie_StandUp";
+/** The clip that lies the body flat on its back. KayKit made it as a death pose. Here it is the sleeping pose. */
+const ON_BACK_CLIP = "Death_A_Pose";
+/** How far the chest turns up on a full slow breath while asleep, in radians about the chest's own x axis. */
+const SLEEP_BREATH_RADIANS = 0.035;
 /** The clips for sitting down on a stool, resting there, and standing up: the draft "sit-animation". */
 const SIT_CLIPS = { sitDown: "Sit_Chair_Down", sitIdle: "Sit_Chair_Idle", standUp: "Sit_Chair_StandUp" } as const;
 /** The clips for reaching to the ground, and out at waist height. */
@@ -222,16 +227,25 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const sleepClips = { lieDown: clip(LIE_DOWN_CLIP), lieIdle: clip(LIE_IDLE_CLIP), standUp: clip(STAND_UP_CLIP) };
   const sitClips = { sitDown: clip(SIT_CLIPS.sitDown), sitIdle: clip(SIT_CLIPS.sitIdle), standUp: clip(SIT_CLIPS.standUp) };
   const reachClips = { low: clip(REACH_CLIPS.low), waist: clip(REACH_CLIPS.waist) };
-  let playing: THREE.AnimationAction | undefined;
-  /** Shows `action` frozen `seconds` into its clip. */
-  function showClip(action: THREE.AnimationAction, seconds: number): void {
-    if (playing !== action) {
-      playing?.stop();
-      action.play();
-      playing = action;
-    }
-    const duration = action.getClip().duration;
-    action.time = ((seconds % duration) + duration) % duration;
+  const onBackClip = clip(ON_BACK_CLIP);
+  let playing: THREE.AnimationAction[] = [];
+  /**
+   * Shows `action` frozen `seconds` into its clip. With `blend`, mixes in a second clip, frozen at its own seconds,
+   * by `blend.weight`, from 0 (none of it) to 1 (all of it).
+   */
+  function showClip(action: THREE.AnimationAction, seconds: number, blend?: { action: THREE.AnimationAction; seconds: number; weight: number }): void {
+    const wanted = blend !== undefined && blend.weight > 0 ? [action, blend.action] : [action];
+    for (const shown of playing) if (!wanted.includes(shown)) shown.stop();
+    for (const shown of wanted) if (!playing.includes(shown)) shown.play();
+    playing = wanted;
+    const freeze = (shown: THREE.AnimationAction, at: number, weight: number) => {
+      const duration = shown.getClip().duration;
+      shown.time = ((at % duration) + duration) % duration;
+      shown.setEffectiveWeight(weight);
+    };
+    const weight = blend !== undefined && blend.weight > 0 ? Math.min(1, blend.weight) : 0;
+    freeze(action, seconds, 1 - weight);
+    if (blend !== undefined && weight > 0) freeze(blend.action, blend.seconds, weight);
     mixer.update(0);
   }
 
@@ -476,6 +490,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       rightUpperArm.quaternion.multiply(CARRY_UPPER_ARM_TURN);
       rightForearm.quaternion.multiply(CARRY_FOREARM_TURN);
     }
+    poseBreathing();
     poseBuilding();
     poseReaching();
     blendFromReach();
@@ -654,6 +669,17 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     }
   }
 
+  const breathTurn = new THREE.Quaternion();
+  const chestAxis = new THREE.Vector3(1, 0, 0);
+  /** Asleep on the back, the chest rises and falls slowly, so the still back-lying pose reads as sleep. */
+  function poseBreathing(): void {
+    if (sleepingAt === undefined) return;
+    const onBack = sleepBodyAt(sleepingAt).onBack;
+    if (onBack <= 0) return;
+    rememberClipPose(chestBone);
+    chestBone.quaternion.multiply(breathTurn.setFromAxisAngle(chestAxis, -SLEEP_BREATH_RADIANS * onBack * sleepBreathAt(sleepingAt)));
+  }
+
   /** The point `t` of the way along the line drawn now, from the tip to the end. */
   function pointOnLine(t: number, out: THREE.Vector3): THREE.Vector3 {
     const at = Math.min(Math.max(t, 0), 1) * (linePoints.length - 1);
@@ -669,7 +695,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       const action = sleepClips[body.clip];
       // Lying down and standing up play once, so they hold their last frame rather than start again.
       const last = action.getClip().duration - 0.001;
-      showClip(action, body.clip === "lieIdle" ? body.clipSeconds : Math.min(body.clipSeconds, last));
+      // Asleep, the body rolls from the side-lying clip onto its back.
+      showClip(action, body.clip === "lieIdle" ? body.clipSeconds : Math.min(body.clipSeconds, last), {
+        action: onBackClip,
+        seconds: 0,
+        weight: body.onBack,
+      });
       return;
     }
     if (sittingBody !== undefined) {

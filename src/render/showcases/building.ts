@@ -223,8 +223,8 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // A blueprint holding 1 of its 2 planks, the seat being set down, then the finished stool. The "sit-animation" showcase plays sitting on it.
   stool: {
-    radius: 1.1,
-    focus: { x: 0, y: 0.25, z: 0 },
+    radius: 0.7,
+    focus: { x: 0, y: 0.15, z: 0 },
     shots: [
       { label: "blueprint, 1 of 2 planks", yaw: 30, pitch: 30, seconds: 0 },
       { label: "seat above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / STOOL_MODEL_STAGES },

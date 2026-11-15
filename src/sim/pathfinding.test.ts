@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { findPath } from "./pathfinding";
+import { findPath, findPathWithin } from "./pathfinding";
 import type { GroundPoint } from "./valley";
 import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";
 
@@ -65,6 +65,70 @@ describe("findPath", () => {
     const end = path.at(-1) ?? from;
     expect(end.x).toBeLessThan(0);
     expect(Math.hypot(end.x - from.x, end.z - from.z)).toBeLessThan(1.5);
+  });
+});
+
+describe("findPathWithin", () => {
+  const REACH = 2;
+
+  it("stops on the near side of a tree in open ground", () => {
+    const map = createWalkMap({ size: 100 });
+    const tree = { x: 10.3, z: 0.7 };
+    blockCircle(map, tree, TREE_RADIUS);
+    const from = { x: -10, z: 0.5 };
+
+    const path = findPathWithin(map, from, tree, REACH);
+
+    const end = path.at(-1) ?? from;
+    expect(distanceBetween(end, tree)).toBeLessThanOrEqual(REACH + 1e-9);
+    expect(end.x).toBeLessThan(tree.x);
+    // A straight walk to the circle's edge.
+    expect(path).toHaveLength(1);
+    expect(distanceBetween(from, end)).toBeCloseTo(distanceBetween(from, tree) - REACH, 6);
+  });
+
+  it("walks round to the nearest side it can reach when the near side is blocked", () => {
+    const map = createWalkMap({ size: 100 });
+    const tree = { x: 10.5, z: 0.5 };
+    blockCircle(map, tree, TREE_RADIUS);
+    // A thick screen covers the tree's west side, the side facing the player.
+    blockWhere(map, { x: 4, z: -5 }, { x: 9, z: 6 }, (spot) => spot.x < tree.x - 1);
+    const from = { x: -10, z: 0.5 };
+
+    const path = findPathWithin(map, from, tree, REACH);
+
+    const end = path.at(-1) ?? from;
+    expect(isWalkable(map, end)).toBe(true);
+    expect(distanceBetween(end, tree)).toBeLessThanOrEqual(REACH);
+    // The player stops round the north or south side, not on the far east side.
+    expect(end.x).toBeGreaterThan(tree.x - 1.5);
+    expect(end.x).toBeLessThan(tree.x + 0.5);
+    expect(Math.abs(end.z - tree.z)).toBeGreaterThan(TREE_RADIUS);
+  });
+
+  it("stays put when the player already stands within the distance", () => {
+    const map = createWalkMap({ size: 100 });
+    const tree = { x: 10.5, z: 0.5 };
+    blockCircle(map, tree, TREE_RADIUS);
+
+    expect(findPathWithin(map, { x: 8.7, z: 0.5 }, tree, REACH)).toEqual([]);
+  });
+
+  it("walks to the reachable spot nearest the target when nothing within the distance can be reached", () => {
+    const map = createWalkMap({ size: 100 });
+    const pen = { x: 20, z: 0 };
+    blockWhere(map, { x: 10, z: -10 }, { x: 30, z: 10 }, (spot) => {
+      const fromPen = Math.hypot(spot.x - pen.x, spot.z - pen.z);
+      return fromPen > 4 && fromPen < 6;
+    });
+    const from = { x: -10, z: 0 };
+
+    const path = findPathWithin(map, from, pen, REACH);
+
+    expect(path).toEqual(findPath(map, from, pen));
+    const end = path.at(-1) ?? from;
+    expect(distanceBetween(end, pen)).toBeGreaterThan(6);
+    expect(distanceBetween(end, pen)).toBeLessThan(7.5);
   });
 });
 
@@ -171,6 +235,10 @@ function crossingsOfX1(path: readonly GroundPoint[]): number[] {
 }
 
 const TREE_RADIUS = 1.5;
+
+function distanceBetween(a: GroundPoint, b: GroundPoint): number {
+  return Math.hypot(a.x - b.x, a.z - b.z);
+}
 
 /** Trees 3 m apart along a line of constant x. */
 function treeRow({ x, fromZ, toZ }: { x: number; fromZ: number; toZ: number }): GroundPoint[] {

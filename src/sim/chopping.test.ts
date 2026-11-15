@@ -2,8 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { CHOP_SECONDS } from "./chopping";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { findPath, findPathWithin } from "./pathfinding";
 import { finishReach } from "./test-steps";
-import { chopSecondsForTreeSize, logsForTreeSize, MOST_LOGS_PER_TREE, treeSizeAt } from "./tree-size";
+import { chopSecondsForTreeSize, FEWEST_LOGS_PER_TREE, logsForTreeSize, MOST_LOGS_PER_TREE, treeSizeAt } from "./tree-size";
+import type { GroundPoint } from "./valley";
+import { nearestWalkableSpot } from "./walk-map";
 
 describe("the backpack", () => {
   it("starts with an axe, a knife, a drawknife, a steel and flint, a bedroll, an empty pot, a saw blade, and a fishing line", () => {
@@ -27,6 +30,35 @@ describe("chopping a tree", () => {
     runSeconds(game, chopSecondsOf(tree) / 2);
     expect(tree.tree).toBe(true);
     expect(game.client.getView().action?.progress).toBeCloseTo(0.5, 1);
+  });
+
+  it("chops from the side facing the player, though the open spot nearest the tree's centre is on the far side", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    const start = { x: player.position.x, z: player.position.z };
+    const tree = treesNearestPlayer(game)
+      .slice(0, 12)
+      .find((candidate) => {
+        const nearestOpen = nearestWalkableSpot(game.walkMap, candidate.position);
+        return nearestOpen !== undefined && towardStart(candidate.position, nearestOpen, start) < 0;
+      });
+    if (tree === undefined) throw new Error("No tree whose nearest open spot is on the far side");
+
+    game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => game.client.getView().action?.kind === "chop");
+
+    expect(towardStart(tree.position, player.position, start)).toBeGreaterThan(0);
+  });
+
+  it("walks no further than straight to the tree's centre would, for each of the 12 trees nearest the start", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    for (const tree of treesNearestPlayer(game).slice(0, 12)) {
+      const toCentre = pathLength(player.position, findPath(game.walkMap, player.position, tree.position));
+      // 2 m is the walk the chop asks for: the tree's 1.2 m blocked circle, plus 1 m reach, less a 0.2 m margin.
+      const toReach = pathLength(player.position, findPathWithin(game.walkMap, player.position, tree.position, 2));
+      expect(toReach).toBeLessThanOrEqual(toCentre);
+    }
   });
 
   it("fells the tree into a stump that still blocks walking, and gives logs", () => {
@@ -81,16 +113,62 @@ describe("chopping a tree", () => {
   });
 });
 
+describe("where a felled tree falls", () => {
+  it("falls straight away from the player when the ground there is clear", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTreeToPlayer(game);
+    clearAround(game, tree);
+    game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => game.client.getView().action?.kind === "chop");
+    const standing = { ...onlyPlayer(game).position };
+    stepUntil(game, () => tree.stump === true);
+
+    const away = Math.atan2(tree.position.x - standing.x, tree.position.z - standing.z);
+    expect(angleBetween(tree.fellHeading ?? Number.NaN, away)).toBeLessThan(0.01);
+  });
+
+  it("falls to one side when another tree stands in the way, so no log lies on a tree", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTreeToPlayer(game);
+    clearAround(game, tree);
+    game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
+    stepUntil(game, () => game.client.getView().action?.kind === "chop");
+    const player = onlyPlayer(game);
+    const away = Math.atan2(tree.position.x - player.position.x, tree.position.z - player.position.z);
+    // A tree right where the trunk would land.
+    const blockerAt = { x: tree.position.x + Math.sin(away) * 2.5, z: tree.position.z + Math.cos(away) * 2.5 };
+    game.entities.add({ tree: true, position: { ...blockerAt, y: tree.position.y }, blocksWalking: { radius: 1.2 } });
+    stepUntil(game, () => tree.stump === true);
+
+    expect(angleBetween(tree.fellHeading ?? Number.NaN, away)).toBeGreaterThan(0.1);
+    for (const log of game.entities.with("log", "position")) {
+      expect(Math.hypot(log.position.x - blockerAt.x, log.position.z - blockerAt.z)).toBeGreaterThan(1);
+    }
+  });
+
+  it("keeps every log off the other trees in a real stand of forest", () => {
+    const game = createGame({ seed: 42 });
+    const tree = nearestTreeToPlayer(game);
+    fell(game, tree);
+
+    const others = [...game.entities.with("tree", "position")];
+    for (const log of game.entities.with("log", "position")) {
+      const nearest = Math.min(...others.map((other) => Math.hypot(other.position.x - log.position.x, other.position.z - log.position.z)));
+      expect(nearest).toBeGreaterThan(0.6);
+    }
+  });
+});
+
 describe("tree size", () => {
   it("gives more logs from a bigger tree, but takes longer to chop", () => {
-    const small = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === 2);
+    const small = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === FEWEST_LOGS_PER_TREE);
     const big = treeOfSize(createGame({ seed: 42 }), (size) => logsForTreeSize(size) === MOST_LOGS_PER_TREE);
 
     const smallSteps = fellCounting(small.game, small.tree);
     const bigSteps = fellCounting(big.game, big.tree);
 
     // The player shoulders one log, and the rest lie on the ground.
-    expect(small.game.entities.with("log").size).toBe(2 - 1);
+    expect(small.game.entities.with("log").size).toBe(FEWEST_LOGS_PER_TREE - 1);
     expect(big.game.entities.with("log").size).toBe(MOST_LOGS_PER_TREE - 1);
     expect(chopSecondsOf(big.tree)).toBeGreaterThan(chopSecondsOf(small.tree) * 1.5);
     expect(bigSteps).toBeGreaterThan(smallSteps);
@@ -192,6 +270,20 @@ function fell(game: Game, tree: Entity): void {
   stepUntil(game, () => tree.stump === true);
 }
 
+/** Removes every other tree within 8 metres of this one, so its trunk can fall any way. */
+function clearAround(game: Game, tree: Entity & { position: { x: number; z: number } }): void {
+  for (const other of [...game.entities.with("tree", "position")]) {
+    if (other === tree) continue;
+    if (Math.hypot(other.position.x - tree.position.x, other.position.z - tree.position.z) < 8) game.entities.remove(other);
+  }
+}
+
+/** The smallest turn between two headings, in radians. */
+function angleBetween(a: number, b: number): number {
+  const turn = Math.abs(a - b) % (Math.PI * 2);
+  return Math.min(turn, Math.PI * 2 - turn);
+}
+
 /** How many logs the tree at this spot gives. */
 function logsOf(at: { x: number; z: number }): number {
   return logsForTreeSize(treeSizeAt(at.x, at.z));
@@ -239,12 +331,33 @@ function onlyPlayer(game: Game) {
 }
 
 function nearestTreeToPlayer(game: Game) {
+  const nearest = treesNearestPlayer(game)[0];
+  if (nearest === undefined) throw new Error("No trees");
+  return nearest;
+}
+
+/** Every standing tree, nearest to the player first. */
+function treesNearestPlayer(game: Game) {
   const player = onlyPlayer(game);
   const trees = [...game.entities.with("tree", "position")];
   const distance = (tree: (typeof trees)[number]) => Math.hypot(tree.position.x - player.position.x, tree.position.z - player.position.z);
-  const nearest = trees.sort((a, b) => distance(a) - distance(b))[0];
-  if (nearest === undefined) throw new Error("No trees");
-  return nearest;
+  return trees.sort((a, b) => distance(a) - distance(b));
+}
+
+/** Above 0 when `spot` lies on the side of `centre` that faces `start`, and below 0 on the far side. */
+function towardStart(centre: GroundPoint, spot: GroundPoint, start: GroundPoint): number {
+  return (spot.x - centre.x) * (start.x - centre.x) + (spot.z - centre.z) * (start.z - centre.z);
+}
+
+/** How far the player walks from `from` along a path. */
+function pathLength(from: GroundPoint, path: readonly GroundPoint[]): number {
+  let total = 0;
+  let at = from;
+  for (const spot of path) {
+    total += Math.hypot(spot.x - at.x, spot.z - at.z);
+    at = spot;
+  }
+  return total;
 }
 
 function idOf(game: Game, entity: Entity): number {

@@ -64,7 +64,7 @@ Anything the player gathers or processes to build or craft with, such as logs, p
 _Avoid_: Resource, item, loot
 
 **Log**:
-A length of tree trunk cut from a felled tree.
+A length of tree trunk cut from a felled tree. A small tree gives 3 logs, a mid-sized tree 4, and a big tree 5. A bigger tree takes longer to chop down.
 _Avoid_: Timber, wood
 
 **Debarked log**:

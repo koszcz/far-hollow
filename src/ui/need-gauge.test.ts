@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { LOW_NEED, lowNeedsHint, needPulses, needRingShare } from "./need-gauge";
+import { createNeeds as fullNeeds, LOW_NEED, needsSpeed } from "../sim/needs";
+import { lowNeedsHint, needPulses, needRingShare } from "./need-gauge";
 
 describe("a need gauge", () => {
   it("fills its ring with the need's level", () => {
@@ -14,11 +15,12 @@ describe("a need gauge", () => {
     expect(needRingShare(1.3)).toBe(1);
   });
 
-  it("pulses when the need is low, at the same level as the old bars", () => {
-    expect(LOW_NEED).toBe(0.25);
+  it("pulses when the need is low enough to slow the player", () => {
     expect(needPulses(0)).toBe(true);
-    expect(needPulses(0.25)).toBe(true);
-    expect(needPulses(0.26)).toBe(false);
+    expect(needPulses(LOW_NEED - 0.01)).toBe(true);
+    expect(needPulses(LOW_NEED)).toBe(false);
+    expect(needsSpeed({ ...fullNeeds(), hunger: { level: LOW_NEED - 0.01, minutesWithout: 0 } })).toBeLessThan(1);
+    expect(needsSpeed({ ...fullNeeds(), hunger: { level: LOW_NEED, minutesWithout: 0 } })).toBe(1);
     expect(needPulses(1)).toBe(false);
   });
 });

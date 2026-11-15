@@ -3,7 +3,7 @@ import { distanceOutside } from "./building";
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { footprintOfEntity } from "./structures";
 import type { GroundPoint } from "./valley";
-import type { Walking } from "./walking";
+import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 
 /** The player can lie down in a bed from this far outside its edges, in metres. */
 export const BED_REACH_METRES = 1;
@@ -45,8 +45,8 @@ export function createBeds(entities: EntityStore, walking: Walking, sleepIn: (be
           inReach = true;
           continue;
         }
-        // The bed blocks walking, so the walk ends on the open ground nearest its middle, beside it.
-        walking.walkTo(bed.position);
+        // The bed blocks walking, so the player walks the shortest way to stand within reach of its edge, on the side they come from.
+        walking.walkWithin(footprintOfEntity(bed), BED_REACH_METRES - WALK_REACH_MARGIN_METRES);
         setComponent(entities, player, "bedTask", { bedId });
       }
       if (inReach) sleepIn(bed);

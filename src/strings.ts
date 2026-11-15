@@ -8,6 +8,17 @@ function kilogramsText(kilograms: number): string {
   return `${Number(kilograms.toFixed(1))}`;
 }
 
+/** A list in words, such as "a, b and c". */
+function listText(items: readonly string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/** The text with its first letter in capitals. */
+function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** How many of each kind of thing a pile holds, in words. */
 const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> = {
   axe: (count) => (count === 1 ? "An axe" : `${count} axes`),
@@ -194,6 +205,18 @@ export const strings = {
   raining: "It is raining. The rain chills you.",
   thirst: "Thirst",
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
+  /** The hint above the need gauges when one or more needs are low enough to slow the player. */
+  lowNeeds: {
+    /** How each low need makes the player feel, such as "hungry". */
+    feeling: { hunger: "hungry", thirst: "thirsty", warmth: "cold", fatigue: "tired" },
+    /** What the player does to fill each low need, such as "eat". */
+    remedy: { hunger: "eat", thirst: "drink", warmth: "warm up by a fire", fatigue: "rest" },
+    /** Such as "Hungry and cold: you move and work more slowly. Eat and warm up by a fire." */
+    slowed: (feelings: readonly string[], remedies: readonly string[]) =>
+      `${capitalise(listText(feelings))}: you move and work more slowly. ${capitalise(listText(remedies))}.`,
+    /** Added when a need is empty. */
+    collapseSoon: "If a need stays empty for an hour, you collapse.",
+  },
   fatigue: "Rest",
   notices: {
     survivedFirstNight: "You survived the night.",

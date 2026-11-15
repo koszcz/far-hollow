@@ -34,6 +34,9 @@ export type {
 import { FURNITURE } from "./furniture";
 import { FURNITURE_KINDS } from "./structure-kind";
 
+/** The HUD uses these to tell the player when a low need slows them, and which needs there are. */
+export { LOW_NEED, NEED_KINDS, type NeedKind } from "./needs";
+
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
 

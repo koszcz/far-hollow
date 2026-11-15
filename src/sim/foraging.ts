@@ -5,7 +5,7 @@ import { fillNeed } from "./needs";
 import { catchSickness } from "./sickness";
 import { isAtTable, TABLE_HUNGER_FACTOR } from "./tables";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
-import type { Walking } from "./walking";
+import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can forage a bush or mushroom patch from this far away, in metres. */
 const FORAGE_REACH_METRES = 2;
@@ -57,7 +57,7 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
       if (spot?.forageSpot === undefined || spot.position === undefined) return;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        walking.walkTo(spot.position);
+        walkOntoOrWithinReach(walking, spot.position, spot.position, FORAGE_REACH_METRES);
         setComponent(entities, player, "forageTask", { spotId });
       }
     },

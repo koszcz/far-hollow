@@ -4,7 +4,7 @@ import { shoulderRefusal } from "./refusals";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint, type Valley } from "./valley";
-import type { Walking } from "./walking";
+import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up a log from this far away, in metres. */
 const PICK_UP_REACH_METRES = 2;
@@ -57,7 +57,7 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       if (log === undefined || logKind(log) === undefined || log.position === undefined) return;
       for (const player of players) {
         if (shoulderRefusal(player) !== undefined) continue;
-        walking.walkTo(log.position);
+        walkOntoOrWithinReach(walking, log.position, log.position, PICK_UP_REACH_METRES);
         setComponent(entities, player, "logPickUpTask", thenSplit ? { logId, thenSplit: true } : { logId });
       }
     },

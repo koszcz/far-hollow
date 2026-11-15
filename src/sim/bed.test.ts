@@ -225,6 +225,25 @@ describe("sleeping in a bed", () => {
     expect(game.client.getView().lastSleep).toEqual({ count: 1, at: { x: square.x, z: square.z }, bed: { turns: 3 } });
   });
 
+  it("walks the player to the near side of the bed, the side they come from, and stops within reach", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game, 8);
+    send(game, place("bed", square.x, square.z, 0));
+    const bed = blueprintOf(game, "bed");
+    buildFully(game, bed);
+    // The open ground nearest the bed's middle is off its -x side, so a walk to its middle ends there, on the far side.
+    walkTo(game, { x: square.x + 6, z: square.z });
+
+    send(game, { type: "sleepInBed", bedId: idOf(game, bed) });
+    const player = onlyPlayer(game);
+    stepUntil(game, () => player.walkPath === undefined);
+
+    expect(player.position.x).toBeGreaterThan(square.x + 0.5);
+    expect(Math.abs(player.position.z - square.z)).toBeLessThan(1);
+    expect(player.position.x - (square.x + 0.5)).toBeLessThanOrEqual(1);
+    expect(game.client.getView().lastSleep).not.toBeNull();
+  });
+
   it("makes the spot where the bed stands the respawn point, and taking the bed down leaves it there", () => {
     const game = createGame({ seed: 42 });
     const bed = finishedBedNearPlayer(game);

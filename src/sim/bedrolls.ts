@@ -4,7 +4,7 @@ import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { leanToBedrollSpot } from "./structures";
 import { groundDistance, type GroundPoint, type Valley } from "./valley";
-import type { Walking } from "./walking";
+import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up or lie down on a bedroll from this far from its middle, in metres. */
 export const BEDROLL_REACH_METRES = 2;
@@ -99,7 +99,7 @@ export function createBedrolls(
         inReach = true;
         continue;
       }
-      walking.walkTo(bedroll.position);
+      walkOntoOrWithinReach(walking, bedroll.position, bedroll.position, BEDROLL_REACH_METRES);
       setComponent(entities, player, "bedrollTask", { bedrollId, then });
     }
     return inReach;

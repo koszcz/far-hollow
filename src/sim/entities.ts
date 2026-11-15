@@ -177,6 +177,11 @@ export interface Entity {
    */
   chest?: { contents: BackpackContents };
   /**
+   * Marks a finished bed: furniture the player sleeps in. Its position is the middle of its base, on the ground or on a foundation's deck.
+   * Its `facing` says which way it is turned. The player lies with their head at its head end, along -z when it faces the default way.
+   */
+  bed?: true;
+  /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */
@@ -205,6 +210,8 @@ export interface Entity {
   bedroll?: true;
   /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
+  /** The finished bed the player is walking to, given by its entity id, to sleep in. */
+  bedTask?: { bedId: number };
   /**
    * The player is reaching to pick something up or put something down: to the ground or at waist height,
    * `seconds` into the reach, toward the thing's middle if it has one. It is never saved. See hand-reach.ts.
@@ -420,6 +427,11 @@ export function roofEntities(store: EntityStore) {
 /** Finished woodpiles. */
 export function woodpileEntities(store: EntityStore) {
   return store.with("woodpile", "position");
+}
+
+/** Finished beds. */
+export function bedEntities(store: EntityStore) {
+  return store.with("bed", "position");
 }
 
 /** Finished chests. */

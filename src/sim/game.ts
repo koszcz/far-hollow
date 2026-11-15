@@ -14,6 +14,7 @@ import {
   type SleepView,
 } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
+import { createBeds, type BedEntity } from "./beds";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, type Activity } from "./activity";
 import { createBuilding } from "./building";
@@ -40,7 +41,7 @@ import {
 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
-import type { WalkMap } from "./walk-map";
+import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
@@ -171,6 +172,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley, handReach);
+  const beds = createBeds(entities, walking);
   const woodpiles = createWoodpiles(entities, walking);
   const sleds = createSleds(entities, walking, valley);
   const chests = createChests(entities, walking);
@@ -181,7 +183,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
-  /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll to sleep on puts the player to sleep. */
+  /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll or bed to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
     chopping,
     carrying,
@@ -194,10 +196,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     {
       cancel: () => {
         bedrolls.cancel();
+        beds.cancel();
       },
       step: () => {
-        const reached = bedrolls.step();
-        if (reached !== undefined) sleepOn(reached);
+        const bedroll = bedrolls.step();
+        if (bedroll !== undefined) sleepOn(bedroll);
+        const bed = beds.step();
+        if (bed !== undefined) sleepIn(bed);
       },
     },
     drinking,
@@ -578,6 +583,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       const bedroll = bedrolls.sleep(command.bedrollId);
       if (bedroll !== undefined) sleepOn(bedroll);
     },
+    sleepInBed: (command) => {
+      cancelTasks();
+      const bed = beds.sleep(command.bedId);
+      if (bed !== undefined) sleepIn(bed);
+    },
     drinkFromRiver: (command) => {
       cancelTasks();
       drinking.drinkFromRiver({ x: command.x, z: command.z });
@@ -613,9 +623,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    * Moves the clock on by this many game minutes. Campfires burn and the player's needs change as it goes.
    * A long stretch, such as skipped time, runs in short slices, so night falling or a fire going out partway counts.
    * Rain starts and stops as it goes. A collapse ends the stretch early, and then this returns false.
-   * `asleep` says whether the player sleeps through it.
+   * `asleepIn` says what the player sleeps on through it, if they sleep.
    */
-  function passTime(gameMinutes: number, asleep = false): boolean {
+  function passTime(gameMinutes: number, asleepIn?: "bedroll" | "bed"): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
       clock.skip(minutes / MINUTES_PER_HOUR);
@@ -631,7 +641,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         night: isNight(readClock(clock.minutes).hourOfDay),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
         working: currentAction() !== null,
-        asleep,
+        asleep: asleepIn !== undefined,
+        inBed: asleepIn === "bed",
         sick: player.sickness !== undefined,
         inRain: rain.falling && !underRoof,
         underRoof,
@@ -670,7 +681,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stickFall.pass(asleepMinutes);
     pot.heat(asleepMinutes);
     cooking.cook(asleepMinutes);
-    const { x, z } = player.respawnPoint;
+    // A bed blocks walking, so a player whose respawn point is a bed wakes on the open ground nearest it.
+    const { x, z } = isWalkable(walking.walkMap, player.respawnPoint)
+      ? player.respawnPoint
+      : (nearestWalkableSpot(walking.walkMap, player.respawnPoint) ?? player.respawnPoint);
     Object.assign(player.position, { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z });
     Object.assign(player.previousPosition, player.position);
     wakeFromCollapse(player.needs);
@@ -682,17 +696,45 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    * At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
    */
   function sleepOn(bedroll: BedrollEntity): void {
+    lieDown(bedroll.position);
+    Object.assign(player.position, bedroll.position);
+    Object.assign(player.previousPosition, player.position);
+    sleep("bedroll");
+    lastSleep = Object.freeze({ count: (lastSleep?.count ?? 0) + 1, at: Object.freeze({ x: bedroll.position.x, z: bedroll.position.z }) });
+  }
+
+  /**
+   * The player lies down in a bed and sleeps, by the same rules as on a bedroll, but regains fatigue twice as fast.
+   * The spot where the bed stands becomes their respawn point. They lie in the bed while they sleep, so a roof over the bed counts.
+   * The bed blocks walking, so they wake standing where they were beside it, unless a collapse cut sleep short.
+   */
+  function sleepIn(bed: BedEntity): void {
+    lieDown(bed.position);
+    const standing = { ...player.position };
+    Object.assign(player.position, bed.position);
+    if (sleep("bed")) Object.assign(player.position, standing);
+    Object.assign(player.previousPosition, player.position);
+    const at = Object.freeze({ x: bed.position.x, z: bed.position.z });
+    lastSleep = Object.freeze({ count: (lastSleep?.count ?? 0) + 1, at, bed: Object.freeze({ turns: bed.facing?.turns ?? 0 }) });
+  }
+
+  /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */
+  function lieDown(spot: GroundPoint): void {
     carrying.drop();
     sleds.letGo();
     entities.removeComponent(player, "walkPath");
-    const { x, z } = bedroll.position;
-    player.respawnPoint = { x, z };
-    Object.assign(player.position, bedroll.position);
-    Object.assign(player.previousPosition, player.position);
+    player.respawnPoint = { x: spot.x, z: spot.z };
+  }
+
+  /**
+   * The player sleeps where they lie. At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
+   * Returns false if a collapse cut sleep short.
+   */
+  function sleep(asleepIn: "bedroll" | "bed"): boolean {
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const night = isNight(readClock(clock.minutes).hourOfDay);
-    passTime(night ? untilMorning : Math.min(untilMorning, minutesToRestFully(player.needs, isUnderRoof(entities, player.position))), true);
-    lastSleep = Object.freeze({ count: (lastSleep?.count ?? 0) + 1, at: Object.freeze({ x, z }) });
+    const toRestFully = minutesToRestFully(player.needs, isUnderRoof(entities, player.position), asleepIn === "bed");
+    return passTime(night ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 
   function applyCommand(command: Command): void {

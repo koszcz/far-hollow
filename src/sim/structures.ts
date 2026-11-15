@@ -7,13 +7,11 @@ import {
   blueprintEntities,
   cabinRoofEntities,
   campfireEntities,
-  chestEntities,
   edgePieceEntities,
   foundationEntities,
   lyingThings,
   roofEntities,
   roofFrameEntities,
-  sledEntities,
   stumpEntities,
   treeEntities,
   walkBlockerSpotEntities,
@@ -75,7 +73,8 @@ export interface PlacementSite {
 }
 
 /** The components that mark a finished structure. */
-export type FinishedMarker = "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "workStation" | "sled";
+export type FinishedMarker =
+  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "bed" | "workStation" | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -442,6 +441,40 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
   finish: () => ({ chest: { contents: {} }, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } }),
 };
 
+/** How many planks a bed costs. Construction spends one at the start of each stage. */
+export const BED_PLANK_COST = 8;
+/** How long the player holds the build action to build a bed, in seconds. */
+export const BED_BUILD_SECONDS = 12;
+/** A bed is this wide, across its mattress, in metres. */
+export const BED_WIDTH_METRES = 1;
+/** A bed is this long, from head to foot, in metres. Its length runs along z when it faces the default way. */
+export const BED_LENGTH_METRES = 2;
+/** How far inside the edges of a structure placed freely its placement rule, and a bed's walk blocking, look, in metres. */
+const EDGE_INSET_METRES = 0.01;
+
+/**
+ * A bed: furniture the player sleeps in. It is placed freely, wherever the mouse points, and R turns it.
+ * Like a chest, it stands on the ground or on a foundation's deck, never half on and half off one. Building it needs no tool.
+ * A finished bed stops the player walking on every walk-map cell it reaches over.
+ */
+const bed: StructureDefinition & { readonly kind: "bed" } = {
+  kind: "bed",
+  placement: "anywhere",
+  finishedAs: "bed",
+  cost: [{ material: "plank", count: BED_PLANK_COST }],
+  buildSeconds: BED_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, BED_WIDTH_METRES / 2, BED_LENGTH_METRES / 2, turns),
+  snap: (_site, at) => ({ x: at.x, z: at.z }),
+  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
+  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, BED_WIDTH_METRES / 2, BED_LENGTH_METRES / 2),
+  // The spots are no further apart than half a walk-map cell, so every cell the bed reaches over holds one of them.
+  // They keep just inside its edges, so a bed whose edge lies on the line between two cells leaves the cell beyond open.
+  finish: (spot, turns) => ({
+    bed: true,
+    blocksWalkingSpots: spotsAcross(turnedRect(spot, BED_WIDTH_METRES / 2 - EDGE_INSET_METRES, BED_LENGTH_METRES / 2 - EDGE_INSET_METRES, turns)),
+  }),
+};
+
 /** How many debarked logs a sawhorse costs: one for its legs and one for the beam across them. */
 export const SAWHORSE_LOG_COST = 2;
 /** How long the player holds the build action to build a sawhorse, in seconds. */
@@ -524,9 +557,11 @@ const FREE_CHECK_SPACING_METRES = 0.5;
  */
 function canPlaceFreely({ entities, walkMap, valley }: PlacementSite, spot: GroundPoint, turns: QuarterTurns, halfX: number, halfZ: number): boolean {
   const rect = turnedRect(spot, halfX, halfZ, turns);
-  const corners = [rect.min, rect.max, { x: rect.min.x, z: rect.max.z }, { x: rect.max.x, z: rect.min.z }];
+  // The ground and decks are checked just inside its edges, so an edge lying on the line between two squares does not count as over the square beyond.
+  const inside = turnedRect(spot, halfX - EDGE_INSET_METRES, halfZ - EDGE_INSET_METRES, turns);
+  const corners = [inside.min, inside.max, { x: inside.min.x, z: inside.max.z }, { x: inside.max.x, z: inside.min.z }];
   // The spots are no further apart than half a walk-map cell, so every blocked cell it overlaps holds one of them.
-  for (const point of [spot, ...spotsAcross(rect)]) {
+  for (const point of [spot, ...spotsAcross(inside)]) {
     if (!isWalkable(walkMap, point)) return false;
     if (distanceToRiver(valley.river, point) <= valley.river.width / 2) return false;
   }
@@ -539,6 +574,8 @@ function canPlaceFreely({ entities, walkMap, valley }: PlacementSite, spot: Grou
   // A cabin roof overhead and a foundation underfoot are not in the way. Every other structure is.
   for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
   for (const frame of walkBlockerSpotEntities(entities)) {
+    // A bed blocks walking at spots too, but it is furniture, so only the ground it covers is in the way.
+    if (frame.bed === true) continue;
     for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
   }
   return isClearOfTreesAndStructures(entities, rect, { ignoreCabinRoofs: true });
@@ -569,6 +606,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   roof,
   woodpile,
   chest,
+  bed,
   sawhorse,
   sled,
 };
@@ -683,12 +721,7 @@ const CHECKED_APART: ReadonlySet<StructureKind> = new Set<StructureKind>(["found
 
 /** Whether `rect` keeps clear of every finished chest and sled, and every blueprint of one. */
 function isClearOfFreelyPlaced(entities: EntityStore, rect: GroundRect): boolean {
-  for (const placed of chestEntities(entities)) if (rectsOverlap(rect, chest.footprint(placed.position, placed.facing?.turns ?? 0))) return false;
-  for (const placed of sledEntities(entities)) if (rectsOverlap(rect, sled.footprint(placed.position, placed.facing?.turns ?? 0))) return false;
-  for (const { blueprint, position, facing } of blueprintEntities(entities)) {
-    if (isPlacedFreely(blueprint.structure) && rectsOverlap(rect, structureOf(blueprint.structure).footprint(position, facing?.turns ?? 0))) return false;
-  }
-  return true;
+  return placedStructures(entities).every(({ entity, kind }) => !isPlacedFreely(kind) || !rectsOverlap(rect, footprintOfEntity(entity)));
 }
 
 /** Whether a structure is placed freely rather than on the building grid: furniture, such as a chest, and the sled. */

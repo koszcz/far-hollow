@@ -145,6 +145,11 @@ export type Command =
    */
   | { type: "sleep"; bedrollId: number }
   /**
+   * Walk the player beside a finished bed, given by its entity id, and sleep in it, by the same rules as sleeping on a bedroll.
+   * A bed restores fatigue twice as fast as a bedroll. The spot where it stands becomes the player's respawn point.
+   */
+  | { type: "sleepInBed"; bedId: number }
+  /**
    * Walk the player to the riverbank nearest a spot on the river, given in metres, and drink there.
    * River water is not boiled, so drinking it fills thirst but makes the player sick.
    */
@@ -231,8 +236,8 @@ export interface GameView {
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: Notice | null;
   /**
-   * The player's last sleep on a bedroll since the game was loaded, or null if none. `count` goes up by one with each
-   * sleep, so drawing can tell a new one. `at` is the middle of the bedroll. Drawing plays the sleep animation from it.
+   * The player's last sleep on a bedroll or in a bed since the game was loaded, or null if none. `count` goes up by one with each
+   * sleep, so drawing can tell a new one. `at` is the middle of the bedroll or bed. Drawing plays the sleep animation from it.
    */
   readonly lastSleep: SleepView | null;
   /**
@@ -249,10 +254,12 @@ export interface ReachView {
   readonly seconds: number;
 }
 
-/** One sleep on a bedroll. See `GameView.lastSleep`. */
+/** One sleep on a bedroll or in a bed. See `GameView.lastSleep`. */
 export interface SleepView {
   readonly count: number;
   readonly at: Readonly<GroundPoint>;
+  /** Present for a sleep in a bed, with which way the bed faces. Missing for a sleep on a bedroll. */
+  readonly bed?: { readonly turns: QuarterTurns };
 }
 
 /**
@@ -484,7 +491,7 @@ export function needsFreeHands(command: Command): boolean {
 export type ThingInReach =
   | {
       readonly kind:
-        "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | "chest" | "bedroll" | "pile" | "sled";
+        "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | "chest" | "bed" | "bedroll" | "pile" | "sled";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };

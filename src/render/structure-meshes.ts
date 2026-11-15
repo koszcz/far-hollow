@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { QuarterTurns, StructureKind } from "../sim/api";
 import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { createCampfireMeshes } from "./campfire-meshes";
+import { createBedMeshes } from "./bed-meshes";
 import { createChestMeshes } from "./chest-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFishOnFireMeshes } from "./fish-on-fire-meshes";
@@ -19,7 +20,7 @@ import { createSledMeshes } from "./sled-meshes";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
-export type StructureHit = { kind: "blueprint" | "campfire" | "woodpile" | "chest" | "workStation" | "sled"; entity: Entity };
+export type StructureHit = { kind: "blueprint" | "campfire" | "woodpile" | "chest" | "bed" | "workStation" | "sled"; entity: Entity };
 
 /** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
 export interface PlacingBlueprint {
@@ -72,11 +73,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const roofs = createRoofMeshes(entities);
   const woodpiles = createWoodpileMeshes(entities, logShape);
   const chests = createChestMeshes(entities);
+  const beds = createBedMeshes(entities);
   const sawhorses = createSawhorseMeshes(entities);
   const sleds = createSledMeshes(entities, logShape);
   // The fish on each campfire are an asset of their own, so they draw apart from the campfire.
   const fishOnFire = createFishOnFireMeshes(entities, groundAt);
-  const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, sawhorses, sleds];
+  const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, beds, sawhorses, sleds];
   const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
 
   const group = new THREE.Group();
@@ -138,6 +140,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         chests.showPlacingBlueprint(placing);
       },
     },
+    bed: {
+      outlineBlueprint: (entity) => beds.outlineOf(entity),
+      showPlacing: (placing) => {
+        beds.showPlacingBlueprint(placing);
+      },
+    },
     sawhorse: {
       outlineBlueprint: (entity) => sawhorses.outlineOf({ kind: "blueprint", entity }),
       showPlacing: (placing) => {
@@ -151,6 +159,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       },
     },
   };
+
+  /** What a ray hits first among beds and bed blueprints, as a structure hit. */
+  function bedHit(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined {
+    const found = beds.pick(raycaster);
+    return found && { hit: { kind: found.hit.kind === "finished" ? "bed" : "blueprint", entity: found.hit.entity }, distance: found.distance };
+  }
 
   /** Keeps whichever candidate is nearest. */
   function nearest<T extends { distance: number }>(candidates: readonly (T | undefined)[]): T | undefined {
@@ -172,6 +186,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       roofs.update(player !== undefined ? { player } : undefined);
       woodpiles.update();
       chests.update();
+      beds.update();
       sawhorses.update();
       sleds.update(player);
     },
@@ -185,6 +200,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         roofs.pick(raycaster),
         woodpiles.pick(raycaster),
         chests.pick(raycaster),
+        bedHit(raycaster),
         sawhorses.pick(raycaster),
         sleds.pick(raycaster),
       ]);
@@ -202,6 +218,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
           return woodpiles.outlineOf({ kind, entity });
         case "chest":
           return chests.outlineOf({ kind, entity });
+        case "bed":
+          return beds.outlineOf(entity);
         case "sled":
           return sleds.outlineOf({ kind, entity });
         case "workStation":

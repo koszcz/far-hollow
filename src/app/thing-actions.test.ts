@@ -384,6 +384,12 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(scene({ kind: "bedroll", id: 5 }), readerWith({})))).toEqual(["sleep main", "pickUp"]);
   });
 
+  it("sleeps in a bed as its main action, or takes it down", () => {
+    const actions = actionsFor(scene({ kind: "bed", id: 7 }), readerWith({}));
+    expect(summary(actions)).toEqual(["sleep main", "takeDown"]);
+    expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: 7 });
+  });
+
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(scene({ kind: "chest", id: 6 }), readerWith({})))).toEqual(["open main", "takeDown"]);
   });

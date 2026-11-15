@@ -28,6 +28,8 @@ export const WORK_FATIGUE_FACTOR = 3;
 export const FATIGUE_RECOVERY_PER_HOUR = 1 / 8;
 /** Asleep under a roof, the player regains fatigue this many times faster than in the open. */
 export const ROOF_SLEEP_FACTOR = 1.5;
+/** Asleep in a bed, the player regains fatigue this many times faster than on a bedroll. Under a roof, the roof bonus applies on top. */
+export const BED_SLEEP_FACTOR = 2;
 
 /** Below this level, a need makes the player move and work more slowly. */
 export const LOW_NEED = 0.3;
@@ -72,6 +74,8 @@ export interface NeedConditions {
   inRain?: boolean;
   /** Whether the player is under a roof, so sleep restores fatigue faster. Missing means in the open. */
   underRoof?: boolean;
+  /** Whether the player sleeps in a bed rather than on a bedroll, so sleep restores fatigue faster. Missing means not in a bed. */
+  inBed?: boolean;
 }
 
 /** Changes every need for this many game minutes spent in these conditions. */
@@ -105,19 +109,19 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
     case "hunger":
       return -HUNGER_DRAIN_PER_HOUR;
     case "fatigue":
-      if (conditions.asleep) return fatigueRecoveryPerHour(conditions.underRoof === true);
+      if (conditions.asleep) return fatigueRecoveryPerHour(conditions.underRoof === true, conditions.inBed === true);
       return -FATIGUE_DRAIN_PER_HOUR * (conditions.working ? WORK_FATIGUE_FACTOR : 1);
   }
 }
 
-/** How much fatigue the player regains per game hour asleep, under a roof or in the open. */
-function fatigueRecoveryPerHour(underRoof: boolean): number {
-  return FATIGUE_RECOVERY_PER_HOUR * (underRoof ? ROOF_SLEEP_FACTOR : 1);
+/** How much fatigue the player regains per game hour asleep, under a roof or in the open, in a bed or on a bedroll. */
+function fatigueRecoveryPerHour(underRoof: boolean, inBed: boolean): number {
+  return FATIGUE_RECOVERY_PER_HOUR * (underRoof ? ROOF_SLEEP_FACTOR : 1) * (inBed ? BED_SLEEP_FACTOR : 1);
 }
 
-/** How many game minutes of sleep restore fatigue fully, under a roof or in the open. */
-export function minutesToRestFully(needs: Needs, underRoof = false): number {
-  return ((FULL_NEED - needs.fatigue.level) / fatigueRecoveryPerHour(underRoof)) * 60;
+/** How many game minutes of sleep restore fatigue fully, under a roof or in the open, in a bed or on a bedroll. */
+export function minutesToRestFully(needs: Needs, underRoof = false, inBed = false): number {
+  return ((FULL_NEED - needs.fatigue.level) / fatigueRecoveryPerHour(underRoof, inBed)) * 60;
 }
 
 /** Whether any one need has been empty for too long, so the player has a collapse. */

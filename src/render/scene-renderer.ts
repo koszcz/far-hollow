@@ -20,6 +20,7 @@ import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
 import { createSkyLighting } from "./sky-lighting";
+import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
@@ -144,6 +145,7 @@ export function createSceneRenderer(
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
     chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
+    bed: (entity) => structureMeshes.outlineOf({ kind: "bed", entity }),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
@@ -196,9 +198,9 @@ export function createSceneRenderer(
   let sleepsSeen = readLastSleep()?.count ?? 0;
   /**
    * The sleep animation, while it plays: when it began, on the performance clock in seconds, where the player stood and
-   * faced then, the bedroll's middle, and the hour the sky keeps showing until the view is dark.
+   * faced then, the middle of the bedroll or bed, the hour the sky keeps showing until the view is dark, and which way a bed faces.
    */
-  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number } | undefined;
+  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: { turns: number } } | undefined;
 
   /** Steps the drawn player up to the sawhorse to saw planks, and back when sawing stops. */
   const sawingStep = createSawingStep();
@@ -258,10 +260,14 @@ export function createSceneRenderer(
     playerMesh.setCarryingLog(player.carrying);
     if (sleeping !== undefined) {
       // The player steps onto the bedroll and lies along it. Nothing else moves them until they are up again.
+      // In a bed, they step up onto the mattress, and back down beside the bed once they stand.
       const seconds = nowSeconds - sleeping.since;
-      const spot = sleepSpotFrom(sleeping.from, sleeping.at, seconds);
+      const spot =
+        sleeping.bed === undefined
+          ? { ...sleepSpotFrom(sleeping.from, sleeping.at, seconds), lift: 0 }
+          : bedSleepSpotFrom(sleeping.from, sleeping.at, sleeping.bed.turns, seconds);
       Object.assign(playerDrawn, { x: spot.x, z: spot.z });
-      playerMesh.group.position.set(spot.x, playerDrawn.y, spot.z);
+      playerMesh.group.position.set(spot.x, playerDrawn.y + spot.lift, spot.z);
       playerMesh.setHeading(spot.heading);
       playerMesh.setWalking(undefined);
       playerMesh.setSleeping(seconds);
@@ -386,9 +392,9 @@ export function createSceneRenderer(
     const last = readLastSleep();
     if (last === null || last.count === sleepsSeen) return;
     sleepsSeen = last.count;
-    // Game logic has moved the player onto the bedroll already. They step there from where they were drawn last frame.
+    // Game logic has moved the player onto the bedroll, or kept them beside the bed, already. They step there from where they were drawn last frame.
     const from = { x: playerDrawn.x, z: playerDrawn.z, heading: playerMesh.group.rotation.y };
-    sleeping = { since: nowSeconds, from, at: last.at, hour: drawnHour };
+    sleeping = { since: nowSeconds, from, at: last.at, hour: drawnHour, ...(last.bed === undefined ? {} : { bed: { turns: last.bed.turns } }) };
   }
 
   return {
@@ -398,7 +404,7 @@ export function createSceneRenderer(
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
       startSleepIfNew(nowSeconds);
-      if (sleeping !== undefined && nowSeconds - sleeping.since >= SLEEP_SECONDS) sleeping = undefined;
+      if (sleeping !== undefined && nowSeconds - sleeping.since >= (sleeping.bed === undefined ? SLEEP_SECONDS : BED_SLEEP_SECONDS)) sleeping = undefined;
       const sleepSeconds = sleeping === undefined ? undefined : nowSeconds - sleeping.since;
       // The sky keeps the bedtime hour until the view is dark, then shows the morning game logic has already reached.
       const hourOfDay = sleeping !== undefined && sleepSeconds !== undefined && sleepSeconds < SLEEP_MORNING_AT ? sleeping.hour : readHourOfDay();

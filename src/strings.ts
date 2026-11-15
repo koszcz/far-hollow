@@ -100,6 +100,7 @@ export const strings = {
       roof: "Roof section",
       woodpile: "Woodpile",
       chest: "Chest",
+      bed: "Bed",
       sawhorse: "Sawhorse",
       sled: "Sled",
     },

@@ -6,6 +6,7 @@
 import type { BuildMaterial, StructureKind } from "../sim/api";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import type { BackpackIconDrawing as IconDrawing, IconPart } from "./icon-drawing";
+import { FURNITURE_DRAWINGS, type DraftIconFurniture } from "./furniture-icons";
 import { LOG_DRAWING, SLED_DRAWING } from "./sled-icons";
 
 /** The pale wood of a debarked log, its paler cut end, and the darker grain and growth rings on it. */
@@ -71,8 +72,8 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
   return { d: `M${left(yTop)} ${yTop}H${right(yTop)}${edge}z`, as: "fill", colour };
 }
 
-/** The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx, so it is not listed here. */
-const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled">, IconDrawing>> = {
+/** The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx, and the draft furniture icons are in furniture-icons.tsx, so they are not listed here. */
+const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | DraftIconFurniture>, IconDrawing>> = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {
     colour: "#ff8a3c",
@@ -222,7 +223,8 @@ const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = 
 
 /** Draws the icon for one structure in the build menu. Screen readers skip it, because a text label always goes with it. */
 export function StructureIcon({ structure }: { structure: StructureKind }) {
-  return <ShadedIcon drawing={structure === "sled" ? SLED_DRAWING : STRUCTURE_DRAWINGS[structure]} className="build-icon" />;
+  const drawing = structure === "sled" ? SLED_DRAWING : structure === "bed" ? FURNITURE_DRAWINGS[structure] : STRUCTURE_DRAWINGS[structure];
+  return <ShadedIcon drawing={drawing} className="build-icon" />;
 }
 
 /** Draws the icon for one build material. Sticks, bark, and planks reuse their backpack icons. */

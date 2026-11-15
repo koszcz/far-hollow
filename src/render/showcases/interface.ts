@@ -16,6 +16,20 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The furniture icons are in the build menu, so this showcase is the build-icons one.
+  "furniture-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Build icons, large", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
+      { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // src/ui/hud-showcase.tsx draws every build icon large over the first view, and the HUD with the full build menu open over the others.
   "build-icons": {
     radius: 6,

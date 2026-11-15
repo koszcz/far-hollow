@@ -1099,12 +1099,13 @@
         "src/render/stool-meshes.ts",
         "src/render/plank-furniture-meshes.ts"
       ],
-      "description": "The stool: a small square seat of two pale sawn boards, 0.4 m across and 0.27 m high, on four square legs with a rail between each pair of legs. Each plank is a slightly different shade. As a blueprint it shows see-through, a stage whose plank it has waits pale and half solid, and construction builds it in two stages: the legs with their rails, then the seat.",
+      "description": "The stool: a small square seat of two pale sawn boards, 0.4 m across and 0.27 m high, on four square legs. The seat overhangs the legs a little, two battens under it hold the boards together, and dark pegs on top mark where the legs join it. Rails join the legs low on the left and right and higher at the front and back. Each plank is a slightly different shade. As a blueprint it shows see-through, a stage whose plank it has waits pale and half solid, and construction builds it in two stages: the legs with their rails, then the seat.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/05-stool-and-sitting.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     },
     {

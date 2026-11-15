@@ -2,7 +2,7 @@
 
 **What to build:** The player can build a table from 6 planks. Food eaten within reach of a finished table restores 25% more hunger.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** 01 (The chest costs planks)
 
 **Status:** ready-for-agent
 
@@ -11,7 +11,7 @@
 - [ ] The build menu lists the table with its cost of 6 planks, and shows its icon.
 - [ ] The table blueprint is placed freely, off the building grid. R rotates it. A click places it. Esc cancels.
 - [ ] A table blueprint cannot overlap a standing tree, a structure, or other furniture.
-- [ ] Planks come straight from the backpack. Building needs no tool.
+- [ ] Planks reach the blueprint the way ticket 01 delivers them, over several trips if needed. Building needs no tool.
 - [ ] The table shows its build stages.
 - [ ] A finished table blocks walking.
 - [ ] Food eaten within reach of a finished table restores 25% more hunger. A table blueprint gives no bonus.

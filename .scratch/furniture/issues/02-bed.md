@@ -2,7 +2,7 @@
 
 **What to build:** The player can build a bed from 8 planks and sleep in it. A bed restores fatigue twice as fast as a bedroll and becomes the respawn point.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** 01 (The chest costs planks)
 
 **Status:** ready-for-agent
 
@@ -11,7 +11,7 @@
 - [ ] The build menu lists the bed with its cost of 8 planks, and shows its icon.
 - [ ] The bed blueprint is placed freely, off the building grid. R rotates it. A click places it. Esc cancels.
 - [ ] A bed blueprint cannot overlap a standing tree, a structure, or other furniture.
-- [ ] Planks come straight from the backpack. Building needs no tool.
+- [ ] Planks reach the blueprint the way ticket 01 delivers them, over several trips if needed. Building needs no tool.
 - [ ] The bed shows its build stages.
 - [ ] A finished bed blocks walking.
 - [ ] "Sleep" is the bed's main action. Sleeping in a bed follows the same rules as sleeping on a bedroll.

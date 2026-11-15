@@ -18,7 +18,7 @@ Every piece of furniture follows the rules the chest already uses:
 - The blueprint is placed freely. It does not snap to the building grid. R rotates it. A click places it. Esc cancels.
 - A piece can stand anywhere: on open ground, on a foundation, indoors, or outdoors.
 - A blueprint cannot overlap a standing tree, a structure, or other furniture. Furniture never stacks on other furniture.
-- Planks come straight from the backpack, as bark does for a roof. The player does not carry planks over one at a time.
+- Planks reach a blueprint as described in "Getting planks to a blueprint" below.
 - The player holds the build action to build the piece, as with other structures. See ADR 0002.
 - Building furniture needs no tool.
 - Every piece blocks walking. The player walks around it.
@@ -27,15 +27,42 @@ Every piece of furniture follows the rules the chest already uses:
 
 ## Costs
 
-| Piece | Cost | Fits one backpack trip |
-| --- | --- | --- |
-| Bed | 8 planks | Yes |
-| Table | 6 planks | Yes |
-| Chest | 4 planks | Yes |
-| Shelf | 4 planks | Yes |
-| Stool | 2 planks | Yes |
+| Piece | Cost |
+| --- | --- |
+| Bed | 8 planks |
+| Table | 6 planks |
+| Chest | 4 planks |
+| Shelf | 4 planks |
+| Stool | 2 planks |
 
-The backpack holds 20 kg, and a plank weighs 2 kg, so the player can carry 10 planks at once.
+The backpack holds 20 kg, and a plank weighs 2 kg. The starting tools weigh about 6 kg, so the player can usually carry about 6 planks at once. The bed needs more than one trip, or a sled.
+
+## Sawing planks
+
+- Cutting planks at the sawhorse no longer stops when the planks do not fit in the backpack.
+- The planks go into the backpack as far as it has room.
+- If a sled is parked next to the sawhorse, the rest go onto the sled as far as it has room.
+- Any planks still left drop in a **pile** beside the sawhorse.
+- Nothing else about the sawhorse or the saw changes.
+
+## Planks on a sled
+
+- A sled can carry planks as well as logs and debarked logs.
+- One log space on a sled holds 4 planks. A sled with no logs holds 24 planks. Logs and planks can share a sled.
+- "Load planks" moves every plank from the backpack onto the sled, as far as it has room.
+- "Take planks" moves as many planks from the sled into the backpack as fit.
+- Tipping out a sled drops its planks in one pile beside it. A woodpile never takes planks.
+- Taking down a sled drops its planks in one pile beside it, the same way.
+- The planks on a sled show on it.
+
+## Getting planks to a blueprint
+
+- A blueprint that costs planks takes them from three places:
+  1. The backpack.
+  2. A parked sled next to the blueprint.
+  3. Plank piles within 2 m of the blueprint.
+- The player can deliver planks over several trips. A blueprint keeps the planks it has already been given.
+- Taking down a blueprint returns every plank delivered so far.
 
 ## Chest
 
@@ -96,20 +123,23 @@ All new assets go in as drafts built in code. The owner approves or changes them
 | `stool` | A small plank stool, with build stages |
 | `sit-animation` | The player sits down on a stool, rests, and stands up |
 | `furniture-icons` | Build menu icons for the bed, shelf, table, and stool, drawn in the same style as `build-icons` |
+| `sled-planks` | 0 to 24 planks lying on a sled, drawn on top of the `sled` model |
 
 `build-icons` is an approved asset, so the new icons go in the separate draft `furniture-icons`. Merging them into `build-icons` needs the owner's approval.
 
-The chest keeps its approved `chest` model.
+`sled` is an approved asset, so the planks on a sled go in the separate draft `sled-planks`. The `sled` model does not change.
+
+The chest keeps its approved `chest` model. Plank piles reuse the plank shape in the approved `pile` entry.
 
 ## Tickets
 
-Each ticket stands alone. They can be done in any order.
-
-1. The chest costs planks.
-2. Bed.
-3. Shelf.
-4. Table.
-5. Stool and the sitting animation.
+1. The chest costs planks, and planks can reach a blueprint over several trips.
+2. Bed. Blocked by 01.
+3. Shelf. Blocked by 01.
+4. Table. Blocked by 01.
+5. Stool and the sitting animation. Blocked by 01.
+6. Planks that do not fit drop in a pile beside the sawhorse.
+7. Sleds carry planks, and blueprints take planks from nearby sleds and piles. Blocked by 01 and 06.
 
 ## Later
 
@@ -120,6 +150,9 @@ Each ticket stands alone. They can be done in any order.
 - A shelf that hangs on a wall.
 
 ## Not in this feature
+
+- Lighter planks or a bigger backpack
+- Firewood, sticks, or other backpack things on a sled
 
 - The fireplace, torches, and doors
 - Floors

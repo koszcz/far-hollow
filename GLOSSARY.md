@@ -120,7 +120,7 @@ Dropped things of one kind lying together on the ground, such as seven sticks. T
 _Avoid_: Stack, heap, drop
 
 **Sled**:
-An object the player builds from the build menu and drags behind them to move several logs or debarked logs at once. It holds a fixed number of them. Dragging a sled slows the player, and their hands are busy until they let go.
+An object the player builds from the build menu and drags behind them to move several logs, debarked logs, or planks at once. It holds a fixed number of them. Dragging a sled slows the player, and their hands are busy until they let go.
 _Avoid_: Cart, wagon, wheelbarrow
 
 **Drag**:
@@ -132,7 +132,7 @@ Said of a sled that no one drags. The player can load, take from, and tip out on
 _Avoid_: Stopped, idle, left
 
 **Tip out**:
-To unload every log and debarked log from a parked sled at once. If a woodpile is next to the sled, the logs go on the woodpile as far as it has room. The rest lie on the ground beside the sled.
+To unload every log and debarked log from a parked sled at once. If a woodpile is next to the sled, the logs go on the woodpile as far as it has room. The rest lie on the ground beside the sled. Planks drop in one pile beside the sled.
 _Avoid_: Unload, empty, dump
 
 ## Acting

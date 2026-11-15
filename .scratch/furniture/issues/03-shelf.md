@@ -2,7 +2,7 @@
 
 **What to build:** The player can build a standing shelf from 4 planks. It stores small things like a chest, but holds only 30 kg.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** 01 (The chest costs planks)
 
 **Status:** ready-for-agent
 
@@ -11,7 +11,7 @@
 - [ ] The build menu lists the shelf with its cost of 4 planks, and shows its icon.
 - [ ] The shelf blueprint is placed freely, off the building grid. R rotates it. A click places it. Esc cancels.
 - [ ] A shelf blueprint cannot overlap a standing tree, a structure, or other furniture.
-- [ ] Planks come straight from the backpack. Building needs no tool.
+- [ ] Planks reach the blueprint the way ticket 01 delivers them, over several trips if needed. Building needs no tool.
 - [ ] The shelf shows its build stages.
 - [ ] A finished shelf blocks walking.
 - [ ] The player opens a shelf the same way as a chest. It uses the chest panel.

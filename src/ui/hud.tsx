@@ -551,7 +551,9 @@ function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
           <li key={material}>{strings.blueprint.deliveries[material](has, needs)}</li>
         ))}
       </ul>
-      <p class="hud-hint">{waiting === undefined ? strings.blueprint.buildHint : strings.blueprint.deliverHint[waiting.material]}</p>
+      <p class="hud-hint">
+        {waiting === undefined || blueprint.lacks === null ? strings.blueprint.buildHint : strings.blueprint.deliverHint[waiting.material]}
+      </p>
     </section>
   );
 }

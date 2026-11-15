@@ -1,5 +1,6 @@
 // All player-facing text lives here, so the game can be translated later.
 import type { BackpackContent } from "./sim/api";
+import { NEARBY_MATERIALS_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
 
 /** A weight in kilograms, to one decimal place at most, such as "5.5" or "10". */
@@ -161,8 +162,8 @@ export const strings = {
     },
     /** How to add the material the blueprint still waits for. */
     deliverHint: {
-      log: "Carry a log here and click the blueprint to add it.",
-      debarkedLog: "Carry a debarked log here and click the blueprint to add it.",
+      log: `Lay logs within ${NEARBY_MATERIALS_METRES} m of the blueprint, or carry one here and click the blueprint to add it.`,
+      debarkedLog: `Lay debarked logs within ${NEARBY_MATERIALS_METRES} m of the blueprint, or carry one here and click the blueprint to add it.`,
       plank: "Bring planks in your backpack and click the blueprint to build with them.",
     },
     buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",

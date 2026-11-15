@@ -23,6 +23,7 @@ import {
   type Entity,
   type EntityStore,
 } from "./entities";
+import type { Refusal } from "./api";
 import type { RecipeKind } from "./recipe-kind";
 import { addToPileAt } from "./piles";
 import { putPlanksOnSled, takeOffSled, type SledEntity } from "./sleds";
@@ -222,6 +223,8 @@ export interface Crafting {
   step(stepSeconds: number): CraftRefusal | DroppedBesideStation | undefined;
   /** Everything the player lacks to follow a recipe now. Empty when they can follow it. */
   lacks(kind: RecipeKind): readonly RecipeLack[];
+  /** Why the player could not follow a recipe now: everything it lacks. */
+  refusal(kind: RecipeKind): Refusal | undefined;
 }
 
 /** An entity with a place in the world, such as a work station or a log lying on the ground. */
@@ -318,6 +321,12 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
     return isStation(station, recipe.station) ? station : undefined;
   }
 
+  /** Everything the player lacks to follow a recipe now. */
+  function lacks(kind: RecipeKind): readonly RecipeLack[] {
+    const player = players.first;
+    return player?.backpack === undefined ? [] : recipeLacks(recipeOf(kind), player.backpack, hasStation);
+  }
+
   return {
     start(kind, stationId) {
       const recipe = recipeOf(kind);
@@ -401,9 +410,10 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
       }
       return refusal;
     },
-    lacks(kind) {
-      const player = players.first;
-      return player?.backpack === undefined ? [] : recipeLacks(recipeOf(kind), player.backpack, hasStation);
+    lacks,
+    refusal(kind) {
+      const lacking = lacks(kind);
+      return lacking.length === 0 ? undefined : { kind: "cannotCraftYet", lacks: lacking };
     },
   };
 }

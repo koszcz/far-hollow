@@ -1,15 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, BlueprintView, CampfireView, GameView, SledView, WoodpileView } from "../sim/api";
-import { createGame } from "../sim/game";
+import type { BackpackContent, CarriedLog, StructureKind } from "../sim/api";
+import { worldWith, type Setup } from "./test-world";
 import { actionsFor, mainAction, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
-const CAMPFIRE: ActionTarget = { kind: "scene", pick: { kind: "campfire", id: 7 } };
+// Each test sets up a real game, so every action is allowed or refused by the game's own rules.
 
 describe("a campfire's actions", () => {
   it("offers to light an unlit fire with fuel, then each fuel, then the pot, then cooking fish, then taking it down", () => {
-    const reader = readerWith({ backpack: { steelAndFlint: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
+    const world = worldWith({ backpack: { steelAndFlint: 1, stick: 2 }, campfire: { fuelMinutes: 20 } });
 
-    const actions = actionsFor(CAMPFIRE, reader);
+    const actions = actionsFor(scene("campfire", world.campfire), world.reader);
 
     expect(summary(actions)).toEqual([
       "light main",
@@ -20,15 +20,15 @@ describe("a campfire's actions", () => {
       "cookFish off: light the fire first",
       "takeDown",
     ]);
-    expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: 7 });
-    expect(find(actions, "takeDown")?.command).toEqual({ type: "takeDown", pieceId: 7 });
-    expect(actions.find(({ id }) => id === "addFuel:stick")?.command).toEqual({ type: "addFuel", campfireId: 7, fuel: "stick" });
+    expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: world.campfire });
+    expect(find(actions, "takeDown")?.command).toEqual({ type: "takeDown", pieceId: world.campfire });
+    expect(find(actions, "addFuel:stick")?.command).toEqual({ type: "addFuel", campfireId: world.campfire, fuel: "stick" });
   });
 
   it("adds the first fuel the player has to an unlit fire with no fuel, and says why lighting is off", () => {
-    const reader = readerWith({ backpack: { steelAndFlint: 1, bark: 1 }, campfire: {} });
+    const world = worldWith({ backpack: { steelAndFlint: 1, bark: 1 }, campfire: {} });
 
-    expect(summary(actionsFor(CAMPFIRE, reader))).toEqual([
+    expect(summary(actionsFor(scene("campfire", world.campfire), world.reader))).toEqual([
       "addFuel:bark main",
       "light off: no fuel",
       "addFuel:firewood off: no firewood",
@@ -40,100 +40,109 @@ describe("a campfire's actions", () => {
   });
 
   it("says lighting needs the steel and flint", () => {
-    const reader = readerWith({ backpack: { stick: 1 }, campfire: { fuelMinutes: 20 } });
+    const world = worldWith({ backpack: { stick: 1 }, campfire: { fuelMinutes: 20 } });
 
-    expect(mainAction(actionsFor(CAMPFIRE, reader))).toMatchObject({ id: "light", enabled: false, reason: "needs the steel and flint" });
+    expect(mainAction(actionsFor(scene("campfire", world.campfire), world.reader))).toMatchObject({
+      id: "light",
+      enabled: false,
+      reason: "needs the steel and flint",
+    });
   });
 
   it("feeds a lit fire firewood first, then a stick, then bark, and offers no lighting", () => {
     const lit = { lit: true, fuelMinutes: 60 };
-    const main = (backpack: Partial<Record<BackpackContent, number>>) => mainAction(actionsFor(CAMPFIRE, readerWith({ backpack, campfire: lit })))?.id;
+    const main = (backpack: Partial<Record<BackpackContent, number>>) => {
+      const world = worldWith({ backpack, campfire: lit });
+      return mainAction(actionsFor(scene("campfire", world.campfire), world.reader))?.id;
+    };
 
     expect(main({ firewood: 1, stick: 1, bark: 1 })).toBe("addFuel:firewood");
     expect(main({ stick: 1, bark: 1 })).toBe("addFuel:stick");
     expect(main({ bark: 1 })).toBe("addFuel:bark");
     expect(main({})).toBe("addFuel:firewood");
-    expect(actionsFor(CAMPFIRE, readerWith({ campfire: lit })).some(({ id }) => id === "light")).toBe(false);
+    const world = worldWith({ campfire: lit });
+    expect(actionsFor(scene("campfire", world.campfire), world.reader).some(({ id }) => id === "light")).toBe(false);
   });
 
   it("says the fire is full for fuel that no longer fits, and skips to fuel that does", () => {
-    const reader = readerWith({
-      backpack: { firewood: 1, stick: 1 },
-      campfire: { lit: true, fuelMinutes: 460, fits: { firewood: false, stick: true, bark: true } },
-    });
+    // 7 hours 40 minutes of fuel: 20 more minutes of a stick still fit, but not 90 minutes of firewood.
+    const world = worldWith({ backpack: { firewood: 1, stick: 1 }, campfire: { lit: true, fuelMinutes: 460 } });
 
-    const actions = actionsFor(CAMPFIRE, reader);
+    const actions = actionsFor(scene("campfire", world.campfire), world.reader);
 
     expect(summary(actions).slice(0, 2)).toEqual(["addFuel:stick main", "addFuel:firewood off: the fire is full"]);
   });
 
   it("puts a full pot on a lit fire, and takes a pot off when one is on", () => {
     const lit = { lit: true, fuelMinutes: 60 };
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { potOfRiverWater: 1 }, campfire: lit })), "putPotOn")).toMatchObject({
+    const withPot = worldWith({ backpack: { potOfRiverWater: 1 }, campfire: lit });
+    expect(find(actionsFor(scene("campfire", withPot.campfire), withPot.reader), "putPotOn")).toMatchObject({
       enabled: true,
-      command: { type: "putPotOnFire", campfireId: 7 },
+      command: { type: "putPotOnFire", campfireId: withPot.campfire },
     });
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { pot: 1 }, campfire: lit })), "putPotOn")?.reason).toBe("no pot of water");
+    const emptyPot = worldWith({ backpack: { pot: 1 }, campfire: lit });
+    expect(find(actionsFor(scene("campfire", emptyPot.campfire), emptyPot.reader), "putPotOn")?.reason).toBe("no pot of water");
 
-    const potOn = actionsFor(CAMPFIRE, readerWith({ campfire: { ...lit, pot: { water: "river", boilProgress: 0.5 } } }));
-    expect(find(potOn, "putPotOn")).toBeUndefined();
-    expect(find(potOn, "takePotOff")).toMatchObject({ enabled: true, command: { type: "takePotOffFire", campfireId: 7 } });
+    const potOn = worldWith({ campfire: { ...lit, pot: "river" } });
+    const actions = actionsFor(scene("campfire", potOn.campfire), potOn.reader);
+    expect(find(actions, "putPotOn")).toBeUndefined();
+    expect(find(actions, "takePotOff")).toMatchObject({ enabled: true, command: { type: "takePotOffFire", campfireId: potOn.campfire } });
   });
 
   it("puts a raw fish on a lit fire, and says why it cannot", () => {
     const lit = { lit: true, fuelMinutes: 60 };
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: lit })), "cookFish")).toMatchObject({
-      enabled: true,
-      label: "Cook fish",
-      command: { type: "cookFish", campfireId: 7 },
-    });
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: {} })), "cookFish")?.reason).toBe("light the fire first");
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { cookedFish: 2 }, campfire: lit })), "cookFish")?.reason).toBe("no raw fish");
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: { ...lit, fitsFish: false } })), "cookFish")?.reason).toBe(
-      "the fire holds 3 fish",
-    );
+    const cookFish = (setup: Setup) => {
+      const world = worldWith(setup);
+      return { world, action: find(actionsFor(scene("campfire", world.campfire), world.reader), "cookFish") };
+    };
+
+    const { world, action } = cookFish({ backpack: { rawFish: 2 }, campfire: lit });
+    expect(action).toMatchObject({ enabled: true, label: "Cook fish", command: { type: "cookFish", campfireId: world.campfire } });
+    expect(cookFish({ backpack: { rawFish: 2 }, campfire: {} }).action?.reason).toBe("light the fire first");
+    expect(cookFish({ backpack: { cookedFish: 2 }, campfire: lit }).action?.reason).toBe("no raw fish");
+    expect(cookFish({ backpack: { rawFish: 2 }, campfire: { ...lit, fish: [false, false, false] } }).action?.reason).toBe("the fire holds 3 fish");
   });
 
   it("takes fish off only when fish are on the fire", () => {
     const lit = { lit: true, fuelMinutes: 60 };
-    expect(find(actionsFor(CAMPFIRE, readerWith({ backpack: { rawFish: 2 }, campfire: lit })), "takeFishOff")).toBeUndefined();
+    const noFish = worldWith({ backpack: { rawFish: 2 }, campfire: lit });
+    expect(find(actionsFor(scene("campfire", noFish.campfire), noFish.reader), "takeFishOff")).toBeUndefined();
 
-    const fishOn = actionsFor(CAMPFIRE, readerWith({ campfire: { ...lit, fish: [{ cooked: true, cookProgress: 1 }] } }));
-    expect(find(fishOn, "takeFishOff")).toMatchObject({
+    const fishOn = worldWith({ campfire: { ...lit, fish: [true] } });
+    expect(find(actionsFor(scene("campfire", fishOn.campfire), fishOn.reader), "takeFishOff")).toMatchObject({
       enabled: true,
       label: "Take fish off",
       icon: { content: "cookedFish" },
-      command: { type: "takeFishOff", campfireId: 7 },
+      command: { type: "takeFishOff", campfireId: fishOn.campfire },
     });
   });
 
   it("greys taking down a fire with fish on it, and says to take the fish off first", () => {
-    const fishOn = actionsFor(CAMPFIRE, readerWith({ campfire: { lit: false, fuelMinutes: 0, fish: [{ cooked: false, cookProgress: 0.4 }] } }));
+    const world = worldWith({ campfire: { fish: [false] } });
 
-    expect(summary(fishOn).at(-1)).toBe("takeDown off: take the fish off first");
+    expect(summary(actionsFor(scene("campfire", world.campfire), world.reader)).at(-1)).toBe("takeDown off: take the fish off first");
   });
 
   it("greys taking down a fire with a pot on it, and says to take the pot off first", () => {
-    const potOn = actionsFor(CAMPFIRE, readerWith({ campfire: { lit: true, fuelMinutes: 60, pot: { water: "river", boilProgress: 0.5 } } }));
+    const world = worldWith({ campfire: { lit: true, fuelMinutes: 60, pot: "river" } });
 
-    expect(summary(potOn).at(-1)).toBe("takeDown off: take the pot off first");
+    expect(summary(actionsFor(scene("campfire", world.campfire), world.reader)).at(-1)).toBe("takeDown off: take the pot off first");
   });
 
   it("gives every entry an icon and a name", () => {
-    for (const action of actionsFor(CAMPFIRE, readerWith({ campfire: {} }))) {
+    const world = worldWith({ campfire: {} });
+    for (const action of actionsFor(scene("campfire", world.campfire), world.reader)) {
       expect(action.label.length).toBeGreaterThan(0);
       expect(action.icon).toBeDefined();
     }
   });
 });
 
-const WOODPILE: ActionTarget = { kind: "scene", pick: { kind: "woodpile", id: 8 } };
-
 describe("a woodpile's actions", () => {
   it("stacks the log on the player's shoulder first, then lists firewood, each wood to take, and taking it down", () => {
-    const reader = readerWith({ carrying: "log", backpack: { firewood: 2 }, woodpile: { contents: { log: 1, debarkedLog: 0, firewood: 3 }, total: 4 } });
+    const world = worldWith({ carrying: "log", backpack: { firewood: 2 }, woodpile: { log: 1, firewood: 3 } });
 
-    expect(summary(actionsFor(WOODPILE, reader))).toEqual([
+    expect(summary(actionsFor(scene("woodpile", world.woodpile), world.reader))).toEqual([
       "stack:log main",
       "stack:firewood",
       "stack:firewood:all",
@@ -145,9 +154,9 @@ describe("a woodpile's actions", () => {
   });
 
   it("takes firewood when the player carries nothing, greys stacking the log, and stacks all firewood with its own entry", () => {
-    const reader = readerWith({ backpack: { firewood: 2 }, woodpile: { contents: { log: 0, debarkedLog: 2, firewood: 1 }, total: 3 } });
+    const world = worldWith({ backpack: { firewood: 2 }, woodpile: { debarkedLog: 2, firewood: 1 } });
 
-    const actions = actionsFor(WOODPILE, reader);
+    const actions = actionsFor(scene("woodpile", world.woodpile), world.reader);
 
     expect(summary(actions)).toEqual([
       "take:firewood main",
@@ -160,51 +169,46 @@ describe("a woodpile's actions", () => {
     ]);
     expect(find(actions, "stack:firewood:all")).toMatchObject({
       label: "Stack all firewood",
-      command: { type: "stackOnWoodpile", woodpileId: 8, wood: "firewood", all: true },
+      command: { type: "stackOnWoodpile", woodpileId: world.woodpile, wood: "firewood", all: true },
     });
-    expect(find(actions, "take:debarkedLog")?.command).toEqual({ type: "takeFromWoodpile", woodpileId: 8, wood: "debarkedLog" });
+    expect(find(actions, "take:debarkedLog")?.command).toEqual({ type: "takeFromWoodpile", woodpileId: world.woodpile, wood: "debarkedLog" });
   });
 
   it("says the woodpile is full, and that the player has no firewood", () => {
-    const full = readerWith({
-      carrying: "debarkedLog",
-      backpack: { firewood: 1 },
-      woodpile: { contents: { log: 20, debarkedLog: 0, firewood: 0 }, total: 20 },
-    });
-    expect(summary(actionsFor(WOODPILE, full)).slice(0, 3)).toEqual([
+    const full = worldWith({ carrying: "debarkedLog", backpack: { firewood: 1 }, woodpile: { log: 20 } });
+    expect(summary(actionsFor(scene("woodpile", full.woodpile), full.reader)).slice(0, 3)).toEqual([
       "stack:debarkedLog main off: the woodpile is full",
       "stack:firewood off: the woodpile is full",
       "stack:firewood:all off: the woodpile is full",
     ]);
 
-    const empty = readerWith({ woodpile: {} });
-    expect(find(actionsFor(WOODPILE, empty), "stack:firewood")?.reason).toBe("no firewood");
-    expect(find(actionsFor(WOODPILE, empty), "takeDown")?.enabled).toBe(true);
+    const empty = worldWith({ woodpile: {} });
+    const actions = actionsFor(scene("woodpile", empty.woodpile), empty.reader);
+    expect(find(actions, "stack:firewood")?.reason).toBe("no firewood");
+    expect(find(actions, "takeDown")?.enabled).toBe(true);
   });
 
   it("takes a log when the player carries nothing and the woodpile holds no firewood", () => {
-    const reader = readerWith({ woodpile: { contents: { log: 2, debarkedLog: 0, firewood: 0 }, total: 2 } });
-    expect(mainAction(actionsFor(WOODPILE, reader))?.id).toBe("take:log");
+    const world = worldWith({ woodpile: { log: 2 } });
+    expect(mainAction(actionsFor(scene("woodpile", world.woodpile), world.reader))?.id).toBe("take:log");
   });
 
   it("stacks firewood when the player carries no log and the woodpile has nothing to take", () => {
-    const reader = readerWith({ backpack: { firewood: 2 }, woodpile: {} });
-    expect(mainAction(actionsFor(WOODPILE, reader))?.id).toBe("stack:firewood");
+    const world = worldWith({ backpack: { firewood: 2 }, woodpile: {} });
+    expect(mainAction(actionsFor(scene("woodpile", world.woodpile), world.reader))?.id).toBe("stack:firewood");
   });
 
   it("still names taking firewood, greyed, when the player can do nothing at the woodpile", () => {
-    const reader = readerWith({ woodpile: {} });
-    expect(summary(actionsFor(WOODPILE, reader))[0]).toBe("take:firewood main off: nothing to take");
+    const world = worldWith({ woodpile: {} });
+    expect(summary(actionsFor(scene("woodpile", world.woodpile), world.reader))[0]).toBe("take:firewood main off: nothing to take");
   });
 });
 
-const SLED: ActionTarget = { kind: "scene", pick: { kind: "sled", id: 9 } };
-
 describe("a sled's actions", () => {
   it("puts the log on the player's shoulder on the sled, then lists dragging, each kind to take, tipping out, and taking it down", () => {
-    const reader = readerWith({ carrying: "debarkedLog", sled: { contents: { log: 2, debarkedLog: 1, plank: 0 }, total: 3 } });
+    const world = worldWith({ carrying: "debarkedLog", sled: { log: 2, debarkedLog: 1 } });
 
-    const actions = actionsFor(SLED, reader);
+    const actions = actionsFor(scene("sled", world.sled), world.reader);
 
     expect(summary(actions)).toEqual([
       "load:debarkedLog main",
@@ -214,226 +218,232 @@ describe("a sled's actions", () => {
       "tipOut",
       "takeDown",
     ]);
-    expect(find(actions, "load:debarkedLog")).toMatchObject({ label: "Put the debarked log on the sled", command: { type: "loadSled", sledId: 9 } });
-    expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out everything", command: { type: "tipOutSled", sledId: 9 } });
+    expect(find(actions, "load:debarkedLog")).toMatchObject({ label: "Put the debarked log on the sled", command: { type: "loadSled", sledId: world.sled } });
+    expect(find(actions, "tipOut")).toMatchObject({ label: "Tip out everything", command: { type: "tipOutSled", sledId: world.sled } });
   });
 
   it("drags the sled when the player carries nothing, then takes one log, offering only the kinds the sled holds", () => {
-    const logsOnly = readerWith({ sled: { contents: { log: 2, debarkedLog: 0, plank: 0 }, total: 2 } });
-    expect(summary(actionsFor(SLED, logsOnly))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
-    expect(find(actionsFor(SLED, logsOnly), "drag")).toMatchObject({ label: "Drag the sled", command: { type: "dragSled", sledId: 9 } });
+    const logsOnly = worldWith({ sled: { log: 2 } });
+    const logsOnlyActions = actionsFor(scene("sled", logsOnly.sled), logsOnly.reader);
+    expect(summary(logsOnlyActions)).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+    expect(find(logsOnlyActions, "drag")).toMatchObject({ label: "Drag the sled", command: { type: "dragSled", sledId: logsOnly.sled } });
 
-    const empty = readerWith({ sled: { contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0 } });
-    expect(summary(actionsFor(SLED, empty))).toEqual(["drag main", "take:log off: nothing to take", "tipOut off: nothing to take", "takeDown"]);
+    const empty = worldWith({ sled: {} });
+    expect(summary(actionsFor(scene("sled", empty.sled), empty.reader))).toEqual([
+      "drag main",
+      "take:log off: nothing to take",
+      "tipOut off: nothing to take",
+      "takeDown",
+    ]);
 
-    const mixed = actionsFor(SLED, readerWith({ sled: { contents: { log: 1, debarkedLog: 1, plank: 0 }, total: 2 } }));
-    expect(summary(mixed).slice(0, 3)).toEqual(["drag main", "take:log", "take:debarkedLog"]);
-    expect(find(mixed, "take:debarkedLog")?.command).toEqual({ type: "takeFromSled", sledId: 9, log: "debarkedLog" });
+    const mixed = worldWith({ sled: { log: 1, debarkedLog: 1 } });
+    const mixedActions = actionsFor(scene("sled", mixed.sled), mixed.reader);
+    expect(summary(mixedActions).slice(0, 3)).toEqual(["drag main", "take:log", "take:debarkedLog"]);
+    expect(find(mixedActions, "take:debarkedLog")?.command).toEqual({ type: "takeFromSled", sledId: mixed.sled, log: "debarkedLog" });
   });
 
   it("says the sled is full", () => {
-    const full = readerWith({ carrying: "log", sled: { contents: { log: 6, debarkedLog: 0, plank: 0 }, total: 6 } });
+    const world = worldWith({ carrying: "log", sled: { log: 6 } });
 
-    expect(summary(actionsFor(SLED, full))[0]).toBe("load:log main off: the sled is full");
+    expect(summary(actionsFor(scene("sled", world.sled), world.reader))[0]).toBe("load:log main off: the sled is full");
   });
 
   it("loads planks when the backpack holds some, and takes planks when the sled holds some", () => {
-    const reader = readerWith({ backpack: { plank: 3 }, sled: { contents: { log: 1, debarkedLog: 0, plank: 5 } } });
+    const world = worldWith({ backpack: { plank: 3 }, sled: { log: 1, plank: 5 } });
 
-    const actions = actionsFor(SLED, reader);
+    const actions = actionsFor(scene("sled", world.sled), world.reader);
 
     expect(summary(actions)).toEqual(["drag main", "load:plank", "take:log", "take:plank", "tipOut", "takeDown"]);
-    expect(find(actions, "load:plank")).toMatchObject({ label: "Load planks", command: { type: "loadPlanksOnSled", sledId: 9 } });
-    expect(find(actions, "take:plank")).toMatchObject({ label: "Take planks", command: { type: "takePlanksFromSled", sledId: 9 } });
+    expect(find(actions, "load:plank")).toMatchObject({ label: "Load planks", command: { type: "loadPlanksOnSled", sledId: world.sled } });
+    expect(find(actions, "take:plank")).toMatchObject({ label: "Take planks", command: { type: "takePlanksFromSled", sledId: world.sled } });
   });
 
   it("offers no plank actions when neither the backpack nor the sled holds planks", () => {
-    const reader = readerWith({ sled: { contents: { log: 1, debarkedLog: 0, plank: 0 } } });
+    const world = worldWith({ sled: { log: 1 } });
 
-    expect(summary(actionsFor(SLED, reader))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+    expect(summary(actionsFor(scene("sled", world.sled), world.reader))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
   });
 
   it("says the sled is full of planks, and refuses a log when no whole log space is free", () => {
-    const planksFull = readerWith({ backpack: { plank: 1 }, sled: { contents: { log: 0, debarkedLog: 0, plank: 24 } } });
-    expect(summary(actionsFor(SLED, planksFull))).toContain("load:plank off: the sled is full");
+    const planksFull = worldWith({ backpack: { plank: 1 }, sled: { plank: 24 } });
+    expect(summary(actionsFor(scene("sled", planksFull.sled), planksFull.reader))).toContain("load:plank off: the sled is full");
 
-    const oneQuarterLeft = readerWith({ carrying: "log", sled: { contents: { log: 5, debarkedLog: 0, plank: 1 } } });
-    expect(summary(actionsFor(SLED, oneQuarterLeft))[0]).toBe("load:log main off: the sled is full");
+    const oneQuarterLeft = worldWith({ carrying: "log", sled: { log: 5, plank: 1 } });
+    expect(summary(actionsFor(scene("sled", oneQuarterLeft.sled), oneQuarterLeft.reader))[0]).toBe("load:log main off: the sled is full");
   });
 
   it("only lets go of the sled the player drags", () => {
-    const dragging = readerWith({ sled: { contents: { log: 2, debarkedLog: 0, plank: 0 }, total: 2 }, dragging: 9 });
+    const world = worldWith({ sled: { log: 2 }, dragging: "thisSled" });
 
-    const actions = actionsFor(SLED, dragging);
+    const actions = actionsFor(scene("sled", world.sled), world.reader);
 
     expect(summary(actions)).toEqual(["letGo main"]);
     expect(actions[0]).toMatchObject({ label: "Let go of the sled", command: { type: "letGoOfSled" } });
   });
 
   it("drags one sled at a time", () => {
-    const draggingAnother = readerWith({ sled: { contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0 }, dragging: 12 });
+    const world = worldWith({ sled: {}, dragging: "anotherSled" });
 
-    expect(summary(actionsFor(SLED, draggingAnother))[0]).toBe("drag main off: let go of the sled first");
+    expect(summary(actionsFor(scene("sled", world.sled), world.reader))[0]).toBe("drag main off: let go of the sled first");
   });
 });
 
 describe("actions while dragging a sled", () => {
   it("turns off shouldering a log, gathering, chopping, and building, since the player's hands are busy", () => {
-    const scene = (pick: Extract<ActionTarget, { kind: "scene" }>["pick"]): ActionTarget => ({ kind: "scene", pick });
-    const reader = readerWith({ backpack: { axe: 1, drawknife: 1 }, dragging: 12 });
+    const world = worldWith({ backpack: { axe: 1, drawknife: 1 }, dragging: "anotherSled" });
 
-    expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), reader))).toEqual(["chop main off: let go of the sled first"]);
-    expect(summary(actionsFor(scene({ kind: "log", id: 4 }), reader))).toEqual([
+    expect(summary(actionsFor(scene("tree", 3), world.reader))).toEqual(["chop main off: let go of the sled first"]);
+    expect(summary(actionsFor(scene("log", 4), world.reader))).toEqual([
       "pickUp main off: let go of the sled first",
       "split off: let go of the sled first",
       "debark off: let go of the sled first",
     ]);
-    expect(summary(actionsFor(scene({ kind: "stick", id: 5 }), reader))[0]).toBe("pickUp main off: let go of the sled first");
+    expect(summary(actionsFor(scene("stick", 5), world.reader))[0]).toBe("pickUp main off: let go of the sled first");
   });
 
   it("turns off fishing, but not drinking", () => {
-    const river: ActionTarget = { kind: "scene", pick: { kind: "river", spot: { x: 1, z: 2 } } };
-    const reader = readerWith({ backpack: { fishingRod: 1 }, dragging: 12 });
+    const world = worldWith({ backpack: { fishingRod: 1 }, dragging: "anotherSled" });
 
-    expect(summary(actionsFor(river, reader))).toEqual(["drink main", "fish off: let go of the sled first"]);
+    expect(summary(actionsFor(river(), world.reader))).toEqual(["drink main", "fish off: let go of the sled first"]);
   });
 
   it("still lets the player eat and drink", () => {
-    const reader = readerWith({ backpack: { berries: 2 }, dragging: 12 });
+    const world = worldWith({ backpack: { berries: 2 }, dragging: "anotherSled" });
 
-    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, reader))).toEqual(["use main", "drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, world.reader))).toEqual(["use main", "drop"]);
   });
 });
 
 describe("other things' actions", () => {
-  const scene = (pick: Extract<ActionTarget, { kind: "scene" }>["pick"]): ActionTarget => ({ kind: "scene", pick });
-
   it("walks over the ground, with nothing else", () => {
-    expect(summary(actionsFor(scene({ kind: "ground", spot: { x: 1, z: 2 } }), readerWith({})))).toEqual(["walk main"]);
+    expect(summary(actionsFor(ground(), worldWith({}).reader))).toEqual(["walk main"]);
   });
 
   it("walks over the ground, or drops the carried log there", () => {
-    const actions = actionsFor(scene({ kind: "ground", spot: { x: 1, z: 2 } }), readerWith({ carrying: "debarkedLog" }));
+    const actions = actionsFor(ground(), worldWith({ carrying: "debarkedLog" }).reader);
     expect(summary(actions)).toEqual(["walk main", "dropHere"]);
     expect(actions[1]?.command).toEqual({ type: "dropLogAt", x: 1, z: 2 });
   });
 
   it("drinks from the river, then fishes there with the fishing rod", () => {
-    const actions = actionsFor(scene({ kind: "river", spot: { x: 1, z: 2 } }), readerWith({ backpack: { fishingRod: 1 } }));
+    const actions = actionsFor(river(), worldWith({ backpack: { fishingRod: 1 } }).reader);
 
     expect(summary(actions)).toEqual(["drink main", "fish"]);
     expect(find(actions, "fish")).toMatchObject({ label: "Fish", command: { type: "fish", x: 1, z: 2 } });
   });
 
   it("says fishing needs the fishing rod, and free hands", () => {
-    const river = scene({ kind: "river", spot: { x: 1, z: 2 } });
-
-    expect(summary(actionsFor(river, readerWith({ backpack: { fishingLine: 1 } })))).toEqual(["drink main", "fish off: needs the fishing rod"]);
-    expect(summary(actionsFor(river, readerWith({ backpack: { fishingRod: 1 }, carrying: "log" })))).toEqual([
+    expect(summary(actionsFor(river(), worldWith({ backpack: { fishingLine: 1 } }).reader))).toEqual(["drink main", "fish off: needs the fishing rod"]);
+    expect(summary(actionsFor(river(), worldWith({ backpack: { fishingRod: 1 }, carrying: "log" }).reader))).toEqual([
       "drink main",
       "fish off: put the log down first",
     ]);
   });
 
   it("eats raw fish from the backpack", () => {
-    const actions = actionsFor({ kind: "backpackContent", content: "rawFish" }, readerWith({ backpack: { rawFish: 2 } }));
+    const actions = actionsFor({ kind: "backpackContent", content: "rawFish" }, worldWith({ backpack: { rawFish: 2 } }).reader);
 
     expect(summary(actions)).toEqual(["use main", "drop"]);
     expect(actions[0]).toMatchObject({ label: "Eat", command: { type: "eat", food: "rawFish" } });
   });
 
   it("eats cooked fish from the backpack", () => {
-    const actions = actionsFor({ kind: "backpackContent", content: "cookedFish" }, readerWith({ backpack: { cookedFish: 2 } }));
+    const actions = actionsFor({ kind: "backpackContent", content: "cookedFish" }, worldWith({ backpack: { cookedFish: 2 } }).reader);
 
     expect(summary(actions)).toEqual(["use main", "drop"]);
     expect(actions[0]).toMatchObject({ label: "Eat", command: { type: "eat", food: "cookedFish" } });
   });
 
   it("chops a tree, and says it needs the axe without one", () => {
-    expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({ backpack: { axe: 1 } })))).toEqual(["chop main"]);
-    expect(summary(actionsFor(scene({ kind: "tree", id: 3 }), readerWith({})))).toEqual(["chop main off: needs the axe"]);
+    expect(summary(actionsFor(scene("tree", 3), worldWith({ backpack: { axe: 1 } }).reader))).toEqual(["chop main"]);
+    expect(summary(actionsFor(scene("tree", 3), worldWith({}).reader))).toEqual(["chop main off: needs the axe"]);
   });
 
   it("picks up a log, splits it, or debarks it", () => {
-    const log = scene({ kind: "log", id: 4 });
-    const actions = actionsFor(log, readerWith({ backpack: { axe: 1, drawknife: 1 } }));
+    const actions = actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1, drawknife: 1 } }).reader);
     expect(summary(actions)).toEqual(["pickUp main", "split", "debark"]);
     expect(find(actions, "split")).toMatchObject({ label: "Split into firewood", command: { type: "splitLog", logId: 4 } });
-    expect(summary(actionsFor(log, readerWith({ backpack: { axe: 1 }, carrying: "log" })))).toEqual([
+    expect(summary(actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1 }, carrying: "log" }).reader))).toEqual([
       "pickUp main off: your shoulder is full",
       "split off: your shoulder is full",
       "debark off: needs the drawknife",
     ]);
-    expect(summary(actionsFor(log, readerWith({})))[1]).toBe("split off: needs the axe");
+    expect(summary(actionsFor(scene("log", 4), worldWith({}).reader))[1]).toBe("split off: needs the axe");
   });
 
   it("only picks up a debarked log", () => {
-    expect(summary(actionsFor(scene({ kind: "debarkedLog", id: 4 }), readerWith({ backpack: { axe: 1 } })))).toEqual(["pickUp main"]);
+    expect(summary(actionsFor(scene("debarkedLog", 4), worldWith({ backpack: { axe: 1 } }).reader))).toEqual(["pickUp main"]);
   });
 
   it("fills the empty pot at the river", () => {
-    const river = scene({ kind: "river", spot: { x: 1, z: 2 } });
-    const actions = actionsFor(river, readerWith({ backpack: { pot: 1 } }));
+    const actions = actionsFor(river(), worldWith({ backpack: { pot: 1 } }).reader);
 
     expect(summary(actions)).toEqual(["drink main", "fillPot", "fish off: needs the fishing rod"]);
     expect(find(actions, "fillPot")).toMatchObject({ label: "Fill the pot", command: { type: "fillPot" } });
-    expect(summary(actionsFor(river, readerWith({ backpack: { potOfRiverWater: 1 } })))).not.toContain("fillPot");
+    expect(summary(actionsFor(river(), worldWith({ backpack: { potOfRiverWater: 1 } }).reader))).not.toContain("fillPot");
   });
 
   it("sleeps on a laid bedroll, or picks it up", () => {
-    expect(summary(actionsFor(scene({ kind: "bedroll", id: 5 }), readerWith({})))).toEqual(["sleep main", "pickUp"]);
+    expect(summary(actionsFor(scene("bedroll", 5), worldWith({}).reader))).toEqual(["sleep main", "pickUp"]);
   });
 
   it("sleeps in a bed as its main action, or takes it down", () => {
-    const actions = actionsFor(scene({ kind: "bed", id: 7 }), readerWith({}));
+    const actions = actionsFor(scene("bed", 7), worldWith({}).reader);
     expect(summary(actions)).toEqual(["sleep main", "takeDown"]);
     expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: 7 });
   });
 
   it("offers only taking down a table, since eating at it needs no new action", () => {
-    expect(summary(actionsFor(scene({ kind: "table", id: 8 }), readerWith({})))).toEqual(["takeDown"]);
+    expect(summary(actionsFor(scene("table", 8), worldWith({}).reader))).toEqual(["takeDown"]);
   });
 
   it("sits on a stool as its main action, or takes it down", () => {
-    const actions = actionsFor(scene({ kind: "stool", id: 8 }), readerWith({}));
+    const actions = actionsFor(scene("stool", 8), worldWith({}).reader);
     expect(summary(actions)).toEqual(["sit main", "takeDown"]);
     expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: 8 });
   });
 
   it("opens a chest, or takes it down", () => {
-    expect(summary(actionsFor(scene({ kind: "chest", id: 6 }), readerWith({})))).toEqual(["open main", "takeDown"]);
-    expect(summary(actionsFor(scene({ kind: "shelf", id: 7 }), readerWith({})))).toEqual(["open main", "takeDown"]);
-    expect(find(actionsFor(scene({ kind: "shelf", id: 7 }), readerWith({})), "open")?.command).toEqual({ type: "openChest", chestId: 7 });
+    expect(summary(actionsFor(scene("chest", 6), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
+    expect(summary(actionsFor(scene("shelf", 7), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
+    expect(find(actionsFor(scene("shelf", 7), worldWith({}).reader), "open")?.command).toEqual({ type: "openChest", chestId: 7 });
+  });
+
+  it("greys taking down a chest that still holds something, and says to empty it first", () => {
+    const world = worldWith({});
+    const chest = world.add({
+      furniture: "chest",
+      storage: { contents: { stick: 2 } },
+      facing: { turns: 0 },
+    });
+
+    expect(summary(actionsFor(scene("chest", chest), world.reader))).toEqual(["open main", "takeDown off: empty it first"]);
   });
 
   it("builds a blueprint, adds a carried debarked log it needs first, and takes it down", () => {
-    const blueprint = {
-      id: 9,
-      structure: "foundation" as const,
-      progress: 0,
-      deliveries: [{ material: "debarkedLog" as const, has: 1, needs: 4 }],
-      lacks: null,
+    const blueprint = (carrying: CarriedLog | undefined) => {
+      const world = worldWith(carrying === undefined ? {} : { carrying });
+      const id = world.addBlueprint("foundation", { debarkedLog: 1 });
+      return summary(actionsFor(scene("blueprint", id), world.reader));
     };
-    const reader = (carrying: GameView["carrying"]): ActionReader => ({ ...readerWith({ carrying }), describeBlueprint: () => blueprint });
 
-    expect(summary(actionsFor(scene({ kind: "blueprint", id: 9 }), reader("debarkedLog")))).toEqual(["deliver:debarkedLog main", "build", "takeDown"]);
-    expect(summary(actionsFor(scene({ kind: "blueprint", id: 9 }), reader(null)))).toEqual(["build main", "takeDown"]);
+    expect(blueprint("debarkedLog")).toEqual(["deliver:debarkedLog main", "build", "takeDown"]);
+    expect(blueprint(undefined)).toEqual(["build main", "takeDown"]);
   });
 
   it("greys out building, with why, when the player lacks a tool or material", () => {
-    const lacking = (lacks: BlueprintView["lacks"]): ActionReader => ({
-      ...readerWith({}),
-      describeBlueprint: () => ({ id: 9, structure: "campfire", progress: 0, deliveries: [], lacks }),
-    });
-    const build = (lacks: BlueprintView["lacks"]) => mainAction(actionsFor(scene({ kind: "blueprint", id: 9 }), lacking(lacks)));
+    const build = (structure: StructureKind) => {
+      const world = worldWith({});
+      return mainAction(actionsFor(scene("blueprint", world.addBlueprint(structure)), world.reader));
+    };
 
-    expect(build({ kind: "material", material: "stick" })).toMatchObject({ id: "build", enabled: false, reason: "no sticks" });
-    expect(build({ kind: "material", material: "debarkedLog" })).toMatchObject({ enabled: false, reason: "bring a debarked log first" });
-    expect(build({ kind: "tool", tool: "axe" })).toMatchObject({ enabled: false, reason: "needs the axe" });
+    expect(build("campfire")).toMatchObject({ id: "build", enabled: false, reason: "no sticks" });
+    expect(build("foundation")).toMatchObject({ enabled: false, reason: "bring a debarked log first" });
+    expect(build("chest")).toMatchObject({ enabled: false, reason: "needs the axe" });
   });
 
   it("opens a work station's menu, lists the recipes made there, then takes it down", () => {
-    const actions = actionsFor(scene({ kind: "workStation", id: 10, station: "sawhorse" }), readerWith({}));
+    const actions = actionsFor({ kind: "scene", pick: { kind: "workStation", id: 10, station: "sawhorse" } }, worldWith({}).reader);
 
     expect(actions.map(({ id }) => id)).toEqual(["openMenu", "craft:planks", "takeDown"]);
     expect(mainAction(actions)?.command).toBeUndefined();
@@ -445,24 +455,26 @@ describe("other things' actions", () => {
   });
 
   it("acts on the thing under a finished structure, then takes the structure down", () => {
-    const actions = actionsFor(scene({ kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: 4 } }), readerWith({}));
+    const pick = { kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: 4 } } as const;
+    const actions = actionsFor({ kind: "scene", pick }, worldWith({}).reader);
 
     expect(summary(actions)).toEqual(["pickUp main", "takeDownStructure"]);
     expect(find(actions, "takeDownStructure")?.command).toEqual({ type: "takeDown", pieceId: 11 });
   });
 
   it("offers a walk onto a finished structure with ground under it, then taking it down", () => {
-    const actions = actionsFor(scene({ kind: "structure", id: 11, structure: "foundation", under: { kind: "ground", spot: { x: 0, z: 0 } } }), readerWith({}));
+    const pick = { kind: "structure", id: 11, structure: "foundation", under: { kind: "ground", spot: { x: 0, z: 0 } } } as const;
+    const actions = actionsFor({ kind: "scene", pick }, worldWith({}).reader);
 
     expect(summary(actions)).toEqual(["walk main", "takeDownStructure"]);
   });
 
   it("eats food from the hotbar, then drops it, and puts it in an open chest first", () => {
-    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, readerWith({ backpack: { berries: 2 } })))).toEqual(["use main", "drop"]);
-    expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, readerWith({ backpack: { stick: 2 } })))).toEqual(["drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, worldWith({ backpack: { berries: 2 } }).reader))).toEqual(["use main", "drop"]);
+    expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, worldWith({ backpack: { stick: 2 } }).reader))).toEqual(["drop"]);
 
     const chest = { id: 12, furniture: "chest" as const, contents: {}, weight: 0, weightLimit: 60 };
-    const withChest = readerWith({ backpack: { berries: 2 } });
+    const withChest = worldWith({ backpack: { berries: 2 } }).reader;
     const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
     const actions = actionsFor({ kind: "backpackContent", content: "berries" }, chestReader);
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
@@ -472,7 +484,7 @@ describe("other things' actions", () => {
 
   it("puts things on an open shelf first, named as a shelf", () => {
     const shelf = { id: 14, furniture: "shelf" as const, contents: {}, weight: 0, weightLimit: 30 };
-    const withShelf = readerWith({ backpack: { stick: 2 } });
+    const withShelf = worldWith({ backpack: { stick: 2 } }).reader;
     const shelfReader: ActionReader = { ...withShelf, getView: () => ({ ...withShelf.getView(), nearby: [{ kind: "openChest", view: shelf }] }) };
     const actions = actionsFor({ kind: "backpackContent", content: "stick" }, shelfReader);
 
@@ -483,8 +495,8 @@ describe("other things' actions", () => {
   });
 
   it("drops the log on the shoulder, or splits it with the axe", () => {
-    expect(summary(actionsFor({ kind: "shoulder", log: "log" }, readerWith({ carrying: "log" })))).toEqual(["drop main", "split off: needs the axe"]);
-    expect(summary(actionsFor({ kind: "shoulder", log: "debarkedLog" }, readerWith({ carrying: "debarkedLog" })))).toEqual(["drop main"]);
+    expect(summary(actionsFor({ kind: "shoulder", log: "log" }, worldWith({ carrying: "log" }).reader))).toEqual(["drop main", "split off: needs the axe"]);
+    expect(summary(actionsFor({ kind: "shoulder", log: "debarkedLog" }, worldWith({ carrying: "debarkedLog" }).reader))).toEqual(["drop main"]);
   });
 });
 
@@ -497,53 +509,18 @@ function summary(actions: readonly ThingAction[]): string[] {
   return actions.map(({ id, isMain, enabled, reason }) => [id, isMain ? "main" : "", enabled ? "" : `off: ${reason}`].filter(Boolean).join(" "));
 }
 
-const START_VIEW = createGame({ seed: 42 }).client.getView();
+type ThingKind =
+  "campfire" | "woodpile" | "sled" | "tree" | "log" | "debarkedLog" | "stick" | "bedroll" | "bed" | "table" | "stool" | "chest" | "shelf" | "blueprint";
 
-/** A reader whose view has this backpack and shoulder, and which describes campfire 7 and woodpile 8 as given. */
-function readerWith({
-  backpack = {},
-  carrying = null,
-  campfire,
-  woodpile,
-  sled,
-  dragging,
-}: {
-  backpack?: Partial<Record<BackpackContent, number>>;
-  carrying?: GameView["carrying"];
-  campfire?: Partial<CampfireView>;
-  woodpile?: Partial<WoodpileView>;
-  sled?: Partial<SledView>;
-  /** The id of the sled the player drags, if any. */
-  dragging?: number;
-}): ActionReader {
-  const draggedSled: SledView | null =
-    dragging === undefined ? null : { id: dragging, contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0, capacity: 6, logsThatFit: 6, planksThatFit: 24 };
-  const view: GameView = { ...START_VIEW, backpack, carrying, dragging: draggedSled };
-  const fullCampfire: CampfireView = {
-    id: 7,
-    lit: false,
-    fuelLeft: 0,
-    fuelMinutes: 0,
-    canLight: false,
-    fits: { stick: true, firewood: true, bark: true },
-    pot: null,
-    fish: [],
-    fitsFish: true,
-    ...campfire,
-  };
-  const fullWoodpile: WoodpileView = { id: 8, contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20, ...woodpile };
-  return {
-    getView: () => view,
-    describeBlueprint: () => null,
-    describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
-    describeWoodpile: (id) => (id === 8 && woodpile !== undefined ? fullWoodpile : null),
-    describeSled: (id) => (id === 9 && sled !== undefined ? { ...sledView(9, sled.contents ?? { log: 0, debarkedLog: 0, plank: 0 }), ...sled } : null),
-  };
+/** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */
+function scene(kind: ThingKind, id: number): ActionTarget {
+  return { kind: "scene", pick: { kind, id } };
 }
 
-/** A sled with this load, as the game describes it: 6 log spaces, each holding a log, a debarked log, or 4 planks. */
-function sledView(id: number, contents: SledView["contents"]): SledView {
-  const logs = contents.log + contents.debarkedLog;
-  const planksThatFit = (6 - logs) * 4 - contents.plank;
-  return { id, contents, total: logs + contents.plank / 4, capacity: 6, logsThatFit: Math.floor(planksThatFit / 4), planksThatFit };
+function ground(): ActionTarget {
+  return { kind: "scene", pick: { kind: "ground", spot: { x: 1, z: 2 } } };
+}
+
+function river(): ActionTarget {
+  return { kind: "scene", pick: { kind: "river", spot: { x: 1, z: 2 } } };
 }

@@ -1,5 +1,6 @@
-import { hasInBackpack } from "./backpack";
+import type { Refusal } from "./api";
 import { shoulderLog } from "./carrying";
+import { toolRefusal } from "./refusals";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
@@ -25,6 +26,8 @@ const CHOP_REACH_METRES = 1;
 export interface Chopping {
   /** Sets the player walking to a standing tree to chop it. Does nothing if the entity is not a standing tree or the player has no axe. */
   start(treeId: number): void;
+  /** Why the player could not chop a tree now: without the axe. */
+  refusal(): Refusal | undefined;
   /** Stops the player chopping, or walking to chop. The tree keeps standing. */
   cancel(): void;
   /** Moves every chop on by one logic step. Run it after walking has moved the player. */
@@ -40,11 +43,14 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
       const tree = entities.entity(treeId);
       if (tree?.tree !== true || tree.position === undefined) return;
       for (const player of players) {
-        if (player.backpack === undefined || !hasInBackpack(player.backpack, "axe")) continue;
+        if (toolRefusal(player, "axe") !== undefined) continue;
         walking.walkTo(tree.position);
         const task = { treeId, secondsDone: 0 };
         setComponent(entities, player, "chopTask", task);
       }
+    },
+    refusal() {
+      return toolRefusal(players.first, "axe");
     },
     cancel() {
       for (const player of players) entities.removeComponent(player, "chopTask");

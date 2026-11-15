@@ -96,9 +96,8 @@ describe("tending a campfire from out of reach", () => {
 });
 
 describe("describing a campfire or woodpile by its id", () => {
-  it("describes a campfire out of reach, with which fuel still fits and whether the player could light it", () => {
+  it("describes a campfire out of reach", () => {
     const { game, campfire } = gameWithCampfire();
-    // 7 hours 40 minutes of fuel: 20 more minutes of a stick or bark still fit, but not 90 minutes of firewood.
     campfire.campfire.fuelMinutes = 460;
     walkAway(game);
 
@@ -107,21 +106,21 @@ describe("describing a campfire or woodpile by its id", () => {
       lit: false,
       fuelLeft: 460 / 480,
       fuelMinutes: 460,
-      canLight: true,
-      fits: { stick: true, bark: true, firewood: false },
       pot: null,
       fish: [],
-      fitsFish: true,
     });
   });
 
-  it("says a campfire cannot be lit without a steel and flint, even out of reach", () => {
+  it("says why a campfire out of reach cannot be lit or take more fuel, since the player would walk there first", () => {
     const { game, campfire } = gameWithCampfire();
-    campfire.campfire.fuelMinutes = 60;
+    const campfireId = idOf(game, campfire);
+    campfire.campfire.fuelMinutes = 460;
     give(game, "steelAndFlint", -1);
+    give(game, "firewood", 1);
     walkAway(game);
 
-    expect(game.client.describeCampfire(idOf(game, campfire))?.canLight).toBe(false);
+    expect(game.client.refusal({ type: "lightCampfire", campfireId })).toEqual({ kind: "needsTool", tool: "steelAndFlint" });
+    expect(game.client.refusal({ type: "addFuel", campfireId, fuel: "firewood" })).toEqual({ kind: "fireFull" });
   });
 
   it("describes a woodpile out of reach", () => {

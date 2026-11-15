@@ -1,30 +1,38 @@
 import { describe, expect, it } from "bun:test";
 import type { ScenePick } from "../render/scene-renderer";
-import type { BackpackContent, BlueprintView, CampfireView, Command, GameView, WoodpileView } from "../sim/api";
-import { createGame } from "../sim/game";
-import type { ActionReader } from "./thing-actions";
+import type { Command } from "../sim/api";
+import { worldWith, type Setup, type World } from "./test-world";
 import { cursorFor, mainActionFor, menuFor, outlineFor } from "./walk-input";
 
-/** The command the main action on this pick sends, as E or the top of its action menu does, read through a reader built from the given state. */
-function clickSends(pick: ScenePick, state: ReaderState = {}): Command | undefined {
-  return mainActionFor(pick, readerWith(state))?.command;
+/** The command the main action on this pick sends, as E or the top of its action menu does, in a real game set up as given. */
+function clickSends(pick: ScenePick | ((world: World) => ScenePick), setup: Setup = {}): Command | undefined {
+  const world = worldWith(setup);
+  return mainActionFor(typeof pick === "function" ? pick(world) : pick, world.reader)?.command;
 }
 
 describe("the main action on a campfire", () => {
-  const campfire = { kind: "campfire", id: 7 } as const;
+  const campfire = (world: World) => ({ kind: "campfire", id: world.campfire }) as const;
+  const sends = (setup: Setup) => {
+    const world = worldWith(setup);
+    return { id: world.campfire, command: mainActionFor(campfire(world), world.reader)?.command };
+  };
 
   it("lights an unlit fire that has fuel", () => {
-    expect(clickSends(campfire, { backpack: { steelAndFlint: 1 }, campfire: { fuelMinutes: 20 } })).toEqual({ type: "lightCampfire", campfireId: 7 });
+    const { id, command } = sends({ backpack: { steelAndFlint: 1 }, campfire: { fuelMinutes: 20 } });
+    expect(command).toEqual({ type: "lightCampfire", campfireId: id });
   });
 
   it("adds fuel to an unlit fire with none, using the first fuel the player has", () => {
-    expect(clickSends(campfire, { backpack: { steelAndFlint: 1, stick: 2 }, campfire: {} })).toEqual({ type: "addFuel", campfireId: 7, fuel: "stick" });
+    const { id, command } = sends({ backpack: { steelAndFlint: 1, stick: 2 }, campfire: {} });
+    expect(command).toEqual({ type: "addFuel", campfireId: id, fuel: "stick" });
   });
 
   it("adds firewood to a lit fire first, then a stick, then bark", () => {
     const lit = { lit: true, fuelMinutes: 60 };
-    expect(clickSends(campfire, { backpack: { firewood: 1, stick: 1 }, campfire: lit })).toEqual({ type: "addFuel", campfireId: 7, fuel: "firewood" });
-    expect(clickSends(campfire, { backpack: { bark: 1 }, campfire: lit })).toEqual({ type: "addFuel", campfireId: 7, fuel: "bark" });
+    const firewood = sends({ backpack: { firewood: 1, stick: 1 }, campfire: lit });
+    expect(firewood.command).toEqual({ type: "addFuel", campfireId: firewood.id, fuel: "firewood" });
+    const bark = sends({ backpack: { bark: 1 }, campfire: lit });
+    expect(bark.command).toEqual({ type: "addFuel", campfireId: bark.id, fuel: "bark" });
   });
 
   it("does nothing when the player has no fuel to add", () => {
@@ -33,49 +41,48 @@ describe("the main action on a campfire", () => {
 });
 
 describe("the main action on a woodpile", () => {
-  const woodpile = { kind: "woodpile", id: 8 } as const;
+  const sends = (setup: Setup) => {
+    const world = worldWith(setup);
+    return { id: world.woodpile, command: mainActionFor({ kind: "woodpile", id: world.woodpile }, world.reader)?.command };
+  };
 
   it("stacks the log on the player's shoulder", () => {
-    expect(clickSends(woodpile, { carrying: "log", woodpile: {} })).toEqual({ type: "stackOnWoodpile", woodpileId: 8, wood: "log", all: false });
-    expect(clickSends(woodpile, { carrying: "debarkedLog", woodpile: {} })).toEqual({
-      type: "stackOnWoodpile",
-      woodpileId: 8,
-      wood: "debarkedLog",
-      all: false,
-    });
+    const log = sends({ carrying: "log", woodpile: {} });
+    expect(log.command).toEqual({ type: "stackOnWoodpile", woodpileId: log.id, wood: "log", all: false });
+    const debarkedLog = sends({ carrying: "debarkedLog", woodpile: {} });
+    expect(debarkedLog.command).toEqual({ type: "stackOnWoodpile", woodpileId: debarkedLog.id, wood: "debarkedLog", all: false });
   });
 
   it("takes firewood when the player carries nothing", () => {
-    const woodpileWithFirewood = { contents: { log: 0, debarkedLog: 0, firewood: 3 }, total: 3 };
-    expect(clickSends(woodpile, { woodpile: woodpileWithFirewood })).toEqual({ type: "takeFromWoodpile", woodpileId: 8, wood: "firewood" });
+    const { id, command } = sends({ woodpile: { firewood: 3 } });
+    expect(command).toEqual({ type: "takeFromWoodpile", woodpileId: id, wood: "firewood" });
   });
 });
 
 describe("the main action on a blueprint", () => {
-  const foundation = (has: number) => ({
-    id: 3,
-    structure: "foundation" as const,
-    progress: 0,
-    deliveries: [{ material: "debarkedLog" as const, has, needs: 4 }],
-    lacks: null,
-  });
+  /** What clicking a foundation blueprint with `has` debarked logs delivered sends. */
+  const sends = (has: number, setup: Setup = {}) => {
+    const world = worldWith(setup);
+    const id = world.addBlueprint("foundation", { debarkedLog: has });
+    return { id, command: mainActionFor({ kind: "blueprint", id }, world.reader)?.command };
+  };
 
   it("adds the debarked log on the player's shoulder while the blueprint still needs one", () => {
-    expect(clickSends({ kind: "blueprint", id: 3 }, { carrying: "debarkedLog", blueprint: foundation(1) })).toEqual({
-      type: "deliverToBlueprint",
-      blueprintId: 3,
-    });
+    const { id, command } = sends(1, { carrying: "debarkedLog" });
+    expect(command).toEqual({ type: "deliverToBlueprint", blueprintId: id });
   });
 
   it("builds it otherwise", () => {
-    expect(clickSends({ kind: "blueprint", id: 3 }, { carrying: "debarkedLog", blueprint: foundation(4) })).toEqual({ type: "build", blueprintId: 3 });
-    expect(clickSends({ kind: "blueprint", id: 3 }, { blueprint: foundation(1) })).toEqual({ type: "build", blueprintId: 3 });
+    const full = sends(4, { carrying: "debarkedLog" });
+    expect(full.command).toEqual({ type: "build", blueprintId: full.id });
+    const notCarrying = sends(1);
+    expect(notCarrying.command).toEqual({ type: "build", blueprintId: notCarrying.id });
   });
 });
 
 describe("the main action on a finished work station", () => {
   it("opens its menu, which sends nothing by itself", () => {
-    const action = mainActionFor({ kind: "workStation", station: "sawhorse", id: 11 }, readerWith({}));
+    const action = mainActionFor({ kind: "workStation", station: "sawhorse", id: 11 }, worldWith({}).reader);
     expect(action).toMatchObject({ id: "openMenu", command: undefined });
   });
 });
@@ -89,7 +96,7 @@ describe("the main action on a finished building piece", () => {
   });
 
   it("does nothing with nothing under it", () => {
-    expect(mainActionFor({ kind: "structure", id: 8, structure: "foundation", under: undefined }, readerWith({}))).toBeUndefined();
+    expect(mainActionFor({ kind: "structure", id: 8, structure: "foundation", under: undefined }, worldWith({}).reader)).toBeUndefined();
   });
 });
 
@@ -116,7 +123,7 @@ describe("the main action on other things", () => {
 });
 
 describe("clicking a thing", () => {
-  const ids = (pick: ScenePick, state: ReaderState = {}) => menuFor(pick, readerWith(state))?.map(({ id }) => id);
+  const ids = (pick: ScenePick, setup: Setup = {}) => menuFor(pick, worldWith(setup).reader)?.map(({ id }) => id);
 
   it("opens a menu with the main action on top, then the rest", () => {
     expect(ids({ kind: "log", id: 3 })).toEqual(["pickUp", "split", "debark"]);
@@ -127,7 +134,7 @@ describe("clicking a thing", () => {
   });
 
   it("keeps an action the player cannot do yet, so the menu can grey it and say why", () => {
-    expect(menuFor({ kind: "tree", id: 2 }, readerWith({}))?.[0]).toMatchObject({ id: "chop", enabled: false });
+    expect(menuFor({ kind: "tree", id: 2 }, worldWith({}).reader)?.[0]).toMatchObject({ id: "chop", enabled: false });
   });
 
   it("offers a walk onto a building piece over ground, then taking it down", () => {
@@ -141,11 +148,11 @@ describe("clicking a thing", () => {
   });
 
   it("opens no menu on plain ground, where a click walks", () => {
-    expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({}))).toBeUndefined();
+    expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, worldWith({}).reader)).toBeUndefined();
   });
 
   it("opens a menu on plain ground to walk or drop the log, while the player carries one", () => {
-    expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, readerWith({ carrying: "log" }))?.map(({ id }) => id)).toEqual(["walk", "dropHere"]);
+    expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, worldWith({ carrying: "log" }).reader)?.map(({ id }) => id)).toEqual(["walk", "dropHere"]);
   });
 });
 
@@ -194,38 +201,3 @@ describe("the hover outline", () => {
     expect(outlineFor({ kind: "tree", id: 1 }, true)).toBeUndefined();
   });
 });
-
-const START_VIEW = createGame({ seed: 42 }).client.getView();
-
-interface ReaderState {
-  readonly backpack?: Partial<Record<BackpackContent, number>>;
-  readonly carrying?: GameView["carrying"];
-  readonly campfire?: Partial<CampfireView>;
-  readonly woodpile?: Partial<WoodpileView>;
-  readonly blueprint?: BlueprintView;
-}
-
-/** A reader whose view has this backpack and shoulder, and which describes campfire 7, woodpile 8, and the blueprint as given. */
-function readerWith({ backpack = {}, carrying = null, campfire, woodpile, blueprint }: ReaderState): ActionReader {
-  const view: GameView = { ...START_VIEW, backpack, carrying };
-  const fullCampfire: CampfireView = {
-    id: 7,
-    lit: false,
-    fuelLeft: 0,
-    fuelMinutes: 0,
-    canLight: false,
-    fits: { stick: true, firewood: true, bark: true },
-    pot: null,
-    fish: [],
-    fitsFish: true,
-    ...campfire,
-  };
-  const fullWoodpile: WoodpileView = { id: 8, contents: { log: 0, debarkedLog: 0, firewood: 0 }, total: 0, capacity: 20, ...woodpile };
-  return {
-    getView: () => view,
-    describeBlueprint: (id) => (blueprint?.id === id ? blueprint : null),
-    describeCampfire: (id) => (id === 7 && campfire !== undefined ? fullCampfire : null),
-    describeWoodpile: (id) => (id === 8 && woodpile !== undefined ? fullWoodpile : null),
-    describeSled: () => null,
-  };
-}

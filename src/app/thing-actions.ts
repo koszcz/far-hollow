@@ -1,8 +1,10 @@
 // Every action a thing offers the player: a thing in the world, a backpack content in the hotbar, or the log on their shoulder.
 // A click opens the action menu, which lists them all with the main one on top. E does the main one.
+// It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
+// every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
-import { CAMPFIRE_FUELS, CARRIED_LOGS, needsFreeHands, WOODPILE_WOODS } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
 import type {
   BackpackContent,
   BuildLack,
@@ -12,6 +14,7 @@ import type {
   GameClient,
   GameView,
   RecipeLack,
+  Refusal,
   SledView,
   WoodpileView,
   WoodpileWood,
@@ -26,39 +29,36 @@ export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } | HotbarTarget;
 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */
-export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled">;
+export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "refusal">;
 
 /** An action before it is known whether it is the main one. */
 type Offer = Omit<ThingAction, "isMain">;
 
+/** What every function below reads: the view, the reader for anything more, and `offer`, which makes an action that the game allows or refuses. */
+interface Context {
+  readonly view: GameView;
+  readonly reader: ActionReader;
+  /** An action that sends `command`. It is greyed out, with the game's reason, if the game would refuse the command now. */
+  readonly offer: (id: ActionId, label: string, icon: ActionIcon, command: Command) => Offer;
+}
+
 /** Every action the target offers, main first. Empty for nothing. Ground gives one main "walk". */
 export function actionsFor(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
-  const view = reader.getView();
-  return view.dragging === null ? targetActions(target, reader, view) : targetActions(target, reader, view).map(withHandsBusy);
-}
-
-function targetActions(target: ActionTarget, reader: ActionReader, view: GameView): readonly ThingAction[] {
+  const offer = (id: ActionId, label: string, icon: ActionIcon, command: Command): Offer => {
+    const refusal = reader.refusal(command);
+    return refusal === null ? { id, label, icon, enabled: true, command } : { id, label, icon, enabled: false, reason: refusalText(refusal), command };
+  };
+  const context: Context = { view: reader.getView(), reader, offer };
   switch (target.kind) {
     case "scene":
-      return sceneActions(target.pick, reader, view);
+      return sceneActions(target.pick, context);
     case "backpackContent":
-      return backpackContentActions(target.content, view);
+      return backpackContentActions(target.content, context);
     case "shoulder":
-      return shoulderActions(target.log, view);
+      return shoulderActions(target.log, context);
     case "sled":
-      return letGoActions();
+      return letGoActions(context);
   }
-}
-
-/** Letting go of the dragged sled, as the only and main action. */
-function letGoActions(): readonly ThingAction[] {
-  return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
-}
-
-/** While the player drags a sled, their hands are busy, so an action that needs them is off until they let go. */
-function withHandsBusy(action: ThingAction): ThingAction {
-  if (!action.enabled || action.command === undefined || !needsFreeHands(action.command)) return action;
-  return { ...action, enabled: false, reason: strings.actionReasons.letGoFirst };
 }
 
 /** Convenience: the main action, or undefined. */
@@ -74,6 +74,11 @@ export function menuActions(target: ActionTarget, reader: ActionReader): readonl
   return actionsFor(target, reader).filter(({ command }) => command !== undefined);
 }
 
+/** Letting go of the dragged sled, as the only and main action. */
+function letGoActions({ offer }: Context): readonly ThingAction[] {
+  return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+}
+
 /** Puts the main action first and marks it. `main` is its id. Without one, no action is marked main. */
 function withMain(offers: readonly Offer[], main: ActionId | undefined): readonly ThingAction[] {
   const first = offers.find(({ id }) => id === main);
@@ -81,32 +86,21 @@ function withMain(offers: readonly Offer[], main: ActionId | undefined): readonl
   return [...(first === undefined ? [] : [{ ...first, isMain: true }]), ...rest.map((offer) => ({ ...offer, isMain: false }))];
 }
 
-/** An action the player can do now. */
-function offer(id: ActionId, label: string, icon: ActionIcon, command: Command | undefined): Offer {
-  return { id, label, icon, enabled: true, command };
-}
-
-/** An action that is off if `reason` is given. */
-function offerUnless(reason: string | undefined, id: ActionId, label: string, icon: ActionIcon, command: Command): Offer {
-  return reason === undefined ? offer(id, label, icon, command) : { id, label, icon, enabled: false, reason, command };
-}
-
 const has = (view: GameView, content: BackpackContent): boolean => (view.backpack[content] ?? 0) > 0;
-const needsTool = (view: GameView, tool: BackpackContent): string | undefined =>
-  has(view, tool) ? undefined : strings.actionReasons.needsTool(strings.backpackContents[tool]);
 
-function takeDown(id: number, reason?: string): Offer {
-  return offerUnless(reason, "takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
+function takeDown({ offer }: Context, id: number): Offer {
+  return offer("takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
 }
 
-function sceneActions(pick: ScenePick, reader: ActionReader, view: GameView): readonly ThingAction[] {
-  if (pick.kind !== "structure") return thingActions(pick, reader, view);
+function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[] {
+  if (pick.kind !== "structure") return thingActions(pick, context);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
-  const under = pick.under === undefined ? [] : thingActions(pick.under, reader, view);
-  return [...under, { ...takeDown(pick.id), id: "takeDownStructure", isMain: false }];
+  const under = pick.under === undefined ? [] : thingActions(pick.under, context);
+  return [...under, { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false }];
 }
 
-function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameView): readonly ThingAction[] {
+function thingActions(pick: GroundOrThingPick, context: Context): readonly ThingAction[] {
+  const { view, reader, offer } = context;
   switch (pick.kind) {
     case "ground": {
       const { x, z } = pick.spot;
@@ -116,26 +110,15 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       return withMain([walk, ...dropHere], "walk");
     }
     case "river":
-      return riverActions(pick.spot, view);
+      return riverActions(pick.spot, context);
     case "tree":
-      return withMain([offerUnless(needsTool(view, "axe"), "chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId: pick.id })], "chop");
+      return withMain([offer("chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId: pick.id })], "chop");
     case "log":
     case "debarkedLog": {
-      const shoulderFull = view.carrying === null ? undefined : strings.actionReasons.shoulderFull;
-      const pickUp = offerUnless(shoulderFull, "pickUp", strings.actions.pickUp, { hud: "log" }, { type: "pickUpLog", logId: pick.id });
+      const pickUp = offer("pickUp", strings.actions.pickUp, { hud: "log" }, { type: "pickUpLog", logId: pick.id });
       if (pick.kind === "debarkedLog") return withMain([pickUp], "pickUp");
-      // Splitting picks the log up first, so it also needs a free shoulder.
-      const split = offerUnless(
-        needsTool(view, "axe") ?? shoulderFull,
-        "split",
-        strings.actions.split,
-        { content: "firewood" },
-        {
-          type: "splitLog",
-          logId: pick.id,
-        },
-      );
-      const debark = offerUnless(needsTool(view, "drawknife"), "debark", strings.actions.debark, { content: "bark" }, { type: "debarkLog", logId: pick.id });
+      const split = offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog", logId: pick.id });
+      const debark = offer("debark", strings.actions.debark, { content: "bark" }, { type: "debarkLog", logId: pick.id });
       return withMain([pickUp, split, debark], "pickUp");
     }
     case "stick":
@@ -148,26 +131,26 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       return withMain([offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId: pick.id })], "forage");
     case "campfire": {
       const campfire = reader.describeCampfire(pick.id);
-      return campfire === null ? [] : campfireActions(campfire, view);
+      return campfire === null ? [] : campfireActions(campfire, context);
     }
     case "woodpile": {
       const woodpile = reader.describeWoodpile(pick.id);
-      return woodpile === null ? withMain([takeDown(pick.id)], undefined) : woodpileActions(woodpile, view);
+      return woodpile === null ? withMain([takeDown(context, pick.id)], undefined) : woodpileActions(woodpile, context);
     }
     case "sled": {
       const sled = reader.describeSled(pick.id);
-      return sled === null ? withMain([takeDown(pick.id)], undefined) : sledActions(sled, view);
+      return sled === null ? withMain([takeDown(context, pick.id)], undefined) : sledActions(sled, context);
     }
     case "chest":
     case "shelf":
-      return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(pick.id)], "open");
+      return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(context, pick.id)], "open");
     case "bed":
-      return withMain([offer("sleep", strings.actions.sleep, { hud: "moon" }, { type: "sleepInBed", bedId: pick.id }), takeDown(pick.id)], "sleep");
+      return withMain([offer("sleep", strings.actions.sleep, { hud: "moon" }, { type: "sleepInBed", bedId: pick.id }), takeDown(context, pick.id)], "sleep");
     case "table":
       // The player eats at a table as they eat anywhere, so the table offers nothing but taking it down.
-      return withMain([takeDown(pick.id)], undefined);
+      return withMain([takeDown(context, pick.id)], undefined);
     case "stool":
-      return withMain([offer("sit", strings.actions.sit, { hud: "moon" }, { type: "sitOnStool", stoolId: pick.id }), takeDown(pick.id)], "sit");
+      return withMain([offer("sit", strings.actions.sit, { hud: "moon" }, { type: "sitOnStool", stoolId: pick.id }), takeDown(context, pick.id)], "sit");
     case "bedroll":
       return withMain(
         [
@@ -177,87 +160,55 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
         "sleep",
       );
     case "blueprint":
-      return blueprintActions(pick.id, reader, view);
+      return blueprintActions(pick.id, context);
     case "workStation":
       return withMain(
         [
-          offer("openMenu", strings.actions.openMenu, { hud: "place" }, undefined),
+          // Opening the menu sends no command, so the game has nothing to refuse.
+          { id: "openMenu", label: strings.actions.openMenu, icon: { hud: "place" }, enabled: true, command: undefined },
           ...view.craftMenu
             .filter(({ station }) => station === pick.station)
-            .map(({ kind, result, lacks }) =>
-              offerUnless(
-                lacks.length === 0 ? undefined : strings.craftMenu.needs(lacks.map(lackingText)),
-                `craft:${kind}`,
-                strings.craftMenu.recipes[kind],
-                { content: result.content },
-                { type: "craft", recipe: kind, stationId: pick.id },
-              ),
+            .map(({ kind, result }) =>
+              offer(`craft:${kind}`, strings.craftMenu.recipes[kind], { content: result.content }, { type: "craft", recipe: kind, stationId: pick.id }),
             ),
-          takeDown(pick.id),
+          takeDown(context, pick.id),
         ],
         "openMenu",
       );
   }
 }
 
-/**
- * Drink, fill the empty pot, then fish. Drinking is the main action. Filling the pot shows only when the backpack holds the empty pot.
- * Fishing needs the fishing rod and free hands.
- */
-function riverActions({ x, z }: { readonly x: number; readonly z: number }, view: GameView): readonly ThingAction[] {
-  const fishReason = needsTool(view, "fishingRod") ?? (view.carrying === null ? undefined : strings.actionReasons.putLogDownFirst);
+/** Drink, fill the empty pot, then fish. Drinking is the main action. Filling the pot shows only when the backpack holds the empty pot. */
+function riverActions({ x, z }: { readonly x: number; readonly z: number }, { view, offer }: Context): readonly ThingAction[] {
   const fillPot = has(view, "pot") ? [offer("fillPot", strings.actions.fillPotHere, { content: "potOfRiverWater" }, { type: "fillPot" })] : [];
   return withMain(
     [
       offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
       ...fillPot,
-      offerUnless(fishReason, "fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
+      offer("fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
     ],
     "drink",
   );
 }
 
 /**
- * Light, each fuel, the pot, the fish, then Take down. A fire with a pot or fish on it cannot be taken down until they come off.
+ * Light, each fuel, the pot, the fish, then Take down. Lighting shows only while the fire is out.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
-function campfireActions(campfire: CampfireView, view: GameView): readonly ThingAction[] {
+function campfireActions(campfire: CampfireView, context: Context): readonly ThingAction[] {
+  const { offer } = context;
   const campfireId = campfire.id;
-  const reasons = strings.actionReasons;
-  const lightReason = campfire.fuelMinutes <= 0 ? reasons.fireEmpty : needsTool(view, "steelAndFlint");
   // The menu lists the fuels in the order a lit fire takes them.
-  const fuels = CAMPFIRE_FUELS.map((fuel) =>
-    offerUnless(
-      !has(view, fuel) ? reasons.noContent[fuel] : !campfire.fits[fuel] ? reasons.fireFull : undefined,
-      `addFuel:${fuel}`,
-      strings.actions.addFuel[fuel],
-      { content: fuel },
-      { type: "addFuel", campfireId, fuel },
-    ),
-  );
-  const hasFullPot = has(view, "potOfRiverWater") || has(view, "potOfBoiledWater");
+  const fuels = CAMPFIRE_FUELS.map((fuel) => offer(`addFuel:${fuel}`, strings.actions.addFuel[fuel], { content: fuel }, { type: "addFuel", campfireId, fuel }));
   const pot =
     campfire.pot === null
-      ? offerUnless(
-          !campfire.lit ? reasons.lightFirst : !hasFullPot ? reasons.noPotOfWater : undefined,
-          "putPotOn",
-          strings.actions.putPotOn,
-          { content: "potOfRiverWater" },
-          { type: "putPotOnFire", campfireId },
-        )
+      ? offer("putPotOn", strings.actions.putPotOn, { content: "potOfRiverWater" }, { type: "putPotOnFire", campfireId })
       : offer("takePotOff", strings.actions.takePotOff, { content: "pot" }, { type: "takePotOffFire", campfireId });
-  const cookFish = offerUnless(
-    !campfire.lit ? reasons.lightFirst : !has(view, "rawFish") ? reasons.noRawFish : !campfire.fitsFish ? reasons.fireFullOfFish : undefined,
-    "cookFish",
-    strings.actions.cookFish,
-    { content: "rawFish" },
-    { type: "cookFish", campfireId },
-  );
+  const cookFish = offer("cookFish", strings.actions.cookFish, { content: "rawFish" }, { type: "cookFish", campfireId });
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
   const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
-  const light = campfire.lit ? [] : [offerUnless(lightReason, "light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const takeDownReason = campfire.pot !== null ? reasons.potOnFire : campfire.fish.length > 0 ? reasons.fishOnFire : undefined;
-  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, takeDown(campfireId, takeDownReason)];
+  const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
+  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);
@@ -267,45 +218,23 @@ function campfireActions(campfire: CampfireView, view: GameView): readonly Thing
  * Stack the log on the shoulder, stack firewood one or all, take each kind of wood, then take it down.
  * Main: stack the log on the shoulder, or take firewood if the player carries nothing.
  */
-function woodpileActions(woodpile: WoodpileView, view: GameView): readonly ThingAction[] {
+function woodpileActions(woodpile: WoodpileView, context: Context): readonly ThingAction[] {
+  const { view, offer } = context;
   const woodpileId = woodpile.id;
-  const reasons = strings.actionReasons;
-  const full = woodpile.total >= woodpile.capacity ? reasons.woodpileFull : undefined;
   const woodIcon = (wood: WoodpileWood): ActionIcon => (wood === "firewood" ? { content: "firewood" } : { hud: "log" });
   // With nothing on the shoulder, stacking the log still shows, greyed, so the player learns they can.
-  const stackLog = (view.carrying === null ? (["log"] as const) : [view.carrying]).map((log) =>
-    offerUnless(view.carrying === null ? reasons.noLogCarried : full, `stack:${log}`, strings.actions.stack[log], woodIcon(log), {
-      type: "stackOnWoodpile",
-      woodpileId,
-      wood: log,
-      all: false,
-    }),
-  );
-  const firewoodReason = full ?? (has(view, "firewood") ? undefined : reasons.noContent.firewood);
+  const stackLog = offer(`stack:${view.carrying ?? "log"}`, strings.actions.stack[view.carrying ?? "log"], woodIcon(view.carrying ?? "log"), {
+    type: "stackOnWoodpile",
+    woodpileId,
+    wood: view.carrying ?? "log",
+    all: false,
+  });
   const stackFirewood = [
-    offerUnless(firewoodReason, "stack:firewood", strings.actions.stack.firewood, woodIcon("firewood"), {
-      type: "stackOnWoodpile",
-      woodpileId,
-      wood: "firewood",
-      all: false,
-    }),
-    offerUnless(firewoodReason, "stack:firewood:all", strings.actions.stackAllFirewood, woodIcon("firewood"), {
-      type: "stackOnWoodpile",
-      woodpileId,
-      wood: "firewood",
-      all: true,
-    }),
+    offer("stack:firewood", strings.actions.stack.firewood, woodIcon("firewood"), { type: "stackOnWoodpile", woodpileId, wood: "firewood", all: false }),
+    offer("stack:firewood:all", strings.actions.stackAllFirewood, woodIcon("firewood"), { type: "stackOnWoodpile", woodpileId, wood: "firewood", all: true }),
   ];
-  const take = WOODPILE_WOODS.map((wood) =>
-    offerUnless(
-      woodpile.contents[wood] <= 0 ? reasons.nothingToTake : wood !== "firewood" && view.carrying !== null ? reasons.shoulderFull : undefined,
-      `take:${wood}`,
-      strings.actions.take[wood],
-      woodIcon(wood),
-      { type: "takeFromWoodpile", woodpileId, wood },
-    ),
-  );
-  const offers = [...stackLog, ...stackFirewood, ...take, takeDown(woodpileId, woodpile.total > 0 ? reasons.emptyFirst : undefined)];
+  const take = WOODPILE_WOODS.map((wood) => offer(`take:${wood}`, strings.actions.take[wood], woodIcon(wood), { type: "takeFromWoodpile", woodpileId, wood }));
+  const offers = [stackLog, ...stackFirewood, ...take, takeDown(context, woodpileId)];
   return withMain(
     offers,
     view.carrying === null
@@ -329,86 +258,36 @@ function woodpileMainWithoutLog(choices: readonly (Offer | undefined)[]): Action
  * Main: put the log on the shoulder on the sled, or drag it if the player carries nothing.
  * While the player drags this sled, they can only let go of it.
  */
-function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
+function sledActions(sled: SledView, context: Context): readonly ThingAction[] {
+  const { view, offer } = context;
   const sledId = sled.id;
-  const reasons = strings.actionReasons;
-  if (view.dragging?.id === sledId) return letGoActions();
-  const drag = offerUnless(view.dragging === null ? undefined : reasons.letGoFirst, "drag", strings.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
+  if (view.dragging?.id === sledId) return letGoActions(context);
+  const drag = offer("drag", strings.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
   const load =
-    view.carrying === null
-      ? []
-      : [
-          offerUnless(
-            sled.logsThatFit <= 0 ? reasons.sledFull : undefined,
-            `load:${view.carrying}`,
-            strings.actions.loadSled[view.carrying],
-            { hud: "log" },
-            {
-              type: "loadSled",
-              sledId,
-            },
-          ),
-        ];
+    view.carrying === null ? [] : [offer(`load:${view.carrying}`, strings.actions.loadSled[view.carrying], { hud: "log" }, { type: "loadSled", sledId })];
   // Only the kinds the sled holds are offered. An empty sled still shows taking a log, greyed, so the player learns they can.
   const held = CARRIED_LOGS.filter((log) => sled.contents[log] > 0);
-  const take = (held.length === 0 ? (["log"] as const) : held).map((log) =>
-    offerUnless(
-      sled.contents[log] <= 0 ? reasons.nothingToTake : view.carrying !== null ? reasons.shoulderFull : undefined,
-      `take:${log}`,
-      strings.actions.take[log],
-      { hud: "log" },
-      { type: "takeFromSled", sledId, log },
-    ),
+  const take = (held.length === 0 ? (["log"] as const) : held).map((log: CarriedLog) =>
+    offer(`take:${log}`, strings.actions.take[log], { hud: "log" }, { type: "takeFromSled", sledId, log }),
   );
-  const loadPlanks = has(view, "plank")
-    ? [
-        offerUnless(
-          sled.planksThatFit <= 0 ? reasons.sledFull : undefined,
-          "load:plank",
-          strings.actions.loadPlanks,
-          { content: "plank" },
-          { type: "loadPlanksOnSled", sledId },
-        ),
-      ]
-    : [];
+  const loadPlanks = has(view, "plank") ? [offer("load:plank", strings.actions.loadPlanks, { content: "plank" }, { type: "loadPlanksOnSled", sledId })] : [];
   const takePlanks =
     sled.contents.plank > 0 ? [offer("take:plank", strings.actions.takePlanks, { content: "plank" }, { type: "takePlanksFromSled", sledId })] : [];
-  const tipOut = offerUnless(
-    sled.total <= 0 ? reasons.nothingToTake : undefined,
-    "tipOut",
-    strings.actions.tipOut,
-    { hud: "log" },
-    { type: "tipOutSled", sledId },
-  );
+  const tipOut = offer("tipOut", strings.actions.tipOut, { hud: "log" }, { type: "tipOutSled", sledId });
   // A loaded sled can be taken down. Its logs are laid on the ground beside it first, and its planks drop in a pile.
-  const offers = [...load, ...loadPlanks, drag, ...take, ...takePlanks, tipOut, takeDown(sledId)];
+  const offers = [...load, ...loadPlanks, drag, ...take, ...takePlanks, tipOut, takeDown(context, sledId)];
   return withMain(offers, view.carrying === null ? "drag" : `load:${view.carrying}`);
 }
 
 /** Main: add the carried material if the blueprint still needs it, otherwise build. Then taking it down. */
-function blueprintActions(blueprintId: number, reader: ActionReader, view: GameView): readonly ThingAction[] {
+function blueprintActions(blueprintId: number, context: Context): readonly ThingAction[] {
+  const { view, reader, offer } = context;
   const blueprint = reader.describeBlueprint(blueprintId);
-  const build = offerUnless(buildLackReason(blueprint?.lacks ?? null), "build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
+  const build = offer("build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
   const carried = view.carrying;
   const needed = carried !== null && blueprint?.deliveries.some(({ material, has: delivered, needs }) => material === carried && delivered < needs);
   const deliver = needed ? [offer(`deliver:${carried}`, strings.actions.deliver[carried], { hud: "log" }, { type: "deliverToBlueprint", blueprintId })] : [];
-  return withMain([...deliver, build, takeDown(blueprintId)], deliver[0]?.id ?? "build");
-}
-
-/** Why the player cannot build a blueprint's next stage, or undefined if they can. */
-function buildLackReason(lacks: BuildLack | null): string | undefined {
-  if (lacks === null) return undefined;
-  const reasons = strings.actionReasons;
-  if (lacks.kind === "tool") return reasons.needsTool(strings.backpackContents[lacks.tool]);
-  switch (lacks.material) {
-    case "stick":
-    case "bark":
-    case "plank":
-      return reasons.noContent[lacks.material];
-    case "log":
-    case "debarkedLog":
-      return reasons.bringFirst[lacks.material];
-  }
+  return withMain([...deliver, build, takeDown(context, blueprintId)], deliver[0]?.id ?? "build");
 }
 
 /** What using a backpack content does, if it has a use. */
@@ -432,7 +311,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
 }
 
 /** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. */
-function backpackContentActions(content: BackpackContent, view: GameView): readonly ThingAction[] {
+function backpackContentActions(content: BackpackContent, { view, offer }: Context): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
@@ -440,12 +319,7 @@ function backpackContentActions(content: BackpackContent, view: GameView): reado
     chest === undefined
       ? []
       : [
-          offer("putInChest", strings.actions.putInChest[chest.view.furniture], icon, {
-            type: "putInChest",
-            chestId: chest.view.id,
-            content,
-            all: false,
-          }),
+          offer("putInChest", strings.actions.putInChest[chest.view.furniture], icon, { type: "putInChest", chestId: chest.view.id, content, all: false }),
           offer("putInChest:all", strings.actions.putAllInChest[chest.view.furniture], icon, {
             type: "putInChest",
             chestId: chest.view.id,
@@ -462,10 +336,42 @@ function backpackContentActions(content: BackpackContent, view: GameView): reado
 }
 
 /** Drop it, then split it into firewood if it is a log. */
-function shoulderActions(log: CarriedLog, view: GameView): readonly ThingAction[] {
+function shoulderActions(log: CarriedLog, { offer }: Context): readonly ThingAction[] {
   const drop = offer("drop", strings.actions.drop, { hud: "log" }, { type: "dropLog" });
-  const split = log === "log" ? [offerUnless(needsTool(view, "axe"), "split", strings.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
+  const split = log === "log" ? [offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
   return withMain([drop, ...split], "drop");
+}
+
+/** Says why the game refuses a command, as a greyed-out action shows it, such as "needs the axe". */
+function refusalText(refusal: Refusal): string {
+  const reasons = strings.actionReasons;
+  switch (refusal.kind) {
+    case "needsTool":
+      return reasons.needsTool(strings.backpackContents[refusal.tool]);
+    case "noContent":
+      return reasons.noContent[refusal.content];
+    case "cannotBuildYet":
+      return buildLackText(refusal.lacks);
+    case "cannotCraftYet":
+      return strings.craftMenu.needs(refusal.lacks.map(lackingText));
+    default:
+      return reasons[refusal.kind];
+  }
+}
+
+/** Why the player cannot build a blueprint's next stage. */
+function buildLackText(lacks: BuildLack): string {
+  const reasons = strings.actionReasons;
+  if (lacks.kind === "tool") return reasons.needsTool(strings.backpackContents[lacks.tool]);
+  switch (lacks.material) {
+    case "stick":
+    case "bark":
+    case "plank":
+      return reasons.noContent[lacks.material];
+    case "log":
+    case "debarkedLog":
+      return reasons.bringFirst[lacks.material];
+  }
 }
 
 /** Names one thing a recipe lacks, such as "the saw". */

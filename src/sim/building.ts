@@ -1,4 +1,4 @@
-import type { BlueprintView, BuildLack, PlacementCheck } from "./api";
+import type { BlueprintView, BuildLack, PlacementCheck, Refusal } from "./api";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import { snapToGridPoint } from "./build-grid";
 import { blueprintEntities, isParked, pileEntities, playerEntities, setComponent, sledEntities, type Entity, type EntityStore } from "./entities";
@@ -69,6 +69,8 @@ export interface Building {
   cancel(): void;
   /** What a blueprint needs and has, or undefined if the entity is not a blueprint. */
   describe(blueprintId: number): BlueprintView | undefined;
+  /** Why the player could not build a blueprint's next stage now: the tool or material it lacks. */
+  refusal(blueprintId: number): Refusal | undefined;
   /** The blueprint nearest the player within reach, or undefined if none is. */
   nearby(): BlueprintView | undefined;
   /** Moves construction and deliveries on by one logic step. Run it after walking has moved the player. */
@@ -178,6 +180,10 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
   }
 
   return {
+    refusal(blueprintId) {
+      const lacks = describe(blueprintId)?.lacks ?? null;
+      return lacks === null ? undefined : { kind: "cannotBuildYet", lacks };
+    },
     checkPlacement,
     place(structure, at, turns) {
       const { spot, turns: facing, allowed } = checkPlacement(structure, at, turns);

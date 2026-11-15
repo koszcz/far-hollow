@@ -1,7 +1,7 @@
 // Loading logs and debarked logs on a parked sled, taking them off one at a time, and tipping them all out.
 // Loading every plank from the backpack on a parked sled, and taking as many back as fit.
 // Dragging a sled behind the player, and letting go of it.
-import type { SledView } from "./api";
+import type { Command, Refusal, SledView } from "./api";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
 import { distanceOutside } from "./building";
 import {
@@ -18,6 +18,7 @@ import {
 import { standingHeightAt } from "./foundations";
 import { addToPileAt } from "./piles";
 import { USE_REACH_METRES } from "./reach";
+import { shoulderRefusal } from "./refusals";
 import type { QuarterTurns } from "./structure-kind";
 import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
 import type { Valley } from "./valley";
@@ -44,9 +45,14 @@ const WOODPILE_NEXT_TO_SLED_METRES = 1.5;
 
 export type SledEntity = Entity & Required<Pick<Entity, "sled" | "position">>;
 
+/** A command the player carries out on a parked sled. */
+type SledCommand = Extract<Command, { type: "loadSled" | "takeFromSled" | "loadPlanksOnSled" | "takePlanksFromSled" | "tipOutSled" | "dragSled" }>;
+
 export interface Sleds {
   /** Walks the player beside a sled, if they are not already within reach of it. */
   tend(sledId: number): void;
+  /** Why the player could not carry out a command on a sled, wherever they stand. */
+  refusal(command: SledCommand): Refusal | undefined;
   /** Puts the log or debarked log on the player's shoulder on a sled within reach. Does nothing if the sled is full or the shoulder is empty. */
   load(sledId: number): void;
   /** Takes one log or debarked log off a sled within reach onto the player's shoulder. Does nothing if the shoulder is not free or there is none. */
@@ -179,36 +185,67 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     });
   }
 
+  /** Why the player could not carry out a command on the sled, wherever they stand. */
+  function refusal(sled: SledEntity, command: SledCommand): Refusal | undefined {
+    const player = players.first;
+    const contents = sled.sled;
+    switch (command.type) {
+      case "loadSled":
+        if (player?.carrying === undefined) return { kind: "noLogCarried" };
+        return logsThatFitOnSled(contents) <= 0 ? { kind: "sledFull" } : undefined;
+      case "takeFromSled":
+        return contents[command.log] <= 0 ? { kind: "nothingToTake" } : shoulderRefusal(player);
+      case "loadPlanksOnSled":
+        if (player?.backpack === undefined || countInBackpack(player.backpack, "plank") <= 0) return { kind: "noContent", content: "plank" };
+        return planksThatFitOnSled(contents) <= 0 ? { kind: "sledFull" } : undefined;
+      case "takePlanksFromSled":
+        return contents.plank <= 0 ? { kind: "nothingToTake" } : undefined;
+      case "tipOutSled":
+        return sledTotal(contents) <= 0 ? { kind: "nothingToTake" } : undefined;
+      case "dragSled":
+        // The player drags one sled at a time.
+        return player?.dragging === undefined ? undefined : { kind: "letGoFirst" };
+    }
+  }
+
+  /** The sled and the player standing within reach of it, if the command may be carried out now. */
+  function usable(command: SledCommand) {
+    const sled = sledById(command.sledId);
+    const player = sled === undefined ? undefined : userOf(sled);
+    if (sled === undefined || player === undefined || refusal(sled, command) !== undefined) return undefined;
+    return { sled, player };
+  }
+
   return {
     tend(sledId) {
       const sled = sledById(sledId);
       if (sled === undefined || userOf(sled) !== undefined) return;
       for (const player of players) walkBeside(walking, player.position, sled.position, 0, SLED_STAND_METRES);
     },
+    refusal(command) {
+      const sled = sledById(command.sledId);
+      return sled === undefined ? undefined : refusal(sled, command);
+    },
     load(sledId) {
-      const sled = sledById(sledId);
-      const player = sled === undefined ? undefined : userOf(sled);
-      if (sled === undefined || player?.carrying === undefined || logsThatFitOnSled(sled.sled) <= 0) return;
+      const { sled, player } = usable({ type: "loadSled", sledId }) ?? {};
+      if (sled === undefined || player?.carrying === undefined) return;
       sled.sled[player.carrying] += 1;
       entities.removeComponent(player, "carrying");
     },
     take(sledId, log) {
-      const sled = sledById(sledId);
-      const player = sled === undefined ? undefined : userOf(sled);
-      if (sled === undefined || player === undefined || player.carrying !== undefined || sled.sled[log] <= 0) return;
+      const { sled, player } = usable({ type: "takeFromSled", sledId, log }) ?? {};
+      if (sled === undefined || player === undefined) return;
       sled.sled[log] -= 1;
       entities.addComponent(player, "carrying", log);
     },
     loadPlanks(sledId) {
-      const sled = sledById(sledId);
-      const player = sled === undefined ? undefined : userOf(sled);
+      const { sled, player } = usable({ type: "loadPlanksOnSled", sledId }) ?? {};
       if (sled === undefined || player?.backpack === undefined) return;
       removeFromBackpack(player.backpack, "plank", putPlanksOnSled(sled, countInBackpack(player.backpack, "plank")));
     },
     takePlanks(sledId) {
-      const sled = sledById(sledId);
-      const player = sled === undefined ? undefined : userOf(sled);
-      if (sled === undefined || player?.backpack === undefined || sled.sled.plank <= 0) return undefined;
+      const { sled, player } = usable({ type: "takePlanksFromSled", sledId }) ?? {};
+      if (sled === undefined || player?.backpack === undefined) return undefined;
       const taken = howManyFit(player.backpack, "plank", sled.sled.plank);
       if (taken === 0) return "backpackFull";
       addToBackpack(player.backpack, "plank", taken);
@@ -216,8 +253,8 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       return undefined;
     },
     tipOut(sledId) {
-      const sled = sledById(sledId);
-      if (sled === undefined || userOf(sled) === undefined) return;
+      const { sled } = usable({ type: "tipOutSled", sledId }) ?? {};
+      if (sled === undefined) return;
       const woodpile = woodpileNextTo(sled);
       if (woodpile !== undefined) {
         for (const kind of CARRIED_LOGS) sled.sled[kind] -= stackOnWoodpile(woodpile, kind, sled.sled[kind]);
@@ -233,9 +270,8 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       return sled !== undefined && userOf(sled) !== undefined;
     },
     drag(sledId) {
-      const sled = sledById(sledId);
-      const player = sled === undefined ? undefined : userOf(sled);
-      if (player === undefined || player.dragging !== undefined) return;
+      const { player } = usable({ type: "dragSled", sledId }) ?? {};
+      if (player === undefined) return;
       entities.addComponent(player, "dragging", { sledId });
     },
     letGo() {

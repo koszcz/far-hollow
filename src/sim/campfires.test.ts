@@ -54,23 +54,35 @@ describe("lighting a campfire", () => {
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(false);
   });
 
-  it("says the campfire can be lit only when it has fuel, is out, and the player has a steel and flint", () => {
+  it("refuses lighting the campfire without fuel, or without a steel and flint", () => {
     const { game, campfire } = gameWithCampfire();
+    const light = { type: "lightCampfire", campfireId: idOf(game, campfire) } as const;
     give(game, "stick", 1);
     tend(game, campfire);
-    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
+    expect(game.client.refusal(light)).toEqual({ kind: "fireEmpty" });
 
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
-    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(true);
+    expect(game.client.refusal(light)).toBeNull();
 
     give(game, "steelAndFlint", -1);
-    game.step();
-    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
+    expect(game.client.refusal(light)).toEqual({ kind: "needsTool", tool: "steelAndFlint" });
 
     give(game, "steelAndFlint", 1);
-    send(game, { type: "lightCampfire", campfireId: idOf(game, campfire) });
+    send(game, light);
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
-    expect(nearbyOf(game.client.getView(), "campfire")?.canLight).toBe(false);
+  });
+
+  it("refuses fuel the backpack lacks, and fuel that would not fit", () => {
+    const { game, campfire } = gameWithCampfire();
+    const campfireId = idOf(game, campfire);
+    // 7 hours 40 minutes of fuel: 20 more minutes of a stick still fit, but not 90 minutes of firewood.
+    campfire.campfire.fuelMinutes = 460;
+    give(game, "stick", 1);
+    give(game, "firewood", 1);
+
+    expect(game.client.refusal({ type: "addFuel", campfireId, fuel: "stick" })).toBeNull();
+    expect(game.client.refusal({ type: "addFuel", campfireId, fuel: "firewood" })).toEqual({ kind: "fireFull" });
+    expect(game.client.refusal({ type: "addFuel", campfireId, fuel: "bark" })).toEqual({ kind: "noContent", content: "bark" });
   });
 });
 

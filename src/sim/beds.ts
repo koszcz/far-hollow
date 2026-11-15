@@ -14,18 +14,18 @@ export type BedEntity = Entity & Required<Pick<Entity, "furniture" | "position">
 /** Going to sleep in beds. */
 export interface Beds {
   /**
-   * Returns the bed to sleep in now, if the player stands within reach of it.
-   * If it is further away, sets the player walking to it, and `step` returns it once they arrive.
+   * Puts the player to sleep in a finished bed now, if they stand within reach of it.
+   * If it is further away, sets the player walking to it, and `step` puts them to sleep once they arrive.
    */
-  sleep(bedId: number): BedEntity | undefined;
+  sleep(bedId: number): void;
   /** Stops the player walking to a bed. */
   cancel(): void;
-  /** Returns the bed to sleep in, if the player has just reached one they were walking to. Run it after walking. */
-  step(): BedEntity | undefined;
+  /** Puts the player to sleep, if they have just reached a bed they were walking to. Run it after walking. */
+  step(): undefined;
 }
 
-/** Lets the player go to sleep in a finished bed. */
-export function createBeds(entities: EntityStore, walking: Walking): Beds {
+/** Lets the player go to sleep in a finished bed. `sleepIn` puts the player to sleep in a bed they have reached. */
+export function createBeds(entities: EntityStore, walking: Walking, sleepIn: (bed: BedEntity) => void): Beds {
   const players = playerEntities(entities);
   const walkers = entities.with("bedTask", "position");
 
@@ -38,7 +38,7 @@ export function createBeds(entities: EntityStore, walking: Walking): Beds {
   return {
     sleep(bedId) {
       const bed = bedById(bedId);
-      if (bed === undefined) return undefined;
+      if (bed === undefined) return;
       let inReach = false;
       for (const player of players) {
         if (withinReach(bed, player.position)) {
@@ -49,22 +49,24 @@ export function createBeds(entities: EntityStore, walking: Walking): Beds {
         walking.walkTo(bed.position);
         setComponent(entities, player, "bedTask", { bedId });
       }
-      return inReach ? bed : undefined;
+      if (inReach) sleepIn(bed);
     },
     cancel() {
       for (const player of players) entities.removeComponent(player, "bedTask");
     },
     step() {
-      let sleepIn: BedEntity | undefined;
+      let reached: BedEntity | undefined;
       // Copy the list first, because players who arrive leave the query while it is being walked.
       for (const walker of [...walkers]) {
         if (walker.walkPath !== undefined) continue;
         const { bedId } = walker.bedTask;
         entities.removeComponent(walker, "bedTask");
         const bed = bedById(bedId);
-        if (bed !== undefined && withinReach(bed, walker.position)) sleepIn = bed;
+        if (bed !== undefined && withinReach(bed, walker.position)) reached = bed;
       }
-      return sleepIn;
+      // Sleep passes time, so it starts only once every walker has been handled.
+      if (reached !== undefined) sleepIn(reached);
+      return undefined;
     },
   };
 }

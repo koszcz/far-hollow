@@ -42,6 +42,7 @@ describe("taking down a chest", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
     chest.storage.contents.knife = 1;
+    expect(game.client.refusal({ type: "takeDown", pieceId: idOf(game, chest) })).toEqual({ kind: "emptyFirst" });
 
     send(game, { type: "takeDown", pieceId: idOf(game, chest) });
     expect(game.client.getView().notice?.kind).toBe("stillHoldsSomething");

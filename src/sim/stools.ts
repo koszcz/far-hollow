@@ -21,7 +21,7 @@ export interface Stools {
   /** Stops the player walking to a stool. It does not stand up a player who already sits. */
   cancel(): void;
   /** Sits the player down if they have just reached a stool they were walking to. Run it after walking. */
-  step(): void;
+  step(): undefined;
   /** Stands the player up, if they sit. */
   standUp(): void;
   /** The stool the player sits on, if they sit on one that still stands. */
@@ -75,6 +75,7 @@ export function createStools(entities: EntityStore, walking: Walking, beforeSitt
         if (player.sitting === undefined) continue;
         if (player.walkPath !== undefined || stoolById(player.sitting.stoolId) === undefined) entities.removeComponent(player, "sitting");
       }
+      return undefined;
     },
     standUp() {
       for (const player of players) entities.removeComponent(player, "sitting");

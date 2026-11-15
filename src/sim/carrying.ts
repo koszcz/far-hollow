@@ -1,4 +1,6 @@
+import type { Refusal } from "./api";
 import { playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import { shoulderRefusal } from "./refusals";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint, type Valley } from "./valley";
@@ -14,6 +16,8 @@ export interface Carrying {
    * With `thenSplit`, the player starts splitting it into firewood once it is on their shoulder, if it is a log.
    */
   pickUp(logId: number, thenSplit?: boolean): void;
+  /** Why the player could not pick up a log now: one is already on their shoulder. */
+  pickUpRefusal(): Refusal | undefined;
   /** Stops the player walking to pick up or drop a log. */
   cancel(): void;
   /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
@@ -52,10 +56,13 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       const log = entities.entity(logId);
       if (log === undefined || logKind(log) === undefined || log.position === undefined) return;
       for (const player of players) {
-        if (player.carrying !== undefined) continue;
+        if (shoulderRefusal(player) !== undefined) continue;
         walking.walkTo(log.position);
         setComponent(entities, player, "logPickUpTask", thenSplit ? { logId, thenSplit: true } : { logId });
       }
+    },
+    pickUpRefusal() {
+      return shoulderRefusal(players.first);
     },
     cancel() {
       for (const player of players) {

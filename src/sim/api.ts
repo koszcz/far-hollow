@@ -335,10 +335,6 @@ export interface CampfireView {
   readonly fuelLeft: number;
   /** How many more game minutes the campfire's fuel can burn. */
   readonly fuelMinutes: number;
-  /** True if sending lightCampfire would light it: it is out, it has fuel, and the player has a steel and flint. The player walks there first if needed. */
-  readonly canLight: boolean;
-  /** For each kind of fuel, true if one more piece fits on the fire. A full fire takes no more. */
-  readonly fits: Readonly<Record<CampfireFuel, boolean>>;
   /**
    * The pot on the campfire, or null if there is none. `water` says whether its water has boiled yet.
    * `boilProgress` runs from 0 to 1 while the water boils on the lit fire.
@@ -349,8 +345,6 @@ export interface CampfireView {
    * At 1 it is `cooked`, and it never burns.
    */
   readonly fish: readonly { readonly cooked: boolean; readonly cookProgress: number }[];
-  /** True if one more fish fits on the fire. A campfire holds up to 3, beside the pot. */
-  readonly fitsFish: boolean;
 }
 
 /** One structure in the build menu. */
@@ -391,6 +385,54 @@ export interface BlueprintView {
 
 /** Why the player cannot build a blueprint's next stage: a tool not in the backpack, or a material not in the backpack or not yet brought. */
 export type BuildLack = { readonly kind: "tool"; readonly tool: BackpackContent } | { readonly kind: "material"; readonly material: BuildMaterial };
+
+/**
+ * Why the game turns a command away. The UI names each one, such as when it greys out an action and says why.
+ * `needsTool`: the backpack lacks the tool. `noContent`: the backpack holds none of the fuel or planks the command uses.
+ * `cannotBuildYet` and `cannotCraftYet`: what the next building stage or the recipe lacks.
+ * Every other kind needs nothing more than its name (see PlainRefusal).
+ */
+export type Refusal =
+  | { readonly kind: PlainRefusal }
+  | { readonly kind: "needsTool"; readonly tool: BackpackContent }
+  | { readonly kind: "noContent"; readonly content: CampfireFuel | "plank" }
+  | { readonly kind: "cannotBuildYet"; readonly lacks: BuildLack }
+  | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] };
+
+/**
+ * A refusal that needs nothing more than its kind to say why.
+ * - `fireEmpty`: the campfire has no fuel to light.
+ * - `fireFull`: the fuel would not fit on the campfire.
+ * - `lightFirst`: the campfire is out.
+ * - `noPotOfWater`, `noRawFish`: the backpack holds none.
+ * - `fireFullOfFish`: the campfire holds as many fish as it can.
+ * - `woodpileFull`, `sledFull`: it has no room left.
+ * - `letGoFirst`: the player drags a sled, so their hands are busy.
+ * - `shoulderFull`: the player already carries a log.
+ * - `putLogDownFirst`: the player carries a log, and fishing needs both hands.
+ * - `noLogCarried`: the player carries no log to put there.
+ * - `nothingToTake`: it holds none of what the command takes.
+ * - `emptyFirst`, `potOnFire`, `fishOnFire`: it still holds something, so it cannot come down.
+ * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
+ */
+export type PlainRefusal =
+  | "fireEmpty"
+  | "fireFull"
+  | "lightFirst"
+  | "noPotOfWater"
+  | "noRawFish"
+  | "fireFullOfFish"
+  | "woodpileFull"
+  | "sledFull"
+  | "letGoFirst"
+  | "shoulderFull"
+  | "putLogDownFirst"
+  | "noLogCarried"
+  | "nothingToTake"
+  | "emptyFirst"
+  | "potOnFire"
+  | "fishOnFire"
+  | "holdsUpPiece";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -487,36 +529,6 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 }
 
 /**
- * Whether a command needs the player's hands free, so it is refused while they drag a sled:
- * shouldering a log, gathering, chopping, building, crafting, or fishing. Taking firewood goes in the backpack, so it does not.
- */
-export function needsFreeHands(command: Command): boolean {
-  switch (command.type) {
-    case "pickUpLog":
-    case "takeFromSled":
-    case "pickUpStick":
-    case "pickUpBark":
-    case "forage":
-    case "pickUpPile":
-    case "chopTree":
-    case "splitLog":
-    case "debarkLog":
-    case "build":
-    case "deliverToBlueprint":
-    case "takeDown":
-    case "craft":
-    case "fish":
-      return true;
-    case "takeFromWoodpile":
-      return command.wood !== "firewood";
-    case "placeBlueprint":
-      return command.thenBuild === true;
-    default:
-      return false;
-  }
-}
-
-/**
  * A thing in the world the player can act on with E, given by its entity id, with its kind.
  * What the scene reports under the cursor is built from this type, so the app can treat both the same way.
  */
@@ -563,6 +575,12 @@ export interface GameClient {
   nearestInReach(): ThingInReach | null;
   /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */
   describeRooms(): readonly RoomView[];
+  /**
+   * Why the game would turn this command away if it were sent now, or null if it has no reason to give.
+   * It ignores how far away the thing is, since the player walks there first. It only reads game state.
+   * The game checks the same rules again when it carries the command out, since things can change while the player walks.
+   */
+  refusal(command: Command): Refusal | null;
   send(command: Command): void;
   /** Calls the listener after each logic step. Returns a function that stops listening. */
   subscribe(listener: () => void): () => void;

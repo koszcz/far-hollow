@@ -1,8 +1,9 @@
-import type { CampfireFuel, CampfireView } from "./api";
+import type { CampfireFuel, CampfireView, Command, Refusal } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
+import { toolRefusal } from "./refusals";
 import { snapToGridSquare } from "./build-grid";
 import { campfireEntities, playerEntities, type Entity, type EntityStore } from "./entities";
-import { cookProgress, FISH_ON_FIRE_LIMIT, isCooked } from "./fish-on-fire";
+import { cookProgress, isCooked } from "./fish-on-fire";
 import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./valley";
@@ -35,6 +36,8 @@ export interface Campfires {
   addFuel(campfireId: number, fuel: CampfireFuel): void;
   /** Lights a campfire within the player's reach with the steel and flint. It needs fuel. */
   light(campfireId: number): void;
+  /** Why the player could not add this fuel to the campfire, or light it, wherever they stand. */
+  refusal(command: Extract<Command, { type: "addFuel" | "lightCampfire" }>): Refusal | undefined;
   /** The campfire as the HUD shows it, or undefined if the entity is not a finished campfire. */
   describe(campfireId: number): CampfireView | undefined;
   /** True if the player stands still within reach of the campfire, so they can tend it now. */
@@ -68,10 +71,22 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
     return undefined;
   }
 
-  /** True if the campfire is out and has fuel, and the player has a steel and flint. Lighting it also needs the player within reach. */
+  /** Why the player could not light the campfire: it has no fuel, or they lack the steel and flint. A lit fire gives no refusal. */
+  function lightRefusal(campfire: CampfireEntity): Refusal | undefined {
+    if (campfire.campfire.lit) return undefined;
+    return campfire.campfire.fuelMinutes <= 0 ? { kind: "fireEmpty" } : toolRefusal(players.first, "steelAndFlint");
+  }
+
+  /** True if the campfire is out and the player could light it. Lighting it also needs the player within reach. */
   function canLight(campfire: CampfireEntity): boolean {
-    if (campfire.campfire.lit || campfire.campfire.fuelMinutes <= 0) return false;
-    return [...players].some(({ backpack }) => backpack !== undefined && hasInBackpack(backpack, "steelAndFlint"));
+    return !campfire.campfire.lit && lightRefusal(campfire) === undefined;
+  }
+
+  /** Why the player could not put one piece of this fuel on the campfire: the backpack holds none, or it would not fit. */
+  function fuelRefusal(campfire: CampfireEntity, fuel: CampfireFuel): Refusal | undefined {
+    const backpack = players.first?.backpack;
+    if (backpack === undefined || !hasInBackpack(backpack, fuel)) return { kind: "noContent", content: fuel };
+    return campfire.campfire.fuelMinutes + FUEL_BURN_MINUTES[fuel] > CAMPFIRE_FUEL_LIMIT_MINUTES ? { kind: "fireFull" } : undefined;
   }
 
   return {
@@ -85,28 +100,27 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       const campfire = campfireById(campfireId);
       if (campfire === undefined) return;
       const player = tenderOf(campfire);
-      if (player?.backpack === undefined) return;
-      const fuelMinutes = campfire.campfire.fuelMinutes + FUEL_BURN_MINUTES[fuel];
-      if (fuelMinutes > CAMPFIRE_FUEL_LIMIT_MINUTES) return;
+      if (player?.backpack === undefined || fuelRefusal(campfire, fuel) !== undefined) return;
       if (!removeFromBackpack(player.backpack, fuel, 1)) return;
-      campfire.campfire.fuelMinutes = fuelMinutes;
+      campfire.campfire.fuelMinutes += FUEL_BURN_MINUTES[fuel];
+    },
+    refusal(command) {
+      const campfire = campfireById(command.campfireId);
+      if (campfire === undefined) return undefined;
+      return command.type === "addFuel" ? fuelRefusal(campfire, command.fuel) : lightRefusal(campfire);
     },
     describe(campfireId) {
       const campfire = campfireById(campfireId);
       if (campfire === undefined) return undefined;
       const { lit, fuelMinutes } = campfire.campfire;
-      const fits = (fuel: CampfireFuel): boolean => fuelMinutes + FUEL_BURN_MINUTES[fuel] <= CAMPFIRE_FUEL_LIMIT_MINUTES;
       const { potOnFire, fishOnFire = [] } = campfire;
       return Object.freeze({
         id: campfireId,
         lit,
         fuelLeft: fuelMinutes / CAMPFIRE_FUEL_LIMIT_MINUTES,
         fuelMinutes,
-        canLight: canLight(campfire),
-        fits: Object.freeze({ stick: fits("stick"), firewood: fits("firewood"), bark: fits("bark") }),
         pot: potOnFire === undefined ? null : Object.freeze({ water: potOnFire.water, boilProgress: boilProgress(potOnFire) }),
         fish: Object.freeze(fishOnFire.map((fish) => Object.freeze({ cooked: isCooked(fish), cookProgress: cookProgress(fish) }))),
-        fitsFish: fishOnFire.length < FISH_ON_FIRE_LIMIT,
       });
     },
     light(campfireId) {

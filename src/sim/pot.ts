@@ -1,9 +1,9 @@
 // The pot: the player fills it at the river, boils the water on a lit campfire, and drinks from it.
-import type { PlainNotice } from "./api";
+import type { PlainNotice, Refusal } from "./api";
 import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack, type PotContent } from "./backpack";
 import type { Campfires } from "./campfires";
 import { canReachRiver } from "./drinking";
-import { playerEntities, setComponent, type EntityStore } from "./entities";
+import { entityWith, playerEntities, setComponent, type EntityStore } from "./entities";
 import type { HandReach } from "./hand-reach";
 import { FULL_NEED } from "./needs";
 import { BOIL_MINUTES, type PotWater } from "./pot-state";
@@ -27,6 +27,8 @@ export interface Pot {
   step(): undefined;
   /** Puts the full pot from the backpack on a lit campfire within the player's reach. */
   putOnFire(campfireId: number): void;
+  /** Why the player could not put a full pot on the campfire, wherever they stand: it is out, or the backpack holds no full pot. */
+  putOnRefusal(campfireId: number): Refusal | undefined;
   /** Takes the pot off a campfire within the player's reach and puts it in the backpack. Returns a notice if it does not fit. */
   takeOffFire(campfireId: number): PlainNotice | undefined;
   /**
@@ -50,7 +52,18 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
     return campfire !== undefined && entities.id(campfire) === campfireId ? campfire : undefined;
   }
 
+  /** Why the player could not put a full pot on the campfire: it is out, or the backpack holds no full pot. */
+  function putOnRefusal(campfire: { campfire: { lit: boolean } }): Refusal | undefined {
+    if (!campfire.campfire.lit) return { kind: "lightFirst" };
+    const hasFullPot = [...backpacks].some(({ backpack }) => hasInBackpack(backpack, FULL_POT.river) || hasInBackpack(backpack, FULL_POT.boiled));
+    return hasFullPot ? undefined : { kind: "noPotOfWater" };
+  }
+
   return {
+    putOnRefusal(campfireId) {
+      const campfire = entityWith(entities, campfireId, "campfire");
+      return campfire === undefined ? undefined : putOnRefusal(campfire);
+    },
     fill() {
       for (const player of players) {
         const river = nearestRiverPoint(valley.river, player.position);
@@ -77,7 +90,7 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
     },
     putOnFire(campfireId) {
       const campfire = campfireInReach(campfireId);
-      if (campfire === undefined || !campfire.campfire.lit || campfire.potOnFire !== undefined) return;
+      if (campfire === undefined || campfire.potOnFire !== undefined || putOnRefusal(campfire) !== undefined) return;
       for (const { backpack } of backpacks) {
         for (const water of ["river", "boiled"] as const) {
           if (!removeFromBackpack(backpack, FULL_POT[water], 1)) continue;

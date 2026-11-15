@@ -54,7 +54,7 @@ describe("cooking fish", () => {
     expect(FISH_ON_FIRE_LIMIT).toBe(3);
     expect(fishOnFire(game)).toHaveLength(3);
     expect(game.client.getView().backpack.rawFish).toBe(2);
-    expect(nearbyOf(game.client.getView(), "campfire")?.fitsFish).toBe(false);
+    expect(game.client.refusal({ type: "cookFish", campfireId })).toEqual({ kind: "fireFullOfFish" });
   });
 
   it("sits beside the pot, so both can be on the fire at once", () => {

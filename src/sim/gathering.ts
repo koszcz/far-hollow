@@ -1,5 +1,7 @@
+import type { Refusal } from "./api";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { shoulderRefusal, toolRefusal } from "./refusals";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
@@ -37,10 +39,15 @@ export interface Gathering {
    */
   splitLog(): GatherRefusal | undefined;
   /**
-   * Why the player could not split a log now, checked before they pick one up to split: "noAxe" without the axe,
-   * or "backpackFull" when the backpack has no room for all the firewood. Undefined when they could.
+   * Why the player could not split a log now: without the axe, or, for a log on the ground, with a log already on their shoulder,
+   * since splitting picks it up first. The game greys out splitting for these.
    */
-  splitRefusal(): GatherRefusal | "noAxe" | undefined;
+  refusal(fromGround: boolean): Refusal | undefined;
+  /**
+   * Whether the backpack has no room for all the firewood, checked before the player picks up a log to split.
+   * The game shows this as a notice when the player tries.
+   */
+  splitRefusal(): GatherRefusal | undefined;
   /** Stops the player walking to pick up a stick or piece of bark, or splitting a log. */
   cancel(): void;
   /** Starts the player reaching for sticks and bark they have walked to, and moves splitting on by one logic step. Run it after walking has moved the player. */
@@ -119,10 +126,13 @@ export function createGathering(entities: EntityStore, walking: Walking, hand: P
       }
       return refusal;
     },
+    refusal(fromGround) {
+      const player = players.first;
+      return toolRefusal(player, "axe") ?? (fromGround ? shoulderRefusal(player) : undefined);
+    },
     splitRefusal() {
       for (const player of players) {
-        if (player.backpack === undefined || !hasInBackpack(player.backpack, "axe")) return "noAxe";
-        if (!canSplitInto(player.backpack)) return "backpackFull";
+        if (player.backpack !== undefined && !canSplitInto(player.backpack)) return "backpackFull";
       }
       return undefined;
     },

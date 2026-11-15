@@ -1,6 +1,7 @@
 // Taking down blueprints and finished structures, and giving back the materials in them.
 // Every structure can come down: a campfire, a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
 // A lit campfire goes out as it comes down, and any fuel still in it is lost.
+import type { Refusal } from "./api";
 import { addToBackpack } from "./backpack";
 import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
@@ -68,6 +69,11 @@ export interface TakingDown {
    * or if it is a piece of furniture or woodpile that still holds something, or a campfire with a pot or fish on it.
    */
   start(structureId: number): TakeDownRefusal | undefined;
+  /**
+   * Why the player could not take a structure down now, wherever they stand: another structure stands on it,
+   * or it still holds something. A campfire names the pot or the fish on it.
+   */
+  refusal(structureId: number): Refusal | undefined;
   /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
   cancel(): void;
   /** Moves taking down on by one logic step. Run it after walking has moved the player. Returns a refusal if the work had to stop. */
@@ -129,14 +135,20 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
       const structure = entities.entity(structureId);
       const kind = structure === undefined ? undefined : takeDownKindOf(structure);
       if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) return undefined;
-      if (holdsUpAnother(entities, structure, kind)) return "holdsUpPiece";
-      if (holdsSomething(structure)) return "stillHoldsSomething";
+      const why = takeDownRefusal(entities, structure, kind);
+      if (why !== undefined) return noticeOf(why);
       const footprint = footprintOfEntity(structure);
       for (const player of players) {
         walkWithinReach(walking, footprint, structure.position, player.position);
         setComponent(entities, player, "takeDownTask", { pieceId: structureId, secondsDone: 0 });
       }
       return undefined;
+    },
+    refusal(structureId) {
+      const structure = entities.entity(structureId);
+      const kind = structure === undefined ? undefined : takeDownKindOf(structure);
+      if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) return undefined;
+      return takeDownRefusal(entities, structure, kind);
     },
     cancel() {
       for (const player of players) entities.removeComponent(player, "takeDownTask");
@@ -164,8 +176,8 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
         }
         entities.removeComponent(worker, "takeDownTask");
         // Another structure may have gone onto it, or something into it, since the work started.
-        if (holdsUpAnother(entities, structure, kind)) refusal = "holdsUpPiece";
-        else if (holdsSomething(structure)) refusal = "stillHoldsSomething";
+        const why = takeDownRefusal(entities, structure, kind);
+        if (why !== undefined) refusal = noticeOf(why);
         else takeDown(worker, structure, kind);
       }
       return refusal;
@@ -239,6 +251,19 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
     return cabinRoofOn(entities, structure.position) !== undefined || blueprintsOf("roof").some((roof) => isOnGridSquare(structure.position, roof.position));
   }
   return false;
+}
+
+/** Why a structure cannot come down yet: another structure stands on it, or it still holds something. Undefined if it can. */
+function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind: StructureKind): Refusal | undefined {
+  if (holdsUpAnother(entities, structure, kind)) return { kind: "holdsUpPiece" };
+  if (structure.potOnFire !== undefined) return { kind: "potOnFire" };
+  if (structure.fishOnFire !== undefined) return { kind: "fishOnFire" };
+  return holdsSomething(structure) ? { kind: "emptyFirst" } : undefined;
+}
+
+/** The notice the player sees when they try to take down a structure that refuses. */
+function noticeOf(refusal: Refusal): TakeDownRefusal {
+  return refusal.kind === "holdsUpPiece" ? "holdsUpPiece" : "stillHoldsSomething";
 }
 
 /**

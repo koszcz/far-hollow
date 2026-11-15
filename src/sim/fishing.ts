@@ -1,10 +1,11 @@
 // Fishing at the river with the fishing rod. The player walks to the bank, casts, and waits for a fish to bite.
 // Each fish goes in the backpack, and the player casts again until they stop or a fish gets away.
-import type { PlainNotice } from "./api";
+import type { PlainNotice, Refusal } from "./api";
 import { addToBackpack, hasInBackpack } from "./backpack";
 import { canReachRiver } from "./drinking";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { createRandom, scramble } from "./random";
+import { toolRefusal } from "./refusals";
 import type { GroundPoint, Valley } from "./valley";
 import { nearestWalkableSpot } from "./walk-map";
 import type { Walking } from "./walking";
@@ -33,17 +34,22 @@ export interface Fishing {
    * "putLogDownFirst" while they carry a log. Does nothing if the backpack holds no fishing rod.
    */
   fish(spot: GroundPoint): PlainNotice | undefined;
+  /** Why the player could not fish now: without the fishing rod, or while they carry a log. */
+  refusal(): Refusal | undefined;
   /** Stops the player fishing, or walking to fish. */
   cancel(): void;
   /**
-   * Moves fishing on by this many game minutes. A fish that bites goes in the backpack and the player casts again.
+   * Moves fishing on by one logic step. A fish that bites goes in the backpack and the player casts again.
    * Returns "fishGotAway" if a fish bit while the backpack was full, which stops fishing.
    */
-  step(gameMinutes: number): PlainNotice | undefined;
+  step(): PlainNotice | undefined;
 }
 
-/** Lets the player fish at the river. `seed` decides how long each cast waits for a fish. */
-export function createFishing(entities: EntityStore, walking: Walking, valley: Valley, seed: number): Fishing {
+/**
+ * Lets the player fish at the river. `seed` decides how long each cast waits for a fish.
+ * Fish bite after a wait in game time, `stepGameMinutes` for each logic step, which a player slowed by a low need does not stretch.
+ */
+export function createFishing(entities: EntityStore, walking: Walking, valley: Valley, seed: number, stepGameMinutes: number): Fishing {
   const players = playerEntities(entities);
   const fishers = entities.with("player", "fishTask", "position", "backpack");
 
@@ -57,17 +63,22 @@ export function createFishing(entities: EntityStore, walking: Walking, valley: V
   return {
     fish(spot) {
       for (const player of players) {
-        if (player.backpack === undefined || !hasInBackpack(player.backpack, "fishingRod")) continue;
+        if (toolRefusal(player, "fishingRod") !== undefined) continue;
         if (player.carrying !== undefined) return "putLogDownFirst";
         cast(player, spot);
         walking.walkTo(nearestWalkableSpot(walking.walkMap, spot) ?? spot);
       }
       return undefined;
     },
+    refusal() {
+      const player = players.first;
+      return toolRefusal(player, "fishingRod") ?? (player?.carrying === undefined ? undefined : { kind: "putLogDownFirst" });
+    },
     cancel() {
       for (const player of [...fishers]) entities.removeComponent(player, "fishTask");
     },
-    step(gameMinutes) {
+    step() {
+      const gameMinutes = stepGameMinutes;
       let notice: PlainNotice | undefined;
       // Copy the list first, because players who stop fishing leave the query while it is being walked.
       for (const fisher of [...fishers]) {

@@ -1,5 +1,7 @@
+import type { Refusal } from "./api";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { toolRefusal } from "./refusals";
 import { groundDistance, type GroundPoint } from "./valley";
 import type { Walking } from "./walking";
 
@@ -33,6 +35,8 @@ export interface Debarking {
    * Returns "backpackFull" when the backpack has no room for the bark.
    */
   start(logId: number): DebarkRefusal | undefined;
+  /** Why the player could not debark a log now: without the drawknife. */
+  refusal(): Refusal | undefined;
   /** Stops the player debarking, or walking to debark. The log keeps its bark. */
   cancel(): void;
   /** Moves every debarking on by one logic step. Run it after walking has moved the player. */
@@ -50,7 +54,7 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
       if (log?.log === undefined || log.position === undefined) return undefined;
       let refusal: DebarkRefusal | undefined;
       for (const player of players) {
-        if (player.backpack === undefined || !hasInBackpack(player.backpack, "drawknife")) continue;
+        if (player.backpack === undefined || toolRefusal(player, "drawknife") !== undefined) continue;
         if (!barkFits(player.backpack)) {
           refusal = "backpackFull";
           continue;
@@ -59,6 +63,9 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
         setComponent(entities, player, "debarkTask", { logId, secondsDone: 0 });
       }
       return refusal;
+    },
+    refusal() {
+      return toolRefusal(players.first, "drawknife");
     },
     cancel() {
       for (const player of players) entities.removeComponent(player, "debarkTask");

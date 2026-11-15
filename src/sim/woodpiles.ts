@@ -1,7 +1,8 @@
 // Stacking logs, debarked logs, and firewood on a woodpile, and taking them off again.
-import type { WoodpileView } from "./api";
+import type { Command, Refusal, WoodpileView } from "./api";
 import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
 import { entityWith, playerEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "./entities";
+import { shoulderRefusal } from "./refusals";
 import { groundDistance, nearestWithin } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 
@@ -17,6 +18,8 @@ type WoodpileEntity = Entity & Required<Pick<Entity, "woodpile" | "position">>;
 export interface Woodpiles {
   /** Walks the player beside a woodpile, if they are not already within reach of it. */
   tend(woodpileId: number): void;
+  /** Why the player could not stack this wood on the woodpile, or take it off, wherever they stand. */
+  refusal(command: Extract<Command, { type: "stackOnWoodpile" | "takeFromWoodpile" }>): Refusal | undefined;
   /**
    * Stacks wood on a woodpile within the player's reach. A log or debarked log comes off the player's shoulder, one at a time.
    * Firewood comes out of the backpack: one piece, or with `all` as many as the woodpile has room for.
@@ -70,6 +73,25 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
     return Object.freeze({ id, contents, total: woodpileTotal(contents), capacity: WOODPILE_CAPACITY });
   }
 
+  /**
+   * Why the player could not stack this wood on the woodpile: a log they do not carry, a full woodpile, or no firewood in the backpack.
+   * A log the player does not carry comes first, so a full woodpile shows only for wood they could stack.
+   */
+  function stackRefusal(woodpile: WoodpileEntity, wood: WoodpileWood): Refusal | undefined {
+    const player = players.first;
+    if (wood !== "firewood" && player?.carrying !== wood) return { kind: "noLogCarried" };
+    if (woodpileTotal(woodpile.woodpile) >= WOODPILE_CAPACITY) return { kind: "woodpileFull" };
+    if (wood === "firewood" && (player?.backpack === undefined || countInBackpack(player.backpack, "firewood") <= 0))
+      return { kind: "noContent", content: "firewood" };
+    return undefined;
+  }
+
+  /** Why the player could not take this wood off the woodpile: it holds none, or a log would go on a shoulder that is full. */
+  function takeRefusal(woodpile: WoodpileEntity, wood: WoodpileWood): Refusal | undefined {
+    if (woodpile.woodpile[wood] <= 0) return { kind: "nothingToTake" };
+    return wood === "firewood" ? undefined : shoulderRefusal(players.first);
+  }
+
   return {
     tend(woodpileId) {
       const woodpile = woodpileById(woodpileId);
@@ -77,12 +99,16 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
       // The player stands beside the woodpile on the player's side, since the woodpile itself blocks walking.
       for (const player of players) walkBeside(walking, player.position, woodpile.position, WOODPILE_REACH_METRES, WOODPILE_STAND_METRES);
     },
+    refusal(command) {
+      const woodpile = woodpileById(command.woodpileId);
+      if (woodpile === undefined) return undefined;
+      return command.type === "stackOnWoodpile" ? stackRefusal(woodpile, command.wood) : takeRefusal(woodpile, command.wood);
+    },
     stack(woodpileId, wood, all) {
       const woodpile = woodpileById(woodpileId);
       const player = woodpile === undefined ? undefined : userOf(woodpile);
-      if (woodpile === undefined || player === undefined) return;
+      if (woodpile === undefined || player === undefined || stackRefusal(woodpile, wood) !== undefined) return;
       const room = WOODPILE_CAPACITY - woodpileTotal(woodpile.woodpile);
-      if (room <= 0) return;
       if (wood === "firewood") {
         if (player.backpack === undefined) return;
         const moved = Math.min(all ? countInBackpack(player.backpack, "firewood") : 1, room);
@@ -90,14 +116,13 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
         woodpile.woodpile.firewood += moved;
         return;
       }
-      if (player.carrying !== wood) return;
       entities.removeComponent(player, "carrying");
       woodpile.woodpile[wood] += 1;
     },
     take(woodpileId, wood) {
       const woodpile = woodpileById(woodpileId);
       const player = woodpile === undefined ? undefined : userOf(woodpile);
-      if (woodpile === undefined || player === undefined || woodpile.woodpile[wood] <= 0) return undefined;
+      if (woodpile === undefined || player === undefined || takeRefusal(woodpile, wood) !== undefined) return undefined;
       if (wood === "firewood") {
         if (player.backpack === undefined) return undefined;
         let moved = 0;
@@ -106,7 +131,6 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
         woodpile.woodpile.firewood -= moved;
         return undefined;
       }
-      if (player.carrying !== undefined) return undefined;
       woodpile.woodpile[wood] -= 1;
       entities.addComponent(player, "carrying", wood);
       return undefined;

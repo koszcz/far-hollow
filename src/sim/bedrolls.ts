@@ -20,20 +20,26 @@ export interface Bedrolls {
    */
   pickUp(bedrollId: number): void;
   /**
-   * Returns the bedroll to sleep on now, if it is within the player's reach.
-   * If it is further away, sets the player walking to it, and `step` returns it once they arrive.
+   * Puts the player to sleep on a laid bedroll now, if it is within their reach.
+   * If it is further away, sets the player walking to it, and `step` puts them to sleep once they arrive.
    */
-  sleep(bedrollId: number): BedrollEntity | undefined;
+  sleep(bedrollId: number): void;
   /** Stops the player walking to a bedroll. */
   cancel(): void;
-  /** Acts on a bedroll the player has reached. Returns the bedroll to sleep on, if the player has reached one to sleep on. Run it after walking. */
-  step(): BedrollEntity | undefined;
+  /** Acts on a bedroll the player has reached: picks it up, or puts them to sleep on it. Run it after walking. */
+  step(): undefined;
   /** The laid bedroll nearest the player that is within their reach, if any. */
   nearby(): BedrollEntity | undefined;
 }
 
-/** Lets the player lay a bedroll on the ground, pick it up again, and go to sleep on it. */
-export function createBedrolls(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Bedrolls {
+/** Lets the player lay a bedroll on the ground, pick it up again, and go to sleep on it. `sleepOn` puts the player to sleep on a bedroll they have reached. */
+export function createBedrolls(
+  entities: EntityStore,
+  walking: Walking,
+  valley: Valley,
+  hand: Pick<HandReach, "start">,
+  sleepOn: (bedroll: BedrollEntity) => void,
+): Bedrolls {
   const players = playerEntities(entities);
   const bedrolls = bedrollEntities(entities);
   const walkers = entities.with("bedrollTask", "position", "backpack");
@@ -91,14 +97,13 @@ export function createBedrolls(entities: EntityStore, walking: Walking, valley: 
     },
     sleep(bedrollId) {
       const bedroll = bedrollById(bedrollId);
-      if (bedroll === undefined) return undefined;
-      return goTo(bedrollId, bedroll, "sleep") ? bedroll : undefined;
+      if (bedroll !== undefined && goTo(bedrollId, bedroll, "sleep")) sleepOn(bedroll);
     },
     cancel() {
       for (const player of players) entities.removeComponent(player, "bedrollTask");
     },
     step() {
-      let sleepOn: BedrollEntity | undefined;
+      let reached: BedrollEntity | undefined;
       // Copy the list first, because players who arrive leave the query while it is being walked.
       for (const walker of [...walkers]) {
         if (walker.walkPath !== undefined) continue;
@@ -107,9 +112,11 @@ export function createBedrolls(entities: EntityStore, walking: Walking, valley: 
         const bedroll = bedrollById(bedrollId);
         if (bedroll === undefined || !withinReach(bedroll, walker.position)) continue;
         if (then === "pickUp") pickUpNow(bedrollId, bedroll, walker);
-        else sleepOn = bedroll;
+        else reached = bedroll;
       }
-      return sleepOn;
+      // Sleep passes time, so it starts only once every walker has been handled.
+      if (reached !== undefined) sleepOn(reached);
+      return undefined;
     },
     nearby() {
       let nearest: BedrollEntity | undefined;

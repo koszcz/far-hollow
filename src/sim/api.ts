@@ -1,9 +1,9 @@
-import type { BackpackContent, BackpackContents, Food } from "./backpack";
+import type { BackpackContent, BackpackContents, Food, WildFood } from "./backpack";
 import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
-export type { BackpackContent, CraftingContent, Fish, FishingContent, Food } from "./backpack";
+export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, WildFood } from "./backpack";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
@@ -218,17 +218,22 @@ export type Command =
    * would refuse the action now, nothing is added and a notice says why. A command that is never queued, such as pausing,
    * placing a blueprint, or opening a chest, runs as if sent on its own.
    */
-  | { type: "queueAction"; action: ActionCommand };
+  | { type: "queueAction"; action: ActionCommand }
+  /**
+   * Take the action at `index` out of the action queue, as a click on its icon does. Index 0 is the action under way:
+   * cancelling it stops what the player is doing for it, and the next action starts. Nothing happens if no action is there.
+   */
+  | { type: "cancelQueuedAction"; index: number };
 
-/** Every command except queueAction: what the action queue holds. */
-export type ActionCommand = Exclude<Command, { type: "queueAction" }>;
+/** Every command except those that change the action queue itself: what the action queue holds. */
+export type ActionCommand = Exclude<Command, { type: "queueAction" | "cancelQueuedAction" }>;
 
 /** The most actions the action queue holds, counting the one under way. */
 export const ACTION_QUEUE_LIMIT = 4;
 
-/** Wraps a command so it goes to the end of the action queue instead of replacing it. */
+/** Wraps a command so it goes to the end of the action queue instead of replacing it. A command that changes the queue itself stays as it is. */
 export function queued(command: Command): Command {
-  return command.type === "queueAction" ? command : { type: "queueAction", action: command };
+  return command.type === "queueAction" || command.type === "cancelQueuedAction" ? command : { type: "queueAction", action: command };
 }
 
 export interface GameView {
@@ -576,6 +581,16 @@ export type ThingInReach =
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };
 
+/**
+ * What a thing in the world is, given by its entity id. The action queue shows it as the icon of an action on it.
+ * A blueprint or finished structure gives its structure, a forage spot its food, and a pile what it holds.
+ */
+export type ThingView =
+  | { readonly kind: "structure"; readonly structure: StructureKind }
+  | { readonly kind: "forage"; readonly food: WildFood }
+  | { readonly kind: "pile"; readonly content: BackpackContent }
+  | { readonly kind: "tree" | "log" | "debarkedLog" | "stick" | "bark" | "bedroll" };
+
 export interface PlayerAction {
   /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting, or fishing. */
   readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish";
@@ -607,6 +622,8 @@ export interface GameClient {
   describeWoodpile(woodpileId: number): WoodpileView | null;
   /** A finished sled, given by its entity id, near or far, or null if it is not one. It only reads game state. */
   describeSled(sledId: number): SledView | null;
+  /** What a thing in the world is, given by its entity id, or null if it is gone or is none of the kinds ThingView names. It only reads game state. */
+  describeThing(id: number): ThingView | null;
   /** The thing nearest the player within the reach of E, or null if nothing is in reach. It only reads game state. */
   nearestInReach(): ThingInReach | null;
   /** Every room in the valley, worked out from the finished pieces. It only reads game state. The debug overlay shows it. */

@@ -5,7 +5,7 @@ import { playerEntities, setComponent, type Entity, type EntityStore } from "./e
 import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { isWalkable } from "./walk-map";
-import type { Walking } from "./walking";
+import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 
 export { CHOP_SECONDS, MOST_LOGS_PER_TREE } from "./tree-size";
 
@@ -40,8 +40,6 @@ const STUMP_BLOCK_METRES = 1.3;
 
 /** The player can chop a tree from this far beyond the edge of the ground the tree blocks, in metres. */
 const CHOP_REACH_METRES = 1;
-/** The player walks this far inside the chopping reach, so they are surely within it when they stop, in metres. */
-const CHOP_WALK_MARGIN_METRES = 0.2;
 
 /** How far from a tree's centre the player can chop it, in metres. */
 function chopReach(tree: Entity): number {
@@ -71,7 +69,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
       if (tree?.tree !== true || tree.position === undefined) return;
       for (const player of players) {
         if (toolRefusal(player, "axe") !== undefined) continue;
-        walking.walkWithin(tree.position, chopReach(tree) - CHOP_WALK_MARGIN_METRES);
+        walking.walkWithin(tree.position, chopReach(tree) - WALK_REACH_MARGIN_METRES);
         const task = { treeId, secondsDone: 0 };
         setComponent(entities, player, "chopTask", task);
       }

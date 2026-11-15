@@ -63,6 +63,7 @@ import { createChests } from "./chests";
 import { furnitureOf } from "./furniture";
 import { createTending } from "./tending";
 import { nearestInReach } from "./reach";
+import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
 import { createHandReach } from "./hand-reach";
 import type { GroundPoint } from "./valley";
@@ -944,6 +945,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Carries out a command the UI sent: it adds an action to the action queue, or it runs on its own. */
   function receive(command: Command): void {
     if (command.type === "queueAction") queueAction(command.action);
+    else if (command.type === "cancelQueuedAction") cancelQueuedAction(command.index);
     else sendOnItsOwn(command);
   }
 
@@ -983,6 +985,24 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /**
+   * Takes the action at `index` out of the action queue, as a click on its icon does. Cancelling the action under way
+   * stops what the player is doing for it, as if they had stopped of their own accord, and the next action starts.
+   */
+  function cancelQueuedAction(index: number): void {
+    if (!Number.isInteger(index) || index < 0 || index >= actionQueue.length) return;
+    if (index > 0) {
+      actionQueue.splice(index, 1);
+      return;
+    }
+    cancelTasks();
+    stools.standUp();
+    handReach.cancel();
+    entities.removeComponent(player, "walkPath");
+    actionQueue.shift();
+    startNextQueued();
+  }
+
+  /**
    * Moves the action queue on, once a logic step has run. When the player has nothing left to do for the action under way,
    * it leaves the queue and the next one starts. An action with no end goes on while nothing waits behind it. With another
    * action waiting, sitting ends at once, and fishing ends once a fish has bitten. An action the game refuses when its turn
@@ -998,6 +1018,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       stools.standUp();
     }
     actionQueue.shift();
+    startNextQueued();
+  }
+
+  /** Starts the first action in the queue. An action the game refuses now is dropped, with a notice saying why, and the one after is tried. */
+  function startNextQueued(): void {
     for (let next = actionQueue[0]; next !== undefined; next = actionQueue[0]) {
       const refusal = refusalOf(next);
       if (refusal === null) {
@@ -1025,6 +1050,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Why the game would turn a command away now: its own rule first, then the player's hands being busy with a sled. */
   function refusalOf(command: Command): Refusal | null {
     if (command.type === "queueAction") return refusalOf(command.action);
+    if (command.type === "cancelQueuedAction") return null;
     const refusal = ruleOf(command).refusal?.(command);
     if (refusal !== undefined) return Object.freeze(refusal);
     return handsBusy(command) ? Object.freeze({ kind: "letGoFirst" }) : null;
@@ -1059,6 +1085,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     describeCampfire: (campfireId) => campfires.describe(campfireId) ?? null,
     describeWoodpile: (woodpileId) => woodpiles.describe(woodpileId) ?? null,
     describeSled: (sledId) => sleds.describe(sledId) ?? null,
+    describeThing: (id) => describeThing(entities, id) ?? null,
     nearestInReach: () => nearestInReach(entities, player.position),
     refusal: refusalOf,
     describeRooms: () =>

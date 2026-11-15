@@ -45,3 +45,37 @@ test("Shift with a number key lines up that backpack content's main action behin
   await expect.poll(async () => (await view(page)).actionQueue).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test("the queue shows beside the clock, names an action when pointed at, and cancels the action clicked", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  await page.goto("/?seed=42");
+  await page.waitForFunction(() => "farHollow" in window);
+  await expect(page.locator("#loading")).toHaveCount(0);
+  const row = page.locator(".hud-queue");
+  await expect(row).toHaveCount(0);
+
+  const start = (await view(page)).playerPosition;
+  await page.evaluate(
+    (spot) => {
+      (window as unknown as { farHollow: { client: Client } }).farHollow.client.send({ type: "walkTo", ...spot });
+    },
+    { x: start.x - 12, z: start.z },
+  );
+  await page.keyboard.press("Shift+Digit5");
+  const cells = row.locator(".hud-queue-cell");
+  await expect(cells).toHaveCount(2);
+
+  await cells.first().hover();
+  await expect(cells.first().locator(".hud-queue-name")).toBeVisible();
+  await expect(cells.first().locator(".hud-queue-name")).toHaveText("Walk here");
+
+  await cells.nth(1).click();
+  await expect.poll(async () => (await view(page)).actionQueue).toEqual([{ type: "walkTo" }]);
+  await cells.first().click();
+  await expect.poll(async () => (await view(page)).actionQueue).toEqual([]);
+  await expect(row).toHaveCount(0);
+  expect((await view(page)).backpack.bedroll).toBe(1);
+  expect(errors).toEqual([]);
+});

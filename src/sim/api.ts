@@ -513,6 +513,7 @@ export type ThingInReach =
         | "chest"
         | "shelf"
         | "bed"
+        | "table"
         | "bedroll"
         | "pile"
         | "sled";

@@ -36,6 +36,7 @@ describe("the lean-to in the build menu", () => {
       { structure: "chest", cost: [{ material: "plank", count: 4 }], tool: "axe", placement: "anywhere" },
       { structure: "shelf", cost: [{ material: "plank", count: 4 }], placement: "anywhere" },
       { structure: "bed", cost: [{ material: "plank", count: 8 }], placement: "anywhere" },
+      { structure: "table", cost: [{ material: "plank", count: 6 }], placement: "anywhere" },
       { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
       {
         structure: "sled",

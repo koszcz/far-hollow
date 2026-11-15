@@ -188,6 +188,11 @@ export interface Entity {
    */
   bed?: true;
   /**
+   * Marks a finished table: furniture the player eats beside. Food eaten within reach of it fills more hunger.
+   * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way it is turned.
+   */
+  table?: true;
+  /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */
@@ -438,6 +443,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished beds. */
 export function bedEntities(store: EntityStore) {
   return store.with("bed", "position");
+}
+
+/** Finished tables. */
+export function tableEntities(store: EntityStore) {
+  return store.with("table", "position");
 }
 
 /** Finished chests. */

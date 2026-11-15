@@ -1,4 +1,4 @@
-// Where the player is drawn while going to sleep in a bed: part of the draft "bed" asset in asset-manifest.json. A rough draft.
+// Where the player is drawn while going to sleep in a bed: part of the approved "bed" asset in asset-manifest.json.
 // The body plays the approved sleep animation, timed by sleep-animation.ts, as on a bedroll.
 // In a bed, the player steps up onto the mattress, turned to lie along the bed, which may face any of four ways.
 // Once standing again, they step back down to where they stood beside the bed. The bed blocks walking, so game logic keeps them there.

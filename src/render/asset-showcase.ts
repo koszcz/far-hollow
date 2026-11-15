@@ -100,9 +100,11 @@ export function showAsset(
     "log-wall",
     "door-frame",
   ].includes(id);
+  // The bed's stills show the bed alone. Its live loop shows the player sleeping in it.
+  const showsPlayerInLoop = options.play && id === "bed";
   // The forest's falling trees tip away from the player entity, so it is always there, even when not drawn.
   const playerEntity = store.add({ player: true, position: at(0, 0), previousPosition: at(0, 0) });
-  player.group.visible = showsPlayer;
+  player.group.visible = showsPlayer || showsPlayerInLoop;
   scene.add(player.group);
   const potMaker = createPotMaker();
   const props = new THREE.Group();

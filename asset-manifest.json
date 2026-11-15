@@ -908,13 +908,10 @@
         "src/render/sled-plank-meshes.ts",
         "src/render/sled-meshes.ts"
       ],
-      "description": "The 0 to 24 planks lying on a finished sled, drawn on top of the approved sled model. Each plank is the pile's plank shape: a flat board of pale sawn wood, 0.8 m long. The planks lie flat along the runners in layers of six, two end to end and three side by side, each turned a little so the stack is not too neat. They rest on the cross pieces when the sled holds no logs, and on top of the logs when it does.",
+      "description": "The 0 to 24 planks lying on a finished sled, drawn on top of the approved sled model. Each plank is the pile's plank shape: a flat board of pale sawn wood, 0.8 m long, in one of three near tones, with darker sawn ends. The planks lie flat along the runners in layers of eight, two end to end and four side by side. Each layer and plank slides a little so the ends of the stack are ragged. Two rope lashings bind every full layer. Planks in a layer that is not full lie loose on top. They rest on the cross pieces when the sled holds no logs, and on top of the logs when it does.",
       "source": "Built in code in this project",
       "license": "Project code",
-      "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/07-planks-on-sleds-and-nearby-planks.md"
-      }
+      "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
     },
     {
       "id": "sled-icon",

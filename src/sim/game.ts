@@ -131,10 +131,10 @@ export const STEPS_PER_SECOND = 30;
 export const STEP_MS = 1000 / STEPS_PER_SECOND;
 
 /**
- * The player keeps at least this far from a tree's centre.
- * The walk map uses 1 m cells, so this leaves room for the widest trunk (about 0.4 m) plus half a cell's diagonal.
+ * The walk map blocks every 1 m cell whose centre lies within this distance of a tree's centre. A larger radius closes diagonal gaps between trees about 3 m apart, which look wide enough on screen.
+ * The cost is that a path can, in rare cases, graze the edge of the widest trunk (about 0.4 m across).
  */
-const TREE_WALK_BLOCK_RADIUS_METRES = 1.2;
+export const TREE_WALK_BLOCK_RADIUS_METRES = 0.9;
 /** Skipped time runs in slices this many game minutes long. */
 const PASS_TIME_SLICE_MINUTES = 1;
 /** A new game starts on the morning of day 1. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { TREE_WALK_BLOCK_RADIUS_METRES } from "./game";
 import { distanceToTarget, findPath, findPathWithin } from "./pathfinding";
 import type { GroundPoint } from "./valley";
 import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";
@@ -52,6 +53,19 @@ describe("findPath", () => {
     const endFromTree = Math.hypot((end?.x ?? 0) - tree.x, (end?.z ?? 0) - tree.z);
     expect(endFromTree).toBeGreaterThan(TREE_RADIUS / 2);
     expect(endFromTree).toBeLessThan(TREE_RADIUS + 1.5);
+  });
+
+  it("walks straight through a diagonal gap between two trees about 3 m apart", () => {
+    const map = createWalkMap({ size: 100 });
+    const lower = { x: -0.56, z: -0.56 };
+    const upper = { x: 1.56, z: 1.56 };
+    for (const tree of [lower, upper]) blockCircle(map, tree, TREE_WALK_BLOCK_RADIUS_METRES);
+    const to = { x: 5.5, z: -4.5 };
+
+    const path = findPath(map, { x: -4.5, z: 5.5 }, to);
+
+    expect(distanceBetween(lower, upper)).toBeCloseTo(3, 0);
+    expect(path).toEqual([to]);
   });
 
   it("stays put when no spot near the target can be reached and the player is already closest", () => {

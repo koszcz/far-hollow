@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Far Hollow: backpack capacity options (variant C)</title>
+    <link rel="stylesheet" href="c-style.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #120d09;
+        color: #f3e6d3;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      .caption {
+        max-width: 1280px;
+        margin: 18px auto 8px;
+        padding: 0 4px;
+      }
+      .caption h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      .caption p {
+        margin: 0;
+        color: #cdb898;
+      }
+      .state {
+        max-width: 1280px;
+        margin: 0 auto 2px;
+        padding: 4px;
+        font-size: 12px;
+        color: #a8957c;
+      }
+      .stage {
+        position: relative;
+        width: 1280px;
+        height: 200px;
+        margin: 0 auto 10px;
+        overflow: hidden;
+        background: url(scene.jpg) center bottom / 1280px 800px;
+      }
+      .shot-mode .stage {
+        margin: 0 0 6px;
+      }
+      .shot-mode .caption {
+        margin: 8px 0 4px;
+      }
+      .shot-mode .state {
+        margin: 0;
+      }
+      .vc .hotbar {
+        position: relative;
+      }
+      .vc .hotbar li .c {
+        font-size: 10px;
+        opacity: 0.85;
+      }
+      .vc .weight {
+        display: none;
+      }
+      .full {
+        --load: #e0573a;
+      }
+      .tip {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #2b1c12;
+        border: 1px solid rgb(255 214 170 / 0.16);
+        z-index: 3;
+      }
+
+      /* 1. Rim gauge: a thin bar along the hotbar's top edge fills with the load. */
+      .rim {
+        position: absolute;
+        top: -1px;
+        left: 18px;
+        right: 18px;
+        height: 4px;
+        border-radius: 0 0 4px 4px;
+        background: rgb(255 255 255 / 0.08);
+        overflow: hidden;
+      }
+      .rim b {
+        display: block;
+        height: 100%;
+        width: calc(var(--f) * 100%);
+        background: var(--load, #f0a04b);
+        box-shadow: 0 0 8px var(--load, #f0a04b);
+        border-radius: 0 0 4px 4px;
+      }
+      .full .rim b {
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      /* 2. Backpack ring: a backpack cell at the start of the hotbar with a ring like the need gauges. */
+      .pack {
+        position: relative;
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .pack::before {
+        content: "";
+        position: absolute;
+        inset: 3px;
+        border-radius: 50%;
+        background: conic-gradient(var(--load, #f0a04b) calc(var(--f) * 1turn), rgb(255 255 255 / 0.1) 0);
+        -webkit-mask: radial-gradient(circle, transparent 21px, #000 22px);
+        mask: radial-gradient(circle, transparent 21px, #000 22px);
+      }
+      .pack .hud-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--load, #f0a04b);
+      }
+      .pack-sep {
+        width: 1px;
+        align-self: stretch;
+        background: rgb(255 214 170 / 0.16);
+        margin: 4px 2px;
+      }
+      .full .pack .hud-icon {
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      /* 3. Load column: a tall bar at the end of the slots, split into one block per kind of thing. */
+      .column {
+        position: relative;
+        width: 12px;
+        height: 58px;
+        border-radius: 6px;
+        background: rgb(255 255 255 / 0.08);
+        display: flex;
+        flex-direction: column-reverse;
+        overflow: hidden;
+        flex: none;
+      }
+      .column i {
+        display: block;
+        height: calc(var(--w) / 20 * 100%);
+        background: var(--load, #f0a04b);
+        border-top: 1px solid rgb(30 18 10 / 0.8);
+      }
+      .column i:nth-child(even) {
+        filter: brightness(0.8);
+      }
+      .column i.hl {
+        background: #fff1d6;
+        filter: none;
+      }
+      .hotbar li.hover {
+        background: rgb(255 241 214 / 0.14);
+        box-shadow: inset 0 0 0 1.5px #fff1d6;
+      }
+
+      /* 4. Kilogram pips: twenty pips above the slots, one per kilogram. */
+      .pips {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 3px;
+        padding: 3px 6px;
+        border-radius: 999px;
+        background: rgb(38 24 15 / 0.8);
+        border: 1px solid rgb(255 214 170 / 0.16);
+      }
+      .pips i {
+        width: 9px;
+        height: 5px;
+        border-radius: 2px;
+        background: rgb(255 255 255 / 0.12);
+      }
+      .pips i.on {
+        background: var(--load, #f0a04b);
+      }
+      .pips i.half {
+        background: linear-gradient(90deg, var(--load, #f0a04b) 50%, rgb(255 255 255 / 0.12) 50%);
+      }
+      .pips i:nth-child(5n) {
+        margin-right: 3px;
+      }
+    </style>
+    <script src="icons.js"></script>
+    <script src="icons-extra.js"></script>
+  </head>
+  <body>
+    <main id="out"></main>
+    <script>
+      const I = { ...window.ICONS, ...window.ICONS_EXTRA };
+      const BACKPACK = `<svg class="hud-icon" viewBox="0 0 24 24"><path d="M9 6V5a3 3 0 0 1 6 0v1M6 9a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM9 13h6v4H9z"></path></svg>`;
+      const LIMIT = 20;
+      const start = [
+        ["Axe", I.cell0, 1, 1.5],
+        ["Knife", I.cell1, 1, 0.3],
+        ["Drawknife", I.cell2, 1, 0.5],
+        ["Steel and flint", I.cell3, 1, 0.1],
+        ["Bedroll", I.cell4, 1, 1.5],
+        ["Pot (empty)", I.cell5, 1, 1],
+        ["Saw blade", I.cell6, 1, 0.5],
+        ["Fishing line", I.cell7, 1, 0.1],
+      ];
+      const heavy = [...start, ["Plank", I.plank, 5, 2], ["Stick", I.stick, 4, 0.5], ["Bark", I.bark, 3, 0.3]];
+      const needs = [
+        ["Warmth", 0.82, "#e8833a", I.need0],
+        ["Hunger", 0.66, "#d9534f", I.need1],
+        ["Thirst", 0.6, "#5aa9e6", I.need2],
+        ["Rest", 0.9, "#a08ce0", I.need3],
+      ];
+      const options = {
+        rim: [
+          "1 · Rim gauge",
+          "A thin amber line along the hotbar's top edge fills with the load. It turns red and pulses near the limit. Smallest change, almost invisible until it matters.",
+        ],
+        ring: [
+          "2 · Backpack ring",
+          "A backpack cell opens the hotbar, with a ring like the need gauges. Matches variant C's look. Reads at a glance, and a click on it could open the full backpack.",
+        ],
+        column: [
+          "3 · Load column",
+          "A tall bar at the end of the slots, built from one block per kind of thing. Pointing at a slot lights its block. Shows what is heavy, not just how full.",
+        ],
+        pips: [
+          "4 · Kilogram pips",
+          "Twenty pips above the slots, one per kilogram, in groups of five. Countable without numbers. Players see that a plank costs two pips.",
+        ],
+      };
+      function stage(opt, items, hoverIndex) {
+        const kg = items.reduce((s, [, , n, w]) => s + n * w, 0);
+        const f = Math.min(kg / LIMIT, 1);
+        const full = f >= 0.85;
+        const cells = items
+          .map(([n, ic, count, w], i) => {
+            const hover = i === hoverIndex;
+            const tip = hover ? `<span class="tip">${n}${count > 1 ? " ×" + count : ""} · ${+(count * w).toFixed(1)} kg</span>` : "";
+            return `<li class="${i === 0 ? "sel" : ""}${hover ? " hover" : ""}">${i < 9 ? `<span class="k">${i + 1}</span>` : ""}${count > 1 ? `<span class="c">×${count}</span>` : ""}${ic}<span class="n">${n}</span>${tip}</li>`;
+          })
+          .join("");
+        let before = "",
+          after = "",
+          over = "";
+        if (opt === "rim") over = `<div class="rim"><b></b></div>`;
+        if (opt === "ring") before = `<div class="pack">${BACKPACK}</div><div class="pack-sep"></div>`;
+        if (opt === "column")
+          after = `<div class="column">${items.map(([, , n, w], i) => `<i class="${i === hoverIndex ? "hl" : ""}" style="--w:${n * w}"></i>`).join("")}</div>`;
+        if (opt === "pips") {
+          over = `<div class="pips">${Array.from({ length: LIMIT }, (_, i) => `<i class="${kg >= i + 1 ? "on" : kg >= i + 0.5 ? "half" : ""}"></i>`).join("")}</div>`;
+        }
+        const needRows = needs.map(([n, v, c, ic]) => `<div class="need" style="--v:${v};--c:${c}">${ic}<span>${n}</span><i><b></b></i></div>`).join("");
+        return `<div class="stage vc${full ? " full" : ""}" style="--f:${f}">
+          <div class="dock"><div class="needs">${needRows}</div>
+            <div class="hotbar">${over}${before}<ul>${cells}</ul>${after}
+              <div class="tools"><button>${I.tool0}<span>Build</span><kbd>B</kbd></button><button>${I.tool1}<span>Craft</span><kbd>C</kbd></button></div>
+            </div>
+          </div>
+        </div>`;
+      }
+      const only = new URLSearchParams(location.search).get("o");
+      if (only) document.body.classList.add("shot-mode");
+      document.getElementById("out").innerHTML = (only ? [only] : Object.keys(options))
+        .map(
+          (o) => `<section class="caption"><h2>${options[o][0]}</h2><p>${options[o][1]}</p></section>
+          <div class="state">Starting pack · 5.5 of 20 kg</div>${stage(o, start, -1)}
+          <div class="state">Loaded · 18.4 of 20 kg${o === "column" ? " · pointing at the planks" : " · pointing at the planks shows their weight"}</div>${stage(o, heavy, 8)}`,
+        )
+        .join("");
+    </script>
+  </body>
+</html>

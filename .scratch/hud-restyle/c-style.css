@@ -1,0 +1,432 @@
+.hud-icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.backpack-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+.stage > * {
+  position: absolute;
+}
+.clock {
+  top: 14px;
+  left: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pause {
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.banner {
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.dock {
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.needs {
+  display: grid;
+  grid-template-columns: repeat(2, 190px);
+  gap: 6px 22px;
+}
+.need {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.need .hud-icon {
+  color: var(--c);
+}
+.need span {
+  width: 54px;
+  font-size: 12px;
+}
+.need i {
+  flex: 1;
+  height: 7px;
+  position: relative;
+  overflow: hidden;
+}
+.need i b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--v) * 100%);
+  background: var(--c);
+}
+.need.low {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+.hotbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hotbar ul {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hotbar li {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  padding: 4px 3px 5px;
+}
+.hotbar li .k {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.hotbar li .n {
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+}
+.hotbar li .c {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.weight {
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tools button {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  height: 33px;
+  padding: 0 8px 0 10px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  cursor: pointer;
+}
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+}
+.amenu {
+  width: 220px;
+  padding: 4px;
+}
+.amenu h3 {
+  margin: 0;
+  padding: 4px 8px 5px;
+  font-size: 12px;
+}
+.amenu ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.amenu li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  padding: 3px 10px 3px 4px;
+}
+.amenu li .ic {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.amenu li .ic .hud-icon {
+  width: 18px;
+  height: 18px;
+}
+.amenu li small {
+  display: block;
+  font-size: 11px;
+}
+.amenu li.main b {
+  font-weight: 700;
+}
+.amenu li.off {
+  opacity: 0.6;
+}
+
+/* ───────────── C. Smoked Walnut ───────────── */
+.vc {
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  color: #f6ead8;
+  --glass: rgb(38 24 15 / 0.62);
+  --line: rgb(255 214 170 / 0.16);
+  --amber: #f0a04b;
+}
+.vc .clock,
+.vc .pause,
+.vc .banner,
+.vc .hotbar,
+.vc .amenu {
+  background: var(--glass);
+  backdrop-filter: blur(12px) saturate(1.2);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 230 200 / 0.08);
+}
+.vc .clock {
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.vc .clock .sun {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: conic-gradient(var(--amber) 0 34%, rgb(255 255 255 / 0.1) 34%);
+}
+.vc .clock .sun .hud-icon {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 50%;
+  background: #2b1c12;
+  box-sizing: content-box;
+  color: var(--amber);
+}
+.vc .clock small {
+  opacity: 0.6;
+  margin-left: 4px;
+}
+.vc .pause {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+.vc .banner {
+  padding: 7px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.vc .banner::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-right: 9px;
+  vertical-align: 1px;
+  box-shadow: 0 0 8px var(--amber);
+}
+.vc .dock {
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 10px;
+}
+.vc .needs {
+  order: 0;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  grid-template-columns: none;
+}
+.vc .need {
+  position: relative;
+  width: 46px;
+  height: 62px;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: flex-start;
+}
+.vc .need::before {
+  content: "";
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: conic-gradient(var(--c) calc(var(--v) * 1turn), rgb(255 255 255 / 0.1) 0);
+  -webkit-mask: radial-gradient(circle, transparent 16px, #000 17px);
+  mask: radial-gradient(circle, transparent 16px, #000 17px);
+}
+.vc .need .hud-icon {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+}
+.vc .need span {
+  width: auto;
+  font-size: 10px;
+  opacity: 0.75;
+}
+.vc .need i {
+  display: none;
+}
+.vc .hotbar {
+  order: 1;
+  padding: 8px;
+  gap: 10px;
+}
+.vc .hotbar ul {
+  gap: 4px;
+}
+.vc .hotbar li {
+  width: 58px;
+  height: 58px;
+  grid-template-rows: 1fr;
+  border-radius: 12px;
+  background: rgb(255 230 200 / 0.05);
+}
+.vc .hotbar li .n {
+  display: none;
+}
+.vc .hotbar li .backpack-icon {
+  width: 38px;
+  height: 38px;
+}
+.vc .hotbar li .k {
+  top: auto;
+  bottom: 4px;
+  left: 6px;
+  opacity: 0.5;
+  font-weight: 600;
+}
+.vc .hotbar li.sel {
+  background: rgb(240 160 75 / 0.16);
+  box-shadow: inset 0 0 0 1.5px var(--amber);
+}
+.vc .hotbar li.sel .n {
+  display: block;
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #2b1c12;
+  border: 1px solid var(--line);
+}
+.vc .weight {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10px;
+  opacity: 0.6;
+  padding: 0;
+}
+.vc .tools {
+  flex-direction: row;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+.vc .tools button {
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border-radius: 12px;
+  background: rgb(240 160 75 / 0.14);
+  border: 1px solid rgb(240 160 75 / 0.35);
+  font-size: 11px;
+  font-weight: 600;
+  position: relative;
+}
+.vc .tools button kbd {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  font-size: 9px;
+  background: rgb(0 0 0 / 0.35);
+  border-radius: 4px;
+}
+.vc .amenu {
+  padding: 6px;
+  border-radius: 14px;
+}
+.vc .amenu h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+}
+.vc .amenu li {
+  border-radius: 10px;
+}
+.vc .amenu li.hover {
+  background: rgb(240 160 75 / 0.16);
+}
+.vc .amenu li .ic {
+  border-radius: 9px;
+  background: rgb(255 230 200 / 0.08);
+}
+.vc .amenu li small {
+  opacity: 0.6;
+}

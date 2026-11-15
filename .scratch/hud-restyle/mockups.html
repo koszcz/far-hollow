@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Far Hollow: HUD restyle variants</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #120d09;
+        color: #f3e6d3;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 16px;
+        background: #22180f;
+        border-bottom: 1px solid #6b4a2f;
+      }
+      nav h1 {
+        margin: 0 14px 0 0;
+        font-size: 15px;
+      }
+      nav button {
+        font: inherit;
+        color: inherit;
+        background: #3a2818;
+        border: 1px solid #6b4a2f;
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      nav button.on {
+        background: #6b4a2f;
+        border-color: #e8833a;
+      }
+      .caption {
+        max-width: 1280px;
+        margin: 14px auto 10px;
+        padding: 0 4px;
+      }
+      .caption h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      .caption p {
+        margin: 0;
+        color: #cdb898;
+      }
+      .shot-mode nav,
+      .shot-mode .caption {
+        display: none;
+      }
+
+      /* The stage: a real game frame with the HUD hidden, 1280 by 800. */
+      .stage {
+        position: relative;
+        width: 1280px;
+        height: 800px;
+        margin: 0 auto 24px;
+        overflow: hidden;
+        background: url(scene.jpg) center / cover;
+      }
+      .shot-mode .stage {
+        margin: 0;
+      }
+      .stage img.current {
+        position: absolute;
+        inset: 0;
+      }
+      .hud-icon {
+        width: 22px;
+        height: 22px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .backpack-icon {
+        width: 40px;
+        height: 40px;
+        flex: none;
+      }
+      .stage > * {
+        position: absolute;
+      }
+      .clock {
+        top: 14px;
+        left: 14px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .pause {
+        top: 14px;
+        right: 14px;
+        display: grid;
+        place-items: center;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      .banner {
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+      }
+      .dock {
+        left: 0;
+        right: 0;
+        bottom: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .needs {
+        display: grid;
+        grid-template-columns: repeat(2, 190px);
+        gap: 6px 22px;
+      }
+      .need {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .need .hud-icon {
+        color: var(--c);
+      }
+      .need span {
+        width: 54px;
+        font-size: 12px;
+      }
+      .need i {
+        flex: 1;
+        height: 7px;
+        position: relative;
+        overflow: hidden;
+      }
+      .need i b {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: calc(var(--v) * 100%);
+        background: var(--c);
+      }
+      .need.low {
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .hotbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hotbar ul {
+        display: flex;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .hotbar li {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        display: grid;
+        grid-template-rows: 1fr auto;
+        place-items: center;
+        padding: 4px 3px 5px;
+      }
+      .hotbar li .k {
+        position: absolute;
+        top: 3px;
+        left: 5px;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .hotbar li .n {
+        font-size: 10px;
+        line-height: 1.1;
+        text-align: center;
+      }
+      .hotbar li .c {
+        position: absolute;
+        top: 3px;
+        right: 5px;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .weight {
+        font-size: 11px;
+        white-space: nowrap;
+        padding: 0 4px;
+      }
+      .tools {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .tools button {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        height: 33px;
+        padding: 0 8px 0 10px;
+        font: inherit;
+        font-size: 14px;
+        color: inherit;
+        cursor: pointer;
+      }
+      kbd {
+        display: inline-grid;
+        place-items: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 3px;
+        font: inherit;
+        font-size: 11px;
+        line-height: 1;
+      }
+      .amenu {
+        width: 220px;
+        padding: 4px;
+      }
+      .amenu h3 {
+        margin: 0;
+        padding: 4px 8px 5px;
+        font-size: 12px;
+      }
+      .amenu ul {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .amenu li {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        min-height: 38px;
+        padding: 3px 10px 3px 4px;
+      }
+      .amenu li .ic {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        flex: none;
+      }
+      .amenu li .ic .hud-icon {
+        width: 18px;
+        height: 18px;
+      }
+      .amenu li small {
+        display: block;
+        font-size: 11px;
+      }
+      .amenu li.main b {
+        font-weight: 700;
+      }
+      .amenu li.off {
+        opacity: 0.6;
+      }
+
+      /* ───────────── A. Carved Plank ───────────── */
+      .va {
+        font-family: "Iowan Old Style", "Palatino", Georgia, serif;
+        color: #f4e3c3;
+        --plank: #4b2f1b;
+        --dark: #22150c;
+        --hi: #8a5f3a;
+        --brass: #c9a24d;
+      }
+      .va .clock,
+      .va .pause,
+      .va .banner,
+      .va .hotbar,
+      .va .needs,
+      .va .amenu {
+        background:
+          radial-gradient(circle at 7px 7px, #d8b770 1.6px, #6d5222 2.3px, transparent 2.8px),
+          radial-gradient(circle at calc(100% - 7px) 7px, #d8b770 1.6px, #6d5222 2.3px, transparent 2.8px),
+          radial-gradient(circle at 7px calc(100% - 7px), #d8b770 1.6px, #6d5222 2.3px, transparent 2.8px),
+          radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #d8b770 1.6px, #6d5222 2.3px, transparent 2.8px),
+          repeating-linear-gradient(178deg, rgb(0 0 0 / 0) 0 5px, rgb(0 0 0 / 0.12) 5px 6px, rgb(255 220 170 / 0.04) 6px 9px, rgb(0 0 0 / 0.08) 9px 10px),
+          linear-gradient(180deg, #5a3920, #44291a 60%, #3a2215);
+        border: 2px solid var(--dark);
+        border-radius: 5px;
+        box-shadow:
+          inset 0 1px 0 rgb(255 210 150 / 0.25),
+          inset 0 -2px 0 rgb(0 0 0 / 0.35),
+          0 4px 0 #1a0f08,
+          0 8px 18px rgb(0 0 0 / 0.5);
+        text-shadow: 0 1px 0 #000;
+      }
+      .va .clock {
+        padding: 8px 16px 8px 14px;
+        font-size: 15px;
+      }
+      .va .clock .hud-icon {
+        color: #f2b55a;
+      }
+      .va .pause {
+        width: 46px;
+        height: 46px;
+      }
+      .va .banner {
+        padding: 8px 22px;
+        font-style: italic;
+        font-size: 15px;
+      }
+      .va .needs {
+        padding: 10px 18px;
+      }
+      .va .need span {
+        font-variant: small-caps;
+        letter-spacing: 0.04em;
+        font-size: 13px;
+      }
+      .va .need i {
+        height: 9px;
+        background: #1a0f08;
+        border: 1px solid #8a6a2e;
+        border-radius: 1px;
+        box-shadow: inset 0 1px 2px #000;
+      }
+      .va .need i b {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--c) 100%, white 20%), var(--c) 50%, color-mix(in srgb, var(--c) 70%, black));
+      }
+      .va .hotbar {
+        padding: 10px 14px;
+      }
+      .va .hotbar li {
+        background: radial-gradient(ellipse at 50% 40%, #2e1d11, #1b100a);
+        border-radius: 4px;
+        box-shadow:
+          inset 0 2px 5px rgb(0 0 0 / 0.8),
+          0 1px 0 rgb(255 210 150 / 0.18);
+      }
+      .va .hotbar li .k {
+        color: var(--brass);
+      }
+      .va .hotbar li.sel {
+        box-shadow:
+          inset 0 2px 5px rgb(0 0 0 / 0.8),
+          0 0 0 2px var(--brass);
+      }
+      .va .weight {
+        color: #d9c19a;
+        font-style: italic;
+      }
+      .va .tools {
+        padding-left: 12px;
+        border-left: 2px groove #2a180c;
+      }
+      .va .tools button {
+        background: linear-gradient(#8a5a33, #6a4226);
+        border: 1px solid #2a180c;
+        border-radius: 3px;
+        box-shadow:
+          inset 0 1px 0 rgb(255 220 170 / 0.3),
+          0 2px 0 #1a0f08;
+        font-family: inherit;
+      }
+      .va kbd {
+        background: linear-gradient(#e2c37a, #a8823a);
+        color: #2a1a0c;
+        border-radius: 3px;
+        text-shadow: none;
+        font-weight: 700;
+      }
+      .va .amenu {
+        padding: 8px;
+      }
+      .va .amenu h3 {
+        font-variant: small-caps;
+        letter-spacing: 0.06em;
+        color: #f2c56f;
+        border-bottom: 1px solid rgb(0 0 0 / 0.4);
+        box-shadow: 0 1px 0 rgb(255 210 150 / 0.12);
+        margin-bottom: 4px;
+      }
+      .va .amenu li {
+        border-radius: 3px;
+      }
+      .va .amenu li.hover {
+        background: rgb(0 0 0 / 0.28);
+        box-shadow: inset 3px 0 0 #f2b55a;
+      }
+      .va .amenu li .ic {
+        border-radius: 50%;
+        background: radial-gradient(#7a5030, #4a2d18);
+        border: 1px solid #c9a24d;
+      }
+      .va .amenu li small {
+        color: #cdb08a;
+        font-style: italic;
+      }
+
+      /* ───────────── B. Field Journal ───────────── */
+      .vb {
+        font-family: "Palatino", "Book Antiqua", Georgia, serif;
+        color: #3b2717;
+        --paper: #efe1c1;
+        --leather: #6e3f22;
+      }
+      .vb .clock,
+      .vb .pause,
+      .vb .banner,
+      .vb .hotbar,
+      .vb .needs,
+      .vb .amenu {
+        background:
+          radial-gradient(ellipse at 20% 10%, rgb(255 255 255 / 0.35), transparent 50%),
+          radial-gradient(ellipse at 90% 100%, rgb(120 80 30 / 0.18), transparent 55%), var(--paper);
+        border: 5px solid var(--leather);
+        border-radius: 10px;
+        outline: 1.5px dashed rgb(240 210 160 / 0.7);
+        outline-offset: -3px;
+        box-shadow:
+          0 6px 16px rgb(0 0 0 / 0.5),
+          inset 0 0 18px rgb(120 80 30 / 0.25);
+      }
+      .vb .clock {
+        padding: 6px 14px;
+        font-size: 15px;
+      }
+      .vb .clock b {
+        font-style: italic;
+      }
+      .vb .clock .hud-icon {
+        color: #b5651d;
+      }
+      .vb .pause {
+        width: 46px;
+        height: 46px;
+        color: #3b2717;
+      }
+      .vb .banner {
+        padding: 7px 18px;
+        font-style: italic;
+        font-size: 15px;
+        transform: translateX(-50%) rotate(-0.8deg);
+      }
+      .vb .needs {
+        padding: 9px 16px;
+      }
+      .vb .need .hud-icon {
+        color: color-mix(in srgb, var(--c) 70%, #3b2717);
+      }
+      .vb .need span {
+        font-style: italic;
+        font-size: 13px;
+      }
+      .vb .need i {
+        height: 10px;
+        border: 1.5px solid #3b2717;
+        border-radius: 6px 3px 7px 2px;
+        background: transparent;
+      }
+      .vb .need i b {
+        background: repeating-linear-gradient(-55deg, color-mix(in srgb, var(--c) 75%, #3b2717) 0 2px, transparent 2px 4px);
+      }
+      .vb .hotbar {
+        padding: 8px 12px;
+      }
+      .vb .hotbar li {
+        background: #f8eed6;
+        border: 1.5px solid #8a6a48;
+        border-radius: 4px;
+        box-shadow: 1px 2px 0 rgb(80 50 20 / 0.25);
+      }
+      .vb .hotbar li:nth-child(odd) {
+        transform: rotate(-1.2deg);
+      }
+      .vb .hotbar li:nth-child(even) {
+        transform: rotate(1deg);
+      }
+      .vb .hotbar li .k {
+        color: #9a3d1c;
+        font-family: "Bradley Hand", "Segoe Print", cursive;
+        font-size: 12px;
+      }
+      .vb .hotbar li.sel {
+        border-color: #9a3d1c;
+        box-shadow: 0 0 0 2px #9a3d1c;
+      }
+      .vb .weight {
+        font-style: italic;
+        color: #6b4a2f;
+      }
+      .vb .tools {
+        padding-left: 10px;
+        border-left: 1.5px dashed #8a6a48;
+      }
+      .vb .tools button {
+        background: var(--leather);
+        color: #f6e7c8;
+        border: none;
+        border-radius: 6px;
+        outline: 1px dashed rgb(240 210 160 / 0.6);
+        outline-offset: -3px;
+        font-family: inherit;
+      }
+      .vb kbd {
+        background: #f6e7c8;
+        color: #3b2717;
+        border-radius: 3px;
+        font-weight: 700;
+      }
+      .vb .amenu {
+        padding: 8px;
+        transform: rotate(0.6deg);
+      }
+      .vb .amenu h3 {
+        font-style: italic;
+        font-size: 14px;
+        border-bottom: 1.5px solid #3b2717;
+        margin-bottom: 4px;
+      }
+      .vb .amenu li.hover {
+        background: rgb(181 101 29 / 0.16);
+        border-radius: 4px;
+      }
+      .vb .amenu li .ic {
+        border: 1.5px solid #3b2717;
+        border-radius: 50%;
+        color: #3b2717;
+      }
+      .vb .amenu li .ic .backpack-icon {
+        width: 22px;
+        height: 22px;
+      }
+      .vb .amenu li small {
+        color: #7a5638;
+        font-style: italic;
+      }
+
+      /* ───────────── C. Smoked Walnut ───────────── */
+      .vc {
+        font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+        color: #f6ead8;
+        --glass: rgb(38 24 15 / 0.62);
+        --line: rgb(255 214 170 / 0.16);
+        --amber: #f0a04b;
+      }
+      .vc .clock,
+      .vc .pause,
+      .vc .banner,
+      .vc .hotbar,
+      .vc .amenu {
+        background: var(--glass);
+        backdrop-filter: blur(12px) saturate(1.2);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow:
+          0 10px 30px rgb(0 0 0 / 0.35),
+          inset 0 1px 0 rgb(255 230 200 / 0.08);
+      }
+      .vc .clock {
+        padding: 6px 14px 6px 6px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .vc .clock .sun {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: conic-gradient(var(--amber) 0 34%, rgb(255 255 255 / 0.1) 34%);
+      }
+      .vc .clock .sun .hud-icon {
+        width: 18px;
+        height: 18px;
+        padding: 2px;
+        border-radius: 50%;
+        background: #2b1c12;
+        box-sizing: content-box;
+        color: var(--amber);
+      }
+      .vc .clock small {
+        opacity: 0.6;
+        margin-left: 4px;
+      }
+      .vc .pause {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+      }
+      .vc .banner {
+        padding: 7px 18px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .vc .banner::before {
+        content: "";
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+        margin-right: 9px;
+        vertical-align: 1px;
+        box-shadow: 0 0 8px var(--amber);
+      }
+      .vc .dock {
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 10px;
+      }
+      .vc .needs {
+        order: 0;
+        display: flex;
+        gap: 6px;
+        padding: 8px;
+        background: var(--glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+        grid-template-columns: none;
+      }
+      .vc .need {
+        position: relative;
+        width: 46px;
+        height: 62px;
+        flex-direction: column;
+        gap: 3px;
+        justify-content: flex-start;
+      }
+      .vc .need::before {
+        content: "";
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: conic-gradient(var(--c) calc(var(--v) * 1turn), rgb(255 255 255 / 0.1) 0);
+        -webkit-mask: radial-gradient(circle, transparent 16px, #000 17px);
+        mask: radial-gradient(circle, transparent 16px, #000 17px);
+      }
+      .vc .need .hud-icon {
+        position: absolute;
+        top: 11px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 20px;
+        height: 20px;
+      }
+      .vc .need span {
+        width: auto;
+        font-size: 10px;
+        opacity: 0.75;
+      }
+      .vc .need i {
+        display: none;
+      }
+      .vc .hotbar {
+        order: 1;
+        padding: 8px;
+        gap: 10px;
+      }
+      .vc .hotbar ul {
+        gap: 4px;
+      }
+      .vc .hotbar li {
+        width: 58px;
+        height: 58px;
+        grid-template-rows: 1fr;
+        border-radius: 12px;
+        background: rgb(255 230 200 / 0.05);
+      }
+      .vc .hotbar li .n {
+        display: none;
+      }
+      .vc .hotbar li .backpack-icon {
+        width: 38px;
+        height: 38px;
+      }
+      .vc .hotbar li .k {
+        top: auto;
+        bottom: 4px;
+        left: 6px;
+        opacity: 0.5;
+        font-weight: 600;
+      }
+      .vc .hotbar li.sel {
+        background: rgb(240 160 75 / 0.16);
+        box-shadow: inset 0 0 0 1.5px var(--amber);
+      }
+      .vc .hotbar li.sel .n {
+        display: block;
+        position: absolute;
+        bottom: calc(100% + 14px);
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-size: 12px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: #2b1c12;
+        border: 1px solid var(--line);
+      }
+      .vc .weight {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: 10px;
+        opacity: 0.6;
+        padding: 0;
+      }
+      .vc .tools {
+        flex-direction: row;
+        gap: 6px;
+        padding-left: 10px;
+        border-left: 1px solid var(--line);
+      }
+      .vc .tools button {
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        width: 58px;
+        height: 58px;
+        padding: 0;
+        border-radius: 12px;
+        background: rgb(240 160 75 / 0.14);
+        border: 1px solid rgb(240 160 75 / 0.35);
+        font-size: 11px;
+        font-weight: 600;
+        position: relative;
+      }
+      .vc .tools button kbd {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        min-width: 15px;
+        height: 15px;
+        font-size: 9px;
+        background: rgb(0 0 0 / 0.35);
+        border-radius: 4px;
+      }
+      .vc .amenu {
+        padding: 6px;
+        border-radius: 14px;
+      }
+      .vc .amenu h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        opacity: 0.6;
+      }
+      .vc .amenu li {
+        border-radius: 10px;
+      }
+      .vc .amenu li.hover {
+        background: rgb(240 160 75 / 0.16);
+      }
+      .vc .amenu li .ic {
+        border-radius: 9px;
+        background: rgb(255 230 200 / 0.08);
+      }
+      .vc .amenu li small {
+        opacity: 0.6;
+      }
+
+      /* ───────────── D. Pale Pine ───────────── */
+      .vd {
+        font-family: "Avenir Next", "Trebuchet MS", system-ui, sans-serif;
+        font-weight: 600;
+        color: #3a2414;
+        --pine: #dcb985;
+        --edge: #6a4325;
+      }
+      .vd .clock,
+      .vd .pause,
+      .vd .banner,
+      .vd .hotbar,
+      .vd .needs,
+      .vd .amenu {
+        background:
+          repeating-linear-gradient(
+            90deg,
+            rgb(120 70 30 / 0) 0 22px,
+            rgb(120 70 30 / 0.08) 22px 23px,
+            rgb(120 70 30 / 0) 23px 37px,
+            rgb(120 70 30 / 0.06) 37px 38px
+          ),
+          repeating-radial-gradient(ellipse 140% 60% at 30% 120%, rgb(140 85 40 / 0) 0 9px, rgb(140 85 40 / 0.1) 9px 10px), linear-gradient(#e6c896, #d3ad74);
+        border: 3px solid var(--edge);
+        border-bottom-width: 6px;
+        border-radius: 14px;
+        box-shadow:
+          0 6px 14px rgb(0 0 0 / 0.4),
+          inset 0 2px 0 rgb(255 245 220 / 0.6);
+      }
+      .vd .clock {
+        padding: 5px 14px 5px 8px;
+        font-size: 15px;
+      }
+      .vd .clock .hud-icon {
+        color: #c4561c;
+        stroke-width: 2.4;
+      }
+      .vd .pause {
+        width: 46px;
+        height: 46px;
+        color: #3a2414;
+      }
+      .vd .pause .hud-icon {
+        stroke-width: 3;
+      }
+      .vd .banner {
+        padding: 6px 18px;
+        font-size: 14px;
+      }
+      .vd .needs {
+        padding: 8px 14px;
+      }
+      .vd .need .hud-icon {
+        color: color-mix(in srgb, var(--c) 75%, #3a2414);
+        stroke-width: 2.4;
+      }
+      .vd .need span {
+        font-size: 12px;
+      }
+      .vd .need i {
+        height: 12px;
+        border-radius: 6px;
+        background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #6a4325 calc(10% - 2px) 10%), rgb(90 55 25 / 0.25);
+        box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+      }
+      .vd .need i b {
+        background: linear-gradient(color-mix(in srgb, var(--c) 100%, white 25%), var(--c));
+        border-radius: 6px;
+        -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
+      }
+      .vd .hotbar {
+        padding: 8px 10px;
+      }
+      .vd .hotbar li {
+        background: #f2dfba;
+        border: 2px solid #a67c4e;
+        border-radius: 10px;
+        box-shadow: inset 0 -3px 0 rgb(150 100 50 / 0.25);
+      }
+      .vd .hotbar li .k {
+        color: #fff;
+        background: #6a4325;
+        border-radius: 4px;
+        padding: 2px 4px;
+        top: -6px;
+        left: -6px;
+      }
+      .vd .hotbar li.sel {
+        border-color: #c4561c;
+        background: #fff0cf;
+        box-shadow:
+          0 0 0 2px #c4561c,
+          inset 0 -3px 0 rgb(196 86 28 / 0.25);
+      }
+      .vd .weight {
+        color: #6a4325;
+      }
+      .vd .tools {
+        padding-left: 10px;
+        border-left: 3px dotted #a67c4e;
+      }
+      .vd .tools button {
+        background: linear-gradient(#5a3820, #47291a);
+        color: #f6e5c4;
+        border: 2px solid #2e1a0d;
+        border-bottom-width: 4px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-family: inherit;
+      }
+      .vd kbd {
+        background: #f2dfba;
+        color: #3a2414;
+        border-radius: 4px;
+        font-weight: 800;
+      }
+      .vd .amenu {
+        padding: 6px;
+      }
+      .vd .amenu h3 {
+        color: #6a4325;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .vd .amenu li {
+        border-radius: 9px;
+      }
+      .vd .amenu li.hover {
+        background: #f6e8c8;
+        box-shadow: inset 0 0 0 2px #c4561c;
+      }
+      .vd .amenu li .ic {
+        border-radius: 50%;
+        background: #6a4325;
+        color: #f6e5c4;
+      }
+      .vd .amenu li small {
+        color: #7a5638;
+        font-weight: 500;
+      }
+    </style>
+    <script src="icons.js"></script>
+  </head>
+  <body>
+    <nav>
+      <h1>HUD restyle</h1>
+      <button data-v="cur">Current</button>
+      <button data-v="va">A · Carved plank</button>
+      <button data-v="vb">B · Field journal</button>
+      <button data-v="vc">C · Smoked walnut</button>
+      <button data-v="vd">D · Pale pine</button>
+    </nav>
+    <main id="out"></main>
+    <script>
+      const I = window.ICONS;
+      const items = ["Axe", "Knife", "Drawknife", "Steel and flint", "Bedroll", "Pot (empty)", "Saw blade", "Fishing line"];
+      const needs = [
+        ["Warmth", 0.82, "#e8833a", I.need0],
+        ["Hunger", 0.66, "#d9534f", I.need1],
+        ["Thirst", 0.22, "#5aa9e6", I.need2, true],
+        ["Rest", 0.9, "#a08ce0", I.need3],
+      ];
+      const variants = {
+        cur: ["Current", "The approved HUD today, for comparison."],
+        va: [
+          "A · Carved plank",
+          "Dark stained planks with brass nails and engraved serif text. Slots are carved hollows. Most rustic, most texture. Keeps today's layout.",
+        ],
+        vb: [
+          "B · Field journal",
+          "Parchment cards in stitched leather frames, ink-brown text, slightly crooked paper tags. Lighter and calmer. Reads like the player's own notebook.",
+        ],
+        vc: [
+          "C · Smoked walnut",
+          "Modern and minimal: blurred dark-walnut glass, amber accents, round need gauges beside the hotbar. Names show only on the selected slot. Least screen space.",
+        ],
+        vd: [
+          "D · Pale pine",
+          "Light pine boards with chunky edges, burnt-in dark text, notched need bars. Friendly and very readable by day. Might glare at night.",
+        ],
+      };
+      function stage(v) {
+        if (v === "cur") return `<div class="stage"><img class="current" src="current.jpg" /></div>`;
+        const cells = items
+          .map((n, i) => `<li class="${i === 0 ? "sel" : ""}"><span class="k">${i + 1}</span>${I["cell" + i]}<span class="n">${n}</span></li>`)
+          .join("");
+        const needRows = needs
+          .map(([n, val, c, ic, low]) => `<div class="need${low ? " low" : ""}" style="--v:${val};--c:${c}">${ic}<span>${n}</span><i><b></b></i></div>`)
+          .join("");
+        const sun = v === "vc" ? `<span class="sun">${I.clock}</span>` : I.clock;
+        return `<div class="stage ${v}">
+          <div class="clock">${sun}<span><b>Day 1</b> · 08:09${v === "vc" ? "<small>morning</small>" : ""}</span></div>
+          <button class="pause">${I.pause}</button>
+          <div class="banner">You survived the night.</div>
+          <div class="amenu" style="left:700px;top:330px">
+            <h3>River</h3>
+            <ul>
+              <li class="main hover"><span class="ic">${I.need2}</span><span><b>Drink</b></span></li>
+              <li class="off"><span class="ic">${I.cell7}</span><span>Fish<small>Needs a fishing rod</small></span></li>
+              <li><span class="ic">${I.tool0}</span><span>Walk here</span></li>
+            </ul>
+          </div>
+          <div class="dock">
+            <div class="needs">${needRows}</div>
+            <div class="hotbar"><ul>${cells}</ul><div class="weight">5.5 / 20 kg</div>
+              <div class="tools"><button>${I.tool0}<span>Build</span><kbd>B</kbd></button><button>${I.tool1}<span>Craft</span><kbd>C</kbd></button></div>
+            </div>
+          </div>
+        </div>`;
+      }
+      const params = new URLSearchParams(location.search);
+      const only = params.get("v");
+      if (only) document.body.classList.add("shot-mode");
+      const out = document.getElementById("out");
+      function show(list) {
+        out.innerHTML = list.map((v) => `<section class="caption"><h2>${variants[v][0]}</h2><p>${variants[v][1]}</p></section>${stage(v)}`).join("");
+        document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", list.length === 1 && b.dataset.v === list[0]));
+      }
+      show(only ? [only] : Object.keys(variants));
+      document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => show([b.dataset.v])));
+    </script>
+  </body>
+</html>

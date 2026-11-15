@@ -2,20 +2,23 @@ import type { Refusal } from "./api";
 import { shoulderLog } from "./carrying";
 import { toolRefusal } from "./refusals";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
-/** How long the player chops at a tree before it falls, in seconds. */
-export const CHOP_SECONDS = 4;
+export { CHOP_SECONDS, MOST_LOGS_PER_TREE } from "./tree-size";
 
 /** How far the player is through chopping, from 0 to 1, and the tree they chop, or undefined if they are not chopping now. Walking there does not count. */
-export function choppingNow(player: Entity): { progress: number; targetId: number } | undefined {
+export function choppingNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
   if (player.chopTask === undefined || player.walkPath !== undefined) return undefined;
-  return { progress: Math.min(1, player.chopTask.secondsDone / CHOP_SECONDS), targetId: player.chopTask.treeId };
+  const { treeId, secondsDone } = player.chopTask;
+  return { progress: Math.min(1, secondsDone / chopSecondsFor(entities.entity(treeId))), targetId: treeId };
 }
 
-/** How many logs a felled tree gives. */
-export const LOGS_PER_TREE = 3;
+/** How long the player chops at this tree before it falls, in seconds. A tree that is gone counts as size 1. */
+function chopSecondsFor(tree: Entity | undefined): number {
+  return chopSecondsForTreeSize(tree?.position === undefined ? 1 : treeSizeAt(tree.position.x, tree.position.z));
+}
 /** The felled trunk lies from the stump outward. These place the middle of each log along it, in metres. */
 const FIRST_LOG_FROM_STUMP_METRES = 1;
 const LOG_SPACING_METRES = 1.1;
@@ -71,7 +74,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
           continue;
         }
         chopper.chopTask.secondsDone += stepSeconds;
-        if (chopper.chopTask.secondsDone >= CHOP_SECONDS) {
+        if (chopper.chopTask.secondsDone >= chopSecondsFor(tree)) {
           entities.removeComponent(chopper, "chopTask");
           const logs = fell(tree, tree.position, chopper.position);
           const first = logs[0];
@@ -81,7 +84,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     },
   };
 
-  /** Turns a standing tree at `at` into a stump and lays its logs on the ground, falling away from `from`. Returns the logs. */
+  /** Turns a standing tree at `at` into a stump and lays its logs, more for a bigger tree, on the ground, falling away from `from`. Returns the logs. */
   function fell(tree: Entity, at: GroundPoint, from: GroundPoint): Entity[] {
     // The stump keeps the tree's place and its `blocksWalking`, so it blocks walking just as the tree did.
     entities.removeComponent(tree, "tree");
@@ -92,7 +95,8 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     const direction = { x: awayX / length, z: awayZ / length };
     const heading = Math.atan2(direction.x, direction.z);
     const logs: Entity[] = [];
-    for (let i = 0; i < LOGS_PER_TREE; i += 1) {
+    const logCount = logsForTreeSize(treeSizeAt(at.x, at.z));
+    for (let i = 0; i < logCount; i += 1) {
       const along = FIRST_LOG_FROM_STUMP_METRES + i * LOG_SPACING_METRES;
       const x = at.x + direction.x * along;
       const z = at.z + direction.z * along;

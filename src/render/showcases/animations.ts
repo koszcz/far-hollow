@@ -1,6 +1,6 @@
 // Showcases for player and world animations. Each one plays live with &play. The registry is src/render/showcases/index.ts.
 import * as THREE from "three";
-import { CHOP_SECONDS } from "../../sim/chopping";
+import { chopSecondsForTreeSize, treeSizeAt } from "../../sim/tree-size";
 import { PLANKS_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
@@ -138,6 +138,8 @@ function fishingAt(nowSeconds: number, sinceCast: number) {
 
 /** How long the felled tree lies still in the chop animation's live loop before it stands again, in seconds. */
 const CHOP_PLAY_REST_SECONDS = 1.2;
+/** How long the game takes to chop the showcase's tree, which stands at the middle of the scene. */
+const SHOWCASE_CHOP_SECONDS = chopSecondsForTreeSize(treeSizeAt(0, 0));
 
 export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
   "campfire-build-animation": {
@@ -190,10 +192,10 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
     play: {
       shot: { label: "chopping, then the fall", yaw: 80, pitch: 12, radius: 4.6, focus: { y: 1.8, z: -2.8 } },
       pose({ store, player }, seconds) {
-        const cycle = seconds % (CHOP_SECONDS + FALL_SECONDS + CHOP_PLAY_REST_SECONDS);
+        const cycle = seconds % (SHOWCASE_CHOP_SECONDS + FALL_SECONDS + CHOP_PLAY_REST_SECONDS);
         const tree = store.with("position").where((entity) => entity.player === undefined).first;
         if (tree === undefined) return undefined;
-        const chopping = cycle < CHOP_SECONDS;
+        const chopping = cycle < SHOWCASE_CHOP_SECONDS;
         player.setChopping(chopping ? cycle : undefined);
         if (chopping && tree.tree === undefined) store.addComponent(tree, "tree", true);
         if (!chopping && tree.tree !== undefined) store.removeComponent(tree, "tree");

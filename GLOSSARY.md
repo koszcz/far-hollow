@@ -88,10 +88,14 @@ _Avoid_: Pile, cluster, bundle
 Split pieces of a log, made with the axe. Firewood is used as fuel and burns longer than sticks.
 
 **Stump**:
-What is left after a tree is felled. A stump slowly regrows into a tree over many days.
+What is left after a tree is felled. A sapling sprouts from it after a day, and it grows back into a full tree over 6 game days.
 
 **Sapling**:
-A young tree the player can plant. It grows into a tree over many days.
+A small young tree, either growing from a stump or planted by the player. The player can dig one up into the backpack and plant it elsewhere. It grows into a young tree, then a full tree, over 5 game days.
+_Avoid_: Seedling, sprout
+
+**Young tree**:
+The stage between a sapling and a full tree. It blocks walking but is too young to chop.
 
 ## Tools and carrying
 

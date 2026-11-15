@@ -5,22 +5,10 @@
 // It only reads game state through the reader, so tests can pass a real game's client.
 import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
-import type {
-  BackpackContent,
-  BuildLack,
-  CampfireView,
-  CarriedLog,
-  Command,
-  GameClient,
-  GameView,
-  RecipeLack,
-  Refusal,
-  SledView,
-  WoodpileView,
-  WoodpileWood,
-} from "../sim/api";
+import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, SledView, WoodpileView, WoodpileWood } from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
+import { refusalText } from "../ui/refusal-text";
 import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 
 export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
@@ -340,48 +328,4 @@ function shoulderActions(log: CarriedLog, { offer }: Context): readonly ThingAct
   const drop = offer("drop", strings.actions.drop, { hud: "log" }, { type: "dropLog" });
   const split = log === "log" ? [offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
   return withMain([drop, ...split], "drop");
-}
-
-/** Says why the game refuses a command, as a greyed-out action shows it, such as "needs the axe". */
-function refusalText(refusal: Refusal): string {
-  const reasons = strings.actionReasons;
-  switch (refusal.kind) {
-    case "needsTool":
-      return reasons.needsTool(strings.backpackContents[refusal.tool]);
-    case "noContent":
-      return reasons.noContent[refusal.content];
-    case "cannotBuildYet":
-      return buildLackText(refusal.lacks);
-    case "cannotCraftYet":
-      return strings.craftMenu.needs(refusal.lacks.map(lackingText));
-    default:
-      return reasons[refusal.kind];
-  }
-}
-
-/** Why the player cannot build a blueprint's next stage. */
-function buildLackText(lacks: BuildLack): string {
-  const reasons = strings.actionReasons;
-  if (lacks.kind === "tool") return reasons.needsTool(strings.backpackContents[lacks.tool]);
-  switch (lacks.material) {
-    case "stick":
-    case "bark":
-    case "plank":
-      return reasons.noContent[lacks.material];
-    case "log":
-    case "debarkedLog":
-      return reasons.bringFirst[lacks.material];
-  }
-}
-
-/** Names one thing a recipe lacks, such as "the saw". */
-function lackingText(lack: RecipeLack): string {
-  switch (lack.kind) {
-    case "tool":
-      return strings.craftMenu.lacking.tool(strings.backpackContents[lack.tool]);
-    case "station":
-      return strings.craftMenu.lacking.station(strings.buildMenu.structures[lack.station]);
-    case "materials":
-      return strings.craftMenu.lacking.materials;
-  }
 }

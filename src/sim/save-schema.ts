@@ -1,5 +1,5 @@
 // Checks that stored data has the shape of a save, so a broken save is turned away before the game loads it.
-import type { BackpackContent, GameNotice } from "./api";
+import type { BackpackContent, GameNotice, PlainRefusal } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
@@ -148,6 +148,42 @@ const recipeLack: Check = (value) =>
   shape({ kind: exactly("station"), station: workStation })(value) ||
   shape({ kind: exactly("materials") })(value);
 
+const backpackContent = exactly(...(Object.keys(CONTENT_WEIGHT_KG) as BackpackContent[]));
+
+/** Each refusal that needs nothing more than its kind. TypeScript reports a missing kind. */
+const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
+  fireEmpty: true,
+  fireFull: true,
+  lightFirst: true,
+  noPotOfWater: true,
+  noRawFish: true,
+  fireFullOfFish: true,
+  woodpileFull: true,
+  sledFull: true,
+  letGoFirst: true,
+  shoulderFull: true,
+  putLogDownFirst: true,
+  noLogCarried: true,
+  nothingToTake: true,
+  emptyFirst: true,
+  potOnFire: true,
+  fishOnFire: true,
+  holdsUpPiece: true,
+};
+
+/** Why the game refused a command, as a notice about the action queue names it. */
+const refusal: Check = (value) =>
+  shape({ kind: exactly(...Object.keys(PLAIN_REFUSALS)) })(value) ||
+  shape({ kind: exactly("needsTool"), tool: backpackContent })(value) ||
+  shape({ kind: exactly("noContent"), content: exactly(...CAMPFIRE_FUELS, "plank") })(value) ||
+  shape({
+    kind: exactly("cannotBuildYet"),
+    lacks: (lacks) =>
+      shape({ kind: exactly("tool"), tool: backpackContent })(lacks) ||
+      shape({ kind: exactly("material"), material: exactly("stick", "bark", "plank", ...CARRIED_LOGS) })(lacks),
+  })(value) ||
+  shape({ kind: exactly("cannotCraftYet"), lacks: list(recipeLack) })(value);
+
 /**
  * How each kind of notice must look in a save, besides the game minute it stops showing at.
  * TypeScript reports a missing kind.
@@ -166,7 +202,10 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   noLogBesideStation: { station: workStation },
   cannotCraftYet: { lacks: list(recipeLack) },
   fishGotAway: {},
-  droppedBesideStation: { content: exactly(...(Object.keys(CONTENT_WEIGHT_KG) as BackpackContent[])), count, station: workStation },
+  droppedBesideStation: { content: backpackContent, count, station: workStation },
+  queueFull: {},
+  cannotQueue: { refusal },
+  actionSkipped: { refusal },
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

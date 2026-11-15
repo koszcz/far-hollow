@@ -157,6 +157,10 @@ _Avoid_: Feed, refuel, manage
 The list of every action a thing offers, which opens beside the pointer when the player clicks the thing. The main action sits at the top in bold, and the rest follow below. An action the player cannot do yet shows greyed, with the reason under its name.
 _Avoid_: Right-click menu, context menu, radial menu, pie menu
 
+**Action queue**:
+The actions the player has lined up to do in order, at most 4, counting the one under way. Shift with a click on an action, with E, or with a number key adds an action to the end. When the action under way is finished, the next one starts. A plain click, E, or number key empties the queue and starts that action at once.
+_Avoid_: Task list, job queue, command queue, to-do list
+
 **Hotbar**:
 The row at the bottom of the screen that shows the backpack contents, anything on the shoulder, and the sled the player drags.
 _Avoid_: Inventory bar, toolbar, quick bar

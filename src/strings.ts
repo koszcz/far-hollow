@@ -1,5 +1,5 @@
 // All player-facing text lives here, so the game can be translated later.
-import type { BackpackContent } from "./sim/api";
+import { ACTION_QUEUE_LIMIT, type BackpackContent } from "./sim/api";
 import { NEARBY_MATERIALS_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
 
@@ -236,6 +236,11 @@ export const strings = {
     cannotCraftYet: (lacking: readonly string[]) => `This needs ${lacking.join(" and ")} first.`,
     /** Crafting finished, but some of the result did not fit in the backpack, such as "2 planks dropped beside the sawhorse." */
     droppedBesideStation: (what: string, station: string) => `${what} dropped beside the ${station.toLowerCase()}.`,
+    queueFull: `You can line up at most ${ACTION_QUEUE_LIMIT} actions.`,
+    /** The player tried to line up an action the game refuses now, such as "You cannot line that up: needs the axe." */
+    cannotQueue: (reason: string) => `You cannot line that up: ${reason}.`,
+    /** A lined-up action's turn came, but the game refused it, such as "Skipped the next action: the fire is full." */
+    actionSkipped: (reason: string) => `Skipped the next action: ${reason}.`,
   },
   backpack: "Backpack",
   backpackContents: {

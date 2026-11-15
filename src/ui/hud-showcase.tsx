@@ -42,6 +42,7 @@ const BASE_VIEW: GameView = {
   lastSleep: null,
   sittingOn: null,
   reach: null,
+  actionQueue: [],
 };
 
 /** One HUD state: the game state, whether the build menu is open, what the player is placing, and whether the craft menu is open. */

@@ -209,7 +209,25 @@ export type Command =
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
-  | { type: "skipToRainChange" };
+  | { type: "skipToRainChange" }
+  /**
+   * Add an action to the end of the action queue. With an empty queue, it starts at once, as if sent on its own.
+   * The queue holds at most ACTION_QUEUE_LIMIT actions, counting the one under way. When it is full, or when the game
+   * would refuse the action now, nothing is added and a notice says why. A command that is never queued, such as pausing,
+   * placing a blueprint, or opening a chest, runs as if sent on its own.
+   */
+  | { type: "queueAction"; action: ActionCommand };
+
+/** Every command except queueAction: what the action queue holds. */
+export type ActionCommand = Exclude<Command, { type: "queueAction" }>;
+
+/** The most actions the action queue holds, counting the one under way. */
+export const ACTION_QUEUE_LIMIT = 4;
+
+/** Wraps a command so it goes to the end of the action queue instead of replacing it. */
+export function queued(command: Command): Command {
+  return command.type === "queueAction" ? command : { type: "queueAction", action: command };
+}
 
 export interface GameView {
   /** The seed the valley was laid out from. */
@@ -266,6 +284,11 @@ export interface GameView {
    * command is carried out, `seconds` = HAND_AT_SECONDS into the reach. See hand-reach.ts.
    */
   readonly reach: ReachView | null;
+  /**
+   * The action queue: the action under way first, then the actions waiting their turn, in order. Empty when the player
+   * is doing nothing they were asked to do. It holds at most ACTION_QUEUE_LIMIT actions. It is not saved.
+   */
+  readonly actionQueue: readonly ActionCommand[];
 }
 
 /** A reach in progress. See `GameView.reach`. */
@@ -297,6 +320,9 @@ export interface SleepView {
  * `noLogBesideStation`: the player tried a station recipe, such as cutting planks, with no debarked log lying beside the `station`.
  * `cannotCraftYet`: the player tried a recipe while lacking the tool, work station, or materials it needs, listed in `lacks`.
  * `fishGotAway`: a fish bit while the backpack was full, so it got away and the player stopped fishing.
+ * `queueFull`: the player tried to add an action to the action queue, but it already held ACTION_QUEUE_LIMIT.
+ * `cannotQueue`: the player tried to add an action to the action queue that the game refuses now, for the `refusal`.
+ * `actionSkipped`: a queued action's turn came, but the game refused it, for the `refusal`, so it was dropped.
  * `droppedBesideStation`: crafting at the `station` finished, and `count` of the result, `content`, did not fit in the backpack,
  * so they dropped in a pile beside the station.
  */
@@ -304,6 +330,7 @@ export type Notice =
   | { readonly kind: PlainNotice }
   | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind }
   | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] }
+  | { readonly kind: "cannotQueue" | "actionSkipped"; readonly refusal: Refusal }
   | { readonly kind: "droppedBesideStation"; readonly content: BackpackContent; readonly count: number; readonly station: WorkStationKind };
 
 /** The kind of each notice. */
@@ -321,7 +348,8 @@ export type PlainNotice =
   | "saveBroken"
   | "putLogDownFirst"
   | "letGoFirst"
-  | "fishGotAway";
+  | "fishGotAway"
+  | "queueFull";
 
 /**
  * What one save slot holds, as the start screen shows it.

@@ -1,7 +1,7 @@
 // The list of actions a click on a thing opens. It sits beside the click, with the main action on top.
 // Its look lives in the .action-menu rules of src/app/style.css. src/ui/action-menu-place.ts decides where it goes.
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import type { GameClient } from "../sim/api";
+import { queued, type GameClient } from "../sim/api";
 import { strings } from "../strings";
 import { placeActionMenu } from "./action-menu-place";
 import { BackpackIcon } from "./backpack-icons";
@@ -85,8 +85,9 @@ export function ActionMenu({ client, x, y, above = false, readActions, onClose }
                 class={isMain ? "action-menu-option action-menu-option-main" : "action-menu-option"}
                 disabled={!enabled}
                 aria-label={name}
-                onClick={() => {
-                  if (command !== undefined) client.send(command);
+                onClick={(event) => {
+                  // A Shift-click adds the action to the end of the action queue.
+                  if (command !== undefined) client.send(event.shiftKey ? queued(command) : command);
                   onClose();
                 }}
               >

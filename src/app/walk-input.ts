@@ -1,6 +1,6 @@
 import type { CameraRig, CameraView } from "../render/camera-rig";
 import type { PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import type { GameClient, StructureKind, ThingInReach } from "../sim/api";
+import { queued, type GameClient, type StructureKind, type ThingInReach } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { actionsFor, mainAction, menuActions, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
@@ -262,7 +262,8 @@ export function attachWalkInput({
     }
     if (event.code === "KeyE" && !typing && mode.placing === null) {
       const use = useKeyFor(client);
-      if (use?.action.command !== undefined) client.send(use.action.command);
+      // Shift+E adds the main action to the end of the action queue.
+      if (use?.action.command !== undefined) client.send(event.shiftKey ? queued(use.action.command) : use.action.command);
       else if (use?.action.id === "openMenu") {
         // E has no cursor spot to open the menu around, so it opens in the middle of the scene, where the player stands.
         const bounds = canvas.getBoundingClientRect();

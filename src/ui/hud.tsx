@@ -17,7 +17,6 @@ import type {
   Notice,
   PileView,
   RecipeKind,
-  RecipeLack,
   StructureKind,
   WoodpileView,
   WoodpileWood,
@@ -25,6 +24,7 @@ import type {
 import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
+import { lackingText, refusalText } from "./refusal-text";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
 import { dayShare, timeOfDayWord } from "./clock-face";
@@ -214,18 +214,6 @@ interface MenuEntry {
   onPick: () => void;
 }
 
-/** Names one thing a recipe lacks, such as "the saw". */
-function lackingText(lack: RecipeLack): string {
-  switch (lack.kind) {
-    case "tool":
-      return strings.craftMenu.lacking.tool(strings.backpackContents[lack.tool]);
-    case "station":
-      return strings.craftMenu.lacking.station(strings.buildMenu.structures[lack.station]);
-    case "materials":
-      return strings.craftMenu.lacking.materials;
-  }
-}
-
 /** The text of a notice. */
 function noticeText(notice: Notice): string {
   switch (notice.kind) {
@@ -235,6 +223,9 @@ function noticeText(notice: Notice): string {
       return strings.notices.cannotCraftYet(notice.lacks.map(lackingText));
     case "droppedBesideStation":
       return strings.notices.droppedBesideStation(strings.pile.holds(notice.content, notice.count), strings.buildMenu.structures[notice.station]);
+    case "cannotQueue":
+    case "actionSkipped":
+      return strings.notices[notice.kind](refusalText(notice.refusal));
     default:
       return strings.notices[notice.kind];
   }

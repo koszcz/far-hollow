@@ -205,11 +205,17 @@ After the first playable, settling-in, and forest floor, milestones come in this
 
 1. Shelter: lean-to, debarking, and the first cabin pieces. See `.scratch/shelter/spec.md`.
 2. Storage: dropping things, piles, the chest, and the woodpile. See `.scratch/storage/spec.md`.
-3. Crafting and tools: work stations, the saw, planks, floors, stone, and clay.
-4. Hunting and fishing: snare, bow, fishing rod, and cooking.
-5. Interiors: more furniture, shelves, the fireplace, torches, and doors.
-6. Journal.
-7. Sound.
+3. Crafting and tools: work stations, the saw, and planks. See `.scratch/crafting/spec.md`.
+4. Fishing and cooking. See `.scratch/fishing/spec.md`.
+5. Furniture: bed, shelf, table, and stool. See `.scratch/furniture/spec.md`.
+6. Stone and the fireplace. See `.scratch/fireplace/spec.md`.
+7. Torch. See `.scratch/torch/spec.md`.
+8. Floors and doors. See `.scratch/floors-and-doors/spec.md`.
+9. Hunting: snare, bow, and meat. See `.scratch/hunting/spec.md`.
+10. Journal.
+11. Sound.
+
+Clay has no milestone yet.
 
 ## Not planned
 

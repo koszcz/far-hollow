@@ -102,6 +102,7 @@ export const strings = {
       chest: "Chest",
       shelf: "Shelf",
       bed: "Bed",
+      table: "Table",
       stool: "Stool",
       sawhorse: "Sawhorse",
       sled: "Sled",

@@ -105,6 +105,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   chest: shape({ contents: backpackContents }),
   shelf: shape({ contents: backpackContents }),
   bed: exactly(true),
+  table: exactly(true),
   stool: exactly(true),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),

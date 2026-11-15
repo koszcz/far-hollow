@@ -520,6 +520,7 @@ export type ThingInReach =
         | "chest"
         | "shelf"
         | "bed"
+        | "table"
         | "stool"
         | "bedroll"
         | "pile"

@@ -188,6 +188,11 @@ export interface Entity {
    */
   bed?: true;
   /**
+   * Marks a finished table: furniture the player eats beside. Food eaten within reach of it fills more hunger.
+   * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way it is turned.
+   */
+  table?: true;
+  /**
    * Marks a finished stool: small furniture the player sits on to rest. Its position is the middle of its base, on the ground or
    * on a foundation's deck. Its `facing` says which way the player faces while sitting on it, +z when it faces the default way.
    */
@@ -451,6 +456,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished beds. */
 export function bedEntities(store: EntityStore) {
   return store.with("bed", "position");
+}
+
+/** Finished tables. */
+export function tableEntities(store: EntityStore) {
+  return store.with("table", "position");
 }
 
 /** Finished stools. */

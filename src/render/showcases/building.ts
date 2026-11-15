@@ -6,6 +6,7 @@ import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "../bed-sleep";
 import { SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt } from "../sleep-animation";
 import { CHEST_MODEL_STAGES } from "../chest-meshes";
 import { SHELF_MODEL_STAGES } from "../shelf-meshes";
+import { TABLE_MODEL_STAGES } from "../table-meshes";
 import { STOOL_MODEL_STAGES } from "../stool-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
 import {
@@ -33,6 +34,10 @@ const BED_PLAY_MORNING = 9;
 const BED_PLAY_FROM = { x: 0.3, z: 1, heading: Math.PI };
 /** The bed in the showcase is turned a quarter, so it lies across the view. */
 const BED_PLAY_TURNS = 1;
+
+/** How long the table takes to build in its showcase, and how long it stands finished before building again, in seconds. */
+const TABLE_PLAY_BUILD_SECONDS = 4;
+const TABLE_PLAY_REST_SECONDS = 1.5;
 
 /** Poses the player going to sleep in the bed at the stage's middle, turned a quarter, `seconds` after they reached it. */
 function poseBedSleeper({ player, movePlayer }: Stage, seconds: number): void {
@@ -201,12 +206,12 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   shelf: {
     radius: 1.8,
     focus: { x: 0, y: 0.6, z: 0 },
-    // A blueprint holding 2 of its 4 planks, the upper boards and back being set down, then the finished shelf from the front and side.
+    // A blueprint holding 2 of its 4 planks, the back being set down, then the finished shelf from the front and from behind, where the brace shows.
     shots: [
       { label: "blueprint, 2 of 4 planks", yaw: 30, pitch: 25, seconds: 0 },
-      { label: "upper boards and back above their place", yaw: 30, pitch: 25, seconds: (1 + BUILD_FADE_SHARE) / SHELF_MODEL_STAGES },
-      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
-      { label: "built, from the side", yaw: 110, pitch: 25, seconds: 1 },
+      { label: "back above its place", yaw: 30, pitch: 25, seconds: (2 + BUILD_FADE_SHARE) / SHELF_MODEL_STAGES },
+      { label: "built, front", yaw: 20, pitch: 12, seconds: 1 },
+      { label: "built, from behind", yaw: 150, pitch: 25, seconds: 1 },
     ],
     build({ place, movePlayer }) {
       place(0, 0, { blueprint: { structure: "shelf", progress: 0, materialsSpent: 0, delivered: { plank: 2 } }, facing: { turns: 0 } });
@@ -267,6 +272,33 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       look(seconds) {
         const cycle = seconds % (BED_SLEEP_SECONDS + BED_PLAY_REST_SECONDS);
         return { hour: cycle < SLEEP_MORNING_AT ? BED_PLAY_BEDTIME : BED_PLAY_MORNING, darkness: sleepDarknessAt(cycle) };
+      },
+    },
+  },
+  // A blueprint holding 4 of its 6 planks, the rails and the top being set down, then the finished table.
+  table: {
+    radius: 1.8,
+    focus: { x: 0, y: 0.4, z: 0 },
+    shots: [
+      { label: "blueprint, 4 of 6 planks", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "rails above their place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / TABLE_MODEL_STAGES },
+      { label: "top above its place", yaw: 30, pitch: 30, seconds: (2 + BUILD_FADE_SHARE) / TABLE_MODEL_STAGES },
+      { label: "built, from above", yaw: 140, pitch: 50, seconds: 1 },
+    ],
+    build({ place, movePlayer }) {
+      place(0, 0, { blueprint: { structure: "table", progress: 0, materialsSpent: 0, delivered: { plank: 4 } }, facing: { turns: 0 } });
+      movePlayer(0.2, 0.9, Math.PI);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) entity.blueprint.progress = shot.seconds ?? 0;
+    },
+    // The table goes up stage by stage, stands finished for a moment, then builds again.
+    play: {
+      shot: { label: "building, stage by stage", yaw: 30, pitch: 30 },
+      pose({ store }, seconds) {
+        const cycle = seconds % (TABLE_PLAY_BUILD_SECONDS + TABLE_PLAY_REST_SECONDS);
+        for (const entity of store.with("blueprint")) entity.blueprint.progress = Math.min(1, cycle / TABLE_PLAY_BUILD_SECONDS);
+        return undefined;
       },
     },
   },

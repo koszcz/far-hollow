@@ -148,6 +148,7 @@ export function createSceneRenderer(
     chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
     shelf: (entity) => structureMeshes.outlineOf({ kind: "shelf", entity }),
     bed: (entity) => structureMeshes.outlineOf({ kind: "bed", entity }),
+    table: (entity) => structureMeshes.outlineOf({ kind: "table", entity }),
     stool: (entity) => structureMeshes.outlineOf({ kind: "stool", entity }),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),

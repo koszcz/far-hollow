@@ -3,6 +3,7 @@ import { entityWith, playerEntities, setComponent, type Entity, type EntityStore
 import type { HandReach } from "./hand-reach";
 import { fillNeed } from "./needs";
 import { catchSickness } from "./sickness";
+import { isAtTable, TABLE_HUNGER_FACTOR } from "./tables";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { Walking } from "./walking";
 
@@ -27,7 +28,7 @@ export interface Foraging {
    * there, the food stays and the reach gives "backpackFull".
    */
   forage(spotId: number): void;
-  /** Eats one of this food from the backpack, which fills hunger. Raw fish makes the player sick. Does nothing if the backpack holds none. */
+  /** Eats one of this food from the backpack, which fills hunger, more so within reach of a finished table. Raw fish makes the player sick. Does nothing if the backpack holds none. */
   eat(food: Food): void;
   /** Stops the player walking to forage. */
   cancel(): void;
@@ -64,7 +65,9 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
       for (const player of players) {
         if (player.backpack === undefined || player.needs === undefined) continue;
         if (!removeFromBackpack(player.backpack, food, 1)) continue;
-        fillNeed(player.needs, "hunger", HUNGER_FILLED_BY[food]);
+        // Food eaten at a finished table fills more hunger.
+        const factor = isAtTable(entities, player.position) ? TABLE_HUNGER_FACTOR : 1;
+        fillNeed(player.needs, "hunger", HUNGER_FILLED_BY[food] * factor);
         if (MAKES_SICK[food]) setComponent(entities, player, "sickness", catchSickness());
       }
     },

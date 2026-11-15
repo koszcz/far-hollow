@@ -248,6 +248,69 @@ describe("sleeping under a roof", () => {
   });
 });
 
+describe("laying a bedroll in a lean-to", () => {
+  it("walks the player in and lays the bedroll across the open front, along the lean-to's width, under the roof", () => {
+    for (const turns of [0, 1, 2, 3] as const) {
+      const game = createGame({ seed: 42 });
+      const spot = openLeanToSpot(game);
+      buildLeanTo(game, spot, turns);
+      const leanToId = idOf(game, onlyLeanTo(game));
+
+      layBedrollIn(game, leanToId);
+
+      const bedroll = onlyBedroll(game);
+      // Facing the default way, the open front strip runs along x half a metre in front of the middle.
+      const front = [
+        { x: 0, z: 0.5 },
+        { x: -0.5, z: 0 },
+        { x: 0, z: -0.5 },
+        { x: 0.5, z: 0 },
+      ][turns];
+      expect(bedroll.position.x).toBeCloseTo(spot.x + (front?.x ?? 0), 5);
+      expect(bedroll.position.z).toBeCloseTo(spot.z + (front?.z ?? 0), 5);
+      expect(bedroll.facing).toEqual({ turns: ((turns + 1) % 4) as QuarterTurns });
+      expect(isUnderRoof(game.entities, bedroll.position)).toBe(true);
+      expect(onlyPlayer(game).backpack.contents.bedroll ?? 0).toBe(0);
+    }
+  });
+
+  it("does nothing without a bedroll in the backpack", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openLeanToSpot(game);
+    buildLeanTo(game, spot, 0);
+    onlyPlayer(game).backpack.contents.bedroll = 0;
+
+    layBedrollIn(game, idOf(game, onlyLeanTo(game)));
+
+    expect(game.entities.with("bedroll").entities).toHaveLength(0);
+  });
+
+  it("reports which way the bedroll lies when the player sleeps on it, and sleeps them under the roof", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openLeanToSpot(game);
+    buildLeanTo(game, spot, 0);
+    layBedrollIn(game, idOf(game, onlyLeanTo(game)));
+    const bedroll = onlyBedroll(game);
+
+    send(game, { type: "sleep", bedrollId: idOf(game, bedroll) });
+
+    expect(game.client.getView().lastSleep).toEqual({ count: 1, at: { x: bedroll.position.x, z: bedroll.position.z }, bedroll: { turns: 1 } });
+    expect(isUnderRoof(game.entities, onlyPlayer(game).position)).toBe(true);
+  });
+
+  it("keeps a laid bedroll's turn in a save", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openLeanToSpot(game);
+    buildLeanTo(game, spot, 2);
+    layBedrollIn(game, idOf(game, onlyLeanTo(game)));
+
+    const loaded = readSave(structuredClone(writeSave(game)));
+    if (!loaded.ok) throw new Error("The save did not load");
+
+    expect(loaded.game.entities.with("bedroll", "facing").first?.facing).toEqual({ turns: 3 });
+  });
+});
+
 describe("saving lean-tos", () => {
   it("restores a lean-to blueprint with its progress, and a finished lean-to that still blocks walking", () => {
     const game = createGame({ seed: 42 });
@@ -371,6 +434,25 @@ function give(game: Game, content: "stick" | "bark", count: number): void {
 function walkTo(game: Game, to: { x: number; z: number }): void {
   send(game, { type: "walkTo", ...to });
   stepUntil(game, () => game.entities.with("player", "walkPath").first === undefined);
+}
+
+function onlyLeanTo(game: Game) {
+  const leanTo = game.entities.with("leanTo", "position").first;
+  if (leanTo === undefined) throw new Error("No lean-to");
+  return leanTo;
+}
+
+function onlyBedroll(game: Game) {
+  const bedroll = game.entities.with("bedroll", "position").first;
+  if (bedroll === undefined) throw new Error("No bedroll was laid");
+  return bedroll;
+}
+
+/** Sends the command to lay the bedroll in the lean-to, and waits for the player to walk in and lay it. */
+function layBedrollIn(game: Game, leanToId: number): void {
+  send(game, { type: "layBedrollInLeanTo", leanToId });
+  stepUntil(game, () => game.entities.with("player", "layBedrollTask").first === undefined);
+  finishReach(game);
 }
 
 function onlyPlayer(game: Game) {

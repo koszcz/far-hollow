@@ -36,7 +36,7 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["takeDown", takingDownNow],
   ["debark", (_entities, player) => debarkingNow(player)],
   ["split", (_entities, player) => splittingNow(player)],
-  ["chop", (_entities, player) => choppingNow(player)],
+  ["chop", choppingNow],
   ["fish", (_entities, player) => fishingNow(player)],
 ];
 

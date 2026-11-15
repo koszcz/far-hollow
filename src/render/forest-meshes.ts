@@ -7,7 +7,8 @@
 // While the player saws a debarked log into planks, it is drawn lying along the sawhorse beam. Game logic keeps it on the ground.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
-import { LOGS_PER_TREE } from "../sim/chopping";
+import { MOST_LOGS_PER_TREE, treeLookAt, treeSizeAt } from "../sim/tree-size";
+import type { GroundPoint } from "../sim/valley";
 import { logWorkedNow } from "../sim/crafting";
 import {
   debarkedLogEntities,
@@ -51,9 +52,6 @@ const STUMP_TOP_COLOUR = 0xc9a46a;
 const STUMP_MAX_HEIGHT_METRES = 0.6;
 /** Only trunk points this close to the ground count when measuring how wide a trunk's foot is, in metres. */
 const TRUNK_FOOT_BAND_METRES = 0.4;
-/** Each tree is drawn between these sizes, so the forest does not look copy-pasted. */
-const TREE_MIN_SCALE = 0.8;
-const TREE_MAX_SCALE = 1.25;
 /** Sticks are thin, so clicks hit an invisible box this wide around each one, in metres. */
 const STICK_PICK_WIDTH_METRES = 0.35;
 /** Each stick's bark is up to this share lighter or darker than the others, so the floor does not look copy-pasted. */
@@ -215,7 +213,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       }),
     ),
   ];
-  const logCapacity = Math.max(1, trees.length * LOGS_PER_TREE);
+  const logCapacity = Math.max(1, trees.length * MOST_LOGS_PER_TREE);
   const logs = track(new THREE.InstancedMesh(logGeometry, logMaterials, logCapacity));
   logs.count = 0;
   logs.frustumCulled = false;
@@ -272,7 +270,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   const pickOffset = new THREE.Matrix4();
 
   // Falling trees: a few short-lived meshes that share the tree shapes.
-  /** `axis` is what the pivot turns about to tip the tree's top away from the player. */
+  /** `axis` is what the pivot turns about to tip the tree's top the way it falls. */
   const falling: {
     pivot: THREE.Group;
     axis: THREE.Vector3;
@@ -288,7 +286,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     if (index === undefined || type === undefined || batch === undefined) return;
     // Hide this tree in its batch. Its falling copy takes over.
     for (const shapeBatch of batch.batches) shapeBatch.set(index, undefined);
-    startFall(tree.position, type);
+    startFall(tree.position, type, tree.fellHeading);
   });
   // A tree that stands again, such as in the asset showcase's looping chop, shows again in its batch.
   standing.onEntityAdded.subscribe((tree) => {
@@ -328,16 +326,17 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   stickQuery.onEntityAdded.subscribe(markSticks);
   stickQuery.onEntityRemoved.subscribe(markSticks);
 
-  function startFall(at: Vec3, type: number): void {
+  /** Starts a tree falling toward `heading`, as the simulation chose it. Without one, as in the asset showcase, the tree falls away from the player. */
+  function startFall(at: Vec3, type: number, heading: number | undefined): void {
     const player = players.first;
-    const awayX = player ? at.x - player.position.x : 1;
-    const awayZ = player ? at.z - player.position.z : 0;
+    const awayX = heading !== undefined ? Math.sin(heading) : player ? at.x - player.position.x : 1;
+    const awayZ = heading !== undefined ? Math.cos(heading) : player ? at.z - player.position.z : 0;
     const length = Math.hypot(awayX, awayZ) || 1;
     const pivot = new THREE.Group();
     pivot.position.set(at.x, at.y, at.z);
     const axis = new THREE.Vector3(awayZ / length, 0, -awayX / length);
     const tree = new THREE.Group();
-    treeMatrix({ x: 0, y: 0, z: 0, look: lookFor(at.x, at.z) }, matrix);
+    treeMatrix({ x: 0, y: 0, z: 0, sizeAt: at }, matrix);
     tree.applyMatrix4(matrix);
     const batch = treeBatches[type];
     if (batch !== undefined) tree.add(new THREE.Mesh(batch.trunk.geometry, batch.trunk.material), new THREE.Mesh(batch.crown.geometry, batch.crown.material));
@@ -610,11 +609,11 @@ const treeScale = new THREE.Vector3();
 const treePosition = new THREE.Vector3();
 const upAxis = new THREE.Vector3(0, 1, 0);
 
-/** The size and turn a tree is drawn with at a spot. `look` overrides the value picked from the spot. */
-function treeMatrix(at: Vec3 & { look?: number }, out: THREE.Matrix4): THREE.Matrix4 {
-  const look = at.look ?? lookFor(at.x, at.z);
-  treeRotation.setFromAxisAngle(upAxis, look * Math.PI * 2);
-  treeScale.setScalar(TREE_MIN_SCALE + (TREE_MAX_SCALE - TREE_MIN_SCALE) * look);
+/** The size and turn a tree is drawn with at a spot. The size comes from the simulation, since it sets how many logs the tree gives. `sizeAt` overrides the spot the size and turn come from. */
+function treeMatrix(at: Vec3 & { sizeAt?: GroundPoint }, out: THREE.Matrix4): THREE.Matrix4 {
+  const from = at.sizeAt ?? at;
+  treeRotation.setFromAxisAngle(upAxis, treeLookAt(from.x, from.z) * Math.PI * 2);
+  treeScale.setScalar(treeSizeAt(from.x, from.z));
   treePosition.set(at.x, at.y, at.z);
   return out.compose(treePosition, treeRotation, treeScale);
 }
@@ -650,7 +649,7 @@ function stumpFit(trunk: THREE.BufferGeometry, stump: StumpShape): THREE.Matrix4
   return new THREE.Matrix4().makeScale(across, up, across);
 }
 
-/** A steady value from 0 to 1 for a spot, used to vary each tree's size and turn. It only affects drawing. */
+/** A steady value from 0 to 1 for a spot, used to vary sticks and pick tree types. It only affects drawing. */
 function lookFor(x: number, z: number): number {
   const value = Math.sin(x * 12.9898 + z * 78.233) * 43_758.5453;
   return value - Math.floor(value);

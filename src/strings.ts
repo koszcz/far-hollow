@@ -341,6 +341,8 @@ export const strings = {
     takeDown: "Take down",
     eat: "Eat",
     layOut: "Lay it out",
+    /** Laying the bedroll from the backpack in a lean-to, across its open front. */
+    layBedrollHere: "Lay the bedroll here",
     fillPot: "Fill it at the river",
     fillPotHere: "Fill the pot",
     drinkFromPot: "Drink",

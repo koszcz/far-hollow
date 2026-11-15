@@ -84,7 +84,18 @@ function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[]
   if (pick.kind !== "structure") return thingActions(pick, context);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
   const under = pick.under === undefined ? [] : thingActions(pick.under, context);
-  return [...under, { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false }];
+  const [own] = structureOffers(pick, context);
+  const takeDownStructure: ThingAction = { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false };
+  if (own === undefined) return [...under, takeDownStructure];
+  // The structure's own action is the main one when nothing under it has one, such as when the pointer is on the lean-to's roof.
+  if (under[0]?.isMain === true) return [...under, { ...own, isMain: false }, takeDownStructure];
+  return [{ ...own, isMain: true }, ...under, takeDownStructure];
+}
+
+/** What a finished structure itself offers, besides being taken down. A lean-to offers to lay the bedroll in it while the backpack holds one. */
+function structureOffers(pick: Extract<ScenePick, { kind: "structure" }>, { view, offer }: Context): readonly Offer[] {
+  if (pick.structure !== "leanTo" || !has(view, "bedroll")) return [];
+  return [offer("layBedroll", strings.actions.layBedrollHere, { content: "bedroll" }, { type: "layBedrollInLeanTo", leanToId: pick.id })];
 }
 
 function thingActions(pick: GroundOrThingPick, context: Context): readonly ThingAction[] {

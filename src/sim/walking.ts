@@ -1,5 +1,5 @@
 import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
-import { findPath } from "./pathfinding";
+import { findPath, findPathWithin } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, startSpotBeside, type GroundPoint, type Valley } from "./valley";
 import {
@@ -27,6 +27,11 @@ export interface Walking {
   readonly walkMap: WalkMap;
   /** Sets the player walking to a spot, around anything in the way. If the spot cannot be reached, the player walks as close as they can. */
   walkTo(target: GroundPoint): void;
+  /**
+   * Sets the player walking the shortest way to a spot within `distance` of a target, around anything in the way.
+   * The player stays put if they already stand within it. If no such spot can be reached, the player walks as close as they can.
+   */
+  walkWithin(target: GroundPoint, distance: number): void;
   /** Moves every walking entity along its path by one logic step. */
   step(stepSeconds: number): void;
 }
@@ -41,14 +46,18 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
   const players = playerEntities(entities);
   const walkers = entities.with("walkPath", "position");
 
+  const setPath = (player: Entity, path: GroundPoint[]) => {
+    if (path.length === 0) entities.removeComponent(player, "walkPath");
+    else setComponent(entities, player, "walkPath", path);
+  };
+
   return {
     walkMap,
     walkTo(target) {
-      for (const player of players) {
-        const path = findPath(walkMap, player.position, target);
-        if (path.length === 0) entities.removeComponent(player, "walkPath");
-        else setComponent(entities, player, "walkPath", path);
-      }
+      for (const player of players) setPath(player, findPath(walkMap, player.position, target));
+    },
+    walkWithin(target, distance) {
+      for (const player of players) setPath(player, findPathWithin(walkMap, player.position, target, distance));
     },
     step(stepSeconds) {
       const stepDistance = WALK_SPEED_METRES_PER_SECOND * stepSeconds;

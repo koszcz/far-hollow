@@ -469,6 +469,22 @@ describe("other things' actions", () => {
     expect(summary(actions)).toEqual(["walk main", "takeDownStructure"]);
   });
 
+  it("offers to lay the bedroll in a lean-to while the backpack holds one", () => {
+    const pick = { kind: "structure", id: 11, structure: "leanTo", under: { kind: "ground", spot: { x: 0, z: 0 } } } as const;
+    const withBedroll = actionsFor({ kind: "scene", pick }, worldWith({ backpack: { bedroll: 1 } }).reader);
+    const without = actionsFor({ kind: "scene", pick }, worldWith({ backpack: { bedroll: 0 } }).reader);
+
+    expect(summary(withBedroll)).toEqual(["walk main", "layBedroll", "takeDownStructure"]);
+    expect(find(withBedroll, "layBedroll")?.command).toEqual({ type: "layBedrollInLeanTo", leanToId: 11 });
+    expect(summary(without)).toEqual(["walk main", "takeDownStructure"]);
+  });
+
+  it("makes laying the bedroll the main action on a lean-to with nothing under the pointer", () => {
+    const pick = { kind: "structure", id: 11, structure: "leanTo", under: undefined } as const;
+
+    expect(summary(actionsFor({ kind: "scene", pick }, worldWith({ backpack: { bedroll: 1 } }).reader))).toEqual(["layBedroll main", "takeDownStructure"]);
+  });
+
   it("eats food from the hotbar, then drops it, and puts it in an open chest first", () => {
     expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, worldWith({ backpack: { berries: 2 } }).reader))).toEqual(["use main", "drop"]);
     expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, worldWith({ backpack: { stick: 2 } }).reader))).toEqual(["drop"]);

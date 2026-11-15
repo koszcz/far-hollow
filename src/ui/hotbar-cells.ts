@@ -1,5 +1,5 @@
 // The cells of the hotbar: the sled the player drags, if any, the log on their shoulder, if any, then one cell per kind of thing in the backpack.
-import type { BackpackContent, CarriedLog, GameView } from "../sim/api";
+import { CONTENT_WEIGHT_KG, type BackpackContent, type CarriedLog, type GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /**
@@ -13,8 +13,13 @@ export type HotbarTarget =
 
 export interface HotbarCell {
   readonly target: HotbarTarget;
-  /** The name shown in the label above the cell while the player points at it or focuses it. */
+  /** The name of what the cell holds, such as "Plank". Screen readers read it in the cell's full name. */
   readonly name: string;
+  /**
+   * The text in the label above the cell while the player points at it or focuses it.
+   * A backpack cell adds how much its contents weigh, such as "Plank ×5 · 10 kg".
+   */
+  readonly tip: string;
   readonly count: number;
   /** The number key that uses it, "1" to "9". Only the first nine backpack cells have one. */
   readonly key: string | undefined;
@@ -35,19 +40,35 @@ export function hotbarCells(view: Pick<GameView, "backpack" | "carrying" | "drag
           {
             target: { kind: "sled", sledId: view.dragging.id },
             name: strings.hotbar.sled(view.dragging.total, view.dragging.capacity),
+            tip: strings.hotbar.sled(view.dragging.total, view.dragging.capacity),
             count: 1,
             key: undefined,
           },
         ];
   const shoulder: HotbarCell[] =
-    view.carrying === null ? [] : [{ target: { kind: "shoulder", log: view.carrying }, name: strings.things[view.carrying], count: 1, key: undefined }];
+    view.carrying === null
+      ? []
+      : [
+          {
+            target: { kind: "shoulder", log: view.carrying },
+            name: strings.things[view.carrying],
+            tip: strings.things[view.carrying],
+            count: 1,
+            key: undefined,
+          },
+        ];
   const contents = (Object.keys(strings.backpackContents) as BackpackContent[])
     .filter((content) => (view.backpack[content] ?? 0) > 0)
-    .map((content, index): HotbarCell => ({
-      target: { kind: "backpackContent", content },
-      name: strings.backpackContents[content],
-      count: view.backpack[content] ?? 0,
-      key: index < KEYED_CELLS ? strings.hotbar.key(index + 1) : undefined,
-    }));
+    .map((content, index): HotbarCell => {
+      const name = strings.backpackContents[content];
+      const count = view.backpack[content] ?? 0;
+      return {
+        target: { kind: "backpackContent", content },
+        name,
+        tip: strings.hotbar.nameWithWeight(strings.backpackContentCount(name, count), count * CONTENT_WEIGHT_KG[content]),
+        count,
+        key: index < KEYED_CELLS ? strings.hotbar.key(index + 1) : undefined,
+      };
+    });
   return [...sled, ...shoulder, ...contents];
 }

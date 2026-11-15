@@ -4,6 +4,9 @@ import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
 export type { BackpackContent, CraftingContent, Fish, FishingContent, Food } from "./backpack";
+
+/** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
+export { CONTENT_WEIGHT_KG } from "./backpack";
 import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */

@@ -61,4 +61,14 @@ describe("the hotbar cells", () => {
 
     expect(cells.map(({ key }) => key)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", undefined, undefined]);
   });
+
+  it("adds how much a backpack cell's contents weigh to its label, but not to the shoulder or sled", () => {
+    const cells = hotbarCells({
+      carrying: "log",
+      dragging: null,
+      backpack: { axe: 1, plank: 5, berries: 3 },
+    });
+
+    expect(cells.map(({ tip }) => tip)).toEqual(["Log", "Axe · 1.5 kg", "Berries ×3 · 0.3 kg", "Plank ×5 · 10 kg"]);
+  });
 });

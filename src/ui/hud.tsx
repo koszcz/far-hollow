@@ -32,6 +32,7 @@ import { HudIcon, type HudIconName } from "./hud-icons";
 import { needPulses, needRingShare } from "./need-gauge";
 import { placingHint } from "./placing-hint";
 import { SLED_DRAWING } from "./sled-icons";
+import { weightRingShare, weightRingWarns } from "./weight-ring";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
 function backpackContents(backpack: GameView["backpack"]): [BackpackContent, number][] {
@@ -92,7 +93,7 @@ function ContentGrid({
 function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target: HotbarTarget, x: number, y: number) => void }) {
   return (
     <ul class="hud-hotbar-cells">
-      {hotbarCells(view).map(({ target, name, count, key }) => (
+      {hotbarCells(view).map(({ target, name, tip, count, key }) => (
         <li
           key={target.kind === "backpackContent" ? target.content : target.kind}
           class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : target.kind === "sled" ? "hud-hotbar-sled" : undefined}
@@ -108,7 +109,7 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
           >
             <HotbarCellIcon target={target} />
             <span class="hud-hotbar-name" aria-hidden="true">
-              {name}
+              {tip}
             </span>
             {count > 1 && (
               <span class="hud-backpack-count" aria-hidden="true">
@@ -137,6 +138,33 @@ function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key:
     case "backpackContent":
       return strings.hotbar.cell(strings.backpackContentCount(name, count), key);
   }
+}
+
+/**
+ * How much the backpack, chest, or shelf holds: its backpack icon inside a ring that fills with the weight as a share of the limit.
+ * Ring and icon are amber, and turn to the warning colour with a pulsing icon when nearly full. Pointing at the ring or focusing it shows
+ * the exact weight in a label, such as "5.5 of 20 kg". Screen readers read the same text as the meter's value.
+ */
+function WeightRing({ label, weight, limit }: { label: string; weight: number; limit: number }) {
+  const text = strings.weightOf(weight, limit);
+  return (
+    <span
+      class={weightRingWarns(weight, limit) ? "hud-weight-ring hud-weight-ring-warn" : "hud-weight-ring"}
+      style={{ "--hud-level": weightRingShare(weight, limit) }}
+      role="meter"
+      tabIndex={0}
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={limit}
+      aria-valuenow={weight}
+      aria-valuetext={text}
+    >
+      <HudIcon name="backpack" />
+      <span class="hud-weight-tip" aria-hidden="true">
+        {text}
+      </span>
+    </span>
+  );
 }
 
 /** A backpack content's icon, the log icon for the shoulder, or the approved "sled-icon" for the sled the player drags. */
@@ -547,9 +575,6 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
   fish: "droplet",
 };
 
-/** At or above this share of its limit, the backpack weight turns amber. */
-const FULL_BACKPACK = 0.9;
-
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
@@ -663,12 +688,9 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           </section>
           <div class="hud-panel hud-hotbar">
             <section class="hud-backpack" aria-label={strings.backpack}>
+              <WeightRing label={strings.backpack} weight={view.backpackWeight} limit={view.backpackWeightLimit} />
+              <span class="hud-hotbar-divider" aria-hidden="true" />
               <HotbarGrid view={view} onOpenMenu={onOpenHotbarMenu} />
-              <span
-                class={view.backpackWeight >= view.backpackWeightLimit * FULL_BACKPACK ? "hud-backpack-weight hud-backpack-weight-full" : "hud-backpack-weight"}
-              >
-                {strings.backpackWeight(view.backpackWeight, view.backpackWeightLimit)}
-              </span>
             </section>
             <div class="hud-hotbar-tools">
               <HudToolButton
@@ -715,9 +737,8 @@ function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView })
   return (
     <section class="hud-section hud-backpack hud-chest" aria-label={text.title}>
       <h2>
-        <HudIcon name="backpack" />
+        <WeightRing label={text.title} weight={chest.weight} limit={chest.weightLimit} />
         {text.title}
-        <span class="hud-backpack-weight">{strings.backpackWeight(chest.weight, chest.weightLimit)}</span>
       </h2>
       {empty ? (
         <p class="hud-hint">{text.empty}</p>

@@ -2,6 +2,11 @@
 import type { BackpackContent } from "./sim/api";
 import { STATION_GROUND_METRES } from "./sim/crafting";
 
+/** A weight in kilograms, to one decimal place at most, such as "5.5" or "10". */
+function kilogramsText(kilograms: number): string {
+  return `${Number(kilograms.toFixed(1))}`;
+}
+
 /** How many of each kind of thing a pile holds, in words. */
 const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> = {
   axe: (count) => (count === 1 ? "An axe" : `${count} axes`),
@@ -254,7 +259,8 @@ export const strings = {
   backpackContentCount: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
   /** The count shown in the corner of a backpack cell when the backpack holds more than one. */
   backpackCountBadge: (count: number) => `${count}`,
-  backpackWeight: (kilograms: number, limitKilograms: number) => `${kilograms.toFixed(1)} / ${limitKilograms} kg`,
+  /** The exact weight a weight ring shows when the player points at it, such as "5.5 of 20 kg". */
+  weightOf: (kilograms: number, limitKilograms: number) => `${kilogramsText(kilograms)} of ${kilogramsText(limitKilograms)} kg`,
   /** The hotbar's cells: the backpack contents and the log on the shoulder. */
   hotbar: {
     /** The number key that uses a cell, shown in its corner. */
@@ -268,6 +274,8 @@ export const strings = {
      * Each plank fills a quarter of a log space, so the load can be a fraction, such as "Sled 1.5/6".
      */
     sled: (total: number, capacity: number) => `Sled ${Number(total.toFixed(2))}/${capacity}`,
+    /** The label above a backpack cell, with how much its contents weigh, such as "Plank ×5 · 10 kg". `what` comes from `backpackContentCount`. */
+    nameWithWeight: (what: string, kilograms: number) => `${what} · ${kilogramsText(kilograms)} kg`,
     /** The name of the sled cell for screen readers, such as "Dragging: Sled 4/6". */
     dragging: (name: string) => `Dragging: ${name}`,
   },

@@ -432,17 +432,85 @@ body {
 .hud-chest ul {
   max-width: 100%;
 }
-.hud-backpack-weight {
-  margin-left: auto;
-  padding: 0 4px;
-  font-size: 11px;
+/* A weight ring: the backpack icon inside a ring that fills with the weight held, in amber, or the warning colour when nearly full. */
+/* The backpack's ring is a 58 px cell at the start of the hotbar. The open chest or shelf has a smaller one in its heading. */
+.hud-weight-ring {
+  --hud-load: var(--hud-amber);
+  --hud-ring-size: 58px;
+  --hud-ring-hole: 21px;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--hud-ring-size);
+  height: var(--hud-ring-size);
+  border-radius: 50%;
+  cursor: default;
+}
+.hud-weight-ring::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--hud-load) calc(var(--hud-level) * 1turn), rgb(255 255 255 / 0.1) 0);
+  -webkit-mask: radial-gradient(circle, transparent var(--hud-ring-hole), #000 calc(var(--hud-ring-hole) + 1px));
+  mask: radial-gradient(circle, transparent var(--hud-ring-hole), #000 calc(var(--hud-ring-hole) + 1px));
+}
+.hud-weight-ring .hud-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--hud-load);
+}
+.hud-weight-ring-warn {
+  --hud-load: var(--hud-warning);
+}
+.hud-weight-ring-warn .hud-icon {
+  animation: hud-pulse 1.2s ease-in-out infinite;
+}
+.hud-weight-ring:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: 1px;
+}
+/* The exact weight, in a pill above the ring, while the player points at it or focuses it. */
+.hud-weight-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  padding: 3px 9px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.2;
-  color: #cdb898;
   white-space: nowrap;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
+  pointer-events: none;
 }
-.hud-backpack-weight-full {
-  color: #e8a93a;
+.hud-weight-ring:hover .hud-weight-tip,
+.hud-weight-ring:focus-visible .hud-weight-tip {
+  display: block;
+}
+.hud-section h2 .hud-weight-ring {
+  --hud-ring-size: 30px;
+  --hud-ring-hole: 10px;
+}
+.hud-section h2 .hud-weight-ring::before {
+  inset: 1px;
+}
+.hud-section h2 .hud-weight-ring .hud-icon {
+  width: 15px;
+  height: 15px;
+}
+/* The thin line between the backpack ring and the backpack contents. */
+.hud-hotbar-divider {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  margin: 4px 2px;
+  background: var(--hud-edge);
 }
 .hud-icon-button {
   justify-content: center;

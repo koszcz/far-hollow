@@ -247,94 +247,146 @@ body {
   align-items: center;
   min-width: 0;
 }
+/* The cells scroll sideways, which clips anything outside the list. The list reaches up over the space above the hotbar, */
+/* without taking that space, so a cell's name label above it stays in view. */
 .hud-hotbar .hud-backpack .hud-hotbar-cells {
   flex-wrap: nowrap;
   min-width: 0;
+  margin-top: -44px;
+  padding-top: 44px;
   overflow-x: auto;
   scrollbar-width: none;
 }
-/* A hotbar cell is larger than a chest cell. It shows its icon, its name under it, a count, and its number key. */
+/* A hotbar cell is a 58 px square with a faint light fill. It shows its icon, a count top right, and its number key bottom left. */
+/* Its name shows only in a label above it, while the player points at it or focuses it. */
 .hud-backpack .hud-hotbar-cells li {
-  flex: 0 1 70px;
-  width: 70px;
-  min-width: 56px;
-  height: 70px;
+  flex: 0 1 58px;
+  width: 58px;
+  min-width: 46px;
+  height: 58px;
+  background: rgb(255 230 200 / 0.05);
+  border: none;
+  border-radius: 12px;
 }
 /* Two classes, so this padding beats the zero padding of .hud-content-move further down. */
 .hud-content-move.hud-hotbar-cell {
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 2px;
-  padding: 4px 3px 5px;
-  box-sizing: border-box;
+  position: relative;
+  padding: 0;
+  border-radius: 12px;
 }
-/* The icon shrinks when a long name takes two lines. */
 .hud-hotbar-cell .backpack-icon,
 .hud-hotbar-cell .hud-icon {
-  width: auto;
-  max-width: 48px;
-  height: 100%;
-  max-height: 48px;
-  min-height: 0;
+  width: 38px;
+  max-width: calc(100% - 8px);
+  height: auto;
   aspect-ratio: 1;
 }
+.hud-content-move.hud-hotbar-cell:hover,
+.hud-content-move.hud-hotbar-cell:focus-visible {
+  background: var(--hud-amber-tint);
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--hud-amber);
+}
+/* The name label: a pill above the cell. It sits over the middle of the cell, except at either end of the row, */
+/* where it lines up with the cell's outer edge so the list does not clip it. */
 .hud-hotbar-name {
-  display: -webkit-box;
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 10px;
-  line-height: 1.1;
-  text-align: center;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  z-index: 1;
+  padding: 3px 9px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.hud-hotbar-cell:hover .hud-hotbar-name,
+.hud-hotbar-cell:focus-visible .hud-hotbar-name {
+  display: block;
+}
+.hud-hotbar-cells li:first-child .hud-hotbar-name {
+  left: 0;
+  transform: none;
+}
+.hud-hotbar-cells li:last-child .hud-hotbar-name {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+.hud-hotbar-cells li:first-child:last-child .hud-hotbar-name {
+  right: auto;
 }
 .hud-hotbar-key {
   position: absolute;
-  top: 2px;
-  left: 4px;
+  bottom: 4px;
+  left: 6px;
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
-  color: #cdb898;
+  color: var(--hud-text);
+  opacity: 0.5;
 }
-/* In a hotbar cell the count sits top right, clear of the name. */
+/* In a hotbar cell the count sits top right. */
 .hud-hotbar-cell .hud-backpack-count {
-  top: 2px;
+  top: 4px;
+  right: 6px;
   bottom: auto;
 }
 /* The log on the shoulder and the dragged sled sit apart from the backpack contents. */
 .hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder,
 .hud-backpack .hud-hotbar-cells .hud-hotbar-sled {
   margin-right: 6px;
-  border-color: #82593a;
+  box-shadow: inset 0 0 0 1px var(--hud-edge);
 }
-/* The build and craft buttons sit at the right end of the hotbar, apart from the backpack contents. */
-/* They stack, one above the other, so the hotbar stays one row high. */
+/* The build and craft buttons sit side by side at the right end of the hotbar, apart from the backpack contents. */
 .hud-hotbar-tools {
   position: relative;
   flex: none;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: stretch;
+  gap: 6px;
+  align-items: center;
   margin-left: auto;
   padding-left: 10px;
   border-left: 1px solid var(--hud-edge);
 }
+/* Each is a 58 px square with an amber tint: its icon over its name, and its key in the top right corner. */
 .hud-button.hud-tool-button {
-  gap: 7px;
-  height: 33px;
-  padding: 0 8px 0 10px;
-  font-size: 14px;
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 58px;
+  height: 58px;
   margin: 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgb(240 160 75 / 0.14);
+  border: 1px solid rgb(240 160 75 / 0.35);
+  border-radius: 12px;
 }
 .hud-button.hud-tool-button .hud-icon {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 .hud-tool-button[aria-pressed="true"] {
-  background: var(--hud-amber-tint);
+  background: rgb(240 160 75 / 0.3);
   border-color: var(--hud-amber);
+}
+.hud-tool-button .hud-key {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  font-size: 9px;
+  border: none;
 }
 /* The key that does the same as a button, such as "B" on the build button. */
 .hud-key {

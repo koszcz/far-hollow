@@ -87,7 +87,7 @@ function ContentGrid({
 
 /**
  * The hotbar's cells: the sled the player drags, the log on the shoulder, then each kind in the backpack. Each shows its icon,
- * its name, a count when there is more than one, and its number key. A click calls `onOpenMenu` with the middle of the cell's top edge, to open its action menu above it.
+ * a count when there is more than one, and its number key. Its name shows in a label above it only while the player points at it or focuses it. A click calls `onOpenMenu` with the middle of the cell's top edge, to open its action menu above it.
  */
 function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target: HotbarTarget, x: number, y: number) => void }) {
   return (
@@ -400,7 +400,7 @@ function HudIconButton({
   );
 }
 
-/** A larger HUD button that shows an icon, its name, and the key that does the same, such as "Build B". The build and craft buttons use it. */
+/** A square HUD button that shows an icon over its name, and the key that does the same in its corner, such as "B" on Build. The build and craft buttons use it. */
 function HudToolButton({
   icon,
   label,

@@ -13,7 +13,7 @@ export type HotbarTarget =
 
 export interface HotbarCell {
   readonly target: HotbarTarget;
-  /** The name shown under the icon. */
+  /** The name shown in the label above the cell while the player points at it or focuses it. */
   readonly name: string;
   readonly count: number;
   /** The number key that uses it, "1" to "9". Only the first nine backpack cells have one. */

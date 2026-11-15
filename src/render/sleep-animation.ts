@@ -105,13 +105,16 @@ export interface SleepSpot {
 /**
  * Where the player stands `seconds` after reaching the bedroll at `bedroll`, having reached it at `from`.
  * They step across to the lying spot while turning to face along the bedroll, then stay there.
+ * `facing` is which way the bedroll is turned, in radians, as `facingRadians` gives. A bedroll laid along z has 0.
  */
-export function sleepSpotFrom(from: SleepSpot, bedroll: { x: number; z: number }, seconds: number): SleepSpot {
+export function sleepSpotFrom(from: SleepSpot, bedroll: { x: number; z: number }, seconds: number, facing = 0): SleepSpot {
   const stepped = settle(seconds / SLEEP_STEP_ON_SECONDS);
-  const turn = Math.atan2(Math.sin(SLEEP_HEADING - from.heading), Math.cos(SLEEP_HEADING - from.heading));
+  const heading = SLEEP_HEADING + facing;
+  const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));
+  const lying = { x: bedroll.x + Math.sin(facing) * SLEEP_FEET_Z, z: bedroll.z + Math.cos(facing) * SLEEP_FEET_Z };
   return {
-    x: from.x + (bedroll.x - from.x) * stepped,
-    z: from.z + (bedroll.z + SLEEP_FEET_Z - from.z) * stepped,
+    x: from.x + (lying.x - from.x) * stepped,
+    z: from.z + (lying.z - from.z) * stepped,
     heading: from.heading + turn * stepped,
   };
 }

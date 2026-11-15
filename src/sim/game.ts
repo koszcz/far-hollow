@@ -691,6 +691,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
           });
       },
     },
+    layBedrollInLeanTo: {
+      start: "fresh",
+      run: (command) => {
+        bedrolls.layInLeanTo(command.leanToId);
+      },
+    },
     pickUpBedroll: {
       start: "fresh",
       run: (command) => {
@@ -843,7 +849,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     Object.assign(player.position, bedroll.position);
     Object.assign(player.previousPosition, player.position);
     sleep("bedroll");
-    reportSleep(bedroll.position);
+    reportSleep(bedroll.position, undefined, bedroll.facing === undefined ? undefined : { turns: bedroll.facing.turns });
   }
 
   /**
@@ -860,11 +866,19 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     reportSleep(bed.position, { turns: bed.facing?.turns ?? 0 });
   }
 
-  /** Records a sleep at `spot` for drawing to play. `bed` says which way the bed faces, for a sleep in a bed. */
-  function reportSleep(spot: GroundPoint, bed?: SleepView["bed"]): void {
+  /**
+   * Records a sleep at `spot` for drawing to play. `bed` says which way the bed faces, for a sleep in a bed.
+   * `bedroll` says which way a turned bedroll faces, for a sleep on one.
+   */
+  function reportSleep(spot: GroundPoint, bed?: SleepView["bed"], bedroll?: SleepView["bedroll"]): void {
     const at = Object.freeze({ x: spot.x, z: spot.z });
     const count = (lastSleep?.count ?? 0) + 1;
-    lastSleep = Object.freeze(bed === undefined ? { count, at } : { count, at, bed: Object.freeze({ ...bed }) });
+    lastSleep = Object.freeze({
+      count,
+      at,
+      ...(bed === undefined ? {} : { bed: Object.freeze({ ...bed }) }),
+      ...(bedroll === undefined ? {} : { bedroll: Object.freeze({ ...bedroll }) }),
+    });
   }
 
   /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */

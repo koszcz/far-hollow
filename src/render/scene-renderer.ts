@@ -24,6 +24,7 @@ import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
+import { facingRadians } from "./structure-look";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
@@ -199,9 +200,9 @@ export function createSceneRenderer(
   let sleepsSeen = readLastSleep()?.count ?? 0;
   /**
    * The sleep animation, while it plays: when it began, on the performance clock in seconds, where the player stood and
-   * faced then, the middle of the bedroll or bed, the hour the sky keeps showing until the view is dark, and which way a bed faces.
+   * faced then, the middle of the bedroll or bed, the hour the sky keeps showing until the view is dark, and which way a bed or turned bedroll faces.
    */
-  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: SleepView["bed"] } | undefined;
+  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: SleepView["bed"]; bedroll?: SleepView["bedroll"] } | undefined;
 
   /** Sitting on a stool, while drawn: when the player reached it, on the performance clock in seconds, where they stood and faced then, and where and how high they sit. */
   let seated: { since: number; from: SleepSpot; seat: SleepSpot; y: number } | undefined;
@@ -270,7 +271,7 @@ export function createSceneRenderer(
       const seconds = nowSeconds - sleeping.since;
       const spot =
         sleeping.bed === undefined
-          ? { ...sleepSpotFrom(sleeping.from, sleeping.at, seconds), lift: 0 }
+          ? { ...sleepSpotFrom(sleeping.from, sleeping.at, seconds, facingRadians(sleeping.bedroll?.turns ?? 0)), lift: 0 }
           : bedSleepSpotFrom(sleeping.from, sleeping.at, sleeping.bed.turns, seconds);
       Object.assign(playerDrawn, { x: spot.x, z: spot.z });
       playerMesh.group.position.set(spot.x, playerDrawn.y + spot.lift, spot.z);
@@ -453,7 +454,14 @@ export function createSceneRenderer(
     sleepsSeen = last.count;
     // Game logic has moved the player onto the bedroll, or kept them beside the bed, already. They step there from where they were drawn last frame.
     const from = { x: playerDrawn.x, z: playerDrawn.z, heading: playerMesh.group.rotation.y };
-    sleeping = { since: nowSeconds, from, at: last.at, hour: drawnHour, ...(last.bed === undefined ? {} : { bed: { turns: last.bed.turns } }) };
+    sleeping = {
+      since: nowSeconds,
+      from,
+      at: last.at,
+      hour: drawnHour,
+      ...(last.bed === undefined ? {} : { bed: { turns: last.bed.turns } }),
+      ...(last.bedroll === undefined ? {} : { bedroll: { turns: last.bedroll.turns } }),
+    };
   }
 
   return {

@@ -115,6 +115,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   forageTask: shape({ spotId: count }),
   bedroll: exactly(true),
   bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
+  layBedrollTask: shape({ leanToId: count }),
   bedTask: shape({ bedId: count }),
   stoolTask: shape({ stoolId: count }),
   tendTask: tendCommand,

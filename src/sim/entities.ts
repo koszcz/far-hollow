@@ -121,7 +121,7 @@ export interface Entity {
    * A chest from a save made before chests cost planks keeps its 2 debarked logs. Without this, the structure's cost applies.
    */
   builtCost?: { material: DeliveredMaterial; count: number }[];
-  /** Which way a blueprint, or the structure built from it, faces. */
+  /** Which way a blueprint, or the structure built from it, faces. A bedroll laid in a lean-to has it too. A bedroll without it lies along z. */
   facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */
   buildTask?: { blueprintId: number };
@@ -210,6 +210,8 @@ export interface Entity {
   bedroll?: true;
   /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
+  /** The finished lean-to the player is walking into, given by its entity id, to lay their bedroll there. */
+  layBedrollTask?: { leanToId: number };
   /** The finished bed the player is walking to, given by its entity id, to sleep in. */
   bedTask?: { bedId: number };
   /** The finished stool the player is walking to, given by its entity id, to sit on. */

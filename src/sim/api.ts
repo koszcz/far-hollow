@@ -148,6 +148,8 @@ export type Command =
   | { type: "lightCampfire"; campfireId: number }
   /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
   | { type: "layBedroll" }
+  /** Walk the player into a finished lean-to, given by its entity id, and lay the bedroll from the backpack across its open front, under the roof. */
+  | { type: "layBedrollInLeanTo"; leanToId: number }
   /** Walk the player to a laid bedroll, given by its entity id, and put it back in the backpack. */
   | { type: "pickUpBedroll"; bedrollId: number }
   /**
@@ -280,6 +282,8 @@ export interface SleepView {
   readonly at: Readonly<GroundPoint>;
   /** Present for a sleep in a bed, with which way the bed faces. Missing for a sleep on a bedroll. */
   readonly bed?: { readonly turns: QuarterTurns };
+  /** Present for a sleep on a bedroll laid turned, such as in a lean-to, with which way it faces. Missing for a bed or a bedroll laid along z. */
+  readonly bedroll?: { readonly turns: QuarterTurns };
 }
 
 /**

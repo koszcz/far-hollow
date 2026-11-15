@@ -33,7 +33,7 @@ export function nearestInReach(entities: EntityStore, at: GroundPoint): ThingInR
 
 /** What E would act on in this entity, or undefined if E acts on nothing in it, as for the player, a stump, or a finished wall. */
 function thingOf(entity: Entity, id: number): ThingInReach | undefined {
-  // A blueprint of a campfire, chest, or shelf is a blueprint, not yet the thing it will be.
+  // A blueprint of a campfire or a piece of furniture is a blueprint, not yet the thing it will be.
   if (entity.blueprint !== undefined) return { kind: "blueprint", id };
   if (entity.workStation !== undefined) return { kind: "workStation", id, station: entity.workStation };
   if (entity.tree === true) return { kind: "tree", id };
@@ -45,11 +45,7 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   if (entity.forageSpot !== undefined) return entity.regrowing === undefined ? { kind: "forage", id } : undefined;
   if (entity.campfire !== undefined) return { kind: "campfire", id };
   if (entity.woodpile !== undefined) return { kind: "woodpile", id };
-  if (entity.chest !== undefined) return { kind: "chest", id };
-  if (entity.shelf !== undefined) return { kind: "shelf", id };
-  if (entity.bed === true) return { kind: "bed", id };
-  if (entity.table === true) return { kind: "table", id };
-  if (entity.stool === true) return { kind: "stool", id };
+  if (entity.furniture !== undefined) return { kind: entity.furniture, id };
   if (entity.sled !== undefined) return { kind: "sled", id };
   if (entity.bedroll === true) return { kind: "bedroll", id };
   if (entity.pile !== undefined) return { kind: "pile", id };

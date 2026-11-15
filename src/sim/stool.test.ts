@@ -5,8 +5,9 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { FATIGUE_DRAIN_PER_HOUR, FATIGUE_RECOVERY_PER_HOUR } from "./needs";
 import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, STOOLS_SAVE_VERSION, writeSave } from "./save";
-import { STOOL_BUILD_SECONDS, STOOL_PLANK_COST } from "./structures";
+import { STOOL_BUILD_SECONDS, STOOL_PLANK_COST } from "./furniture/stool";
 import { isWalkable } from "./walk-map";
+import { piecesOf } from "./test-steps";
 
 describe("the stool in the build menu", () => {
   it("lists the stool as furniture, with its cost of 2 planks and no tool", () => {
@@ -67,7 +68,7 @@ describe("where a stool cannot go", () => {
     send(game, place("stool", square.x + 2, square.z, 0));
     expect(game.client.checkPlacement("stool", { x: square.x + 2.3, z: square.z }, 0).allowed).toBe(false);
     buildFully(game, blueprintOf(game, "stool"));
-    expect(game.entities.with("stool").size).toBe(1);
+    expect(piecesOf(game.entities, "stool").length).toBe(1);
     for (const structure of ["stool", "chest", "bed"] as const) {
       expect(game.client.checkPlacement(structure, { x: square.x + 2.2, z: square.z + 0.1 }, 0).allowed).toBe(false);
     }
@@ -100,7 +101,7 @@ describe("building a stool", () => {
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, STOOL_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.stool).toBe(true);
+    expect(blueprint.furniture).toBe("stool");
     expect(backpack.plank).toBe(2);
   });
 
@@ -112,7 +113,7 @@ describe("building a stool", () => {
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, STOOL_BUILD_SECONDS + 5);
 
-    expect(blueprint.stool).toBe(true);
+    expect(blueprint.furniture).toBe("stool");
     expect(onlyPlayer(game).backpack.contents.plank).toBe(1);
   });
 });
@@ -248,7 +249,7 @@ describe("taking down a stool", () => {
 
     send(game, { type: "takeDown", pieceId: idOf(game, stool) });
     expect(game.client.getView().sittingOn).toBeNull();
-    stepUntil(game, () => game.entities.with("stool").size === 0);
+    stepUntil(game, () => piecesOf(game.entities, "stool").length === 0);
 
     expect(backpack.plank).toBe(STOOL_PLANK_COST);
     expect(isWalkable(game.walkMap, stool.position)).toBe(true);
@@ -292,7 +293,7 @@ describe("saving stools", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    const stools = loaded.game.entities.with("stool", "position").entities;
+    const stools = piecesOf(loaded.game.entities, "stool");
     expect(stools.map(({ position, facing }) => ({ x: position.x, z: position.z, facing }))).toEqual([{ x: square.x, z: square.z, facing: { turns: 1 } }]);
     expect(isWalkable(loaded.game.walkMap, square)).toBe(false);
     const blueprint = blueprintOf(loaded.game, "stool");
@@ -309,7 +310,7 @@ describe("saving stools", () => {
 
     expect(loaded.game.client.getView().sittingOn).toBeNull();
     expect(loaded.game.entities.with("sitting").size).toBe(0);
-    expect(loaded.game.entities.with("stool").size).toBe(1);
+    expect(piecesOf(loaded.game.entities, "stool").length).toBe(1);
   });
 });
 
@@ -339,7 +340,7 @@ function sitOnNewStool(game: Game) {
 
 /** Sits the player back on the only stool. */
 function sitAgain(game: Game): void {
-  const stool = game.entities.with("stool").first;
+  const stool = piecesOf(game.entities, "stool")[0];
   if (stool === undefined) throw new Error("No stool");
   send(game, { type: "sitOnStool", stoolId: idOf(game, stool) });
   stepUntil(game, () => game.client.getView().sittingOn !== null);

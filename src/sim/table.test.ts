@@ -4,9 +4,10 @@ import type { Entity } from "./entities";
 import { HUNGER_FILLED_BY } from "./foraging";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, TABLES_SAVE_VERSION, writeSave } from "./save";
-import { TABLE_BUILD_SECONDS, TABLE_DEPTH_METRES, TABLE_PLANK_COST } from "./structures";
+import { TABLE_BUILD_SECONDS, TABLE_DEPTH_METRES, TABLE_PLANK_COST } from "./furniture/table";
 import { TABLE_HUNGER_FACTOR, TABLE_REACH_METRES } from "./tables";
 import { isWalkable } from "./walk-map";
+import { piecesOf } from "./test-steps";
 
 describe("the table in the build menu", () => {
   it("lists the table as furniture, with its cost of 6 planks and no tool", () => {
@@ -77,7 +78,7 @@ describe("where a table cannot go", () => {
 
     send(game, place("table", square.x + 2.5, square.z, 0));
     buildFully(game, blueprintOf(game, "table"));
-    expect(game.entities.with("table").size).toBe(1);
+    expect(piecesOf(game.entities, "table").length).toBe(1);
     for (const structure of ["table", "bed", "chest", "shelf", "sled"] as const) {
       expect(game.client.checkPlacement(structure, { x: square.x + 2.8, z: square.z + 0.3 }, 0).allowed).toBe(false);
     }
@@ -113,7 +114,7 @@ describe("building a table", () => {
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, TABLE_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.table).toBe(true);
+    expect(blueprint.furniture).toBe("table");
     expect(backpack.plank).toBe(3);
   });
 
@@ -125,7 +126,7 @@ describe("building a table", () => {
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, TABLE_BUILD_SECONDS + 5);
 
-    expect(blueprint.table).toBe(true);
+    expect(blueprint.furniture).toBe("table");
     expect(onlyPlayer(game).backpack.contents.plank).toBe(3);
   });
 });
@@ -215,7 +216,7 @@ describe("saving tables", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    const tables = loaded.game.entities.with("table", "position").entities;
+    const tables = piecesOf(loaded.game.entities, "table");
     expect(tables.map(({ position, facing }) => ({ x: position.x, z: position.z, facing }))).toEqual([{ x: square.x, z: square.z, facing: { turns: 1 } }]);
     expect(isWalkable(loaded.game.walkMap, { x: square.x, z: square.z })).toBe(false);
     const blueprint = blueprintOf(loaded.game, "table");
@@ -249,7 +250,7 @@ describe("taking down a table", () => {
     backpack.plank = 0;
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
-    stepUntil(game, () => game.entities.with("table").size === 0);
+    stepUntil(game, () => piecesOf(game.entities, "table").length === 0);
 
     // The backpack holds the tools too, so any planks that do not fit drop in a pile.
     const piled = game.entities.with("pile").entities.reduce((sum, { pile }) => sum + (pile.content === "plank" ? pile.count : 0), 0);

@@ -1,10 +1,10 @@
 // Build menu icons for furniture built from planks: the "furniture-icons" asset in asset-manifest.json, built in code.
-// Added by furniture ticket 03 with the shelf icon. Ticket 02 added the bed, ticket 04 the table, and ticket 05 the stool.
 // The owner approved the version drawn from each furniture model on 2026-11-15.
 // Each icon is drawn from its furniture's model, seen from the front and a little above, as the chest's build icon is.
 // They are drawn on the same 24 by 24 grid, in the same shaded style, as the approved build icons in build-icons.tsx.
-// The chest's icon is part of the approved build icons, so it is not here.
+// FURNITURE_DRAWINGS lists every piece's icon. The chest's icon is part of the approved build icons, so its entry points there.
 import type { FurnitureKind } from "../sim/api";
+import { CHEST_DRAWING } from "./build-icons";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
 
 /**
@@ -154,18 +154,16 @@ const STOOL_DRAWING: BackpackIconDrawing = {
   ],
 };
 
-/** The furniture whose icons are drawn here. The chest's icon is in the approved build icons instead. */
-export type FurnitureWithOwnIcon = Exclude<FurnitureKind, "chest">;
-
-/** The icon of each piece of furniture this asset draws. */
-export const FURNITURE_DRAWINGS: Readonly<Record<FurnitureWithOwnIcon, BackpackIconDrawing>> = {
+/** The build menu icon of each piece of furniture. TypeScript reports a piece with no entry. */
+export const FURNITURE_DRAWINGS: Readonly<Record<FurnitureKind, BackpackIconDrawing>> = {
+  chest: CHEST_DRAWING,
   shelf: SHELF_DRAWING,
   bed: BED_DRAWING,
   table: TABLE_DRAWING,
   stool: STOOL_DRAWING,
 };
 
-/** Whether a structure's build menu icon is drawn here. */
-export function hasFurnitureIcon(structure: string): structure is FurnitureWithOwnIcon {
+/** Whether a structure is a piece of furniture, so FURNITURE_DRAWINGS holds its icon. */
+export function hasFurnitureIcon(structure: string): structure is FurnitureKind {
   return structure in FURNITURE_DRAWINGS;
 }

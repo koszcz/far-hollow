@@ -8,8 +8,17 @@ export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind
 export const WORK_STATION_KINDS = ["sawhorse"] as const;
 export type WorkStationKind = (typeof WORK_STATION_KINDS)[number];
 
-/** The pieces of furniture the build menu can list. Furniture is placed freely and does not snap to the building grid. */
-export type FurnitureKind = "chest" | "shelf" | "bed" | "table" | "stool";
+/**
+ * The pieces of furniture the build menu can list, in the order it lists them. Furniture is placed freely and does not snap to the building grid.
+ * This is the only list that names every piece. See src/sim/furniture.ts for what a new piece adds.
+ */
+export const FURNITURE_KINDS = ["chest", "shelf", "bed", "table", "stool"] as const;
+export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
+
+/** A record with one entry for each piece of furniture, each made by `make`. */
+export function byFurnitureKind<T>(make: (kind: FurnitureKind) => T): Record<FurnitureKind, T> {
+  return Object.fromEntries(FURNITURE_KINDS.map((kind) => [kind, make(kind)])) as Record<FurnitureKind, T>;
+}
 
 /** The building pieces that stand on the edge of a foundation square, on the line between it and the square beside it. */
 export const EDGE_PIECE_KINDS = ["logWall", "doorFrame"] as const;

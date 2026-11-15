@@ -1,6 +1,6 @@
 // Eating at a table: food eaten within reach of a finished table fills more hunger.
 import { distanceOutside } from "./building";
-import { tableEntities, type EntityStore } from "./entities";
+import { furnitureEntities, type EntityStore } from "./entities";
 import { footprintOfEntity } from "./structures";
 import type { GroundPoint } from "./valley";
 
@@ -11,6 +11,8 @@ export const TABLE_HUNGER_FACTOR = 1.25;
 
 /** Whether a spot is within reach of a finished table. A table blueprint does not count. */
 export function isAtTable(entities: EntityStore, at: GroundPoint): boolean {
-  for (const table of tableEntities(entities)) if (distanceOutside(footprintOfEntity(table), at) <= TABLE_REACH_METRES) return true;
+  for (const table of furnitureEntities(entities)) {
+    if (table.furniture === "table" && distanceOutside(footprintOfEntity(table), at) <= TABLE_REACH_METRES) return true;
+  }
   return false;
 }

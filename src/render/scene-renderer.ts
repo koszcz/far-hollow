@@ -4,6 +4,7 @@ import { playerActivity } from "../sim/activity";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
+import { byFurnitureKind } from "../sim/structure-kind";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
@@ -145,11 +146,7 @@ export function createSceneRenderer(
     blueprint: (entity) => structureMeshes.outlineOf({ kind: "blueprint", entity }),
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
-    chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
-    shelf: (entity) => structureMeshes.outlineOf({ kind: "shelf", entity }),
-    bed: (entity) => structureMeshes.outlineOf({ kind: "bed", entity }),
-    table: (entity) => structureMeshes.outlineOf({ kind: "table", entity }),
-    stool: (entity) => structureMeshes.outlineOf({ kind: "stool", entity }),
+    ...byFurnitureKind((kind) => (entity: Entity) => structureMeshes.outlineOf({ kind, entity })),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),

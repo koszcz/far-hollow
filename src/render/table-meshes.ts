@@ -2,8 +2,8 @@
 // A table is a top of four planks laid along its length, on a frame of rails, on four square legs.
 // The model is built in three stages, each taking a third of construction: the legs, the rails, then the top.
 // plank-furniture-meshes.ts draws the stages.
-import { tableEntities, type EntityStore } from "../sim/entities";
-import { TABLE_DEPTH_METRES, TABLE_WIDTH_METRES } from "../sim/structures";
+import type { EntityStore } from "../sim/entities";
+import { TABLE_DEPTH_METRES, TABLE_WIDTH_METRES } from "../sim/furniture/table";
 import { createFurnitureMeshes, type FurnitureMeshes, type FurniturePart } from "./plank-furniture-meshes";
 
 /** How many stages the table model is built in: the legs, the rails, then the top. */
@@ -46,6 +46,5 @@ export function createTableMeshes(entities: EntityStore): FurnitureMeshes {
     structure: "table",
     stages: [legs, rails, top],
     pickBox: { size: [width, TABLE_TOP_METRES, depth], at: [0, TABLE_TOP_METRES / 2, 0] },
-    finished: tableEntities,
   });
 }

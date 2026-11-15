@@ -3,8 +3,8 @@
 // The player sits on it facing +z when it faces the default way. sit-animation.ts places them.
 // The model is built in two stages, each taking half of construction: the legs with their rails, then the seat.
 // plank-furniture-meshes.ts draws the stages.
-import { stoolEntities, type EntityStore } from "../sim/entities";
-import { STOOL_SIZE_METRES } from "../sim/structures";
+import type { EntityStore } from "../sim/entities";
+import { STOOL_SIZE_METRES } from "../sim/furniture/stool";
 import { createFurnitureMeshes, type FurnitureMeshes, type FurniturePart } from "./plank-furniture-meshes";
 
 /** How many stages the stool model is built in: the legs with their rails, then the seat. */
@@ -46,6 +46,5 @@ export function createStoolMeshes(entities: EntityStore): FurnitureMeshes {
     structure: "stool",
     stages: [legs, seat],
     pickBox: { size: [size, STOOL_SEAT_TOP_METRES, size], at: [0, STOOL_SEAT_TOP_METRES / 2, 0] },
-    finished: stoolEntities,
   });
 }

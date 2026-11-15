@@ -159,7 +159,7 @@ describe("a blueprint taking planks from nearby", () => {
 
     build(game, chest);
 
-    expect(chest.chest).toBeDefined();
+    expect(chest.furniture).toBe("chest");
     expect(game.client.getView().backpack.plank ?? 0).toBe(0);
     expect(sled.sled.plank).toBe(0);
     expect(pile.pile?.count).toBe(2);
@@ -173,7 +173,7 @@ describe("a blueprint taking planks from nearby", () => {
 
     build(game, chest);
 
-    expect(chest.chest).toBeDefined();
+    expect(chest.furniture).toBe("chest");
     expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 2 });
     expect(pile.pile?.count).toBe(3);
   });
@@ -187,7 +187,7 @@ describe("a blueprint taking planks from nearby", () => {
     expect(game.client.describeBlueprint(idOf(game, chest))?.lacks).toBeNull();
     build(game, chest);
 
-    expect(chest.chest).toBeDefined();
+    expect(chest.furniture).toBe("chest");
     expect(game.entities.has(pile)).toBe(false);
   });
 

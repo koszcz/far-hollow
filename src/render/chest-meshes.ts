@@ -9,8 +9,9 @@
 // While the player places a chest from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
-import { blueprintEntities, chestEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { CHEST_DEPTH_METRES, CHEST_WIDTH_METRES, costOf, isKept } from "../sim/structures";
+import { blueprintEntities, furnitureEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { CHEST_DEPTH_METRES, CHEST_WIDTH_METRES } from "../sim/furniture/chest";
+import { costOf, isKept } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 
@@ -174,7 +175,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
-  const chests = chestEntities(entities);
+  const finished = furnitureEntities(entities);
 
   /** Adds the parts of every stage to `root`, all in one material. */
   function addStages(root: THREE.Group): Stage[] {
@@ -274,7 +275,8 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
         showProgress(draw(entity), entity, entity.blueprint.progress, partsReady(entity));
         seen.add(entity);
       }
-      for (const entity of chests) {
+      for (const entity of finished) {
+        if (entity.furniture !== "chest") continue;
         showProgress(draw(entity), entity, 1, CHEST_MODEL_STAGES);
         seen.add(entity);
       }
@@ -287,7 +289,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       for (const hit of hits) {
         const entity = hit.object.userData.entity as Entity | undefined;
         if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
-        if (entity?.chest !== undefined) return { hit: { kind: "chest", entity }, distance: hit.distance };
+        if (entity?.furniture === "chest") return { hit: { kind: "chest", entity }, distance: hit.distance };
       }
       return undefined;
     },

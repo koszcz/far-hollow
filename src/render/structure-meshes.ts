@@ -4,28 +4,24 @@
 import * as THREE from "three";
 import type { QuarterTurns, StructureKind } from "../sim/api";
 import type { Entity, EntityStore, Vec3 } from "../sim/entities";
+import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
 import { createCampfireMeshes } from "./campfire-meshes";
-import { createBedMeshes } from "./bed-meshes";
-import { createChestMeshes } from "./chest-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFishOnFireMeshes } from "./fish-on-fire-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import type { OutlinePart } from "./hover-outline";
-import type { FurnitureMeshes } from "./plank-furniture-meshes";
+import { FURNITURE_MESHES } from "./furniture-meshes";
 import { createLeanToMeshes } from "./lean-to-meshes";
 import type { LogShape } from "./log-shape";
 import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createSawhorseMeshes } from "./sawhorse-meshes";
-import { createShelfMeshes } from "./shelf-meshes";
-import { createTableMeshes } from "./table-meshes";
 import { createSledMeshes } from "./sled-meshes";
-import { createStoolMeshes } from "./stool-meshes";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
 export type StructureHit = {
-  kind: "blueprint" | "campfire" | "woodpile" | "chest" | "shelf" | "bed" | "table" | "stool" | "workStation" | "sled";
+  kind: "blueprint" | "campfire" | "woodpile" | FurnitureKind | "workStation" | "sled";
   entity: Entity;
 };
 
@@ -79,16 +75,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const roofFrames = createRoofFrameMeshes(entities);
   const roofs = createRoofMeshes(entities);
   const woodpiles = createWoodpileMeshes(entities, logShape);
-  const chests = createChestMeshes(entities);
-  const shelves = createShelfMeshes(entities);
-  const beds = createBedMeshes(entities);
-  const tables = createTableMeshes(entities);
-  const stools = createStoolMeshes(entities);
+  const furniture = byFurnitureKind((kind) => FURNITURE_MESHES[kind](entities));
   const sawhorses = createSawhorseMeshes(entities);
   const sleds = createSledMeshes(entities, logShape);
   // The fish on each campfire are an asset of their own, so they draw apart from the campfire.
   const fishOnFire = createFishOnFireMeshes(entities, groundAt);
-  const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, chests, shelves, beds, tables, stools, sawhorses, sleds];
+  const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, ...Object.values(furniture), sawhorses, sleds];
   const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
 
   const group = new THREE.Group();
@@ -144,36 +136,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         woodpiles.showPlacingBlueprint(placing);
       },
     },
-    chest: {
-      outlineBlueprint: (entity) => chests.outlineOf({ kind: "blueprint", entity }),
+    ...byFurnitureKind((kind): KindDrawing => ({
+      outlineBlueprint: (entity) => furniture[kind].outlineOf(entity),
       showPlacing: (placing) => {
-        chests.showPlacingBlueprint(placing);
+        furniture[kind].showPlacingBlueprint(placing);
       },
-    },
-    shelf: {
-      outlineBlueprint: (entity) => shelves.outlineOf(entity),
-      showPlacing: (placing) => {
-        shelves.showPlacingBlueprint(placing);
-      },
-    },
-    bed: {
-      outlineBlueprint: (entity) => beds.outlineOf(entity),
-      showPlacing: (placing) => {
-        beds.showPlacingBlueprint(placing);
-      },
-    },
-    table: {
-      outlineBlueprint: (entity) => tables.outlineOf(entity),
-      showPlacing: (placing) => {
-        tables.showPlacingBlueprint(placing);
-      },
-    },
-    stool: {
-      outlineBlueprint: (entity) => stools.outlineOf(entity),
-      showPlacing: (placing) => {
-        stools.showPlacingBlueprint(placing);
-      },
-    },
+    })),
     sawhorse: {
       outlineBlueprint: (entity) => sawhorses.outlineOf({ kind: "blueprint", entity }),
       showPlacing: (placing) => {
@@ -188,14 +156,10 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     },
   };
 
-  /** What a ray hits first among one kind of plank furniture and its blueprints, such as beds, as a structure hit. */
-  function furnitureHit(
-    meshes: FurnitureMeshes,
-    finished: "shelf" | "bed" | "table" | "stool",
-    raycaster: THREE.Raycaster,
-  ): { hit: StructureHit; distance: number } | undefined {
-    const found = meshes.pick(raycaster);
-    return found && { hit: { kind: found.hit.kind === "finished" ? finished : "blueprint", entity: found.hit.entity }, distance: found.distance };
+  /** What a ray hits first among one kind of furniture and its blueprints, as a structure hit. */
+  function furnitureHit(kind: FurnitureKind, raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined {
+    const found = furniture[kind].pick(raycaster);
+    return found && { hit: { kind: found.hit.kind === "finished" ? kind : "blueprint", entity: found.hit.entity }, distance: found.distance };
   }
 
   /** Keeps whichever candidate is nearest. */
@@ -217,11 +181,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       roofFrames.update(player !== undefined ? { player } : undefined);
       roofs.update(player !== undefined ? { player } : undefined);
       woodpiles.update();
-      chests.update();
-      shelves.update();
-      beds.update();
-      tables.update();
-      stools.update();
+      for (const meshes of Object.values(furniture)) meshes.update();
       sawhorses.update();
       sleds.update(player);
     },
@@ -234,11 +194,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         roofFrames.pick(raycaster),
         roofs.pick(raycaster),
         woodpiles.pick(raycaster),
-        chests.pick(raycaster),
-        furnitureHit(shelves, "shelf", raycaster),
-        furnitureHit(beds, "bed", raycaster),
-        furnitureHit(tables, "table", raycaster),
-        furnitureHit(stools, "stool", raycaster),
+        ...FURNITURE_KINDS.map((kind) => furnitureHit(kind, raycaster)),
         sawhorses.pick(raycaster),
         sleds.pick(raycaster),
       ]);
@@ -254,21 +210,13 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
           return campfires.outlineOf({ kind, entity });
         case "woodpile":
           return woodpiles.outlineOf({ kind, entity });
-        case "chest":
-          return chests.outlineOf({ kind, entity });
-        case "shelf":
-          return shelves.outlineOf(entity);
-        case "bed":
-          return beds.outlineOf(entity);
-        case "table":
-          return tables.outlineOf(entity);
-        case "stool":
-          return stools.outlineOf(entity);
         case "sled":
           return sleds.outlineOf({ kind, entity });
         case "workStation":
           // The sawhorse is the only work station so far. A later kind of station adds its meshes here.
           return sawhorses.outlineOf({ kind, entity });
+        default:
+          return furniture[kind].outlineOf(entity);
       }
     },
     showPlacingBlueprint(placing) {

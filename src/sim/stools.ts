@@ -10,7 +10,7 @@ const STOOL_STAND_METRES = 1.1;
 export const STOOL_REACH_METRES = 2;
 
 /** A finished stool, standing somewhere. */
-export type StoolEntity = Entity & Required<Pick<Entity, "stool" | "position">>;
+export type StoolEntity = Entity & Required<Pick<Entity, "furniture" | "position">>;
 
 export interface Stools {
   /**
@@ -33,7 +33,10 @@ export function createStools(entities: EntityStore, walking: Walking, beforeSitt
   const players = playerEntities(entities);
   const walkers = entities.with("stoolTask", "position");
 
-  const stoolById = (stoolId: number): StoolEntity | undefined => entityWith(entities, stoolId, "stool", "position");
+  const stoolById = (stoolId: number): StoolEntity | undefined => {
+    const stool = entityWith(entities, stoolId, "furniture", "position");
+    return stool?.furniture === "stool" ? stool : undefined;
+  };
   const withinReach = (stool: StoolEntity, at: GroundPoint) => groundDistance(stool.position, at) <= STOOL_REACH_METRES;
 
   function sitDown(player: Entity, stoolId: number): void {

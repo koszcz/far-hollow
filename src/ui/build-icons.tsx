@@ -3,11 +3,10 @@
 // One icon per structure the player can build, and one for each build material that is not a backpack content.
 // Each icon is drawn from its structure's approved model: pale debarked logs, curled bark strips, and stones, in the model's own colours.
 // They use the same shaded style and renderer as the backpack icons in backpack-icons.tsx, drawn on a 24 by 24 grid.
-import type { BuildMaterial, StructureKind } from "../sim/api";
+import type { BuildMaterial, FurnitureKind, StructureKind } from "../sim/api";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import type { BackpackIconDrawing as IconDrawing, IconPart } from "./icon-drawing";
-import { FURNITURE_DRAWINGS, hasFurnitureIcon, type FurnitureWithOwnIcon } from "./furniture-icons";
-import { LOG_DRAWING, SLED_DRAWING } from "./sled-icons";
+import { LOG_DRAWING } from "./sled-icons";
 
 /** The pale wood of a debarked log, its paler cut end, and the darker grain and growth rings on it. */
 const DEBARKED = "#e3c38f";
@@ -73,10 +72,10 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
 }
 
 /**
- * The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx, so it is not listed here.
- * The shelf's, bed's, table's, and stool's icons are the approved "furniture-icons" asset, drawn in furniture-icons.tsx, so they are not listed here either.
+ * The icon of each structure but the sled and the furniture. structure-icon.tsx picks the icon for each structure.
+ * The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx. furniture-icons.tsx lists each piece of furniture's icon.
  */
-const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | FurnitureWithOwnIcon>, IconDrawing>> = {
+export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | FurnitureKind>, IconDrawing>> = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {
     colour: "#ff8a3c",
@@ -192,20 +191,21 @@ const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | Furnit
       { d: "M2.4 21L8.4 6M14.4 21L20.4 6", as: "line", colour: DEBARKED_SHADE },
     ],
   },
-  /** A rough plank chest: corner posts, three planks a side, a grip at each end, and a plank lid with two battens. */
-  chest: {
-    colour: "#cf9f62",
-    parts: [
-      { d: "M1.8 14h2v2.5h-2zM20.2 14h2v2.5h-2z", as: "fill", colour: "#a8763f" },
-      { d: "M3.5 12h17v9h-17z", as: "fill" },
-      { d: "M6 15.1h12M6 18h12", as: "cutLine" },
-      { d: "M3.5 12h2.5v9H3.5zM18 12h2.5v9H18z", as: "fill", colour: "#b38350" },
-      { d: "M2.5 11L4.5 5.5h15L21.5 11z", as: "fill", colour: "#d9ac70" },
-      { d: "M4 9.2h16M3.4 7.4h17.2", as: "shine", colour: "#a8763f" },
-      { d: "M7 11l.7-5.5h1.8L9 11zM15 11l-.5-5.5h1.8L17 11z", as: "fill", colour: "#a8763f" },
-      { d: "M2.5 11h19v1.4h-19z", as: "fill", colour: "#c49158" },
-    ],
-  },
+};
+
+/** A rough plank chest: corner posts, three planks a side, a grip at each end, and a plank lid with two battens. */
+export const CHEST_DRAWING: IconDrawing = {
+  colour: "#cf9f62",
+  parts: [
+    { d: "M1.8 14h2v2.5h-2zM20.2 14h2v2.5h-2z", as: "fill", colour: "#a8763f" },
+    { d: "M3.5 12h17v9h-17z", as: "fill" },
+    { d: "M6 15.1h12M6 18h12", as: "cutLine" },
+    { d: "M3.5 12h2.5v9H3.5zM18 12h2.5v9H18z", as: "fill", colour: "#b38350" },
+    { d: "M2.5 11L4.5 5.5h15L21.5 11z", as: "fill", colour: "#d9ac70" },
+    { d: "M4 9.2h16M3.4 7.4h17.2", as: "shine", colour: "#a8763f" },
+    { d: "M7 11l.7-5.5h1.8L9 11zM15 11l-.5-5.5h1.8L17 11z", as: "fill", colour: "#a8763f" },
+    { d: "M2.5 11h19v1.4h-19z", as: "fill", colour: "#c49158" },
+  ],
 };
 
 /** Build materials that are not backpack contents, so they have no backpack icon. The log's icon is in sled-icons.tsx. */
@@ -223,12 +223,6 @@ const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = 
     ],
   },
 };
-
-/** Draws the icon for one structure in the build menu. Screen readers skip it, because a text label always goes with it. */
-export function StructureIcon({ structure }: { structure: StructureKind }) {
-  const drawing = structure === "sled" ? SLED_DRAWING : hasFurnitureIcon(structure) ? FURNITURE_DRAWINGS[structure] : STRUCTURE_DRAWINGS[structure];
-  return <ShadedIcon drawing={drawing} className="build-icon" />;
-}
 
 /** Draws the icon for one build material. Sticks, bark, and planks reuse their backpack icons. */
 export function MaterialIcon({ material }: { material: BuildMaterial }) {

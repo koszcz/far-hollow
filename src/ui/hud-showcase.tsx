@@ -1,9 +1,10 @@
 // Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/showcases/interface.ts and src/render/showcases/camp.ts. Development builds only.
 import { render } from "preact";
-import type { BackpackContent, GameClient, GameView, StructureKind } from "../sim/api";
+import { FURNITURE_BUILD_MENU, type BackpackContent, type GameClient, type GameView, type StructureKind } from "../sim/api";
 import { BackpackIcon } from "./backpack-icons";
-import { MaterialIcon, StructureIcon } from "./build-icons";
+import { MaterialIcon } from "./build-icons";
+import { StructureIcon } from "./structure-icon";
 import { Hud } from "./hud";
 
 const BASE_VIEW: GameView = {
@@ -184,11 +185,7 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame" },
   { structure: "woodpile", cost: [], placement: "onGround" },
-  { structure: "chest", cost: [{ material: "plank", count: 4 }], tool: "axe", placement: "anywhere" },
-  { structure: "shelf", cost: [{ material: "plank", count: 4 }], placement: "anywhere" },
-  { structure: "bed", cost: [{ material: "plank", count: 8 }], placement: "anywhere" },
-  { structure: "table", cost: [{ material: "plank", count: 6 }], placement: "anywhere" },
-  { structure: "stool", cost: [{ material: "plank", count: 2 }], placement: "anywhere" },
+  ...FURNITURE_BUILD_MENU,
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
   {
     structure: "sled",

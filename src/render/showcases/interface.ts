@@ -106,7 +106,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       ] as const)
         place(x, z, { tree: true });
       place(1.5, -1, { campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES } });
-      place(-1.2, 0.6, { chest: { contents: {} }, facing: { turns: 0 } });
+      place(-1.2, 0.6, { furniture: "chest", storage: { contents: {} }, facing: { turns: 0 } });
       movePlayer(0, 0, 0);
     },
   },

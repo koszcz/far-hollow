@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { BackpackContent } from "./backpack";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { FISHING_SAVE_VERSION, PLANK_ROOFS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
-import { finishReach } from "./test-steps";
+import { finishReach, storingPiecesOf } from "./test-steps";
 
 describe("the fishing line in the starting kit", () => {
   it("is in a new game's backpack, along with the rest of the starting kit", () => {
@@ -77,7 +77,7 @@ describe("saving fishing gear", () => {
     const game = createGame({ seed: 42 });
     give(game, { fishingRod: 2 });
     game.entities.add({ pile: { content: "fishingRod", count: 3 }, position: { x: 1, y: 0, z: 1 } });
-    game.entities.add({ chest: { contents: { fishingLine: 2, fishingRod: 1 } }, facing: { turns: 0 }, position: { x: 4, y: 0, z: 4 } });
+    game.entities.add({ furniture: "chest", storage: { contents: { fishingLine: 2, fishingRod: 1 } }, facing: { turns: 0 }, position: { x: 4, y: 0, z: 4 } });
 
     const saved = writeSave(game);
     expect(saved.version).toBe(SAVE_VERSION);
@@ -86,7 +86,7 @@ describe("saving fishing gear", () => {
 
     expect(loaded.game.client.getView().backpack).toMatchObject({ fishingLine: 1, fishingRod: 2 });
     expect([...loaded.game.entities.with("pile")].map(({ pile }) => pile)).toContainEqual({ content: "fishingRod", count: 3 });
-    expect([...loaded.game.entities.with("chest")].map(({ chest }) => chest.contents)).toContainEqual({ fishingLine: 2, fishingRod: 1 });
+    expect(storingPiecesOf(loaded.game.entities, "chest").map(({ storage }) => storage.contents)).toContainEqual({ fishingLine: 2, fishingRod: 1 });
   });
 });
 

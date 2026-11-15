@@ -8,7 +8,7 @@ import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
-import type { DeliveredMaterial, EdgePieceKind, GroundRect, KeptMaterial, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
+import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -171,32 +171,16 @@ export interface Entity {
    */
   woodpile?: Record<WoodpileWood, number>;
   /**
-   * Marks a finished chest: furniture that holds small materials, tools, and food, grouped by kind like the backpack.
-   * `contents` says how many of each kind it holds, up to CHEST_WEIGHT_LIMIT_KG in all. Logs never go in a chest.
-   * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
-   */
-  chest?: { contents: BackpackContents };
-  /**
-   * Marks a finished shelf: standing furniture that holds small materials, tools, and food, like a chest.
-   * `contents` says how many of each kind it holds, up to SHELF_WEIGHT_LIMIT_KG in all. Logs never go on a shelf.
-   * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way its front faces.
-   */
-  shelf?: { contents: BackpackContents };
-  /**
-   * Marks a finished bed: furniture the player sleeps in. Its position is the middle of its base, on the ground or on a foundation's deck.
-   * Its `facing` says which way it is turned. The player lies with their head at its head end, along -z when it faces the default way.
-   */
-  bed?: true;
-  /**
-   * Marks a finished table: furniture the player eats beside. Food eaten within reach of it fills more hunger.
+   * Marks a finished piece of furniture, with its kind. A blueprint of a piece of furniture does not have it.
    * Its position is the middle of its base, on the ground or on a foundation's deck. Its `facing` says which way it is turned.
+   * src/sim/furniture.ts says what each kind is and does.
    */
-  table?: true;
+  furniture?: FurnitureKind;
   /**
-   * Marks a finished stool: small furniture the player sits on to rest. Its position is the middle of its base, on the ground or
-   * on a foundation's deck. Its `facing` says which way the player faces while sitting on it, +z when it faces the default way.
+   * What a finished piece of furniture that stores things holds: small materials, tools, and food, grouped by
+   * kind like the backpack. `contents` says how many of each kind it holds, up to the piece's weight limit in all. Logs never go in.
    */
-  stool?: true;
+  storage?: { contents: BackpackContents };
   /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
@@ -453,29 +437,9 @@ export function woodpileEntities(store: EntityStore) {
   return store.with("woodpile", "position");
 }
 
-/** Finished beds. */
-export function bedEntities(store: EntityStore) {
-  return store.with("bed", "position");
-}
-
-/** Finished tables. */
-export function tableEntities(store: EntityStore) {
-  return store.with("table", "position");
-}
-
-/** Finished stools. */
-export function stoolEntities(store: EntityStore) {
-  return store.with("stool", "position");
-}
-
-/** Finished chests. */
-export function chestEntities(store: EntityStore) {
-  return store.with("chest", "position");
-}
-
-/** Finished shelves. */
-export function shelfEntities(store: EntityStore) {
-  return store.with("shelf", "position");
+/** Finished pieces of furniture, of every kind. Code that needs one kind filters by `furniture`. Blueprints are not among them. */
+export function furnitureEntities(store: EntityStore) {
+  return store.with("furniture", "position");
 }
 
 /** Finished sleds. */

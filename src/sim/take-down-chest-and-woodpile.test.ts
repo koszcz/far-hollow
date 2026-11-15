@@ -2,9 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { LARGE_VALLEY_UPGRADES, PLANK_CHESTS_SAVE_VERSION, readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave } from "./save";
-import { CHEST_BUILD_SECONDS, CHEST_PLANK_COST } from "./structures";
+import { LARGE_VALLEY_UPGRADES, PLANK_CHESTS_SAVE_VERSION, readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { CHEST_BUILD_SECONDS, CHEST_PLANK_COST } from "./furniture/chest";
 import { isWalkable } from "./walk-map";
+import { piecesOf, type StoringPiece, storingPiecesOf, withOldFurnitureParts } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -26,7 +27,7 @@ describe("taking down a chest", () => {
 
   it("gives back the 2 debarked logs of a chest from a save made before chests cost planks", () => {
     const game = loadAsOlderSave(createGame({ seed: 42 }), buildChest);
-    const chest = game.entities.with("chest", "position").first;
+    const chest = storingPiecesOf(game.entities, "chest")[0];
     if (chest === undefined) throw new Error("No chest");
     const logsBefore = debarkedLogsOnGround(game);
 
@@ -40,14 +41,14 @@ describe("taking down a chest", () => {
   it("is refused while the chest holds anything, and the player is told to empty it first", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
-    chest.chest.contents.knife = 1;
+    chest.storage.contents.knife = 1;
 
     send(game, { type: "takeDown", pieceId: idOf(game, chest) });
     expect(game.client.getView().notice?.kind).toBe("stillHoldsSomething");
     runSeconds(game, CHEST_BUILD_SECONDS);
 
     expect(game.entities.has(chest)).toBe(true);
-    expect(chest.chest.contents).toEqual({ knife: 1 });
+    expect(chest.storage.contents).toEqual({ knife: 1 });
   });
 
   it("is refused if something goes in the chest while it is being taken down", () => {
@@ -55,7 +56,7 @@ describe("taking down a chest", () => {
     const chest = buildChest(game);
     send(game, { type: "takeDown", pieceId: idOf(game, chest) });
     stepUntil(game, () => game.client.getView().action?.kind === "takeDown");
-    chest.chest.contents.firewood = 2;
+    chest.storage.contents.firewood = 2;
 
     stepUntil(game, () => game.client.getView().notice?.kind === "stillHoldsSomething" || !game.entities.has(chest));
 
@@ -177,12 +178,12 @@ function placeChest(game: Game): Entity & { position: NonNullable<Entity["positi
 }
 
 /** Places a chest near the player and builds it from planks in the backpack, as the player would. */
-function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "position">> {
+function buildChest(game: Game): StoringPiece {
   const blueprint = placeChest(game);
   onlyPlayer(game).backpack.contents.plank = CHEST_PLANK_COST;
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-  stepUntil(game, () => game.entities.with("chest").size > 0);
-  const chest = game.entities.with("chest", "position").first;
+  stepUntil(game, () => piecesOf(game.entities, "chest").length > 0);
+  const chest = storingPiecesOf(game.entities, "chest")[0];
   if (chest === undefined) throw new Error("No chest");
   return chest;
 }
@@ -193,7 +194,7 @@ function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "posit
  */
 function loadAsOlderSave(game: Game, setUp: (game: Game) => unknown): Game {
   setUp(game);
-  const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+  const save = withOldFurnitureParts(JSON.parse(JSON.stringify(writeSave(game))) as SaveFile);
   save.version = PLANK_CHESTS_SAVE_VERSION - 1;
   const loaded = readSave(save);
   if (!loaded.ok) throw new Error("The save did not load");

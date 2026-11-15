@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { nearbyOf, type BackpackContent, type Command, type StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, SAVE_VERSION, SHELVES_SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave } from "./save";
-import { SHELF_BUILD_SECONDS } from "./structures";
-import { finishReach } from "./test-steps";
+import { readSave, SAVE_VERSION, SHELVES_SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { SHELF_BUILD_SECONDS } from "./furniture/shelf";
+import { finishReach, piecesOf, storingPiecesOf, withOldFurnitureParts } from "./test-steps";
 import { isWalkable } from "./walk-map";
 
 describe("the shelf in the build menu", () => {
@@ -76,7 +76,8 @@ describe("where a shelf cannot go", () => {
     expect(game.client.checkPlacement("chest", { x: square.x + 2.5, z: square.z }, 0).allowed).toBe(false);
 
     buildFully(game, shelf);
-    expect(shelf.shelf).toEqual({ contents: {} });
+    expect(shelf.furniture).toBe("shelf");
+    expect(shelf.storage).toEqual({ contents: {} });
     for (const structure of ["shelf", "chest", "sled"] as const) {
       expect(game.client.checkPlacement(structure, { x: square.x + 2.5, z: square.z }, 0).allowed).toBe(false);
     }
@@ -100,8 +101,9 @@ describe("building a shelf", () => {
     runSeconds(game, SHELF_BUILD_SECONDS + 5);
 
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.shelf).toEqual({ contents: {} });
-    expect(blueprint.chest).toBeUndefined();
+    expect(blueprint.furniture).toBe("shelf");
+    expect(blueprint.storage).toEqual({ contents: {} });
+    expect(blueprint.furniture).not.toBe("chest");
     expect(backpack.plank).toBe(2);
   });
 
@@ -120,7 +122,8 @@ describe("building a shelf", () => {
     backpack.plank = 2;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, SHELF_BUILD_SECONDS + 5);
-    expect(blueprint.shelf).toEqual({ contents: {} });
+    expect(blueprint.furniture).toBe("shelf");
+    expect(blueprint.storage).toEqual({ contents: {} });
     expect(backpack.plank).toBe(1);
   });
 
@@ -132,7 +135,9 @@ describe("building a shelf", () => {
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, SHELF_BUILD_SECONDS + 5);
 
-    expect(blueprint.shelf).toEqual({ contents: {} });
+    expect(blueprint.furniture).toBe("shelf");
+
+    expect(blueprint.storage).toEqual({ contents: {} });
     expect(onlyPlayer(game).backpack.contents.plank).toBe(3);
   });
 });
@@ -148,7 +153,7 @@ describe("a finished shelf", () => {
       buildFully(game, onlyBlueprint(game));
     }
 
-    for (const shelf of game.entities.with("shelf", "position")) {
+    for (const shelf of storingPiecesOf(game.entities, "shelf")) {
       for (const [dx, dz] of [
         [0, 0],
         [0.4, 0.15],
@@ -183,10 +188,10 @@ describe("opening a shelf", () => {
     send(game, { type: "putInChest", chestId: idOf(game, shelf), content: "stick", all: true });
     send(game, { type: "putInChest", chestId: idOf(game, shelf), content: "axe", all: false });
     send(game, { type: "putInChest", chestId: idOf(game, shelf), content: "berries", all: false });
-    expect(shelf.shelf?.contents).toEqual({ stick: 3, axe: 1, berries: 1 });
+    expect(shelf.storage?.contents).toEqual({ stick: 3, axe: 1, berries: 1 });
 
     send(game, { type: "takeFromChest", chestId: idOf(game, shelf), content: "stick", all: false });
-    expect(shelf.shelf?.contents).toEqual({ stick: 2, axe: 1, berries: 1 });
+    expect(shelf.storage?.contents).toEqual({ stick: 2, axe: 1, berries: 1 });
     expect(game.client.getView().backpack.stick).toBe(1);
   });
 });
@@ -207,15 +212,15 @@ describe("the shelf's weight limit", () => {
   it("refuses even one more once full, and tells the player the shelf is full", () => {
     const game = createGame({ seed: 42 });
     const shelf = buildShelf(game);
-    if (shelf.shelf === undefined) throw new Error("No shelf");
-    shelf.shelf.contents.firewood = 20;
+    if (shelf.storage === undefined) throw new Error("No shelf");
+    shelf.storage.contents.firewood = 20;
     give(game, "stick", 1);
     open(game, shelf);
 
     send(game, { type: "putInChest", chestId: idOf(game, shelf), content: "stick", all: false });
 
     expect(game.client.getView().backpack.stick).toBe(1);
-    expect(shelf.shelf.contents).toEqual({ firewood: 20 });
+    expect(shelf.storage.contents).toEqual({ firewood: 20 });
     expect(game.client.getView().notice?.kind).toBe("shelfFull");
   });
 
@@ -228,7 +233,7 @@ describe("the shelf's weight limit", () => {
       send(game, { type: "putInChest", chestId: idOf(game, shelf), content: log as BackpackContent, all: true });
     }
 
-    expect(shelf.shelf?.contents).toEqual({});
+    expect(shelf.storage?.contents).toEqual({});
   });
 });
 
@@ -247,15 +252,15 @@ describe("taking down a shelf", () => {
   it("is refused while the shelf holds anything, and the player is told to empty it first", () => {
     const game = createGame({ seed: 42 });
     const shelf = buildShelf(game);
-    if (shelf.shelf === undefined) throw new Error("No shelf");
-    shelf.shelf.contents.knife = 1;
+    if (shelf.storage === undefined) throw new Error("No shelf");
+    shelf.storage.contents.knife = 1;
 
     send(game, { type: "takeDown", pieceId: idOf(game, shelf) });
     expect(game.client.getView().notice?.kind).toBe("stillHoldsSomething");
     runSeconds(game, SHELF_BUILD_SECONDS);
 
     expect(game.entities.has(shelf)).toBe(true);
-    expect(shelf.shelf.contents).toEqual({ knife: 1 });
+    expect(shelf.storage.contents).toEqual({ knife: 1 });
   });
 
   it("removes a shelf blueprint at once and gives back every plank it took, spent or not", () => {
@@ -311,17 +316,17 @@ describe("saving shelves", () => {
     send(game, place("shelf", square.x, square.z, 1));
     const shelf = onlyBlueprint(game);
     buildFully(game, shelf);
-    if (shelf.shelf === undefined) throw new Error("No shelf");
-    shelf.shelf.contents = { stick: 4, pot: 1 };
+    if (shelf.storage === undefined) throw new Error("No shelf");
+    shelf.storage.contents = { stick: 4, pot: 1 };
     send(game, place("shelf", square.x + 1.5, square.z, 3));
     onlyBlueprint(game).blueprint = { structure: "shelf", progress: 0.25, materialsSpent: 1, delivered: { plank: 2 } };
 
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    const shelves = loaded.game.entities.with("shelf", "position").entities;
-    expect(shelves.map(({ position, facing, shelf }) => ({ x: position.x, z: position.z, facing, shelf }))).toEqual([
-      { x: square.x, z: square.z, facing: { turns: 1 }, shelf: { contents: { stick: 4, pot: 1 } } },
+    const shelves = storingPiecesOf(loaded.game.entities, "shelf");
+    expect(shelves.map(({ position, facing, storage }) => ({ x: position.x, z: position.z, facing, storage }))).toEqual([
+      { x: square.x, z: square.z, facing: { turns: 1 }, storage: { contents: { stick: 4, pot: 1 } } },
     ]);
     expect(onlyBlueprint(loaded.game)).toMatchObject({
       blueprint: { structure: "shelf", progress: 0.25, materialsSpent: 1, delivered: { plank: 2 } },
@@ -333,19 +338,19 @@ describe("saving shelves", () => {
   it("loads a save from before shelves", () => {
     const game = createGame({ seed: 42 });
     buildChestNearPlayer(game);
-    const save = JSON.parse(JSON.stringify({ ...writeSave(game), version: SHELVES_SAVE_VERSION - 1 })) as unknown;
+    const save = withOldFurnitureParts(JSON.parse(JSON.stringify({ ...writeSave(game), version: SHELVES_SAVE_VERSION - 1 })) as SaveFile);
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The older save did not load");
-    expect(loaded.game.entities.with("chest").size).toBe(1);
-    expect(loaded.game.entities.with("shelf").size).toBe(0);
+    expect(piecesOf(loaded.game.entities, "chest").length).toBe(1);
+    expect(piecesOf(loaded.game.entities, "shelf").length).toBe(0);
   });
 
   it("turns away a save whose shelf holds a log", () => {
     const game = createGame({ seed: 42 });
     buildShelf(game);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { entities: { components: Record<string, unknown> }[] };
-    for (const { components } of save.entities) if (components.shelf !== undefined) components.shelf = { contents: { log: 1 } };
+    for (const { components } of save.entities) if (components.storage !== undefined) components.storage = { contents: { log: 1 } };
 
     expect(readSave(save).ok).toBe(false);
   });

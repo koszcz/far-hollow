@@ -3,8 +3,9 @@ import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, SHELVES_SAVE_VERSION, writeSave } from "./save";
-import { BED_BUILD_SECONDS, BED_PLANK_COST } from "./structures";
+import { BED_BUILD_SECONDS, BED_PLANK_COST } from "./furniture/bed";
 import { isWalkable } from "./walk-map";
+import { piecesOf } from "./test-steps";
 
 describe("the bed in the build menu", () => {
   it("lists the bed as furniture, with its cost of 8 planks and no tool", () => {
@@ -75,7 +76,7 @@ describe("where a bed cannot go", () => {
 
     send(game, place("bed", square.x + 2, square.z, 0));
     buildFully(game, blueprintOf(game, "bed"));
-    expect(game.entities.with("bed").size).toBe(1);
+    expect(piecesOf(game.entities, "bed").length).toBe(1);
     for (const structure of ["bed", "chest", "sled"] as const) {
       expect(game.client.checkPlacement(structure, { x: square.x + 2.2, z: square.z + 0.5 }, 0).allowed).toBe(false);
     }
@@ -111,7 +112,7 @@ describe("building a bed", () => {
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, BED_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.bed).toBe(true);
+    expect(blueprint.furniture).toBe("bed");
     expect(backpack.plank).toBe(3);
   });
 
@@ -123,7 +124,7 @@ describe("building a bed", () => {
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, BED_BUILD_SECONDS + 5);
 
-    expect(blueprint.bed).toBe(true);
+    expect(blueprint.furniture).toBe("bed");
     expect(onlyPlayer(game).backpack.contents.plank).toBe(3);
   });
 });
@@ -220,7 +221,7 @@ describe("sleeping in a bed", () => {
     expect(onlyPlayer(game).respawnPoint).toEqual(bedAt);
 
     send(game, { type: "takeDown", pieceId: idOf(game, bed) });
-    stepUntil(game, () => game.entities.with("bed").size === 0);
+    stepUntil(game, () => piecesOf(game.entities, "bed").length === 0);
     expect(onlyPlayer(game).respawnPoint).toEqual(bedAt);
   });
 
@@ -270,7 +271,7 @@ describe("saving beds", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    const beds = loaded.game.entities.with("bed", "position").entities;
+    const beds = piecesOf(loaded.game.entities, "bed");
     expect(beds.map(({ position, facing }) => ({ x: position.x, z: position.z, facing }))).toEqual([{ x: square.x, z: square.z, facing: { turns: 1 } }]);
     expect(isWalkable(loaded.game.walkMap, { x: square.x, z: square.z })).toBe(false);
     const blueprint = blueprintOf(loaded.game, "bed");
@@ -307,7 +308,7 @@ describe("taking down a bed", () => {
     backpack.plank = 0;
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
-    stepUntil(game, () => game.entities.with("bed").size === 0);
+    stepUntil(game, () => piecesOf(game.entities, "bed").length === 0);
 
     // The backpack holds the tools too, so the planks that do not fit drop in a pile.
     const piled = game.entities.with("pile").entities.reduce((sum, { pile }) => sum + (pile.content === "plank" ? pile.count : 0), 0);

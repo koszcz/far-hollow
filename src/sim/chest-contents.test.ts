@@ -5,7 +5,7 @@ import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
 import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
-import { finishReach } from "./test-steps";
+import { finishReach, piecesOf, storingPiecesOf, withOldFurnitureParts, type StoringPiece } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -63,7 +63,7 @@ describe("opening a chest", () => {
 
     send(game, { type: "putInChest", chestId: idOf(game, chest), content: "stick", all: true });
 
-    expect(chest.chest.contents).toEqual({});
+    expect(chest.storage.contents).toEqual({});
     expect(game.client.getView().backpack.stick).toBe(2);
   });
 });
@@ -115,7 +115,7 @@ describe("moving all of a kind", () => {
   it("takes as many of a kind as fit in the backpack, and leaves the rest in the chest", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
-    chest.chest.contents.firewood = 30;
+    chest.storage.contents.firewood = 30;
     open(game, chest);
     // The starting backpack weighs 5.5 kg, so 9 pieces of firewood at 1.5 kg fill it to 19 kg of its 20. A tenth does not fit.
     expect(game.client.getView().backpackWeight).toBeCloseTo(5.5, 5);
@@ -143,7 +143,7 @@ describe("the chest's weight limit", () => {
   it("refuses even one more once full, and tells the player", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
-    chest.chest.contents.firewood = 40;
+    chest.storage.contents.firewood = 40;
     give(game, "stick", 1);
     open(game, chest);
 
@@ -157,7 +157,7 @@ describe("the chest's weight limit", () => {
   it("tells the player when the backpack has no room for what they take", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
-    chest.chest.contents.firewood = 1;
+    chest.storage.contents.firewood = 1;
     give(game, "stick", 30);
     open(game, chest);
 
@@ -192,7 +192,7 @@ describe("saving what a chest holds", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    expect(loaded.game.entities.with("chest").entities.map(({ chest: { contents } }) => contents)).toEqual([{ stick: 4, pot: 1 }]);
+    expect(storingPiecesOf(loaded.game.entities, "chest").map(({ storage: { contents } }) => contents)).toEqual([{ stick: 4, pot: 1 }]);
   });
 
   it("upgrades a chest saved before chests held anything to an empty chest", () => {
@@ -200,6 +200,7 @@ describe("saving what a chest holds", () => {
     buildChest(game);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Record<string, unknown> }[] };
     // How a version 12 save stored a finished chest.
+    withOldFurnitureParts(save);
     for (const { components } of save.entities) if ("chest" in components) components.chest = {};
     save.version = 12;
 
@@ -207,21 +208,21 @@ describe("saving what a chest holds", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(SAVE_VERSION).toBeGreaterThan(12);
-    expect(loaded.game.entities.with("chest").entities.map(({ chest }) => chest)).toEqual([{ contents: {} }]);
+    expect(storingPiecesOf(loaded.game.entities, "chest").map(({ storage }) => storage)).toEqual([{ contents: {} }]);
   });
 
   it("turns away a save whose chest holds a log", () => {
     const game = createGame({ seed: 42 });
     buildChest(game);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { entities: { components: Record<string, unknown> }[] };
-    for (const { components } of save.entities) if ("chest" in components) components.chest = { contents: { log: 1 } };
+    for (const { components } of save.entities) if ("storage" in components) components.storage = { contents: { log: 1 } };
 
     expect(readSave(save).ok).toBe(false);
   });
 });
 
 /** Places a chest near the player and builds it, as the player would. */
-function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "position">> {
+function buildChest(game: Game): StoringPiece {
   const square = openSquareNearPlayer(game);
   send(game, { type: "placeBlueprint", structure: "chest", turns: 0, x: square.x, z: square.z });
   const blueprint = game.entities.with("blueprint", "position").first;
@@ -230,8 +231,8 @@ function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "posit
   const contents = onlyPlayer(game).backpack.contents;
   contents.plank = (contents.plank ?? 0) + (game.client.describeBlueprint(idOf(game, blueprint))?.deliveries[0]?.needs ?? 0);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-  stepUntil(game, () => game.entities.with("chest").size > 0);
-  const chest = game.entities.with("chest", "position").first;
+  stepUntil(game, () => piecesOf(game.entities, "chest").length > 0);
+  const chest = storingPiecesOf(game.entities, "chest")[0];
   if (chest === undefined) throw new Error("No chest");
   return chest;
 }

@@ -16,7 +16,7 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
-import type { BuildMaterial, KeptMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
+import type { BuildMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
 export type {
@@ -30,6 +30,9 @@ export type {
   StructureKind,
   WorkStationKind,
 } from "./structures";
+
+import { FURNITURE } from "./furniture";
+import { FURNITURE_KINDS } from "./structure-kind";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -283,7 +286,7 @@ export interface SleepView {
  * `chestFull`: the open chest had no room for what the player tried to put in it.
  * `shelfFull`: the open shelf had no room for what the player tried to put in it.
  * `holdsUpPiece`: the player tried to take down a piece that another piece stands on.
- * `stillHoldsSomething`: the player tried to take down a chest, shelf, or woodpile that still holds something, or a campfire with a pot or fish on it.
+ * `stillHoldsSomething`: the player tried to take down a piece of furniture or a woodpile that still holds something, or a campfire with a pot or fish on it.
  * `saveBroken`: the saved game could not be loaded, so a new game started.
  * `putLogDownFirst`: the player tried to craft while carrying a log.
  * `letGoFirst`: the player tried to shoulder a log, gather, chop, build, or craft while dragging a sled.
@@ -360,6 +363,12 @@ export interface BuildMenuEntry {
   /** How its blueprint follows the mouse while the player places it. Furniture goes "anywhere", off the building grid. */
   readonly placement: Placement;
 }
+
+/** The build menu's furniture rows, in order, from each piece's definition. The HUD showcase shows the full build menu with them. */
+export const FURNITURE_BUILD_MENU: readonly BuildMenuEntry[] = FURNITURE_KINDS.map((kind) => {
+  const { cost, tool } = FURNITURE[kind];
+  return { structure: kind, cost, ...(tool === undefined ? {} : { tool }), placement: "anywhere" };
+});
 
 /** One recipe in the craft menu: the recipe, with everything the player lacks to follow it now. */
 export type CraftMenuEntry = Recipe & {
@@ -514,23 +523,7 @@ export function needsFreeHands(command: Command): boolean {
 export type ThingInReach =
   | {
       readonly kind:
-        | "tree"
-        | "log"
-        | "debarkedLog"
-        | "stick"
-        | "bark"
-        | "forage"
-        | "blueprint"
-        | "campfire"
-        | "woodpile"
-        | "chest"
-        | "shelf"
-        | "bed"
-        | "table"
-        | "stool"
-        | "bedroll"
-        | "pile"
-        | "sled";
+        "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | FurnitureKind | "bedroll" | "pile" | "sled";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };

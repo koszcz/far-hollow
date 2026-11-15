@@ -51,6 +51,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addBeds,
   addTables,
   addStools,
+  putFurnitureInOnePart,
 ];
 
 /** The version of the save format this code writes. */
@@ -78,10 +79,11 @@ export const NOTICES_NAME_STATION_SAVE_VERSION = SAVE_UPGRADES.indexOf(nameStati
 export const SMALL_VALLEY_SAVE_VERSION = SAVE_UPGRADES.indexOf(turnAwayLargeValley) + 2;
 
 /**
- * Every upgrade before the valley shrank. A save from the 1 km valley can no longer be loaded, but tests still load older
- * saves through these, to check what each older upgrade does.
+ * Every upgrade before the valley shrank, then the upgrade that puts furniture in one part. A save from the 1 km valley can no
+ * longer be loaded, but tests still load older saves through these, to check what each older upgrade does.
+ * The last upgrade gives any furniture in such a save the form the save check expects now.
  */
-export const LARGE_VALLEY_UPGRADES: readonly SaveUpgrade[] = SAVE_UPGRADES.slice(0, SMALL_VALLEY_SAVE_VERSION - 2);
+export const LARGE_VALLEY_UPGRADES: readonly SaveUpgrade[] = [...SAVE_UPGRADES.slice(0, SMALL_VALLEY_SAVE_VERSION - 2), putFurnitureInOnePart];
 
 /** The first save version in which every roof section is laid on a roof frame. */
 export const ROOF_FRAMES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRoofFrames) + 2;
@@ -105,6 +107,8 @@ export const BEDS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addBeds) + 2;
 export const TABLES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTables) + 2;
 /** The first save version that can hold stools. */
 export const STOOLS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStools) + 2;
+/** The first save version in which one `furniture` part marks every finished piece of furniture. */
+export const FURNITURE_PART_SAVE_VERSION = SAVE_UPGRADES.indexOf(putFurnitureInOnePart) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -265,7 +269,7 @@ function faceRoofsForward(save: Readonly<Record<string, unknown>>): Record<strin
 
 /**
  * For a version that added something older saves never hold, such as a new kind of structure. The save carries over unchanged.
- * Versions 10, 11, 12, 17, 19, 23, 26, and 29 did this. New kinds no longer need a version of their own.
+ * Versions 10, 11, 12, 17, 19, 23, 26, 29, 30, 31, and 32 did this. New kinds no longer need a version of their own.
  */
 function nothingToUpgrade(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save };
@@ -512,7 +516,7 @@ function cookFishOnCampfires(save: Readonly<Record<string, unknown>>): Record<st
 function payChestsInPlanks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
   const entities: unknown[] = save.entities.map((entity: unknown) => {
-    const components = (entity as { components?: Entity } | null)?.components;
+    const components = (entity as { components?: Entity & { chest?: unknown } } | null)?.components;
     const blueprint = components?.blueprint;
     if (components?.chest !== undefined || blueprint?.structure === "chest") {
       return { ...(entity as object), components: { ...components, builtCost: [{ material: "debarkedLog", count: 2 }] } };
@@ -553,4 +557,25 @@ function addTables(save: Readonly<Record<string, unknown>>): Record<string, unkn
 /** Version 31 to 32: the player can build stools. A save from before then has none, so it carries over unchanged. */
 function addStools(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 32 to 33: one `furniture` part, holding the piece's name, marks every finished piece of furniture, in place of a part
+ * for each piece. What a chest or shelf holds moves to a shared `storage` part. Blueprints and `builtCost` already name the
+ * structure, so they carry over unchanged. A later piece of furniture needs no upgrade of its own.
+ */
+function putFurnitureInOnePart(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const MARKED_PIECES = ["bed", "table", "stool"];
+  const STORING_PIECES = ["chest", "shelf"];
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components === undefined || components === null) return entity;
+    const piece = [...MARKED_PIECES, ...STORING_PIECES].find((name) => components[name] !== undefined);
+    if (piece === undefined) return entity;
+    const { [piece]: oldPart, ...others } = components;
+    const storage = STORING_PIECES.includes(piece) ? { storage: { contents: (oldPart as { contents?: unknown } | null)?.contents } } : {};
+    return { ...(entity as object), components: { ...others, furniture: piece, ...storage } };
+  });
+  return { ...save, entities };
 }

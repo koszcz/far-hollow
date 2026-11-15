@@ -6,8 +6,8 @@
 // Its head faces -z when it faces the default way, as a bedroll's does, so the sleep animation lies the player along it.
 // The model is built in four stages, each taking a quarter of construction: the frame, the slats, the head and foot boards,
 // then the bedding. plank-furniture-meshes.ts draws the stages.
-import { bedEntities, type EntityStore } from "../sim/entities";
-import { BED_LENGTH_METRES, BED_WIDTH_METRES } from "../sim/structures";
+import type { EntityStore } from "../sim/entities";
+import { BED_LENGTH_METRES, BED_WIDTH_METRES } from "../sim/furniture/bed";
 import { createFurnitureMeshes, type FurnitureMeshes, type FurniturePart } from "./plank-furniture-meshes";
 
 /** How many stages the bed model is built in: the frame, the slats, the head and foot boards, then the bedding. */
@@ -144,6 +144,5 @@ export function createBedMeshes(entities: EntityStore): FurnitureMeshes {
     structure: "bed",
     stages: [frame, slats, boards, bedding],
     pickBox: { size: [width, top, length], at: [0, top / 2, 0] },
-    finished: bedEntities,
   });
 }

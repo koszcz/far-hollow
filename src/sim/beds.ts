@@ -9,7 +9,7 @@ import type { Walking } from "./walking";
 export const BED_REACH_METRES = 1;
 
 /** A finished bed, standing somewhere. */
-export type BedEntity = Entity & Required<Pick<Entity, "bed" | "position">>;
+export type BedEntity = Entity & Required<Pick<Entity, "furniture" | "position">>;
 
 /** Going to sleep in beds. */
 export interface Beds {
@@ -29,7 +29,10 @@ export function createBeds(entities: EntityStore, walking: Walking): Beds {
   const players = playerEntities(entities);
   const walkers = entities.with("bedTask", "position");
 
-  const bedById = (bedId: number): BedEntity | undefined => entityWith(entities, bedId, "bed", "position");
+  const bedById = (bedId: number): BedEntity | undefined => {
+    const bed = entityWith(entities, bedId, "furniture", "position");
+    return bed?.furniture === "bed" ? bed : undefined;
+  };
   const withinReach = (bed: BedEntity, at: GroundPoint) => distanceOutside(footprintOfEntity(bed), at) <= BED_REACH_METRES;
 
   return {

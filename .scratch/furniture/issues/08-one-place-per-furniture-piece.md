@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** none. The ticket moves code and adds no asset. If a file named in an asset's `code` field moves, update that field.
 
@@ -88,8 +88,8 @@ Comments describe the shared rule. They do not list the pieces that use it. For 
 
 ## Done when
 
-- [ ] Saves from before this ticket load and keep every piece of furniture and everything in each chest and shelf. The save upgrade above turns the old parts into the new form.
-- [ ] Shared code names no single furniture piece. The exceptions are `FURNITURE_KINDS`, each layer's furniture record, `src/strings.ts`, the save upgrades, and each piece's own commands and views in `api.ts`.
-- [ ] A short note in `src/sim/furniture.ts` lists the files a new piece adds and each record it adds a line to.
-- [ ] The existing furniture tests and e2e tests pass without changes to what they check. Only the test code that reads a chest's or shelf's contents changes, from `shelf.shelf.contents` to `shelf.storage.contents`.
-- [ ] `make check` passes.
+- [x] Saves from before this ticket load and keep every piece of furniture and everything in each chest and shelf. The save upgrade above turns the old parts into the new form.
+- [x] Shared code names no single furniture piece. The exceptions are `FURNITURE_KINDS`, each layer's furniture record, `src/strings.ts`, the save upgrades, and each piece's own commands and views in `api.ts`.
+- [x] A short note in `src/sim/furniture.ts` lists the files a new piece adds and each record it adds a line to.
+- [x] The existing furniture tests and e2e tests pass without changes to what they check. Only the test code that reads a chest's or shelf's contents changes, from `shelf.shelf.contents` to `shelf.storage.contents`.
+- [x] `make check` passes.

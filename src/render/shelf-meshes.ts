@@ -5,8 +5,8 @@
 // It does not show what it holds. Its front faces +z when it faces the default way.
 // The model is built in three stages, each taking a third of construction: the posts with the lowest board,
 // then the middle board and the top, then the back. plank-furniture-meshes.ts draws the stages.
-import { shelfEntities, type EntityStore } from "../sim/entities";
-import { SHELF_DEPTH_METRES, SHELF_WIDTH_METRES } from "../sim/structures";
+import type { EntityStore } from "../sim/entities";
+import { SHELF_DEPTH_METRES, SHELF_WIDTH_METRES } from "../sim/furniture/shelf";
 import { createFurnitureMeshes, type FurnitureMeshes, type FurniturePart } from "./plank-furniture-meshes";
 
 /** How many stages the shelf model is built in: the posts with the lowest board, the middle board and the top, then the back. */
@@ -97,6 +97,5 @@ export function createShelfMeshes(entities: EntityStore): FurnitureMeshes {
       [...backPlanks, brace],
     ],
     pickBox: { size: [width + 2 * TOP_OVERHANG_METRES, HEIGHT_METRES, depth + TOP_FRONT_OVERHANG_METRES], at: [0, HEIGHT_METRES / 2, 0] },
-    finished: shelfEntities,
   });
 }

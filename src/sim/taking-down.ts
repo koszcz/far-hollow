@@ -9,11 +9,7 @@ import {
   blueprintEntities,
   cabinRoofEntities,
   campfireEntities,
-  bedEntities,
-  tableEntities,
-  chestEntities,
-  shelfEntities,
-  stoolEntities,
+  furnitureEntities,
   leanToEntities,
   lyingThings,
   playerEntities,
@@ -61,7 +57,7 @@ type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
 /**
  * Why the player could not take a structure down.
- * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a chest, shelf, or woodpile that still holds something, or a campfire with a pot or fish on it.
+ * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a piece of furniture or woodpile that still holds something, or a campfire with a pot or fish on it.
  */
 export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
 
@@ -69,7 +65,7 @@ export interface TakingDown {
   /**
    * Sets the player walking to a blueprint or finished structure to take it down.
    * Does nothing if the entity is not one the player can take down. Returns a refusal if another structure stands on it,
-   * or if it is a chest, shelf, or woodpile that still holds something, or a campfire with a pot or fish on it.
+   * or if it is a piece of furniture or woodpile that still holds something, or a campfire with a pot or fish on it.
    */
   start(structureId: number): TakeDownRefusal | undefined;
   /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
@@ -224,7 +220,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
  * Whether another structure stands on this one, so it cannot come down yet.
- * A log wall, door frame, campfire, roof frame, roof section, lean-to, chest, shelf, bed, table, or stool, finished or as a blueprint, stands on the foundation under it.
+ * A log wall, door frame, campfire, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
@@ -246,24 +242,20 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
 }
 
 /**
- * Whether a structure is a chest, shelf, or woodpile with anything in it, or a campfire with a pot or fish on it.
+ * Whether a structure is a piece of furniture or woodpile with anything in it, or a campfire with a pot or fish on it.
  * It must be emptied before it comes down, so nothing in it is lost.
  * A loaded sled can come down: its logs are laid on the ground beside it first.
  */
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined) return true;
-  const counts = [
-    ...Object.values(structure.chest?.contents ?? {}),
-    ...Object.values(structure.shelf?.contents ?? {}),
-    ...Object.values(structure.woodpile ?? {}),
-  ];
+  const counts = [...Object.values(structure.storage?.contents ?? {}), ...Object.values(structure.woodpile ?? {})];
   return counts.some((count) => count > 0);
 }
 
 /**
  * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
  * a log wall or door frame on one of its edges, a campfire whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
- * over any of it. A structure placed freely, such as a chest, stands on every foundation its base reaches over.
+ * over any of it. A structure placed freely, such as a piece of furniture, stands on every foundation its base reaches over.
  */
 function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(square, side)))) return true;
@@ -273,11 +265,7 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
     ...leanToEntities(entities),
     ...roofFrameEntities(entities),
     ...cabinRoofEntities(entities),
-    ...chestEntities(entities),
-    ...shelfEntities(entities),
-    ...bedEntities(entities),
-    ...tableEntities(entities),
-    ...stoolEntities(entities),
+    ...furnitureEntities(entities),
     ...blueprintEntities(entities),
   ];
   return others.some((other) => {

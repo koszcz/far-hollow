@@ -1,5 +1,6 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
+// A piece of furniture comes from its definition in furniture.ts instead. freelyPlaced turns it into a structure.
 import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
@@ -22,6 +23,7 @@ import {
   type Vec3,
 } from "./entities";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
+import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
@@ -31,7 +33,9 @@ import {
   turnedRect,
   turnOffset,
   type DeliveredMaterial,
+  FURNITURE_KINDS,
   type EdgePieceKind,
+  type FurnitureKind,
   type GroundRect,
   type KeptMaterial,
   type Placement,
@@ -73,21 +77,7 @@ export interface PlacementSite {
 }
 
 /** The components that mark a finished structure. */
-export type FinishedMarker =
-  | "campfire"
-  | "leanTo"
-  | "foundation"
-  | "edgePiece"
-  | "roofFrame"
-  | "cabinRoof"
-  | "woodpile"
-  | "chest"
-  | "shelf"
-  | "bed"
-  | "table"
-  | "stool"
-  | "workStation"
-  | "sled";
+export type FinishedMarker = "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "furniture" | "workStation" | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -422,78 +412,6 @@ const woodpile: StructureDefinition & { readonly kind: "woodpile" } = {
   finish: () => ({ woodpile: { log: 0, debarkedLog: 0, firewood: 0 }, blocksWalking: { radius: WOODPILE_WALK_BLOCK_RADIUS_METRES } }),
 };
 
-/** How many planks a chest costs. Construction spends one at the start of each stage. */
-export const CHEST_PLANK_COST = 4;
-/** How long the player holds the build action to build a chest, in seconds. */
-export const CHEST_BUILD_SECONDS = 8;
-/** A chest is this wide, along its front, in metres. */
-export const CHEST_WIDTH_METRES = 0.9;
-/** A chest is this deep, from front to back, in metres. */
-export const CHEST_DEPTH_METRES = 0.55;
-/**
- * A finished chest stops the player walking within this many metres of its centre.
- * It is placed freely, so this reaches the centre of every 1 m walk-map cell it covers, even where four cells meet.
- */
-export const CHEST_WALK_BLOCK_RADIUS_METRES = 0.71;
-
-/**
- * A chest: the first piece of furniture. It is placed freely, wherever the mouse points, and R turns it.
- * It stands on the ground, or on the deck of a foundation inside a building, but never half on and half off one.
- */
-const chest: StructureDefinition & { readonly kind: "chest" } = {
-  kind: "chest",
-  placement: "anywhere",
-  finishedAs: "chest",
-  cost: [{ material: "plank", count: CHEST_PLANK_COST }],
-  tool: "axe",
-  buildSeconds: CHEST_BUILD_SECONDS,
-  footprint: (spot, turns) => turnedRect(spot, CHEST_WIDTH_METRES / 2, CHEST_DEPTH_METRES / 2, turns),
-  snap: (_site, at) => ({ x: at.x, z: at.z }),
-  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
-  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, CHEST_WIDTH_METRES / 2, CHEST_DEPTH_METRES / 2),
-  finish: () => ({ chest: { contents: {} }, blocksWalking: { radius: CHEST_WALK_BLOCK_RADIUS_METRES } }),
-};
-
-/** How many planks a shelf costs. Construction spends one at the start of each stage. */
-export const SHELF_PLANK_COST = 4;
-/** How long the player holds the build action to build a shelf, in seconds. */
-export const SHELF_BUILD_SECONDS = 8;
-/** A shelf is this wide, along its front, in metres. */
-export const SHELF_WIDTH_METRES = 0.9;
-/** A shelf is this deep, from front to back, in metres. */
-export const SHELF_DEPTH_METRES = 0.4;
-/**
- * A finished shelf stops the player walking within this many metres of its centre.
- * Like a chest, it is placed freely, so this reaches the centre of every 1 m walk-map cell it covers, even where four cells meet.
- */
-export const SHELF_WALK_BLOCK_RADIUS_METRES = 0.71;
-
-/**
- * A shelf: standing furniture that holds small materials, tools, and food, like a chest, but less of them.
- * It is placed freely, wherever the mouse points, and R turns it. It stands on the ground or on a foundation's deck.
- * Building it needs no tool.
- */
-const shelf: StructureDefinition & { readonly kind: "shelf" } = {
-  kind: "shelf",
-  placement: "anywhere",
-  finishedAs: "shelf",
-  cost: [{ material: "plank", count: SHELF_PLANK_COST }],
-  buildSeconds: SHELF_BUILD_SECONDS,
-  footprint: (spot, turns) => turnedRect(spot, SHELF_WIDTH_METRES / 2, SHELF_DEPTH_METRES / 2, turns),
-  snap: (_site, at) => ({ x: at.x, z: at.z }),
-  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
-  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, SHELF_WIDTH_METRES / 2, SHELF_DEPTH_METRES / 2),
-  finish: () => ({ shelf: { contents: {} }, blocksWalking: { radius: SHELF_WALK_BLOCK_RADIUS_METRES } }),
-};
-
-/** How many planks a bed costs. Construction spends one at the start of each stage. */
-export const BED_PLANK_COST = 8;
-/** How long the player holds the build action to build a bed, in seconds. */
-export const BED_BUILD_SECONDS = 12;
-/** A bed is this wide, across its mattress, in metres. */
-export const BED_WIDTH_METRES = 1;
-/** A bed is this long, from head to foot, in metres. Its length runs along z when it faces the default way. */
-export const BED_LENGTH_METRES = 2;
 /**
  * A small gap, in metres. Some checks on a structure placed freely look this far inside its edges.
  * Then an edge that lies on the line between two squares does not count as over the square beyond.
@@ -501,85 +419,39 @@ export const BED_LENGTH_METRES = 2;
 const EDGE_INSET_METRES = 0.01;
 
 /**
- * A bed: furniture the player sleeps in. It is placed freely, wherever the mouse points, and R turns it.
- * Like a chest, it stands on the ground or on a foundation's deck, never half on and half off one. Building it needs no tool.
- * A finished bed stops the player walking on every walk-map cell it reaches over.
+ * Turns a piece of furniture into a structure for the build menu. Every piece is placed freely, wherever the mouse points,
+ * and R turns it. It stands on the ground or on a foundation's deck, never half on and half off one.
  */
-const bed: StructureDefinition & { readonly kind: "bed" } = {
-  kind: "bed",
-  placement: "anywhere",
-  finishedAs: "bed",
-  cost: [{ material: "plank", count: BED_PLANK_COST }],
-  buildSeconds: BED_BUILD_SECONDS,
-  footprint: (spot, turns) => turnedRect(spot, BED_WIDTH_METRES / 2, BED_LENGTH_METRES / 2, turns),
-  snap: (_site, at) => ({ x: at.x, z: at.z }),
-  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
-  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, BED_WIDTH_METRES / 2, BED_LENGTH_METRES / 2),
-  // The bed blocks every walk-map cell under it. The spots are at most half a cell apart, so each of those cells holds one.
-  // The spots stay a little inside the bed's edges. Then a cell that only touches the bed's edge stays open.
-  finish: (spot, turns) => ({
-    bed: true,
-    blocksWalkingSpots: spotsAcross(turnedRect(spot, BED_WIDTH_METRES / 2 - EDGE_INSET_METRES, BED_LENGTH_METRES / 2 - EDGE_INSET_METRES, turns)),
-  }),
-};
+export function freelyPlaced<Kind extends FurnitureKind>(piece: FurnitureDefinition<Kind>): StructureDefinition & { readonly kind: Kind } {
+  const halfX = piece.size.x / 2;
+  const halfZ = piece.size.z / 2;
+  const { blocks, storage } = piece;
+  return {
+    kind: piece.kind,
+    placement: "anywhere",
+    finishedAs: "furniture",
+    cost: piece.cost,
+    ...(piece.tool === undefined ? {} : { tool: piece.tool }),
+    buildSeconds: piece.buildSeconds,
+    footprint: (spot, turns) => turnedRect(spot, halfX, halfZ, turns),
+    snap: (_site, at) => ({ x: at.x, z: at.z }),
+    heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
+    canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, halfX, halfZ),
+    finish: (spot, turns) => ({
+      furniture: piece.kind,
+      ...(storage === undefined ? {} : { storage: { contents: {} } }),
+      // A piece that blocks the cells under it blocks every walk-map cell it reaches over. The spots are at most half a cell
+      // apart, so each of those cells holds one. They stay a little inside its edges, so a cell that only touches an edge stays open.
+      ...(blocks === "cellsUnder"
+        ? { blocksWalkingSpots: spotsAcross(turnedRect(spot, halfX - EDGE_INSET_METRES, halfZ - EDGE_INSET_METRES, turns)) }
+        : { blocksWalking: { radius: blocks.radius } }),
+    }),
+  };
+}
 
-/** How many planks a table costs. Construction spends one at the start of each stage. */
-export const TABLE_PLANK_COST = 6;
-/** How long the player holds the build action to build a table, in seconds. */
-export const TABLE_BUILD_SECONDS = 10;
-/** A table is this wide, along its long side, in metres. Its length runs along x when it faces the default way. */
-export const TABLE_WIDTH_METRES = 1.2;
-/** A table is this deep, across its top, in metres. */
-export const TABLE_DEPTH_METRES = 0.8;
-
-/**
- * A table: furniture the player eats beside. Food eaten within reach of a finished table fills more hunger.
- * It is placed freely, wherever the mouse points, and R turns it. Like a chest, it stands on the ground or on a foundation's deck.
- * Building it needs no tool. A finished table stops the player walking on every walk-map cell it reaches over, as a bed does.
- */
-const table: StructureDefinition & { readonly kind: "table" } = {
-  kind: "table",
-  placement: "anywhere",
-  finishedAs: "table",
-  cost: [{ material: "plank", count: TABLE_PLANK_COST }],
-  buildSeconds: TABLE_BUILD_SECONDS,
-  footprint: (spot, turns) => turnedRect(spot, TABLE_WIDTH_METRES / 2, TABLE_DEPTH_METRES / 2, turns),
-  snap: (_site, at) => ({ x: at.x, z: at.z }),
-  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
-  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, TABLE_WIDTH_METRES / 2, TABLE_DEPTH_METRES / 2),
-  finish: (spot, turns) => ({
-    table: true,
-    blocksWalkingSpots: spotsAcross(turnedRect(spot, TABLE_WIDTH_METRES / 2 - EDGE_INSET_METRES, TABLE_DEPTH_METRES / 2 - EDGE_INSET_METRES, turns)),
-  }),
-};
-
-/** How many planks a stool costs: one for its legs and one for its seat. Construction spends one at the start of each stage. */
-export const STOOL_PLANK_COST = 2;
-/** How long the player holds the build action to build a stool, in seconds. */
-export const STOOL_BUILD_SECONDS = 4;
-/** A stool's seat is this wide and this deep, in metres. Its legs splay out to the seat's edges. */
-export const STOOL_SIZE_METRES = 0.4;
-/**
- * A finished stool stops the player walking within this many metres of its centre.
- * Like a chest, it is placed freely, so this reaches the centre of every 1 m walk-map cell it covers, even where four cells meet.
- */
-export const STOOL_WALK_BLOCK_RADIUS_METRES = 0.71;
-
-/**
- * A stool: small furniture the player sits on to rest. It is placed freely, wherever the mouse points, and R turns it.
- * The player sits facing the way it faces. It stands on the ground or on a foundation's deck. Building it needs no tool.
- */
-const stool: StructureDefinition & { readonly kind: "stool" } = {
-  kind: "stool",
-  placement: "anywhere",
-  finishedAs: "stool",
-  cost: [{ material: "plank", count: STOOL_PLANK_COST }],
-  buildSeconds: STOOL_BUILD_SECONDS,
-  footprint: (spot, turns) => turnedRect(spot, STOOL_SIZE_METRES / 2, STOOL_SIZE_METRES / 2, turns),
-  snap: (_site, at) => ({ x: at.x, z: at.z }),
-  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
-  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, STOOL_SIZE_METRES / 2, STOOL_SIZE_METRES / 2),
-  finish: () => ({ stool: true, blocksWalking: { radius: STOOL_WALK_BLOCK_RADIUS_METRES } }),
+/** Each piece of furniture as a structure, by its kind. */
+const FURNITURE_STRUCTURES = Object.fromEntries(FURNITURE_KINDS.map((kind) => [kind, freelyPlaced(FURNITURE[kind])])) as {
+  readonly [Kind in FurnitureKind]: StructureDefinition & { readonly kind: Kind };
 };
 
 /** How many debarked logs a sawhorse costs: one for its legs and one for the beam across them. */
@@ -651,13 +523,13 @@ const sled: StructureDefinition & { readonly kind: "sled" } = {
   finish: () => ({ sled: { log: 0, debarkedLog: 0, plank: 0 } }),
 };
 
-/** A stump this close to a structure placed anywhere, such as a chest or a sled, in metres, is in its way. */
+/** A stump this close to a structure placed anywhere, such as a piece of furniture or a sled, in metres, is in its way. */
 const FREE_STUMP_MARGIN_METRES = 0.3;
 /** A structure placed anywhere is checked for blocked ground at spots across it no further apart than this, in metres. */
 const FREE_CHECK_SPACING_METRES = 0.5;
 
 /**
- * The placement rule for a structure placed anywhere, off the building grid, such as a chest or a sled.
+ * The placement rule for a structure placed anywhere, off the building grid, such as a piece of furniture or a sled.
  * It covers `halfX` by `halfZ` metres either side of `spot`, turned by `turns`.
  * It stands on ground the player can walk on, or on the decks of foundations, but never half on and half off a deck.
  * It keeps clear of stumps, the river, lean-to frames, and every other structure. A cabin roof overhead is not in the way.
@@ -681,7 +553,7 @@ function canPlaceFreely({ entities, walkMap, valley }: PlacementSite, spot: Grou
   // A cabin roof overhead and a foundation underfoot are not in the way. Every other structure is.
   for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
   for (const frame of walkBlockerSpotEntities(entities)) {
-    // A bed or table blocks walking at spots too, but it is furniture, so only the ground it covers is in the way.
+    // Furniture can block walking at spots too, but only the ground it covers is in the way.
     const kind = structureKindOf(frame);
     if (kind !== undefined && isPlacedFreely(kind)) continue;
     for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
@@ -713,11 +585,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   roofFrame,
   roof,
   woodpile,
-  chest,
-  shelf,
-  bed,
-  table,
-  stool,
+  ...FURNITURE_STRUCTURES,
   sawhorse,
   sled,
 };
@@ -782,7 +650,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
 
 /**
  * Whether `rect` keeps clear of standing trees and of every structure: any blueprint, a finished roof, a finished woodpile,
- * a finished wall or door frame, a chest, a sled, or a finished work station such as a sawhorse.
+ * a finished wall or door frame, a piece of furniture, a sled, or a finished work station such as a sawhorse.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  * `ignoreFreelyPlaced` lets it go over furniture and sleds, and their blueprints, as a roof does.
  * `ignoreCabinRoofs` lets it go under a finished cabin roof or roof frame, or a blueprint of either, as furniture does. A lean-to is still in the way.
@@ -835,7 +703,7 @@ function isClearOfFreelyPlaced(entities: EntityStore, rect: GroundRect): boolean
   return placedStructures(entities).every(({ entity, kind }) => !isPlacedFreely(kind) || !rectsOverlap(rect, footprintOfEntity(entity)));
 }
 
-/** Whether a structure is placed freely rather than on the building grid: furniture, such as a chest, and the sled. */
+/** Whether a structure is placed freely rather than on the building grid: furniture and the sled. */
 export function isPlacedFreely(kind: StructureKind): boolean {
   return structureOf(kind).placement === "anywhere";
 }
@@ -860,7 +728,7 @@ export function costOf(entity: Entity, kind: StructureKind): readonly MaterialCo
 
 /**
  * What kind of structure an entity is: a blueprint of any structure, or a finished campfire, lean-to, foundation,
- * log wall, door frame, roof frame, roof section, woodpile, chest, or work station. Undefined for anything else.
+ * log wall, door frame, roof frame, roof section, woodpile, piece of furniture, work station, or sled. Undefined for anything else.
  */
 export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.blueprint !== undefined) return entity.blueprint.structure;

@@ -2,10 +2,12 @@ import { describe, expect, it } from "bun:test";
 import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { LARGE_VALLEY_UPGRADES, CHESTS_BLOCK_WALKING_SAVE_VERSION, PLANK_CHESTS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_PLANK_COST, CHEST_WIDTH_METRES, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
+import { LARGE_VALLEY_UPGRADES, CHESTS_BLOCK_WALKING_SAVE_VERSION, PLANK_CHESTS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_PLANK_COST, CHEST_WIDTH_METRES } from "./furniture/chest";
+import { LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
+import { type OldFurnitureParts, piecesOf, storingPiecesOf, withOldFurnitureParts } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
@@ -78,7 +80,7 @@ describe("where a chest cannot go", () => {
     expect(game.entities.with("blueprint").size).toBe(1);
 
     buildFully(game, onlyBlueprint(game));
-    expect(game.entities.with("chest").size).toBe(1);
+    expect(piecesOf(game.entities, "chest").length).toBe(1);
     expect(game.client.checkPlacement("chest", { x: square.x + 0.5, z: square.z }, 0).allowed).toBe(false);
     // Just clear of it is fine.
     expect(game.client.checkPlacement("chest", { x: square.x + CHEST_WIDTH_METRES + 0.05, z: square.z }, 0).allowed).toBe(true);
@@ -141,7 +143,7 @@ describe("a finished chest", () => {
       buildFully(game, onlyBlueprint(game));
     }
 
-    for (const chest of game.entities.with("chest", "position")) {
+    for (const chest of storingPiecesOf(game.entities, "chest")) {
       for (const [dx, dz] of [
         [0, 0],
         [0.4, 0.2],
@@ -163,7 +165,9 @@ describe("upgrading older saves", () => {
     buildFully(game, onlyBlueprint(game));
     send(game, place("woodpile", square.x + 2, square.z + 2, 0));
     buildFully(game, onlyBlueprint(game));
-    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity }[] };
+    const save = withOldFurnitureParts(
+      JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity & OldFurnitureParts }[] },
+    );
     save.version = CHESTS_BLOCK_WALKING_SAVE_VERSION - 1;
     for (const { components } of save.entities) {
       if (components.chest !== undefined) delete components.blocksWalking;
@@ -173,7 +177,7 @@ describe("upgrading older saves", () => {
     const loaded = readLargeValleySave(save);
     if (!loaded.ok) throw new Error("The save did not load");
 
-    const chest = loaded.game.entities.with("chest", "position").first;
+    const chest = storingPiecesOf(loaded.game.entities, "chest")[0];
     const woodpile = loaded.game.entities.with("woodpile", "position").first;
     if (chest === undefined || woodpile === undefined) throw new Error("Missing a chest or woodpile");
     expect(isWalkable(loaded.game.walkMap, chest.position)).toBe(false);
@@ -225,7 +229,8 @@ describe("building a chest", () => {
     runSeconds(game, CHEST_BUILD_SECONDS + 5);
 
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(blueprint.furniture).toBe("chest");
+    expect(blueprint.storage).toEqual({ contents: {} });
     expect(blueprint.facing).toEqual({ turns: 0 });
     expect(blueprint.builtCost).toBeUndefined();
     expect(onlyPlayer(game).backpack.contents.plank).toBe(2);
@@ -260,7 +265,8 @@ describe("building a chest", () => {
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, CHEST_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
-    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(blueprint.furniture).toBe("chest");
+    expect(blueprint.storage).toEqual({ contents: {} });
     expect(backpack.plank).toBe(4);
   });
 
@@ -299,7 +305,9 @@ describe("building a chest", () => {
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, CHEST_BUILD_SECONDS + 5);
 
-    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(blueprint.furniture).toBe("chest");
+
+    expect(blueprint.storage).toEqual({ contents: {} });
     expect(onlyPlayer(game).backpack.contents.plank).toBe(3);
   });
 });
@@ -312,14 +320,14 @@ describe("chests from a save made before chests cost planks", () => {
     buildFully(game, onlyBlueprint(game));
     send(game, place("chest", square.x + 1.2, square.z, 0));
     onlyBlueprint(game).blueprint = { structure: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } };
-    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+    const save = withOldFurnitureParts(JSON.parse(JSON.stringify(writeSave(game))) as SaveFile);
     save.version = PLANK_CHESTS_SAVE_VERSION - 1;
 
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save did not load");
 
     const oldCost = [{ material: "debarkedLog" as const, count: 2 }];
-    expect(loaded.game.entities.with("chest").first?.builtCost).toEqual(oldCost);
+    expect(storingPiecesOf(loaded.game.entities, "chest")[0]?.builtCost).toEqual(oldCost);
     const blueprint = onlyBlueprint(loaded.game);
     expect(blueprint.builtCost).toEqual(oldCost);
     expect(loaded.game.client.describeBlueprint(idOf(loaded.game, blueprint))?.deliveries).toEqual([{ material: "debarkedLog", has: 1, needs: 2 }]);
@@ -328,7 +336,7 @@ describe("chests from a save made before chests cost planks", () => {
   it("finishes an older chest blueprint from debarked logs, and the finished chest keeps that cost", () => {
     const game = createGame({ seed: 42 });
     chestBlueprintNearPlayer(game);
-    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+    const save = withOldFurnitureParts(JSON.parse(JSON.stringify(writeSave(game))) as SaveFile);
     save.version = PLANK_CHESTS_SAVE_VERSION - 1;
     const loaded = readSave(save);
     if (!loaded.ok) throw new Error("The save did not load");
@@ -339,7 +347,9 @@ describe("chests from a save made before chests cost planks", () => {
     send(loaded.game, { type: "build", blueprintId: idOf(loaded.game, blueprint) });
     runSeconds(loaded.game, CHEST_BUILD_SECONDS + 5);
 
-    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(blueprint.furniture).toBe("chest");
+
+    expect(blueprint.storage).toEqual({ contents: {} });
     expect(blueprint.builtCost).toEqual([{ material: "debarkedLog", count: 2 }]);
     expect(onlyPlayer(loaded.game).backpack.contents.plank).toBe(4);
   });
@@ -361,7 +371,7 @@ describe("saving chests", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    expect(loaded.game.entities.with("chest").first?.builtCost).toBeUndefined();
+    expect(storingPiecesOf(loaded.game.entities, "chest")[0]?.builtCost).toBeUndefined();
     expect(onlyBlueprint(loaded.game).blueprint).toEqual({ structure: "chest", progress: 0.25, materialsSpent: 1, delivered: { plank: 2 } });
   });
 
@@ -375,7 +385,7 @@ describe("saving chests", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
 
-    const chests = loaded.game.entities.with("chest", "position").entities;
+    const chests = storingPiecesOf(loaded.game.entities, "chest");
     expect(chests.map(({ position, facing }) => ({ x: position.x, z: position.z, facing }))).toEqual([{ x: square.x, z: square.z, facing: { turns: 1 } }]);
     const plans = loaded.game.entities.with("blueprint", "position").entities;
     expect(plans.map(({ blueprint, position, facing }) => ({ structure: blueprint.structure, x: position.x, facing }))).toEqual([

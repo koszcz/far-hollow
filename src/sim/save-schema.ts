@@ -4,7 +4,7 @@ import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
-import { EDGE_PIECE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
+import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, isKept, STRUCTURES } from "./structures";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "./wood-and-fuel";
 
@@ -102,11 +102,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   cabinRoof: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
-  chest: shape({ contents: backpackContents }),
-  shelf: shape({ contents: backpackContents }),
-  bed: exactly(true),
-  table: exactly(true),
-  stool: exactly(true),
+  furniture: exactly(...FURNITURE_KINDS),
+  storage: shape({ contents: backpackContents }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,

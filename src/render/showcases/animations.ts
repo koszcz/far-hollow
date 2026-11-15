@@ -326,7 +326,7 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "resting, side", seconds: SIT_SEATED_AT + 1, yaw: 90, pitch: 15 },
     ],
     build({ place }) {
-      place(0, 0, { stool: true, facing: { turns: 0 } });
+      place(0, 0, { furniture: "stool", facing: { turns: 0 } });
     },
     pose(stage, shot) {
       poseSitter(stage, shot.seconds ?? 0);

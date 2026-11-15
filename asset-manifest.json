@@ -622,6 +622,7 @@
       "kind": "code",
       "code": [
         "src/ui/build-icons.tsx",
+        "src/ui/structure-icon.tsx",
         "src/ui/hud.tsx",
         "src/app/style.css"
       ],

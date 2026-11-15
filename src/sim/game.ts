@@ -58,6 +58,7 @@ import { createPiles } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
+import { furnitureOf } from "./furniture";
 import { createTending } from "./tending";
 import { nearestInReach } from "./reach";
 import { createStickFallSystem } from "./stick-fall";
@@ -441,6 +442,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     if (position !== undefined) handReach.startOnArrival(height, position);
   }
 
+  /** How high the player reaches into a piece of furniture that stores things. A piece whose definition gives no height is reached at the waist. */
+  function storageReach(chestId: number): ReachHeight {
+    return furnitureOf(entities.entity(chestId))?.reachHeight ?? "waist";
+  }
+
   /**
    * Carries out a command on a campfire or woodpile now if the player stands within its reach.
    * Otherwise the player stops what they were doing, walks beside it, and carries the command out there.
@@ -578,15 +584,19 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     openChest: (command) => {
       cancelTasks();
       chests.open(command.chestId);
-      reachOnArrival("waist", command.chestId);
+      reachOnArrival(storageReach(command.chestId), command.chestId);
     },
     putInChest: (command) => {
       if (chests.opened()?.id !== command.chestId) return;
-      handReach.start("waist", entities.entity(command.chestId)?.position, () => chests.put(command.chestId, command.content, command.all));
+      handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
+        chests.put(command.chestId, command.content, command.all),
+      );
     },
     takeFromChest: (command) => {
       if (chests.opened()?.id !== command.chestId) return;
-      handReach.start("waist", entities.entity(command.chestId)?.position, () => chests.take(command.chestId, command.content, command.all));
+      handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
+        chests.take(command.chestId, command.content, command.all),
+      );
     },
     lightCampfire: tend,
     layBedroll: () => {

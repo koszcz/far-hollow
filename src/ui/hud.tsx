@@ -25,7 +25,8 @@ import type {
 import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
-import { MaterialIcon, StructureIcon } from "./build-icons";
+import { MaterialIcon } from "./build-icons";
+import { StructureIcon } from "./structure-icon";
 import { dayShare, timeOfDayWord } from "./clock-face";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";

@@ -1,11 +1,11 @@
 // Draws one kind of plank furniture, finished or as a blueprint, from a list of box-shaped parts in build stages.
-// The bed, the shelf, the table, and the stool use it. The model of each piece is its own asset, in its own file, which hands its parts to this file.
-// The chest keeps its own approved meshes in chest-meshes.ts.
+// The model of each piece is its own asset, in its own file, which hands its parts to this file.
+// FurnitureMeshes is what every piece's meshes meet, including a piece with meshes of its own. See furniture-meshes.ts.
 // Each stage fades in above its place and is set down, like the parts of a chest.
 // A blueprint shows the parts see-through. A stage whose planks the blueprint already has shows pale and half solid.
 // While the player places the piece from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { blueprintEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, furnitureEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { FurnitureKind } from "../sim/structure-kind";
 import { costOf, isKept } from "../sim/structures";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
@@ -32,21 +32,19 @@ export interface FurniturePart {
   readonly tilt?: number;
 }
 
-/** What a piece of furniture looks like, and how to tell it is finished. */
+/** What a piece of furniture looks like. */
 export interface FurnitureModel {
   readonly structure: FurnitureKind;
   /** The parts each stage of construction adds, in order. */
   readonly stages: readonly (readonly FurniturePart[])[];
   /** The box a click on the piece lands in: its size, and the middle of it, in the piece's own space. */
   readonly pickBox: { readonly size: [number, number, number]; readonly at: [number, number, number] };
-  /** The finished pieces of this kind among `entities`. */
-  finished(entities: EntityStore): Iterable<Entity & { position: Vec3 }>;
 }
 
 /** What a click on the piece or its blueprint landed on. */
 export type FurnitureHit = { kind: "blueprint" | "finished"; entity: Entity };
 
-/** The meshes of one kind of plank furniture. */
+/** The meshes of one kind of furniture. */
 export interface FurnitureMeshes {
   readonly group: THREE.Group;
   /** Brings every piece of this kind, and every blueprint of one, up to date with game state. */
@@ -107,7 +105,7 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
-  const finished = model.finished(entities);
+  const finished = furnitureEntities(entities);
 
   function addStages(root: THREE.Group): Stage[] {
     return model.stages.map((parts, stageIndex) => {
@@ -209,6 +207,7 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
         seen.add(entity);
       }
       for (const entity of finished) {
+        if (entity.furniture !== model.structure) continue;
         showProgress(draw(entity), entity, 1, stageCount);
         seen.add(entity);
       }

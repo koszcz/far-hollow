@@ -8,7 +8,7 @@ import { COOK_MINUTES, FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { COOKING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
-import { finishReach } from "./test-steps";
+import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 
 describe("cooking fish", () => {
@@ -196,7 +196,7 @@ describe("saving cooking", () => {
     give(game, "cookedFish", 2);
     game.entities.addComponent(campfire, "fishOnFire", [{ minutesCooked: COOK_MINUTES }, { minutesCooked: 2.5 }]);
     game.entities.add({ pile: { content: "cookedFish", count: 3 }, position: { x: 1, y: 0, z: 1 } });
-    game.entities.add({ chest: { contents: { cookedFish: 4 } }, facing: { turns: 0 }, position: { x: 4, y: 0, z: 4 } });
+    game.entities.add({ furniture: "chest", storage: { contents: { cookedFish: 4 } }, facing: { turns: 0 }, position: { x: 4, y: 0, z: 4 } });
 
     const saved = writeSave(game);
     expect(saved.version).toBe(SAVE_VERSION);
@@ -210,7 +210,7 @@ describe("saving cooking", () => {
     ]);
     expect(loaded.game.client.getView().backpack.cookedFish).toBe(2);
     expect([...loaded.game.entities.with("pile")].map(({ pile }) => pile)).toContainEqual({ content: "cookedFish", count: 3 });
-    expect([...loaded.game.entities.with("chest")].map(({ chest }) => chest.contents)).toContainEqual({ cookedFish: 4 });
+    expect(storingPiecesOf(loaded.game.entities, "chest").map(({ storage }) => storage.contents)).toContainEqual({ cookedFish: 4 });
   });
 
   it("turns away a campfire holding more than 3 fish", () => {

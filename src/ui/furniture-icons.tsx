@@ -1,5 +1,5 @@
 // Build menu icons for furniture built from planks: the "furniture-icons" asset in asset-manifest.json, built in code. A rough draft.
-// Added by furniture ticket 03 with the shelf icon, and ticket 02 added the bed. The table and stool add theirs here.
+// Added by furniture ticket 03 with the shelf icon. Ticket 02 added the bed, and ticket 05 the stool. The table adds its own here.
 // They are drawn on the same 24 by 24 grid, in the same shaded style, as the approved build icons in build-icons.tsx.
 // The chest's icon is part of the approved build icons, so it is not here.
 import type { FurnitureKind } from "../sim/api";
@@ -55,6 +55,27 @@ const BED_DRAWING: BackpackIconDrawing = {
   ],
 };
 
+/**
+ * A small plank stool seen from the front and a little above: a square seat of two boards, four splayed legs,
+ * and a rail across between the front legs.
+ */
+const STOOL_DRAWING: BackpackIconDrawing = {
+  colour: PLANK,
+  parts: [
+    // The back legs, in shadow behind the front ones.
+    { d: "M8 12h1.8l-.6 8H7.6zM14.2 12H16l.4 8h-1.6z", as: "fill", colour: PLANK_DARK },
+    // The front legs, splaying out a little toward the ground.
+    { d: "M5.6 12.5h2.2l-1 9.3H4.6zM16.2 12.5h2.2l1.2 9.3h-2.2z", as: "fill", colour: PLANK_SHADE },
+    // The rail between the front legs.
+    { d: "M6.6 16.6h10.8v1.6H6.6z", as: "fill", colour: PLANK_SHADE },
+    // The seat: its top face of two boards, then its front edge.
+    { d: "M6.2 6.5h11.6l2 3.6H4.2z", as: "fill", colour: CUT_END },
+    { d: "M12 6.7l.1 3.3", as: "cutLine" },
+    { d: "M4.2 10.1h15.6v2.6H4.2z", as: "fill", colour: PLANK },
+    { d: "M4.6 10.4h14.8", as: "shine", colour: CUT_END },
+  ],
+};
+
 /** The furniture whose icons are drawn here. The chest's icon is in the approved build icons instead. */
 export type FurnitureWithOwnIcon = Exclude<FurnitureKind, "chest">;
 
@@ -62,6 +83,7 @@ export type FurnitureWithOwnIcon = Exclude<FurnitureKind, "chest">;
 export const FURNITURE_DRAWINGS: Readonly<Record<FurnitureWithOwnIcon, BackpackIconDrawing>> = {
   shelf: SHELF_DRAWING,
   bed: BED_DRAWING,
+  stool: STOOL_DRAWING,
 };
 
 /** Whether a structure's build menu icon is drawn here. */

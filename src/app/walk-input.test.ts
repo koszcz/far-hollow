@@ -97,6 +97,7 @@ describe("the main action on other things", () => {
   it("does the main action", () => {
     expect(clickSends({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });
     expect(clickSends({ kind: "bedroll", id: 9 })).toEqual({ type: "sleep", bedrollId: 9 });
+    expect(clickSends({ kind: "stool", id: 8 })).toEqual({ type: "sitOnStool", stoolId: 8 });
     expect(clickSends({ kind: "pile", id: 4 })).toEqual({ type: "pickUpPile", pileId: 4 });
     expect(clickSends({ kind: "chest", id: 6 })).toEqual({ type: "openChest", chestId: 6 });
     expect(clickSends({ kind: "shelf", id: 7 })).toEqual({ type: "openChest", chestId: 7 });

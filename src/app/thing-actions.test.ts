@@ -390,6 +390,12 @@ describe("other things' actions", () => {
     expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: 7 });
   });
 
+  it("sits on a stool as its main action, or takes it down", () => {
+    const actions = actionsFor(scene({ kind: "stool", id: 8 }), readerWith({}));
+    expect(summary(actions)).toEqual(["sit main", "takeDown"]);
+    expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: 8 });
+  });
+
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(scene({ kind: "chest", id: 6 }), readerWith({})))).toEqual(["open main", "takeDown"]);
     expect(summary(actionsFor(scene({ kind: "shelf", id: 7 }), readerWith({})))).toEqual(["open main", "takeDown"]);

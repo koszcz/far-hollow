@@ -32,6 +32,7 @@ export type ActionId =
   | "letGo"
   | "open"
   | "sleep"
+  | "sit"
   | "build"
   | `deliver:${DeliveredMaterial}`
   | "openMenu"

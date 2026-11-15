@@ -30,6 +30,8 @@ export const FATIGUE_RECOVERY_PER_HOUR = 1 / 8;
 export const ROOF_SLEEP_FACTOR = 1.5;
 /** Asleep in a bed, the player regains fatigue this many times faster than on a bedroll. Under a roof, the roof bonus applies on top. */
 export const BED_SLEEP_FACTOR = 2;
+/** Sitting on a stool, the player regains fatigue at this share of the rate of sleep in the open. A roof does not change it. */
+export const SITTING_REST_SHARE = 1 / 4;
 
 /** Below this level, a need makes the player move and work more slowly. */
 export const LOW_NEED = 0.3;
@@ -76,6 +78,8 @@ export interface NeedConditions {
   underRoof?: boolean;
   /** Whether the player sleeps in a bed rather than on a bedroll, so sleep restores fatigue faster. Missing means not in a bed. */
   inBed?: boolean;
+  /** Whether the player sits on a stool, awake, so fatigue comes back slowly. Missing means not sitting. */
+  sitting?: boolean;
 }
 
 /** Changes every need for this many game minutes spent in these conditions. */
@@ -110,6 +114,7 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
       return -HUNGER_DRAIN_PER_HOUR;
     case "fatigue":
       if (conditions.asleep) return fatigueRecoveryPerHour(conditions.underRoof === true, conditions.inBed === true);
+      if (conditions.sitting === true) return FATIGUE_RECOVERY_PER_HOUR * SITTING_REST_SHARE;
       return -FATIGUE_DRAIN_PER_HOUR * (conditions.working ? WORK_FATIGUE_FACTOR : 1);
   }
 }

@@ -163,6 +163,8 @@ function thingActions(pick: GroundOrThingPick, reader: ActionReader, view: GameV
       return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(pick.id)], "open");
     case "bed":
       return withMain([offer("sleep", strings.actions.sleep, { hud: "moon" }, { type: "sleepInBed", bedId: pick.id }), takeDown(pick.id)], "sleep");
+    case "stool":
+      return withMain([offer("sit", strings.actions.sit, { hud: "moon" }, { type: "sitOnStool", stoolId: pick.id }), takeDown(pick.id)], "sit");
     case "bedroll":
       return withMain(
         [

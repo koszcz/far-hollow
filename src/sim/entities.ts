@@ -188,6 +188,11 @@ export interface Entity {
    */
   bed?: true;
   /**
+   * Marks a finished stool: small furniture the player sits on to rest. Its position is the middle of its base, on the ground or
+   * on a foundation's deck. Its `facing` says which way the player faces while sitting on it, +z when it faces the default way.
+   */
+  stool?: true;
+  /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */
@@ -218,6 +223,13 @@ export interface Entity {
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
   /** The finished bed the player is walking to, given by its entity id, to sleep in. */
   bedTask?: { bedId: number };
+  /** The finished stool the player is walking to, given by its entity id, to sit on. */
+  stoolTask?: { stoolId: number };
+  /**
+   * The player sits on a finished stool, given by its entity id, and rests. Their position stays beside it, where they stood
+   * to sit down. They stand up as soon as they walk or act. It is never saved, so a loaded game starts with the player standing.
+   */
+  sitting?: { stoolId: number };
   /**
    * The player is reaching to pick something up or put something down: to the ground or at waist height,
    * `seconds` into the reach, toward the thing's middle if it has one. It is never saved. See hand-reach.ts.
@@ -274,20 +286,21 @@ export interface SavedEntity {
 
 /**
  * Lists every entity with its id, in id order. An entity that had no id yet gets one.
- * Crafting in progress and a reach in progress are left out, because they are never saved.
+ * Crafting in progress, a reach in progress, and sitting are left out, because they are never saved.
  */
 export function saveEntities(store: EntityStore): SavedEntity[] {
   const saved: SavedEntity[] = [];
   for (const entity of store.entities) {
     const id = store.id(entity);
     if (id === undefined) continue;
-    if (entity.craftTask === undefined && entity.handReach === undefined) {
+    if (entity.craftTask === undefined && entity.handReach === undefined && entity.sitting === undefined) {
       saved.push({ id, components: entity });
       continue;
     }
     const components = { ...entity };
     delete components.craftTask;
     delete components.handReach;
+    delete components.sitting;
     saved.push({ id, components });
   }
   return saved.sort((a, b) => a.id - b.id);
@@ -438,6 +451,11 @@ export function woodpileEntities(store: EntityStore) {
 /** Finished beds. */
 export function bedEntities(store: EntityStore) {
   return store.with("bed", "position");
+}
+
+/** Finished stools. */
+export function stoolEntities(store: EntityStore) {
+  return store.with("stool", "position");
 }
 
 /** Finished chests. */

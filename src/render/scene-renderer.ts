@@ -21,6 +21,7 @@ import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
 import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
+import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, STAND_SECONDS, standBodyAt, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
@@ -147,6 +148,7 @@ export function createSceneRenderer(
     chest: (entity) => structureMeshes.outlineOf({ kind: "chest", entity }),
     shelf: (entity) => structureMeshes.outlineOf({ kind: "shelf", entity }),
     bed: (entity) => structureMeshes.outlineOf({ kind: "bed", entity }),
+    stool: (entity) => structureMeshes.outlineOf({ kind: "stool", entity }),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
@@ -202,6 +204,11 @@ export function createSceneRenderer(
    * faced then, the middle of the bedroll or bed, the hour the sky keeps showing until the view is dark, and which way a bed faces.
    */
   let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: SleepView["bed"] } | undefined;
+
+  /** Sitting on a stool, while drawn: when the player reached it, on the performance clock in seconds, where they stood and faced then, and where and how high they sit. */
+  let seated: { since: number; from: SleepSpot; seat: SleepSpot; y: number } | undefined;
+  /** Standing up from a stool, while drawn: when it began, where the player's feet were then, and how long they had sat, in seconds. */
+  let rising: { since: number; seat: SleepSpot; seatedFor: number } | undefined;
 
   /** Steps the drawn player up to the sawhorse to saw planks, and back when sawing stops. */
   const sawingStep = createSawingStep();
@@ -271,10 +278,14 @@ export function createSceneRenderer(
       playerMesh.group.position.set(spot.x, playerDrawn.y + spot.lift, spot.z);
       playerMesh.setHeading(spot.heading);
       playerMesh.setWalking(undefined);
+      playerMesh.setSitting(undefined);
       playerMesh.setSleeping(seconds);
+      seated = undefined;
+      rising = undefined;
       return;
     }
     playerMesh.setSleeping(undefined);
+    if (poseSitting(nowSeconds, player)) return;
     const activity = playerActivity(entities, player);
     const target = activity?.targetId === undefined ? undefined : entities.entity(activity.targetId);
     const faceTarget = () => {
@@ -353,6 +364,55 @@ export function createSceneRenderer(
     }
     playerWalkedMetres += travelled;
     playerMesh.setWalking(playerWalkedMetres);
+  }
+
+  /**
+   * Poses the player sitting on a stool, or standing up from one, and returns true while either shows.
+   * Game logic keeps the player beside the stool, which blocks walking. Drawing steps them onto it, sits them down,
+   * and once game logic stands them up, plays the rise and steps them back to where game logic keeps them.
+   */
+  function poseSitting(nowSeconds: number, player: Entity): boolean {
+    const stool = player.sitting === undefined ? undefined : entities.entity(player.sitting.stoolId);
+    if (stool?.position !== undefined) {
+      if (seated === undefined) {
+        const from = { x: playerDrawn.x, z: playerDrawn.z, heading: playerMesh.group.rotation.y };
+        seated = { since: nowSeconds, from, seat: seatedSpot(stool.position, stool.facing?.turns ?? 0), y: stool.position.y };
+        rising = undefined;
+      }
+      const seconds = nowSeconds - seated.since;
+      const spot = sitSpotFrom(seated.from, seated.seat, seconds);
+      showSittingAt(spot, seated.y - sitSinkAt(seconds));
+      playerMesh.setSitting(sitBodyAt(seconds));
+      return true;
+    }
+    if (seated !== undefined) {
+      const seconds = nowSeconds - seated.since;
+      rising = { since: nowSeconds, seat: sitSpotFrom(seated.from, seated.seat, seconds), seatedFor: seconds };
+      seated = undefined;
+    }
+    if (rising !== undefined) {
+      const seconds = nowSeconds - rising.since;
+      if (seconds < STAND_SECONDS) {
+        const spot = standSpotFrom(rising.seat, playerDrawn, seconds);
+        showSittingAt(spot, playerDrawn.y - standSinkAt(seconds, rising.seatedFor));
+        playerMesh.setSitting(standBodyAt(seconds, rising.seatedFor));
+        return true;
+      }
+      rising = undefined;
+    }
+    playerMesh.setSitting(undefined);
+    return false;
+  }
+
+  /** Draws the player at a spot of sitting or standing up, with nothing else moving them. */
+  function showSittingAt(spot: SleepSpot, y: number): void {
+    Object.assign(playerDrawn, { x: spot.x, z: spot.z });
+    playerMesh.group.position.set(spot.x, y, spot.z);
+    playerMesh.setHeading(spot.heading);
+    playerMesh.setWalking(undefined);
+    playerMesh.setReaching(undefined);
+    playerMesh.setChopping(undefined);
+    playerMesh.setBuilding(undefined);
   }
 
   /**

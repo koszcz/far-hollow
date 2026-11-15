@@ -74,7 +74,7 @@ export interface PlacementSite {
 
 /** The components that mark a finished structure. */
 export type FinishedMarker =
-  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "shelf" | "bed" | "workStation" | "sled";
+  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "chest" | "shelf" | "bed" | "stool" | "workStation" | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -510,6 +510,35 @@ const bed: StructureDefinition & { readonly kind: "bed" } = {
   }),
 };
 
+/** How many planks a stool costs: one for its legs and one for its seat. Construction spends one at the start of each stage. */
+export const STOOL_PLANK_COST = 2;
+/** How long the player holds the build action to build a stool, in seconds. */
+export const STOOL_BUILD_SECONDS = 4;
+/** A stool's seat is this wide and this deep, in metres. Its legs splay out to the seat's edges. */
+export const STOOL_SIZE_METRES = 0.4;
+/**
+ * A finished stool stops the player walking within this many metres of its centre.
+ * Like a chest, it is placed freely, so this reaches the centre of every 1 m walk-map cell it covers, even where four cells meet.
+ */
+export const STOOL_WALK_BLOCK_RADIUS_METRES = 0.71;
+
+/**
+ * A stool: small furniture the player sits on to rest. It is placed freely, wherever the mouse points, and R turns it.
+ * The player sits facing the way it faces. It stands on the ground or on a foundation's deck. Building it needs no tool.
+ */
+const stool: StructureDefinition & { readonly kind: "stool" } = {
+  kind: "stool",
+  placement: "anywhere",
+  finishedAs: "stool",
+  cost: [{ material: "plank", count: STOOL_PLANK_COST }],
+  buildSeconds: STOOL_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, STOOL_SIZE_METRES / 2, STOOL_SIZE_METRES / 2, turns),
+  snap: (_site, at) => ({ x: at.x, z: at.z }),
+  heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
+  canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, STOOL_SIZE_METRES / 2, STOOL_SIZE_METRES / 2),
+  finish: () => ({ stool: true, blocksWalking: { radius: STOOL_WALK_BLOCK_RADIUS_METRES } }),
+};
+
 /** How many debarked logs a sawhorse costs: one for its legs and one for the beam across them. */
 export const SAWHORSE_LOG_COST = 2;
 /** How long the player holds the build action to build a sawhorse, in seconds. */
@@ -643,6 +672,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   chest,
   shelf,
   bed,
+  stool,
   sawhorse,
   sled,
 };

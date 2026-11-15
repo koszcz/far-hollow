@@ -857,7 +857,7 @@
       "code": [
         "src/ui/furniture-icons.tsx"
       ],
-      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. The shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The table and stool icons join them later. Furniture ticket 03 added the shelf icon, and ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon.",
+      "description": "Build menu icons for furniture built from planks, drawn in the build icons' shaded style on the same 24 by 24 grid. The shelf: seen from the front, two upright side planks, a dark back with plank seams, and three pale shelf boards across, each showing its top face and front edge. The bed: a plank bed frame seen from the foot end and a little above, with a tall headboard, a pale mattress, a blue blanket, a footboard, and two legs. The stool: a small plank stool seen from the front and a little above, with a square seat of two boards, four splayed legs, and a rail between the front legs. The table icon joins them later. Furniture ticket 03 added the shelf icon, ticket 02 (.scratch/furniture/issues/02-bed.md) added the bed icon, and ticket 05 (.scratch/furniture/issues/05-stool-and-sitting.md) added the stool icon.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1079,6 +1079,37 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/furniture/issues/02-bed.md"
+      }
+    },
+    {
+      "id": "stool",
+      "kind": "code",
+      "code": [
+        "src/render/stool-meshes.ts",
+        "src/render/plank-furniture-meshes.ts"
+      ],
+      "description": "The stool: a small square seat of two pale sawn boards, 0.4 m across and 0.27 m high, on four square legs with a rail between each pair of legs. Each plank is a slightly different shade. As a blueprint it shows see-through, a stage whose plank it has waits pale and half solid, and construction builds it in two stages: the legs with their rails, then the seat.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/05-stool-and-sitting.md"
+      }
+    },
+    {
+      "id": "sit-animation",
+      "kind": "code",
+      "code": [
+        "src/render/sit-animation.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player sitting on a stool, resting, and standing up. The player steps up to the stool over 0.5 seconds, turning their back to it to face the way it faces, and sits down. They rest there, breathing, for as long as they sit. When they walk or act, they stand up and step back to where they stood. The body plays KayKit's Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips from the approved player file, public/assets/player/barbarian.glb; code times the step to the stool and back. The axe goes on the back while the player sits.",
+      "source": "Timed in code in this project. Clips Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp from KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers, Characters/gltf/Barbarian.glb, unchanged",
+      "license": "Project code. The clips are CC0 1.0",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/furniture/issues/05-stool-and-sitting.md"
       }
     }
   ]

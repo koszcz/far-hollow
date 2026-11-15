@@ -1,5 +1,5 @@
 // Draws one kind of plank furniture, finished or as a blueprint, from a list of box-shaped parts in build stages.
-// The bed uses it. The model of each piece is its own asset, in its own file, which hands its parts to this file.
+// The bed and the stool use it. The model of each piece is its own asset, in its own file, which hands its parts to this file.
 // The chest keeps its own approved meshes in chest-meshes.ts.
 // Each stage fades in above its place and is set down, like the parts of a chest.
 // A blueprint shows the parts see-through. A stage whose planks the blueprint already has shows pale and half solid.

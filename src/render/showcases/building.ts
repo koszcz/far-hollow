@@ -353,9 +353,11 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   "sled-planks": {
     radius: 1.8,
     focus: { x: 0, y: 0.15, z: 0 },
-    // A finished sled with a few planks, a full load of 24 planks, and planks on top of logs. `seconds` picks the load.
+    // A finished sled with a few loose planks, two lashed layers seen low from the side, a full load of 24 planks,
+    // and planks on top of logs. `seconds` picks the load.
     shots: [
-      { label: "5 planks", yaw: 30, pitch: 35, seconds: 0 },
+      { label: "5 planks, loose", yaw: 30, pitch: 35, seconds: 0 },
+      { label: "16 planks, two lashed layers", yaw: 160, pitch: 14, seconds: 3, radius: 1.3 },
       { label: "24 planks, the most a sled holds", yaw: 30, pitch: 35, seconds: 1 },
       { label: "3 logs with 12 planks on top", yaw: 140, pitch: 30, seconds: 2 },
     ],
@@ -368,6 +370,7 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
         { log: 0, debarkedLog: 0, plank: 5 },
         { log: 0, debarkedLog: 0, plank: 24 },
         { log: 2, debarkedLog: 1, plank: 12 },
+        { log: 0, debarkedLog: 0, plank: 16 },
       ];
       const load = loads[shot.seconds ?? 0] ?? loads[0];
       for (const entity of store.with("sled")) Object.assign(entity.sled, load);

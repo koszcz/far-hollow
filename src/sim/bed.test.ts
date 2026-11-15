@@ -196,6 +196,20 @@ describe("sleeping in a bed", () => {
     expect(game.client.getView().time).toMatchObject({ day: 2, hour: 6, minute: 0 });
   });
 
+  it("in the evening sleeps on until morning rather than waking in the night", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const bed = finishedBedNearPlayer(game);
+    send(game, { type: "placeBlueprint", structure: "campfire", turns: 0, x: bed.position.x + 2, z: bed.position.z });
+    send(game, { type: "skipTime", hours: 10 }); // 18:00, before night falls.
+    onlyPlayer(game).needs.fatigue.level = 0.2;
+
+    send(game, { type: "sleepInBed", bedId: idOf(game, bed) });
+    stepUntil(game, () => game.client.getView().lastSleep !== null);
+
+    // Restoring fatigue alone would take about 3 hours and wake the player at 21:00, in the night.
+    expect(game.client.getView().time).toMatchObject({ day: 2, hour: 6, minute: 0 });
+  });
+
   it("walks the player to the bed first, and reports the sleep with where the bed stands and which way it faces", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game, 8);

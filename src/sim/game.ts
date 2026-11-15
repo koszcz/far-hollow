@@ -836,7 +836,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /**
    * The player lies down on a bedroll and sleeps. The bedroll becomes their respawn point.
-   * At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
+   * At night they sleep until morning. By day they sleep until fatigue is restored. If that would wake them in the night, they sleep on until morning.
    */
   function sleepOn(bedroll: BedrollEntity): void {
     lieDown(bedroll.position);
@@ -876,14 +876,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /**
-   * The player sleeps where they lie. At night they sleep until morning. By day they sleep until fatigue is restored, or until morning if that comes first.
+   * The player sleeps where they lie. At night they sleep until morning. By day they sleep until fatigue is restored.
+   * If that would wake them in the night, such as after lying down in the evening, they sleep on until morning.
    * Returns false if a collapse cut sleep short.
    */
   function sleep(asleepIn: SleepPlace): boolean {
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
-    const night = isNight(readClock(clock.minutes).hourOfDay);
     const toRestFully = minutesToRestFully(player.needs, isUnderRoof(entities, player.position), asleepIn === "bed");
-    return passTime(night ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
+    const wakesAtNight = isNight(readClock(clock.minutes + toRestFully).hourOfDay);
+    return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 
   function applyCommand(command: Command): void {

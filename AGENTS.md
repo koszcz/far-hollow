@@ -16,6 +16,10 @@ Uses the five default triage labels, recorded as a `Status:` line in each issue 
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Value objects
+
+When code you write or touch repeats a calculation or a rule on a plain value, such as a facing, a ground spot, or a set of counts, make it a value object. See `docs/adr/0009-value-objects-are-plain-types-with-a-module-of-pure-functions.md`.
+
 ### Game testing
 
 Before you play the game in a browser to test a change, a bug, or a QA task, read `docs/agents/game-testing.md`. It covers reading game state instead of taking screenshots. Pass this pointer to any QA subagent you start.

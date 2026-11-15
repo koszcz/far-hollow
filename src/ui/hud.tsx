@@ -24,6 +24,7 @@ import type {
 import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
+import { ActionQueueRow } from "./action-queue-row";
 import { lackingText, refusalText } from "./refusal-text";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
@@ -644,6 +645,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
           {strings.clock(view.time.day, view.time.hour, view.time.minute)}
           <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay)]}</small>
         </p>
+        <ActionQueueRow client={client} view={view} />
       </div>
       <div class="hud hud-pause">
         <div class="hud-panel">

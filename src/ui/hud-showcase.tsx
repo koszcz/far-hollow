@@ -1,8 +1,9 @@
 // Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/showcases/interface.ts and src/render/showcases/camp.ts. Development builds only.
 import { render } from "preact";
-import { FURNITURE_BUILD_MENU, type BackpackContent, type GameClient, type GameView, type StructureKind } from "../sim/api";
-import { BackpackIcon } from "./backpack-icons";
+import { FURNITURE_BUILD_MENU, type BackpackContent, type GameClient, type GameView, type StructureKind, type ThingView } from "../sim/api";
+import { QUEUE_THING_DRAWINGS, type QueueThing } from "./action-queue-icons";
+import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
 import { Hud } from "./hud";
@@ -268,6 +269,95 @@ const FISHING_ICON_STATES: readonly ShowcaseState[] = [
   { view: BASE_VIEW, buildMenuOpen: false, placing: null },
 ];
 
+/** What each thing the "action-queue-icons" views queue actions on is, by its made-up entity id. */
+const QUEUE_THINGS: Readonly<Record<number, ThingView>> = {
+  10: { kind: "tree" },
+  11: { kind: "debarkedLog" },
+  12: { kind: "structure", structure: "campfire" },
+  13: { kind: "structure", structure: "sled" },
+  14: { kind: "forage", food: "mushroom" },
+  15: { kind: "bedroll" },
+};
+
+/**
+ * The draft "action-queue-icons" asset: the action queue beside the clock. The first view is the icon sheet. The others show
+ * a full queue while chopping, two actions in the evening, and three while paused at night.
+ */
+const ACTION_QUEUE_ICON_STATES: readonly ShowcaseState[] = [
+  // QueueIconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
+  {
+    view: {
+      ...BASE_VIEW,
+      action: { kind: "chop", progress: 0.4 },
+      actionQueue: [
+        { type: "chopTree", treeId: 10 },
+        { type: "pickUpLog", logId: 11 },
+        { type: "addFuel", campfireId: 12, fuel: "firewood" },
+        { type: "fish", x: 0, z: 0 },
+      ],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  {
+    view: {
+      ...BASE_VIEW,
+      time: { day: 2, hour: 18, minute: 10, hourOfDay: 18 + 10 / 60 },
+      carrying: "log",
+      actionQueue: [
+        { type: "loadSled", sledId: 13 },
+        { type: "craft", recipe: "saw" },
+      ],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  {
+    view: {
+      ...BASE_VIEW,
+      paused: true,
+      time: { day: 3, hour: 22, minute: 40, hourOfDay: 22 + 40 / 60 },
+      actionQueue: [
+        { type: "walkTo", x: 0, z: 0 },
+        { type: "forage", spotId: 14 },
+        { type: "sleep", bedrollId: 15 },
+      ],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
+/** The "action-queue-icons" first view: each drawn icon large, with its name, so the owner can judge the drawings. */
+function QueueIconSheet() {
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+      {(Object.keys(QUEUE_THING_DRAWINGS) as QueueThing[]).map((thing) => (
+        <div
+          key={thing}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "2px",
+            padding: "6px",
+            background: "#3d2b1e",
+            borderRadius: "6px",
+            color: "#cdb898",
+            fontSize: "11px",
+          }}
+        >
+          <span style={{ width: "96px", height: "96px", display: "grid" }} class="showcase-big-icon">
+            <ShadedIcon drawing={QUEUE_THING_DRAWINGS[thing]} className="backpack-icon" />
+          </span>
+          {thing}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** The "build-icons" first view: every build icon drawn large, with its name, so the owner can judge the drawings. */
 function BuildIconSheet() {
   const cell = {
@@ -338,8 +428,8 @@ const ICON_SHEETS = {
   "fishing-icons": { states: FISHING_ICON_STATES, contents: ["fishingLine", "fishingRod", "rawFish", "cookedFish"] },
 } as const;
 
-/** A client that always shows `view` and ignores commands. */
-function stillClient(view: GameView): GameClient {
+/** A client that always shows `view` and ignores commands. `things` says what each made-up entity id is. */
+function stillClient(view: GameView, things: Readonly<Record<number, ThingView>> = {}): GameClient {
   return {
     getView: () => view,
     checkPlacement: (_structure, _at, turns) => ({ spot: { x: 0, y: 0, z: 0 }, turns, allowed: true }),
@@ -349,6 +439,7 @@ function stillClient(view: GameView): GameClient {
     describeSled: () => null,
     refusal: () => null,
     nearestInReach: () => null,
+    describeThing: (id) => things[id] ?? null,
     describeRooms: () => [],
     send() {},
     subscribe: () => () => {},
@@ -366,9 +457,10 @@ const STATES_BY_ASSET = {
   "sled-icon": BUILD_ICON_STATES,
   // The furniture icons show in the build menu too, so the "furniture-icons" showcase is the build menu's as well.
   "furniture-icons": BUILD_ICON_STATES,
+  "action-queue-icons": ACTION_QUEUE_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", or "furniture-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", or "action-queue-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
     const quarter = document.createElement("div");
@@ -382,13 +474,17 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         return;
       }
     }
+    if (asset === "action-queue-icons" && index === 0) {
+      render(<QueueIconSheet />, quarter);
+      return;
+    }
     if ((asset === "crafting-icons" || asset === "fishing-icons") && index === ICON_SHEETS[asset].states.length - 1) {
       render(<IconSheet contents={ICON_SHEETS[asset].contents} />, quarter);
       return;
     }
     render(
       <Hud
-        client={stillClient(view)}
+        client={stillClient(view, QUEUE_THINGS)}
         buildMenuOpen={buildMenuOpen}
         placing={placing}
         onToggleBuildMenu={() => {}}

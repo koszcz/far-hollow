@@ -230,6 +230,82 @@ describe("emptying the action queue", () => {
   });
 });
 
+describe("cancelling a queued action", () => {
+  it("stops the action under way when it is cancelled, and starts the next one", () => {
+    const game = createGame({ seed: 42 });
+    const sticks = sticksNearPlayer(game, 3);
+    for (const stick of sticks) send(game, queued(pickUp(game, stick)));
+
+    send(game, { type: "cancelQueuedAction", index: 0 });
+
+    expect(game.client.getView().actionQueue).toEqual([pickUp(game, sticks[1]), pickUp(game, sticks[2])]);
+    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, sticks[1]));
+    stepUntil(game, () => game.client.getView().actionQueue.length === 0);
+    expect(game.entities.has(sticks[0] as Entity)).toBe(true);
+  });
+
+  it("takes out a middle action and leaves the one under way going", () => {
+    const game = createGame({ seed: 42 });
+    const sticks = sticksNearPlayer(game, 3);
+    for (const stick of sticks) send(game, queued(pickUp(game, stick)));
+
+    send(game, { type: "cancelQueuedAction", index: 1 });
+
+    expect(game.client.getView().actionQueue).toEqual([pickUp(game, sticks[0]), pickUp(game, sticks[2])]);
+    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, sticks[0]));
+    stepUntil(game, () => game.client.getView().actionQueue.length === 0);
+    expect(game.entities.has(sticks[1] as Entity)).toBe(true);
+    expect(game.entities.has(sticks[2] as Entity)).toBe(false);
+  });
+
+  it("takes out the last action", () => {
+    const game = createGame({ seed: 42 });
+    const sticks = sticksNearPlayer(game, 3);
+    for (const stick of sticks) send(game, queued(pickUp(game, stick)));
+
+    send(game, { type: "cancelQueuedAction", index: 2 });
+
+    expect(game.client.getView().actionQueue).toEqual([pickUp(game, sticks[0]), pickUp(game, sticks[1])]);
+    stepUntil(game, () => game.client.getView().actionQueue.length === 0);
+    expect(game.entities.has(sticks[2] as Entity)).toBe(true);
+  });
+
+  it("stops the player when they cancel the only action, and leaves the queue empty", () => {
+    const game = createGame({ seed: 42 });
+    const [stick] = sticksNearPlayer(game, 1);
+    send(game, queued(pickUp(game, stick)));
+
+    send(game, { type: "cancelQueuedAction", index: 0 });
+
+    expect(game.client.getView().actionQueue).toEqual([]);
+    expect(onlyPlayer(game).stickPickUpTask).toBeUndefined();
+    expect(onlyPlayer(game).walkPath).toBeUndefined();
+  });
+
+  it("stops fishing when it is cancelled, though no action waits behind it", () => {
+    const game = createGame({ seed: 42 });
+    giveRod(game);
+    send(game, queued({ type: "fish", ...riverSpotNearPlayer(game) }));
+    stepUntil(game, () => game.client.getView().action?.kind === "fish");
+
+    send(game, { type: "cancelQueuedAction", index: 0 });
+
+    expect(game.client.getView().action).toBeNull();
+    expect(game.client.getView().actionQueue).toEqual([]);
+  });
+
+  it("does nothing for a place in the queue that holds no action", () => {
+    const game = createGame({ seed: 42 });
+    const sticks = sticksNearPlayer(game, 2);
+    for (const stick of sticks) send(game, queued(pickUp(game, stick)));
+
+    send(game, { type: "cancelQueuedAction", index: 2 });
+    send(game, { type: "cancelQueuedAction", index: -1 });
+
+    expect(game.client.getView().actionQueue).toEqual(sticks.map((stick) => pickUp(game, stick)));
+  });
+});
+
 /** Sends a command and runs one logic step, so the game carries it out. */
 function send(game: Game, command: Command): void {
   game.client.send(command);

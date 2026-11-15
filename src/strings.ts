@@ -308,6 +308,16 @@ export const strings = {
     /** The name of the sled cell for screen readers, such as "Dragging: Sled 4/6". */
     dragging: (name: string) => `Dragging: ${name}`,
   },
+  /** The action queue: the row of icons beside the clock, one per lined-up action. */
+  actionQueue: {
+    /** The row's name, for screen readers. */
+    title: "Lined-up actions",
+    /** The full name of one icon, for screen readers, such as "Cancel: Chop". A click on it cancels that action. */
+    cancel: (action: string) => `Cancel: ${action}`,
+    /** Walking beside a campfire or woodpile to tend it. */
+    tend: "Tend",
+    stopBuilding: "Stop building",
+  },
   /** What the player can do to a thing, as the action menu names it. */
   actions: {
     walk: "Walk here",

@@ -30,6 +30,20 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // src/ui/hud-showcase.tsx draws the drawn queue icons large over the first view, and the HUD with a queue beside the clock over the others.
+  "action-queue-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Queue icons, large", yaw: 20, pitch: 35 },
+      { label: "HUD: a full queue while chopping", yaw: -20, pitch: 35 },
+      { label: "HUD: two actions, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: three actions, paused at night", yaw: 20, pitch: 35, hour: NIGHT },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // src/ui/hud-showcase.tsx draws every build icon large over the first view, and the HUD with the full build menu open over the others.
   "build-icons": {
     radius: 6,

@@ -911,6 +911,15 @@
       "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
     },
     {
+      "id": "action-queue-icons",
+      "kind": "code",
+      "code": ["src/ui/action-queue-icons.tsx", "src/ui/action-queue-row.tsx", "src/ui/queued-actions.ts"],
+      "description": "The action queue beside the clock, and the icons for queued actions on things that have no icon elsewhere. The row is a smoked walnut glass pill right of the clock pill, holding one round chip per queued action, up to 4. The action under way comes first, in a larger chip with a faint amber ring. Pointing at a chip tints it amber and shows the action's name in a pill label below it, as a hotbar cell does. With an empty queue, the row is gone. Each chip shows what its action works on. Backpack contents, structures, furniture, the sled, logs, and debarked logs reuse their approved icons. Three drafts, drawn in the build icons' shaded style on the same 24 by 24 grid, cover the rest: a standing tree, a conifer of three green tiers on a short brown trunk; the river, a blue band with pale ripples between two grassy banks; and a spot on the ground to walk to, an amber pin on a patch of earth.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": { "status": "draft", "ticket": ".scratch/action-queue/issues/02-show-and-cancel-the-queue.md" }
+    },
+    {
       "id": "sled-icon",
       "kind": "code",
       "code": [

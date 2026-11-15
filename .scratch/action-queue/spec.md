@@ -31,7 +31,7 @@ These keep working as today, and are never queued:
 - The player does the first action in the queue. When it is finished, it leaves the queue and the next one starts.
 - An action is finished when the player has nothing left to do for it: the work is done, they have arrived, or the thing is gone.
 - If the next action cannot be done when its turn comes, the game shows why, drops it, and starts the one after.
-- Actions with no end, such as fishing or sitting on a stool, stop as soon as another action waits behind them.
+- Actions with no end, such as fishing or sitting on a stool, go on while nothing waits behind them. With another action waiting, sitting stops at once, and fishing stops once a fish bites. So queueing fishing 3 times catches 3 fish.
 - Sleeping runs until the player wakes, then the queue carries on.
 - A collapse empties the queue.
 

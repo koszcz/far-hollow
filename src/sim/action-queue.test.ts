@@ -116,21 +116,41 @@ describe("running the action queue", () => {
     expect(game.client.getView().actionQueue).toEqual([fish]);
   });
 
-  it("stops fishing as soon as another action waits behind it, then starts that action", () => {
+  it("catches one fish for each queued fishing trip with another action behind it, then starts that action", () => {
     const game = createGame({ seed: 42 });
     giveRod(game);
     const [stick] = sticksNearPlayer(game, 1);
+    const fish: ActionCommand = { type: "fish", ...riverSpotNearPlayer(game) };
 
-    send(game, queued({ type: "fish", ...riverSpotNearPlayer(game) }));
+    send(game, queued(fish));
+    send(game, queued(fish));
     send(game, queued(pickUp(game, stick)));
     const player = onlyPlayer(game);
+    stepUntil(game, () => (player.backpack.contents.rawFish ?? 0) === 1);
+    expect(game.client.getView().actionQueue).toEqual([fish, pickUp(game, stick)]);
     stepUntil(game, () => player.stickPickUpTask !== undefined);
 
-    // The player got to the river bank, then stopped fishing at once.
-    expect(distanceToRiver(game.valley.river, player.position) - game.valley.river.width / 2).toBeLessThan(2);
+    expect(player.backpack.contents.rawFish).toBe(2);
     expect(player.fishTask).toBeUndefined();
     expect(game.client.getView().actionQueue).toEqual([pickUp(game, stick)]);
     stepUntil(game, () => !game.entities.has(stick));
+  });
+
+  it("sits only until another action waits behind it", () => {
+    const game = createGame({ seed: 42 });
+    const [stick] = sticksNearPlayer(game, 1);
+    const { position } = onlyPlayer(game);
+    const stool = game.entities.add({ furniture: "stool", position: { x: position.x - 3, y: position.y, z: position.z } });
+
+    send(game, queued({ type: "sitOnStool", stoolId: idOf(game, stool) }));
+    stepUntil(game, () => game.client.getView().sittingOn !== null);
+    runSteps(game, 300);
+    expect(game.client.getView().sittingOn).toBe(idOf(game, stool));
+
+    send(game, queued(pickUp(game, stick)));
+
+    expect(game.client.getView().sittingOn).toBeNull();
+    expect(game.client.getView().actionQueue).toEqual([pickUp(game, stick)]);
   });
 
   it("sleeps until the player wakes, then carries on with the queue", () => {

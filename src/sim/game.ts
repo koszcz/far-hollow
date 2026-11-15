@@ -262,6 +262,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const actionQueue: ActionCommand[] = [];
   /** How many times cancelTasks has run, so sending a command can tell whether it stopped what the player was doing. */
   let cancelCount = 0;
+  /** How many casts the player had made when they were first seen fishing since the latest command, or undefined if not yet seen. */
+  let castsWhenFishingBegan: number | undefined;
   if (startNotice !== undefined) showNotice(startNotice);
   let view = snapshot();
 
@@ -935,6 +937,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     // Any new command cancels a reach in progress. If the hand has not got to the thing yet, its command is never carried out.
     if (command.type !== "setPaused") handReach.cancel();
     if (rule.start === "fresh") cancelTasks();
+    castsWhenFishingBegan = undefined;
     refuseWith(rule.run(command));
   }
 
@@ -981,15 +984,16 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /**
    * Moves the action queue on, once a logic step has run. When the player has nothing left to do for the action under way,
-   * it leaves the queue and the next one starts. An endless action, such as fishing or sitting, ends as soon as another
-   * action waits behind it. An action the game refuses when its turn comes is dropped, with a notice saying why.
+   * it leaves the queue and the next one starts. An action with no end goes on while nothing waits behind it. With another
+   * action waiting, sitting ends at once, and fishing ends once a fish has bitten. An action the game refuses when its turn
+   * comes is dropped, with a notice saying why.
    */
   function moveQueueOn(): void {
     const underWay = actionQueue[0];
     if (underWay === undefined) return;
     if (playerIsBusy(player)) {
-      const endless = player.sitting !== undefined || fishingNow(player) !== undefined;
-      if (!endless || actionQueue.length === 1) return;
+      const done = endlessActionDone();
+      if (!done || actionQueue.length === 1) return;
       cancelTasks();
       stools.standUp();
     }
@@ -1003,6 +1007,19 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       showNotice({ kind: "actionSkipped", refusal });
       actionQueue.shift();
     }
+  }
+
+  /**
+   * Whether the player has done enough of an action with no end to move on when another action waits: they sit,
+   * or they fish and a fish has bitten since they began. A queued fishing trip catches one fish.
+   */
+  function endlessActionDone(): boolean {
+    if (player.sitting !== undefined) return true;
+    if (fishingNow(player) === undefined) return false;
+    const casts = player.fishCasts ?? 0;
+    // The player casts when they start fishing, and again each time a fish bites.
+    castsWhenFishingBegan ??= casts;
+    return casts > castsWhenFishingBegan;
   }
 
   /** Why the game would turn a command away now: its own rule first, then the player's hands being busy with a sled. */

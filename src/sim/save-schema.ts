@@ -88,6 +88,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   craftTask: () => false,
   // Nor is a reach in progress.
   handReach: () => false,
+  // Nor is sitting on a stool.
+  sitting: () => false,
   blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   builtCost: list(shape({ material: exactly(...CARRIED_MATERIALS), count: (value) => count(value) && (value as number) > 0 })),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
@@ -103,6 +105,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   chest: shape({ contents: backpackContents }),
   shelf: shape({ contents: backpackContents }),
   bed: exactly(true),
+  table: exactly(true),
+  stool: exactly(true),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,
@@ -115,6 +119,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   bedroll: exactly(true),
   bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   bedTask: shape({ bedId: count }),
+  stoolTask: shape({ stoolId: count }),
   tendTask: tendCommand,
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,

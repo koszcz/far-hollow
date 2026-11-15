@@ -15,6 +15,7 @@ import {
 } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
+import { createStools } from "./stools";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, type Activity } from "./activity";
 import { createBuilding } from "./building";
@@ -84,6 +85,9 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
   tipOutSled: "waist",
   dragSled: undefined,
 };
+
+/** The commands that leave a sitting player on their stool. Every other command is the player walking or acting, so they stand up. */
+const KEEPS_PLAYER_SITTING: ReadonlySet<Command["type"]> = new Set<Command["type"]>(["setPaused", "skipTime", "skipToRainChange"]);
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -179,6 +183,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const woodpiles = createWoodpiles(entities, walking);
   const sleds = createSleds(entities, walking, valley);
   const chests = createChests(entities, walking);
+  // The player puts down what they hold to sit, as they do to sleep.
+  const stools = createStools(entities, walking, () => {
+    carrying.drop();
+    sleds.letGo();
+  });
   const drinking = createDrinking(entities, walking, valley);
   const fishing = createFishing(entities, walking, valley, seed);
   const pot = createPot(entities, walking, valley, campfires, handReach);
@@ -206,6 +215,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         if (bedroll !== undefined) sleepOn(bedroll);
         const bed = beds.step();
         if (bed !== undefined) sleepIn(bed);
+      },
+    },
+    {
+      cancel: () => {
+        stools.cancel();
+      },
+      step: () => {
+        stools.step();
+        return undefined;
       },
     },
     drinking,
@@ -270,6 +288,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? noticeView(notice) : null,
       lastSleep,
+      sittingOn: player.sitting?.stoolId ?? null,
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
     });
   }
@@ -591,6 +610,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       const bed = beds.sleep(command.bedId);
       if (bed !== undefined) sleepIn(bed);
     },
+    sitOnStool: (command) => {
+      cancelTasks();
+      stools.sit(command.stoolId);
+    },
     drinkFromRiver: (command) => {
       cancelTasks();
       drinking.drinkFromRiver({ x: command.x, z: command.z });
@@ -646,6 +669,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         working: currentAction() !== null,
         asleep: asleepIn !== undefined,
         inBed: asleepIn === "bed",
+        sitting: asleepIn === undefined && player.sitting !== undefined,
         sick: player.sickness !== undefined,
         inRain: rain.falling && !underRoof,
         underRoof,
@@ -673,6 +697,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     // A collapse before the first morning means the player did not survive the first night.
     firstNightOver = true;
     cancelTasks();
+    stools.standUp();
     carrying.drop();
     // The sled stays where the player fell, with its load.
     sleds.letGo();
@@ -752,6 +777,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       showNotice("letGoFirst");
       return;
     }
+    // The player stands up from a stool as soon as they walk or act. Pausing or skipping time is not acting.
+    if (!KEEPS_PLAYER_SITTING.has(command.type)) stools.standUp();
     // Any new command cancels a reach in progress. If the hand has not got to the thing yet, its command is never carried out.
     if (command.type !== "setPaused") handReach.cancel();
     // TypeScript cannot tell that the handler picked by `command.type` takes this same command, so we say so.

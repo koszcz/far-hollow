@@ -10,8 +10,10 @@ import {
   cabinRoofEntities,
   campfireEntities,
   bedEntities,
+  tableEntities,
   chestEntities,
   shelfEntities,
+  stoolEntities,
   leanToEntities,
   lyingThings,
   playerEntities,
@@ -222,7 +224,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
  * Whether another structure stands on this one, so it cannot come down yet.
- * A log wall, door frame, campfire, roof frame, roof section, lean-to, chest, shelf, or bed, finished or as a blueprint, stands on the foundation under it.
+ * A log wall, door frame, campfire, roof frame, roof section, lean-to, chest, shelf, bed, table, or stool, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
@@ -274,6 +276,8 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
     ...chestEntities(entities),
     ...shelfEntities(entities),
     ...bedEntities(entities),
+    ...tableEntities(entities),
+    ...stoolEntities(entities),
     ...blueprintEntities(entities),
   ];
   return others.some((other) => {

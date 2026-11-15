@@ -1,5 +1,5 @@
 // Draws one kind of plank furniture, finished or as a blueprint, from a list of box-shaped parts in build stages.
-// The bed uses it. The model of each piece is its own asset, in its own file, which hands its parts to this file.
+// The bed, the shelf, the table, and the stool use it. The model of each piece is its own asset, in its own file, which hands its parts to this file.
 // The chest keeps its own approved meshes in chest-meshes.ts.
 // Each stage fades in above its place and is set down, like the parts of a chest.
 // A blueprint shows the parts see-through. A stage whose planks the blueprint already has shows pale and half solid.
@@ -21,11 +21,15 @@ const DELIVERED_OPACITY = 0.7;
 /** How much darker or lighter one plank is than the next, as a share of the wood colour. */
 const PLANK_SHADES = [1, 0.9, 1.05, 0.94, 0.86, 1.02, 0.97, 0.91];
 
-/** One box-shaped part: its size, the middle of it, both in metres in the piece's own space, and its colour if it is not plank wood. */
+/**
+ * One box-shaped part: its size, the middle of it, both in metres in the piece's own space, and its colour if it is not plank wood.
+ * `tilt` turns the part about the front-to-back axis, in radians, for a slanted part such as a brace.
+ */
 export interface FurniturePart {
   readonly size: [number, number, number];
   readonly at: [number, number, number];
   readonly colour?: number;
+  readonly tilt?: number;
 }
 
 /** What a piece of furniture looks like, and how to tell it is finished. */
@@ -115,9 +119,10 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
         copy.transparent = true;
         return copy;
       });
-      const meshes = parts.map(({ at }, i) => {
+      const meshes = parts.map(({ at, tilt }, i) => {
         const mesh = new THREE.Mesh(geometries[stageIndex]?.[i], blueprintMaterial);
         mesh.position.set(...at);
+        mesh.rotation.z = tilt ?? 0;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         stageRoot.add(mesh);

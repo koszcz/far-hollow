@@ -150,6 +150,11 @@ export type Command =
    */
   | { type: "sleepInBed"; bedId: number }
   /**
+   * Walk the player beside a finished stool, given by its entity id, and sit on it. While they sit, fatigue comes back slowly
+   * and time runs at normal speed. The player stands up as soon as they walk or act. Sitting does not change the respawn point.
+   */
+  | { type: "sitOnStool"; stoolId: number }
+  /**
    * Walk the player to the riverbank nearest a spot on the river, given in metres, and drink there.
    * River water is not boiled, so drinking it fills thirst but makes the player sick.
    */
@@ -240,6 +245,8 @@ export interface GameView {
    * sleep, so drawing can tell a new one. `at` is the middle of the bedroll or bed. Drawing plays the sleep animation from it.
    */
   readonly lastSleep: SleepView | null;
+  /** The entity id of the stool the player sits on, or null if they are not sitting. */
+  readonly sittingOn: number | null;
   /**
    * The player's reach to pick something up or put something down, or null if they are not reaching.
    * `height` is "low" for the ground and "waist" for a woodpile, chest, or sled. The hand gets to the thing, and the
@@ -513,6 +520,8 @@ export type ThingInReach =
         | "chest"
         | "shelf"
         | "bed"
+        | "table"
+        | "stool"
         | "bedroll"
         | "pile"
         | "sled";

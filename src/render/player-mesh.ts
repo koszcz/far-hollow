@@ -6,6 +6,7 @@
 // While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
 // pulling a drawknife, and the axe goes on the back. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down, Lie_Idle, and Lie_StandUp clips. The owner approved it.
+// While sitting on a stool, the draft "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
 // While sawing planks, "sawing-animation", posed in code by player-saw-pose.ts, holds the log on the sawhorse with the
 // left hand and saws it with the right. The saw is the approved "saw-model", built by saw-model.ts. The axe goes on the back.
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
@@ -34,6 +35,7 @@ import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt } from "./sleep-animation";
+import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
 
 /** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
@@ -51,6 +53,8 @@ const SPLIT_CLIP = "2H_Melee_Attack_Chop";
 const LIE_DOWN_CLIP = "Lie_Down";
 const LIE_IDLE_CLIP = "Lie_Idle";
 const STAND_UP_CLIP = "Lie_StandUp";
+/** The clips for sitting down on a stool, resting there, and standing up: the draft "sit-animation". */
+const SIT_CLIPS = { sitDown: "Sit_Chair_Down", sitIdle: "Sit_Chair_Idle", standUp: "Sit_Chair_StandUp" } as const;
 /** The clips for reaching to the ground, and out at waist height. */
 const REACH_CLIPS: Readonly<Record<ReachHeight, string>> = { low: "PickUp", waist: "Interact" };
 /** The clip that holds both arms still while the right hand steadies a log on the shoulder. */
@@ -126,6 +130,11 @@ export interface PlayerMesh {
    * player reached the bedroll, or undefined while not sleeping.
    */
   setSleeping(seconds: number | undefined): void;
+  /**
+   * Sits the player down on a stool, rests there, or stands them up, as sit-animation.ts times it.
+   * Pass which clip shows and how far into it, or undefined while not sitting.
+   */
+  setSitting(body: SitBody | undefined): void;
   /**
    * Bends down, or reaches out at waist height, to pick something up or put it down. Pass the seconds since the reach
    * began, from 0 to REACH_SECONDS, or undefined while not reaching. The hand gets to the thing at HAND_AT_SECONDS.
@@ -211,6 +220,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const split = clip(SPLIT_CLIP);
   const carry = clip(CARRY_CLIP);
   const sleepClips = { lieDown: clip(LIE_DOWN_CLIP), lieIdle: clip(LIE_IDLE_CLIP), standUp: clip(STAND_UP_CLIP) };
+  const sitClips = { sitDown: clip(SIT_CLIPS.sitDown), sitIdle: clip(SIT_CLIPS.sitIdle), standUp: clip(SIT_CLIPS.standUp) };
   const reachClips = { low: clip(REACH_CLIPS.low), waist: clip(REACH_CLIPS.waist) };
   let playing: THREE.AnimationAction | undefined;
   /** Shows `action` frozen `seconds` into its clip. */
@@ -293,6 +303,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let splittingAt: number | undefined;
   /** Seconds since the player reached the bedroll, while sleeping. */
   let sleepingAt: number | undefined;
+  /** Which sitting clip shows, and how far into it, while the player sits on a stool or stands up from one. */
+  let sittingBody: SitBody | undefined;
   /** How far the player is through a reach, while reaching. */
   let reaching: { height: ReachHeight; seconds: number; distance?: number } | undefined;
   /**
@@ -447,7 +459,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       debarkingSince !== undefined ||
       sawingSince !== undefined ||
       fishingSince !== undefined ||
-      sleepingAt !== undefined;
+      sleepingAt !== undefined ||
+      sittingBody !== undefined;
     placeAxe(!swinging && handsBusy);
   }
 
@@ -659,6 +672,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       showClip(action, body.clip === "lieIdle" ? body.clipSeconds : Math.min(body.clipSeconds, last));
       return;
     }
+    if (sittingBody !== undefined) {
+      const action = sitClips[sittingBody.clip];
+      // Sitting down and standing up play once, so they hold their last frame rather than start again.
+      const last = action.getClip().duration - 0.001;
+      showClip(action, sittingBody.clip === "sitIdle" ? sittingBody.clipSeconds : Math.min(sittingBody.clipSeconds, last));
+      return;
+    }
     if (choppingAt !== undefined) {
       showClip(chop, choppingAt * CHOP_SWINGS_PER_SECOND * chop.getClip().duration);
       return;
@@ -809,6 +829,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     setSleeping(seconds) {
       const changed = (seconds === undefined) !== (sleepingAt === undefined);
       sleepingAt = seconds;
+      if (changed) updateAxe();
+      pose();
+    },
+    setSitting(body) {
+      const changed = (body === undefined) !== (sittingBody === undefined);
+      sittingBody = body;
       if (changed) updateAxe();
       pose();
     },

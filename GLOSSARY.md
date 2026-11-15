@@ -64,7 +64,7 @@ Anything the player gathers or processes to build or craft with, such as logs, p
 _Avoid_: Resource, item, loot
 
 **Log**:
-A length of tree trunk cut from a felled tree. A small tree gives 2 logs, a mid-sized tree 3, and a big tree 4. A bigger tree takes longer to chop down.
+A length of tree trunk cut from a felled tree. A small tree gives 3 logs, a mid-sized tree 4, and a big tree 5. A bigger tree takes longer to chop down.
 _Avoid_: Timber, wood
 
 **Debarked log**:
@@ -88,10 +88,14 @@ _Avoid_: Pile, cluster, bundle
 Split pieces of a log, made with the axe. Firewood is used as fuel and burns longer than sticks.
 
 **Stump**:
-What is left after a tree is felled. A stump slowly regrows into a tree over many days.
+What is left after a tree is felled. A sapling sprouts from it after a day, and it grows back into a full tree over 6 game days.
 
 **Sapling**:
-A young tree the player can plant. It grows into a tree over many days.
+A small young tree, either growing from a stump or planted by the player. The player can dig one up into the backpack and plant it elsewhere. It grows into a young tree, then a full tree, over 5 game days.
+_Avoid_: Seedling, sprout
+
+**Young tree**:
+The stage between a sapling and a full tree. It blocks walking but is too young to chop.
 
 ## Tools and carrying
 

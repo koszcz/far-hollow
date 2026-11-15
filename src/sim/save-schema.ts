@@ -74,6 +74,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   logPickUpTask: shape({ logId: count, thenSplit: exactly(true) }, ["thenSplit"]),
   logDropTask: point,
   stump: exactly(true),
+  fellHeading: finite,
   log: shape({ heading: finite }),
   debarkedLog: shape({ heading: finite }),
   debarkTask: shape({ logId: count, secondsDone: finite }),

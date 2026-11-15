@@ -29,3 +29,7 @@ Several actions walk the player to a thing's centre with `walking.walkTo`. When 
 - [ ] A unit test covers at least one changed action, such as a bed: the player stops on the side they came from.
 - [ ] After each changed walk, the action is carried out. The player never stops out of reach.
 - [ ] Existing tests pass.
+
+## Comments
+
+- From ticket 01: on seed 42, after the player fells the tree nearest the start, the farthest log's nearer-end debark stand spot is blocked by another tree. The debark walk then stops out of line with the log. This is a concrete case for `src/sim/debarking.ts`.

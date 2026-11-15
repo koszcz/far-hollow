@@ -83,6 +83,8 @@ export interface Entity {
   logDropTask?: { x: number; z: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. */
   stump?: true;
+  /** The heading a felled tree fell toward, about the vertical axis from +z, in radians. Its logs lie along it from the stump. */
+  fellHeading?: number;
   /** Marks a log lying on the ground. Its position is the middle of the log. `heading` is the log's turn about the vertical axis, in radians. */
   log?: { heading: number };
   /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */

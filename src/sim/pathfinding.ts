@@ -22,7 +22,7 @@ export function findPath(map: WalkMap, from: GroundPoint, to: GroundPoint): Grou
   const reachesTarget = goalCell === cellIndexAt(map, to);
   if (goalCell === startCell) return reachesTarget ? [{ x: to.x, z: to.z }] : [];
 
-  const cells = searchCells(map, startCell, goalCell);
+  const cells = searchCells(map, startCell, (cell) => cell === goalCell, cellEstimateTo(map, goalCell));
   if (cells.length === 0) {
     // The player can stand where something now blocks walking, with every square around them blocked too,
     // such as after placing a campfire beside them under a lean-to. They step out to the nearest open square, then walk on.
@@ -33,6 +33,46 @@ export function findPath(map: WalkMap, from: GroundPoint, to: GroundPoint): Grou
   const spots = cells.map((cell) => cellCentre(map, cell));
   if (reachesTarget) spots[spots.length - 1] = { x: to.x, z: to.z };
   return smooth(map, from, spots);
+}
+
+/**
+ * Finds the spots the player walks through, in order, to reach the nearest spot within `distance` of `target`.
+ * "Nearest" means the shortest walk, not the shortest straight line, so the player arrives on the side they came from
+ * unless something blocks it. The path ends at a spot within `distance` of the target, and does not include `from`.
+ * If the player already stands within `distance`, the path is empty.
+ * If no spot within `distance` can be reached, the path ends at the closest spot to the target that can, as `findPath` does.
+ */
+export function findPathWithin(map: WalkMap, from: GroundPoint, target: GroundPoint, distance: number): GroundPoint[] {
+  if (groundDistance(from, target) <= distance) return [];
+  const startCell = cellIndexAt(map, from);
+  if (startCell === undefined) return [];
+
+  // On open ground, the shortest walk is straight to the nearest point of the circle around the target.
+  const away = groundDistance(from, target);
+  const nearest = { x: target.x + ((from.x - target.x) / away) * distance, z: target.z + ((from.z - target.z) / away) * distance };
+  if (hasLineOfSight(map, from, nearest)) return [nearest];
+
+  const regions = regionsOf(map);
+  const openCell = nearestCellWhere(map, from, (cell) => regions[cell] !== BLOCKED_REGION);
+  const startRegion = regions[openCell ?? startCell];
+  const isGoal = (cell: number) => map.blockerCounts[cell] === 0 && groundDistance(cellCentre(map, cell), target) <= distance;
+  // Check first that some cell within reach shares the player's region, so a hopeless search does not cover the whole region.
+  const closest = nearestCellWhere(map, target, (cell) => regions[cell] === startRegion);
+  if (closest === undefined || !isGoal(closest)) return findPath(map, from, target);
+  if (isGoal(startCell)) return [cellCentre(map, startCell)];
+
+  const cells = searchCells(map, startCell, isGoal, (cell) => Math.max(0, groundDistance(cellCentre(map, cell), target) - distance) / map.cellSize);
+  if (cells.length === 0) {
+    // The player stands where something now blocks walking, with every square around them blocked too. They step out first.
+    if (isWalkable(map, from) || openCell === undefined || openCell === startCell) return [];
+    const out = cellCentre(map, openCell);
+    return [out, ...findPathWithin(map, out, target, distance)];
+  }
+  return smooth(
+    map,
+    from,
+    cells.map((cell) => cellCentre(map, cell)),
+  );
 }
 
 const BLOCKED_REGION = 0;
@@ -183,25 +223,31 @@ const NEIGHBOURS: readonly (readonly [number, number])[] = [
   [-1, -1],
 ];
 
+/** The fewest cells' walk from any cell to `goalCell` on open ground, for A* to estimate how far is left. */
+function cellEstimateTo(map: WalkMap, goalCell: number): (cell: number) => number {
+  const side = map.cellsPerSide;
+  const goalColumn = goalCell % side;
+  const goalRow = Math.floor(goalCell / side);
+  return (cell) => {
+    const dx = Math.abs((cell % side) - goalColumn);
+    const dz = Math.abs(Math.floor(cell / side) - goalRow);
+    return Math.max(dx, dz) + (Math.SQRT2 - 1) * Math.min(dx, dz);
+  };
+}
+
 /**
- * A* search over the grid. Moves go to any of the 8 neighbouring cells, but never cross a blocked edge or cut a blocked corner.
- * Returns the cells from just after the start up to the goal, or nothing if the goal cannot be reached.
+ * A* search over the grid, from the start to the first cell that `isGoal` accepts, in walking order.
+ * `estimate` must never say more cells are left to walk than really are.
+ * Moves go to any of the 8 neighbouring cells, but never cross a blocked edge or cut a blocked corner.
+ * Returns the cells from just after the start up to the goal, or nothing if no goal can be reached.
  */
-function searchCells(map: WalkMap, startCell: number, goalCell: number): number[] {
+function searchCells(map: WalkMap, startCell: number, isGoal: (cell: number) => boolean, estimate: (cell: number) => number): number[] {
   const scratch = scratchFor(map);
   scratch.search += 1;
   const search = scratch.search;
   const { distance, cameFrom, searchOf, closedInSearch } = scratch;
   const side = map.cellsPerSide;
-  const goalColumn = goalCell % side;
-  const goalRow = Math.floor(goalCell / side);
   const open = new MinHeap();
-
-  function estimate(cell: number): number {
-    const dx = Math.abs((cell % side) - goalColumn);
-    const dz = Math.abs(Math.floor(cell / side) - goalRow);
-    return Math.max(dx, dz) + (Math.SQRT2 - 1) * Math.min(dx, dz);
-  }
 
   distance[startCell] = 0;
   cameFrom[startCell] = -1;
@@ -210,7 +256,7 @@ function searchCells(map: WalkMap, startCell: number, goalCell: number): number[
 
   while (open.size > 0) {
     const cell = open.pop();
-    if (cell === goalCell) return routeTo(cameFrom, startCell, goalCell);
+    if (isGoal(cell)) return routeTo(cameFrom, startCell, cell);
     if (closedInSearch[cell] === search) continue;
     closedInSearch[cell] = search;
     const column = cell % side;

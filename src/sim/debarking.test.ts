@@ -4,6 +4,7 @@ import { BARK_PER_LOG, DEBARK_SECONDS, DEBARK_STAND_METRES } from "./debarking";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { finishReach } from "./test-steps";
+import { isWalkable } from "./walk-map";
 
 describe("debarking a log", () => {
   it("walks the player to a log on the ground, then works at it for a while", () => {
@@ -22,7 +23,7 @@ describe("debarking a log", () => {
 
   it("stands the player just off the nearer end of the log, on its line, so each stroke runs along it", () => {
     const game = gameWithLogsOnGround();
-    const log = farthestLogOnGround(game);
+    const log = logWithOpenNearerEnd(game);
     const heading = log.log.heading;
     const startedAt = { ...onlyPlayer(game).position };
 
@@ -205,6 +206,22 @@ function farthestLogOnGround(game: Game) {
   const farthest = logs.sort((a, b) => distance(b) - distance(a))[0];
   if (farthest === undefined) throw new Error("No log on the ground");
   return farthest;
+}
+
+/**
+ * The log on the ground whose nearer end has open ground to stand on.
+ * Another tree can block the spot off one end, and walking round a blocked stand spot is a separate fix.
+ */
+function logWithOpenNearerEnd(game: Game) {
+  const player = onlyPlayer(game);
+  const log = [...game.entities.with("log", "position")].find((candidate) => {
+    const along = { x: Math.sin(candidate.log.heading), z: Math.cos(candidate.log.heading) };
+    const side = Math.sign((player.position.x - candidate.position.x) * along.x + (player.position.z - candidate.position.z) * along.z) || 1;
+    const stand = { x: candidate.position.x + along.x * DEBARK_STAND_METRES * side, z: candidate.position.z + along.z * DEBARK_STAND_METRES * side };
+    return isWalkable(game.walkMap, stand);
+  });
+  if (log === undefined) throw new Error("No log with open ground off its nearer end");
+  return log;
 }
 
 function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): number {

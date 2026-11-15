@@ -298,6 +298,22 @@ _Avoid_: Decoration, prop
 Furniture that stores small materials, tools, and food, grouped by kind. It has a weight limit. Putting things in chests is how the player keeps the camp organised.
 _Avoid_: Box, crate, container, storage
 
+**Shelf**:
+Furniture that stores small materials, tools, and food, like a chest, but holds less. It stands on the ground.
+_Avoid_: Rack, cupboard, bookcase
+
+**Bed**:
+Furniture built from planks that the player sleeps in. It restores fatigue faster than a bedroll and becomes the respawn point when slept in.
+_Avoid_: Cot, bunk
+
+**Table**:
+Furniture built from planks. Food eaten within reach of a table restores more hunger.
+_Avoid_: Desk, bench
+
+**Stool**:
+Furniture built from planks that the player sits on. Sitting slowly restores fatigue while time runs at normal speed.
+_Avoid_: Chair, seat
+
 **Woodpile**:
 A structure the player builds to stack logs, debarked logs, and firewood. It holds a fixed number of them.
 _Avoid_: Log pile, log rack, stockpile

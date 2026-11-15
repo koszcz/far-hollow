@@ -13,7 +13,16 @@ import {
   type StructureKind,
 } from "./structures";
 import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
-import { LARGE_VALLEY_UPGRADES, PLANK_ROOFS_SAVE_VERSION, readSave, ROOFS_FACE_SAVE_VERSION, SAVE_VERSION, SLEDS_SAVE_VERSION, writeSave } from "./save";
+import {
+  LARGE_VALLEY_UPGRADES,
+  PLANK_CHESTS_SAVE_VERSION,
+  PLANK_ROOFS_SAVE_VERSION,
+  readSave,
+  ROOFS_FACE_SAVE_VERSION,
+  SAVE_VERSION,
+  SLEDS_SAVE_VERSION,
+  writeSave,
+} from "./save";
 import { isWalkable } from "./walk-map";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
@@ -48,7 +57,7 @@ describe("where a roof can go", () => {
 });
 
 describe("building a roof", () => {
-  it("spends planks from the backpack, and finishes over the square", () => {
+  it("takes its planks from the backpack, and finishes over the square", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     framedSquare(game, square, 0);
@@ -56,13 +65,14 @@ describe("building a roof", () => {
     const blueprint = onlyRoofBlueprint(game);
     const id = idOf(game, blueprint);
     give(game, "plank", ROOF_PLANK_COST);
-    // Nothing is carried to a roof: it costs only planks.
-    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([]);
+    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 0, needs: ROOF_PLANK_COST }]);
 
     send(game, { type: "build", blueprintId: id });
-    // Halfway, most of the planks are still in the backpack.
+    // Halfway, the blueprint has taken every plank it needs and spent only some.
     runSeconds(game, ROOF_BUILD_SECONDS / 2 - 1);
-    expect(game.client.getView().backpack.plank).toBeGreaterThan(1);
+    expect(game.client.getView().backpack.plank ?? 0).toBe(0);
+    expect(blueprint.blueprint?.delivered).toEqual({ plank: ROOF_PLANK_COST });
+    expect(blueprint.blueprint?.materialsSpent).toBeLessThan(ROOF_PLANK_COST);
     runSeconds(game, ROOF_BUILD_SECONDS / 2 + 2);
 
     expect(game.client.getView().backpack.plank ?? 0).toBe(0);
@@ -227,6 +237,27 @@ describe("loading a save from before plank roofs", () => {
     expect(blueprint.blueprint).toEqual({ structure: "roof", progress: 0, materialsSpent: 0, delivered: {} });
     expect(blueprint.facing).toEqual({ turns: 3 });
     expect(onlyPlayer(loaded.game).backpack.contents.bark).toBe(barkBefore + 2);
+  });
+});
+
+describe("loading a roof blueprint from a save made before blueprints kept planks", () => {
+  it("counts the planks already spent on it as planks it has had, and gives them back when taken down", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    framedSquare(game, square, 0);
+    send(game, place("roof", square, 0));
+    onlyRoofBlueprint(game).blueprint = { structure: "roof", progress: 2.5 / ROOF_PLANK_COST, materialsSpent: 3, delivered: {} };
+    const save = { ...writeSave(game), version: PLANK_CHESTS_SAVE_VERSION - 1 };
+
+    const loaded = readSave(structuredClone(save));
+    if (!loaded.ok) throw new Error("The save was rejected");
+    const blueprint = onlyRoofBlueprint(loaded.game);
+    expect(blueprint.blueprint).toMatchObject({ materialsSpent: 3, delivered: { plank: 3 } });
+    expect(loaded.game.client.describeBlueprint(idOf(loaded.game, blueprint))?.deliveries).toEqual([{ material: "plank", has: 3, needs: ROOF_PLANK_COST }]);
+
+    send(loaded.game, { type: "takeDown", pieceId: idOf(loaded.game, blueprint) });
+    stepUntil(loaded.game, () => !loaded.game.entities.has(blueprint));
+    expect(onlyPlayer(loaded.game).backpack.contents.plank).toBe(3);
   });
 });
 

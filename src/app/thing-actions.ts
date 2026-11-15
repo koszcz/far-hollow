@@ -350,11 +350,9 @@ function sledActions(sled: SledView, view: GameView): readonly ThingAction[] {
 function blueprintActions(blueprintId: number, reader: ActionReader, view: GameView): readonly ThingAction[] {
   const blueprint = reader.describeBlueprint(blueprintId);
   const build = offerUnless(buildLackReason(blueprint?.lacks ?? null), "build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
-  const needed = blueprint?.deliveries.find(({ material, has: delivered, needs }) => material === view.carrying && delivered < needs);
-  const deliver =
-    needed === undefined
-      ? []
-      : [offer(`deliver:${needed.material}`, strings.actions.deliver[needed.material], { hud: "log" }, { type: "deliverToBlueprint", blueprintId })];
+  const carried = view.carrying;
+  const needed = carried !== null && blueprint?.deliveries.some(({ material, has: delivered, needs }) => material === carried && delivered < needs);
+  const deliver = needed ? [offer(`deliver:${carried}`, strings.actions.deliver[carried], { hud: "log" }, { type: "deliverToBlueprint", blueprintId })] : [];
   return withMain([...deliver, build, takeDown(blueprintId)], deliver[0]?.id ?? "build");
 }
 
@@ -366,6 +364,7 @@ function buildLackReason(lacks: BuildLack | null): string | undefined {
   switch (lacks.material) {
     case "stick":
     case "bark":
+    case "plank":
       return reasons.noContent[lacks.material];
     case "log":
     case "debarkedLog":

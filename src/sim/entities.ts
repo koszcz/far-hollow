@@ -8,7 +8,7 @@ import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
-import type { DeliveredMaterial, EdgePieceKind, GroundRect, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
+import type { DeliveredMaterial, EdgePieceKind, GroundRect, KeptMaterial, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -106,9 +106,15 @@ export interface Entity {
   /**
    * Marks a structure the player has placed but not finished. Its position is the structure's centre.
    * `progress` runs from 0 to 1. `materialsSpent` counts the materials construction has used so far, one for each stage begun.
-   * `delivered` counts the materials the player has carried to it, such as debarked logs, including any already spent.
+   * `delivered` counts the materials it has been given and keeps, including any already spent:
+   * those the player carried to it, such as debarked logs, and the planks it took from the backpack.
    */
-  blueprint?: { structure: StructureKind; progress: number; materialsSpent: number; delivered: Partial<Record<DeliveredMaterial, number>> };
+  blueprint?: { structure: StructureKind; progress: number; materialsSpent: number; delivered: Partial<Record<KeptMaterial, number>> };
+  /**
+   * The cost a blueprint or finished structure was placed with, when its structure cost something else then.
+   * A chest from a save made before chests cost planks keeps its 2 debarked logs. Without this, the structure's cost applies.
+   */
+  builtCost?: { material: DeliveredMaterial; count: number }[];
   /** Which way a blueprint, or the structure built from it, faces. */
   facing?: { turns: QuarterTurns };
   /** The blueprint the player is walking to or building, given by its entity id. */

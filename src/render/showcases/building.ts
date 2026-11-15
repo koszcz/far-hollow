@@ -1,9 +1,9 @@
 // Showcases for structures built on a foundation: the deck, furniture, the sled, walls, and roofs. The registry is src/render/showcases/index.ts.
 import { setComponent, type Entity, type EntityStore } from "../../sim/entities";
 import { BUILD_FADE_SHARE } from "../structure-look";
+import { CHEST_MODEL_STAGES } from "../chest-meshes";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
 import {
-  CHEST_LOG_COST,
   DOOR_FRAME_LOG_COST,
   FOUNDATION_LOG_COST,
   LOG_WALL_LOG_COST,
@@ -155,15 +155,15 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   chest: {
     radius: 1.3,
     focus: { x: 0, y: 0.25, z: 0 },
-    // A blueprint with one log delivered, the lid being set down, then the finished chest from the front and above.
+    // A blueprint holding 2 of its 4 planks, the lid being set down, then the finished chest from the front and above.
     shots: [
-      { label: "blueprint, 1 of 2 logs delivered", yaw: 30, pitch: 30, seconds: 0 },
-      { label: "lid above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / CHEST_LOG_COST },
+      { label: "blueprint, 2 of 4 planks", yaw: 30, pitch: 30, seconds: 0 },
+      { label: "lid above its place", yaw: 30, pitch: 30, seconds: (1 + BUILD_FADE_SHARE) / CHEST_MODEL_STAGES },
       { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
       { label: "built, from above", yaw: 140, pitch: 55, seconds: 1 },
     ],
     build({ place, movePlayer }) {
-      place(0, 0, { blueprint: { structure: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } }, facing: { turns: 0 } });
+      place(0, 0, { blueprint: { structure: "chest", progress: 0, materialsSpent: 0, delivered: { plank: 2 } }, facing: { turns: 0 } });
       movePlayer(1, 0.2, -Math.PI / 2);
     },
     pose({ store }, shot) {

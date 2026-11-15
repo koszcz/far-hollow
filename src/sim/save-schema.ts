@@ -5,7 +5,7 @@ import type { Entity } from "./entities";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
 import { EDGE_PIECE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
-import { isDelivered, STRUCTURES } from "./structures";
+import { isDelivered, isKept, STRUCTURES } from "./structures";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "./wood-and-fuel";
 
 /** Says whether a value has the right shape. */
@@ -38,8 +38,10 @@ const point = shape({ x: finite, z: finite });
 const vec3 = shape({ x: finite, y: finite, z: finite });
 const backpackContents: Check = (value) =>
   shape(Object.fromEntries(Object.keys(CONTENT_WEIGHT_KG).map((content) => [content, count])), Object.keys(CONTENT_WEIGHT_KG))(value);
-/** Every material the player carries to a blueprint. */
-const DELIVERED_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.flatMap(({ material }) => (isDelivered(material) ? [material] : []))))];
+/** Every material a blueprint keeps once it has it. */
+const DELIVERED_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.flatMap(({ material }) => (isKept(material) ? [material] : []))))];
+/** Every material carried to a blueprint on the shoulder, which an older cost may name. */
+const CARRIED_MATERIALS = [...new Set(STRUCTURES.flatMap(({ cost }) => cost.flatMap(({ material }) => (isDelivered(material) ? [material] : []))))];
 const deliveredCounts: Check = shape(Object.fromEntries(DELIVERED_MATERIALS.map((material) => [material, count])), DELIVERED_MATERIALS);
 
 const fuel = exactly(...CAMPFIRE_FUELS);
@@ -87,6 +89,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   // Nor is a reach in progress.
   handReach: () => false,
   blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
+  builtCost: list(shape({ material: exactly(...CARRIED_MATERIALS), count: (value) => count(value) && (value as number) > 0 })),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
   deliverTask: shape({ blueprintId: count }),

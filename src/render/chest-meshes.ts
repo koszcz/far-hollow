@@ -2,17 +2,20 @@
 // A chest is a rough box hewn from debarked logs: corner posts with three stacked planks in each wall, a grip on each end,
 // and a lid of planks held by two battens.
 // Its front faces +z when it faces the default way.
-// Construction has one stage per debarked log. The first builds the body, and the second puts on the lid.
+// The model is built in two parts, each taking half of construction. The first builds the body, and the second puts on the lid.
 // Each part fades in above its place and is set down, like the sticks of a campfire.
-// A blueprint shows the parts see-through. A part whose debarked log has been delivered shows pale and half solid.
+// A blueprint shows the parts see-through. A part whose materials the blueprint already has shows pale and half solid:
+// 2 planks for each part, or for a chest from an older save, 1 debarked log.
 // While the player places a chest from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, chestEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES } from "../sim/structures";
+import { CHEST_DEPTH_METRES, CHEST_WIDTH_METRES, costOf, isKept } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 
+/** How many parts the chest model is built in: the body, then the lid. */
+export const CHEST_MODEL_STAGES = 2;
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
@@ -217,12 +220,12 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
 
   /**
    * Shows how far construction has gone. Built stages are solid and in place, the stage being built fades in and is set down,
-   * stages whose log has been delivered wait half solid, and the rest show see-through.
+   * stages whose materials the blueprint has wait half solid, and the rest show see-through.
    */
   function showProgress(item: Drawn, entity: Entity & { position: Vec3 }, progress: number, delivered: number): void {
     item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
     item.root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
-    const stagesDone = progress * CHEST_LOG_COST;
+    const stagesDone = progress * CHEST_MODEL_STAGES;
     item.stages.forEach((stage, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
       if (share <= 0) {
@@ -237,6 +240,14 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       });
       stage.root.position.y = buildLift(share);
     });
+  }
+
+  /** How many parts of a chest blueprint have all their materials: the share of its cost it has, in whole parts. */
+  function partsReady(entity: Entity & Required<Pick<Entity, "blueprint">>): number {
+    const cost = costOf(entity, "chest");
+    const needs = cost.reduce((sum, { count }) => sum + count, 0);
+    const has = cost.reduce((sum, { material }) => sum + (isKept(material) ? (entity.blueprint.delivered[material] ?? 0) : 0), 0);
+    return needs === 0 ? CHEST_MODEL_STAGES : Math.floor((has / needs) * CHEST_MODEL_STAGES);
   }
 
   function disposeFading(stages: readonly Stage[]): void {
@@ -260,11 +271,11 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "chest") continue;
-        showProgress(draw(entity), entity, entity.blueprint.progress, entity.blueprint.delivered.debarkedLog ?? 0);
+        showProgress(draw(entity), entity, entity.blueprint.progress, partsReady(entity));
         seen.add(entity);
       }
       for (const entity of chests) {
-        showProgress(draw(entity), entity, 1, CHEST_LOG_COST);
+        showProgress(draw(entity), entity, 1, CHEST_MODEL_STAGES);
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);

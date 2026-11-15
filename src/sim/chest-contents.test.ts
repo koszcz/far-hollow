@@ -226,12 +226,9 @@ function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "posit
   send(game, { type: "placeBlueprint", structure: "chest", turns: 0, x: square.x, z: square.z });
   const blueprint = game.entities.with("blueprint", "position").first;
   if (blueprint === undefined) throw new Error("No blueprint");
-  const needs = game.client.describeBlueprint(idOf(game, blueprint))?.deliveries[0]?.needs ?? 0;
-  for (let i = 0; i < needs; i += 1) {
-    game.entities.addComponent(onlyPlayer(game), "carrying", "debarkedLog");
-    send(game, { type: "deliverToBlueprint", blueprintId: idOf(game, blueprint) });
-    stepUntil(game, () => game.client.getView().carrying === null);
-  }
+  // The chest takes the planks it needs from the backpack, and the player keeps none afterwards.
+  const contents = onlyPlayer(game).backpack.contents;
+  contents.plank = (contents.plank ?? 0) + (game.client.describeBlueprint(idOf(game, blueprint))?.deliveries[0]?.needs ?? 0);
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   stepUntil(game, () => game.entities.with("chest").size > 0);
   const chest = game.entities.with("chest", "position").first;

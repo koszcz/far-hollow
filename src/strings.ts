@@ -141,11 +141,13 @@ export const strings = {
     deliveries: {
       log: (has: number, needs: number) => `Logs: ${has} of ${needs}`,
       debarkedLog: (has: number, needs: number) => `Debarked logs: ${has} of ${needs}`,
+      plank: (has: number, needs: number) => `Planks: ${has} of ${needs}`,
     },
     /** How to add the material the blueprint still waits for. */
     deliverHint: {
       log: "Carry a log here and click the blueprint to add it.",
       debarkedLog: "Carry a debarked log here and click the blueprint to add it.",
+      plank: "Bring planks in your backpack and click the blueprint to build with them.",
     },
     buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",
   },
@@ -289,7 +291,7 @@ export const strings = {
     /** A tool that is not in the backpack, such as "needs the axe". */
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
     /** A fuel or wood the backpack does not hold. */
-    noContent: { firewood: "no firewood", stick: "no sticks", bark: "no bark" },
+    noContent: { firewood: "no firewood", stick: "no sticks", bark: "no bark", plank: "no planks" },
     fireEmpty: "no fuel",
     fireFull: "the fire is full",
     lightFirst: "light the fire first",

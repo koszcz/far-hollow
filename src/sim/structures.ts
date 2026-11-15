@@ -35,17 +35,29 @@ import {
   type DeliveredMaterial,
   type EdgePieceKind,
   type GroundRect,
+  type KeptMaterial,
   type Placement,
   type QuarterTurns,
   type StructureKind,
 } from "./structure-kind";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
+export type {
+  DeliveredMaterial,
+  EdgePieceKind,
+  FurnitureKind,
+  GroundRect,
+  KeptMaterial,
+  Placement,
+  QuarterTurns,
+  StructureKind,
+  WorkStationKind,
+} from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
  * It spends a delivered material, such as a debarked log, from what the player carried to the blueprint.
+ * It spends planks from the ones the blueprint keeps. Building takes them from the backpack, as many as the blueprint still needs.
  */
 export type BuildMaterial = Extract<BackpackContent, "stick" | "bark" | "plank"> | DeliveredMaterial;
 
@@ -398,8 +410,8 @@ const woodpile: StructureDefinition & { readonly kind: "woodpile" } = {
   finish: () => ({ woodpile: { log: 0, debarkedLog: 0, firewood: 0 }, blocksWalking: { radius: WOODPILE_WALK_BLOCK_RADIUS_METRES } }),
 };
 
-/** How many debarked logs a chest costs. Construction spends one at the start of each stage. */
-export const CHEST_LOG_COST = 2;
+/** How many planks a chest costs. Construction spends one at the start of each stage. */
+export const CHEST_PLANK_COST = 4;
 /** How long the player holds the build action to build a chest, in seconds. */
 export const CHEST_BUILD_SECONDS = 8;
 /** A chest is this wide, along its front, in metres. */
@@ -420,7 +432,7 @@ const chest: StructureDefinition & { readonly kind: "chest" } = {
   kind: "chest",
   placement: "anywhere",
   finishedAs: "chest",
-  cost: [{ material: "debarkedLog", count: CHEST_LOG_COST }],
+  cost: [{ material: "plank", count: CHEST_PLANK_COST }],
   tool: "axe",
   buildSeconds: CHEST_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, CHEST_WIDTH_METRES / 2, CHEST_DEPTH_METRES / 2, turns),
@@ -687,6 +699,19 @@ export function isPlacedFreely(kind: StructureKind): boolean {
 /** Whether a material is carried to a blueprint on the player's shoulder, rather than taken from the backpack. */
 export function isDelivered(material: BuildMaterial): material is DeliveredMaterial {
   return material === "log" || material === "debarkedLog";
+}
+
+/** Whether a blueprint keeps a material once it has it: one carried to it on the shoulder, or planks. See KeptMaterial. */
+export function isKept(material: BuildMaterial): material is KeptMaterial {
+  return isDelivered(material) || material === "plank";
+}
+
+/**
+ * What a blueprint or finished structure of `kind` costs: the cost it was placed with, if that differs from its structure's cost now,
+ * or else its structure's cost.
+ */
+export function costOf(entity: Entity, kind: StructureKind): readonly MaterialCost[] {
+  return entity.builtCost ?? structureOf(kind).cost;
 }
 
 /**

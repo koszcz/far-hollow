@@ -10,10 +10,20 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
-import type { BuildMaterial, DeliveredMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
+import type { BuildMaterial, KeptMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
 import type { GroundPoint } from "./valley";
 
-export type { BuildMaterial, DeliveredMaterial, FurnitureKind, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
+export type {
+  BuildMaterial,
+  DeliveredMaterial,
+  FurnitureKind,
+  KeptMaterial,
+  MaterialCost,
+  Placement,
+  QuarterTurns,
+  StructureKind,
+  WorkStationKind,
+} from "./structures";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
@@ -329,8 +339,8 @@ export interface BlueprintView {
   readonly structure: StructureKind;
   /** How far construction has gone, from 0 to 1. */
   readonly progress: number;
-  /** For each material the player carries to it, such as debarked logs: how many it has had and how many it needs. */
-  readonly deliveries: readonly { readonly material: DeliveredMaterial; readonly has: number; readonly needs: number }[];
+  /** For each material it keeps, such as debarked logs carried to it or planks: how many it has had and how many it needs. */
+  readonly deliveries: readonly { readonly material: KeptMaterial; readonly has: number; readonly needs: number }[];
   /** What the player lacks to build the next stage, or null if they can build it now. */
   readonly lacks: BuildLack | null;
 }

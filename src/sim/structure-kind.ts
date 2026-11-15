@@ -35,6 +35,13 @@ export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
  */
 export type DeliveredMaterial = "log" | "debarkedLog";
 
+/**
+ * The materials a blueprint keeps once it has them, until construction spends them: everything carried to it on the shoulder, and planks.
+ * Building a blueprint that costs planks takes as many planks from the backpack as it still needs, or as many as there are.
+ * The player can bring the rest on later trips.
+ */
+export type KeptMaterial = DeliveredMaterial | "plank";
+
 /** A rectangle of ground with sides along x and z, from its `min` corner to its `max` corner, in metres. */
 export interface GroundRect {
   readonly min: GroundPoint;

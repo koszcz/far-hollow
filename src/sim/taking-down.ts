@@ -23,8 +23,10 @@ import { cabinRoofOn } from "./roofs";
 import { isSled, layLoadBeside } from "./sleds";
 import { rectsOverlap, SIDES } from "./structure-kind";
 import {
+  costOf,
   footprintOfEntity,
   isDelivered,
+  isKept,
   isPlacedFreely,
   isPlacedStructure,
   roofFrameOn,
@@ -33,6 +35,7 @@ import {
   structureOf,
   type BuildMaterial,
   type DeliveredMaterial,
+  type KeptMaterial,
   type PlacedStructure,
   type StructureKind,
 } from "./structures";
@@ -195,16 +198,21 @@ export function takeDownKindOf(entity: Entity): StructureKind | undefined {
 /**
  * The materials that went into a structure: each delivered material, such as a debarked log, to lay on the ground,
  * and each stick or piece of bark for the backpack.
- * A finished structure holds its whole cost. A blueprint holds every material carried to it and the backpack materials construction has spent.
+ * A finished structure holds its whole cost, or the cost it was placed with if that differs.
+ * A blueprint holds every material it keeps, such as debarked logs carried to it and planks, and the sticks and bark construction has spent.
  */
 export function materialsIn(structure: Entity, kind: StructureKind): { delivered: DeliveredMaterial[]; backpack: BackpackMaterial[] } {
-  const stages = stageMaterials(structureOf(kind).cost);
+  const stages = stageMaterials(costOf(structure, kind));
   const blueprint = structure.blueprint;
-  const spent = blueprint === undefined ? stages : stages.slice(0, blueprint.materialsSpent);
-  const backpack = spent.filter((material): material is BackpackMaterial => !isDelivered(material));
-  if (blueprint === undefined) return { delivered: stages.filter(isDelivered), backpack };
-  const carried = Object.entries(blueprint.delivered) as [DeliveredMaterial, number][];
-  return { delivered: carried.flatMap(([material, count]) => Array.from({ length: count }, () => material)), backpack };
+  if (blueprint === undefined) return { delivered: stages.filter(isDelivered), backpack: stages.filter(isBackpackMaterial) };
+  const spent = stages.slice(0, blueprint.materialsSpent).filter((material) => !isKept(material));
+  const kept = (Object.entries(blueprint.delivered) as [KeptMaterial, number][]).flatMap(([material, count]) => Array.from({ length: count }, () => material));
+  return { delivered: kept.filter(isDelivered), backpack: [...spent, ...kept].filter(isBackpackMaterial) };
+}
+
+/** Whether a material goes back in the backpack rather than on the ground. */
+function isBackpackMaterial(material: BuildMaterial): material is BackpackMaterial {
+  return !isDelivered(material);
 }
 
 /** A material that goes back in the backpack rather than on the ground. */

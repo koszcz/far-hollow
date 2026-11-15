@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test";
 import type { Command, StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { LARGE_VALLEY_UPGRADES, CHESTS_BLOCK_WALKING_SAVE_VERSION, readSave, writeSave } from "./save";
-import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_LOG_COST, CHEST_WIDTH_METRES, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
+import { LARGE_VALLEY_UPGRADES, CHESTS_BLOCK_WALKING_SAVE_VERSION, PLANK_CHESTS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_PLANK_COST, CHEST_WIDTH_METRES, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
 
@@ -11,13 +11,13 @@ import { isWalkable } from "./walk-map";
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the chest in the build menu", () => {
-  it("lists the chest as furniture, with its cost of 2 debarked logs and the axe it needs", () => {
+  it("lists the chest as furniture, with its cost of 4 planks and the axe it needs", () => {
     const game = createGame({ seed: 42 });
 
-    expect(CHEST_LOG_COST).toBe(2);
+    expect(CHEST_PLANK_COST).toBe(4);
     expect(game.client.getView().buildMenu).toContainEqual({
       structure: "chest",
-      cost: [{ material: "debarkedLog", count: 2 }],
+      cost: [{ material: "plank", count: 4 }],
       tool: "axe",
       placement: "anywhere",
     });
@@ -213,31 +213,72 @@ describe("a chest on a foundation", () => {
 });
 
 describe("building a chest", () => {
-  it("takes the debarked logs carried to it and the build action, and finishes as a chest", () => {
+  it("takes its 4 planks from the backpack with the build action, and finishes as a chest", () => {
     const game = createGame({ seed: 42 });
     const blueprint = chestBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    deliverLogs(game, blueprint, 1);
-    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "debarkedLog", has: 1, needs: CHEST_LOG_COST }]);
+    onlyPlayer(game).backpack.contents.plank = 6;
+    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 0, needs: CHEST_PLANK_COST }]);
+    expect(game.client.describeBlueprint(id)?.lacks).toBeNull();
 
     send(game, { type: "build", blueprintId: id });
-    runSeconds(game, CHEST_BUILD_SECONDS + 1);
-    // One log builds only the first stage.
-    expect(blueprint.blueprint?.progress).toBeCloseTo(1 / CHEST_LOG_COST, 5);
-
-    deliverLogs(game, blueprint, 1);
-    send(game, { type: "build", blueprintId: id });
-    runSeconds(game, CHEST_BUILD_SECONDS + 1);
+    runSeconds(game, CHEST_BUILD_SECONDS + 5);
 
     expect(blueprint.blueprint).toBeUndefined();
     expect(blueprint.chest).toEqual({ contents: {} });
     expect(blueprint.facing).toEqual({ turns: 0 });
+    expect(blueprint.builtCost).toBeUndefined();
+    expect(onlyPlayer(game).backpack.contents.plank).toBe(2);
   });
 
-  it("needs the axe", () => {
+  it("keeps the planks it has had, so the player can bring the rest on later trips", () => {
     const game = createGame({ seed: 42 });
     const blueprint = chestBlueprintNearPlayer(game);
-    deliverLogs(game, blueprint, CHEST_LOG_COST);
+    const id = idOf(game, blueprint);
+    const backpack = onlyPlayer(game).backpack.contents;
+    backpack.plank = 1;
+
+    // The first trip brings 1 plank. The blueprint takes it, builds the first stage, and stops.
+    send(game, { type: "build", blueprintId: id });
+    runSeconds(game, CHEST_BUILD_SECONDS + 5);
+    expect(backpack.plank ?? 0).toBe(0);
+    expect(blueprint.blueprint).toMatchObject({ materialsSpent: 1, delivered: { plank: 1 } });
+    expect(blueprint.blueprint?.progress).toBeCloseTo(1 / CHEST_PLANK_COST, 5);
+    expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 1, needs: CHEST_PLANK_COST }]);
+    expect(game.client.describeBlueprint(id)?.lacks).toEqual({ kind: "material", material: "plank" });
+    expect(game.client.getView().action).toBeNull();
+
+    // The second trip brings 2 more. The blueprint takes both and keeps the one it cannot spend yet.
+    backpack.plank = 2;
+    send(game, { type: "build", blueprintId: id });
+    runSeconds(game, CHEST_BUILD_SECONDS + 5);
+    expect(backpack.plank ?? 0).toBe(0);
+    expect(blueprint.blueprint).toMatchObject({ materialsSpent: 3, delivered: { plank: 3 } });
+
+    // The third trip brings more than it still needs. It takes only the last plank.
+    backpack.plank = 5;
+    send(game, { type: "build", blueprintId: id });
+    runSeconds(game, CHEST_BUILD_SECONDS + 5);
+    expect(blueprint.blueprint).toBeUndefined();
+    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(backpack.plank).toBe(4);
+  });
+
+  it("takes planks only while building, not when the blueprint is placed", () => {
+    const game = createGame({ seed: 42 });
+    onlyPlayer(game).backpack.contents.plank = 4;
+    const blueprint = chestBlueprintNearPlayer(game);
+
+    runSeconds(game, 2);
+
+    expect(onlyPlayer(game).backpack.contents.plank).toBe(4);
+    expect(blueprint.blueprint?.delivered).toEqual({});
+  });
+
+  it("needs the axe, and takes no planks without it", () => {
+    const game = createGame({ seed: 42 });
+    const blueprint = chestBlueprintNearPlayer(game);
+    onlyPlayer(game).backpack.contents.plank = CHEST_PLANK_COST;
     delete onlyPlayer(game).backpack.contents.axe;
 
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
@@ -245,11 +286,85 @@ describe("building a chest", () => {
 
     expect(blueprint.blueprint?.progress).toBe(0);
     expect(blueprint.blueprint?.materialsSpent).toBe(0);
+    expect(onlyPlayer(game).backpack.contents.plank).toBe(CHEST_PLANK_COST);
     expect(game.client.getView().action).toBeNull();
+  });
+
+  it("spends no planks in the playground", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const blueprint = chestBlueprintNearPlayer(game);
+    onlyPlayer(game).backpack.contents.plank = 3;
+    expect(game.client.describeBlueprint(idOf(game, blueprint))?.deliveries).toEqual([]);
+
+    send(game, { type: "build", blueprintId: idOf(game, blueprint) });
+    runSeconds(game, CHEST_BUILD_SECONDS + 5);
+
+    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(onlyPlayer(game).backpack.contents.plank).toBe(3);
+  });
+});
+
+describe("chests from a save made before chests cost planks", () => {
+  it("keeps the debarked logs of a finished chest and of a chest blueprint", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    send(game, place("chest", square.x, square.z, 0));
+    buildFully(game, onlyBlueprint(game));
+    send(game, place("chest", square.x + 1.2, square.z, 0));
+    onlyBlueprint(game).blueprint = { structure: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } };
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+    save.version = PLANK_CHESTS_SAVE_VERSION - 1;
+
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save did not load");
+
+    const oldCost = [{ material: "debarkedLog" as const, count: 2 }];
+    expect(loaded.game.entities.with("chest").first?.builtCost).toEqual(oldCost);
+    const blueprint = onlyBlueprint(loaded.game);
+    expect(blueprint.builtCost).toEqual(oldCost);
+    expect(loaded.game.client.describeBlueprint(idOf(loaded.game, blueprint))?.deliveries).toEqual([{ material: "debarkedLog", has: 1, needs: 2 }]);
+  });
+
+  it("finishes an older chest blueprint from debarked logs, and the finished chest keeps that cost", () => {
+    const game = createGame({ seed: 42 });
+    chestBlueprintNearPlayer(game);
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+    save.version = PLANK_CHESTS_SAVE_VERSION - 1;
+    const loaded = readSave(save);
+    if (!loaded.ok) throw new Error("The save did not load");
+    const blueprint = onlyBlueprint(loaded.game);
+    onlyPlayer(loaded.game).backpack.contents.plank = 4;
+
+    deliverLogs(loaded.game, blueprint, 2);
+    send(loaded.game, { type: "build", blueprintId: idOf(loaded.game, blueprint) });
+    runSeconds(loaded.game, CHEST_BUILD_SECONDS + 5);
+
+    expect(blueprint.chest).toEqual({ contents: {} });
+    expect(blueprint.builtCost).toEqual([{ material: "debarkedLog", count: 2 }]);
+    expect(onlyPlayer(loaded.game).backpack.contents.plank).toBe(4);
   });
 });
 
 describe("saving chests", () => {
+  it("raises the save version for plank chests", () => {
+    expect(PLANK_CHESTS_SAVE_VERSION).toBe(SAVE_VERSION);
+  });
+
+  it("keeps plank chests, and the planks a chest blueprint has had", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game);
+    send(game, place("chest", square.x, square.z, 0));
+    buildFully(game, onlyBlueprint(game));
+    send(game, place("chest", square.x + 1.2, square.z, 0));
+    onlyBlueprint(game).blueprint = { structure: "chest", progress: 0.25, materialsSpent: 1, delivered: { plank: 2 } };
+
+    const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
+    if (!loaded.ok) throw new Error("The save did not load");
+
+    expect(loaded.game.entities.with("chest").first?.builtCost).toBeUndefined();
+    expect(onlyBlueprint(loaded.game).blueprint).toEqual({ structure: "chest", progress: 0.25, materialsSpent: 1, delivered: { plank: 2 } });
+  });
+
   it("keeps chests and chest blueprints, with which way they face", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
@@ -276,10 +391,13 @@ function chestBlueprintNearPlayer(game: Game) {
   return onlyBlueprint(game);
 }
 
-/** Carries the logs a blueprint needs to it and holds the build action until it is finished. */
+/** Gives a blueprint the debarked logs or planks it needs and holds the build action until it is finished. */
 function buildFully(game: Game, blueprint: Entity): void {
-  const needs = game.client.describeBlueprint(idOf(game, blueprint))?.deliveries[0]?.needs ?? 0;
-  deliverLogs(game, blueprint, needs);
+  const contents = onlyPlayer(game).backpack.contents;
+  for (const { material, needs } of game.client.describeBlueprint(idOf(game, blueprint))?.deliveries ?? []) {
+    if (material === "plank") contents.plank = (contents.plank ?? 0) + needs;
+    else deliverLogs(game, blueprint, needs);
+  }
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   stepUntil(game, () => blueprint.blueprint === undefined);
 }

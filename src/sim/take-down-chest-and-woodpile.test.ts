@@ -2,24 +2,39 @@ import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { LARGE_VALLEY_UPGRADES, readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave } from "./save";
-import { CHEST_BUILD_SECONDS, CHEST_LOG_COST } from "./structures";
+import { LARGE_VALLEY_UPGRADES, PLANK_CHESTS_SAVE_VERSION, readSave, RENAMED_NOT_EMPTY_NOTICE_SAVE_VERSION, writeSave } from "./save";
+import { CHEST_BUILD_SECONDS, CHEST_PLANK_COST } from "./structures";
 import { isWalkable } from "./walk-map";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("taking down a chest", () => {
-  it("gives back its 2 debarked logs on the ground once it is empty", () => {
+  it("gives back its 4 planks in the backpack once it is empty", () => {
     const game = createGame({ seed: 42 });
     const chest = buildChest(game);
+    const logsBefore = debarkedLogsOnGround(game);
+    expect(planksInBackpack(game)).toBe(0);
+
+    send(game, { type: "takeDown", pieceId: idOf(game, chest) });
+    stepUntil(game, () => !game.entities.has(chest));
+
+    expect(CHEST_PLANK_COST).toBe(4);
+    expect(planksInBackpack(game)).toBe(4);
+    expect(debarkedLogsOnGround(game)).toBe(logsBefore);
+  });
+
+  it("gives back the 2 debarked logs of a chest from a save made before chests cost planks", () => {
+    const game = loadAsOlderSave(createGame({ seed: 42 }), buildChest);
+    const chest = game.entities.with("chest", "position").first;
+    if (chest === undefined) throw new Error("No chest");
     const logsBefore = debarkedLogsOnGround(game);
 
     send(game, { type: "takeDown", pieceId: idOf(game, chest) });
     stepUntil(game, () => !game.entities.has(chest));
 
-    expect(CHEST_LOG_COST).toBe(2);
     expect(debarkedLogsOnGround(game)).toBe(logsBefore + 2);
+    expect(planksInBackpack(game)).toBe(0);
   });
 
   it("is refused while the chest holds anything, and the player is told to empty it first", () => {
@@ -50,19 +65,37 @@ describe("taking down a chest", () => {
 });
 
 describe("taking down a chest blueprint", () => {
-  it("removes it at once and lays every debarked log delivered to it on the ground", () => {
+  it("removes it at once and gives back every plank it took, spent or not", () => {
     const game = createGame({ seed: 42 });
-    const square = openSquareNearPlayer(game);
-    send(game, { type: "placeBlueprint", structure: "chest", turns: 0, x: square.x, z: square.z });
-    const blueprint = onlyBlueprint(game);
-    deliverLog(game, blueprint);
-    const logsBefore = debarkedLogsOnGround(game);
+    const blueprint = placeChest(game);
+    onlyPlayer(game).backpack.contents.plank = 3;
+    send(game, { type: "build", blueprintId: idOf(game, blueprint) });
+    // Building the first stage spends one of the 3 planks the blueprint took.
+    stepUntil(game, () => (blueprint.blueprint?.materialsSpent ?? 0) > 0);
+    expect(blueprint.blueprint).toMatchObject({ materialsSpent: 1, delivered: { plank: 3 } });
+    expect(planksInBackpack(game)).toBe(0);
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
     stepUntil(game, () => !game.entities.has(blueprint));
 
     expect(game.client.getView().action).toBeNull();
+    expect(planksInBackpack(game)).toBe(3);
+  });
+
+  it("lays every debarked log delivered to a chest blueprint from an older save on the ground", () => {
+    const game = loadAsOlderSave(createGame({ seed: 42 }), (older) => {
+      const blueprint = placeChest(older);
+      // A blueprint from before chests cost planks, with one of its 2 debarked logs carried to it.
+      blueprint.blueprint = { structure: "chest", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 1 } };
+    });
+    const blueprint = onlyBlueprint(game);
+    const logsBefore = debarkedLogsOnGround(game);
+
+    send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
+    stepUntil(game, () => !game.entities.has(blueprint));
+
     expect(debarkedLogsOnGround(game)).toBe(logsBefore + 1);
+    expect(planksInBackpack(game)).toBe(0);
   });
 });
 
@@ -136,13 +169,17 @@ function onlyBlueprint(game: Game): Entity & { position: NonNullable<Entity["pos
   return blueprint;
 }
 
-/** Places a chest near the player and builds it, as the player would. */
-function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "position">> {
+/** Places a chest blueprint near the player. */
+function placeChest(game: Game): Entity & { position: NonNullable<Entity["position"]> } {
   const square = openSquareNearPlayer(game);
   send(game, { type: "placeBlueprint", structure: "chest", turns: 0, x: square.x, z: square.z });
-  const blueprint = game.entities.with("blueprint", "position").first;
-  if (blueprint === undefined) throw new Error("No blueprint");
-  for (let i = 0; i < CHEST_LOG_COST; i += 1) deliverLog(game, blueprint);
+  return onlyBlueprint(game);
+}
+
+/** Places a chest near the player and builds it from planks in the backpack, as the player would. */
+function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "position">> {
+  const blueprint = placeChest(game);
+  onlyPlayer(game).backpack.contents.plank = CHEST_PLANK_COST;
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   stepUntil(game, () => game.entities.with("chest").size > 0);
   const chest = game.entities.with("chest", "position").first;
@@ -150,11 +187,22 @@ function buildChest(game: Game): Entity & Required<Pick<Entity, "chest" | "posit
   return chest;
 }
 
-/** Puts a debarked log on the player's shoulder and carries it to a blueprint. */
-function deliverLog(game: Game, blueprint: Entity): void {
-  game.entities.addComponent(onlyPlayer(game), "carrying", "debarkedLog");
-  send(game, { type: "deliverToBlueprint", blueprintId: idOf(game, blueprint) });
-  stepUntil(game, () => game.client.getView().carrying === null);
+/**
+ * Sets up a game with `setUp`, saves it as a save from before chests cost planks, and loads it.
+ * Its chests and chest blueprints load as the older save would hold them.
+ */
+function loadAsOlderSave(game: Game, setUp: (game: Game) => unknown): Game {
+  setUp(game);
+  const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
+  save.version = PLANK_CHESTS_SAVE_VERSION - 1;
+  const loaded = readSave(save);
+  if (!loaded.ok) throw new Error("The save did not load");
+  return loaded.game;
+}
+
+/** How many planks the player has in the backpack. */
+function planksInBackpack(game: Game): number {
+  return onlyPlayer(game).backpack.contents.plank ?? 0;
 }
 
 /** How many debarked logs lie on the ground. */

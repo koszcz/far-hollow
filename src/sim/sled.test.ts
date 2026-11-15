@@ -448,8 +448,11 @@ function sledBlueprintNearPlayer(game: Game) {
 /** Carries the logs a blueprint needs to it, gives the player the sticks, and holds the build action until it is finished. */
 function buildFully(game: Game, blueprint: Entity): void {
   const deliveries = game.client.describeBlueprint(idOf(game, blueprint))?.deliveries ?? [];
-  for (const { material, needs } of deliveries) deliverLogs(game, blueprint, needs, material);
   const contents = onlyPlayer(game).backpack.contents;
+  for (const { material, needs } of deliveries) {
+    if (material === "plank") contents.plank = (contents.plank ?? 0) + needs;
+    else deliverLogs(game, blueprint, needs, material);
+  }
   contents.stick = (contents.stick ?? 0) + SLED_STICK_COST;
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   stepUntil(game, () => blueprint.blueprint === undefined);

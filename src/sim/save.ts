@@ -45,6 +45,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   layPlankRoofs,
   giveFishingLine,
   cookFishOnCampfires,
+  payChestsInPlanks,
 ];
 
 /** The version of the save format this code writes. */
@@ -87,6 +88,8 @@ export const PLANK_ROOFS_SAVE_VERSION = SAVE_UPGRADES.indexOf(layPlankRoofs) + 2
 export const FISHING_SAVE_VERSION = SAVE_UPGRADES.indexOf(giveFishingLine) + 2;
 /** The first save version that can hold cooked fish and fish on a campfire. */
 export const COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookFishOnCampfires) + 2;
+/** The first save version in which a new chest costs planks, and a blueprint keeps the planks it has had. */
+export const PLANK_CHESTS_SAVE_VERSION = SAVE_UPGRADES.indexOf(payChestsInPlanks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -483,4 +486,24 @@ function giveFishingLine(save: Readonly<Record<string, unknown>>): Record<string
  */
 function cookFishOnCampfires(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 26 to 27: a new chest costs 4 planks, and a blueprint keeps the planks it takes from the backpack.
+ * Every chest and chest blueprint saved before then keeps the cost of 2 debarked logs it was placed with.
+ * A roof section was the only structure that cost planks, one for each stage. A roof blueprint now counts the planks it has had,
+ * so it counts each plank construction has already spent.
+ */
+function payChestsInPlanks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Entity } | null)?.components;
+    const blueprint = components?.blueprint;
+    if (components?.chest !== undefined || blueprint?.structure === "chest") {
+      return { ...(entity as object), components: { ...components, builtCost: [{ material: "debarkedLog", count: 2 }] } };
+    }
+    if (blueprint?.structure !== "roof" || typeof blueprint.materialsSpent !== "number" || blueprint.materialsSpent <= 0) return entity;
+    return { ...(entity as object), components: { ...components, blueprint: { ...blueprint, delivered: { plank: blueprint.materialsSpent } } } };
+  });
+  return { ...save, entities };
 }

@@ -188,7 +188,7 @@ describe("cooked fish", () => {
 
 describe("saving cooking", () => {
   it("raises the save version", () => {
-    expect(COOKING_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(COOKING_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
   });
 
   it("keeps the fish on a campfire with their progress, and cooked fish in the backpack, a pile, and a chest", () => {

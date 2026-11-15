@@ -12,6 +12,7 @@
 #   sessions.sh step <id> <text>        Record the step this session is on.
 #   sessions.sh files <id> <file>...    Record the shared files this session edits.
 #   sessions.sh release <id>            Remove this session's entry.
+#   sessions.sh packs                   Print the third-party packs folder and list its packs.
 set -eu
 
 main="$(git rev-parse --path-format=absolute --git-common-dir)/.."
@@ -95,8 +96,14 @@ case "$cmd" in
     rm -f "$board/$id"
     echo "Released '$id'."
     ;;
+  packs)
+    # Packs live in the main checkout, so worktree sessions cannot reach them by a relative path.
+    packs="$(cd "$main" && pwd)/third-party"
+    echo "$packs"
+    ls "$packs" 2>/dev/null || echo "(the folder is missing or empty)"
+    ;;
   *)
-    sed -n '10,15p' "$0" >&2
+    sed -n '10,16p' "$0" >&2
     exit 1
     ;;
 esac

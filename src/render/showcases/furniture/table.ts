@@ -1,4 +1,4 @@
-// The showcase of the draft "table" asset.
+// The showcase of the approved "table" asset.
 import { BUILD_FADE_SHARE } from "../../structure-look";
 import { TABLE_MODEL_STAGES } from "../../table-meshes";
 import type { Showcase } from "../types";

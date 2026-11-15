@@ -1085,12 +1085,13 @@
         "src/render/table-meshes.ts",
         "src/render/plank-furniture-meshes.ts"
       ],
-      "description": "The table: a top 1.2 m long, 0.8 m deep, and 0.75 m high, made of four planks laid along its length with thin gaps between them, on a frame of four rails, on four square legs set a little in from the corners. Each plank is a slightly different shade of pale sawn wood. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in three stages: the legs, the rails, then the top.",
+      "description": "The table: a top 1.2 m long, 0.8 m deep, and 0.75 m high, in the style of a farmhouse table. The top is four planks laid along its length with thin gaps between them, held between two cleats across its ends, with a dark peg through each cleat into each plank. The top overhangs a frame of four rails, with a dark peg where each long rail meets a leg. Four thick square legs stand under the frame, joined near the ground by an H-shaped stretcher. Each plank is a slightly different shade of pale sawn wood. As a blueprint, the table shows see-through. Stages whose planks it already has show pale and half solid. Construction builds it in three stages: the legs with the stretcher, the rails, then the top.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/04-table.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     },
     {
@@ -1100,12 +1101,13 @@
         "src/render/stool-meshes.ts",
         "src/render/plank-furniture-meshes.ts"
       ],
-      "description": "The stool: a small square seat of two pale sawn boards, 0.4 m across and 0.27 m high, on four square legs with a rail between each pair of legs. Each plank is a slightly different shade. As a blueprint it shows see-through, a stage whose plank it has waits pale and half solid, and construction builds it in two stages: the legs with their rails, then the seat.",
+      "description": "The stool: a small square seat of two pale sawn boards, 0.4 m across and 0.27 m high, on four square legs. The seat overhangs the legs a little, two battens under it hold the boards together, and dark pegs on top mark where the legs join it. Rails join the legs low on the left and right and higher at the front and back. Each plank is a slightly different shade. As a blueprint it shows see-through, a stage whose plank it has waits pale and half solid, and construction builds it in two stages: the legs with their rails, then the seat.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/05-stool-and-sitting.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     },
     {
@@ -1116,12 +1118,13 @@
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player sitting on a stool, resting, and standing up. The player steps up to the stool over 0.5 seconds, turning their back to it to face the way it faces, and sits down. They rest there, breathing, for as long as they sit. When they walk or act, they stand up and step back to where they stood. The body plays KayKit's Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips from the approved player file, public/assets/player/barbarian.glb; code times the step to the stool and back. The axe goes on the back while the player sits.",
+      "description": "The player sitting on a stool, resting, and standing up. The player steps up to the stool over 0.5 seconds, turning their back to it to face the way it faces, and sits down. They rest there, breathing, for as long as they sit. When they walk or act, they stand up and step back to where they stood. If they stand while still sitting down, they rise along the same path. The seated body rests on the seat, and the short legs hang just above the ground. The body plays KayKit's Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips from the approved player file, public/assets/player/barbarian.glb; code times the step to the stool and back. The axe goes on the back while the player sits.",
       "source": "Timed in code in this project. Clips Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp from KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers, Characters/gltf/Barbarian.glb, unchanged",
       "license": "Project code. The clips are CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/furniture/issues/05-stool-and-sitting.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
       }
     }
   ]

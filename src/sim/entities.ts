@@ -8,6 +8,7 @@ import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
+import type { TreeGrowth } from "./tree-growth";
 import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
 import type { GroundPoint } from "./valley";
 
@@ -81,10 +82,15 @@ export interface Entity {
   logPickUpTask?: { logId: number; thenSplit?: true };
   /** The spot on the ground the player is walking to, to lay the log on their shoulder there. */
   logDropTask?: { x: number; z: number };
-  /** Marks what is left of a felled tree. Its position is the middle of the stump. */
+  /** Marks what is left of a felled tree. Its position is the middle of the stump. A sapling may grow from it. */
   stump?: true;
   /** The heading a felled tree fell toward, about the vertical axis from +z, in radians. Its logs lie along it from the stump. */
   fellHeading?: number;
+  /**
+   * Marks a tree growing back, with its stage and the game minutes left until the next one.
+   * At the stump and sapling stages the entity is also a `stump`. Once full grown, it loses this and is a `tree` again.
+   */
+  growth?: TreeGrowth;
   /** Marks a log lying on the ground. Its position is the middle of the log. `heading` is the log's turn about the vertical axis, in radians. */
   log?: { heading: number };
   /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */
@@ -343,6 +349,11 @@ export function treeEntities(store: EntityStore) {
 /** Stumps left by felled trees. */
 export function stumpEntities(store: EntityStore) {
   return store.with("stump", "position");
+}
+
+/** Trees growing back: stumps, saplings, and young trees. */
+export function growingTreeEntities(store: EntityStore) {
+  return store.with("growth", "position");
 }
 
 /** Logs lying on the ground. Logs on a shoulder are not entities. */

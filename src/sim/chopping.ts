@@ -1,7 +1,8 @@
 import type { Refusal } from "./api";
 import { shoulderLog } from "./carrying";
 import { toolRefusal } from "./refusals";
-import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { growingTreeEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { isYoungTree, justFelled } from "./tree-growth";
 import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
 import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { isWalkable } from "./walk-map";
@@ -29,7 +30,7 @@ const LOG_SPACING_METRES = 1.1;
  * it falls a little to one side instead, turning by this step each try, in radians, until the ground is clear.
  */
 const FALL_TURN_STEP_RADIANS = Math.PI / 12;
-/** The felled trunk must stay this far from any other tree's or stump's trunk, in metres. */
+/** The felled trunk must stay this far from any other tree's, young tree's, or stump's trunk, in metres. */
 const FALL_TRUNK_CLEARANCE_METRES = 0.6;
 /**
  * Along the felled trunk, the ground is checked every this many metres.
@@ -49,8 +50,8 @@ function chopReach(tree: Entity): number {
 export interface Chopping {
   /** Sets the player walking to a standing tree to chop it. Does nothing if the entity is not a standing tree or the player has no axe. */
   start(treeId: number): void;
-  /** Why the player could not chop a tree now: without the axe. */
-  refusal(): Refusal | undefined;
+  /** Why the player could not chop this tree, given by its entity id: it is a young tree, or the player has no axe. */
+  refusal(treeId: number): Refusal | undefined;
   /** Stops the player chopping, or walking to chop. The tree keeps standing. */
   cancel(): void;
   /** Moves every chop on by one logic step. Run it after walking has moved the player. */
@@ -62,6 +63,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
   const choppers = entities.with("chopTask", "position");
   const trees = entities.with("tree", "position");
   const stumps = entities.with("stump", "position");
+  const growing = growingTreeEntities(entities);
 
   return {
     start(treeId) {
@@ -74,7 +76,8 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
         setComponent(entities, player, "chopTask", task);
       }
     },
-    refusal() {
+    refusal(treeId) {
+      if (isYoungTree(entities.entity(treeId)?.growth)) return { kind: "tooYoungToChop" };
       return toolRefusal(players.first, "axe");
     },
     cancel() {
@@ -105,7 +108,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     },
   };
 
-  /** Turns a standing tree at `at` into a stump and lays its logs, more for a bigger tree, on clear ground, falling away from `from` if it can. Returns the logs. */
+  /** Turns a standing tree at `at` into a stump that starts growing back, and lays its logs, more for a bigger tree, on clear ground, falling away from `from` if it can. Returns the logs. */
   function fell(tree: Entity, at: GroundPoint, from: GroundPoint): Entity[] {
     const logCount = logsForTreeSize(treeSizeAt(at.x, at.z));
     const heading = clearFallHeading(tree, at, Math.atan2(at.x - from.x, at.z - from.z), logCount);
@@ -115,6 +118,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     // The stump keeps the tree's place and its `blocksWalking`, so it blocks walking just as the tree did.
     entities.removeComponent(tree, "tree");
     entities.addComponent(tree, "stump", true);
+    entities.addComponent(tree, "growth", justFelled());
     const logs: Entity[] = [];
     for (let i = 0; i < logCount; i += 1) {
       const along = FIRST_LOG_FROM_STUMP_METRES + i * LOG_SPACING_METRES;
@@ -132,7 +136,10 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
   function clearFallHeading(tree: Entity, at: GroundPoint, preferred: number, logCount: number): number {
     const trunkMetres = FIRST_LOG_FROM_STUMP_METRES + (logCount - 0.5) * LOG_SPACING_METRES;
     const reach = trunkMetres + FALL_TRUNK_CLEARANCE_METRES;
-    const trunksNearby = [...trees, ...stumps].filter((other) => other !== tree && groundDistance(other.position, at) <= reach).map((other) => other.position);
+    // Stumps and young trees are in the way too. A sapling grows from a stump, so the stump stands for it.
+    const trunksNearby = [...new Set([...trees, ...stumps, ...growing])]
+      .filter((other) => other !== tree && groundDistance(other.position, at) <= reach)
+      .map((other) => other.position);
     let best = { heading: preferred, blocked: Infinity };
     const turns = Math.round(Math.PI / FALL_TURN_STEP_RADIANS);
     for (let turn = 0; turn <= turns; turn += 1) {

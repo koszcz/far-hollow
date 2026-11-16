@@ -13,6 +13,7 @@ import {
   lyingThings,
   roofEntities,
   roofFrameEntities,
+  growingTreeEntities,
   stumpEntities,
   treeEntities,
   walkBlockerSpotEntities,
@@ -25,6 +26,7 @@ import {
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
+import { isYoungTree } from "./tree-growth";
 import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import {
   isInRect,
@@ -659,7 +661,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
 }
 
 /**
- * Whether `rect` keeps clear of standing trees and of every structure: any blueprint, a finished roof, a finished woodpile,
+ * Whether `rect` keeps clear of standing trees, young trees, and every structure: any blueprint, a finished roof, a finished woodpile,
  * a finished wall or door frame, a piece of furniture, a sled, or a finished work station such as a sawhorse.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  * `ignoreFreelyPlaced` lets it go over furniture and sleds, and their blueprints, as a roof does.
@@ -680,6 +682,7 @@ function isClearOfTreesAndStructures(
     max: { x: rect.max.x + TREE_CLEARANCE_METRES, z: rect.max.z + TREE_CLEARANCE_METRES },
   };
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
+  for (const tree of growingTreeEntities(entities)) if (isYoungTree(tree.growth) && isInRect(nearTrees, tree.position)) return false;
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
     if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;

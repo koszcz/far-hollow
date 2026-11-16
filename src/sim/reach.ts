@@ -3,6 +3,7 @@ import type { ThingInReach } from "./api";
 import { distanceOutside } from "./building";
 import type { Entity, EntityStore } from "./entities";
 import { footprintOfEntity, isPlacedStructure } from "./structures";
+import { isYoungTree } from "./tree-growth";
 import { groundDistance, type GroundPoint } from "./valley";
 
 /** E reaches things this far from the player, in metres. It is measured to a structure's edge and to a tree's trunk. */
@@ -31,12 +32,13 @@ export function nearestInReach(entities: EntityStore, at: GroundPoint): ThingInR
   return nearest;
 }
 
-/** What E would act on in this entity, or undefined if E acts on nothing in it, as for the player, a stump, or a finished wall. */
+/** What E would act on in this entity, or undefined if E acts on nothing in it, as for the player, a stump, a sapling, or a finished wall. */
 function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   // A blueprint of a campfire or a piece of furniture is a blueprint, not yet the thing it will be.
   if (entity.blueprint !== undefined) return { kind: "blueprint", id };
   if (entity.workStation !== undefined) return { kind: "workStation", id, station: entity.workStation };
-  if (entity.tree === true) return { kind: "tree", id };
+  // A young tree is offered like a tree, so E says why it cannot be chopped yet.
+  if (entity.tree === true || isYoungTree(entity.growth)) return { kind: "tree", id };
   if (entity.log !== undefined) return { kind: "log", id };
   if (entity.debarkedLog !== undefined) return { kind: "debarkedLog", id };
   if (entity.stick === true) return { kind: "stick", id };

@@ -4,7 +4,7 @@
 export const REAL_MS_PER_GAME_MINUTE = 1000;
 export const MINUTES_PER_HOUR = 60;
 export const HOURS_PER_DAY = 24;
-const MINUTES_PER_DAY = MINUTES_PER_HOUR * HOURS_PER_DAY;
+export const MINUTES_PER_DAY = MINUTES_PER_HOUR * HOURS_PER_DAY;
 /** readClock rounds to a millionth of a game minute. */
 const ROUNDING_STEPS_PER_MINUTE = 1_000_000;
 

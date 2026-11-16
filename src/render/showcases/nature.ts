@@ -1,6 +1,7 @@
 // Showcases for the land and what grows on it: ground, river, trees, undergrowth, and logs. The registry is src/render/showcases/index.ts.
 import * as THREE from "three";
 import { TREE_COLOURS } from "../forest-meshes";
+import { createSaplingShapes } from "../sapling-shape";
 import { createFarTreeShape } from "../tree-far-shape";
 import { createUndergrowthMaterial } from "../undergrowth-meshes";
 import type { UndergrowthAsset } from "../undergrowth-models";
@@ -8,6 +9,8 @@ import { STAGE_FROM_RIVER_METRES, FOUR_ANGLES, type Showcase } from "./types";
 
 /** Far tree shapes stand this far apart in the showcase, in metres. */
 const FAR_TREE_SPACING_METRES = 5;
+/** Saplings and young trees stand this far apart in the showcase, in metres. */
+const SAPLING_SPACING_METRES = 2.2;
 
 /** Undergrowth models stand this far apart in the showcase, in metres. */
 const UNDERGROWTH_SPACING_METRES = 0.7;
@@ -83,6 +86,32 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
         [0.9, 0.2],
       ] as const)
         place(x, z, { stump: true });
+    },
+  },
+  // Every tree type's young tree in the back row and its sapling in the middle row, in the game's colours.
+  // In front, two felled trees with saplings growing from their stumps, as the game draws them.
+  saplings: {
+    radius: 9,
+    focus: { x: 0, y: 1, z: 1 },
+    shots: FOUR_ANGLES,
+    build({ addProp, place, treeShapes }) {
+      const material = (colour: number) => new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
+      treeShapes.forEach((shape, index) => {
+        const x = (index - (treeShapes.length - 1) / 2) * SAPLING_SPACING_METRES;
+        const { sapling, youngTree } = createSaplingShapes(shape);
+        for (const [part, z] of [
+          [youngTree, -2],
+          [sapling, 1],
+        ] as const) {
+          addProp(part.trunk, material(TREE_COLOURS.trunk[shape.trunkTone]), x, z);
+          addProp(part.crown, material(TREE_COLOURS.crown[shape.crownTone]), x, z);
+        }
+      });
+      for (const [x, z] of [
+        [-1.5, 4],
+        [1.5, 4.2],
+      ] as const)
+        place(x, z, { stump: true, growth: { stage: "sapling", minutesLeft: 60 }, blocksWalking: { radius: 1.2 } });
     },
   },
   sticks: {

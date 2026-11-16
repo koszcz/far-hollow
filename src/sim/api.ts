@@ -455,6 +455,7 @@ export type Refusal =
  * - `nothingToTake`: it holds none of what the command takes.
  * - `emptyFirst`, `potOnFire`, `fishOnFire`: it still holds something, so it cannot come down.
  * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
+ * - `tooYoungToChop`: the tree is a young tree, still growing back.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -473,7 +474,8 @@ export type PlainRefusal =
   | "emptyFirst"
   | "potOnFire"
   | "fishOnFire"
-  | "holdsUpPiece";
+  | "holdsUpPiece"
+  | "tooYoungToChop";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {

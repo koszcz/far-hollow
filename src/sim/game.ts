@@ -1,3 +1,4 @@
+import { createRegrowth } from "./regrowth";
 import { ACTION_QUEUE_LIMIT } from "./api";
 import type {
   ActionCommand,
@@ -220,6 +221,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const cooking = createCooking(entities, campfires);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
+  const regrowth = createRegrowth(entities);
   const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll or bed to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
@@ -496,7 +498,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     chopTree: {
       start: "fresh",
       needsFreeHands: true,
-      refusal: () => chopping.refusal(),
+      refusal: (command) => chopping.refusal(command.treeId),
       run: (command) => {
         chopping.start(command.treeId);
       },
@@ -802,11 +804,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       clock.skip(minutes / MINUTES_PER_HOUR);
       passRainTime(rain, seed, clock.minutes);
       // Rain does not put out campfires.
-      campfires.burn(minutes);
-      foraging.grow(minutes);
-      stickFall.pass(minutes);
-      pot.heat(minutes);
-      cooking.cook(minutes);
+      passWorldTime(minutes);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
         night: isNight(readClock(clock.minutes).hourOfDay),
@@ -834,6 +832,16 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return true;
   }
 
+  /** Moves the valley on by this many game minutes: fires burn, food and trees grow back, sticks fall, and pots and fish heat. */
+  function passWorldTime(minutes: number): void {
+    campfires.burn(minutes);
+    foraging.grow(minutes);
+    regrowth.grow(minutes);
+    stickFall.pass(minutes);
+    pot.heat(minutes);
+    cooking.cook(minutes);
+  }
+
   /**
    * The player collapses from a neglected need. They drop what is on their shoulder and lose the rest of the day.
    * They wake the next morning at their respawn point with that need low, keeping everything in their backpack.
@@ -850,11 +858,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     entities.removeComponent(player, "walkPath");
     const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
     clock.skip(asleepMinutes / MINUTES_PER_HOUR);
-    campfires.burn(asleepMinutes);
-    foraging.grow(asleepMinutes);
-    stickFall.pass(asleepMinutes);
-    pot.heat(asleepMinutes);
-    cooking.cook(asleepMinutes);
+    passWorldTime(asleepMinutes);
     // A bed blocks walking, so a player whose respawn point is a bed wakes on the open ground nearest it.
     const { x, z } = isWalkable(walking.walkMap, player.respawnPoint)
       ? player.respawnPoint

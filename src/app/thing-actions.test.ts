@@ -359,6 +359,13 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(scene("tree", 3), worldWith({}).reader))).toEqual(["chop main off: needs the axe"]);
   });
 
+  it("says a young tree is too young to chop", () => {
+    const world = worldWith({ backpack: { axe: 1 } });
+    const youngTree = world.add({ growth: { stage: "youngTree", minutesLeft: 60 }, blocksWalking: { radius: 1.2 } });
+
+    expect(summary(actionsFor(scene("tree", youngTree), world.reader))).toEqual(["chop main off: the tree is too young to chop"]);
+  });
+
   it("picks up a log, splits it, or debarks it", () => {
     const actions = actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1, drawknife: 1 } }).reader);
     expect(summary(actions)).toEqual(["pickUp main", "split", "debark"]);

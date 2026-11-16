@@ -388,6 +388,7 @@ export const strings = {
     potOnFire: "take the pot off first",
     fishOnFire: "take the fish off first",
     holdsUpPiece: "take down what stands on it first",
+    tooYoungToChop: "the tree is too young to chop",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

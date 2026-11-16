@@ -3,6 +3,7 @@
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
 // Trees far from the camera draw with the "far-trees" asset (approved), built in tree-far-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
+// Felled trees grow back as a sapling on the stump, then a young tree: the draft "saplings" asset, built in sapling-shape.ts.
 // Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
 // While the player saws a debarked log into planks, it is drawn lying along the sawhorse beam. Game logic keeps it on the ground.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
@@ -10,8 +11,10 @@ import * as THREE from "three";
 import { MOST_LOGS_PER_TREE, treeLookAt, treeSizeAt } from "../sim/tree-size";
 import type { GroundPoint } from "../sim/valley";
 import { logWorkedNow } from "../sim/crafting";
+import { isYoungTree, type GrowthStage } from "../sim/tree-growth";
 import {
   debarkedLogEntities,
+  growingTreeEntities,
   logEntities,
   playerEntities,
   stickEntities,
@@ -28,6 +31,7 @@ import { facingRadians } from "./structure-look";
 import { createFarTreeShape, FAR_TREE_METRES } from "./tree-far-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
+import { createSaplingShapes } from "./sapling-shape";
 import { createGroundStickGeometry, GROUND_STICK_SHAPE_COUNT, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
@@ -52,6 +56,8 @@ const STUMP_TOP_COLOUR = 0xc9a46a;
 const STUMP_MAX_HEIGHT_METRES = 0.6;
 /** Only trunk points this close to the ground count when measuring how wide a trunk's foot is, in metres. */
 const TRUNK_FOOT_BAND_METRES = 0.4;
+/** A sapling's foot sinks this far into the stump's cut face, before the tree's own size, so it does not float. */
+const SAPLING_SINK_METRES = 0.03;
 /** Sticks are thin, so clicks hit an invisible box this wide around each one, in metres. */
 const STICK_PICK_WIDTH_METRES = 0.35;
 /** Each stick's bark is up to this share lighter or darker than the others, so the floor does not look copy-pasted. */
@@ -63,14 +69,15 @@ export type ForestHit =
 
 export interface ForestMeshes {
   readonly group: THREE.Group;
-  /** Brings stumps, logs, and falling trees up to date. `nowSeconds` is a steady real-time clock. */
+  /** Brings stumps, growing trees, logs, and falling trees up to date. `nowSeconds` is a steady real-time clock. */
   update(nowSeconds: number): void;
   /** Fades the trees between the camera and the player drawn at `player`. Pass null to fade none. */
   seeThroughTo(player: Readonly<Vec3> | null): void;
-  /** Draws only the standing trees each camera can see. Call it once the cameras have moved for this frame. */
+  /** Draws only the standing and growing trees each camera can see. Call it once the cameras have moved for this frame. */
   cull(views: CullViews): void;
   /**
-   * What a ray from the camera hits first among standing trees, logs, debarked logs, and sticks, and how far away.
+   * What a ray from the camera hits first among standing trees, young trees, logs, debarked logs, and sticks, and how far away.
+   * A young tree counts as a tree.
    * The ray passes through trees faded to show the player, so the player can reach what they can see behind them.
    */
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
@@ -91,7 +98,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
   // Each batch draws only the trees the camera sees, and casts shadows only from the trees inside the sun's shadow box.
   // Beyond FAR_TREE_METRES from the camera, a second batch per type draws each tree with its cheap far shape instead.
   // Shadows always come from the real shape.
-  const trees = [...treeEntities(entities)];
+  // Every tree spot gets a place in its type's batches: standing trees, and felled trees that grow back there.
+  const trees = [...new Set([...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)])];
   const trunkMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
     dark: track(
       new THREE.MeshStandardMaterial({
@@ -168,20 +176,61 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
       ),
     );
     const batches = [near, far];
+    // A growing tree draws as a sapling on its stump, then as a young tree, near and far like a full tree.
+    const growing = createSaplingShapes(shape);
+    track(growing.sapling.trunk);
+    track(growing.sapling.crown);
+    track(growing.youngTree.trunk);
+    track(growing.youngTree.crown);
+    const youngFarShape = createFarTreeShape(growing.youngTree);
+    track(youngFarShape.trunk);
+    track(youngFarShape.crown);
+    const young = {
+      trunk: { geometry: growing.youngTree.trunk, material: trunk.material },
+      crown: { geometry: growing.youngTree.crown, material: crown.material },
+    };
+    const youngNear = track(createCulledBatch([young.trunk, young.crown], ofType.length, true, { to: FAR_TREE_METRES }));
+    const youngFar = track(
+      createCulledBatch(
+        [
+          { geometry: youngFarShape.trunk, material: trunk.material },
+          { geometry: youngFarShape.crown, material: crown.material },
+        ],
+        ofType.length,
+        false,
+        { from: FAR_TREE_METRES },
+      ),
+    );
+    // Saplings are too small to see far away, or to cast much of a shadow.
+    const saplings = track(
+      createCulledBatch(
+        [
+          { geometry: growing.sapling.trunk, material: trunk.material },
+          { geometry: growing.sapling.crown, material: crown.material },
+        ],
+        ofType.length,
+        false,
+        { to: FAR_TREE_METRES },
+      ),
+    );
+    const stageBatches: Readonly<Record<Exclude<GrowthStage, "stump">, readonly CulledBatch[]>> = { sapling: [saplings], youngTree: [youngNear, youngFar] };
     ofType.forEach((tree, index) => {
       instanceOf.set(tree, index);
+      if (tree.tree !== true) return;
       treeMatrix(tree.position, matrix);
       for (const batch of batches) batch.set(index, matrix);
     });
-    for (const batch of batches) {
-      batch.cull();
+    for (const batch of [...batches, youngNear, youngFar]) {
       for (const mesh of batch.viewMeshes) treesOfMesh.set(mesh, { batch, trees: ofType });
+    }
+    for (const batch of [...batches, youngNear, youngFar, saplings]) {
+      batch.cull();
       group.add(...batch.meshes);
     }
-    return { near, batches, trunk, crown };
+    return { near, batches, trunk, crown, youngNear, youngFar, young, stageBatches, growingBatches: [youngNear, youngFar, saplings] };
   });
-  const allTreeBatches = treeBatches.flatMap(({ batches }) => batches);
-  const treePickTargets = allTreeBatches.flatMap((batch) => batch.viewMeshes);
+  const allTreeBatches = treeBatches.flatMap(({ batches, growingBatches }) => [...batches, ...growingBatches]);
+  const treePickTargets = treeBatches.flatMap(({ batches, youngNear, youngFar }) => [...batches, youngNear, youngFar].flatMap((batch) => batch.viewMeshes));
 
   // Stumps: one batch per bark tone. A tree's stump keeps the tree's size and turn, and its foot is as wide as the trunk's.
   const stumpGeometry = track(stumpShape.geometry);
@@ -201,6 +250,37 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     stumps.frustumCulled = false;
     group.add(stumps);
   }
+
+  // Growing trees: each shows in its type's batch for its stage. A sapling stands on its stump's cut face.
+  const stumpTops = stumpFits.map((fit) => new THREE.Vector3().setFromMatrixScale(fit).y * stumpShape.height);
+  const growingQuery = growingTreeEntities(entities).connect();
+  /** The stage each growing tree is drawn at now, so a tree is placed again only when its stage changes. */
+  const drawnStages = new Map<Entity, GrowthStage>();
+  const saplingLift = new THREE.Matrix4();
+  /** Shows a growing tree in the batches for `stage`, and hides it from the others. Without a stage, it hides it from all. */
+  function drawStage(tree: Entity & { position: Vec3 }, stage: GrowthStage | undefined): void {
+    const index = instanceOf.get(tree);
+    const type = typeOf.get(tree);
+    const batch = type === undefined ? undefined : treeBatches[type];
+    if (index === undefined || type === undefined || batch === undefined) return;
+    treeMatrix(tree.position, matrix);
+    if (stage === "sapling" && tree.stump === true) matrix.multiply(saplingLift.makeTranslation(0, (stumpTops[type] ?? 0) - SAPLING_SINK_METRES, 0));
+    for (const [shownAt, batches] of Object.entries(batch.stageBatches)) {
+      for (const shapeBatch of batches) shapeBatch.set(index, shownAt === stage ? matrix : undefined);
+    }
+  }
+  function updateGrowing(): void {
+    for (const tree of growingQuery) {
+      if (drawnStages.get(tree) === tree.growth.stage) continue;
+      drawnStages.set(tree, tree.growth.stage);
+      drawStage(tree, tree.growth.stage);
+    }
+  }
+  // A tree stops growing when it is full grown, or when a foundation goes over its stump.
+  growingQuery.onEntityRemoved.subscribe((tree) => {
+    drawnStages.delete(tree);
+    drawStage(tree, undefined);
+  });
 
   // Logs on the ground: one batch, with room for every log the valley's trees can give.
   const logGeometry = track(logShape.geometry);
@@ -488,6 +568,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     },
     update(nowSeconds) {
       updateWorkedLog();
+      updateGrowing();
       if (stumpsDirty) rebuildStumps();
       if (logsDirty) rebuildLogs();
       if (debarkedLogsDirty) rebuildDebarkedLogs();
@@ -548,7 +629,8 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const drawn = treesOfMesh.get(hit.object);
         const index = drawn?.batch.instanceHit(hit.instanceId);
         const tree = index === undefined ? undefined : drawn?.trees[index];
-        if (tree?.tree !== true || seeThrough.clicksPassThrough(tree.position, raycaster.ray.origin)) continue;
+        if (tree === undefined || (tree.tree !== true && !isYoungTree(tree.growth)) || seeThrough.clicksPassThrough(tree.position, raycaster.ray.origin))
+          continue;
         return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
       }
       return undefined;
@@ -563,11 +645,15 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
         const index = instanceOf.get(hit.entity);
         const type = typeOf.get(hit.entity);
         const batch = type === undefined ? undefined : treeBatches[type];
-        if (hit.entity.tree !== true || index === undefined || batch === undefined || !batch.near.matrixAt(index, matrix)) return [];
+        if (index === undefined || batch === undefined) return [];
+        // A young tree is outlined in its own, smaller shape.
+        const young = isYoungTree(hit.entity.growth);
+        if (young ? !batch.youngNear.matrixAt(index, matrix) : hit.entity.tree !== true || !batch.near.matrixAt(index, matrix)) return [];
         const at = new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
+        const shape = young ? batch.young : batch;
         return [
-          { geometry: batch.trunk.geometry, matrix: at },
-          { geometry: batch.crown.geometry, matrix: at },
+          { geometry: shape.trunk.geometry, matrix: at },
+          { geometry: shape.crown.geometry, matrix: at },
         ];
       }
       if (hit.kind === "log") {
@@ -592,6 +678,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     dispose() {
       standing.disconnect();
       stumpQuery.disconnect();
+      growingQuery.disconnect();
       logQuery.disconnect();
       debarkedLogQuery.disconnect();
       stickQuery.disconnect();

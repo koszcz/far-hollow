@@ -103,6 +103,8 @@ export function createCulledBatch(parts: readonly CulledBatchPart[], capacity: n
         array.set(matrices.subarray(index * 16, index * 16 + 16), slot * 16);
       });
       mesh.count = drawn.length;
+      // An empty mesh would still cost a draw call, so it is hidden.
+      mesh.visible = drawn.length > 0;
       mesh.instanceMatrix.needsUpdate = true;
       // Rays test this sphere first, so it is worked out again from the instances drawn now.
       mesh.boundingSphere = null;
@@ -157,6 +159,7 @@ function newMesh(part: CulledBatchPart, capacity: number): THREE.InstancedMesh {
   const mesh = new THREE.InstancedMesh(part.geometry, part.material, Math.max(1, capacity));
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.count = 0;
+  mesh.visible = false;
   // The batch culls its own instances, so the mesh as a whole is never culled.
   mesh.frustumCulled = false;
   return mesh;

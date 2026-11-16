@@ -6,6 +6,7 @@ import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
 import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, isKept, STRUCTURES } from "./structures";
+import { GROWTH_STAGES } from "./tree-growth";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "./wood-and-fuel";
 
 /** Says whether a value has the right shape. */
@@ -75,6 +76,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   logDropTask: point,
   stump: exactly(true),
   fellHeading: finite,
+  growth: shape({ stage: exactly(...GROWTH_STAGES), minutesLeft: finite }),
   log: shape({ heading: finite }),
   debarkedLog: shape({ heading: finite }),
   debarkTask: shape({ logId: count, secondsDone: finite }),
@@ -171,6 +173,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   potOnFire: true,
   fishOnFire: true,
   holdsUpPiece: true,
+  tooYoungToChop: true,
 };
 
 /** Why the game refused a command, as a notice about the action queue names it. */

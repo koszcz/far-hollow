@@ -85,6 +85,21 @@
       }
     },
     {
+      "id": "saplings",
+      "kind": "code",
+      "code": [
+        "src/render/sapling-shape.ts",
+        "src/render/forest-meshes.ts"
+      ],
+      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, each the type's own trunk and crown shrunk in the trees' colours. The sapling is about a metre tall, 0.15 of the full height and 0.12 of its width, and stands on the cut face of the stump it grows from. The young tree is half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/regrowth/issues/01-stumps-grow-back.md"
+      }
+    },
+    {
       "id": "sticks",
       "kind": "code",
       "code": [

@@ -52,6 +52,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addTables,
   addStools,
   putFurnitureInOnePart,
+  growStumpsBack,
 ];
 
 /** The version of the save format this code writes. */
@@ -109,6 +110,8 @@ export const TABLES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTables) + 2;
 export const STOOLS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStools) + 2;
 /** The first save version in which one `furniture` part marks every finished piece of furniture. */
 export const FURNITURE_PART_SAVE_VERSION = SAVE_UPGRADES.indexOf(putFurnitureInOnePart) + 2;
+/** The first save version in which felled trees grow back. */
+export const REGROWTH_SAVE_VERSION = SAVE_UPGRADES.indexOf(growStumpsBack) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -576,6 +579,21 @@ function putFurnitureInOnePart(save: Readonly<Record<string, unknown>>): Record<
     const { [piece]: oldPart, ...others } = components;
     const storage = STORING_PIECES.includes(piece) ? { storage: { contents: (oldPart as { contents?: unknown } | null)?.contents } } : {};
     return { ...(entity as object), components: { ...others, furniture: piece, ...storage } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * Version 33 to 34: a felled tree's stump grows back into a tree. Each stump in an older save starts growing as if the tree
+ * had just been felled, a whole game day before its sapling shows.
+ */
+function growStumpsBack(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const STUMP_STAGE_MINUTES = 24 * 60;
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components?.stump !== true || components.growth !== undefined) return entity;
+    return { ...(entity as object), components: { ...components, growth: { stage: "stump", minutesLeft: STUMP_STAGE_MINUTES } } };
   });
   return { ...save, entities };
 }

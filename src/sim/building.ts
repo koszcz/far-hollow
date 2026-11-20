@@ -1,5 +1,6 @@
 import type { BlueprintView, BuildLack, PlacementCheck, Refusal } from "./api";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
+import { addCount, countOf, takeCount } from "./counts";
 import { snapToGridPoint } from "./build-grid";
 import {
   blueprintEntities,
@@ -165,7 +166,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         let taken = 0;
         for (const sled of sleds) {
           const fromSled = Math.min(wanted - taken, sled.sled.plank);
-          sled.sled.plank -= fromSled;
+          sled.sled = takeCount(sled.sled, "plank", fromSled);
           taken += fromSled;
         }
         for (const pile of piles) {
@@ -192,7 +193,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
           }
           for (const sled of sleds) {
             while (taken < wanted && sled.sled[material] > 0) {
-              sled.sled[material] -= 1;
+              sled.sled = takeCount(sled.sled, material, 1);
               taken += 1;
             }
           }
@@ -215,7 +216,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const cost = costOf(target, blueprint.structure);
     // With free building, a blueprint needs nothing brought to it.
     const deliveries = cost.flatMap(({ material, count }) =>
-      isKept(material) && !freeBuilding ? [Object.freeze({ material, has: blueprint.delivered[material] ?? 0, needs: count })] : [],
+      isKept(material) && !freeBuilding ? [Object.freeze({ material, has: countOf(blueprint.delivered, material), needs: count })] : [],
     );
     const backpack = players.first?.backpack;
     const lacks = backpack === undefined ? null : nextStageLack(blueprint, cost, backpack, materialsNearby(target), freeBuilding);
@@ -293,7 +294,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
           const carried = deliverer.carrying;
           if (still === undefined || carried === undefined || !canDeliver(deliverer, still.target, still.blueprint)) return undefined;
           entities.removeComponent(deliverer, "carrying");
-          still.blueprint.delivered[carried] = (still.blueprint.delivered[carried] ?? 0) + 1;
+          still.blueprint.delivered = addCount(still.blueprint.delivered, carried, 1);
           return undefined;
         });
       }
@@ -334,7 +335,7 @@ function canDeliver(deliverer: Entity, target: Entity, blueprint: Blueprint): bo
 /** How many more of a material it keeps a blueprint costing `cost` needs, on top of what it has had. */
 function stillNeeded(blueprint: Blueprint, cost: readonly MaterialCost[], material: KeptMaterial): number {
   const needed = cost.find((item) => item.material === material)?.count ?? 0;
-  return Math.max(0, needed - (blueprint.delivered[material] ?? 0));
+  return Math.max(0, needed - countOf(blueprint.delivered, material));
 }
 
 /**
@@ -347,7 +348,7 @@ function takePlanks(blueprint: Blueprint, cost: readonly MaterialCost[], backpac
   const fromBackpack = Math.min(needed, countInBackpack(backpack, "plank"));
   if (fromBackpack > 0) removeFromBackpack(backpack, "plank", fromBackpack);
   const fromNearby = fromBackpack < needed && nearby.count > 0 ? nearby.take(needed - fromBackpack) : 0;
-  if (fromBackpack + fromNearby > 0) blueprint.delivered.plank = (blueprint.delivered.plank ?? 0) + fromBackpack + fromNearby;
+  if (fromBackpack + fromNearby > 0) blueprint.delivered = addCount(blueprint.delivered, "plank", fromBackpack + fromNearby);
 }
 
 /**
@@ -418,7 +419,7 @@ function nextStageLack(blueprint: Blueprint, cost: readonly MaterialCost[], back
 /** How many of a material the blueprint keeps that construction has not spent yet. */
 function keptLeft(blueprint: Blueprint, stages: readonly BuildMaterial[], material: KeptMaterial): number {
   const spent = stages.slice(0, blueprint.materialsSpent).filter((earlier) => earlier === material).length;
-  return (blueprint.delivered[material] ?? 0) - spent;
+  return countOf(blueprint.delivered, material) - spent;
 }
 
 /**
@@ -435,7 +436,7 @@ function spendStageMaterial(
   if (!isKept(material)) return removeFromBackpack(backpack, material, 1);
   if (keptLeft(blueprint, stages, material) > 0) return true;
   if (!isDelivered(material) || nearby[material].take(1) === 0) return false;
-  blueprint.delivered[material] = (blueprint.delivered[material] ?? 0) + 1;
+  blueprint.delivered = addCount(blueprint.delivered, material, 1);
   return true;
 }
 

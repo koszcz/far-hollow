@@ -93,29 +93,29 @@ describe("building a table", () => {
     const game = createGame({ seed: 42 });
     const blueprint = tableBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    const backpack = onlyPlayer(game).backpack.contents;
-    delete backpack.axe;
-    delete backpack.knife;
-    delete backpack.drawknife;
-    delete backpack.saw;
+    const backpack = onlyPlayer(game).backpack;
+    delete backpack.contents.axe;
+    delete backpack.contents.knife;
+    delete backpack.contents.drawknife;
+    delete backpack.contents.saw;
     expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 0, needs: TABLE_PLANK_COST }]);
 
     // The first trip brings 4 planks. The table takes them all, builds 4 of its 6 stages, and stops.
-    backpack.plank = 4;
+    backpack.contents.plank = 4;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, TABLE_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
     expect(blueprint.blueprint).toMatchObject({ materialsSpent: 4, delivered: { plank: 4 } });
     expect(blueprint.blueprint?.progress).toBeCloseTo(4 / TABLE_PLANK_COST, 5);
     expect(game.client.getView().action).toBeNull();
 
     // The second trip brings the rest, and more. It takes only what it still needs.
-    backpack.plank = 5;
+    backpack.contents.plank = 5;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, TABLE_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
     expect(blueprint.furniture).toBe("table");
-    expect(backpack.plank).toBe(3);
+    expect(backpack.contents.plank).toBe(3);
   });
 
   it("spends no planks in the playground", () => {
@@ -246,31 +246,31 @@ describe("taking down a table", () => {
     const game = createGame({ seed: 42 });
     const blueprint = tableBlueprintNearPlayer(game);
     buildFully(game, blueprint);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 0;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 0;
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
     stepUntil(game, () => piecesOf(game.entities, "table").length === 0);
 
     // The backpack holds the tools too, so any planks that do not fit drop in a pile.
     const piled = game.entities.with("pile").entities.reduce((sum, { pile }) => sum + (pile.content === "plank" ? pile.count : 0), 0);
-    expect((backpack.plank ?? 0) + piled).toBe(TABLE_PLANK_COST);
+    expect((backpack.contents.plank ?? 0) + piled).toBe(TABLE_PLANK_COST);
     expect(isWalkable(game.walkMap, blueprint.position)).toBe(true);
   });
 
   it("gives back the planks a table blueprint has had so far", () => {
     const game = createGame({ seed: 42 });
     const blueprint = tableBlueprintNearPlayer(game);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 3;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 3;
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, TABLE_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
     stepUntil(game, () => game.entities.with("blueprint").size === 0);
 
-    expect(backpack.plank).toBe(3);
+    expect(backpack.contents.plank).toBe(3);
   });
 });
 

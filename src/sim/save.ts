@@ -1,6 +1,7 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
 import type { BackpackContent, SaveSlotSummary } from "./api";
 import { readClock } from "./clock";
+import { addCount, countOf } from "./counts";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import { droppedStickSpot } from "./piles";
@@ -423,7 +424,7 @@ function giveBack(save: Record<string, unknown>, material: "bark", count: number
     if (components?.player !== true || typeof contents !== "object") return entity;
     return {
       ...(entity as object),
-      components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [material]: (contents[material] ?? 0) + count } } },
+      components: { ...components, backpack: { ...components.backpack, contents: addCount(contents, material, count) } },
     };
   });
   return { ...save, entities };
@@ -453,7 +454,7 @@ function giveStartingItem(
     const components = (entity as { components?: Entity } | null)?.components;
     const contents = components?.backpack?.contents;
     if (components?.player !== true || typeof contents !== "object") return entity;
-    if ([item, ...madeFrom].some((held) => (contents[held] ?? 0) > 0)) return entity;
+    if ([item, ...madeFrom].some((held) => countOf(contents, held) > 0)) return entity;
     return { ...(entity as object), components: { ...components, backpack: { ...components.backpack, contents: { ...contents, [item]: 1 } } } };
   });
   return { ...save, entities };

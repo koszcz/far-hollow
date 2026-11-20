@@ -3,6 +3,7 @@
 // A lit campfire goes out as it comes down, and any fuel still in it is lost.
 import type { Refusal } from "./api";
 import { addToBackpack } from "./backpack";
+import { holdsNone } from "./counts";
 import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
@@ -273,8 +274,7 @@ function noticeOf(refusal: Refusal): TakeDownRefusal {
  */
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined) return true;
-  const counts = [...Object.values(structure.storage?.contents ?? {}), ...Object.values(structure.woodpile ?? {})];
-  return counts.some((count) => count > 0);
+  return !holdsNone(structure.storage?.contents ?? {}) || !holdsNone(structure.woodpile ?? {});
 }
 
 /**

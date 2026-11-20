@@ -99,9 +99,9 @@ describe("where a chest cannot go", () => {
     const square = openSquareNearPlayer(game);
     send(game, place("leanTo", square.x, square.z, 0));
     const leanTo = onlyBlueprint(game);
-    const contents = onlyPlayer(game).backpack.contents;
-    contents.stick = (contents.stick ?? 0) + LEAN_TO_STICK_COST;
-    contents.bark = (contents.bark ?? 0) + LEAN_TO_BARK_COST;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.stick = (backpack.contents.stick ?? 0) + LEAN_TO_STICK_COST;
+    backpack.contents.bark = (backpack.contents.bark ?? 0) + LEAN_TO_BARK_COST;
     send(game, { type: "build", blueprintId: idOf(game, leanTo) });
     stepUntil(game, () => leanTo.blueprint === undefined);
     // Facing the default way, the two middle squares at the front stay open to walk in.
@@ -240,13 +240,13 @@ describe("building a chest", () => {
     const game = createGame({ seed: 42 });
     const blueprint = chestBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 1;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 1;
 
     // The first trip brings 1 plank. The blueprint takes it, builds the first stage, and stops.
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, CHEST_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
     expect(blueprint.blueprint).toMatchObject({ materialsSpent: 1, delivered: { plank: 1 } });
     expect(blueprint.blueprint?.progress).toBeCloseTo(1 / CHEST_PLANK_COST, 5);
     expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 1, needs: CHEST_PLANK_COST }]);
@@ -254,20 +254,20 @@ describe("building a chest", () => {
     expect(game.client.getView().action).toBeNull();
 
     // The second trip brings 2 more. The blueprint takes both and keeps the one it cannot spend yet.
-    backpack.plank = 2;
+    backpack.contents.plank = 2;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, CHEST_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
     expect(blueprint.blueprint).toMatchObject({ materialsSpent: 3, delivered: { plank: 3 } });
 
     // The third trip brings more than it still needs. It takes only the last plank.
-    backpack.plank = 5;
+    backpack.contents.plank = 5;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, CHEST_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
     expect(blueprint.furniture).toBe("chest");
     expect(blueprint.storage).toEqual({ contents: {} });
-    expect(backpack.plank).toBe(4);
+    expect(backpack.contents.plank).toBe(4);
   });
 
   it("takes planks only while building, not when the blueprint is placed", () => {

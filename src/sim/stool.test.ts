@@ -80,29 +80,29 @@ describe("building a stool", () => {
     const game = createGame({ seed: 42 });
     const blueprint = stoolBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    const backpack = onlyPlayer(game).backpack.contents;
-    delete backpack.axe;
-    delete backpack.knife;
-    delete backpack.drawknife;
-    delete backpack.saw;
+    const backpack = onlyPlayer(game).backpack;
+    delete backpack.contents.axe;
+    delete backpack.contents.knife;
+    delete backpack.contents.drawknife;
+    delete backpack.contents.saw;
     expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 0, needs: STOOL_PLANK_COST }]);
 
     // The first trip brings 1 plank. The stool builds its legs and stops.
-    backpack.plank = 1;
+    backpack.contents.plank = 1;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, STOOL_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
     expect(blueprint.blueprint).toMatchObject({ materialsSpent: 1, delivered: { plank: 1 } });
     expect(blueprint.blueprint?.progress).toBeCloseTo(1 / 2, 5);
     expect(game.client.getView().action).toBeNull();
 
     // The second trip brings the rest, and more. It takes only what it still needs.
-    backpack.plank = 3;
+    backpack.contents.plank = 3;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, STOOL_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toBeUndefined();
     expect(blueprint.furniture).toBe("stool");
-    expect(backpack.plank).toBe(2);
+    expect(backpack.contents.plank).toBe(2);
   });
 
   it("spends no planks in the playground", () => {
@@ -244,30 +244,30 @@ describe("taking down a stool", () => {
   it("stands a player sitting on it up first, then gives back both planks and lets the player walk there again", () => {
     const game = createGame({ seed: 42 });
     const stool = sitOnNewStool(game);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 0;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 0;
 
     send(game, { type: "takeDown", pieceId: idOf(game, stool) });
     expect(game.client.getView().sittingOn).toBeNull();
     stepUntil(game, () => piecesOf(game.entities, "stool").length === 0);
 
-    expect(backpack.plank).toBe(STOOL_PLANK_COST);
+    expect(backpack.contents.plank).toBe(STOOL_PLANK_COST);
     expect(isWalkable(game.walkMap, stool.position)).toBe(true);
   });
 
   it("gives back the plank a stool blueprint has had so far", () => {
     const game = createGame({ seed: 42 });
     const blueprint = stoolBlueprintNearPlayer(game);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 1;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 1;
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, STOOL_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
     stepUntil(game, () => game.entities.with("blueprint").size === 0);
 
-    expect(backpack.plank).toBe(1);
+    expect(backpack.contents.plank).toBe(1);
   });
 });
 

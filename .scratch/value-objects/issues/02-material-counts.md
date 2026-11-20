@@ -2,7 +2,7 @@
 
 **What to build:** Add a value object for "how many of each kind", in `src/sim/counts.ts`, following ADR 0009. Woodpiles, sleds, blueprints, chests, and the backpack use it to add, take, and total their contents. The game behaves exactly as before.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -36,8 +36,8 @@ Weight limits and other rules that belong to one holder, such as how much fits i
 
 ## Acceptance criteria
 
-- [ ] The five holders above add, take, and total their contents through the counts module.
-- [ ] No file in `src/sim` changes a material count with `?? 0`, `+=`, or `-=` outside the module.
-- [ ] Saved games keep the same shape. Old saves still load.
-- [ ] Unit tests cover each function, including taking more than there is.
-- [ ] `make check` passes.
+- [x] The five holders above add, take, and total their contents through the counts module.
+- [x] No file in `src/sim` changes a material count with `?? 0`, `+=`, or `-=` outside the module.
+- [x] Saved games keep the same shape. Old saves still load.
+- [x] Unit tests cover each function, including taking more than there is.
+- [x] `make check` passes.

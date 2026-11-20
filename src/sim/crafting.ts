@@ -11,6 +11,7 @@ import {
   type BackpackContent,
 } from "./backpack";
 import { distanceOutside } from "./building";
+import { addCount, takeCount } from "./counts";
 import {
   debarkedLogEntities,
   isParked,
@@ -395,10 +396,10 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
         if (crafter.craftTask.secondsDone < recipe.seconds) continue;
         entities.removeComponent(crafter, "craftTask");
         for (const useUp of logs) useUp();
-        for (const { material, count } of recipe.materials) crafter.backpack.contents[material] = countInBackpack(crafter.backpack, material) - count;
+        for (const { material, count } of recipe.materials) crafter.backpack.contents = takeCount(crafter.backpack.contents, material, count);
         const { content, count } = recipe.result;
         const fit = howManyFit(crafter.backpack, content, count);
-        if (fit > 0) crafter.backpack.contents[content] = countInBackpack(crafter.backpack, content) + fit;
+        if (fit > 0) crafter.backpack.contents = addCount(crafter.backpack.contents, content, fit);
         let left = count - fit;
         if (left > 0 && content === "plank" && station !== undefined) {
           for (const sled of sledsBeside(station)) left -= putPlanksOnSled(sled, left);

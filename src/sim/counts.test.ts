@@ -17,6 +17,11 @@ describe("material counts", () => {
     expect(before).toEqual({ stick: 2 });
   });
 
+  it("never adds a count below zero", () => {
+    expect(addCount<Kind, Counts<Kind>>({ stick: 2 }, "stick", -5)).toEqual({ stick: 0 });
+    expect(addCount<Kind, Counts<Kind>>({ stick: 2 }, "bark", -1)).toEqual({ stick: 2, bark: 0 });
+  });
+
   it("takes from a kind", () => {
     const before: Counts<Kind> = { stick: 5, bark: 1 };
     expect(takeCount(before, "stick", 2)).toEqual({ stick: 3, bark: 1 });

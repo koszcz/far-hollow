@@ -220,9 +220,7 @@ const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {
   finish: (spot, turns) => ({
     leanTo: true,
     roof: leanTo.footprint(spot, turns),
-    blocksWalkingSpots: LEAN_TO_BLOCKED_SQUARES.map((offset) => {
-      return addGroundPoints(spot, turnOffset(offset, turns));
-    }),
+    blocksWalkingSpots: LEAN_TO_BLOCKED_SQUARES.map((offset) => addGroundPoints(spot, turnOffset(offset, turns))),
   }),
 };
 

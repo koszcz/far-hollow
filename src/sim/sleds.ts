@@ -4,7 +4,7 @@
 import type { Command, Refusal, SledView } from "./api";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
 import { distanceOutside } from "./building";
-import { addCount, takeCount, weightedTotal } from "./counts";
+import { addCount, countOf, takeCount, weightedTotal } from "./counts";
 import {
   entityWith,
   playerEntities,
@@ -263,7 +263,7 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       if (sled === undefined) return;
       const woodpile = woodpileNextTo(sled);
       if (woodpile !== undefined) {
-        for (const kind of CARRIED_LOGS) sled.sled = takeCount(sled.sled, kind, stackOnWoodpile(woodpile, kind, sled.sled[kind]));
+        for (const kind of CARRIED_LOGS) sled.sled = takeCount(sled.sled, kind, stackOnWoodpile(woodpile, kind, countOf(sled.sled, kind)));
       }
       layLoadBeside(entities, valley, sled);
     },

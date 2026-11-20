@@ -2,8 +2,8 @@
 
 /** A spot on the valley floor, in metres from the valley's centre. */
 export interface GroundPoint {
-  x: number;
-  z: number;
+  readonly x: number;
+  readonly z: number;
 }
 
 /** The spot you reach by stepping from `a` by `b`. */

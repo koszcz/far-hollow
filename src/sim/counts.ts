@@ -5,16 +5,16 @@
  */
 
 /** How many of each kind something holds. A kind that is missing counts as zero. */
-export type Counts<K extends string> = Partial<Record<K, number>>;
+export type Counts<K extends string> = Readonly<Partial<Record<K, number>>>;
 
 /** How many of `kind` the counts hold. */
 export function countOf<K extends string>(counts: Readonly<Counts<K>>, kind: K): number {
   return counts[kind] ?? 0;
 }
 
-/** The counts with `amount` more of `kind`. */
+/** The counts with `amount` more of `kind`. A count never drops below zero, so adding a negative amount stops at zero. */
 export function addCount<K extends string, T extends Counts<K>>(counts: Readonly<T>, kind: K, amount: number): T {
-  return { ...counts, [kind]: countOf<K>(counts, kind) + amount };
+  return { ...counts, [kind]: Math.max(0, countOf<K>(counts, kind) + amount) };
 }
 
 /** The counts with `amount` fewer of `kind`. A count never drops below zero, so taking more than there is leaves zero. */

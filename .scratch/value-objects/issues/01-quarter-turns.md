@@ -41,4 +41,4 @@ Choose the exact names. The module needs at least these functions:
 
 ## Comments
 
-The orchestrator compared asset showcase screenshots of roof-frame, roof, roof-corners, lean-to, log-wall and sled-drag-animation before and after this change on 2026-11-20. The three roof shots match byte for byte. The others look the same; their small byte differences also appear between two runs of the same build.
+The orchestrator compared asset showcase screenshots of roof-frame, roof, roof-corners, lean-to, log-wall and sled-drag-animation before and after this change on 2026-11-20. The three roof shots match byte for byte. The other three differ in their bytes. Two runs of the same build also differ for log-wall and sled-drag-animation, so those differences are noise. The lean-to shots look the same side by side.

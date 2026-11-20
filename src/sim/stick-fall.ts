@@ -16,7 +16,8 @@ import {
 } from "./entities";
 import { createRandom, scramble, type Random } from "./random";
 import { footprintOfEntity, placedStructures } from "./structures";
-import { groundDistance, stickSpotCheck, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { stickSpotCheck, terrainHeightAt, type Valley } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 
 /** The saved state of the stick fall: when the next sticks fall. It is plain data, so it can be saved. */
 export interface StickFallState {

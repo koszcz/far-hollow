@@ -11,7 +11,7 @@ import type { Sickness } from "./sickness";
 import type { TreeGrowth } from "./tree-growth";
 import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, StructureKind, WorkStationKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 export interface Vec3 {
   x: number;

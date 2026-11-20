@@ -4,7 +4,8 @@ import { toolRefusal } from "./refusals";
 import { growingTreeEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { isYoungTree, justFelled } from "./tree-growth";
 import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
-import { groundDistance, headingToward, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { terrainHeightAt, type Valley } from "./valley";
+import { groundDistance, headingToward, type GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 

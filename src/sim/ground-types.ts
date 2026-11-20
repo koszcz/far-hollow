@@ -2,7 +2,8 @@
 // Ground types come from where trees stand when the valley is made and from where the river runs.
 // Felling a tree does not change them, because the map is built once from the valley's starting trees.
 // The terrain drawing blends ground types with groundTypeWeightsAt. Undergrowth picks what grows with groundTypeAt.
-import { distanceToSegment, groundDistance, RIVER_BANK_WIDTH_METRES, type GroundPoint, type Valley } from "./valley";
+import { distanceToSegment, RIVER_BANK_WIDTH_METRES, type Valley } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 
 export type GroundType = "forestFloor" | "clearing" | "riverBank";
 

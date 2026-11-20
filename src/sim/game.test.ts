@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import type { Vec3 } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { distanceToRiver, generateValley, terrainHeightAt, type GroundPoint } from "./valley";
+import { distanceToRiver, generateValley, terrainHeightAt } from "./valley";
+import { type GroundPoint } from "./ground-point";
 
 describe("createGame", () => {
   it("lays out its valley from the seed it is given", () => {

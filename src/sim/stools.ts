@@ -1,7 +1,7 @@
 // Sitting on a stool: walking to it, sitting down once the player stands beside it, and standing up again.
 // While the player sits, fatigue comes back slowly (see needs.ts). Their position stays beside the stool, which blocks walking.
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkBeside, type Walking } from "./walking";
 
 /** The player walks to a spot this far from a stool's middle to sit on it, in metres. */

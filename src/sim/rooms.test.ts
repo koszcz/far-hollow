@@ -6,7 +6,7 @@ import { foundationOn } from "./foundations";
 import { findRooms, roomAround } from "./rooms";
 import type { EdgePieceKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 describe("finding rooms", () => {
   it("finds one foundation square closed in by four log walls, with a roof", () => {

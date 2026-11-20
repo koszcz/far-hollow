@@ -9,7 +9,7 @@
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { MOST_LOGS_PER_TREE, treeLookAt, treeSizeAt } from "../sim/tree-size";
-import type { GroundPoint } from "../sim/valley";
+import type { GroundPoint } from "../sim/ground-point";
 import { logWorkedNow } from "../sim/crafting";
 import { isYoungTree, type GrowthStage } from "../sim/tree-growth";
 import {

@@ -4,7 +4,7 @@ import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-gri
 import { cabinRoofEntities, roofEntities, type Entity, type EntityStore } from "./entities";
 import { isInRect, SIDES } from "./structure-kind";
 import { turnOffset } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Whether a spot on the ground is under any roof, so rain does not fall on it. */
 export function isUnderRoof(entities: EntityStore, spot: GroundPoint): boolean {

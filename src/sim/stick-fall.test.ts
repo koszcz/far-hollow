@@ -4,7 +4,7 @@ import { stickEntities, treeEntities } from "./entities";
 import { createGame, type Game } from "./game";
 import { STICK_GAP_FROM_PLACED_METRES } from "./stick-fall";
 import { footprintOfEntity, placedStructures } from "./structures";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 
 function stickCount(game: Game): number {
   return stickEntities(game.entities).entities.length;

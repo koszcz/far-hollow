@@ -1,4 +1,4 @@
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 
 /**
  * Which parts of the valley floor the player can walk on, as a square grid of cells.

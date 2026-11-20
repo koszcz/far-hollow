@@ -2,7 +2,8 @@
 // On sloped ground the deck sits just above the highest corner, so the legs on the low side grow longer.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, foundationEntities, type EntityStore } from "./entities";
-import { terrainHeightAt, type GroundPoint, type Terrain } from "./valley";
+import { terrainHeightAt, type Terrain } from "./valley";
+import { type GroundPoint } from "./ground-point";
 
 /** How far the top of the deck sits above the highest ground under the foundation, in metres. */
 export const FOUNDATION_DECK_LIFT_METRES = 0.35;

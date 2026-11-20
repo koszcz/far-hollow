@@ -6,7 +6,7 @@ import { campfireEntities, playerEntities, type Entity, type EntityStore } from 
 import { cookProgress, isCooked } from "./fish-on-fire";
 import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkBeside, type Walking } from "./walking";
 
 /** How many game minutes one of each kind of fuel keeps a campfire burning. Bark burns like sticks. Firewood burns longer. */

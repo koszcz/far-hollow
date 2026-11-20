@@ -3,7 +3,7 @@
 // In a bed, the player steps up onto the mattress, turned to lie along the bed, which may face any of four ways.
 // Once standing again, they step back down to where they stood beside the bed. The bed blocks walking, so game logic keeps them there.
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import type { GroundPoint } from "../sim/valley";
+import type { GroundPoint } from "../sim/ground-point";
 import { BED_MATTRESS_TOP_METRES } from "./bed-meshes";
 import { SLEEP_FEET_Z, SLEEP_HEADING, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, type SleepSpot } from "./sleep-animation";
 

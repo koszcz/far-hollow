@@ -13,7 +13,7 @@
 // own run and the section just past its end.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { wrapQuarterTurns, areAtRightAngles, turnQuarters, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
-import type { GroundPoint } from "../sim/valley";
+import type { GroundPoint } from "../sim/ground-point";
 
 /** The shape a roof section takes from its neighbours. */
 export type RoofShape = "straight" | "valley";

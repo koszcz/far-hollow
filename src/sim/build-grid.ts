@@ -1,5 +1,5 @@
 // The square grid that building pieces snap to (ADR 0002).
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Building pieces snap to a square grid this wide, in metres. */
 export const BUILD_GRID_METRES = 1;

@@ -2,7 +2,7 @@
 import { distanceOutside } from "./building";
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { footprintOfEntity } from "./structures";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 
 /** The player can lie down in a bed from this far outside its edges, in metres. */

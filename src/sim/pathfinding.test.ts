@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./game";
 import { distanceToTarget, findPath, findPathWithin } from "./pathfinding";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";
 
 describe("findPath", () => {

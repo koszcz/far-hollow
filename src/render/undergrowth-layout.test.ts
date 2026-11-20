@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createGroundMap } from "../sim/ground-types";
-import type { GroundPoint, River } from "../sim/valley";
+import type { River } from "../sim/valley";
+import type { GroundPoint } from "../sim/ground-point";
 import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthItem } from "./undergrowth-layout";
 
 /** A straight river along x = 0, 8 m wide, so its water ends 4 m from its middle. */

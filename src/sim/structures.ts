@@ -27,7 +27,8 @@ import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from 
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
 import { isYoungTree } from "./tree-growth";
-import { distanceToRiver, groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { distanceToRiver, terrainHeightAt, type Valley } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import {
   isInRect,
   rectsOverlap,

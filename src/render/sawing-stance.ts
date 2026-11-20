@@ -3,7 +3,7 @@
 // log lying along the beam in front of them. When sawing stops, they step back to where game logic has them.
 // Game logic's record of where the player stands does not change.
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import type { GroundPoint } from "../sim/valley";
+import type { GroundPoint } from "../sim/ground-point";
 import { SAW_ENTER_SECONDS, SAW_STANCE_METRES } from "./player-saw-pose";
 
 /** A spot on the ground and which way the player faces there, in radians from the +z axis toward +x. */

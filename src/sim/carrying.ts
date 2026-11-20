@@ -3,7 +3,8 @@ import { playerEntities, setComponent, type CarriedLog, type Entity, type Entity
 import { shoulderRefusal } from "./refusals";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
-import { groundDistance, type GroundPoint, type Valley } from "./valley";
+import { type Valley } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up a log from this far away, in metres. */

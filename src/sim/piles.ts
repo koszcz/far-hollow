@@ -2,7 +2,8 @@ import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack, type Ba
 import { entityWith, pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
-import { groundDistance, nearestWithin, type GroundPoint, type Terrain, type Valley } from "./valley";
+import { type Terrain, type Valley } from "./valley";
+import { groundDistance, nearestWithin, type GroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */

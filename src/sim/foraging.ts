@@ -4,7 +4,8 @@ import type { HandReach } from "./hand-reach";
 import { fillNeed } from "./needs";
 import { catchSickness } from "./sickness";
 import { isAtTable, TABLE_HUNGER_FACTOR } from "./tables";
-import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { terrainHeightAt, type Valley } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can forage a bush or mushroom patch from this far away, in metres. */

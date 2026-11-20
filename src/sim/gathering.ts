@@ -3,7 +3,7 @@ import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./b
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { shoulderRefusal, toolRefusal } from "./refusals";
 import type { HandReach } from "./hand-reach";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up a stick from this far away, in metres. */

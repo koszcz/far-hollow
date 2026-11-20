@@ -1,7 +1,8 @@
 import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
 import { distanceToTarget, findPath, findPathWithin, type WalkTarget } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
-import { distanceToRiver, startSpotBeside, type GroundPoint, type Valley } from "./valley";
+import { distanceToRiver, startSpotBeside, type Valley } from "./valley";
+import { type GroundPoint } from "./ground-point";
 import {
   blockCircle,
   blockEdges,

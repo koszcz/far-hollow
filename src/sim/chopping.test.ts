@@ -5,7 +5,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { findPath, findPathWithin } from "./pathfinding";
 import { finishReach } from "./test-steps";
 import { chopSecondsForTreeSize, FEWEST_LOGS_PER_TREE, logsForTreeSize, MOST_LOGS_PER_TREE, treeSizeAt } from "./tree-size";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { nearestWalkableSpot } from "./walk-map";
 
 describe("the backpack", () => {

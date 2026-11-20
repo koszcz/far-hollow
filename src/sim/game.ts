@@ -45,7 +45,8 @@ import {
   type SavedEntity,
 } from "./entities";
 import { standingHeightAt } from "./foundations";
-import { copyToward, generateValley, terrainHeightAt, type Valley } from "./valley";
+import { generateValley, terrainHeightAt, type Valley } from "./valley";
+import { copyToward } from "./ground-point";
 import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
@@ -68,7 +69,7 @@ import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
 import { createHandReach } from "./hand-reach";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import type { ReachHeight } from "./entities";
 
 /**

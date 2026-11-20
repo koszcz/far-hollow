@@ -18,7 +18,7 @@ export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type C
 import type { PotWater } from "./pot-state";
 import type { BuildMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
 import type { QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
 

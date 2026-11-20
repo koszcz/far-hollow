@@ -4,7 +4,8 @@ import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { FISH_MAX_WAIT_MINUTES, FISH_MIN_WAIT_MINUTES, fishWaitMinutes } from "./fishing";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
-import { distanceToRiver, type GroundPoint } from "./valley";
+import { distanceToRiver } from "./valley";
+import { type GroundPoint } from "./ground-point";
 
 describe("the wait for a fish", () => {
   it("lasts from 15 to 45 game minutes, and differs from cast to cast", () => {

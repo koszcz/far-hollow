@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
-import { distanceToRiver, type GroundPoint } from "./valley";
+import { distanceToRiver } from "./valley";
+import { type GroundPoint } from "./ground-point";
 
 describe("drinking from the river", () => {
   it("walks the player to the bank, then fills thirst", () => {

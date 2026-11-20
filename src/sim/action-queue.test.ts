@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { ACTION_QUEUE_LIMIT, queued, type ActionCommand, type Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { distanceToRiver } from "./valley";
 
 describe("adding actions to the action queue", () => {

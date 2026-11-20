@@ -41,7 +41,8 @@ import {
   type PlacedStructure,
   type StructureKind,
 } from "./structures";
-import type { GroundPoint, Valley } from "./valley";
+import type { Valley } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { cellCentre, reachableCells } from "./walk-map";
 import type { Walking } from "./walking";
 

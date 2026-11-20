@@ -7,7 +7,7 @@ import { campfireEntities, foundationEntities, type Entity, type EntityStore } f
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { SIDES } from "./structure-kind";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** The middles of the foundation squares in one room. */
 export type Room = readonly GroundPoint[];

@@ -4,7 +4,7 @@ import { distanceOutside } from "./building";
 import type { Entity, EntityStore } from "./entities";
 import { footprintOfEntity, isPlacedStructure } from "./structures";
 import { isYoungTree } from "./tree-growth";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 
 /** E reaches things this far from the player, in metres. It is measured to a structure's edge and to a tree's trunk. */
 export const USE_REACH_METRES = 2.5;

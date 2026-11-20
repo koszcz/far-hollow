@@ -7,7 +7,8 @@ import { FUEL_BURN_MINUTES } from "./campfires";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { BOIL_MINUTES } from "./pot-state";
 import { readSave, writeSave } from "./save";
-import { distanceToRiver, type GroundPoint } from "./valley";
+import { distanceToRiver } from "./valley";
+import { type GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";
 

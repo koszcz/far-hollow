@@ -2,7 +2,7 @@
 import { distanceOutside } from "./building";
 import { furnitureEntities, type EntityStore } from "./entities";
 import { footprintOfEntity } from "./structures";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** The player eats at a table from this far outside its edges, in metres. */
 export const TABLE_REACH_METRES = 1.5;

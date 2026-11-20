@@ -1,6 +1,6 @@
 // Names shared by entities and the structure catalogue in structures.ts. Kept apart so neither imports the other.
 import { turnOffset, type QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
 export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "woodpile" | FurnitureKind | WorkStationKind | "sled";

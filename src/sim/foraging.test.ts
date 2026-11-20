@@ -4,7 +4,8 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds } from "./needs";
 import { LARGE_VALLEY_UPGRADES, readSave, writeSave } from "./save";
-import { distanceToRiver, generateValley, groundDistance } from "./valley";
+import { distanceToRiver, generateValley } from "./valley";
+import { groundDistance } from "./ground-point";
 import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

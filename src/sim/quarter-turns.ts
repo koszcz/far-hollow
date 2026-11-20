@@ -1,5 +1,5 @@
 // Which way a structure faces, as whole quarter turns, and every rule about it. See docs/adr/0009.
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
 export type QuarterTurns = 0 | 1 | 2 | 3;

@@ -1,7 +1,7 @@
 // Where sticks fall under trees, alone or in a deadfall: a few sticks that fell together under one tree.
 // Making a valley uses this to lay its first sticks. Sticks that fall later can use it too.
 import type { Random } from "./random";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Sticks fall from trees, so each lies within this ring around a tree's trunk, in metres. */
 export const STICK_MIN_FROM_TREE_METRES = 1.5;

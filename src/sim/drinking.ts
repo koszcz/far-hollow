@@ -1,7 +1,8 @@
 import { playerEntities, setComponent, type EntityStore } from "./entities";
 import { FULL_NEED } from "./needs";
 import { catchSickness } from "./sickness";
-import { distanceToRiver, type GroundPoint, type Valley } from "./valley";
+import { distanceToRiver, type Valley } from "./valley";
+import { type GroundPoint } from "./ground-point";
 import { nearestWalkableSpot } from "./walk-map";
 import type { Walking } from "./walking";
 

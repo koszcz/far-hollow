@@ -30,7 +30,8 @@ import { addToPileAt } from "./piles";
 import { putPlanksOnSled, takeOffSled, type SledEntity } from "./sleds";
 import type { WorkStationKind } from "./structure-kind";
 import { footprintOfEntity } from "./structures";
-import { groundDistance, type GroundPoint, type Terrain } from "./valley";
+import { type Terrain } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkBeside, type Walking } from "./walking";
 
 export type { RecipeKind } from "./recipe-kind";

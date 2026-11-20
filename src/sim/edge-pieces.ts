@@ -5,7 +5,7 @@ import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, edgePieceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
 import { type EdgePieceKind } from "./structure-kind";
 import { turnOffset, type QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Two edge middles closer than this, in metres, are the same edge. */
 const SAME_EDGE_METRES = 1e-6;

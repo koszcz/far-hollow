@@ -6,7 +6,8 @@ import { canReachRiver } from "./drinking";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { createRandom, scramble } from "./random";
 import { toolRefusal } from "./refusals";
-import type { GroundPoint, Valley } from "./valley";
+import type { Valley } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { nearestWalkableSpot } from "./walk-map";
 import type { Walking } from "./walking";
 

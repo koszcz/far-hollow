@@ -5,7 +5,7 @@ import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, removeFromBackpack, 
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
 import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
-import { groundDistance } from "./valley";
+import { groundDistance } from "./ground-point";
 import { walkBeside, type Walking } from "./walking";
 
 /** The player walks to a spot this far from a chest's middle to open it, in metres. */

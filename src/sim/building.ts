@@ -30,7 +30,8 @@ import {
   type StructureKind,
 } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
-import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { terrainHeightAt, type Valley } from "./valley";
+import { type GroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 

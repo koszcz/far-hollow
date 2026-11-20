@@ -6,7 +6,7 @@
 import type { Activity } from "./activity";
 import type { Notice, PlainNotice } from "./api";
 import { playerEntities, setComponent, type EntityStore, type ReachHeight, type ReachingFor } from "./entities";
-import { copyToward, type GroundPoint } from "./valley";
+import { copyToward, type GroundPoint } from "./ground-point";
 
 /** How long the whole reach takes, from standing to standing again, in seconds. */
 export const REACH_SECONDS = 0.9;

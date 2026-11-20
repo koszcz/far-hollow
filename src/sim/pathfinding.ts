@@ -1,5 +1,5 @@
 import type { GroundRect } from "./structure-kind";
-import { groundDistance, type GroundPoint } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { canStep, cellCentre, cellIndexAt, isWalkable, nearestCellWhere, type WalkMap } from "./walk-map";
 
 /** How far apart line-of-sight checks sample a straight walk, as a share of one cell. */

@@ -11,7 +11,7 @@ import {
   SAVE_VERSION,
   writeSave,
 } from "./save";
-import { groundDistance } from "./valley";
+import { groundDistance } from "./ground-point";
 import { isWalkable } from "./walk-map";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

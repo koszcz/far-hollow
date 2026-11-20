@@ -4,7 +4,8 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { LARGE_VALLEY_UPGRADES, PILES_SAVE_VERSION, readSave, SAVE_VERSION, STICKS_ON_GROUND_SAVE_VERSION, writeSave } from "./save";
 import { snapToGridSquare } from "./build-grid";
-import { groundDistance, terrainHeightAt } from "./valley";
+import { terrainHeightAt } from "./valley";
+import { groundDistance } from "./ground-point";
 import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

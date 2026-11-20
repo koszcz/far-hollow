@@ -4,7 +4,7 @@ import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, takeCount, totalCount } from "./counts";
 import { entityWith, playerEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "./entities";
 import { shoulderRefusal } from "./refusals";
-import { groundDistance, nearestWithin } from "./valley";
+import { groundDistance, nearestWithin } from "./ground-point";
 import { walkBeside, type Walking } from "./walking";
 
 /** A woodpile holds up to this many logs, debarked logs, and pieces of firewood in all, in any mix. */

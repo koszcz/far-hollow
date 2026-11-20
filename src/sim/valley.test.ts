@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { copyToward, generateValley, headingToward, startSpotBeside, terrainHeightAt, type GroundPoint } from "./valley";
+import { generateValley, startSpotBeside, terrainHeightAt } from "./valley";
+import type { GroundPoint } from "./ground-point";
 
 /** Shortest distance from a point to a path made of straight segments. Written here so the test does not trust the code under test. */
 function distanceToPath(point: GroundPoint, path: readonly GroundPoint[]): number {
@@ -169,25 +170,5 @@ describe("generateValley", () => {
         expect(nearestTree).toBeGreaterThanOrEqual(1.5);
       }
     }
-  });
-});
-
-describe("heading toward a spot", () => {
-  it("is 0 straight along +z, a quarter turn along +x, and a half turn along -z", () => {
-    expect(headingToward({ x: 1, z: 1 }, { x: 1, z: 5 })).toBeCloseTo(0, 9);
-    expect(headingToward({ x: 1, z: 1 }, { x: 4, z: 1 })).toBeCloseTo(Math.PI / 2, 9);
-    expect(Math.abs(headingToward({ x: 1, z: 1 }, { x: 1, z: -3 }))).toBeCloseTo(Math.PI, 9);
-  });
-});
-
-describe("copying a toward spot", () => {
-  it("gives a copy of the spot, or no field at all", () => {
-    const spot = { x: 2, z: -3 };
-    const copied = copyToward(spot);
-
-    expect(copied).toEqual({ toward: { x: 2, z: -3 } });
-    expect(copied.toward).not.toBe(spot);
-    expect(copyToward(undefined)).toEqual({});
-    expect("toward" in copyToward(undefined)).toBe(false);
   });
 });

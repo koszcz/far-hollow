@@ -7,7 +7,7 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
 import { structureOf, type EdgePieceKind, type StructureKind } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./valley";
+import type { GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";
 

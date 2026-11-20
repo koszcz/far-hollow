@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createGroundMap, groundTypeAt, groundTypeWeightsAt } from "./ground-types";
-import { generateValley, type GroundPoint, type River } from "./valley";
+import { generateValley, type River } from "./valley";
+import { type GroundPoint } from "./ground-point";
 
 /** A straight river along x = 0, 8 m wide, so its water ends 4 m from its middle. */
 const straightRiver: River = {

@@ -3,7 +3,8 @@ import { bedrollEntities, playerEntities, setComponent, type Entity, type Entity
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { leanToBedrollSpot } from "./structures";
-import { groundDistance, type GroundPoint, type Valley } from "./valley";
+import { type Valley } from "./valley";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up or lie down on a bedroll from this far from its middle, in metres. */

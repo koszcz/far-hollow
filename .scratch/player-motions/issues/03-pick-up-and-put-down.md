@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Assets:** Reuse `player`. Add draft `pick-up-animation`.
 
@@ -16,3 +16,7 @@
 - [ ] The motion takes no game time. Game rules do not change.
 - [ ] The asset showcase shows picking up and putting down.
 - [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+
+## Comments
+
+The owner chose to skip this ticket on 2026-11-20. The approved `pick-up-animation` from `.scratch/player-animations/` already covers it, and the owner did not want to change that approved asset.

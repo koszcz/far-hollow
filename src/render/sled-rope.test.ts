@@ -7,7 +7,7 @@ const back = { x: 0.2, y: 0.6, z: -0.35 };
 const loop = { x: 0.1, y: 0.02, z: -0.9 };
 
 describe("the rope to a dragged sled", () => {
-  it("runs from the player's hand, over the shoulder and down the back, to the sled's tow loop", () => {
+  it("runs from the player's hand, over the shoulder and down the back, to the sled's rope loop", () => {
     const points = sledRopePoints({ hand, shoulder, back }, loop, 21);
 
     expect(points).toHaveLength(21);

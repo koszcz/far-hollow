@@ -15,7 +15,7 @@
 // The planks on a sled are the "sled-planks" asset, drawn by sled-plank-meshes.ts on top of the logs.
 // A sled the player has dragged points the way it was last dragged, and a dragged sled
 // moves smoothly between logic steps with the player.
-// While the player drags a sled, the draft "sled-rope", drawn by sled-rope.ts, runs from their hand to the tow loop.
+// While the player drags a sled, the draft "sled-rope", drawn by sled-rope.ts, runs from their hand to the loop at the front of the sled's rope.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
@@ -62,8 +62,8 @@ const LASHING_TILT = 0.45;
 const TOW_KNOT_METRES = SLED_LENGTH_METRES / 2 + 0.3;
 /** The radius of the loop at the end of the tow rope, in metres. */
 const TOW_LOOP_RADIUS_METRES = 0.06;
-/** How far in front of the sled's middle the player's rope is tied to the tow loop, in metres: the loop's far edge. */
-const TOW_LOOP_FRONT_METRES = TOW_KNOT_METRES + 2 * TOW_LOOP_RADIUS_METRES;
+/** How far in front of the sled's middle the player's rope is tied to the loop at the front of the sled's rope, in metres: the loop's far edge. */
+const ROPE_LOOP_FRONT_METRES = TOW_KNOT_METRES + 2 * TOW_LOOP_RADIUS_METRES;
 /** The bottom layer of the load holds this many logs side by side. Each layer above rests in the gaps, one fewer. */
 const LOGS_PER_BOTTOM_LAYER = 3;
 /** Logs in a layer sit this much further apart than they are thick, in metres, so they do not overlap. */
@@ -81,7 +81,7 @@ export interface SledMeshes {
   /**
    * Brings every sled and sled blueprint up to date with game state.
    * `player` is where the player is drawn this frame. The sled they drag is drawn moved as far as they are, so it keeps up smoothly.
-   * `ropeHold` is where the player holds the rope while dragging. The rope runs from it to the dragged sled's tow loop.
+   * `ropeHold` is where the player holds the rope while dragging. The rope runs from it to the loop at the front of the dragged sled's rope.
    */
   update(player?: Vec3, ropeHold?: RopeHold): void;
   /** What a ray from the camera hits first among sleds and sled blueprints, and how far away. */
@@ -94,14 +94,14 @@ export interface SledMeshes {
 }
 
 /**
- * Where the player's rope is tied to the tow loop of a sled whose middle is at `position`, turned by `heading` radians.
+ * Where the player's rope is tied to the loop at the front of a sled's rope, for a sled whose middle is at `position`, turned by `heading` radians.
  * Turned by θ, the runners run along (cos θ, -sin θ), with the front leading.
  */
-export function towLoopAt(position: Vec3, heading: number): Vec3 {
+export function ropeLoopAt(position: Vec3, heading: number): Vec3 {
   return {
-    x: position.x + Math.cos(heading) * TOW_LOOP_FRONT_METRES,
+    x: position.x + Math.cos(heading) * ROPE_LOOP_FRONT_METRES,
     y: position.y + ROPE_RADIUS_METRES,
-    z: position.z - Math.sin(heading) * TOW_LOOP_FRONT_METRES,
+    z: position.z - Math.sin(heading) * ROPE_LOOP_FRONT_METRES,
   };
 }
 
@@ -514,7 +514,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
         seen.add(entity);
       }
       // The player is drawn between logic steps. Move the sled they drag by as much, so it does not lag a step behind them.
-      let towLoop: Vec3 | undefined;
+      let ropeLoop: Vec3 | undefined;
       for (const dragger of draggers) {
         const sled = entities.entity(dragger.dragging.sledId);
         const item = sled === undefined ? undefined : drawn.get(sled);
@@ -523,9 +523,9 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
           item.root.position.x += player.x - dragger.position.x;
           item.root.position.z += player.z - dragger.position.z;
         }
-        towLoop = towLoopAt(item.root.position, item.root.rotation.y);
+        ropeLoop = ropeLoopAt(item.root.position, item.root.rotation.y);
       }
-      rope.show(ropeHold, towLoop);
+      rope.show(ropeHold, ropeLoop);
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },
     pick(raycaster) {

@@ -8,13 +8,13 @@
 
 **Assets:** Reuse `player`, `sawhorse`, `debarked-log`, and the approved `sawing-animation` and `saw-model` unchanged. Add draft `hand-craft-animation`. Update the "Crafting reuses chop-animation" line in `.scratch/crafting/spec.md`.
 
-- [ ] At a sawhorse, the player faces it, bends a little, and pushes and pulls a saw back and forth along the log, about once a second.
-- [ ] The saw shows in the right hand while sawing, and the axe is not in the hand. Reuse the saw shape from `crafting-icons` if it helps, or draw a simple blade and handle.
-- [ ] For a hand recipe, the player stands still with both hands at waist height and works at something small, with a slow, steady motion.
-- [ ] Stopping the work returns the player to standing at once, and the axe returns to the hand.
-- [ ] Chopping a tree still uses `chop-animation`.
-- [ ] The asset showcase shows both motions.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] At a sawhorse, the player faces it, bends a little, and pushes and pulls a saw back and forth along the log, about once a second. Covered by the approved `sawing-animation`.
+- [x] The saw shows in the right hand while sawing, and the axe is not in the hand. Reuse the saw shape from `crafting-icons` if it helps, or draw a simple blade and handle. Covered by the approved `sawing-animation` and `saw-model`.
+- [x] For a hand recipe, the player stands still with both hands at waist height and works at something small, with a slow, steady motion.
+- [x] Stopping the work returns the player to standing at once, and the axe returns to the hand. Sawing keeps the short step back of the approved `sawing-animation`.
+- [x] Chopping a tree still uses `chop-animation`.
+- [x] The asset showcase shows both motions.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
 
 ## Comments
 

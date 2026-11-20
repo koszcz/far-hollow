@@ -1159,7 +1159,7 @@
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player making something by hand, for a hand recipe such as the saw or the fishing rod. The player stands still, rounds the shoulders a little, and bows the head to watch the hands. Both hands work at something small held at waist height, in front of the belly. The left hand holds the work steady and turns it slightly. The right hand winds a binding around it in slow, steady loops, one every 2 seconds. The axe goes on the back. The hands lift to the work over 0.25 seconds when crafting starts and lower over 0.25 seconds when it stops, and the axe returns to the hand. It is posed in code over the idle clip. Cutting planks at the sawhorse uses sawing-animation instead.",
+      "description": "The player crafting something by hand, for a hand recipe such as the saw or the fishing rod. The player stands still, rounds the shoulders a little, and bows the head to watch the hands. Both hands work at something small held at waist height, in front of the belly. The left hand holds the work steady and turns it slightly. The right hand winds a binding around it in slow, steady loops, one every 2 seconds. The axe goes on the back. The hands lift to the work over 0.25 seconds when crafting starts. When it stops, the player stands straight back up at once, and the axe returns to the hand. It is posed in code over the idle clip. Cutting planks at the sawhorse uses sawing-animation instead.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1175,7 +1175,7 @@
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player pulling a sled. While dragging, the player leans forward from the hips, with the hips set back a little and the chin lifted. The left hand grips the rope just in front of the left shoulder, and the rope runs back over that shoulder. The right arm swings as in the walk, and the legs keep the walk's stride, played at the slower dragging pace so the feet stay planted. Standing still while dragging shows the same lean over the idle clip, with the legs at rest. The lean starts and ends at once with dragging. It is posed in code over the approved walk-animation or the idle clip, with the build pose's bones. The axe stays in the right hand. The rope is the draft sled-rope.",
+      "description": "The player dragging a sled. While dragging, the player leans forward from the hips, with the hips set back a little and the chin lifted. The left hand grips the rope just in front of the left shoulder, and the rope runs back over that shoulder. The right arm swings as in the walk, and the legs keep the walk's stride, played at the slower dragging pace so the feet stay planted. Standing still while dragging shows the same lean over the idle clip, with the legs at rest. The lean starts and ends at once with dragging. It is posed in code over the approved walk-animation or the idle clip, with the build pose's bones. The axe stays in the right hand. The rope is the draft sled-rope.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1190,7 +1190,7 @@
         "src/render/sled-rope.ts",
         "src/render/sled-meshes.ts"
       ],
-      "description": "The short rope the player pulls a sled by. It runs from the player's left hand, up over the left shoulder, down the back clear of the backpack, and on to the loop at the front of the approved sled's tow rope. Between the back and the sled it sags 6 cm in the middle. It is the same dark brown and thickness as the sled's tow rope, 2.2 cm across, and follows the player and the sled as they move. It shows only while the player drags a sled and hides at once when they let go.",
+      "description": "The short rope the player drags a sled by. It runs from the player's left hand, up over the left shoulder, down the back clear of the backpack, and on to the loop at the front of the approved sled's rope. Between the back and the sled it sags 6 cm in the middle. It is the same dark brown and thickness as the sled's own rope, 2.2 cm across, and follows the player and the sled as they move. It shows only while the player drags a sled and hides at once when they let go.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1206,7 +1206,7 @@
         "src/render/player-mesh.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "Short motions the player plays once, each about one second. Foraging a berry bush reaches the right hand into the bush at chest height and back. Eating raises the right hand to the mouth twice. Drinking from the river kneels at the bank, dips both hands into the water, and raises them cupped to the mouth. Filling the pot kneels at the bank and dips the approved pot into the water, which fills as the hand gets there. Drinking from the pot raises it to the mouth and tips it back. The player faces the bush or the river. Walking or another action cuts a motion short. Posed in code on top of the idle clip; the axe goes on the back. Foraging mushrooms reuses the approved pick-up-animation.",
+      "description": "Short motions the player plays once, each about one second. Foraging a berry bush reaches the right hand into the bush at chest height and back. Eating raises the right hand to the mouth twice. Drinking from the river kneels at the river bank, dips both hands into the water, and raises them cupped to the mouth. Filling the pot kneels at the river bank and dips the approved pot into the water, which fills as the hand gets there. Drinking from the pot raises it to the mouth and tips it back. The player faces the bush or the river. A bite or drink taken while walking or working plays over the walk or the work, moving only the arms and head. Walking or another action that starts after a motion began cuts it short. Posed in code on top of the idle clip; the axe goes on the back. Foraging mushrooms reuses the approved pick-up-animation.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

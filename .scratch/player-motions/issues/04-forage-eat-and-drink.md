@@ -18,3 +18,8 @@
 - [x] The motions take no game time. Game rules do not change.
 - [x] The asset showcase shows each motion.
 - [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+
+## Comments
+
+- The showcase stills leave out drinking from the river. The asset showcase shows at most four stills, and the other four motions fill them. The live loop (`&play`) plays drinking from the river after the other four.
+- A bite or drink taken while the player walks or works plays over the walk or the work, with only the arms and head moving. Walking or work that starts after the bite or drink began cuts it short.

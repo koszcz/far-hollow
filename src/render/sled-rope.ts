@@ -1,5 +1,5 @@
-// Builds the "sled-rope" asset in asset-manifest.json: the short rope the player pulls a sled by. It runs from the hand,
-// up over the shoulder, and down behind the player to the loop at the front of the sled's tow rope, sagging a little.
+// Builds the "sled-rope" asset in asset-manifest.json: the short rope the player drags a sled by. It runs from the hand,
+// up over the shoulder, and down behind the player to the loop at the front of the sled's own rope, sagging a little.
 // It shows only while the player drags a sled. sled-meshes.ts draws it from where player-mesh.ts says the hand and the
 // shoulder are. It is a draft built in code.
 import * as THREE from "three";
@@ -9,9 +9,9 @@ import { lerp } from "./easing";
 
 /** How far the middle of the rope between the shoulder and the sled hangs below a straight line, in metres. */
 export const SLED_ROPE_SAG_METRES = 0.06;
-/** The rope's thickness, as a radius in metres: the same as the sled's tow rope. */
+/** The rope's thickness, as a radius in metres: the same as the sled's own rope. */
 const SLED_ROPE_RADIUS_METRES = 0.011;
-/** The rope's colour: the same as the sled's tow rope. */
+/** The rope's colour: the same as the sled's own rope. */
 const SLED_ROPE_COLOUR = 0x3d3128;
 /** How many of the rope's points run from the hand to the shoulder, and from the shoulder down the back. The rest hang to the sled. */
 const POINTS_TO_SHOULDER = 2;
@@ -32,7 +32,7 @@ const between = (from: Vec3, to: Vec3, t: number): Vec3 => ({ x: lerp(from.x, to
 const straight = (from: Vec3, to: Vec3, count: number): Vec3[] => Array.from({ length: count }, (_, index) => between(from, to, index / count));
 
 /**
- * `count` points along the rope, from the hand, over the shoulder and down the back, to the tow loop `loop`.
+ * `count` points along the rope, from the hand, over the shoulder and down the back, to the sled's rope loop `loop`.
  * All are world points. The rope is taut against the body, and sags a little between the back and the sled.
  */
 export function sledRopePoints(hold: RopeHold, loop: Vec3, count: number): Vec3[] {
@@ -49,7 +49,7 @@ export function sledRopePoints(hold: RopeHold, loop: Vec3, count: number): Vec3[
 
 export interface SledRope {
   readonly mesh: THREE.Mesh;
-  /** Draws the rope from `hold` to the tow loop at `loop`, or hides it when either is undefined. */
+  /** Draws the rope from `hold` to the sled's rope loop at `loop`, or hides it when either is undefined. */
   show(hold: RopeHold | undefined, loop: Vec3 | undefined): void;
   dispose(): void;
 }

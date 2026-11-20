@@ -24,11 +24,14 @@ All new assets go in as drafts built in code. The owner approves or changes them
 | --- | --- |
 | `sled-drag-animation` | The player leaning forward, pulling a sled by a short rope over the shoulder |
 | `sled-rope` | The short rope from the player's hand to the front of a dragged sled |
-| `saw-animation` | The player sawing a debarked log at the sawhorse |
 | `hand-craft-animation` | The player working with both hands at waist height, for a hand recipe |
 | `pick-up-animation` | The player bending down to pick something up or put it down |
 | `forage-eat-drink-animation` | The player picking from a bush or patch, eating, drinking from the river, filling the pot, and drinking from the pot |
 | `sleep-animation` | The player lying down on the bedroll, sleeping, and getting up |
+
+Sawing at the sawhorse reuses the approved `sawing-animation` and `saw-model`, so this feature adds no `saw-animation` entry.
+
+The owner skipped tickets 03 and 05. The approved `pick-up-animation` already covers picking up and putting down, and the approved `sleep-animation` already covers sleeping on the bedroll.
 
 ## Not in this feature
 

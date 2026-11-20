@@ -53,7 +53,7 @@ describe("drawing a drink from the river", () => {
     expect(game.client.getView().lastEatOrDrink).toEqual({ count: 1, kind: "drinkFromRiver", toward: { x: spot.x, z: spot.z } });
   });
 
-  it("reports nothing if the player walks somewhere else before reaching the bank", () => {
+  it("reports nothing if the player walks somewhere else before reaching the river bank", () => {
     const game = createGame({ seed: 42 });
     const player = onlyPlayer(game);
 

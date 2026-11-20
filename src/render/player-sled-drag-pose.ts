@@ -1,5 +1,5 @@
 // Builds the "sled-drag-animation" asset in asset-manifest.json: while the player drags a sled, they lean forward from
-// the hips and pull it by a short rope over the left shoulder. The left hand grips the rope in front of the shoulder.
+// the hips and drag it by a short rope over the left shoulder. The left hand grips the rope in front of the shoulder.
 // The right arm and the legs keep whatever the clip does: the walk's swing and stride while moving, and the idle clip's
 // rest while standing. It is posed in code with the build pose's bones, so it has no clip of its own. It is a draft.
 // The rope is the draft "sled-rope", drawn by sled-rope.ts.

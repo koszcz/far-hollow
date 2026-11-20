@@ -183,7 +183,7 @@ function dragTo({ store, movePlayer }: Stage, walked: number): void {
 }
 
 /**
- * The draft "sled-drag-animation" and "sled-rope": the player pulls a loaded sled along +x by a rope over the left shoulder.
+ * The draft "sled-drag-animation" and "sled-rope": the player drags a loaded sled along +x by a rope over the left shoulder.
  * The stills show the stride from the rope hand's side, the loaded sled, the lean while standing, and the rope from behind.
  */
 const SLED_DRAG_SHOWCASE: Showcase = {
@@ -206,7 +206,7 @@ const SLED_DRAG_SHOWCASE: Showcase = {
   pose({ player }, shot) {
     player.setWalking(shot.seconds === undefined ? undefined : shot.seconds * DRAG_WALK_METRES_PER_SECOND);
   },
-  // The player pulls the sled forward at dragging speed, then stands leaning into the rope, then walks on. The camera keeps pace.
+  // The player drags the sled forward at dragging speed, then stands leaning into the rope, then walks on. The camera keeps pace.
   play: {
     shot: { label: "dragging, then standing", yaw: 30, pitch: 15, radius: 2.4 },
     pose(stage, seconds) {
@@ -491,7 +491,7 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
-  // The draft "hand-craft-animation": the player makes the saw, a hand recipe, working at it with both hands at waist height.
+  // The draft "hand-craft-animation": the player crafts the saw, a hand recipe, working at it with both hands at waist height.
   "hand-craft-animation": {
     radius: 1.3,
     focus: { x: 0, y: 0.9, z: 0.2 },
@@ -510,9 +510,9 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       player.setHandCrafting(0);
       player.setHandCrafting(shot.seconds);
     },
-    // The player makes the saw for as long as the game takes, stands, rests, then starts again.
+    // The player crafts the saw for as long as the game takes, stands, rests, then starts again.
     play: {
-      shot: { label: "making the saw, then standing", yaw: 30, pitch: 15, radius: 1.6 },
+      shot: { label: "crafting the saw, then standing", yaw: 30, pitch: 15, radius: 1.6 },
       pose({ player }, seconds) {
         const cycle = seconds % (SAW_CRAFT_SECONDS + HAND_CRAFT_PLAY_REST_SECONDS);
         player.setHandCrafting(cycle < SAW_CRAFT_SECONDS ? cycle : undefined);

@@ -159,6 +159,33 @@ describe("drinking from the pot", () => {
   });
 });
 
+describe("drawing a drink from the pot", () => {
+  it("reports the drink, so drawing can raise the pot to the mouth", () => {
+    const game = createGame({ seed: 42 });
+    fillPot(game);
+
+    send(game, { type: "drinkFromPot" });
+
+    expect(game.client.getView().lastEatOrDrink).toEqual({ count: 1, kind: "drinkFromPot" });
+  });
+
+  it("reports nothing when the pot is empty", () => {
+    const game = createGame({ seed: 42 });
+
+    send(game, { type: "drinkFromPot" });
+
+    expect(game.client.getView().lastEatOrDrink).toBeNull();
+  });
+
+  it("is not saved, so a loaded game reports no drink", () => {
+    const game = createGame({ seed: 42 });
+    fillPot(game);
+    send(game, { type: "drinkFromPot" });
+
+    expect(saveAndLoad(game).client.getView().lastEatOrDrink).toBeNull();
+  });
+});
+
 describe("saving the pot", () => {
   it("keeps the pot empty, full of river water, or full of boiled water", () => {
     for (const content of ["pot", "potOfRiverWater", "potOfBoiledWater"] as const) {

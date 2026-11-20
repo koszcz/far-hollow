@@ -41,6 +41,30 @@ describe("drinking from the river", () => {
   });
 });
 
+describe("drawing a drink from the river", () => {
+  it("reports the drink and the spot on the river, so drawing can face the water", () => {
+    const game = createGame({ seed: 42 });
+    const spot = riverSpotNearPlayer(game);
+
+    send(game, { type: "drinkFromRiver", ...spot });
+    expect(game.client.getView().lastEatOrDrink).toBeNull();
+    runUntilStill(game);
+
+    expect(game.client.getView().lastEatOrDrink).toEqual({ count: 1, kind: "drinkFromRiver", toward: { x: spot.x, z: spot.z } });
+  });
+
+  it("reports nothing if the player walks somewhere else before reaching the bank", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+
+    send(game, { type: "drinkFromRiver", ...riverSpotNearPlayer(game) });
+    send(game, { type: "walkTo", x: player.position.x - 10, z: player.position.z });
+    runUntilStill(game);
+
+    expect(game.client.getView().lastEatOrDrink).toBeNull();
+  });
+});
+
 describe("a sick player", () => {
   it("gets thirsty twice as fast", () => {
     const well = createGame({ seed: 42 });

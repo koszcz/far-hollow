@@ -182,6 +182,28 @@ describe("eating", () => {
   });
 });
 
+describe("drawing a bite", () => {
+  it("reports each bite, so drawing can raise a hand to the mouth", () => {
+    const game = createGame({ seed: 42 });
+    give(game, "berries", 2);
+    expect(game.client.getView().lastEatOrDrink).toBeNull();
+
+    send(game, { type: "eat", food: "berries" });
+    expect(game.client.getView().lastEatOrDrink).toEqual({ count: 1, kind: "eat" });
+
+    send(game, { type: "eat", food: "berries" });
+    expect(game.client.getView().lastEatOrDrink).toEqual({ count: 2, kind: "eat" });
+  });
+
+  it("reports nothing when the backpack holds none of that food", () => {
+    const game = createGame({ seed: 42 });
+
+    send(game, { type: "eat", food: "mushroom" });
+
+    expect(game.client.getView().lastEatOrDrink).toBeNull();
+  });
+});
+
 describe("saving food", () => {
   it("keeps hunger, foraged food, and which spots are growing back", () => {
     const game = createGame({ seed: 42 });

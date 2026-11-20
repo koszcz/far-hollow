@@ -28,8 +28,11 @@ export interface Foraging {
    * there, the food stays and the reach gives "backpackFull".
    */
   forage(spotId: number): void;
-  /** Eats one of this food from the backpack, which fills hunger, more so within reach of a finished table. Raw fish makes the player sick. Does nothing if the backpack holds none. */
-  eat(food: Food): void;
+  /**
+   * Eats one of this food from the backpack, which fills hunger, more so within reach of a finished table. Raw fish makes
+   * the player sick. Does nothing if the backpack holds none. Returns whether the player ate.
+   */
+  eat(food: Food): boolean;
   /** Stops the player walking to forage. */
   cancel(): void;
   /** Starts the player reaching to forage the spots they have walked to. Run it after walking has moved the player. */
@@ -62,6 +65,7 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
       }
     },
     eat(food) {
+      let ate = false;
       for (const player of players) {
         if (player.backpack === undefined || player.needs === undefined) continue;
         if (!removeFromBackpack(player.backpack, food, 1)) continue;
@@ -69,7 +73,9 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
         const factor = isAtTable(entities, player.position) ? TABLE_HUNGER_FACTOR : 1;
         fillNeed(player.needs, "hunger", HUNGER_FILLED_BY[food] * factor);
         if (MAKES_SICK[food]) setComponent(entities, player, "sickness", catchSickness());
+        ate = true;
       }
+      return ate;
     },
     cancel() {
       for (const player of players) entities.removeComponent(player, "forageTask");

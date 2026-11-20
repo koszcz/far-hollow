@@ -22,8 +22,11 @@ export interface Drinking {
   step(): undefined;
 }
 
-/** Lets the player drink from the river. River water is not boiled, so drinking it makes the player sick. */
-export function createDrinking(entities: EntityStore, walking: Walking, valley: Valley): Drinking {
+/**
+ * Lets the player drink from the river. River water is not boiled, so drinking it makes the player sick.
+ * `onDrink` hears of each drink, with the spot on the river the player drank toward.
+ */
+export function createDrinking(entities: EntityStore, walking: Walking, valley: Valley, onDrink: (river: GroundPoint) => void): Drinking {
   const players = playerEntities(entities);
   const drinkers = entities.with("player", "drinkTask", "position", "needs");
 
@@ -41,11 +44,13 @@ export function createDrinking(entities: EntityStore, walking: Walking, valley: 
       // Copy the list first, because players who drink leave the query while it is being walked.
       for (const player of [...drinkers]) {
         if (player.walkPath !== undefined) continue;
+        const river = player.drinkTask;
         entities.removeComponent(player, "drinkTask");
         if (!canReachRiver(valley, player.position)) continue;
         player.needs.thirst.level = FULL_NEED;
         player.needs.thirst.minutesWithout = 0;
         setComponent(entities, player, "sickness", catchSickness());
+        onDrink(river);
       }
     },
   };

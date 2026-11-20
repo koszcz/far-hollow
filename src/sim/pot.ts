@@ -36,8 +36,8 @@ export interface Pot {
    * Call it after the campfires burn, so a fire that went out does not heat the pot.
    */
   heat(gameMinutes: number): void;
-  /** Drinks the water in the full pot, which fills thirst. Unboiled river water makes the player sick. */
-  drink(): void;
+  /** Drinks the water in the full pot, which fills thirst. Unboiled river water makes the player sick. Returns whether the player drank. */
+  drink(): boolean;
 }
 
 export function createPot(entities: EntityStore, walking: Walking, valley: Valley, campfires: Campfires, hand: Pick<HandReach, "start">): Pot {
@@ -116,9 +116,10 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
           player.needs.thirst.level = FULL_NEED;
           player.needs.thirst.minutesWithout = 0;
           if (water === "river") setComponent(entities, player, "sickness", catchSickness());
-          return;
+          return true;
         }
       }
+      return false;
     },
     heat(gameMinutes) {
       for (const { campfire, potOnFire } of potsOnFire) {

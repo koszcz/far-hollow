@@ -15,6 +15,7 @@ import type {
   PlayerAction,
   Refusal,
   SleepView,
+  EatOrDrinkView,
 } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
@@ -215,7 +216,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     carrying.drop();
     sleds.letGo();
   });
-  const drinking = createDrinking(entities, walking, valley);
+  const drinking = createDrinking(entities, walking, valley, (river) => {
+    reportEatOrDrink("drinkFromRiver", river);
+  });
   const fishing = createFishing(entities, walking, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
@@ -260,6 +263,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   let paused = false;
   /** The player's last sleep since the game was loaded. It is not saved. */
   let lastSleep: SleepView | null = null;
+  /** The player's last bite or drink since the game was loaded. It is not saved. */
+  let lastEatOrDrink: EatOrDrinkView | null = null;
   let stepCount = progress?.stepCount ?? 0;
   /** The action queue: the action under way first, then those waiting their turn. It is not saved. */
   const actionQueue: ActionCommand[] = [];
@@ -298,6 +303,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       raining: rain.falling,
       notice: notice !== null && clock.minutes < notice.untilMinutes ? noticeView(notice) : null,
       lastSleep,
+      lastEatOrDrink,
       sittingOn: player.sitting?.stoolId ?? null,
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
       actionQueue: deepFreeze(structuredClone(actionQueue)),
@@ -547,7 +553,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     eat: {
       start: "alongside",
       run: (command) => {
-        foraging.eat(command.food);
+        if (foraging.eat(command.food)) reportEatOrDrink("eat");
       },
     },
     splitLog: {
@@ -760,7 +766,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     drinkFromPot: {
       start: "alongside",
       run: () => {
-        pot.drink();
+        if (pot.drink()) reportEatOrDrink("drinkFromPot");
       },
     },
     fillPot: {
@@ -908,6 +914,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       ...(bed === undefined ? {} : { bed: Object.freeze({ ...bed }) }),
       ...(bedroll === undefined ? {} : { bedroll: Object.freeze({ ...bedroll }) }),
     });
+  }
+
+  /** Records a bite or drink for drawing to play. `toward` is the spot on the river, for a drink from the river. */
+  function reportEatOrDrink(kind: EatOrDrinkView["kind"], toward?: GroundPoint): void {
+    const count = (lastEatOrDrink?.count ?? 0) + 1;
+    lastEatOrDrink = Object.freeze({ count, kind, ...(toward === undefined ? {} : { toward: Object.freeze({ x: toward.x, z: toward.z }) }) });
   }
 
   /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */

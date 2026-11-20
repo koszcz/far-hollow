@@ -283,6 +283,11 @@ export interface GameView {
    * sleep, so drawing can tell a new one. `at` is the middle of the bedroll or bed. Drawing plays the sleep animation from it.
    */
   readonly lastSleep: SleepView | null;
+  /**
+   * The player's last bite of food or drink of water since the game was loaded, or null if none. `count` goes up by one
+   * with each, so drawing can tell a new one and play its motion once. It is not saved.
+   */
+  readonly lastEatOrDrink: EatOrDrinkView | null;
   /** The entity id of the stool the player sits on, or null if they are not sitting. */
   readonly sittingOn: number | null;
   /**
@@ -302,6 +307,16 @@ export interface GameView {
 export interface ReachView {
   readonly height: "low" | "waist";
   readonly seconds: number;
+}
+
+/**
+ * One bite of food or drink of water. See `GameView.lastEatOrDrink`. `kind` says which: eating from the backpack,
+ * drinking from the river, or drinking from the pot. `toward` is the spot on the river, for a drink from the river.
+ */
+export interface EatOrDrinkView {
+  readonly count: number;
+  readonly kind: "eat" | "drinkFromRiver" | "drinkFromPot";
+  readonly toward?: Readonly<GroundPoint>;
 }
 
 /** One sleep on a bedroll or in a bed. See `GameView.lastSleep`. */

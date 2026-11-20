@@ -41,6 +41,7 @@ const BASE_VIEW: GameView = {
   raining: false,
   notice: null,
   lastSleep: null,
+  lastEatOrDrink: null,
   sittingOn: null,
   reach: null,
   actionQueue: [],

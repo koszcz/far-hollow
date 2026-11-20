@@ -17,6 +17,7 @@
 - [ ] The fireplace shows its build stages.
 - [ ] A fireplace and its blueprint block walking.
 - [ ] Furniture and campfires cannot be placed on a square that holds a fireplace or its blueprint.
+- [ ] If floors exist when this ticket starts, a fireplace can stand on a square with a floor or floor blueprint, and a floor can go under a fireplace. See `.scratch/floors-and-doors/issues/01-lay-a-floor.md`.
 - [ ] The player can take down a fireplace or its blueprint and get back every stone given so far.
 - [ ] Fireplaces and their blueprints are saved. The save version goes up, and older saves are upgraded when loaded.
 - [ ] In the playground, a fireplace spends no stone.

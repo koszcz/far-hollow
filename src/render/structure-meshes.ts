@@ -17,6 +17,7 @@ import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
 import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createSledMeshes } from "./sled-meshes";
+import type { RopeHold } from "./sled-rope";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
@@ -42,6 +43,8 @@ export interface StructureFrame {
   readonly camera?: Vec3;
   /** Where the player is drawn. Walls in front of them fade, and the roof above them hides. */
   readonly player?: Vec3;
+  /** Where the player holds the rope while dragging a sled. The rope runs from it to the sled. */
+  readonly ropeHold?: RopeHold | undefined;
 }
 
 export interface StructureMeshes {
@@ -171,7 +174,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
 
   return {
     group,
-    update({ nowSeconds, camera, player }) {
+    update({ nowSeconds, camera, player, ropeHold }) {
       campfires.update(nowSeconds);
       fishOnFire.update();
       leanTos.update();
@@ -183,7 +186,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       woodpiles.update();
       for (const meshes of Object.values(furniture)) meshes.update();
       sawhorses.update();
-      sleds.update(player);
+      sleds.update(player, ropeHold);
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([

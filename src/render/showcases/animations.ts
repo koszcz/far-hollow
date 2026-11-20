@@ -1,9 +1,10 @@
 // Showcases for player and world animations. Each one plays live with &play. The registry is src/render/showcases/index.ts.
 import * as THREE from "three";
 import { chopSecondsForTreeSize, treeSizeAt } from "../../sim/tree-size";
-import { PLANKS_CRAFT_SECONDS } from "../../sim/crafting";
+import { PLANKS_CRAFT_SECONDS, SAW_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
+import { DRAG_ROPE_METRES, DRAG_SPEED } from "../../sim/sleds";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../../sim/hand-reach";
 import { BUILD_STONES_SHARE, buildProgressAtStickStage } from "../campfire-meshes";
 import { BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE } from "../structure-look";
@@ -14,6 +15,7 @@ import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_R
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "../player-mesh";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
+import { HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS } from "../player-hand-craft-pose";
 import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
 import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
 import {
@@ -136,6 +138,9 @@ const REACH_SHOWCASE_METRES = 0.45;
 /** How long the player stands after sawing before the "sawing-animation" plays again, in seconds. */
 const SAW_PLAY_REST_SECONDS = 1.2;
 
+/** How long the player stands after crafting by hand before the "hand-craft-animation" plays again, in seconds. */
+const HAND_CRAFT_PLAY_REST_SECONDS = 1.2;
+
 /**
  * How long each wait for a fish lasts in the "fishing-animation" showcase, in seconds: the shortest wait in the game.
  * The player casts this many times, then lowers the rod and rests before it plays again.
@@ -164,7 +169,61 @@ const CHOP_PLAY_REST_SECONDS = 1.2;
 /** How long the game takes to chop the showcase's tree, which stands at the middle of the scene. */
 const SHOWCASE_CHOP_SECONDS = chopSecondsForTreeSize(treeSizeAt(0, 0));
 
+/** How fast the player walks while dragging a sled, in metres a second. */
+const DRAG_WALK_METRES_PER_SECOND = WALK_SPEED_METRES_PER_SECOND * DRAG_SPEED;
+/** How long the player walks, then stands, in each loop of the "sled-drag-animation" showcase, in seconds. */
+const DRAG_PLAY_WALK_SECONDS = 4;
+const DRAG_PLAY_REST_SECONDS = 1.5;
+
+/** Moves the player `walked` metres along +x, facing that way, with the sled they drag the rope's length behind. */
+function dragTo({ store, movePlayer }: Stage, walked: number): void {
+  movePlayer(walked, 0, Math.PI / 2);
+  const sled = store.with("sled", "position").first;
+  if (sled !== undefined) Object.assign(sled.position, { x: walked - DRAG_ROPE_METRES });
+}
+
+/**
+ * The draft "sled-drag-animation" and "sled-rope": the player pulls a loaded sled along +x by a rope over the left shoulder.
+ * The stills show the stride from the rope hand's side, the loaded sled, the lean while standing, and the rope from behind.
+ */
+const SLED_DRAG_SHOWCASE: Showcase = {
+  radius: 1.9,
+  focus: { x: -0.8, y: 0.7, z: 0 },
+  shots: [
+    { label: "walking, left leg passes, rope hand side", yaw: 180, pitch: 5, share: 0.75, radius: 0.9, focus: { x: 0, y: 0.7 } },
+    { label: "walking with the loaded sled, right foot lands", yaw: 40, pitch: 15, share: 0.5 },
+    { label: "standing, leaning into the rope", yaw: 120, pitch: 15, radius: 0.9, focus: { x: 0, y: 0.7 } },
+    { label: "rope down the back, from behind", yaw: 250, pitch: 40, radius: 1, focus: { x: 0, y: 0.7 } },
+  ].map(({ share, ...shot }) => (share === undefined ? shot : { ...shot, seconds: (share * STRIDE_METRES) / DRAG_WALK_METRES_PER_SECOND })),
+  build(stage) {
+    const sled = stage.place(-DRAG_ROPE_METRES, 0, { sled: { log: 4, debarkedLog: 2, plank: 0 }, facing: { turns: 0 }, dragHeading: 0 });
+    const player = stage.store.with("player").first;
+    const sledId = stage.store.id(sled);
+    if (player !== undefined && sledId !== undefined) stage.store.addComponent(player, "dragging", { sledId });
+    dragTo(stage, 0);
+    stage.player.setDragging(true);
+  },
+  pose({ player }, shot) {
+    player.setWalking(shot.seconds === undefined ? undefined : shot.seconds * DRAG_WALK_METRES_PER_SECOND);
+  },
+  // The player pulls the sled forward at dragging speed, then stands leaning into the rope, then walks on. The camera keeps pace.
+  play: {
+    shot: { label: "dragging, then standing", yaw: 30, pitch: 15, radius: 2.4 },
+    pose(stage, seconds) {
+      const loop = DRAG_PLAY_WALK_SECONDS + DRAG_PLAY_REST_SECONDS;
+      const walking = seconds % loop < DRAG_PLAY_WALK_SECONDS;
+      const walkedSeconds = Math.floor(seconds / loop) * DRAG_PLAY_WALK_SECONDS + Math.min(seconds % loop, DRAG_PLAY_WALK_SECONDS);
+      const walked = (walkedSeconds * DRAG_WALK_METRES_PER_SECOND) % 60;
+      dragTo(stage, walked);
+      stage.player.setWalking(walking ? walked : undefined);
+      return { x: walked };
+    },
+  },
+};
+
 export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
+  "sled-drag-animation": SLED_DRAG_SHOWCASE,
+  "sled-rope": SLED_DRAG_SHOWCASE,
   "campfire-build-animation": {
     radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },
@@ -428,6 +487,35 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose({ player }, seconds) {
         const cycle = seconds % (PLANKS_CRAFT_SECONDS + SAW_PLAY_REST_SECONDS);
         player.setSawing(cycle < PLANKS_CRAFT_SECONDS ? { nowSeconds: cycle, progress: cycle / PLANKS_CRAFT_SECONDS } : undefined);
+        return undefined;
+      },
+    },
+  },
+  // The draft "hand-craft-animation": the player makes the saw, a hand recipe, working at it with both hands at waist height.
+  "hand-craft-animation": {
+    radius: 1.3,
+    focus: { x: 0, y: 0.9, z: 0.2 },
+    shots: [
+      { label: "right hand up, front", share: 0.25, yaw: 0 },
+      { label: "right hand out, side on", share: 0, yaw: 270 },
+      { label: "right hand down", share: 0.75, yaw: 30 },
+      { label: "right hand in, from above", share: 0.5, yaw: 0, pitch: 70 },
+    ].map(({ label, share, yaw, pitch = 15 }) => ({ label, yaw, pitch, seconds: HAND_CRAFT_ENTER_SECONDS + share * HAND_CRAFT_CYCLE_SECONDS })),
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      // Start crafting afresh at time 0 for each view, so the view shows the work `shot.seconds` in.
+      player.setHandCrafting(undefined);
+      player.setHandCrafting(0);
+      player.setHandCrafting(shot.seconds);
+    },
+    // The player makes the saw for as long as the game takes, stands, rests, then starts again.
+    play: {
+      shot: { label: "making the saw, then standing", yaw: 30, pitch: 15, radius: 1.6 },
+      pose({ player }, seconds) {
+        const cycle = seconds % (SAW_CRAFT_SECONDS + HAND_CRAFT_PLAY_REST_SECONDS);
+        player.setHandCrafting(cycle < SAW_CRAFT_SECONDS ? cycle : undefined);
         return undefined;
       },
     },

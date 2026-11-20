@@ -42,7 +42,7 @@ const TIPPED_LOG_SPACING_METRES = 0.35;
 /** While dragging a sled, the player walks at this fraction of their normal speed. It stacks with the slowdown from neglected needs. */
 export const DRAG_SPEED = 0.7;
 /** A dragged sled's middle stays this far behind the player, in metres: half its length, and a short rope. */
-const DRAG_ROPE_METRES = SLED_LENGTH_METRES / 2 + 0.5;
+export const DRAG_ROPE_METRES = SLED_LENGTH_METRES / 2 + 0.5;
 /** A woodpile is next to a sled if its centre is within this many metres of the sled's edge. Tipping out then stacks the logs on it. */
 const WOODPILE_NEXT_TO_SLED_METRES = 1.5;
 

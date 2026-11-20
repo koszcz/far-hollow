@@ -22,7 +22,8 @@ import type { EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
-import { deliveredOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -108,7 +109,7 @@ export interface EdgePieceMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(hit: EdgePieceHit): OutlinePart[];
   /** Shows a blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { structure: EdgePieceKind; spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { structure: EdgePieceKind; spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -267,10 +268,10 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   }
 
   /** Puts a piece of this kind at `spot`, facing `turns`. A log wall running along z sits lower, so corners interlock. */
-  function place(root: THREE.Group, kind: EdgePieceKind, spot: Vec3, turns: number): void {
+  function place(root: THREE.Group, kind: EdgePieceKind, spot: Vec3, turns: QuarterTurns): void {
     const stagger = kind === "logWall" && turns % 2 !== 0 ? CORNER_STAGGER_METRES : 0;
     root.position.set(spot.x, spot.y - stagger, spot.z);
-    root.rotation.y = facingRadians(turns);
+    root.rotation.y = quarterTurnsToRadians(turns);
   }
 
   /**
@@ -440,7 +441,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
 /** A log wall on the edge with this middle, facing `turns`. */
 export interface WallLine {
   readonly middle: { readonly x: number; readonly z: number };
-  readonly turns: number;
+  readonly turns: QuarterTurns;
 }
 
 /** Which ends of a log wall another wall crosses at a corner. `start` is the end at the wall's -x, facing the default way. */
@@ -452,7 +453,7 @@ export interface WallEnds {
 /** The two ends of a wall, in the world: first its start, then its end. */
 function endsOf(wall: WallLine): [{ x: number; z: number }, { x: number; z: number }] {
   // Turning the default way's +x by the wall's facing gives the way from its start to its end.
-  const radians = facingRadians(wall.turns);
+  const radians = quarterTurnsToRadians(wall.turns);
   const half = { x: (Math.cos(radians) * BUILD_GRID_METRES) / 2, z: (-Math.sin(radians) * BUILD_GRID_METRES) / 2 };
   return [
     { x: wall.middle.x - half.x, z: wall.middle.z - half.z },
@@ -476,7 +477,7 @@ export function wallEnds(wall: WallLine, walls: readonly WallLine[]): WallEnds {
  * `middle` is the middle of the piece's edge at deck height, and `turns` the way it faces.
  * It is in the way when the line from the camera to the player's middle crosses the piece, or passes just beyond its ends or over its top.
  */
-export function isBetweenCameraAndPlayer(middle: Vec3, turns: number, camera: Vec3, player: Vec3): boolean {
+export function isBetweenCameraAndPlayer(middle: Vec3, turns: QuarterTurns, camera: Vec3, player: Vec3): boolean {
   // The piece runs along x when it faces 0 or 2 quarter turns, and along z otherwise.
   const alongX = turns % 2 === 0;
   const across = (spot: Vec3) => (alongX ? spot.z - middle.z : spot.x - middle.x);

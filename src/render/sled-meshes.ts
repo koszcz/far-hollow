@@ -18,7 +18,7 @@
 // While the player drags a sled, the draft "sled-rope", drawn by sled-rope.ts, runs from their hand to the loop at the front of the sled's rope.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, sledEntities, type CarriedLog, type Entity, type EntityStore, type SledLoad, type Vec3 } from "../sim/entities";
 import { SLED_CAPACITY } from "../sim/sleds";
 import { SLED_LENGTH_METRES, SLED_LOG_COST, SLED_STICK_COST, SLED_WIDTH_METRES } from "../sim/structures";
@@ -28,6 +28,7 @@ import { createSledPlankShapes } from "./sled-plank-meshes";
 import { createSledRope, type RopeHold } from "./sled-rope";
 import { createStickSegment } from "./stick-shape";
 import type { OutlinePart } from "./hover-outline";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -89,7 +90,7 @@ export interface SledMeshes {
   /** The parts of a sled or sled blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: SledHit): OutlinePart[];
   /** Shows a sled blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -464,7 +465,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
    */
   function showProgress(item: Drawn, entity: Entity & { position: Vec3 }, progress: number, delivered: number): void {
     item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    item.root.rotation.y = entity.dragHeading ?? facingRadians(entity.facing?.turns ?? 0);
+    item.root.rotation.y = entity.dragHeading ?? quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const stagesDone = progress * parts.length;
     item.stages.forEach((stage, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
@@ -555,7 +556,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
         stage.mesh.material = material;
       }
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
       for (const item of [

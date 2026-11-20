@@ -3,7 +3,8 @@
 // A wall or door frame sits at the middle of its edge, so one edge holds at most one piece, seen from either square.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, edgePieceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
-import { turnOffset, type EdgePieceKind, type QuarterTurns } from "./structure-kind";
+import { type EdgePieceKind } from "./structure-kind";
+import { turnOffset, type QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 
 /** Two edge middles closer than this, in metres, are the same edge. */

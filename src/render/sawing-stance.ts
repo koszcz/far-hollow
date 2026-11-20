@@ -2,10 +2,9 @@
 // Game logic stops the player anywhere near the sawhorse. To saw, they step up beside its beam and face it, with the
 // log lying along the beam in front of them. When sawing stops, they step back to where game logic has them.
 // Game logic's record of where the player stands does not change.
-import type { QuarterTurns } from "../sim/structure-kind";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import type { GroundPoint } from "../sim/valley";
 import { SAW_ENTER_SECONDS, SAW_STANCE_METRES } from "./player-saw-pose";
-import { facingRadians } from "./structure-look";
 
 /** A spot on the ground and which way the player faces there, in radians from the +z axis toward +x. */
 export interface StanceSpot {
@@ -22,7 +21,7 @@ export interface SawhorseSpot {
 
 /** Where the player stands to saw at `sawhorse`, coming from `from`: beside the beam on the side nearer them, facing it. */
 export function sawingStance(sawhorse: SawhorseSpot, from: GroundPoint): StanceSpot {
-  const turn = facingRadians(sawhorse.turns);
+  const turn = quarterTurnsToRadians(sawhorse.turns);
   // Across the beam, on the ground: the beam runs along (cos, -sin) after the turn.
   const acrossX = Math.sin(turn);
   const acrossZ = Math.cos(turn);

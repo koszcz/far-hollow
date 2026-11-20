@@ -33,7 +33,6 @@ import {
   rectsOverlap,
   SIDES,
   turnedRect,
-  turnOffset,
   type DeliveredMaterial,
   FURNITURE_KINDS,
   type EdgePieceKind,
@@ -41,22 +40,12 @@ import {
   type GroundRect,
   type KeptMaterial,
   type Placement,
-  type QuarterTurns,
   type StructureKind,
 } from "./structure-kind";
+import { turnOffset, turnQuarters, type QuarterTurns } from "./quarter-turns";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type {
-  DeliveredMaterial,
-  EdgePieceKind,
-  FurnitureKind,
-  GroundRect,
-  KeptMaterial,
-  Placement,
-  QuarterTurns,
-  StructureKind,
-  WorkStationKind,
-} from "./structure-kind";
+export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, Placement, StructureKind, WorkStationKind } from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
@@ -211,7 +200,7 @@ const LEAN_TO_BLOCKED_SQUARES: readonly GroundPoint[] = [
  */
 export function leanToBedrollSpot(spot: GroundPoint, turns: QuarterTurns): { spot: GroundPoint; turns: QuarterTurns } {
   const offset = turnOffset({ x: 0, z: LEAN_TO_DEPTH_METRES / 4 }, turns);
-  return { spot: { x: spot.x + offset.x, z: spot.z + offset.z }, turns: ((turns + 1) % 4) as QuarterTurns };
+  return { spot: { x: spot.x + offset.x, z: spot.z + offset.z }, turns: turnQuarters(turns, 1) };
 }
 
 const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {

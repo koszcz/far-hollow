@@ -27,7 +27,6 @@ import {
 import { createCulledBatch, type CulledBatch, type CullViews } from "./culled-batch";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { BEAM_TOP_METRES } from "./sawhorse-meshes";
-import { facingRadians } from "./structure-look";
 import { createFarTreeShape, FAR_TREE_METRES } from "./tree-far-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
@@ -37,6 +36,7 @@ import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
 import { addTreeSeeThrough } from "./tree-see-through";
+import { quarterTurnsToRadians } from "../sim/quarter-turns";
 
 /** The colour of each tree part in each tone. Trees are drawn in these, whatever colours the model file holds. */
 export const TREE_COLOURS: Readonly<Record<"trunk" | "crown", Readonly<Record<TreeTone, number>>>> = {
@@ -473,7 +473,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     const station = worked?.log === entity ? worked.station : undefined;
     if (station?.position === undefined) return { entity, heading, position };
     // The beam runs along x when the station faces the default way. The log's length runs along z before it is turned.
-    const beamHeading = facingRadians(station.facing?.turns ?? 0) + Math.PI / 2;
+    const beamHeading = quarterTurnsToRadians(station.facing?.turns ?? 0) + Math.PI / 2;
     return { entity, heading: beamHeading, position: { ...station.position, y: station.position.y + BEAM_TOP_METRES } };
   }
 

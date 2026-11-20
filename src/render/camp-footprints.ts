@@ -6,7 +6,8 @@
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { bedrollEntities, type EntityStore } from "../sim/entities";
 import { placedStructures, structureOf } from "../sim/structures";
-import type { QuarterTurns, StructureKind } from "../sim/structure-kind";
+import type { StructureKind } from "../sim/structure-kind";
+import type { QuarterTurns } from "../sim/quarter-turns";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
 import { STONE_RING_RADIUS_METRES } from "./campfire-meshes";
 

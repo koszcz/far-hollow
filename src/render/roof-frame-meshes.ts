@@ -25,7 +25,8 @@ import { BUILD_GRID_METRES, isOnGridSquare } from "../sim/build-grid";
 import { edgePieceOn } from "../sim/edge-pieces";
 import { blueprintEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { roofAbove } from "../sim/roofs";
-import { SIDES, turnOffset, type EdgePieceKind, type QuarterTurns } from "../sim/structure-kind";
+import { SIDES, type EdgePieceKind } from "../sim/structure-kind";
+import { areOpposite, quarterTurnsToRadians, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
 import { ROOF_FRAME_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { CORNER_STAGGER_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
@@ -55,7 +56,7 @@ import {
   type FrameLayout,
   type Section,
 } from "./roof-parts";
-import { deliveredOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -218,7 +219,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const [back, , left, right] = neighboursOf(layout, section.position, place);
     if (back === undefined) return undefined;
     const backPlace = layout.placeAt(back.position);
-    const facesAway = backPlace.shape === "straight" && backPlace.drawTurns === (place.drawTurns + 2) % 4;
+    const facesAway = backPlace.shape === "straight" && areOpposite(backPlace.drawTurns, place.drawTurns);
     if (!facesAway || backPlace.inFront !== place.inFront || Math.abs(back.position.y - section.position.y) > 0.01) return undefined;
     return { start: left === undefined ? RIDGE_OVERHANG_METRES : 0, end: right === undefined ? RIDGE_OVERHANG_METRES : 0 };
   }
@@ -468,7 +469,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         item.root.visible =
           entity.blueprint !== undefined || !hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
         item.turned.position.y = raisedBy(place);
-        item.turned.rotation.y = facingRadians(place.drawTurns);
+        item.turned.rotation.y = quarterTurnsToRadians(place.drawTurns);
         const beams = beamPlans(layout, entity);
         item.parts.forEach(({ mesh }, stage) => {
           if (stage < BEAM_STAGES) mesh.geometry = beamsOf(beams, stage);
@@ -512,7 +513,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
       for (const mesh of [...placingParts.map(({ mesh }) => mesh), placingGables]) mesh.material = material;
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingTurned.rotation.y = facingRadians(shown.turns);
+      placingTurned.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
       for (const item of [

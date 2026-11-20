@@ -3,15 +3,8 @@ import type { Command } from "./api";
 import { createEntityStore, type Entity, type EntityStore } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import {
-  DOOR_FRAME_LOG_COST,
-  LOG_WALL_LOG_COST,
-  ROOF_PLANK_COST,
-  ROOF_BUILD_SECONDS,
-  ROOF_FRAME_LOG_COST,
-  type QuarterTurns,
-  type StructureKind,
-} from "./structures";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_BUILD_SECONDS, ROOF_FRAME_LOG_COST, type StructureKind } from "./structures";
+import { type QuarterTurns } from "./quarter-turns";
 import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
 import {
   LARGE_VALLEY_UPGRADES,

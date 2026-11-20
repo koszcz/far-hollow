@@ -105,7 +105,7 @@ export interface SleepSpot {
 /**
  * Where the player stands `seconds` after reaching the bedroll at `bedroll`, having reached it at `from`.
  * They step across to the lying spot while turning to face along the bedroll, then stay there.
- * `facing` is which way the bedroll is turned, in radians, as `facingRadians` gives. A bedroll laid along z has 0.
+ * `facing` is which way the bedroll is turned, in radians, as `quarterTurnsToRadians` gives. A bedroll laid along z has 0.
  */
 export function sleepSpotFrom(from: SleepSpot, bedroll: { x: number; z: number }, seconds: number, facing = 0): SleepSpot {
   const stepped = settle(seconds / SLEEP_STEP_ON_SECONDS);

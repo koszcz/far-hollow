@@ -6,7 +6,8 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, passNeedsTime, type NeedConditions } from "./needs";
 import { isUnderRoof } from "./roofs";
 import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
-import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST, type QuarterTurns } from "./structures";
+import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "./structures";
+import { turnQuarters, type QuarterTurns } from "./quarter-turns";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";
 
@@ -268,7 +269,7 @@ describe("laying a bedroll in a lean-to", () => {
       ][turns];
       expect(bedroll.position.x).toBeCloseTo(spot.x + (front?.x ?? 0), 5);
       expect(bedroll.position.z).toBeCloseTo(spot.z + (front?.z ?? 0), 5);
-      expect(bedroll.facing).toEqual({ turns: ((turns + 1) % 4) as QuarterTurns });
+      expect(bedroll.facing).toEqual({ turns: turnQuarters(turns, 1) });
       expect(isUnderRoof(game.entities, bedroll.position)).toBe(true);
       expect(onlyPlayer(game).backpack.contents.bedroll ?? 0).toBe(0);
     }

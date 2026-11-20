@@ -13,7 +13,7 @@ import {
   SLED_LOG_COST,
   SLED_STICK_COST,
 } from "../../sim/structures";
-import { turnOffset, type QuarterTurns } from "../../sim/structure-kind";
+import { turnOffset, type QuarterTurns } from "../../sim/quarter-turns";
 import { type Stage, type Showcase } from "./types";
 import { FURNITURE_SHOWCASES } from "./furniture";
 

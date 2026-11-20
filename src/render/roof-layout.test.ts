@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { QuarterTurns } from "../sim/structure-kind";
+import type { QuarterTurns } from "../sim/quarter-turns";
 import { roofPlaces, roofTopAt, type RoofPlace, type RoofSection } from "./roof-layout";
 
 /** A roof section over the square with this middle. Turns 0 slopes down to +z, 1 to -x, 2 to -z, and 3 to +x. */

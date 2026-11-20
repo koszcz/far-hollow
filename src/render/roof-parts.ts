@@ -5,7 +5,7 @@
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, cabinRoofEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { turnOffset } from "../sim/structure-kind";
+import { turnOffset } from "../sim/quarter-turns";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { COURSE_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import { ALONE, gridCell, roofPlaces, shapeTop, type RoofPlace, type RoofShape } from "./roof-layout";

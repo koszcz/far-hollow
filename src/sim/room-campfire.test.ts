@@ -3,7 +3,8 @@ import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, structureOf, type EdgePieceKind, type QuarterTurns } from "./structures";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST, structureOf, type EdgePieceKind } from "./structures";
+import { type QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 import { isWalkable } from "./walk-map";
 

@@ -2,7 +2,7 @@
 
 **What to build:** Move `QuarterTurns` into its own value object module in `src/sim/quarter-turns.ts`, following ADR 0009. Every rule about quarter turns lives there. Callers stop doing the arithmetic themselves. The game behaves exactly as before.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -32,9 +32,9 @@ Choose the exact names. The module needs at least these functions:
 
 ## Acceptance criteria
 
-- [ ] `QuarterTurns` and its functions live in `src/sim/quarter-turns.ts`. Render and app code import them from there.
-- [ ] No file outside the module wraps quarter turns with `% 4` or converts them to or from radians by hand.
-- [ ] `facingRadians` in `src/render/structure-look.ts` is gone, or only calls the module.
-- [ ] The `facing` component and saved games keep the same shape. Old saves still load.
-- [ ] Unit tests cover each function, including wrapping negative numbers and headings near a half turn.
-- [ ] `make check` passes. Structures, roofs, and dragged sleds face the same way as before in the playground.
+- [x] `QuarterTurns` and its functions live in `src/sim/quarter-turns.ts`. Render and app code import them from there.
+- [x] No file outside the module wraps quarter turns with `% 4` or converts them to or from radians by hand.
+- [x] `facingRadians` in `src/render/structure-look.ts` is gone, or only calls the module.
+- [x] The `facing` component and saved games keep the same shape. Old saves still load.
+- [x] Unit tests cover each function, including wrapping negative numbers and headings near a half turn.
+- [x] `make check` passes. Structures, roofs, and dragged sleds face the same way as before in the playground.

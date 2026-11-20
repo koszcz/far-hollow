@@ -28,7 +28,7 @@ import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
 import { isYoungTree } from "./tree-growth";
 import { distanceToRiver, terrainHeightAt, type Valley } from "./valley";
-import { groundDistance, type GroundPoint } from "./ground-point";
+import { addGroundPoints, groundDistance, type GroundPoint } from "./ground-point";
 import {
   isInRect,
   rectsOverlap,
@@ -201,7 +201,7 @@ const LEAN_TO_BLOCKED_SQUARES: readonly GroundPoint[] = [
  */
 export function leanToBedrollSpot(spot: GroundPoint, turns: QuarterTurns): { spot: GroundPoint; turns: QuarterTurns } {
   const offset = turnOffset({ x: 0, z: LEAN_TO_DEPTH_METRES / 4 }, turns);
-  return { spot: { x: spot.x + offset.x, z: spot.z + offset.z }, turns: turnQuarters(turns, 1) };
+  return { spot: addGroundPoints(spot, offset), turns: turnQuarters(turns, 1) };
 }
 
 const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {
@@ -221,8 +221,7 @@ const leanTo: StructureDefinition & { readonly kind: "leanTo" } = {
     leanTo: true,
     roof: leanTo.footprint(spot, turns),
     blocksWalkingSpots: LEAN_TO_BLOCKED_SQUARES.map((offset) => {
-      const turned = turnOffset(offset, turns);
-      return { x: spot.x + turned.x, z: spot.z + turned.z };
+      return addGroundPoints(spot, turnOffset(offset, turns));
     }),
   }),
 };

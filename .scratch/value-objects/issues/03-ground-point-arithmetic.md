@@ -2,7 +2,7 @@
 
 **What to build:** Add arithmetic for `GroundPoint` beside `groundDistance`, following ADR 0009. Callers that add, subtract, or scale ground points use it instead of writing out `x` and `z` by hand. The game behaves exactly as before.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -21,11 +21,11 @@ Move `GroundPoint` and its functions into `src/sim/ground-point.ts`. Choose the 
 
 ## Acceptance criteria
 
-- [ ] `GroundPoint` and its arithmetic live in `src/sim/ground-point.ts`.
-- [ ] Code that adds, subtracts, or scales ground points uses the module.
-- [ ] Hot loops keep raw numbers where a new object per step would slow the game. Check `src/sim/pathfinding.ts` and `src/sim/walk-map.ts` in particular, and leave a one-line comment where you keep raw numbers on purpose.
-- [ ] Unit tests cover each function.
-- [ ] `make check` passes.
+- [x] `GroundPoint` and its arithmetic live in `src/sim/ground-point.ts`.
+- [x] Code that adds, subtracts, or scales ground points uses the module.
+- [x] Hot loops keep raw numbers where a new object per step would slow the game. Check `src/sim/pathfinding.ts` and `src/sim/walk-map.ts` in particular, and leave a one-line comment where you keep raw numbers on purpose.
+- [x] Unit tests cover each function.
+- [x] `make check` passes.
 
 ## Comments
 

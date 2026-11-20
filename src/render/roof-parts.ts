@@ -9,6 +9,7 @@ import { turnOffset } from "../sim/quarter-turns";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { COURSE_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import { ALONE, gridCell, roofPlaces, shapeTop, type RoofPlace, type RoofShape } from "./roof-layout";
+import { addGroundPoints } from "../sim/ground-point";
 
 /** How thick a beam is across, in metres: the radius of the beams on walls that run along x. */
 export const BEAM_RADIUS_METRES = 0.09;
@@ -109,7 +110,7 @@ export function frameLayout(entities: EntityStore): FrameLayout {
 export function neighboursOf(layout: FrameLayout, middle: { x: number; z: number }, place: RoofPlace): (Section | undefined)[] {
   return EDGES.map(({ axis, across }) => {
     const offset = turnOffset({ x: axis === "x" ? 0 : across * BUILD_GRID_METRES, z: axis === "x" ? across * BUILD_GRID_METRES : 0 }, place.drawTurns);
-    return layout.sectionAt({ x: middle.x + offset.x, z: middle.z + offset.z });
+    return layout.sectionAt(addGroundPoints(middle, offset));
   });
 }
 

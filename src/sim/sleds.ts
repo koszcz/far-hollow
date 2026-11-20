@@ -26,6 +26,7 @@ import type { Valley } from "./valley";
 import { walkBeside, type Walking } from "./walking";
 import { CARRIED_LOGS } from "./wood-and-fuel";
 import { stackOnWoodpile } from "./woodpiles";
+import { scaleGroundPoint, subtractGroundPoints } from "./ground-point";
 
 /** A sled has this many log spaces. Each holds one log, one debarked log, or PLANKS_PER_LOG_SPACE planks, in any mix. */
 export const SLED_CAPACITY = 6;
@@ -144,7 +145,7 @@ export function layLoadBeside(entities: EntityStore, valley: Valley, sled: SledE
   if (planks > 0) {
     // The front of the sled leads along `along`, so the back end is the other way.
     const behind = SLED_LENGTH_METRES / 2 + TIPPED_PLANKS_BEHIND_METRES;
-    addToPileAt(entities, valley.terrain, "plank", planks, { x: sled.position.x - along.x * behind, z: sled.position.z - along.z * behind });
+    addToPileAt(entities, valley.terrain, "plank", planks, subtractGroundPoints(sled.position, scaleGroundPoint(along, behind)));
   }
 }
 

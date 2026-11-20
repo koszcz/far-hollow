@@ -57,6 +57,7 @@ import {
   type Section,
 } from "./roof-parts";
 import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { addGroundPoints, scaleGroundPoint } from "../sim/ground-point";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -278,7 +279,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
    */
   function beamPlans(layout: FrameLayout, frame: Section): BeamPlan[] {
     const middle = frame.position;
-    const at = (dx: number, dz: number) => layout.sectionAt({ x: middle.x + dx * BUILD_GRID_METRES, z: middle.z + dz * BUILD_GRID_METRES });
+    const at = (dx: number, dz: number) => layout.sectionAt(addGroundPoints(middle, scaleGroundPoint({ x: dx, z: dz }, BUILD_GRID_METRES)));
     const reach = (dx: number, dz: number) => (at(dx, dz) === undefined ? BEAM_OVERHANG_METRES : 0);
     return SIDES.flatMap((side): BeamPlan[] => {
       const under = edgePieceOn(entities, middle, side);
@@ -319,7 +320,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const neighbours = neighboursOf(layout, section.position, place);
     const world = (x: number, z: number) => {
       const offset = turnOffset({ x, z }, place.drawTurns);
-      return { x: section.position.x + offset.x, z: section.position.z + offset.z };
+      return addGroundPoints(section.position, offset);
     };
     const floors = gableEndFloors(coverUnderside(place.shape), raisedBy(place), (edge, x, z) => {
       const beside = neighbours[edge];

@@ -24,6 +24,7 @@ import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-sha
 import type { OutlinePart } from "./hover-outline";
 import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
+import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -455,10 +456,7 @@ function endsOf(wall: WallLine): [{ x: number; z: number }, { x: number; z: numb
   // Turning the default way's +x by the wall's facing gives the way from its start to its end.
   const radians = quarterTurnsToRadians(wall.turns);
   const half = { x: (Math.cos(radians) * BUILD_GRID_METRES) / 2, z: (-Math.sin(radians) * BUILD_GRID_METRES) / 2 };
-  return [
-    { x: wall.middle.x - half.x, z: wall.middle.z - half.z },
-    { x: wall.middle.x + half.x, z: wall.middle.z + half.z },
-  ];
+  return [subtractGroundPoints(wall.middle, half), addGroundPoints(wall.middle, half)];
 }
 
 /**

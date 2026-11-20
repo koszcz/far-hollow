@@ -5,7 +5,7 @@ import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, edgePieceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
 import { type EdgePieceKind } from "./structure-kind";
 import { turnOffset, type QuarterTurns } from "./quarter-turns";
-import type { GroundPoint } from "./ground-point";
+import { addGroundPoints, type GroundPoint, subtractGroundPoints } from "./ground-point";
 
 /** Two edge middles closer than this, in metres, are the same edge. */
 const SAME_EDGE_METRES = 1e-6;
@@ -16,16 +16,13 @@ const SAME_EDGE_METRES = 1e-6;
  */
 export function edgeMiddle(square: GroundPoint, side: QuarterTurns): GroundPoint {
   const offset = turnOffset({ x: 0, z: BUILD_GRID_METRES / 2 }, side);
-  return { x: square.x + offset.x, z: square.z + offset.z };
+  return addGroundPoints(square, offset);
 }
 
 /** The middles of the two grid squares either side of an edge: first the square whose `side` edge it is, then the square beyond. */
 export function squaresBeside(edge: GroundPoint, side: QuarterTurns): [GroundPoint, GroundPoint] {
   const offset = turnOffset({ x: 0, z: BUILD_GRID_METRES / 2 }, side);
-  return [
-    { x: edge.x - offset.x, z: edge.z - offset.z },
-    { x: edge.x + offset.x, z: edge.z + offset.z },
-  ];
+  return [subtractGroundPoints(edge, offset), addGroundPoints(edge, offset)];
 }
 
 /** Whether two spots are the middle of the same edge. */
@@ -61,10 +58,7 @@ export function foundationsBeside(entities: EntityStore, edge: GroundPoint, side
 /** The two ends of the edge with this middle, for a piece facing `turns`. Each end is a corner of the building grid. */
 export function edgeEnds(edge: GroundPoint, turns: QuarterTurns): [GroundPoint, GroundPoint] {
   const half = turnOffset({ x: BUILD_GRID_METRES / 2, z: 0 }, turns);
-  return [
-    { x: edge.x - half.x, z: edge.z - half.z },
-    { x: edge.x + half.x, z: edge.z + half.z },
-  ];
+  return [subtractGroundPoints(edge, half), addGroundPoints(edge, half)];
 }
 
 /**

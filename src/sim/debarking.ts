@@ -2,7 +2,7 @@ import type { Refusal } from "./api";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { toolRefusal } from "./refusals";
-import { groundDistance, type GroundPoint } from "./ground-point";
+import { addGroundPoints, groundDistance, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** How long the player works at a log with the drawknife to strip its bark, in seconds. */
@@ -101,7 +101,7 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
 function standingSpot(middle: GroundPoint, heading: number, from: GroundPoint | undefined): GroundPoint {
   const along = { x: Math.sin(heading), z: Math.cos(heading) };
   const side = from === undefined || (from.x - middle.x) * along.x + (from.z - middle.z) * along.z >= 0 ? 1 : -1;
-  return { x: middle.x + along.x * DEBARK_STAND_METRES * side, z: middle.z + along.z * DEBARK_STAND_METRES * side };
+  return addGroundPoints(middle, scaleGroundPoint(along, DEBARK_STAND_METRES * side));
 }
 
 function barkFits(backpack: Backpack): boolean {

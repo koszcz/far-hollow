@@ -1,5 +1,5 @@
 // Which way a structure faces, as whole quarter turns, and every rule about it. See docs/adr/0009.
-import type { GroundPoint } from "./ground-point";
+import { type GroundPoint, scaleGroundPoint } from "./ground-point";
 
 /** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
 export type QuarterTurns = 0 | 1 | 2 | 3;
@@ -51,7 +51,7 @@ export function turnOffset(offset: GroundPoint, turns: QuarterTurns): GroundPoin
     case 1:
       return { x: -offset.z, z: offset.x };
     case 2:
-      return { x: -offset.x, z: -offset.z };
+      return scaleGroundPoint(offset, -1);
     case 3:
       return { x: offset.z, z: -offset.x };
   }

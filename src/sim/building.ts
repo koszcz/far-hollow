@@ -31,7 +31,7 @@ import {
 } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type Valley } from "./valley";
-import { type GroundPoint } from "./ground-point";
+import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
@@ -489,5 +489,5 @@ export function standSpot(rect: GroundRect, centre: GroundPoint, player: GroundP
   const halfZ = (rect.max.z - rect.min.z) / 2;
   const toEdge = Math.min(away.x === 0 ? Infinity : halfX / Math.abs(away.x), away.z === 0 ? Infinity : halfZ / Math.abs(away.z));
   const reach = toEdge + BUILD_STAND_METRES;
-  return { x: centre.x + away.x * reach, z: centre.z + away.z * reach };
+  return addGroundPoints(centre, scaleGroundPoint(away, reach));
 }

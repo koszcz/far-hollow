@@ -178,6 +178,7 @@ function hasLineOfSight(map: WalkMap, a: GroundPoint, b: GroundPoint): boolean {
   let cell = cellIndexAt(map, a);
   for (let s = 0; s <= steps; s += 1) {
     const amount = steps === 0 ? 0 : s / steps;
+    // Raw numbers on purpose: this runs at every step of every line-of-sight check, so it makes one new spot, not three.
     const spot = { x: a.x + (b.x - a.x) * amount, z: a.z + (b.z - a.z) * amount };
     if (!isWalkable(map, spot)) return false;
     const next = cellIndexAt(map, spot);

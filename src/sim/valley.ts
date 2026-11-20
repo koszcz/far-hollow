@@ -361,6 +361,7 @@ export function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundP
 }
 
 function nearestOnSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): GroundPoint {
+  // Raw numbers on purpose: the river check calls this for every segment at many spots, so it makes no extra ground points.
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const lengthSquared = dx * dx + dz * dz;

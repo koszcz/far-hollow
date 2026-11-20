@@ -113,6 +113,7 @@ export function isWalkable(map: WalkMap, point: GroundPoint): boolean {
 /** The cell that holds a spot, or undefined if the spot is outside the map. */
 export function cellIndexAt(map: WalkMap, point: GroundPoint): number | undefined {
   const half = map.size / 2;
+  // Raw numbers on purpose: the path search calls this at every step, so it makes no new ground points.
   const column = Math.floor((point.x + half) / map.cellSize);
   const row = Math.floor((point.z + half) / map.cellSize);
   if (column < 0 || row < 0 || column >= map.cellsPerSide || row >= map.cellsPerSide) return undefined;

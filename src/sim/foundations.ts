@@ -3,7 +3,7 @@
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, foundationEntities, type EntityStore } from "./entities";
 import { terrainHeightAt, type Terrain } from "./valley";
-import { type GroundPoint } from "./ground-point";
+import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 
 /** How far the top of the deck sits above the highest ground under the foundation, in metres. */
 export const FOUNDATION_DECK_LIFT_METRES = 0.35;
@@ -96,5 +96,5 @@ function legSpots(middle: GroundPoint): GroundPoint[] {
     [1, -1],
     [1, 1],
     [-1, 1],
-  ].map(([dx = 0, dz = 0]) => ({ x: middle.x + dx * out, z: middle.z + dz * out }));
+  ].map(([dx = 0, dz = 0]) => addGroundPoints(middle, scaleGroundPoint({ x: dx, z: dz }, out)));
 }

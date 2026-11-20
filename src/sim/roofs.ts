@@ -4,7 +4,7 @@ import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-gri
 import { cabinRoofEntities, roofEntities, type Entity, type EntityStore } from "./entities";
 import { isInRect, SIDES } from "./structure-kind";
 import { turnOffset } from "./quarter-turns";
-import type { GroundPoint } from "./ground-point";
+import { addGroundPoints, type GroundPoint } from "./ground-point";
 
 /** Whether a spot on the ground is under any roof, so rain does not fall on it. */
 export function isUnderRoof(entities: EntityStore, spot: GroundPoint): boolean {
@@ -30,7 +30,7 @@ export function roofAbove(entities: EntityStore, spot: GroundPoint): Entity[] {
   for (let section = waiting.pop(); section !== undefined; section = waiting.pop()) {
     for (const side of SIDES) {
       const { x, z } = turnOffset({ x: 0, z: BUILD_GRID_METRES }, side);
-      const next = cabinRoofOn(entities, { x: section.position.x + x, z: section.position.z + z });
+      const next = cabinRoofOn(entities, addGroundPoints(section.position, { x, z }));
       if (next === undefined || joined.has(next)) continue;
       joined.add(next);
       waiting.push(next);

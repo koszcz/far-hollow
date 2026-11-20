@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import type { Vec3 } from "../sim/entities";
 import { createFishingLine } from "./fishing-tackle";
+import { lerp } from "./easing";
 
 /** How far the middle of the rope between the shoulder and the sled hangs below a straight line, in metres. */
 export const SLED_ROPE_SAG_METRES = 0.06;
@@ -26,7 +27,6 @@ export interface RopeHold {
   readonly back: Vec3;
 }
 
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const between = (from: Vec3, to: Vec3, t: number): Vec3 => ({ x: lerp(from.x, to.x, t), y: lerp(from.y, to.y, t), z: lerp(from.z, to.z, t) });
 /** `count` points from `from` up to, but not including, `to`, evenly spaced. */
 const straight = (from: Vec3, to: Vec3, count: number): Vec3[] => Array.from({ length: count }, (_, index) => between(from, to, index / count));

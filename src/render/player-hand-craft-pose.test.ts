@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { craftMotionOf, HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS, handCraftPoseAt } from "./player-hand-craft-pose";
+import { craftMotionOf, createHandCraftMotion, HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS, handCraftPoseAt } from "./player-hand-craft-pose";
 
 describe("the hand-craft animation", () => {
   it("saws at the sawhorse and works by hand for every other recipe", () => {
@@ -45,5 +45,14 @@ describe("the hand-craft animation", () => {
   it("lifts the hands from standing when crafting starts", () => {
     expect(handCraftPoseAt(0).reach).toBe(0);
     expect(handCraftPoseAt(HAND_CRAFT_ENTER_SECONDS).reach).toBe(1);
+  });
+
+  it("stands the player straight back up the moment crafting stops", () => {
+    const motion = createHandCraftMotion();
+    motion.update(10, 100);
+    motion.update(13, 103);
+
+    expect(motion.update(undefined, 103.1)).toEqual({ kind: "stopped", leaving: undefined });
+    expect(motion.pose()).toBeUndefined();
   });
 });

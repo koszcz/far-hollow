@@ -4,10 +4,12 @@
 // the idle clip with the build pose's bones, so it has no clip of its own. Added by player motions ticket 02 as a draft.
 import { recipeOf, type RecipeKind } from "../sim/crafting";
 import { scaleBuildPose, type BuildPose } from "./player-build-pose";
+import { createWorkMotion, type WorkMotion } from "./work-motion";
+import { smoothstep } from "./easing";
 
 /** Seconds one loop of the right hand around the work takes. */
 export const HAND_CRAFT_CYCLE_SECONDS = 2;
-/** Seconds the player takes to lift the hands to the work when crafting starts, and to lower them when it stops. */
+/** Seconds the player takes to lift the hands to the work when crafting starts. When it stops, they stand straight back up. */
 export const HAND_CRAFT_ENTER_SECONDS = 0.25;
 
 /** Where the work sits: in front of the belly, a little left of the middle, in metres from the feet. */
@@ -28,8 +30,6 @@ export type CraftMotion = "saw" | "hand";
 export function craftMotionOf(recipe: RecipeKind): CraftMotion {
   return recipeOf(recipe).station === "sawhorse" ? "saw" : "hand";
 }
-
-const smoothstep = (t: number): number => t * t * (3 - 2 * t);
 
 /**
  * The hand-craft pose `seconds` after crafting began. Each loop ends where it starts, so loops follow without a jump.
@@ -59,4 +59,12 @@ export function handCraftPoseAt(seconds: number): BuildPose {
   };
   if (seconds >= HAND_CRAFT_ENTER_SECONDS) return pose;
   return scaleBuildPose(pose, smoothstep(Math.max(0, seconds) / HAND_CRAFT_ENTER_SECONDS));
+}
+
+/**
+ * The hand-craft motion, moved on by the clock time in seconds while the player crafts by hand. It lifts the hands to
+ * the work as it starts. When crafting stops, the player stands straight back up, with no easing.
+ */
+export function createHandCraftMotion(): WorkMotion<number> {
+  return createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => handCraftPoseAt(now - since) });
 }

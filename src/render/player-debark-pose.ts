@@ -4,6 +4,7 @@
 // of its own. The owner approved the asset.
 import { DRAWKNIFE_GRIP } from "./pile-meshes";
 import { scaleBuildPose, type BuildPose } from "./player-build-pose";
+import { easeInOut, lerp, smoothstep } from "./easing";
 
 /** Seconds one stroke takes: reach out, bite in, pull back, and lift. */
 export const DEBARK_STROKE_SECONDS = 1.5;
@@ -69,10 +70,6 @@ const DEBARK_PULLED_POSE: BuildPose = {
   reach: 1,
   hands: { forward: 0.28, height: 0.24, spread: HANDS_SPREAD },
 };
-
-const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-const smoothstep = (t: number): number => t * t * (3 - 2 * t);
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 function blend(a: BuildPose, b: BuildPose, t: number): BuildPose {
   return {

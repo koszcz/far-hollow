@@ -5,6 +5,7 @@
 import type { ReachHeight } from "../sim/entities";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { scaleBuildPose, type BuildPose } from "./player-build-pose";
+import { easeInOut } from "./easing";
 
 /**
  * A real person picking a stick off the ground hinges at the hips with soft knees, puts one hand down to it, and
@@ -48,7 +49,6 @@ export const REACH_BLEND_IN_SECONDS = 0.15;
 /** Seconds the player takes to blend from the end of the reach into what comes next. */
 export const REACH_BLEND_OUT_SECONDS = 0.25;
 
-const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t));
 
 /** How much of the reach pose shows `seconds` in: rising to 1 as the hand gets to the thing, holding, then easing off. */

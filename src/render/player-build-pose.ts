@@ -2,6 +2,7 @@
 // both hands, presses it home, and stands up again. It is posed in code on top of whichever KayKit clip plays,
 // so it has no clip of its own. The owner approved the asset.
 import * as THREE from "three";
+import { easeInOut, lerp } from "./easing";
 
 /** Seconds one crouch-set-press-rise cycle takes. */
 export const CROUCH_CYCLE_SECONDS = 2.4;
@@ -73,9 +74,6 @@ function standing(from: BuildPose): BuildPose {
 
 /** How far the hands bounce back up after pressing the piece home, in metres, before the jolt dies away. */
 const BUILD_JOLT_METRES = 0.03;
-
-const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 const blendHand = (a: HandSpot, b: HandSpot, t: number): HandSpot => ({
   forward: lerp(a.forward, b.forward, t),

@@ -31,7 +31,7 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import type { CarriedLog, ReachHeight } from "../sim/entities";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
-import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones } from "./player-build-pose";
+import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
@@ -43,7 +43,9 @@ import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
 import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
-import { HAND_CRAFT_ENTER_SECONDS, handCraftPoseAt } from "./player-hand-craft-pose";
+import { createHandCraftMotion } from "./player-hand-craft-pose";
+import { smoothstep } from "./easing";
+import { createWorkMotion, type Leaving, type WorkMotion } from "./work-motion";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
@@ -364,35 +366,33 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
    */
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
-  /** The clock time building began, or undefined while not building. */
-  let buildingSince: number | undefined;
-  /** The clock time it is now, while building. */
-  let buildingAt = 0;
-  /** The clock time debarking began, or undefined while not debarking. */
-  let debarkingSince: number | undefined;
-  /** The clock time it is now, while debarking. */
-  let debarkingAt = 0;
-  /** The clock time sawing began, or undefined while not sawing. */
-  let sawingSince: number | undefined;
-  /** The clock time it is now, and how far through the log the saw is, while sawing. */
-  let sawingAt = { nowSeconds: 0, progress: 0 };
-  /** The clock time hand crafting began, or undefined while not crafting by hand. */
-  let handCraftingSince: number | undefined;
-  /** The clock time it is now, while crafting by hand. */
-  let handCraftingAt = 0;
   // Measure the log shape once, for how tall the log on the sawhorse is.
   const logShapeBox =
     logShape.geometry.boundingBox ?? new THREE.Box3().setFromBufferAttribute(logShape.geometry.getAttribute("position") as THREE.BufferAttribute);
   /** How tall a log lying on its side is, in metres. */
   const logThickness = logShapeBox.max.y - logShapeBox.min.y;
-  /**
-   * While standing up after building, debarking, sawing, or crafting by hand stops: when it stopped, on the performance clock in seconds, the
-   * pose then, and how many seconds standing up takes.
-   */
-  let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt>; seconds: number } | undefined;
-  /** While fishing: when it began on the steady clock. `fishingAt` is the latest moment passed to `setFishing`. */
-  let fishingSince: number | undefined;
-  let fishingAt: Fishing | undefined;
+  /** Building, moved on by the steady clock time. */
+  const building = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => buildPoseAt(now - since), leaveSeconds: BUILD_LEAVE_SECONDS });
+  /** Debarking, moved on by the steady clock time. */
+  const debarking = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => debarkPoseAt(now - since), leaveSeconds: DEBARK_ENTER_SECONDS });
+  /** Sawing, moved on by the steady clock time and how far through the log the saw is. */
+  const sawing = createWorkMotion<{ nowSeconds: number; progress: number }>({
+    startOf: (at) => at.nowSeconds,
+    poseAt: (at, since) => sawPoseAt(at.nowSeconds - since, at.progress, logThickness),
+    leaveSeconds: SAW_ENTER_SECONDS,
+  });
+  /** Crafting by hand, moved on by the steady clock time. It stops at once. */
+  const handCrafting = createHandCraftMotion();
+  /** Fishing, moved on by the latest moment passed to `setFishing`. */
+  const fishing = createWorkMotion<Fishing>({
+    startOf: (at) => at.nowSeconds,
+    poseAt: (at, since) => fishPoseAt(at.sinceCast, at.toBite, at.nowSeconds - since).body,
+    leaveSeconds: FISH_ENTER_SECONDS,
+  });
+  /** The work motions, in the order they win when more than one plays. */
+  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, debarking, sawing, handCrafting, fishing];
+  /** While standing up after building, debarking, sawing, or fishing stops. */
+  let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
   let eatingOrDrinking: { kind: EatDrinkKind; seconds: number } | undefined;
   /** Whether the player drags a sled. */
@@ -525,11 +525,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     const handsBusy =
       carrying ||
       reaching !== undefined ||
-      buildingSince !== undefined ||
-      debarkingSince !== undefined ||
-      sawingSince !== undefined ||
-      handCraftingSince !== undefined ||
-      fishingSince !== undefined ||
+      workMotions.some((motion) => motion.since !== undefined) ||
       sleepingAt !== undefined ||
       sittingBody !== undefined ||
       eatingOrDrinking !== undefined;
@@ -623,38 +619,45 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     applyBuildPose(group, buildBones, reachPose, [arm]);
   }
 
+  /**
+   * Moves a work motion on to `at`, or stops it when `at` is undefined. Starting one ends any standing back up.
+   * Stopping one stands the player back up the way that motion does.
+   */
+  function updateWork<At>(motion: WorkMotion<At>, at: At | undefined): void {
+    const change = motion.update(at, performance.now() / 1000);
+    if (change?.kind === "started") leavingBuild = undefined;
+    if (change?.kind === "stopped") leavingBuild = change.leaving;
+    if (change !== undefined) updateAxe();
+    pose();
+  }
+
   /** Crouches over the clip while building, or stands back up for a moment after building stops. */
   function poseBuilding(): void {
-    let pose: ReturnType<typeof buildPoseAt> | undefined;
-    if (buildingSince !== undefined) {
-      pose = buildPoseAt(buildingAt - buildingSince);
-    } else if (debarkingSince !== undefined) {
-      pose = debarkPoseAt(debarkingAt - debarkingSince);
-    } else if (sawingSince !== undefined) {
-      pose = sawPoseAt(sawingAt.nowSeconds - sawingSince, sawingAt.progress, logThickness);
-    } else if (handCraftingSince !== undefined) {
-      pose = handCraftPoseAt(handCraftingAt - handCraftingSince);
-    } else if (fishingSince !== undefined && fishingAt !== undefined) {
-      pose = fishPoseAt(fishingAt.sinceCast, fishingAt.toBite, fishingAt.nowSeconds - fishingSince).body;
-    } else if (dragging) {
+    const working = workMotions.find((motion) => motion.since !== undefined)?.pose();
+    if (working === undefined && dragging) {
       // Only the left hand takes the rope. The right arm keeps the clip's swing, or steadies a log on the shoulder.
       rememberClipPose(...buildPosedBones);
       applyBuildPose(group, buildBones, SLED_DRAG_POSE, [leftArm]);
       return;
-    } else if (leavingBuild !== undefined) {
-      const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
-      // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
-      const idleNow = walkedMetres === undefined && choppingAt === undefined && splittingAt === undefined;
-      if (done >= 1 || !idleNow) {
-        leavingBuild = undefined;
-        return;
-      }
-      pose = scaleBuildPose(leavingBuild.pose, 1 - done * done * (3 - 2 * done));
     }
+    const pose = working ?? standingUpPose();
     if (pose === undefined) return;
     rememberClipPose(...buildPosedBones);
     // A hand steadying a log on the shoulder stays there, so only the left hand reaches.
     applyBuildPose(group, buildBones, pose, carrying ? [leftArm] : buildBones.arms);
+  }
+
+  /** The pose while standing back up after a work motion stops, or undefined once the player stands. */
+  function standingUpPose(): BuildPose | undefined {
+    if (leavingBuild === undefined) return undefined;
+    const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
+    // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
+    const idleNow = walkedMetres === undefined && choppingAt === undefined && splittingAt === undefined;
+    if (done >= 1 || !idleNow) {
+      leavingBuild = undefined;
+      return undefined;
+    }
+    return scaleBuildPose(leavingBuild.pose, 1 - smoothstep(done));
   }
 
   const leftWrist = new THREE.Vector3();
@@ -665,7 +668,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const knifeTurn = new THREE.Matrix4();
   /** Shows the drawknife while debarking, its handles in the two hands. */
   function placeDrawknife(): void {
-    drawknife.group.visible = debarkingSince !== undefined;
+    drawknife.group.visible = debarking.since !== undefined;
     if (!drawknife.group.visible) return;
     group.updateWorldMatrix(true, true);
     group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
@@ -686,7 +689,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
 
   /** Shows the saw while sawing, its grip in the right hand and its blade pointing the way the player faces. */
   function placeSaw(): void {
-    saw.group.visible = sawingSince !== undefined;
+    saw.group.visible = sawing.since !== undefined;
     if (!saw.group.visible) return;
     group.updateWorldMatrix(true, true);
     group.worldToLocal(rightArm.end.getWorldPosition(saw.group.position));
@@ -708,13 +711,14 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * and any fish on it. Everything is placed in the player's own space, where the player faces +z and their right is -x.
    */
   function placeFishingRod(): void {
-    const fishing = fishingSince === undefined ? undefined : fishingAt;
-    rod.group.visible = fishing !== undefined;
-    fishingLine.mesh.visible = fishing !== undefined;
-    fishingFloat.group.visible = fishing !== undefined;
+    const fishingSince = fishing.since;
+    const fishingNow = fishingSince === undefined ? undefined : fishing.at;
+    rod.group.visible = fishingNow !== undefined;
+    fishingLine.mesh.visible = fishingNow !== undefined;
+    fishingFloat.group.visible = fishingNow !== undefined;
     caughtFish.visible = false;
-    if (fishing === undefined || fishingSince === undefined) return;
-    const fishPose = fishPoseAt(fishing.sinceCast, fishing.toBite, fishing.nowSeconds - fishingSince);
+    if (fishingNow === undefined || fishingSince === undefined) return;
+    const fishPose = fishPoseAt(fishingNow.sinceCast, fishingNow.toBite, fishingNow.nowSeconds - fishingSince);
     group.updateWorldMatrix(true, true);
     group.worldToLocal(rightArm.end.getWorldPosition(rod.group.position));
     group.worldToLocal(leftArm.end.getWorldPosition(leftHand));
@@ -732,7 +736,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       .multiplyScalar(fishPose.lineHang)
       .add(rodTip);
     lineHang.z += fishPose.fishSwing;
-    lineFloat.set(rodTip.x, fishing.floatHeight, fishing.floatForward);
+    lineFloat.set(rodTip.x, fishingNow.floatHeight, fishingNow.floatForward);
     lineEnd.lerpVectors(lineHang, lineFloat, fishPose.lineOut);
     lineEnd.y += fishPose.lineArc;
     lineEnd.lerp(leftHand, fishPose.lineInHand);
@@ -871,92 +875,19 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       pose();
     },
     setDebarking(nowSeconds) {
-      if (nowSeconds === undefined) {
-        if (debarkingSince !== undefined) {
-          leavingBuild = { at: performance.now() / 1000, pose: debarkPoseAt(debarkingAt - debarkingSince), seconds: DEBARK_ENTER_SECONDS };
-          debarkingSince = undefined;
-          updateAxe();
-        }
-      } else {
-        if (debarkingSince === undefined) {
-          debarkingSince = nowSeconds;
-          leavingBuild = undefined;
-          updateAxe();
-        }
-        debarkingAt = nowSeconds;
-      }
-      pose();
+      updateWork(debarking, nowSeconds);
     },
-    setSawing(sawing) {
-      if (sawing === undefined) {
-        if (sawingSince !== undefined) {
-          const pose = sawPoseAt(sawingAt.nowSeconds - sawingSince, sawingAt.progress, logThickness);
-          leavingBuild = { at: performance.now() / 1000, pose, seconds: SAW_ENTER_SECONDS };
-          sawingSince = undefined;
-          updateAxe();
-        }
-      } else {
-        if (sawingSince === undefined) {
-          sawingSince = sawing.nowSeconds;
-          leavingBuild = undefined;
-          updateAxe();
-        }
-        sawingAt = { ...sawing };
-      }
-      pose();
+    setSawing(sawingNow) {
+      updateWork(sawing, sawingNow === undefined ? undefined : { ...sawingNow });
     },
-    setFishing(fishing) {
-      if (fishing === undefined) {
-        if (fishingSince !== undefined && fishingAt !== undefined) {
-          const pose = fishPoseAt(fishingAt.sinceCast, fishingAt.toBite, fishingAt.nowSeconds - fishingSince).body;
-          leavingBuild = { at: performance.now() / 1000, pose, seconds: FISH_ENTER_SECONDS };
-          fishingSince = undefined;
-          updateAxe();
-        }
-      } else {
-        if (fishingSince === undefined) {
-          fishingSince = fishing.nowSeconds;
-          leavingBuild = undefined;
-          updateAxe();
-        }
-        fishingAt = { ...fishing };
-      }
-      pose();
+    setFishing(fishingNow) {
+      updateWork(fishing, fishingNow === undefined ? undefined : { ...fishingNow });
     },
     setBuilding(nowSeconds) {
-      if (nowSeconds === undefined) {
-        if (buildingSince !== undefined) {
-          leavingBuild = { at: performance.now() / 1000, pose: buildPoseAt(buildingAt - buildingSince), seconds: BUILD_LEAVE_SECONDS };
-          buildingSince = undefined;
-          updateAxe();
-        }
-      } else {
-        if (buildingSince === undefined) {
-          buildingSince = nowSeconds;
-          leavingBuild = undefined;
-          updateAxe();
-        }
-        buildingAt = nowSeconds;
-      }
-      pose();
+      updateWork(building, nowSeconds);
     },
     setHandCrafting(nowSeconds) {
-      if (nowSeconds === undefined) {
-        if (handCraftingSince !== undefined) {
-          const pose = handCraftPoseAt(handCraftingAt - handCraftingSince);
-          leavingBuild = { at: performance.now() / 1000, pose, seconds: HAND_CRAFT_ENTER_SECONDS };
-          handCraftingSince = undefined;
-          updateAxe();
-        }
-      } else {
-        if (handCraftingSince === undefined) {
-          handCraftingSince = nowSeconds;
-          leavingBuild = undefined;
-          updateAxe();
-        }
-        handCraftingAt = nowSeconds;
-      }
-      pose();
+      updateWork(handCrafting, nowSeconds);
     },
     setReaching(reach) {
       const changed = (reach === undefined) !== (reaching === undefined);

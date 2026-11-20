@@ -7,6 +7,7 @@
 // The pot in the hands is the approved "pot", built by pot-shape.ts.
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { blendBuildPoses, type BuildPose, type HandSpot } from "./player-build-pose";
+import { easeInOut } from "./easing";
 
 /** The motions this module poses. */
 export const EAT_DRINK_KINDS = ["forageBush", "eat", "drinkFromRiver", "fillPot", "drinkFromPot"] as const;
@@ -69,8 +70,6 @@ interface Key {
   readonly at: number;
   readonly pose: BuildPose;
 }
-
-const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 
 /** The pose `share` of the way through a motion, eased from each key to the next. */
 function keyedPose(keys: readonly Key[], share: number): BuildPose {

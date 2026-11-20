@@ -6,6 +6,7 @@
 import { scaleBuildPose, type BuildPose } from "./player-build-pose";
 import { SAW_BLADE_LENGTH_METRES, SAW_TEETH_BELOW_GRIP_METRES } from "./saw-model";
 import { BEAM_TOP_METRES } from "./sawhorse-meshes";
+import { smoothstep } from "./easing";
 
 /** Seconds one stroke takes: push the saw away, then pull it back. */
 export const SAW_STROKE_SECONDS = 1;
@@ -26,8 +27,6 @@ const PALM_IN_FROM_EDGE = 0.03;
 const PALM_ABOVE_LOG = 0.035;
 /** How far the right hand moves on each stroke, along the saw, in metres. */
 const STROKE_METRES = 0.24;
-
-const smoothstep = (t: number): number => t * t * (3 - 2 * t);
 
 /**
  * The sawing pose `seconds` after sawing began, `progress` of the way through the cut, from 0 to 1.

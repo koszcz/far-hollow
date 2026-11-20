@@ -8,6 +8,7 @@
 // The rod is the approved "fishing-rod", built by fishing-rod-model.ts. fishing-tackle.ts bends the rod and draws the
 // line and the float. player-mesh.ts places them all from this pose.
 import { scaleBuildPose, type BuildPose, type HandSpot } from "./player-build-pose";
+import { easeInOut, lerp, smoothstep } from "./easing";
 
 /** Seconds a cast takes: swing the rod back, pause, drive it forward, and let the line land. */
 export const FISH_CAST_SECONDS = 1.4;
@@ -185,10 +186,7 @@ const CAUGHT: Key = {
   leftOff: 1,
 };
 
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const easeOut = (t: number): number => t * (2 - t);
-const smoothstep = (t: number): number => t * t * (3 - 2 * t);
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t));
 /** How far through the span from `from` to `to` the value `share` is, from 0 to 1. */
 const within = (share: number, from: number, to: number): number => clamp01((share - from) / (to - from));

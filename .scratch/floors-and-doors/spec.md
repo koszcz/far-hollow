@@ -14,9 +14,10 @@ Terms in **bold** are defined in `GLOSSARY.md`. The game design spec in `.scratc
 
 - A floor is a **building piece** that covers one foundation square. It costs 2 planks.
 - The blueprint snaps to a finished foundation square. A click places it. Esc cancels.
-- The player can hold the mouse button and sweep across squares to place several blueprints.
+- The player can hold Shift and drag across squares to place several blueprints. A plain drag still pans the camera.
 - A square holds one floor.
-- A floor can go under furniture, a campfire, or a fireplace that already stands on the square. Nothing has to move.
+- A floor can go under furniture or a campfire that already stands on the square. Nothing has to move.
+- Once fireplaces exist, a floor can also go under a fireplace, and a fireplace can stand on a floor.
 - Planks reach the blueprint the way they reach furniture: from the backpack, a parked sled next to it, and plank piles within 2 m, over several trips.
 - The player holds the build action to build it. Building takes 4 seconds and needs no tool.
 - The player walks on a floor as on a bare foundation.
@@ -41,11 +42,11 @@ Terms in **bold** are defined in `GLOSSARY.md`. The game design spec in `.scratc
 - A lit fire in the room still warms the player as before.
 - Whether a room is snug is worked out from its pieces, as rooms are. It is not saved.
 - The debug overlay shows which rooms are snug.
-- The first time the player stands in a snug room, a banner says the room now keeps out the cold.
+- The first time the player stands in a snug room, a banner says the room now keeps out the cold. Whether the banner has shown is saved, so it shows once in each game.
 
 ## Saving
 
-- Floors, doors, and their blueprints are saved.
+- Floors, doors, their blueprints, and whether the snug-room banner has shown are saved.
 - The save version goes up. Older saves are upgraded when loaded.
 
 ## Assets

@@ -27,6 +27,9 @@ export type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 /** How low the player reaches: to the ground, or out at waist height. */
 export type ReachHeight = "low" | "waist";
 
+/** What a hand reach is for, when drawing shows it its own way: the food on a forage spot, or river water for the pot. */
+export type ReachingFor = WildFood | "riverWater";
+
 export type TendTask =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff"; campfireId: number }
@@ -231,9 +234,10 @@ export interface Entity {
   sitting?: { stoolId: number };
   /**
    * The player is reaching to pick something up or put something down: to the ground or at waist height,
-   * `seconds` into the reach, toward the thing's middle if it has one. It is never saved. See hand-reach.ts.
+   * `seconds` into the reach, toward the thing's middle if it has one. `reachingFor` says what the hand takes, when
+   * drawing shows that reach its own way. It is never saved. See hand-reach.ts.
    */
-  handReach?: { height: ReachHeight; seconds: number; toward?: GroundPoint };
+  handReach?: { height: ReachHeight; seconds: number; toward?: GroundPoint; reachingFor?: ReachingFor };
   /** The campfire or woodpile command the player is walking to carry out. They carry it out once they stop beside it. */
   tendTask?: TendTask;
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */

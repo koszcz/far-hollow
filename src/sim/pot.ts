@@ -81,10 +81,15 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
         const river = player.fillPotTask;
         entities.removeComponent(player, "fillPotTask");
         if (!canReachRiver(valley, player.position) || !hasInBackpack(player.backpack, "pot")) continue;
-        hand.start("low", river, (): PlainNotice | undefined => {
-          if (!hasInBackpack(player.backpack, "pot")) return undefined;
-          return swapPot(player.backpack, "pot", "potOfRiverWater") ? undefined : "backpackFull";
-        });
+        hand.start(
+          "low",
+          river,
+          (): PlainNotice | undefined => {
+            if (!hasInBackpack(player.backpack, "pot")) return undefined;
+            return swapPot(player.backpack, "pot", "potOfRiverWater") ? undefined : "backpackFull";
+          },
+          "riverWater",
+        );
       }
       return undefined;
     },

@@ -45,7 +45,7 @@ import {
   type SavedEntity,
 } from "./entities";
 import { standingHeightAt } from "./foundations";
-import { generateValley, terrainHeightAt, type Valley } from "./valley";
+import { copyToward, generateValley, terrainHeightAt, type Valley } from "./valley";
 import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
@@ -919,7 +919,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Records a bite or drink for drawing to play. `toward` is the spot on the river, for a drink from the river. */
   function reportEatOrDrink(kind: EatOrDrinkView["kind"], toward?: GroundPoint): void {
     const count = (lastEatOrDrink?.count ?? 0) + 1;
-    lastEatOrDrink = Object.freeze({ count, kind, ...(toward === undefined ? {} : { toward: Object.freeze({ x: toward.x, z: toward.z }) }) });
+    lastEatOrDrink = deepFreeze({ count, kind, ...copyToward(toward) });
   }
 
   /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */

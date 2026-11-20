@@ -6,7 +6,7 @@ import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { byFurnitureKind } from "../sim/structure-kind";
 import { structureKindOf } from "../sim/structures";
-import { distanceToRiver, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
+import { copyToward, distanceToRiver, groundDistance, headingToward, terrainHeightAt, type GroundPoint, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
 import { createPileMeshes } from "./pile-meshes";
@@ -21,7 +21,7 @@ import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
-import { EAT_DRINK_SECONDS, type EatDrinkKind } from "./player-eat-drink-pose";
+import { EAT_DRINK_SECONDS, eatDrinkCutShort, reachMotionOf, type DoingNow, type EatDrinkMotion } from "./player-eat-drink-pose";
 import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
@@ -215,11 +215,13 @@ export function createSceneRenderer(
 
   /** How many bites and drinks the player had when the last eat or drink motion began. */
   let eatsOrDrinksSeen = readLastEatOrDrink()?.count ?? 0;
-  /** The eat or drink motion drawn now: when it began on the frame clock, in seconds, which it is, and the spot on the river for a drink from it. */
-  let eatOrDrinkDrawn: { since: number; kind: EatOrDrinkView["kind"]; toward?: GroundPoint } | undefined;
+  /**
+   * The eat or drink motion drawn now: when it began on the frame clock, in seconds, which it is, the spot on the river
+   * for a drink from it, and what the player did last frame, once it has been drawn.
+   */
+  let eatOrDrinkDrawn: { since: number; kind: EatOrDrinkView["kind"]; toward?: GroundPoint; doing?: DoingNow } | undefined;
   /** The forage, eat, or drink motion posing the player this frame, if any. */
-  let eatOrDrinkShown: { kind: EatDrinkKind; seconds: number } | undefined;
-  const forageSpots = entities.with("forageSpot", "position");
+  let eatOrDrinkShown: EatDrinkMotion | undefined;
 
   /** Steps the drawn player up to the sawhorse to saw planks, and back when sawing stops. */
   const sawingStep = createSawingStep();
@@ -274,7 +276,7 @@ export function createSceneRenderer(
    * Game logic decides which work the player is doing, the same way the HUD shows it.
    */
   function posePlayer(nowSeconds: number): void {
-    // An eat or drink motion goes on only while nothing else shows: the branch that shows it keeps it.
+    // Sleeping or sitting down ends an eat or drink motion: the branches that show those return before it goes on.
     const eatingOrDrinking = eatOrDrinkDrawn;
     eatOrDrinkDrawn = undefined;
     eatOrDrinkShown = undefined;
@@ -304,9 +306,19 @@ export function createSceneRenderer(
     playerMesh.setSleeping(undefined);
     if (poseSitting(nowSeconds, player)) return;
     const activity = playerActivity(entities, player);
+    // A bite or drink plays on over walking or work already under way, and stops when new walking or work starts.
+    const doing: DoingNow = { walking: player.walkPath !== undefined, busyWith: activity?.kind ?? (player.handReach === undefined ? undefined : "reach") };
+    if (
+      eatingOrDrinking !== undefined &&
+      nowSeconds - eatingOrDrinking.since < EAT_DRINK_SECONDS &&
+      (eatingOrDrinking.doing === undefined || !eatDrinkCutShort(eatingOrDrinking.doing, doing))
+    ) {
+      eatOrDrinkDrawn = { ...eatingOrDrinking, doing };
+      eatOrDrinkShown = { kind: eatingOrDrinking.kind, seconds: nowSeconds - eatingOrDrinking.since };
+    }
     const target = activity?.targetId === undefined ? undefined : entities.entity(activity.targetId);
     const faceTarget = () => {
-      if (target?.position !== undefined) playerMesh.setHeading(Math.atan2(target.position.x - playerDrawn.x, target.position.z - playerDrawn.z));
+      if (target?.position !== undefined) playerMesh.setHeading(headingToward(playerDrawn, target.position));
     };
     // Building crouches the player over the blueprint, facing its middle.
     playerMesh.setBuilding(activity?.kind === "build" ? nowSeconds : undefined);
@@ -318,9 +330,9 @@ export function createSceneRenderer(
     const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;
     if (fishTask === undefined) castDrawn = undefined;
     playerMesh.setFishing(fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
-    if (fishTask !== undefined) playerMesh.setHeading(Math.atan2(fishTask.x - playerDrawn.x, fishTask.z - playerDrawn.z));
+    if (fishTask !== undefined) playerMesh.setHeading(headingToward(playerDrawn, fishTask));
     // A recipe made at the sawhorse saws. The player steps up beside the beam to saw, and back when sawing stops.
-    // A hand recipe, such as making the saw, works at it with both hands where the player stands.
+    // A hand recipe, such as crafting the saw, works at it with both hands where the player stands.
     const craftMotion = activity?.kind === "craft" && player.craftTask !== undefined ? craftMotionOf(player.craftTask.recipe) : undefined;
     const sawhorse = craftMotion === "saw" && target?.position !== undefined ? target : undefined;
     playerMesh.setHandCrafting(craftMotion === "hand" ? nowSeconds : undefined);
@@ -337,7 +349,7 @@ export function createSceneRenderer(
       playerMesh.setChopping(undefined);
       playerMesh.setReaching(undefined);
       // The feet stay planted while sawing. A step up or back walks them across.
-      const stepped = Math.hypot(playerDrawn.x - playerDrawnBefore.x, playerDrawn.z - playerDrawnBefore.z);
+      const stepped = groundDistance(playerDrawnBefore, playerDrawn);
       if (stepped > 1e-4) {
         playerWalkedMetres += stepped;
         playerMesh.setWalking(playerWalkedMetres);
@@ -361,43 +373,32 @@ export function createSceneRenderer(
       reachDrawn.seenSeconds = reach.seconds;
       const seconds = Math.min(nowSeconds - reachDrawn.since, REACH_SECONDS);
       playerMesh.setWalking(undefined);
+      if (reach.toward !== undefined) playerMesh.setHeading(headingToward(playerDrawn, reach.toward));
       // Foraging a berry bush and filling the pot play their own motions, timed by the reach. Other reaches, such as
       // foraging mushrooms, bend down as the reach clip does.
-      const motion = reach.toward === undefined ? undefined : reachMotionToward(reach.toward);
-      if (motion !== undefined && reach.toward !== undefined) {
+      const motion = reachMotionOf(reach.reachingFor);
+      if (motion !== undefined) {
         playerMesh.setReaching(undefined);
-        playerMesh.setHeading(Math.atan2(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z));
         eatOrDrinkShown = { kind: motion, seconds };
         return;
       }
-      if (reach.toward === undefined) {
-        playerMesh.setReaching({ height: reach.height, seconds });
-      } else {
-        playerMesh.setHeading(Math.atan2(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z));
-        // The hand reaches toward the thing, as far as a bend allows.
-        const distance = Math.hypot(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z);
-        playerMesh.setReaching({ height: reach.height, seconds, distance });
-      }
+      // The hand reaches toward the thing, as far as a bend allows.
+      playerMesh.setReaching(
+        reach.toward === undefined ? { height: reach.height, seconds } : { height: reach.height, seconds, distance: groundDistance(playerDrawn, reach.toward) },
+      );
       return;
     }
     reachDrawn = undefined;
     playerMesh.setReaching(undefined);
-    // Eating or drinking plays once where the player stands. Walking cuts it short.
-    if (eatingOrDrinking !== undefined && player.walkPath === undefined) {
-      const seconds = nowSeconds - eatingOrDrinking.since;
-      if (seconds < EAT_DRINK_SECONDS) {
-        eatOrDrinkDrawn = eatingOrDrinking;
-        eatOrDrinkShown = { kind: eatingOrDrinking.kind, seconds };
-        const { toward } = eatingOrDrinking;
-        if (toward !== undefined) playerMesh.setHeading(Math.atan2(toward.x - playerDrawn.x, toward.z - playerDrawn.z));
-        playerMesh.setWalking(undefined);
-        return;
-      }
+    // Eating or drinking while standing faces the river for a drink from it. Over walking, the legs keep walking.
+    if (eatOrDrinkDrawn !== undefined && !doing.walking) {
+      const { toward } = eatOrDrinkDrawn;
+      if (toward !== undefined) playerMesh.setHeading(headingToward(playerDrawn, toward));
+      playerMesh.setWalking(undefined);
+      return;
     }
-    const dx = playerDrawn.x - playerDrawnBefore.x;
-    const dz = playerDrawn.z - playerDrawnBefore.z;
-    const travelled = Math.hypot(dx, dz);
-    if (travelled > TURN_MIN_TRAVEL_METRES) playerMesh.setHeading(Math.atan2(dx, dz));
+    const travelled = groundDistance(playerDrawnBefore, playerDrawn);
+    if (travelled > TURN_MIN_TRAVEL_METRES) playerMesh.setHeading(headingToward(playerDrawnBefore, playerDrawn));
     if (player.walkPath === undefined) {
       playerMesh.setWalking(undefined);
       return;
@@ -510,20 +511,7 @@ export function createSceneRenderer(
     const last = readLastEatOrDrink();
     if (last === null || last.count === eatsOrDrinksSeen) return;
     eatsOrDrinksSeen = last.count;
-    eatOrDrinkDrawn = { since: nowSeconds, kind: last.kind, ...(last.toward === undefined ? {} : { toward: { x: last.toward.x, z: last.toward.z } }) };
-  }
-
-  /**
-   * The motion a reach toward `toward` plays instead of the reach clip, or undefined for the plain reach: reaching into
-   * a berry bush that stands there, or dipping the pot into the river there. Game logic fills the pot toward a spot on the river.
-   */
-  function reachMotionToward(toward: GroundPoint): EatDrinkKind | undefined {
-    for (const spot of forageSpots) {
-      if (Math.abs(spot.position.x - toward.x) < 1e-6 && Math.abs(spot.position.z - toward.z) < 1e-6) {
-        return spot.forageSpot.food === "berries" ? "forageBush" : undefined;
-      }
-    }
-    return distanceToRiver(valley.river, toward) <= valley.river.width / 2 ? "fillPot" : undefined;
+    eatOrDrinkDrawn = { since: nowSeconds, kind: last.kind, ...copyToward(last.toward) };
   }
 
   return {

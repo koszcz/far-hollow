@@ -51,8 +51,8 @@ import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
-import { eatDrinkPoseAt, type EatDrinkKind } from "./player-eat-drink-pose";
-import { createPotMaker, POT_HEIGHT_METRES as POT_RIM_HEIGHT_METRES } from "./pot-shape";
+import { eatDrinkPoseAt, upperBodyOf, type EatDrinkMotion, type EatDrinkPose } from "./player-eat-drink-pose";
+import { createPotMaker, POT_HEIGHT_METRES } from "./pot-shape";
 
 /** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
 const MODEL_SCALE = 0.78;
@@ -181,8 +181,8 @@ export interface PlayerMesh {
    * Forages a berry bush, eats, drinks from the river, fills the pot, or drinks from the pot, as player-eat-drink-pose.ts
    * poses it. Pass the seconds since the motion began, or undefined while not doing any of them.
    */
-  setEatingOrDrinking(motion: { kind: EatDrinkKind; seconds: number } | undefined): void;
-  /** Leans the player forward to pull a sled by a rope over the left shoulder, or stands them upright at once. */
+  setEatingOrDrinking(motion: EatDrinkMotion | undefined): void;
+  /** Leans the player forward to drag a sled by a rope over the left shoulder, or stands them upright at once. */
   setDragging(dragging: boolean): void;
   /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. */
   ropeHold(): RopeHold | undefined;
@@ -394,7 +394,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** While standing up after building, debarking, sawing, or fishing stops. */
   let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
-  let eatingOrDrinking: { kind: EatDrinkKind; seconds: number } | undefined;
+  let eatingOrDrinking: EatDrinkMotion | undefined;
   /** Whether the player drags a sled. */
   let dragging = false;
 
@@ -443,7 +443,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const potMaker = createPotMaker();
   const potInHands = potMaker.make();
   const potHolder = new THREE.Group();
-  potInHands.group.position.set(0, -POT_RIM_HEIGHT_METRES, POT_AHEAD_OF_HANDS_METRES);
+  potInHands.group.position.set(0, -POT_HEIGHT_METRES, POT_AHEAD_OF_HANDS_METRES);
   potHolder.add(potInHands.group);
   potHolder.visible = false;
   potHolder.scale.setScalar(POT_IN_HAND_SCALE);
@@ -546,29 +546,38 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     }
     poseBreathing();
     poseBuilding();
-    poseEatingOrDrinking();
+    const eatDrinkPose = eatingOrDrinking === undefined ? undefined : eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds);
+    poseEatingOrDrinking(eatDrinkPose);
     poseReaching();
     blendFromReach();
     placeDrawknife();
     placeSaw();
     placeFishingRod();
-    placePot();
+    placePot(eatDrinkPose?.pot);
   }
 
-  /** Reaches into a bush, eats, or drinks, on top of the clip. */
-  function poseEatingOrDrinking(): void {
-    if (eatingOrDrinking === undefined) return;
-    const { body, arms } = eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds);
+  /**
+   * Reaches into a bush, eats, or drinks, on top of the clip. Over walking or work, only the arms and head move,
+   * so the legs keep walking and the body keeps working.
+   */
+  function poseEatingOrDrinking(eatDrinkPose: EatDrinkPose | undefined): void {
+    if (eatDrinkPose === undefined) return;
+    const { body, arms } = eatDrinkPose;
+    const underneath =
+      walkedMetres !== undefined ||
+      choppingAt !== undefined ||
+      splittingAt !== undefined ||
+      dragging ||
+      workMotions.some((motion) => motion.since !== undefined);
     rememberClipPose(...buildPosedBones);
     // A hand steadying a log on the shoulder stays there, so only the left hand moves.
-    applyBuildPose(group, buildBones, body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
+    applyBuildPose(group, buildBones, underneath ? upperBodyOf(body) : body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
   }
 
   const potLeft = new THREE.Vector3();
   const potRight = new THREE.Vector3();
   /** Shows the pot between the hands while filling it or drinking from it, tipped as the motion says. */
-  function placePot(): void {
-    const pot = eatingOrDrinking === undefined ? undefined : eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds).pot;
+  function placePot(pot: EatDrinkPose["pot"]): void {
     potHolder.visible = pot !== undefined;
     if (pot === undefined) return;
     potInHands.show(pot.look, performance.now() / 1000);

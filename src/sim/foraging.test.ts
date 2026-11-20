@@ -113,6 +113,20 @@ describe("foraging", () => {
   });
 });
 
+describe("drawing a forage reach", () => {
+  it("says the hand reaches for berries at a berry bush and for mushrooms at a mushroom spot", () => {
+    for (const food of ["berries", "mushroom"] as const) {
+      const game = createGame({ seed: 42 });
+      const spot = nearestSpot(game, food);
+
+      game.client.send({ type: "forage", spotId: idOf(game, spot) });
+      stepUntil(game, () => onlyPlayer(game).handReach !== undefined);
+
+      expect(onlyPlayer(game).handReach?.reachingFor).toBe(food);
+    }
+  });
+});
+
 describe("growing back", () => {
   it("takes three days for a foraged spot", () => {
     const game = createGame({ seed: 42 });

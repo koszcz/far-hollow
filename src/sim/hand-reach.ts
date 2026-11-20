@@ -5,8 +5,8 @@
 // The reach is not saved, so a game loaded from a save made mid-reach has the command either done or not done.
 import type { Activity } from "./activity";
 import type { Notice, PlainNotice } from "./api";
-import { playerEntities, setComponent, type EntityStore, type ReachHeight } from "./entities";
-import type { GroundPoint } from "./valley";
+import { playerEntities, setComponent, type EntityStore, type ReachHeight, type ReachingFor } from "./entities";
+import { copyToward, type GroundPoint } from "./valley";
 
 /** How long the whole reach takes, from standing to standing again, in seconds. */
 export const REACH_SECONDS = 0.9;
@@ -20,8 +20,9 @@ export interface HandReach extends Activity {
   /**
    * Stops the player and starts them reaching, to the ground or at waist height, toward `toward` if given.
    * `act` runs when the hand gets to the thing, unless something cancels the reach first.
+   * `reachingFor` says what the hand takes, for drawing, such as berries from a bush. It changes no rule.
    */
-  start(height: ReachHeight, toward: GroundPoint | undefined, act?: HandAct): void;
+  start(height: ReachHeight, toward: GroundPoint | undefined, act?: HandAct, reachingFor?: ReachingFor): void;
   /**
    * Starts the reach once the player stops walking, for a command that only walks the player to a thing,
    * such as opening a chest. `toward` gives the thing's middle.
@@ -44,12 +45,17 @@ export function createHandReach(entities: EntityStore): HandReach {
     for (const player of players) entities.removeComponent(player, "handReach");
   }
 
-  function start(height: ReachHeight, toward: GroundPoint | undefined, then?: HandAct): void {
+  function start(height: ReachHeight, toward: GroundPoint | undefined, then?: HandAct, reachingFor?: ReachingFor): void {
     stop();
     act = then;
     for (const player of players) {
       entities.removeComponent(player, "walkPath");
-      setComponent(entities, player, "handReach", { height, seconds: 0, ...(toward === undefined ? {} : { toward: { x: toward.x, z: toward.z } }) });
+      setComponent(entities, player, "handReach", {
+        height,
+        seconds: 0,
+        ...copyToward(toward),
+        ...(reachingFor === undefined ? {} : { reachingFor }),
+      });
     }
   }
 

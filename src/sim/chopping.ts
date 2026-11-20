@@ -4,7 +4,7 @@ import { toolRefusal } from "./refusals";
 import { growingTreeEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { isYoungTree, justFelled } from "./tree-growth";
 import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
-import { groundDistance, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
+import { groundDistance, headingToward, terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import { isWalkable } from "./walk-map";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 
@@ -111,7 +111,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
   /** Turns a standing tree at `at` into a stump that starts growing back, and lays its logs, more for a bigger tree, on clear ground, falling away from `from` if it can. Returns the logs. */
   function fell(tree: Entity, at: GroundPoint, from: GroundPoint): Entity[] {
     const logCount = logsForTreeSize(treeSizeAt(at.x, at.z));
-    const heading = clearFallHeading(tree, at, Math.atan2(at.x - from.x, at.z - from.z), logCount);
+    const heading = clearFallHeading(tree, at, headingToward(from, at), logCount);
     const direction = { x: Math.sin(heading), z: Math.cos(heading) };
     // The heading goes on before the tree goes, so the renderer can read it as the tree falls.
     entities.addComponent(tree, "fellHeading", heading);

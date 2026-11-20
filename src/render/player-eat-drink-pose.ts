@@ -1,10 +1,11 @@
 // Builds the draft "forage-eat-drink-animation" asset in asset-manifest.json: short motions the player plays once.
 // Foraging a berry bush reaches one hand into the bush at chest height. Eating raises one hand to the mouth twice.
-// Drinking from the river kneels at the bank, dips both hands into the water, and raises them cupped to the mouth.
-// Filling the pot kneels at the bank and dips the pot into the water. Drinking from the pot raises it to the mouth.
+// Drinking from the river kneels at the river bank, dips both hands into the water, and raises them cupped to the mouth.
+// Filling the pot kneels at the river bank and dips the pot into the water. Drinking from the pot raises it to the mouth.
 // Each is posed in code on top of the idle clip with the build pose's bones, so it has no clip of its own.
 // Foraging mushrooms is not here: it reuses the approved "pick-up-animation" bend to the ground unchanged.
 // The pot in the hands is the approved "pot", built by pot-shape.ts.
+import type { ReachingFor } from "../sim/entities";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { blendBuildPoses, type BuildPose, type HandSpot } from "./player-build-pose";
 import { easeInOut } from "./easing";
@@ -12,6 +13,48 @@ import { easeInOut } from "./easing";
 /** The motions this module poses. */
 export const EAT_DRINK_KINDS = ["forageBush", "eat", "drinkFromRiver", "fillPot", "drinkFromPot"] as const;
 export type EatDrinkKind = (typeof EAT_DRINK_KINDS)[number];
+
+/** Which motion plays, and how many seconds into it the player is. */
+export interface EatDrinkMotion {
+  readonly kind: EatDrinkKind;
+  readonly seconds: number;
+}
+
+/**
+ * What the player does in one frame, as far as a bite or drink goes: whether they walk, and which timed work or
+ * reach is under way, if any, such as "build" or "reach".
+ */
+export interface DoingNow {
+  readonly walking: boolean;
+  readonly busyWith: string | undefined;
+}
+
+/**
+ * Whether a bite or drink is cut short, going from doing `before` last frame to doing `now`. Walking or work that
+ * starts while it plays cuts it short. Walking or work already under way when it began lets it play on top.
+ */
+export function eatDrinkCutShort(before: DoingNow, now: DoingNow): boolean {
+  if (now.walking && !before.walking) return true;
+  return now.busyWith !== undefined && now.busyWith !== before.busyWith;
+}
+
+/**
+ * The motion a hand reach plays instead of the reach clip, from what game logic says the hand takes: reaching into a
+ * berry bush for berries, or dipping the pot into the river for water. Any other reach plays the plain reach clip.
+ */
+export function reachMotionOf(reachingFor: ReachingFor | undefined): EatDrinkKind | undefined {
+  if (reachingFor === "berries") return "forageBush";
+  if (reachingFor === "riverWater") return "fillPot";
+  return undefined;
+}
+
+/**
+ * Only the arms and head of a pose, for a bite or drink played over walking or work. The hips and chest keep what
+ * the motion underneath gives them.
+ */
+export function upperBodyOf(pose: BuildPose): BuildPose {
+  return { ...pose, hipsDrop: 0, hipsBack: 0, hipsLean: 0, chestLean: 0 };
+}
 
 /** Seconds eating and drinking take. Game logic does them at once, so drawing picks the length. */
 export const EAT_DRINK_SECONDS = 1;
@@ -40,7 +83,7 @@ export interface EatDrinkPose {
 const MOUTH_HEIGHT = 1.32;
 /** How far in front of the feet the hand stops at the mouth, in metres. The beard sticks out. */
 const MOUTH_FORWARD = 0.24;
-/** How far the hips sink to kneel at the bank, in metres. The feet stay planted, so the knees fold deep. */
+/** How far the hips sink to kneel at the river bank, in metres. The feet stay planted, so the knees fold deep. */
 const KNEEL_DROP = 0.34;
 /** How far each hand holding the pot is from the middle, in metres. The hands hold the near side of the rim. */
 const POT_SPREAD = 0.1;
@@ -51,7 +94,7 @@ const STANDING: BuildPose = { hipsDrop: 0, hipsBack: 0, hipsLean: 0, chestLean: 
 const standingWith = (hands: HandSpot, rightHand?: HandSpot): BuildPose =>
   rightHand === undefined ? { ...STANDING, hands } : { ...STANDING, hands, rightHand };
 
-/** Kneeling at the bank with the hands low over the water: the kneel, leaning forward, before raising them. */
+/** Kneeling at the river bank with the hands low over the water: the kneel, leaning forward, before raising them. */
 const kneelOver = (hands: HandSpot): BuildPose => ({
   hipsDrop: KNEEL_DROP,
   hipsBack: 0.1,
@@ -113,7 +156,7 @@ const EAT: readonly Key[] = [
   { at: 1, pose: standingWith(BELOW_MOUTH, BELOW_MOUTH) },
 ];
 
-/** Both hands cupped together in the water at the bank, and cupped at the mouth while kneeling. */
+/** Both hands cupped together in the water at the river bank, and cupped at the mouth while kneeling. */
 const IN_WATER: HandSpot = { forward: 0.62, height: 0.1, spread: 0.05 };
 const CUPPED_AT_MOUTH: HandSpot = { forward: MOUTH_FORWARD + 0.02, height: KNEELING_MOUTH, spread: 0.04 };
 const SIP: BuildPose = { hipsDrop: KNEEL_DROP, hipsBack: 0.06, hipsLean: 0.1, chestLean: 0.02, headTilt: -0.3, reach: 1, hands: CUPPED_AT_MOUTH };
@@ -126,7 +169,7 @@ const DRINK_FROM_RIVER: readonly Key[] = [
   { at: 1, pose: standingWith(CUPPED_AT_MOUTH) },
 ];
 
-/** Both hands hold the pot by its lugs, in the water at the bank. */
+/** Both hands hold the pot by its lugs, in the water at the river bank. */
 const POT_IN_WATER: HandSpot = { forward: 0.6, height: 0.2, spread: POT_SPREAD };
 const POT_LIFTED: HandSpot = { forward: 0.4, height: 0.75, spread: POT_SPREAD };
 const FILL_POT: readonly Key[] = [

@@ -88,14 +88,19 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
         entities.removeComponent(forager, "forageTask");
         const spot = spotInReach(spotId, forager);
         if (spot === undefined) continue;
-        hand.start("low", spot.position, (): ForageRefusal | undefined => {
-          const still = spotInReach(spotId, forager);
-          if (still === undefined) return undefined;
-          const food = still.forageSpot.food;
-          if (!addToBackpack(forager.backpack, food, FOOD_PER_FORAGE[food])) return "backpackFull";
-          entities.addComponent(still, "regrowing", { minutesLeft: REGROW_MINUTES });
-          return undefined;
-        });
+        hand.start(
+          "low",
+          spot.position,
+          (): ForageRefusal | undefined => {
+            const still = spotInReach(spotId, forager);
+            if (still === undefined) return undefined;
+            const food = still.forageSpot.food;
+            if (!addToBackpack(forager.backpack, food, FOOD_PER_FORAGE[food])) return "backpackFull";
+            entities.addComponent(still, "regrowing", { minutesLeft: REGROW_MINUTES });
+            return undefined;
+          },
+          spot.forageSpot.food,
+        );
       }
     },
     grow(gameMinutes) {

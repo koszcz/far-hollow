@@ -159,6 +159,17 @@ describe("drinking from the pot", () => {
   });
 });
 
+describe("drawing the pot filling", () => {
+  it("says the hand reaches for river water", () => {
+    const game = createGame({ seed: 42 });
+
+    send(game, { type: "fillPot" });
+    stepUntil(game, () => onlyPlayer(game).handReach !== undefined);
+
+    expect(onlyPlayer(game).handReach?.reachingFor).toBe("riverWater");
+  });
+});
+
 describe("drawing a drink from the pot", () => {
   it("reports the drink, so drawing can raise the pot to the mouth", () => {
     const game = createGame({ seed: 42 });

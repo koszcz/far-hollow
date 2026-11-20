@@ -95,6 +95,7 @@ export function showAsset(
     "pick-up-animation",
     "sawing-animation",
     "fishing-animation",
+    "forage-eat-drink-animation",
     "sky-lighting",
     "hud",
     "log-wall",

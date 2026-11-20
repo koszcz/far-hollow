@@ -16,6 +16,9 @@
 // While fishing, the approved "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
 // built by fishing-rod-model.ts, waits for the float to dip, then lifts out a raw fish from "fishing-piles" and catches
 // it in the left hand. fishing-tackle.ts bends the rod and draws the line and the float. The axe goes on the back.
+// Foraging a berry bush, eating, drinking from the river, filling the pot, and drinking from the pot play the draft
+// "forage-eat-drink-animation", posed in code by player-eat-drink-pose.ts. The pot in the hands is the approved "pot",
+// built by pot-shape.ts. The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -38,6 +41,8 @@ import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
+import { eatDrinkPoseAt, type EatDrinkKind } from "./player-eat-drink-pose";
+import { createPotMaker, POT_HEIGHT_METRES as POT_RIM_HEIGHT_METRES } from "./pot-shape";
 
 /** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
 const MODEL_SCALE = 0.78;
@@ -89,6 +94,13 @@ export const SPLIT_STRIKES_PER_SECOND = 1 / SPLIT_CLIP_SECONDS;
 
 /** Seconds the player takes to stand up when building stops partway through a crouch. */
 const BUILD_LEAVE_SECONDS = 0.3;
+/**
+ * How far in front of the hands the middle of a held pot rides, in metres. The arms are short, so the hands hold the
+ * near side of the rim rather than the lugs, and the pot stays clear of the body.
+ */
+const POT_AHEAD_OF_HANDS_METRES = 0.14;
+/** How much bigger the pot is in the hands than true size, so it shows beside the big head, like the saw. */
+const POT_IN_HAND_SCALE = 1.5;
 
 /** The carried log rests here on the player's right shoulder, from the player's feet, in metres. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = new THREE.Vector3(-0.3, 1.0, 0);
@@ -146,6 +158,11 @@ export interface PlayerMesh {
    * `distance` is how far the thing is in front of the player's feet, in metres, if known. The hand reaches toward it.
    */
   setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
+  /**
+   * Forages a berry bush, eats, drinks from the river, fills the pot, or drinks from the pot, as player-eat-drink-pose.ts
+   * poses it. Pass the seconds since the motion began, or undefined while not doing any of them.
+   */
+  setEatingOrDrinking(motion: { kind: EatDrinkKind; seconds: number } | undefined): void;
   dispose(): void;
 }
 
@@ -351,6 +368,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** While fishing: when it began on the steady clock. `fishingAt` is the latest moment passed to `setFishing`. */
   let fishingSince: number | undefined;
   let fishingAt: Fishing | undefined;
+  /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
+  let eatingOrDrinking: { kind: EatDrinkKind; seconds: number } | undefined;
 
   // The drawknife rides between the hands while debarking, placed from the wrists each frame.
   const drawknife = createDrawknife();
@@ -392,6 +411,16 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   caughtFish.visible = false;
   caughtFish.scale.setScalar(CAUGHT_FISH_SCALE);
   group.add(caughtFish);
+  // The pot rides between the hands while filling it or drinking from it. The holder sits at the hands and tips the pot
+  // about the line through them. The pot rides just ahead of the hands, its rim level with them.
+  const potMaker = createPotMaker();
+  const potInHands = potMaker.make();
+  const potHolder = new THREE.Group();
+  potInHands.group.position.set(0, -POT_RIM_HEIGHT_METRES, POT_AHEAD_OF_HANDS_METRES);
+  potHolder.add(potInHands.group);
+  potHolder.visible = false;
+  potHolder.scale.setScalar(POT_IN_HAND_SCALE);
+  group.add(potHolder);
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -474,7 +503,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       sawingSince !== undefined ||
       fishingSince !== undefined ||
       sleepingAt !== undefined ||
-      sittingBody !== undefined;
+      sittingBody !== undefined ||
+      eatingOrDrinking !== undefined;
     placeAxe(!swinging && handsBusy);
   }
 
@@ -492,11 +522,38 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     }
     poseBreathing();
     poseBuilding();
+    poseEatingOrDrinking();
     poseReaching();
     blendFromReach();
     placeDrawknife();
     placeSaw();
     placeFishingRod();
+    placePot();
+  }
+
+  /** Reaches into a bush, eats, or drinks, on top of the clip. */
+  function poseEatingOrDrinking(): void {
+    if (eatingOrDrinking === undefined) return;
+    const { body, arms } = eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds);
+    rememberClipPose(...buildPosedBones);
+    // A hand steadying a log on the shoulder stays there, so only the left hand moves.
+    applyBuildPose(group, buildBones, body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
+  }
+
+  const potLeft = new THREE.Vector3();
+  const potRight = new THREE.Vector3();
+  /** Shows the pot between the hands while filling it or drinking from it, tipped as the motion says. */
+  function placePot(): void {
+    const pot = eatingOrDrinking === undefined ? undefined : eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds).pot;
+    potHolder.visible = pot !== undefined;
+    if (pot === undefined) return;
+    potInHands.show(pot.look, performance.now() / 1000);
+    group.updateWorldMatrix(true, true);
+    group.worldToLocal(leftArm.end.getWorldPosition(potLeft));
+    group.worldToLocal(rightArm.end.getWorldPosition(potRight));
+    potHolder.position.addVectors(potLeft, potRight).multiplyScalar(0.5);
+    // Turning about +x tips the rim toward +z, the way the player faces.
+    potHolder.rotation.set(pot.tilt, 0, 0);
   }
 
   /** Every bone of the model, for blending whole poses. */
@@ -857,6 +914,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (changed) updateAxe();
       pose();
     },
+    setEatingOrDrinking(motion) {
+      const changed = (motion === undefined) !== (eatingOrDrinking === undefined);
+      eatingOrDrinking = motion === undefined ? undefined : { ...motion };
+      if (changed) updateAxe();
+      pose();
+    },
     setSleeping(seconds) {
       const changed = (seconds === undefined) !== (sleepingAt === undefined);
       sleepingAt = seconds;
@@ -875,6 +938,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       for (const geometry of geometries) geometry.dispose();
       for (const made of materials) made.dispose();
       backpack.dispose();
+      potMaker.dispose();
       drawknife.dispose();
       saw.dispose();
       rod.dispose();

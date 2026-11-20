@@ -1150,6 +1150,22 @@
         "by": "owner",
         "date": "2026-11-15"
       }
+    },
+    {
+      "id": "forage-eat-drink-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-eat-drink-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "Short motions the player plays once, each about one second. Foraging a berry bush reaches the right hand into the bush at chest height and back. Eating raises the right hand to the mouth twice. Drinking from the river kneels at the bank, dips both hands into the water, and raises them cupped to the mouth. Filling the pot kneels at the bank and dips the approved pot into the water, which fills as the hand gets there. Drinking from the pot raises it to the mouth and tips it back. The player faces the bush or the river. Walking or another action cuts a motion short. Posed in code on top of the idle clip; the axe goes on the back. Foraging mushrooms reuses the approved pick-up-animation.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/player-motions/issues/04-forage-eat-and-drink.md"
+      }
     }
   ]
 }

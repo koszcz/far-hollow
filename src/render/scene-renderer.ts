@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { SleepView, StructureKind, ThingInReach } from "../sim/api";
+import type { EatOrDrinkView, SleepView, StructureKind, ThingInReach } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
@@ -20,6 +20,7 @@ import { createPlayerMesh, type Fishing } from "./player-mesh";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
+import { EAT_DRINK_SECONDS, type EatDrinkKind } from "./player-eat-drink-pose";
 import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
@@ -86,6 +87,7 @@ export interface SceneRenderer {
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * Rendering only reads the clock. It never changes it.
  * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
+ * readLastEatOrDrink returns the player's last bite or drink, from game logic. A new one plays its motion once.
  * shapes are the loaded models, from loadModelShapes.
  */
 export function createSceneRenderer(
@@ -94,6 +96,7 @@ export function createSceneRenderer(
   entities: EntityStore,
   readHourOfDay: () => number,
   readLastSleep: () => SleepView | null,
+  readLastEatOrDrink: () => EatOrDrinkView | null,
   shapes: ModelShapes,
 ): SceneRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -209,6 +212,14 @@ export function createSceneRenderer(
   /** Standing up from a stool, while drawn: when it began, where the player's feet were then, and how long they had sat, in seconds. */
   let rising: { since: number; seat: SleepSpot; seatedFor: number } | undefined;
 
+  /** How many bites and drinks the player had when the last eat or drink motion began. */
+  let eatsOrDrinksSeen = readLastEatOrDrink()?.count ?? 0;
+  /** The eat or drink motion drawn now: when it began on the frame clock, in seconds, which it is, and the spot on the river for a drink from it. */
+  let eatOrDrinkDrawn: { since: number; kind: EatOrDrinkView["kind"]; toward?: GroundPoint } | undefined;
+  /** The forage, eat, or drink motion posing the player this frame, if any. */
+  let eatOrDrinkShown: { kind: EatDrinkKind; seconds: number } | undefined;
+  const forageSpots = entities.with("forageSpot", "position");
+
   /** Steps the drawn player up to the sawhorse to saw planks, and back when sawing stops. */
   const sawingStep = createSawingStep();
 
@@ -262,6 +273,10 @@ export function createSceneRenderer(
    * Game logic decides which work the player is doing, the same way the HUD shows it.
    */
   function posePlayer(nowSeconds: number): void {
+    // An eat or drink motion goes on only while nothing else shows: the branch that shows it keeps it.
+    const eatingOrDrinking = eatOrDrinkDrawn;
+    eatOrDrinkDrawn = undefined;
+    eatOrDrinkShown = undefined;
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
@@ -341,6 +356,15 @@ export function createSceneRenderer(
       reachDrawn.seenSeconds = reach.seconds;
       const seconds = Math.min(nowSeconds - reachDrawn.since, REACH_SECONDS);
       playerMesh.setWalking(undefined);
+      // Foraging a berry bush and filling the pot play their own motions, timed by the reach. Other reaches, such as
+      // foraging mushrooms, bend down as the reach clip does.
+      const motion = reach.toward === undefined ? undefined : reachMotionToward(reach.toward);
+      if (motion !== undefined && reach.toward !== undefined) {
+        playerMesh.setReaching(undefined);
+        playerMesh.setHeading(Math.atan2(reach.toward.x - playerDrawn.x, reach.toward.z - playerDrawn.z));
+        eatOrDrinkShown = { kind: motion, seconds };
+        return;
+      }
       if (reach.toward === undefined) {
         playerMesh.setReaching({ height: reach.height, seconds });
       } else {
@@ -353,6 +377,18 @@ export function createSceneRenderer(
     }
     reachDrawn = undefined;
     playerMesh.setReaching(undefined);
+    // Eating or drinking plays once where the player stands. Walking cuts it short.
+    if (eatingOrDrinking !== undefined && player.walkPath === undefined) {
+      const seconds = nowSeconds - eatingOrDrinking.since;
+      if (seconds < EAT_DRINK_SECONDS) {
+        eatOrDrinkDrawn = eatingOrDrinking;
+        eatOrDrinkShown = { kind: eatingOrDrinking.kind, seconds };
+        const { toward } = eatingOrDrinking;
+        if (toward !== undefined) playerMesh.setHeading(Math.atan2(toward.x - playerDrawn.x, toward.z - playerDrawn.z));
+        playerMesh.setWalking(undefined);
+        return;
+      }
+    }
     const dx = playerDrawn.x - playerDrawnBefore.x;
     const dz = playerDrawn.z - playerDrawnBefore.z;
     const travelled = Math.hypot(dx, dz);
@@ -464,6 +500,27 @@ export function createSceneRenderer(
     };
   }
 
+  /** Starts an eat or drink motion when game logic reports a bite or drink it has not played yet. Run it before posing the player. */
+  function startEatOrDrinkIfNew(nowSeconds: number): void {
+    const last = readLastEatOrDrink();
+    if (last === null || last.count === eatsOrDrinksSeen) return;
+    eatsOrDrinksSeen = last.count;
+    eatOrDrinkDrawn = { since: nowSeconds, kind: last.kind, ...(last.toward === undefined ? {} : { toward: { x: last.toward.x, z: last.toward.z } }) };
+  }
+
+  /**
+   * The motion a reach toward `toward` plays instead of the reach clip, or undefined for the plain reach: reaching into
+   * a berry bush that stands there, or dipping the pot into the river there. Game logic fills the pot toward a spot on the river.
+   */
+  function reachMotionToward(toward: GroundPoint): EatDrinkKind | undefined {
+    for (const spot of forageSpots) {
+      if (Math.abs(spot.position.x - toward.x) < 1e-6 && Math.abs(spot.position.z - toward.z) < 1e-6) {
+        return spot.forageSpot.food === "berries" ? "forageBush" : undefined;
+      }
+    }
+    return distanceToRiver(valley.river, toward) <= valley.river.width / 2 ? "fillPot" : undefined;
+  }
+
   return {
     cameraRig,
     isPlayingSleep: () => sleeping !== undefined,
@@ -491,7 +548,9 @@ export function createSceneRenderer(
           playerMesh.group.position.set(blended.x, blended.y, blended.z);
         }
       }
+      startEatOrDrinkIfNew(nowSeconds);
       posePlayer(nowSeconds);
+      playerMesh.setEatingOrDrinking(eatOrDrinkShown);
       // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
       if (!cameraPlaced && players.first !== undefined) {
         cameraRig.snapToFollowTarget();

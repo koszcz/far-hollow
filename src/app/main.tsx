@@ -141,6 +141,7 @@ const sceneRenderer = createSceneRenderer(
   game.entities,
   () => game.client.getView().time.hourOfDay,
   () => game.client.getView().lastSleep,
+  () => game.client.getView().lastEatOrDrink,
   await loadModelShapes(),
 );
 const cameraInput = attachCameraInput({

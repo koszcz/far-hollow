@@ -16,7 +16,7 @@ const POT_SIDES = 14;
 /** The outer radius at the rim, in metres. */
 const POT_RADIUS_METRES = 0.14;
 /** The height from the base to the top of the rim, in metres. */
-const POT_HEIGHT_METRES = 0.166;
+export const POT_HEIGHT_METRES = 0.166;
 /** The water sits this high above the base, in metres, and fills the pot this wide. */
 const WATER_HEIGHT_METRES = 0.13;
 const WATER_RADIUS_METRES = 0.126;

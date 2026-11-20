@@ -4,6 +4,7 @@ import { chopSecondsForTreeSize, treeSizeAt } from "../../sim/tree-size";
 import { PLANKS_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
+import { DRAG_ROPE_METRES, DRAG_SPEED } from "../../sim/sleds";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../../sim/hand-reach";
 import { BUILD_STONES_SHARE, buildProgressAtStickStage } from "../campfire-meshes";
 import { BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE } from "../structure-look";
@@ -141,7 +142,61 @@ const CHOP_PLAY_REST_SECONDS = 1.2;
 /** How long the game takes to chop the showcase's tree, which stands at the middle of the scene. */
 const SHOWCASE_CHOP_SECONDS = chopSecondsForTreeSize(treeSizeAt(0, 0));
 
+/** How fast the player walks while dragging a sled, in metres a second. */
+const DRAG_WALK_METRES_PER_SECOND = WALK_SPEED_METRES_PER_SECOND * DRAG_SPEED;
+/** How long the player walks, then stands, in each loop of the "sled-drag-animation" showcase, in seconds. */
+const DRAG_PLAY_WALK_SECONDS = 4;
+const DRAG_PLAY_REST_SECONDS = 1.5;
+
+/** Moves the player `walked` metres along +x, facing that way, with the sled they drag the rope's length behind. */
+function dragTo({ store, movePlayer }: Stage, walked: number): void {
+  movePlayer(walked, 0, Math.PI / 2);
+  const sled = store.with("sled", "position").first;
+  if (sled !== undefined) Object.assign(sled.position, { x: walked - DRAG_ROPE_METRES });
+}
+
+/**
+ * The draft "sled-drag-animation" and "sled-rope": the player pulls a loaded sled along +x by a rope over the left shoulder.
+ * The stills show the stride from the rope hand's side, the loaded sled, the lean while standing, and the rope from behind.
+ */
+const SLED_DRAG_SHOWCASE: Showcase = {
+  radius: 1.9,
+  focus: { x: -0.8, y: 0.7, z: 0 },
+  shots: [
+    { label: "walking, left leg passes, rope hand side", yaw: 180, pitch: 5, share: 0.75, radius: 0.9, focus: { x: 0, y: 0.7 } },
+    { label: "walking with the loaded sled, right foot lands", yaw: 40, pitch: 15, share: 0.5 },
+    { label: "standing, leaning into the rope", yaw: 120, pitch: 15, radius: 0.9, focus: { x: 0, y: 0.7 } },
+    { label: "rope down the back, from behind", yaw: 250, pitch: 40, radius: 1, focus: { x: 0, y: 0.7 } },
+  ].map(({ share, ...shot }) => (share === undefined ? shot : { ...shot, seconds: (share * STRIDE_METRES) / DRAG_WALK_METRES_PER_SECOND })),
+  build(stage) {
+    const sled = stage.place(-DRAG_ROPE_METRES, 0, { sled: { log: 4, debarkedLog: 2, plank: 0 }, facing: { turns: 0 }, dragHeading: 0 });
+    const player = stage.store.with("player").first;
+    const sledId = stage.store.id(sled);
+    if (player !== undefined && sledId !== undefined) stage.store.addComponent(player, "dragging", { sledId });
+    dragTo(stage, 0);
+    stage.player.setDragging(true);
+  },
+  pose({ player }, shot) {
+    player.setWalking(shot.seconds === undefined ? undefined : shot.seconds * DRAG_WALK_METRES_PER_SECOND);
+  },
+  // The player pulls the sled forward at dragging speed, then stands leaning into the rope, then walks on. The camera keeps pace.
+  play: {
+    shot: { label: "dragging, then standing", yaw: 30, pitch: 15, radius: 2.4 },
+    pose(stage, seconds) {
+      const loop = DRAG_PLAY_WALK_SECONDS + DRAG_PLAY_REST_SECONDS;
+      const walking = seconds % loop < DRAG_PLAY_WALK_SECONDS;
+      const walkedSeconds = Math.floor(seconds / loop) * DRAG_PLAY_WALK_SECONDS + Math.min(seconds % loop, DRAG_PLAY_WALK_SECONDS);
+      const walked = (walkedSeconds * DRAG_WALK_METRES_PER_SECOND) % 60;
+      dragTo(stage, walked);
+      stage.player.setWalking(walking ? walked : undefined);
+      return { x: walked };
+    },
+  },
+};
+
 export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
+  "sled-drag-animation": SLED_DRAG_SHOWCASE,
+  "sled-rope": SLED_DRAG_SHOWCASE,
   "campfire-build-animation": {
     radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },

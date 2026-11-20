@@ -265,6 +265,8 @@ export function createSceneRenderer(
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
+    // Dragging a sled leans the player into the rope, walking or standing. Letting go stands them up at once.
+    playerMesh.setDragging(player.dragging !== undefined && sleeping === undefined);
     if (sleeping !== undefined) {
       // The player steps onto the bedroll and lies along it. Nothing else moves them until they are up again.
       // In a bed, they step up onto the mattress, and back down beside the bed once they stand.
@@ -501,7 +503,7 @@ export function createSceneRenderer(
       // Trees between the camera and the player fade, so the player stays in view in a dense forest.
       forestMeshes.seeThroughTo(players.first === undefined ? null : playerDrawn);
       // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
-      structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn });
+      structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
       outlineHovered();
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));

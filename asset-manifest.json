@@ -1150,6 +1150,37 @@
         "by": "owner",
         "date": "2026-11-15"
       }
+    },
+    {
+      "id": "sled-drag-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-sled-drag-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player pulling a sled. While dragging, the player leans forward from the hips, with the hips set back a little and the chin lifted. The left hand grips the rope just in front of the left shoulder, and the rope runs back over that shoulder. The right arm swings as in the walk, and the legs keep the walk's stride, played at the slower dragging pace so the feet stay planted. Standing still while dragging shows the same lean over the idle clip, with the legs at rest. The lean starts and ends at once with dragging. It is posed in code over the approved walk-animation or the idle clip, with the build pose's bones. The axe stays in the right hand. The rope is the draft sled-rope.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/player-motions/issues/01-pull-a-sled.md"
+      }
+    },
+    {
+      "id": "sled-rope",
+      "kind": "code",
+      "code": [
+        "src/render/sled-rope.ts",
+        "src/render/sled-meshes.ts"
+      ],
+      "description": "The short rope the player pulls a sled by. It runs from the player's left hand, up over the left shoulder, and down behind the player to the loop at the front of the approved sled's tow rope. Between the shoulder and the sled it sags 6 cm in the middle. It is the same dark brown and thickness as the sled's tow rope, 2.2 cm across, and follows the player and the sled as they move. It shows only while the player drags a sled and hides at once when they let go.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/player-motions/issues/01-pull-a-sled.md"
+      }
     }
   ]
 }

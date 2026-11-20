@@ -16,6 +16,9 @@
 // While fishing, the approved "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
 // built by fishing-rod-model.ts, waits for the float to dip, then lifts out a raw fish from "fishing-piles" and catches
 // it in the left hand. fishing-tackle.ts bends the rod and draws the line and the float. The axe goes on the back.
+// While dragging a sled, the draft "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
+// forward over the walk or idle clip, with the left hand holding the rope over the shoulder. ropeHold() says where the
+// draft "sled-rope" starts.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -28,6 +31,8 @@ import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
+import { SLED_DRAG_POSE } from "./player-sled-drag-pose";
+import type { RopeHold } from "./sled-rope";
 import { createSaw } from "./saw-model";
 import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
@@ -106,6 +111,13 @@ const CARRY_FOREARM = new THREE.Euler(0, 0, 0);
 const CARRY_UPPER_ARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_UPPER_ARM);
 const CARRY_FOREARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_FOREARM);
 
+/**
+ * Where a sled's rope runs over the left shoulder, and where it leaves the back below the backpack, from the shoulder
+ * joint, in metres. The player faces +z.
+ */
+const ROPE_OVER_SHOULDER = new THREE.Vector3(0, 0.1, -0.06);
+const ROPE_DOWN_BACK = new THREE.Vector3(0, -0.2, -0.42);
+
 export interface PlayerMesh {
   /** Place this at the player's feet. */
   readonly group: THREE.Group;
@@ -146,6 +158,10 @@ export interface PlayerMesh {
    * `distance` is how far the thing is in front of the player's feet, in metres, if known. The hand reaches toward it.
    */
   setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
+  /** Leans the player forward to pull a sled by a rope over the left shoulder, or stands them upright at once. */
+  setDragging(dragging: boolean): void;
+  /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. */
+  ropeHold(): RopeHold | undefined;
   dispose(): void;
 }
 
@@ -351,6 +367,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** While fishing: when it began on the steady clock. `fishingAt` is the latest moment passed to `setFishing`. */
   let fishingSince: number | undefined;
   let fishingAt: Fishing | undefined;
+  /** Whether the player drags a sled. */
+  let dragging = false;
 
   // The drawknife rides between the hands while debarking, placed from the wrists each frame.
   const drawknife = createDrawknife();
@@ -549,6 +567,11 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       pose = sawPoseAt(sawingAt.nowSeconds - sawingSince, sawingAt.progress, logThickness);
     } else if (fishingSince !== undefined && fishingAt !== undefined) {
       pose = fishPoseAt(fishingAt.sinceCast, fishingAt.toBite, fishingAt.nowSeconds - fishingSince).body;
+    } else if (dragging) {
+      // Only the left hand takes the rope. The right arm keeps the clip's swing, or steadies a log on the shoulder.
+      rememberClipPose(...buildPosedBones);
+      applyBuildPose(group, buildBones, SLED_DRAG_POSE, [leftArm]);
+      return;
     } else if (leavingBuild !== undefined) {
       const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
       // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
@@ -862,6 +885,23 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       sleepingAt = seconds;
       if (changed) updateAxe();
       pose();
+    },
+    setDragging(draggingNow) {
+      if (draggingNow === dragging) return;
+      dragging = draggingNow;
+      pose();
+    },
+    ropeHold() {
+      if (!dragging) return undefined;
+      group.updateWorldMatrix(true, true);
+      const hand = leftArm.end.getWorldPosition(new THREE.Vector3());
+      // The rope runs back over the top of the left shoulder, then down the back clear of the backpack.
+      const joint = group.worldToLocal(leftArm.upper.getWorldPosition(new THREE.Vector3()));
+      const fromJoint = (offset: THREE.Vector3) => {
+        const spot = group.localToWorld(joint.clone().add(offset));
+        return { x: spot.x, y: spot.y, z: spot.z };
+      };
+      return { hand: { x: hand.x, y: hand.y, z: hand.z }, shoulder: fromJoint(ROPE_OVER_SHOULDER), back: fromJoint(ROPE_DOWN_BACK) };
     },
     setSitting(body) {
       const changed = (body === undefined) !== (sittingBody === undefined);

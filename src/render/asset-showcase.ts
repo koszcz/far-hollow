@@ -95,6 +95,8 @@ export function showAsset(
     "pick-up-animation",
     "sawing-animation",
     "fishing-animation",
+    "sled-drag-animation",
+    "sled-rope",
     "sky-lighting",
     "hud",
     "log-wall",
@@ -164,7 +166,7 @@ export function showAsset(
     // Stills restart every fall at time 0. A live loop lets each fall start when its tree is felled.
     if (!(options.play && showcase.play !== undefined)) forest.update(0);
     forest.update(seconds);
-    structures.update({ nowSeconds: seconds });
+    structures.update({ nowSeconds: seconds, ropeHold: player.ropeHold() });
     bedrolls.update();
     piles.update();
     bark.update();

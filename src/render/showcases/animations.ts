@@ -1,7 +1,7 @@
 // Showcases for player and world animations. Each one plays live with &play. The registry is src/render/showcases/index.ts.
 import * as THREE from "three";
 import { chopSecondsForTreeSize, treeSizeAt } from "../../sim/tree-size";
-import { PLANKS_CRAFT_SECONDS } from "../../sim/crafting";
+import { PLANKS_CRAFT_SECONDS, SAW_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../../sim/hand-reach";
@@ -14,6 +14,7 @@ import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_R
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "../player-mesh";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
+import { HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS } from "../player-hand-craft-pose";
 import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
 import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
 import {
@@ -112,6 +113,9 @@ const REACH_SHOWCASE_METRES = 0.45;
 
 /** How long the player stands after sawing before the "sawing-animation" plays again, in seconds. */
 const SAW_PLAY_REST_SECONDS = 1.2;
+
+/** How long the player stands after crafting by hand before the "hand-craft-animation" plays again, in seconds. */
+const HAND_CRAFT_PLAY_REST_SECONDS = 1.2;
 
 /**
  * How long each wait for a fish lasts in the "fishing-animation" showcase, in seconds: the shortest wait in the game.
@@ -405,6 +409,35 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose({ player }, seconds) {
         const cycle = seconds % (PLANKS_CRAFT_SECONDS + SAW_PLAY_REST_SECONDS);
         player.setSawing(cycle < PLANKS_CRAFT_SECONDS ? { nowSeconds: cycle, progress: cycle / PLANKS_CRAFT_SECONDS } : undefined);
+        return undefined;
+      },
+    },
+  },
+  // The draft "hand-craft-animation": the player makes the saw, a hand recipe, working at it with both hands at waist height.
+  "hand-craft-animation": {
+    radius: 1.3,
+    focus: { x: 0, y: 0.9, z: 0.2 },
+    shots: [
+      { label: "right hand up, front", share: 0.25, yaw: 0 },
+      { label: "right hand out, side on", share: 0, yaw: 270 },
+      { label: "right hand down", share: 0.75, yaw: 30 },
+      { label: "right hand in, from above", share: 0.5, yaw: 0, pitch: 70 },
+    ].map(({ label, share, yaw, pitch = 15 }) => ({ label, yaw, pitch, seconds: HAND_CRAFT_ENTER_SECONDS + share * HAND_CRAFT_CYCLE_SECONDS })),
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      // Start crafting afresh at time 0 for each view, so the view shows the work `shot.seconds` in.
+      player.setHandCrafting(undefined);
+      player.setHandCrafting(0);
+      player.setHandCrafting(shot.seconds);
+    },
+    // The player makes the saw for as long as the game takes, stands, rests, then starts again.
+    play: {
+      shot: { label: "making the saw, then standing", yaw: 30, pitch: 15, radius: 1.6 },
+      pose({ player }, seconds) {
+        const cycle = seconds % (SAW_CRAFT_SECONDS + HAND_CRAFT_PLAY_REST_SECONDS);
+        player.setHandCrafting(cycle < SAW_CRAFT_SECONDS ? cycle : undefined);
         return undefined;
       },
     },

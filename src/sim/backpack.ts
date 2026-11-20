@@ -1,3 +1,5 @@
+import { addCount, countOf, takeCount, weightedTotal } from "./counts";
+
 /**
  * The backpack holds tools and small materials, up to a weight limit.
  * Logs never go in the backpack. The player carries them on their shoulder instead.
@@ -69,7 +71,7 @@ export function createStartingBackpack(): Backpack {
 }
 
 export function countInBackpack(backpack: Backpack, content: BackpackContent): number {
-  return backpack.contents[content] ?? 0;
+  return countOf(backpack.contents, content);
 }
 
 /** True if the backpack holds at least one of `content`. */
@@ -79,11 +81,7 @@ export function hasInBackpack(backpack: Backpack, content: BackpackContent): boo
 
 /** How much everything in the backpack weighs, in kilograms. */
 export function backpackWeight(backpack: Backpack): number {
-  let total = 0;
-  for (const content of Object.keys(backpack.contents) as BackpackContent[]) {
-    total += countInBackpack(backpack, content) * CONTENT_WEIGHT_KG[content];
-  }
-  return total;
+  return weightedTotal(backpack.contents, CONTENT_WEIGHT_KG);
 }
 
 /** True if `count` more of `content` would fit within the weight limit. */
@@ -105,7 +103,7 @@ export function howManyFit(backpack: Backpack, content: BackpackContent, count: 
  */
 export function addToBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
   if (!fitsInBackpack(backpack, content, count)) return false;
-  backpack.contents[content] = countInBackpack(backpack, content) + count;
+  backpack.contents = addCount(backpack.contents, content, count);
   return true;
 }
 
@@ -114,8 +112,7 @@ export function addToBackpack(backpack: Backpack, content: BackpackContent, coun
  * Returns false, and changes nothing, if it does not.
  */
 export function removeFromBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
-  const held = countInBackpack(backpack, content);
-  if (held < count) return false;
-  backpack.contents[content] = held - count;
+  if (countInBackpack(backpack, content) < count) return false;
+  backpack.contents = takeCount(backpack.contents, content, count);
   return true;
 }

@@ -2,6 +2,7 @@
 // Every such piece works the same way and opens in the chest panel. Its definition in src/sim/furniture/ says how much it holds.
 import type { ChestView, ChestOrShelf, PlainNotice } from "./api";
 import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
+import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
 import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
 import { groundDistance } from "./valley";
@@ -51,9 +52,7 @@ export interface Chests {
 
 /** How much everything in a chest or backpack weighs, in kilograms. */
 export function contentsWeight(contents: Readonly<BackpackContents>): number {
-  let total = 0;
-  for (const [content, count] of Object.entries(contents) as [keyof typeof CONTENT_WEIGHT_KG, number][]) total += count * CONTENT_WEIGHT_KG[content];
-  return total;
+  return weightedTotal(contents, CONTENT_WEIGHT_KG);
 }
 
 /** Lets the player keep small things in the furniture that stores them. */
@@ -124,21 +123,20 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
       const moved = Math.min(wanted, Math.floor((room + 1e-9) / CONTENT_WEIGHT_KG[content]));
       if (moved <= 0) return chest.rule.fullNotice;
       removeFromBackpack(backpack, content, moved);
-      chest.holding.contents[content] = (chest.holding.contents[content] ?? 0) + moved;
+      chest.holding.contents = addCount(chest.holding.contents, content, moved);
       return undefined;
     },
     take(chestId, content, all) {
       const chest = openChest();
       const backpack = players.first?.backpack;
       if (chest === undefined || chestId !== openId || backpack === undefined) return undefined;
-      const held = chest.holding.contents[content] ?? 0;
+      const held = countOf(chest.holding.contents, content);
       const wanted = all ? held : Math.min(1, held);
       let moved = 0;
       while (moved < wanted && addToBackpack(backpack, content, 1)) moved += 1;
       if (wanted > 0 && moved === 0) return "backpackFull";
-      chest.holding.contents[content] = held - moved;
       // Kinds the chest no longer holds drop out of its contents, so an emptied chest holds nothing at all.
-      chest.holding.contents = Object.fromEntries(Object.entries(chest.holding.contents).filter(([, count]) => count > 0));
+      chest.holding.contents = withoutEmptyKinds(takeCount(chest.holding.contents, content, moved));
       return undefined;
     },
   };

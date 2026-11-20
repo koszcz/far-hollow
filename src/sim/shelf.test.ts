@@ -92,9 +92,9 @@ describe("building a shelf", () => {
     const game = createGame({ seed: 42 });
     const blueprint = shelfBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 6;
-    delete backpack.axe;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 6;
+    delete backpack.contents.axe;
     expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "plank", has: 0, needs: 4 }]);
 
     send(game, { type: "build", blueprintId: id });
@@ -104,27 +104,27 @@ describe("building a shelf", () => {
     expect(blueprint.furniture).toBe("shelf");
     expect(blueprint.storage).toEqual({ contents: {} });
     expect(blueprint.furniture).not.toBe("chest");
-    expect(backpack.plank).toBe(2);
+    expect(backpack.contents.plank).toBe(2);
   });
 
   it("keeps the planks it has had, so the player can bring the rest on later trips", () => {
     const game = createGame({ seed: 42 });
     const blueprint = shelfBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    const backpack = onlyPlayer(game).backpack.contents;
+    const backpack = onlyPlayer(game).backpack;
 
-    backpack.plank = 3;
+    backpack.contents.plank = 3;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, SHELF_BUILD_SECONDS + 5);
-    expect(backpack.plank ?? 0).toBe(0);
+    expect(backpack.contents.plank ?? 0).toBe(0);
     expect(blueprint.blueprint).toMatchObject({ materialsSpent: 3, delivered: { plank: 3 } });
 
-    backpack.plank = 2;
+    backpack.contents.plank = 2;
     send(game, { type: "build", blueprintId: id });
     runSeconds(game, SHELF_BUILD_SECONDS + 5);
     expect(blueprint.furniture).toBe("shelf");
     expect(blueprint.storage).toEqual({ contents: {} });
-    expect(backpack.plank).toBe(1);
+    expect(backpack.contents.plank).toBe(1);
   });
 
   it("spends no planks in the playground", () => {
@@ -266,8 +266,8 @@ describe("taking down a shelf", () => {
   it("removes a shelf blueprint at once and gives back every plank it took, spent or not", () => {
     const game = createGame({ seed: 42 });
     const blueprint = shelfBlueprintNearPlayer(game);
-    const backpack = onlyPlayer(game).backpack.contents;
-    backpack.plank = 2;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.plank = 2;
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     runSeconds(game, SHELF_BUILD_SECONDS + 5);
     expect(blueprint.blueprint).toMatchObject({ delivered: { plank: 2 } });
@@ -275,7 +275,7 @@ describe("taking down a shelf", () => {
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
     stepUntil(game, () => !game.entities.has(blueprint));
 
-    expect(backpack.plank).toBe(2);
+    expect(backpack.contents.plank).toBe(2);
   });
 
   it("holds up the foundation it stands on, so the foundation cannot be taken down under it", () => {

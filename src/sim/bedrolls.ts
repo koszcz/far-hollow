@@ -1,4 +1,4 @@
-import { addToBackpack, removeFromBackpack } from "./backpack";
+import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
 import { bedrollEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
@@ -117,7 +117,7 @@ export function createBedrolls(
       const place = spotInLeanTo(leanToId);
       if (place === undefined) return;
       for (const player of players) {
-        if ((player.backpack?.contents.bedroll ?? 0) === 0) continue;
+        if (player.backpack === undefined || countInBackpack(player.backpack, "bedroll") === 0) continue;
         // The player always walks in to the spot, even from close by, so they never lay it through the lean-to's back or sides.
         walking.walkTo(place.spot);
         setComponent(entities, player, "layBedrollTask", { leanToId });

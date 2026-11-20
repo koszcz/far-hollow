@@ -20,7 +20,7 @@ import type {
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
 import { createStools } from "./stools";
-import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
+import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
 import { createTakingDown } from "./taking-down";
@@ -590,7 +590,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     dropFromBackpack: {
       start: "alongside",
       run: (command) => {
-        if ((player.backpack.contents[command.content] ?? 0) > 0)
+        if (countInBackpack(player.backpack, command.content) > 0)
           putDown(() => {
             piles.drop(command.content);
           });
@@ -715,7 +715,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     layBedroll: {
       start: "alongside",
       run: () => {
-        if ((player.backpack.contents.bedroll ?? 0) > 0)
+        if (countInBackpack(player.backpack, "bedroll") > 0)
           putDown(() => {
             bedrolls.lay();
           });

@@ -1,6 +1,7 @@
 // Stacking logs, debarked logs, and firewood on a woodpile, and taking them off again.
 import type { Command, Refusal, WoodpileView } from "./api";
 import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
+import { addCount, takeCount, totalCount } from "./counts";
 import { entityWith, playerEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "./entities";
 import { shoulderRefusal } from "./refusals";
 import { groundDistance, nearestWithin } from "./valley";
@@ -41,13 +42,13 @@ export interface Woodpiles {
 
 /** How many pieces of wood a woodpile holds in all. */
 export function woodpileTotal(contents: Readonly<Record<WoodpileWood, number>>): number {
-  return contents.log + contents.debarkedLog + contents.firewood;
+  return totalCount(contents);
 }
 
 /** Stacks up to `count` of one wood on a woodpile, as far as it has room. Returns how many it stacked. */
 export function stackOnWoodpile(woodpile: Pick<WoodpileEntity, "woodpile">, wood: WoodpileWood, count: number): number {
   const stacked = Math.max(0, Math.min(count, WOODPILE_CAPACITY - woodpileTotal(woodpile.woodpile)));
-  woodpile.woodpile[wood] += stacked;
+  woodpile.woodpile = addCount(woodpile.woodpile, wood, stacked);
   return stacked;
 }
 
@@ -113,11 +114,11 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
         if (player.backpack === undefined) return;
         const moved = Math.min(all ? countInBackpack(player.backpack, "firewood") : 1, room);
         if (moved <= 0 || !removeFromBackpack(player.backpack, "firewood", moved)) return;
-        woodpile.woodpile.firewood += moved;
+        woodpile.woodpile = addCount(woodpile.woodpile, "firewood", moved);
         return;
       }
       entities.removeComponent(player, "carrying");
-      woodpile.woodpile[wood] += 1;
+      woodpile.woodpile = addCount(woodpile.woodpile, wood, 1);
     },
     take(woodpileId, wood) {
       const woodpile = woodpileById(woodpileId);
@@ -128,10 +129,10 @@ export function createWoodpiles(entities: EntityStore, walking: Walking): Woodpi
         let moved = 0;
         while (moved < woodpile.woodpile.firewood && addToBackpack(player.backpack, "firewood", 1)) moved += 1;
         if (moved === 0) return "backpackFull";
-        woodpile.woodpile.firewood -= moved;
+        woodpile.woodpile = takeCount(woodpile.woodpile, "firewood", moved);
         return undefined;
       }
-      woodpile.woodpile[wood] -= 1;
+      woodpile.woodpile = takeCount(woodpile.woodpile, wood, 1);
       entities.addComponent(player, "carrying", wood);
       return undefined;
     },

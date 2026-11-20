@@ -95,8 +95,8 @@ describe("building a sled", () => {
     const game = createGame({ seed: 42 });
     const blueprint = sledBlueprintNearPlayer(game);
     const id = idOf(game, blueprint);
-    const contents = onlyPlayer(game).backpack.contents;
-    contents.stick = SLED_STICK_COST;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.stick = SLED_STICK_COST;
     expect(game.client.describeBlueprint(id)?.deliveries).toEqual([{ material: "log", has: 0, needs: SLED_LOG_COST }]);
 
     deliverLogs(game, blueprint, SLED_LOG_COST);
@@ -106,7 +106,7 @@ describe("building a sled", () => {
 
     expect(blueprint.sled).toEqual({ log: 0, debarkedLog: 0, plank: 0 });
     expect(blueprint.facing).toEqual({ turns: 0 });
-    expect(contents.stick ?? 0).toBe(0);
+    expect(backpack.contents.stick ?? 0).toBe(0);
     // A parked sled blocks no walking, since the player drags it about.
     expect(isWalkable(game.walkMap, blueprint.position)).toBe(true);
   });
@@ -440,15 +440,15 @@ describe("taking down a sled", () => {
   it("gives back its 2 logs on the ground and its 4 sticks in the backpack", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);
-    const contents = onlyPlayer(game).backpack.contents;
-    contents.stick = 0;
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.stick = 0;
     const logsBefore = game.entities.with("log").size;
 
     send(game, { type: "takeDown", pieceId: idOf(game, sled) });
     stepUntil(game, () => !game.entities.has(sled));
 
     expect(game.entities.with("log").size).toBe(logsBefore + 2);
-    expect(contents.stick).toBe(4);
+    expect(backpack.contents.stick).toBe(4);
   });
 
   it("lays any logs on a loaded sled on the ground beside it first, so none is lost", () => {

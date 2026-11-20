@@ -4,6 +4,7 @@
 import type { Command, Refusal, SledView } from "./api";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
 import { distanceOutside } from "./building";
+import { addCount, takeCount, weightedTotal } from "./counts";
 import {
   entityWith,
   playerEntities,
@@ -30,6 +31,8 @@ import { stackOnWoodpile } from "./woodpiles";
 export const SLED_CAPACITY = 6;
 /** How many planks fit in one log space on a sled. */
 export const PLANKS_PER_LOG_SPACE = 4;
+/** How many log spaces one of each thing on a sled fills. */
+const LOG_SPACES_FILLED: Readonly<SledLoad> = { log: 1, debarkedLog: 1, plank: 1 / PLANKS_PER_LOG_SPACE };
 /** The plank pile tipped out of a sled lies this far behind the back end of the sled, in metres. */
 const TIPPED_PLANKS_BEHIND_METRES = 0.5;
 /**
@@ -90,7 +93,7 @@ export function isSled(entity: Entity): entity is SledEntity {
 
 /** How many of a sled's log spaces its load fills. Each plank fills a quarter of one, so the total can be a fraction. */
 export function sledTotal(contents: Readonly<SledLoad>): number {
-  return CARRIED_LOGS.reduce((total, log) => total + contents[log], 0) + contents.plank / PLANKS_PER_LOG_SPACE;
+  return weightedTotal(contents, LOG_SPACES_FILLED);
 }
 
 /** How many more planks fit on a sled with this load. */
@@ -107,13 +110,13 @@ export function logsThatFitOnSled(contents: Readonly<SledLoad>): number {
 /** Puts up to `count` planks on a sled, as far as it has room. Returns how many went on. */
 export function putPlanksOnSled(sled: Pick<SledEntity, "sled">, count: number): number {
   const loaded = Math.min(count, planksThatFitOnSled(sled.sled));
-  sled.sled.plank += loaded;
+  sled.sled = addCount(sled.sled, "plank", loaded);
   return loaded;
 }
 
 /** Takes one log or debarked log off a sled, if it holds one. */
 export function takeOffSled(sled: Pick<SledEntity, "sled">, log: CarriedLog): void {
-  if (sled.sled[log] > 0) sled.sled[log] -= 1;
+  sled.sled = takeCount(sled.sled, log, 1);
 }
 
 /**
@@ -124,9 +127,7 @@ export function takeOffSled(sled: Pick<SledEntity, "sled">, log: CarriedLog): vo
 export function layLoadBeside(entities: EntityStore, valley: Valley, sled: SledEntity): void {
   const logs: CarriedLog[] = [...Array<CarriedLog>(sled.sled.log).fill("log"), ...Array<CarriedLog>(sled.sled.debarkedLog).fill("debarkedLog")];
   const planks = sled.sled.plank;
-  sled.sled.log = 0;
-  sled.sled.debarkedLog = 0;
-  sled.sled.plank = 0;
+  sled.sled = { log: 0, debarkedLog: 0, plank: 0 };
   const turnRadians = quarterTurnsToRadians(sled.facing?.turns ?? 0);
   // The runners run along x when the sled faces the default way. Its sides are along z.
   const along = { x: Math.cos(turnRadians), z: -Math.sin(turnRadians) };
@@ -233,13 +234,13 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     load(sledId) {
       const { sled, player } = usable({ type: "loadSled", sledId }) ?? {};
       if (sled === undefined || player?.carrying === undefined) return;
-      sled.sled[player.carrying] += 1;
+      sled.sled = addCount(sled.sled, player.carrying, 1);
       entities.removeComponent(player, "carrying");
     },
     take(sledId, log) {
       const { sled, player } = usable({ type: "takeFromSled", sledId, log }) ?? {};
       if (sled === undefined || player === undefined) return;
-      sled.sled[log] -= 1;
+      sled.sled = takeCount(sled.sled, log, 1);
       entities.addComponent(player, "carrying", log);
     },
     loadPlanks(sledId) {
@@ -253,7 +254,7 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       const taken = howManyFit(player.backpack, "plank", sled.sled.plank);
       if (taken === 0) return "backpackFull";
       addToBackpack(player.backpack, "plank", taken);
-      sled.sled.plank -= taken;
+      sled.sled = takeCount(sled.sled, "plank", taken);
       return undefined;
     },
     tipOut(sledId) {
@@ -261,7 +262,7 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
       if (sled === undefined) return;
       const woodpile = woodpileNextTo(sled);
       if (woodpile !== undefined) {
-        for (const kind of CARRIED_LOGS) sled.sled[kind] -= stackOnWoodpile(woodpile, kind, sled.sled[kind]);
+        for (const kind of CARRIED_LOGS) sled.sled = takeCount(sled.sled, kind, stackOnWoodpile(woodpile, kind, sled.sled[kind]));
       }
       layLoadBeside(entities, valley, sled);
     },

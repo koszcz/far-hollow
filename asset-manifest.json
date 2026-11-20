@@ -1152,6 +1152,22 @@
       }
     },
     {
+      "id": "hand-craft-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-hand-craft-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player making something by hand, for a hand recipe such as the saw or the fishing rod. The player stands still, rounds the shoulders a little, and bows the head to watch the hands. Both hands work at something small held at waist height, in front of the belly. The left hand holds the work steady and turns it slightly. The right hand winds a binding around it in slow, steady loops, one every 2 seconds. The axe goes on the back. The hands lift to the work over 0.25 seconds when crafting starts and lower over 0.25 seconds when it stops, and the axe returns to the hand. It is posed in code over the idle clip. Cutting planks at the sawhorse uses sawing-animation instead.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/player-motions/issues/02-saw-and-hand-craft.md"
+      }
+    },
+    {
       "id": "sled-drag-animation",
       "kind": "code",
       "code": [
@@ -1174,7 +1190,7 @@
         "src/render/sled-rope.ts",
         "src/render/sled-meshes.ts"
       ],
-      "description": "The short rope the player pulls a sled by. It runs from the player's left hand, up over the left shoulder, and down behind the player to the loop at the front of the approved sled's tow rope. Between the shoulder and the sled it sags 6 cm in the middle. It is the same dark brown and thickness as the sled's tow rope, 2.2 cm across, and follows the player and the sled as they move. It shows only while the player drags a sled and hides at once when they let go.",
+      "description": "The short rope the player pulls a sled by. It runs from the player's left hand, up over the left shoulder, down the back clear of the backpack, and on to the loop at the front of the approved sled's tow rope. Between the back and the sled it sags 6 cm in the middle. It is the same dark brown and thickness as the sled's tow rope, 2.2 cm across, and follows the player and the sled as they move. It shows only while the player drags a sled and hides at once when they let go.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

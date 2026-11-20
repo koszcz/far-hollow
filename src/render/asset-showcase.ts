@@ -94,6 +94,7 @@ export function showAsset(
     "player-build-animation",
     "pick-up-animation",
     "sawing-animation",
+    "hand-craft-animation",
     "fishing-animation",
     "sled-drag-animation",
     "sled-rope",

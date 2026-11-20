@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (it reuses the bend down)
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Assets:** Reuse `player`, `bedroll`, and `pick-up-animation`. Add draft `sleep-animation`.
 
@@ -15,3 +15,7 @@
 - [ ] The player cannot act while lying down or getting up. Clicks and keys during the motion do nothing.
 - [ ] The asset showcase shows lying down and getting up.
 - [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+
+## Comments
+
+The owner chose to skip this ticket on 2026-11-20. The approved `sleep-animation` from `.scratch/player-animations/` already covers it, and the owner did not want to change that approved asset.

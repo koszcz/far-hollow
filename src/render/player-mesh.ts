@@ -19,6 +19,8 @@
 // While dragging a sled, the draft "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
 // forward over the walk or idle clip, with the left hand holding the rope over the shoulder. ropeHold() says where the
 // draft "sled-rope" starts.
+// While crafting a hand recipe, the draft "hand-craft-animation", posed in code by player-hand-craft-pose.ts, works at
+// something small held at waist height with both hands. The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -38,6 +40,7 @@ import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
 import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
+import { HAND_CRAFT_ENTER_SECONDS, handCraftPoseAt } from "./player-hand-craft-pose";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
@@ -140,6 +143,8 @@ export interface PlayerMesh {
   setSawing(sawing: { nowSeconds: number; progress: number } | undefined): void;
   /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setBuilding(nowSeconds: number | undefined): void;
+  /** Works at something small held at waist height, for a hand recipe. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
+  setHandCrafting(nowSeconds: number | undefined): void;
   /** Fishes with the rod held out over the water, as player-fish-pose.ts poses it. Pass undefined to stand upright. */
   setFishing(fishing: Fishing | undefined): void;
   /**
@@ -354,13 +359,17 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let sawingSince: number | undefined;
   /** The clock time it is now, and how far through the log the saw is, while sawing. */
   let sawingAt = { nowSeconds: 0, progress: 0 };
+  /** The clock time hand crafting began, or undefined while not crafting by hand. */
+  let handCraftingSince: number | undefined;
+  /** The clock time it is now, while crafting by hand. */
+  let handCraftingAt = 0;
   // Measure the log shape once, for how tall the log on the sawhorse is.
   const logShapeBox =
     logShape.geometry.boundingBox ?? new THREE.Box3().setFromBufferAttribute(logShape.geometry.getAttribute("position") as THREE.BufferAttribute);
   /** How tall a log lying on its side is, in metres. */
   const logThickness = logShapeBox.max.y - logShapeBox.min.y;
   /**
-   * While standing up after building, debarking, or sawing stops: when it stopped, on the performance clock in seconds, the
+   * While standing up after building, debarking, sawing, or crafting by hand stops: when it stopped, on the performance clock in seconds, the
    * pose then, and how many seconds standing up takes.
    */
   let leavingBuild: { at: number; pose: ReturnType<typeof buildPoseAt>; seconds: number } | undefined;
@@ -490,6 +499,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       buildingSince !== undefined ||
       debarkingSince !== undefined ||
       sawingSince !== undefined ||
+      handCraftingSince !== undefined ||
       fishingSince !== undefined ||
       sleepingAt !== undefined ||
       sittingBody !== undefined;
@@ -565,6 +575,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       pose = debarkPoseAt(debarkingAt - debarkingSince);
     } else if (sawingSince !== undefined) {
       pose = sawPoseAt(sawingAt.nowSeconds - sawingSince, sawingAt.progress, logThickness);
+    } else if (handCraftingSince !== undefined) {
+      pose = handCraftPoseAt(handCraftingAt - handCraftingSince);
     } else if (fishingSince !== undefined && fishingAt !== undefined) {
       pose = fishPoseAt(fishingAt.sinceCast, fishingAt.toBite, fishingAt.nowSeconds - fishingSince).body;
     } else if (dragging) {
@@ -868,6 +880,24 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
           updateAxe();
         }
         buildingAt = nowSeconds;
+      }
+      pose();
+    },
+    setHandCrafting(nowSeconds) {
+      if (nowSeconds === undefined) {
+        if (handCraftingSince !== undefined) {
+          const pose = handCraftPoseAt(handCraftingAt - handCraftingSince);
+          leavingBuild = { at: performance.now() / 1000, pose, seconds: HAND_CRAFT_ENTER_SECONDS };
+          handCraftingSince = undefined;
+          updateAxe();
+        }
+      } else {
+        if (handCraftingSince === undefined) {
+          handCraftingSince = nowSeconds;
+          leavingBuild = undefined;
+          updateAxe();
+        }
+        handCraftingAt = nowSeconds;
       }
       pose();
     },

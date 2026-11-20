@@ -38,3 +38,7 @@ Choose the exact names. The module needs at least these functions:
 - [x] The `facing` component and saved games keep the same shape. Old saves still load.
 - [x] Unit tests cover each function, including wrapping negative numbers and headings near a half turn.
 - [x] `make check` passes. Structures, roofs, and dragged sleds face the same way as before in the playground.
+
+## Comments
+
+The orchestrator compared asset showcase screenshots of roof-frame, roof, roof-corners, lean-to, log-wall and sled-drag-animation before and after this change on 2026-11-20. The three roof shots match byte for byte. The others look the same; their small byte differences also appear between two runs of the same build.

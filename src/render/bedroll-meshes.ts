@@ -7,7 +7,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { bedrollEntities, type Entity, type EntityStore } from "../sim/entities";
 import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
-import { facingRadians } from "./structure-look";
+import { quarterTurnsToRadians } from "../sim/quarter-turns";
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -195,7 +195,7 @@ export function createBedrollMeshes(entities: EntityStore, groundAt: (x: number,
     root.add(picker);
     pickers.push(picker);
     // A bedroll laid in a lean-to is turned to lie along it. One laid at the player's feet lies along z.
-    const yaw = facingRadians(entity.facing?.turns ?? 0);
+    const yaw = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const fit = fitToGround(groundAt, entity.position, MAT_WIDTH_METRES / 2, MAT_LENGTH_METRES / 2, yaw);
     root.position.set(entity.position.x, fit.y, entity.position.z);
     root.quaternion.copy(fit.tilt).multiply(new THREE.Quaternion().setFromAxisAngle(UP, yaw));

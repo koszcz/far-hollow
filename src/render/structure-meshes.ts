@@ -2,7 +2,8 @@
 // It is the one place that knows which meshes draw which structure kind, so the scene renderer and the asset showcase
 // add, update, pick, outline, and dispose every structure through it alone.
 import * as THREE from "three";
-import type { QuarterTurns, StructureKind } from "../sim/api";
+import type { StructureKind } from "../sim/api";
+import type { QuarterTurns } from "../sim/quarter-turns";
 import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
 import { createCampfireMeshes } from "./campfire-meshes";

@@ -9,7 +9,8 @@ import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
 import type { TreeGrowth } from "./tree-growth";
-import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, QuarterTurns, StructureKind, WorkStationKind } from "./structure-kind";
+import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, StructureKind, WorkStationKind } from "./structure-kind";
+import type { QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 
 export interface Vec3 {
@@ -198,7 +199,7 @@ export interface Entity {
    */
   sled?: SledLoad;
   /**
-   * The way a sled points once the player has dragged it, in radians about the vertical axis, as `facingRadians` gives for `facing`.
+   * The way a sled points once the player has dragged it, in radians about the vertical axis, as `quarterTurnsToRadians` gives for `facing`.
    * Its runners run along this turn. Drawing uses it in place of `facing`, which keeps the nearest quarter turn.
    */
   dragHeading?: number;

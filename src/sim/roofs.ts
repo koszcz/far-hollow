@@ -2,7 +2,8 @@
 // Any entity with a `roof` component counts as a roof overhead: a lean-to, or a cabin roof section.
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-grid";
 import { cabinRoofEntities, roofEntities, type Entity, type EntityStore } from "./entities";
-import { isInRect, SIDES, turnOffset } from "./structure-kind";
+import { isInRect, SIDES } from "./structure-kind";
+import { turnOffset } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 
 /** Whether a spot on the ground is under any roof, so rain does not fall on it. */

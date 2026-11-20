@@ -2,11 +2,10 @@
 // The body plays the approved sleep animation, timed by sleep-animation.ts, as on a bedroll.
 // In a bed, the player steps up onto the mattress, turned to lie along the bed, which may face any of four ways.
 // Once standing again, they step back down to where they stood beside the bed. The bed blocks walking, so game logic keeps them there.
-import type { QuarterTurns } from "../sim/structure-kind";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import type { GroundPoint } from "../sim/valley";
 import { BED_MATTRESS_TOP_METRES } from "./bed-meshes";
 import { SLEEP_FEET_Z, SLEEP_HEADING, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, type SleepSpot } from "./sleep-animation";
-import { facingRadians } from "./structure-look";
 
 /** Seconds the player takes to step back down beside the bed once they stand, after the sleep animation. */
 export const BED_STEP_OFF_SECONDS = 0.5;
@@ -29,7 +28,7 @@ function settle(t: number): number {
  * They step onto the mattress while turning to lie along the bed, stay there through the sleep, then step back down to `from`.
  */
 export function bedSleepSpotFrom(from: SleepSpot, bed: GroundPoint, turns: QuarterTurns, seconds: number): BedSleepSpot {
-  const facing = facingRadians(turns);
+  const facing = quarterTurnsToRadians(turns);
   const heading = SLEEP_HEADING + facing;
   const lying = { x: bed.x + Math.sin(facing) * SLEEP_FEET_Z, z: bed.z + Math.cos(facing) * SLEEP_FEET_Z };
   const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));

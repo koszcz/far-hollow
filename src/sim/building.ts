@@ -27,9 +27,9 @@ import {
   type GroundRect,
   type KeptMaterial,
   type MaterialCost,
-  type QuarterTurns,
   type StructureKind,
 } from "./structures";
+import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type GroundPoint, type Valley } from "./valley";
 import type { HandReach } from "./hand-reach";
 import { walkOntoOrWithinReach, type Walking } from "./walking";

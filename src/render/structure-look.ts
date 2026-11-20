@@ -1,16 +1,11 @@
 // What every structure's meshes share: the red of a blueprint that is not allowed where the player is placing it,
 // the see-through look of a blueprint, how each part fades in and is set down during construction,
-// how a structure turns the way it faces, and how a click finds a finished structure.
+// and how a click finds a finished structure.
 import * as THREE from "three";
 import type { Entity } from "../sim/entities";
 
 /** A blueprint the player is placing shows in this red where its placement rule refuses the spot. */
 export const NOT_ALLOWED_COLOUR = 0xe0614f;
-
-/** How far round a structure facing `turns` quarter turns is drawn, in radians. Quarter turns go clockwise seen from above. */
-export function facingRadians(turns: number): number {
-  return -turns * (Math.PI / 2);
-}
 
 const hits: THREE.Intersection[] = [];
 

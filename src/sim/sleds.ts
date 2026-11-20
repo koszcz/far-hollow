@@ -20,7 +20,7 @@ import { standingHeightAt } from "./foundations";
 import { addToPileAt } from "./piles";
 import { USE_REACH_METRES } from "./reach";
 import { shoulderRefusal } from "./refusals";
-import type { QuarterTurns } from "./structure-kind";
+import { nearestQuarterTurns, quarterTurnsToRadians } from "./quarter-turns";
 import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
 import type { Valley } from "./valley";
 import { walkBeside, type Walking } from "./walking";
@@ -128,7 +128,7 @@ export function layLoadBeside(entities: EntityStore, valley: Valley, sled: SledE
   const logs: CarriedLog[] = [...Array<CarriedLog>(sled.sled.log).fill("log"), ...Array<CarriedLog>(sled.sled.debarkedLog).fill("debarkedLog")];
   const planks = sled.sled.plank;
   sled.sled = { log: 0, debarkedLog: 0, plank: 0 };
-  const turnRadians = -(sled.facing?.turns ?? 0) * (Math.PI / 2);
+  const turnRadians = quarterTurnsToRadians(sled.facing?.turns ?? 0);
   // The runners run along x when the sled faces the default way. Its sides are along z.
   const along = { x: Math.cos(turnRadians), z: -Math.sin(turnRadians) };
   const across = { x: Math.sin(turnRadians), z: Math.cos(turnRadians) };
@@ -313,7 +313,6 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     // Turned by θ, the runners run along (cos θ, -sin θ), as for facing.
     const heading = Math.atan2(-dz, dx);
     setComponent(entities, sled, "dragHeading", heading);
-    const turns = (((Math.round(-heading / (Math.PI / 2)) % 4) + 4) % 4) as QuarterTurns;
-    setComponent(entities, sled, "facing", { turns });
+    setComponent(entities, sled, "facing", { turns: nearestQuarterTurns(heading) });
   }
 }

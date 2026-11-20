@@ -29,21 +29,21 @@ describe("fading walls between the camera and the player", () => {
 
 describe("log wall corners", () => {
   // A wall on the +z edge of the square at the origin runs along x, from x = -0.5 to x = 0.5.
-  const front = { middle: { x: 0, z: 0.5 }, turns: 0 };
+  const front = { middle: { x: 0, z: 0.5 }, turns: 0 as const };
 
   it("reaches past an end where a wall running the other way meets it", () => {
-    const side = { middle: { x: 0.5, z: 0 }, turns: 3 };
+    const side = { middle: { x: 0.5, z: 0 }, turns: 3 as const };
     expect(wallEnds(front, [front, side])).toEqual({ start: false, end: true });
   });
 
   it("reaches past both ends between two side walls", () => {
-    const left = { middle: { x: -0.5, z: 0 }, turns: 1 };
-    const right = { middle: { x: 0.5, z: 1 }, turns: 3 };
+    const left = { middle: { x: -0.5, z: 0 }, turns: 1 as const };
+    const right = { middle: { x: 0.5, z: 1 }, turns: 3 as const };
     expect(wallEnds(front, [left, right])).toEqual({ start: true, end: true });
   });
 
   it("stays short where a wall carries on in a straight line", () => {
-    const next = { middle: { x: 1, z: 0.5 }, turns: 0 };
+    const next = { middle: { x: 1, z: 0.5 }, turns: 0 as const };
     expect(wallEnds(front, [front, next])).toEqual({ start: false, end: false });
   });
 

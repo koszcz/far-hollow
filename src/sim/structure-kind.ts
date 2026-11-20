@@ -1,4 +1,5 @@
 // Names shared by entities and the structure catalogue in structures.ts. Kept apart so neither imports the other.
+import { turnOffset, type QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
@@ -31,9 +32,6 @@ export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];
  */
 export type Placement = "onGround" | "onEdge" | "overWalls" | "onFrame" | "anywhere";
 
-/** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
-export type QuarterTurns = 0 | 1 | 2 | 3;
-
 /** The four sides of a grid square, as `edgeMiddle` in edge-pieces.ts numbers them. */
 export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
 
@@ -55,23 +53,6 @@ export type KeptMaterial = DeliveredMaterial | "plank";
 export interface GroundRect {
   readonly min: GroundPoint;
   readonly max: GroundPoint;
-}
-
-/**
- * Turns an offset from a structure's centre the way the structure faces.
- * It matches how the renderer turns a structure's shape, so the drawn shape and the game's rules line up.
- */
-export function turnOffset(offset: GroundPoint, turns: QuarterTurns): GroundPoint {
-  switch (turns) {
-    case 0:
-      return { x: offset.x, z: offset.z };
-    case 1:
-      return { x: -offset.z, z: offset.x };
-    case 2:
-      return { x: -offset.x, z: -offset.z };
-    case 3:
-      return { x: offset.z, z: -offset.x };
-  }
 }
 
 /** The rectangle covering a box of `halfX` by `halfZ` metres either side of `centre`, turned the way the structure faces. */

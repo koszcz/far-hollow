@@ -21,7 +21,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, cabinRoofEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import type { QuarterTurns } from "../sim/structure-kind";
+import { areOpposite, quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { roofAbove } from "../sim/roofs";
 import { ROOF_PLANK_COST } from "../sim/structures";
 import type { OutlinePart } from "./hover-outline";
@@ -42,7 +42,7 @@ import {
   WEATHERED_PLANK_COLOURS,
   type Section,
 } from "./roof-parts";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -155,7 +155,7 @@ export function plankRows(shape: RoofShape, reach: Reach, layout = 0): THREE.Buf
   return Array.from({ length: ROWS }, (_, row) => {
     const alongZ = slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -half - reach.back, z1: half + reach.front }, random);
     const alongX = slopeRow(row, { x0: -half - reach.front, x1: half + reach.back, z0: -half - reach.left, z1: half + reach.right }, random).rotateY(
-      facingRadians(3),
+      quarterTurnsToRadians(3),
     );
     // Cut each slope short of the line where they meet. Moving a point across its own slope keeps its height.
     clip(alongZ, (x, z) => ({ x: Math.max(x, z + VALLEY_GAP_METRES + ragged(z)), z }));
@@ -291,7 +291,7 @@ export function plankReach(place: RoofPlace, neighbours: readonly (RoofPlace | u
   const [back, front, left, right] = neighbours;
   const side = (beside: RoofPlace | undefined) => (beside === undefined ? EAVE_REACH_METRES : NEIGHBOUR_LAP_METRES);
   // Behind a section is the one above it on the same slope, which laps over it, or the other slope of a ridge.
-  const ridge = back !== undefined && (back.drawTurns - place.drawTurns + 4) % 4 === 2;
+  const ridge = back !== undefined && areOpposite(back.drawTurns, place.drawTurns);
   const lapsRidge = place.drawTurns === 0 || place.drawTurns === 3;
   return {
     back: back === undefined ? EAVE_REACH_METRES : ridge && lapsRidge ? RIDGE_LAP_METRES : 0,
@@ -411,7 +411,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
         const place = layout.placeAt(entity.position);
         const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y + raisedBy(place), entity.position.z);
-        item.root.rotation.y = facingRadians(place.drawTurns);
+        item.root.rotation.y = quarterTurnsToRadians(place.drawTurns);
         item.root.visible = visible;
         const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
         setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "straight" ? layoutOf(entity.position) : 0);
@@ -447,7 +447,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
       for (const { mesh } of placingParts) mesh.material = material;
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
       for (const item of [...[...rowsByKind.values()].flat(), pickGeometry, planks, blueprintMaterial, notAllowedMaterial, pickMaterial]) item.dispose();

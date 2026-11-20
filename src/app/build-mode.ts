@@ -1,5 +1,6 @@
 import type { ScenePick } from "../render/scene-renderer";
-import type { Command, QuarterTurns, StructureKind } from "../sim/api";
+import type { Command, StructureKind } from "../sim/api";
+import { turnQuarters, type QuarterTurns } from "../sim/quarter-turns";
 
 /**
  * Whether the build menu is open, and which structure's blueprint follows the mouse, if any.
@@ -33,7 +34,7 @@ export function pressBuildKey(mode: BuildMode, code: string): BuildMode | undefi
   if (code === "KeyB") return mode.menuOpen ? NOT_BUILDING : { menuOpen: true, placing: null };
   if (code === "Escape" && (mode.menuOpen || mode.placing !== null)) return NOT_BUILDING;
   if (code === "KeyR" && mode.placing !== null) {
-    return { ...mode, placing: { ...mode.placing, turns: ((mode.placing.turns + 1) % 4) as QuarterTurns } };
+    return { ...mode, placing: { ...mode.placing, turns: turnQuarters(mode.placing.turns, 1) } };
   }
   return undefined;
 }

@@ -18,7 +18,8 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../s
 import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR } from "./structure-look";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 /** Stones take turns between these two greys, so the ring does not look cast from one mould. */
 const STONE_COLOURS = [0x8c8c86, 0x6f6e69] as const;
@@ -106,7 +107,7 @@ export interface CampfireMeshes {
   /** The stones and sticks of a campfire or blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: CampfireHit): OutlinePart[];
   /** Shows a campfire blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -233,7 +234,7 @@ export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
-    const yaw = facingRadians(entity.facing?.turns ?? 0);
+    const yaw = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const fit = fitToGround(groundAt, entity.position, FOOTPRINT_HALF_METRES, FOOTPRINT_HALF_METRES, yaw);
     root.position.set(entity.position.x, fit.y, entity.position.z);
     root.rotation.y = yaw;
@@ -359,7 +360,7 @@ export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number
     showPlacingBlueprint(shown) {
       placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
-      const yaw = facingRadians(shown.turns);
+      const yaw = quarterTurnsToRadians(shown.turns);
       const fit = fitToGround(groundAt, shown.spot, FOOTPRINT_HALF_METRES, FOOTPRINT_HALF_METRES, yaw);
       placingBlueprint.position.set(shown.spot.x, fit.y, shown.spot.z);
       placingBlueprint.quaternion.copy(fit.tilt).multiply(new THREE.Quaternion().setFromAxisAngle(UP, yaw));

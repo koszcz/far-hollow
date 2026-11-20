@@ -16,20 +16,11 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
-import type { BuildMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, QuarterTurns, StructureKind, WorkStationKind } from "./structures";
+import type { BuildMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
+import type { QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 
-export type {
-  BuildMaterial,
-  DeliveredMaterial,
-  FurnitureKind,
-  KeptMaterial,
-  MaterialCost,
-  Placement,
-  QuarterTurns,
-  StructureKind,
-  WorkStationKind,
-} from "./structures";
+export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
 
 import { FURNITURE } from "./furniture";
 import { FURNITURE_KINDS } from "./structure-kind";

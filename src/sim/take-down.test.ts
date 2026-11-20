@@ -15,9 +15,9 @@ import {
   ROOF_PLANK_COST,
   ROOF_FRAME_LOG_COST,
   roofFrameOn,
-  type QuarterTurns,
   type StructureKind,
 } from "./structures";
+import { type QuarterTurns } from "./quarter-turns";
 import { edgePieceOn } from "./edge-pieces";
 import { cabinRoofOn, isUnderRoof } from "./roofs";
 import { readSave, writeSave } from "./save";

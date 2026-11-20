@@ -8,12 +8,13 @@
 // 2 planks for each part, or for a chest from an older save, 1 debarked log.
 // While the player places a chest from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, furnitureEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { CHEST_DEPTH_METRES, CHEST_WIDTH_METRES } from "../sim/furniture/chest";
 import { costOf, isKept } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 /** How many parts the chest model is built in: the body, then the lid. */
 export const CHEST_MODEL_STAGES = 2;
@@ -73,7 +74,7 @@ export interface ChestMeshes {
   /** The parts of a chest or chest blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: ChestHit): OutlinePart[];
   /** Shows a chest blueprint under the mouse with its base at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -225,7 +226,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
    */
   function showProgress(item: Drawn, entity: Entity & { position: Vec3 }, progress: number, delivered: number): void {
     item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    item.root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    item.root.rotation.y = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const stagesDone = progress * CHEST_MODEL_STAGES;
     item.stages.forEach((stage, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
@@ -308,7 +309,7 @@ export function createChestMeshes(entities: EntityStore): ChestMeshes {
         for (const mesh of stage.meshes) mesh.material = material;
       }
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
       for (const item of [

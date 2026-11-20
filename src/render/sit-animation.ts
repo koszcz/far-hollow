@@ -5,7 +5,7 @@
 // player-mesh.ts. This file says what shows at each moment, and where the player stands.
 import type { SleepSpot } from "./sleep-animation";
 import { STOOL_SEAT_TOP_METRES } from "./stool-meshes";
-import { facingRadians } from "./structure-look";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 /** Seconds the player takes to step up to the stool and turn their back to it, before sitting down begins. */
 export const SIT_STEP_ON_SECONDS = 0.5;
@@ -96,8 +96,8 @@ export function standSinkAt(seconds: number, seatedFor: number): number {
 }
 
 /** Where the player's feet stand while seated on a stool whose middle is `stool`, facing `turns`, and which way they face. */
-export function seatedSpot(stool: { x: number; z: number }, turns: number): SleepSpot {
-  const heading = facingRadians(turns);
+export function seatedSpot(stool: { x: number; z: number }, turns: QuarterTurns): SleepSpot {
+  const heading = quarterTurnsToRadians(turns);
   return {
     x: stool.x + Math.sin(heading) * SIT_FEET_FORWARD_METRES,
     z: stool.z + Math.cos(heading) * SIT_FEET_FORWARD_METRES,

@@ -4,7 +4,8 @@ import { edgeMiddle } from "./edge-pieces";
 import { createEntityStore, type EntityStore } from "./entities";
 import { foundationOn } from "./foundations";
 import { findRooms, roomAround } from "./rooms";
-import type { EdgePieceKind, QuarterTurns } from "./structure-kind";
+import type { EdgePieceKind } from "./structure-kind";
+import type { QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./valley";
 
 describe("finding rooms", () => {

@@ -11,7 +11,8 @@ import { LEAN_TO_BARK_COST, LEAN_TO_DEPTH_METRES, LEAN_TO_STICK_COST, LEAN_TO_WI
 import type { OutlinePart } from "./hover-outline";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createStickSegment, STICK_COLOUR } from "./stick-shape";
-import { facingRadians, NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
+import { NOT_ALLOWED_COLOUR, pickFinished } from "./structure-look";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 /** Bark strips take turns between these two browns, so the roof does not look like one sheet. */
 export const BARK_COLOURS = [0x5b3f2c, 0x6b4b34] as const;
@@ -59,7 +60,7 @@ export interface LeanToMeshes {
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   outlineOf(entity: Entity): OutlinePart[];
   /** Shows a lean-to blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -130,7 +131,7 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
     root.add(picker);
     pickers.push(picker);
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    root.rotation.y = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     group.add(root);
     const result = { root, parts, fadingStick, fadingBark, picker };
     drawn.set(entity, result);
@@ -213,7 +214,7 @@ export function createLeanToMeshes(entities: EntityStore): LeanToMeshes {
       placingBlueprint.visible = shown !== undefined;
       if (shown === undefined) return;
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
       for (const mesh of placingParts) mesh.material = material;
     },

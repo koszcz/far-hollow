@@ -8,13 +8,14 @@
 // A blueprint, and the blueprint under the mouse while placing, shows the rails and stakes see-through.
 // The one under the mouse turns red where the woodpile is not allowed.
 import * as THREE from "three";
-import { facingRadians, NOT_ALLOWED_COLOUR } from "./structure-look";
+import { NOT_ALLOWED_COLOUR } from "./structure-look";
 import { blueprintEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "../sim/entities";
 import { WOODPILE_CAPACITY } from "../sim/woodpiles";
 import { createDebarkedLogGeometry, DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { createFirewoodGeometry, FIREWOOD_COLOUR, FIREWOOD_LENGTH_METRES } from "./firewood-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 /** The rails run along x, this far either side of the middle, in metres. The wood lies across them, along z. */
 const RAIL_OFFSET_METRES = 0.3;
@@ -58,7 +59,7 @@ export interface WoodpileMeshes {
   /** The rails and wood of a woodpile or blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: WoodpileHit): OutlinePart[];
   /** Shows a woodpile blueprint under the mouse at a spot, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: { x: number; y: number; z: number }; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -199,7 +200,7 @@ export function createWoodpileMeshes(entities: EntityStore, logShape: LogShape):
     root.add(picker);
     pickers.push(picker);
     root.position.set(position.x, position.y, position.z);
-    root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    root.rotation.y = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     group.add(root);
     drawn.set(entity, { root, parts, picker, key: keyOf(entity) });
   }
@@ -252,7 +253,7 @@ export function createWoodpileMeshes(entities: EntityStore, logShape: LogShape):
       placingBlueprint.visible = placement !== undefined;
       if (placement === undefined) return;
       placingBlueprint.position.set(placement.spot.x, placement.spot.y, placement.spot.z);
-      placingBlueprint.rotation.y = facingRadians(placement.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(placement.turns);
       for (const part of placingParts) part.material = placement.allowed ? blueprintMaterial : notAllowedMaterial;
     },
     dispose() {

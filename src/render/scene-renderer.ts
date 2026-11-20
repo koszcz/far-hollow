@@ -26,13 +26,13 @@ import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
-import { facingRadians } from "./structure-look";
 import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
+import { quarterTurnsToRadians } from "../sim/quarter-turns";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
 const CAMERA_NEAR_METRES = 0.1;
@@ -291,7 +291,7 @@ export function createSceneRenderer(
       const seconds = nowSeconds - sleeping.since;
       const spot =
         sleeping.bed === undefined
-          ? { ...sleepSpotFrom(sleeping.from, sleeping.at, seconds, facingRadians(sleeping.bedroll?.turns ?? 0)), lift: 0 }
+          ? { ...sleepSpotFrom(sleeping.from, sleeping.at, seconds, quarterTurnsToRadians(sleeping.bedroll?.turns ?? 0)), lift: 0 }
           : bedSleepSpotFrom(sleeping.from, sleeping.at, sleeping.bed.turns, seconds);
       Object.assign(playerDrawn, { x: spot.x, z: spot.z });
       playerMesh.group.position.set(spot.x, playerDrawn.y + spot.lift, spot.z);

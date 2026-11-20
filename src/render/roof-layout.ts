@@ -12,7 +12,7 @@
 // over the corner squares instead, and its ridge stands above the through-roof's. The rule looks only along a section's
 // own run and the section just past its end.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { turnOffset, type QuarterTurns } from "../sim/structure-kind";
+import { wrapQuarterTurns, areAtRightAngles, turnQuarters, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
 import type { GroundPoint } from "../sim/valley";
 
 /** The shape a roof section takes from its neighbours. */
@@ -54,15 +54,6 @@ function downhill(turns: QuarterTurns): GroundPoint {
   return turnOffset({ x: 0, z: 1 }, turns);
 }
 
-function quarter(turns: number): QuarterTurns {
-  return (((turns % 4) + 4) % 4) as QuarterTurns;
-}
-
-/** Whether two turns slope at right angles to each other. */
-function isPerpendicular(a: QuarterTurns, b: QuarterTurns): boolean {
-  return (a - b + 4) % 2 === 1;
-}
-
 /** Where each section sits and what shape it takes, from the sections round it. */
 export function roofPlaces<Section extends RoofSection>(sections: readonly Section[]): Map<Section, RoofPlace> {
   const key = (column: number, row: number) => `${column},${row}`;
@@ -89,7 +80,7 @@ export function roofPlaces<Section extends RoofSection>(sections: readonly Secti
     const inFront = inFrontOf(section);
     // The first section past the end of this section's run, in its own slope direction.
     const end = at(column + down.x * (inFront + 1), row + down.z * (inFront + 1));
-    if (end === undefined || !isPerpendicular(end.turns, section.turns)) {
+    if (end === undefined || !areAtRightAngles(end.turns, section.turns)) {
       places.set(section, { shape: "straight", drawTurns: section.turns, inFront, lifted });
       continue;
     }
@@ -103,7 +94,7 @@ export function roofPlaces<Section extends RoofSection>(sections: readonly Secti
     } else {
       // Both slopes start at the same height, and meet in a valley across the square. Drawn unturned, a valley slopes down
       // to +z (turns 0) and +x (turns 3).
-      const drawTurns = end.turns === quarter(section.turns + 3) ? section.turns : end.turns;
+      const drawTurns = end.turns === turnQuarters(section.turns, 3) ? section.turns : end.turns;
       places.set(section, { shape: "valley", drawTurns, inFront, lifted });
     }
   }
@@ -123,6 +114,6 @@ export function shapeTop(shape: RoofShape, x: number, z: number): number {
 /** How high a section's roof is at a point in the world, in rises above the walls under it, without the lift of `lifted`. */
 export function roofTopAt(place: RoofPlace, middle: GroundPoint, point: GroundPoint): number {
   const offset = { x: (point.x - middle.x) / BUILD_GRID_METRES, z: (point.z - middle.z) / BUILD_GRID_METRES };
-  const drawn = turnOffset(offset, quarter(4 - place.drawTurns));
+  const drawn = turnOffset(offset, wrapQuarterTurns(-place.drawTurns));
   return place.inFront + shapeTop(place.shape, drawn.x, drawn.z);
 }

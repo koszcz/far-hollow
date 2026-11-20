@@ -4,7 +4,8 @@ import { edgePieceOn } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_BUILD_SECONDS, LOG_WALL_LOG_COST, type QuarterTurns, type StructureKind } from "./structures";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_BUILD_SECONDS, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
+import { type QuarterTurns } from "./quarter-turns";
 import { isWalkable } from "./walk-map";
 
 describe("log walls and door frames in the build menu", () => {

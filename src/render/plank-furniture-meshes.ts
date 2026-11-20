@@ -8,8 +8,9 @@ import * as THREE from "three";
 import { blueprintEntities, furnitureEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import type { FurnitureKind } from "../sim/structure-kind";
 import { costOf, isKept } from "../sim/structures";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import type { OutlinePart } from "./hover-outline";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 /** The pale sawn wood of a plank, as in a pile. */
 export const PLANK_WOOD_COLOUR = 0xd9b07a;
@@ -54,7 +55,7 @@ export interface FurnitureMeshes {
   /** The parts of a piece or blueprint, placed in the world. Empty once it is gone. */
   outlineOf(entity: Entity): OutlinePart[];
   /** Shows a blueprint under the mouse with its base at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -156,7 +157,7 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
    */
   function showProgress(item: Drawn, entity: Entity & { position: Vec3 }, progress: number, ready: number): void {
     item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    item.root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    item.root.rotation.y = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const stagesDone = progress * stageCount;
     item.stages.forEach((stage, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
@@ -239,7 +240,7 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
         for (const mesh of stage.meshes) mesh.material = material;
       }
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
       for (const item of [

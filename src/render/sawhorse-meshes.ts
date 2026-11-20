@@ -8,11 +8,12 @@
 // A blueprint shows the parts see-through. A part whose debarked log has been delivered shows pale and half solid.
 // While the player places a sawhorse from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { buildLift, buildOpacity, facingRadians, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
+import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, workStationEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { SAWHORSE_LENGTH_METRES, SAWHORSE_LOG_COST, SAWHORSE_WIDTH_METRES, structureKindOf } from "../sim/structures";
 import { createDebarkedLogGeometry, DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
+import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -51,7 +52,7 @@ export interface SawhorseMeshes {
   /** The parts of a sawhorse or sawhorse blueprint, placed in the world. Empty once it is gone. */
   outlineOf(hit: SawhorseHit): OutlinePart[];
   /** Shows a sawhorse blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: number; allowed: boolean } | undefined): void;
+  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -181,7 +182,7 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
    */
   function showProgress(item: Drawn, entity: Entity & { position: Vec3 }, progress: number, delivered: number): void {
     item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-    item.root.rotation.y = facingRadians(entity.facing?.turns ?? 0);
+    item.root.rotation.y = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const stagesDone = progress * SAWHORSE_LOG_COST;
     item.stages.forEach((stage, index) => {
       const share = Math.min(1, Math.max(0, stagesDone - index));
@@ -255,7 +256,7 @@ export function createSawhorseMeshes(entities: EntityStore): SawhorseMeshes {
         for (const mesh of stage.meshes) mesh.material = material;
       }
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = facingRadians(shown.turns);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
       for (const item of [...geometries.flat(), pickGeometry, woodMaterial, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {

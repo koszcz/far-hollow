@@ -17,6 +17,7 @@ import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
 import { createPlayerMesh, type Fishing } from "./player-mesh";
+import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
@@ -258,7 +259,7 @@ export function createSceneRenderer(
   /**
    * Shows what the player is doing: which way they face, what they carry, and whether they build, chop, split, debark, or craft.
    * Debarking bends the player over the log with the drawknife. Cutting planks saws the log on the sawhorse, with the
-   * player stepped up beside it. Any other crafting reuses the chopping swing where the player faces.
+   * player stepped up beside it. A hand recipe works at something small held at waist height, where the player faces.
    * Game logic decides which work the player is doing, the same way the HUD shows it.
    */
   function posePlayer(nowSeconds: number): void {
@@ -301,8 +302,11 @@ export function createSceneRenderer(
     if (fishTask === undefined) castDrawn = undefined;
     playerMesh.setFishing(fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
     if (fishTask !== undefined) playerMesh.setHeading(Math.atan2(fishTask.x - playerDrawn.x, fishTask.z - playerDrawn.z));
-    // Cutting planks saws. Making the saw, a hand recipe, swings instead. The player steps up beside the beam to saw, and back when sawing stops.
-    const sawhorse = activity?.kind === "craft" && player.craftTask?.recipe === "planks" && target?.position !== undefined ? target : undefined;
+    // A recipe made at the sawhorse saws. The player steps up beside the beam to saw, and back when sawing stops.
+    // A hand recipe, such as making the saw, works at it with both hands where the player stands.
+    const craftMotion = activity?.kind === "craft" && player.craftTask !== undefined ? craftMotionOf(player.craftTask.recipe) : undefined;
+    const sawhorse = craftMotion === "saw" && target?.position !== undefined ? target : undefined;
+    playerMesh.setHandCrafting(craftMotion === "hand" ? nowSeconds : undefined);
     playerMesh.setSawing(sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
     const stance = sawingStep.drawnAt(
       nowSeconds,
@@ -325,9 +329,8 @@ export function createSceneRenderer(
       }
       return;
     }
-    // Chopping swings at the tree. Crafting a hand recipe swings where the player already faces.
-    const swinging = activity?.kind === "chop" || activity?.kind === "craft";
-    playerMesh.setChopping(swinging ? nowSeconds : undefined);
+    // Chopping swings at the tree.
+    playerMesh.setChopping(activity?.kind === "chop" ? nowSeconds : undefined);
     if (activity?.kind === "build" || activity?.kind === "chop" || activity?.kind === "debark") faceTarget();
     if (activity !== undefined && activity.kind !== "takeDown") {
       playerMesh.setReaching(undefined);

@@ -71,7 +71,7 @@ All new assets go in as drafts built in code. The owner approves or changes them
 | `crafting-icons` | Backpack icons for the saw blade, the saw, and planks, drawn in the same style as `backpack-icons` |
 | `sawhorse` | The sawhorse, with build stages |
 
-Crafting reuses `chop-animation` for the player's timed work. Planks stay in the backpack, so they need no model yet.
+Cutting planks at the sawhorse uses `sawing-animation`. A hand recipe, such as the saw, uses `hand-craft-animation`. Both replace the earlier reuse of `chop-animation`, which now shows only for chopping trees. Planks stay in the backpack, so they need no model yet.
 
 `backpack-icons` is an approved asset, so new icons go in the separate draft `crafting-icons`. Merging them into `backpack-icons` needs the owner's approval.
 

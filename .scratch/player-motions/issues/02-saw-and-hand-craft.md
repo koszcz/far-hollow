@@ -4,9 +4,9 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-**Assets:** Reuse `player`, `sawhorse`, and `debarked-log`. Add draft `saw-animation` and draft `hand-craft-animation`. Update the "Crafting reuses chop-animation" line in `.scratch/crafting/spec.md`.
+**Assets:** Reuse `player`, `sawhorse`, `debarked-log`, and the approved `sawing-animation` and `saw-model` unchanged. Add draft `hand-craft-animation`. Update the "Crafting reuses chop-animation" line in `.scratch/crafting/spec.md`.
 
 - [ ] At a sawhorse, the player faces it, bends a little, and pushes and pulls a saw back and forth along the log, about once a second.
 - [ ] The saw shows in the right hand while sawing, and the axe is not in the hand. Reuse the saw shape from `crafting-icons` if it helps, or draw a simple blade and handle.
@@ -15,3 +15,7 @@
 - [ ] Chopping a tree still uses `chop-animation`.
 - [ ] The asset showcase shows both motions.
 - [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+
+## Comments
+
+- The sawhorse part reuses the approved `sawing-animation` and `saw-model`, which already existed. No `saw-animation` entry was added. This ticket built only the hand-recipe motion, the draft `hand-craft-animation`, and stopped hand recipes from reusing the chop.

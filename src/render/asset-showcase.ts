@@ -22,6 +22,7 @@ import type { ModelShapes } from "./model-shapes";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 import { createStructureMeshes } from "./structure-meshes";
+import { createTorchLights } from "./torch-lights";
 import { SHOWCASES } from "./showcases";
 import { NOON, STAGE_FROM_RIVER_METRES, type Shot, type Stage } from "./showcases/types";
 
@@ -104,6 +105,7 @@ export function showAsset(
     "hud",
     "log-wall",
     "door-frame",
+    "torch",
   ].includes(id);
   // The bed's stills show the bed alone. Its live loop shows the player sleeping in it.
   const showsPlayerInLoop = options.play && id === "bed";
@@ -162,6 +164,10 @@ export function showAsset(
   scene.add(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, rain.group);
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, player.group, props);
+  // The player's lit torch lights the ground as in the game. The lights stay dark while the player holds no torch.
+  const torchLights = createTorchLights();
+  scene.add(torchLights.group);
+  const torchFlame = { position: new THREE.Vector3(), seed: 0 };
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -174,6 +180,7 @@ export function showAsset(
     bedrolls.update();
     piles.update();
     bark.update();
+    torchLights.update(player.torchFlame(torchFlame.position) ? [torchFlame] : [], seconds);
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);

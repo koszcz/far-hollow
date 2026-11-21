@@ -20,4 +20,5 @@ export const BED: FurnitureDefinition<"bed"> = {
   buildSeconds: BED_BUILD_SECONDS,
   size: { x: BED_WIDTH_METRES, z: BED_LENGTH_METRES },
   blocks: "cellsUnder",
+  use: { name: "sleep", command: (id) => ({ type: "sleepInBed", bedId: id }) },
 };

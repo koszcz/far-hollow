@@ -34,7 +34,8 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
       id === "sled-icon" ||
       id === "furniture-icons" ||
       id === "fireplace-icon" ||
-      id === "action-queue-icons"
+      id === "action-queue-icons" ||
+      id === "torch-icons"
     ) {
       const { renderHudShowcase } = await import("../ui/hud-showcase");
       renderHudShowcase(ui, id);

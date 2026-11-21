@@ -278,7 +278,7 @@ describe("sleeping in a bed", () => {
     const game = createGame({ seed: 42 });
     const bed = finishedBedNearPlayer(game);
 
-    expect(game.client.nearestInReach()).toEqual({ kind: "bed", id: idOf(game, bed) });
+    expect(game.client.nearestInReach()).toEqual({ kind: "furniture", id: idOf(game, bed), furniture: "bed" });
   });
 });
 

@@ -2,28 +2,28 @@
 
 **What to build:** The player can craft a torch from a stick and bark, light it, and carry it. A lit torch lights the ground around the player for 3 game hours.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player` and `fire-effect`. Add the drafts `torch` and `torch-icons`.
 
-- [ ] The craft menu lists the torch as a hand recipe: 1 stick and 1 bark, with no tool.
-- [ ] A torch is a new backpack content that weighs 0.8 kg. The hotbar shows it with its icon.
-- [ ] Unlit torches can be dropped, form piles, and can go in a chest or on a shelf.
-- [ ] "Light" is the main action of a torch in the backpack. Without the steel and flint, it shows greyed with the reason.
-- [ ] Lighting takes one torch out of the backpack and puts it in the player's hand, lit.
-- [ ] The player holds one lit torch at a time. With a torch already lit, "Light" shows greyed with the reason.
-- [ ] A lit torch lights the ground within about 6 m of the player. It casts no shadows.
-- [ ] A lit torch burns for 3 game hours, then is gone.
-- [ ] The hotbar shows the lit torch with a gauge of the burning time left.
-- [ ] The player keeps the lit torch while they walk, work, carry a log, and drag a sled.
-- [ ] "Put out" throws the lit torch away.
-- [ ] When the player sleeps on a bedroll or in a bed, the game puts out the lit torch in their hand. The torch is gone, as after "Put out".
-- [ ] A torch gives no warmth, and rain does not put it out.
-- [ ] Unlit torches, the lit torch, and its burning time left are saved. The save version goes up, and older saves are upgraded when loaded.
-- [ ] `GLOSSARY.md` describes the torch as the spec does.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover crafting, lighting, the one-torch limit, burning out, putting out, and sleeping.
+- [x] The craft menu lists the torch as a hand recipe: 1 stick and 1 bark, with no tool.
+- [x] A torch is a new backpack content that weighs 0.8 kg. The hotbar shows it with its icon.
+- [x] Unlit torches can be dropped, form piles, and can go in a chest or on a shelf.
+- [x] "Light" is the main action of a torch in the backpack. Without the steel and flint, it shows greyed with the reason.
+- [x] Lighting takes one torch out of the backpack and puts it in the player's hand, lit.
+- [x] The player holds one lit torch at a time. With a torch already lit, "Light" shows greyed with the reason.
+- [x] A lit torch lights the ground within about 6 m of the player. It casts no shadows.
+- [x] A lit torch burns for 3 game hours, then is gone.
+- [x] The hotbar shows the lit torch with a gauge of the burning time left.
+- [x] The player keeps the lit torch while they walk, work, carry a log, and drag a sled.
+- [x] "Put out" throws the lit torch away.
+- [x] When the player sleeps on a bedroll or in a bed, the game puts out the lit torch in their hand. The torch is gone, as after "Put out".
+- [x] A torch gives no warmth, and rain does not put it out.
+- [x] Unlit torches, the lit torch, and its burning time left are saved. The save version goes up, and older saves are upgraded when loaded.
+- [x] `GLOSSARY.md` describes the torch as the spec does.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover crafting, lighting, the one-torch limit, burning out, putting out, and sleeping.
 
 ## Comments
 
@@ -76,24 +76,24 @@
 
 **Acceptance criteria:**
 
-- [ ] The craft menu lists the torch: 1 stick and 1 bark, no tool. Crafting it adds one 0.8 kg torch to the backpack.
-- [ ] Unlit torches can be dropped, form piles, and go in a chest or on a shelf.
-- [ ] "Light" without the steel and flint shows greyed with a reason. With it, one torch leaves the backpack and is lit in the player's hand.
-- [ ] With a torch already lit, "Light" shows greyed with a reason.
-- [ ] The lit torch lights the ground within about 6 m and casts no shadows.
-- [ ] Lighting or losing the torch does not add or remove a light from the scene.
-- [ ] After 3 game hours the lit torch is gone.
-- [ ] The hotbar shows the lit torch with a gauge of the burning time left.
-- [ ] The player keeps the lit torch while walking, chopping, carrying a log, and dragging a sled.
-- [ ] "Put out" removes the lit torch. No unlit torch returns to the backpack.
-- [ ] Sleeping on a bedroll or in a bed removes the lit torch.
-- [ ] The lit torch adds no warmth. Rain does not change its burning time.
-- [ ] A save with unlit torches and a part-burnt lit torch loads back the same. A save from the version before loads without error.
-- [ ] `GLOSSARY.md` describes the torch as the spec does. It drops "mounted" until that feature exists.
-- [ ] All player-facing text is in the strings file.
-- [ ] `torch` and `torch-icons` are in the asset catalogue as drafts.
-- [ ] Unit tests cover crafting, lighting, the one-torch limit, burning out, putting out, and sleeping.
-- [ ] `make check` passes.
+- [x] The craft menu lists the torch: 1 stick and 1 bark, no tool. Crafting it adds one 0.8 kg torch to the backpack.
+- [x] Unlit torches can be dropped, form piles, and go in a chest or on a shelf.
+- [x] "Light" without the steel and flint shows greyed with a reason. With it, one torch leaves the backpack and is lit in the player's hand.
+- [x] With a torch already lit, "Light" shows greyed with a reason.
+- [x] The lit torch lights the ground within about 6 m and casts no shadows.
+- [x] Lighting or losing the torch does not add or remove a light from the scene.
+- [x] After 3 game hours the lit torch is gone.
+- [x] The hotbar shows the lit torch with a gauge of the burning time left.
+- [x] The player keeps the lit torch while walking, chopping, carrying a log, and dragging a sled.
+- [x] "Put out" removes the lit torch. No unlit torch returns to the backpack.
+- [x] Sleeping on a bedroll or in a bed removes the lit torch.
+- [x] The lit torch adds no warmth. Rain does not change its burning time.
+- [x] A save with unlit torches and a part-burnt lit torch loads back the same. A save from the version before loads without error.
+- [x] `GLOSSARY.md` describes the torch as the spec does. It drops "mounted" until that feature exists.
+- [x] All player-facing text is in the strings file.
+- [x] `torch` and `torch-icons` are in the asset catalogue as drafts.
+- [x] Unit tests cover crafting, lighting, the one-torch limit, burning out, putting out, and sleeping.
+- [x] `make check` passes.
 
 **Out of scope:**
 

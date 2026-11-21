@@ -21,9 +21,12 @@ import { createSledMeshes } from "./sled-meshes";
 import type { RopeHold } from "./sled-rope";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
-/** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
+/**
+ * What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on.
+ * A finished piece of furniture is a `furniture` hit. Its entity names the piece.
+ */
 export type StructureHit = {
-  kind: "blueprint" | "campfire" | "fireplace" | "woodpile" | FurnitureKind | "workStation" | "sled";
+  kind: "blueprint" | "campfire" | "fireplace" | "woodpile" | "furniture" | "workStation" | "sled";
   entity: Entity;
 };
 
@@ -173,7 +176,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   /** What a ray hits first among one kind of furniture and its blueprints, as a structure hit. */
   function furnitureHit(kind: FurnitureKind, raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined {
     const found = furniture[kind].pick(raycaster);
-    return found && { hit: { kind: found.hit.kind === "finished" ? kind : "blueprint", entity: found.hit.entity }, distance: found.distance };
+    return found && { hit: { kind: found.hit.kind === "finished" ? "furniture" : "blueprint", entity: found.hit.entity }, distance: found.distance };
   }
 
   /** Keeps whichever candidate is nearest. */
@@ -233,8 +236,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         case "workStation":
           // The sawhorse is the only work station so far. A later kind of station adds its meshes here.
           return sawhorses.outlineOf({ kind, entity });
-        default:
-          return furniture[kind].outlineOf(entity);
+        case "furniture":
+          return entity.furniture === undefined ? [] : furniture[entity.furniture].outlineOf(entity);
       }
     },
     showPlacingBlueprint(placing) {

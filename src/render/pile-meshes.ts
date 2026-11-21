@@ -7,7 +7,7 @@
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // The fishing line, the fishing rod, raw fish, and cooked fish are the approved "fishing-piles" asset, built in fishing-pile-shapes.ts.
-// Stone is the approved "stone" asset, built in stone-shape.ts.
+// Stone is the approved "stone" asset, built in stone-shape.ts. The torch is the draft "torch" asset, built in torch-shape.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
@@ -19,6 +19,7 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
 import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
+import { createTorchShape } from "./torch-shape";
 import type { OutlinePart } from "./hover-outline";
 import type { MushroomsShape } from "./mushrooms-model";
 import { createPotMaker, type PotMesh } from "./pot-shape";
@@ -293,6 +294,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
   const mushroomGeometry = track(mushrooms.clone().scale(MUSHROOM_SCALE, MUSHROOM_SCALE, MUSHROOM_SCALE));
   const rolledBedroll = track(createRolledBedrollShape());
   const steelAndFlint = track(createSteelAndFlintShape());
+  const torch = track(createTorchShape());
   // Stone has three shapes. A pile takes them in turn.
   const stoneShapes = stonePileShapes(material, track);
 
@@ -318,6 +320,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     ...fishingPileParts((colour) => material(colour), track),
     // Stone is the approved "stone" asset, drawn by stone-shape.ts.
     stone: stoneShapes[0] ?? [],
+    // Unlit torches lie on their sides. The torch is the draft "torch" asset, drawn by torch-shape.ts.
+    torch: torch.lyingParts,
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });
   const LAYOUTS: Readonly<Record<Exclude<BackpackContent, "stick">, Layout>> = {
@@ -331,6 +335,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     saw: spread(0.12),
     plank: spread(0.12),
     stone: spread(0.13),
+    torch: spread(0.1),
     fishingLine: spread(0.08),
     fishingRod: spread(0.1),
     rawFish: spread(0.12),

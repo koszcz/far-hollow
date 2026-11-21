@@ -1,5 +1,5 @@
 // Draws floors and floor blueprints: the draft "floor" asset in asset-manifest.json, built in code.
-// Added by floors-and-doors ticket 01. A floor is six planks laid side by side across the deck of one foundation square,
+// A floor is six planks laid side by side across the deck of one foundation square,
 // flush on top of it, so the player and everything on the square stand at the same height as on the bare deck.
 // Construction has one stage per plank the floor costs. Each stage lays half the boards: they fade in above their place and are set down.
 // A blueprint shows the boards see-through. The boards of a stage whose plank the blueprint already has show pale and half solid.
@@ -7,15 +7,20 @@
 import * as THREE from "three";
 import { blueprintEntities, floorEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { FLOOR_PLANK_COST } from "../sim/structures";
-import type { OutlinePart } from "./hover-outline";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
-import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import {
+  BLUEPRINT_COLOUR,
+  BLUEPRINT_OPACITY,
+  buildLift,
+  buildOpacity,
+  DELIVERED_OPACITY,
+  NOT_ALLOWED_COLOUR,
+  pickBlueprint,
+  pickFinished,
+  seeThrough,
+  type BuildingPieceMeshes,
+} from "./structure-look";
 
-const BLUEPRINT_COLOUR = 0xbfe3ff;
-/** How see-through the boards of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
-const BLUEPRINT_OPACITY = 0.35;
-/** A board whose plank the blueprint already has is this solid, so it stands out from the boards still needed. */
-const DELIVERED_OPACITY = 0.7;
 /** The pale wood of a board waiting in its place. */
 const DELIVERED_COLOUR = 0xecc995;
 /** How many boards cover the square, side by side across x. Each stage of construction lays an equal share of them. */
@@ -28,23 +33,8 @@ const BOARD_GAP_METRES = 0.008;
 /** How much darker or lighter one board is than the next, as a share of the wood colour. */
 const BOARD_SHADES = [1, 0.92, 1.04, 0.95, 0.88, 1.01];
 
-/** What a click on a floor blueprint landed on. A finished floor is found with `pickFinished`. */
-export type FloorHit = { kind: "blueprint"; entity: Entity };
-
-export interface FloorMeshes {
-  readonly group: THREE.Group;
-  /** Brings every floor and floor blueprint up to date with game state. */
-  update(): void;
-  /** What a ray from the camera hits first among floor blueprints, and how far away. */
-  pick(raycaster: THREE.Raycaster): { hit: FloorHit; distance: number } | undefined;
-  /** The finished floor a ray hits first, and how far away. */
-  pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
-  /** The boards of a floor or floor blueprint, placed in the world. Empty once it is gone. */
-  outlineOf(hit: { readonly entity: Entity }): OutlinePart[];
-  /** Shows a floor blueprint under the mouse at `spot`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: Vec3; allowed: boolean } | undefined): void;
-  dispose(): void;
-}
+/** A floor looks the same every way round, so its blueprint under the mouse ignores which way it faces. */
+export type FloorMeshes = BuildingPieceMeshes;
 
 /** One board: its mesh, and its own see-through copy of its wood for fading in. */
 interface Board {
@@ -152,8 +142,6 @@ export function createFloorMeshes(entities: EntityStore): FloorMeshes {
     drawn.delete(entity);
   }
 
-  const hits: THREE.Intersection[] = [];
-
   return {
     group,
     update() {
@@ -170,14 +158,7 @@ export function createFloorMeshes(entities: EntityStore): FloorMeshes {
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },
     pick(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
-      }
-      return undefined;
+      return pickBlueprint(raycaster, pickers);
     },
     pickFinished(raycaster) {
       return pickFinished(raycaster, pickers);

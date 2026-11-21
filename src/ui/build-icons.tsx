@@ -3,7 +3,7 @@
 // One icon per structure the player can build, and one for each build material that is not a backpack content.
 // Each icon is drawn from its structure's approved model: pale debarked logs, curled bark strips, and stones, in the model's own colours.
 // They use the same shaded style and renderer as the backpack icons in backpack-icons.tsx, drawn on a 24 by 24 grid.
-import type { BuildMaterial, CarriedLog, FurnitureKind, StructureKind } from "../sim/api";
+import type { BuildMaterial, CarriedLog, StructureKind } from "../sim/api";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import type { BackpackIconDrawing as IconDrawing, IconPart } from "./icon-drawing";
 import { LOG_DRAWING } from "./sled-icons";
@@ -72,12 +72,10 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
 }
 
 /**
- * The icon of each structure but the sled, the fireplace, the floor, the door, and the furniture. structure-icon.tsx picks the icon for each structure.
- * The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx. furniture-icons.tsx lists each piece of furniture's icon.
- * The fireplace's icon is the draft "fireplace-icon" asset, drawn in fireplace-icon.tsx.
- * The floor's and door's icons are the draft "floor-and-door-icons" asset, drawn in floor-and-door-icons.tsx.
+ * The icons of the structures this asset draws. Other icon assets draw the rest, and STRUCTURE_ICONS in structure-icon.tsx
+ * gathers every structure's icon into one lookup.
  */
-export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | "fireplace" | "floor" | "door" | FurnitureKind>, IconDrawing>> = {
+export const STRUCTURE_DRAWINGS = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {
     colour: "#ff8a3c",
@@ -193,7 +191,7 @@ export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" |
       { d: "M2.4 21L8.4 6M14.4 21L20.4 6", as: "line", colour: DEBARKED_SHADE },
     ],
   },
-};
+} satisfies Partial<Readonly<Record<StructureKind, IconDrawing>>>;
 
 /** A rough plank chest: corner posts, three planks a side, a grip at each end, and a plank lid with two battens. */
 export const CHEST_DRAWING: IconDrawing = {

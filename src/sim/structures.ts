@@ -10,7 +10,6 @@ import {
   campfireEntities,
   edgePieceEntities,
   fireplaceEntities,
-  floorEntities,
   foundationEntities,
   lyingThings,
   roofEntities,
@@ -27,6 +26,7 @@ import {
 } from "./entities";
 import { doorFrameOn, hasDoor, nearestDoorFrame } from "./doors";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
+import { floorOn } from "./floors";
 import { unlitFire } from "./fire";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
@@ -108,6 +108,11 @@ export interface StructureDefinition {
   readonly tool?: BackpackContent;
   /** How its blueprint follows the mouse. Furniture and the sled go "anywhere": off the building grid, so it can stand on a foundation inside a room. */
   readonly placement: Placement;
+  /**
+   * Present when R does not turn its blueprint: it takes its facing from the piece it goes on, as a roof section or a door does,
+   * or it looks the same every way round, as a floor does. Missing if R turns it.
+   */
+  readonly fixedFacing?: true;
   /**
    * The component that marks it finished, the one `finish` gives it.
    * Where several kinds share a component that holds a name, such as `edgePiece`, the component holds this kind's name.
@@ -305,12 +310,6 @@ export const FLOOR_PLANK_COST = 2;
 /** How long the player holds the build action to build a floor, in seconds. */
 export const FLOOR_BUILD_SECONDS = 4;
 
-/** The finished floor or floor blueprint on the foundation square with this middle, if any. */
-export function floorOn(entities: EntityStore, square: GroundPoint): Entity | undefined {
-  const floors = [...floorEntities(entities), ...blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "floor")];
-  return floors.find(({ position }) => isOnGridSquare(square, position));
-}
-
 /**
  * A floor: planks laid flush across the deck of one finished foundation square. It changes only how the square looks.
  * It lies underfoot, so nothing on the square is in its way, and it is in the way of nothing. A square holds one floor.
@@ -318,6 +317,7 @@ export function floorOn(entities: EntityStore, square: GroundPoint): Entity | un
 const floor: StructureDefinition & { readonly kind: "floor" } = {
   kind: "floor",
   placement: "underfoot",
+  fixedFacing: true,
   finishedAs: "floor",
   cost: [{ material: "plank", count: FLOOR_PLANK_COST }],
   buildSeconds: FLOOR_BUILD_SECONDS,
@@ -330,7 +330,7 @@ const floor: StructureDefinition & { readonly kind: "floor" } = {
 
 /** Whether a structure lies flush on a foundation's deck, so it is never in the way of another structure. Only a floor does. */
 export function liesUnderfoot(kind: StructureKind): boolean {
-  return kind === "floor";
+  return structureOf(kind).placement === "underfoot";
 }
 
 /** How many debarked logs a log wall costs. Construction spends one at the start of each stage. */
@@ -432,6 +432,7 @@ export const ROOF_BUILD_SECONDS = 12;
 const roof: StructureDefinition & { readonly kind: "roof" } = {
   kind: "roof",
   placement: "onFrame",
+  fixedFacing: true,
   finishedAs: "cabinRoof",
   cost: [{ material: "plank", count: ROOF_PLANK_COST }],
   buildSeconds: ROOF_BUILD_SECONDS,
@@ -462,6 +463,7 @@ const DOOR_SNAP_METRES = 1;
 const door: StructureDefinition & { readonly kind: "door" } = {
   kind: "door",
   placement: "inDoorFrame",
+  fixedFacing: true,
   finishedAs: "door",
   cost: [{ material: "plank", count: DOOR_PLANK_COST }],
   buildSeconds: DOOR_BUILD_SECONDS,

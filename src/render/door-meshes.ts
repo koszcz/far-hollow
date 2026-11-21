@@ -1,4 +1,4 @@
-// Draws doors and door blueprints: the draft "door" asset in asset-manifest.json, built in code. Added by floors-and-doors ticket 02.
+// Draws doors and door blueprints: the draft "door" asset in asset-manifest.json, built in code.
 // A door is three upright planks hung in a finished door frame, with two battens across their inside face and a small iron
 // latch on the outside. It fills the doorway between the frame's posts, and turns on hinges at its left post.
 // Construction has one stage per plank. The battens and latch go on with the last plank. Each plank fades in above its place
@@ -14,15 +14,20 @@ import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { DOOR_PLANK_COST } from "../sim/structures";
 import { DOORWAY_HEIGHT_METRES, DOORWAY_WIDTH_METRES, isBetweenCameraAndPlayer } from "./edge-piece-meshes";
 import { DOOR_OPEN_RADIANS, doorSwingRadians } from "./door-swing";
-import type { OutlinePart } from "./hover-outline";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
-import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import {
+  BLUEPRINT_COLOUR,
+  BLUEPRINT_OPACITY,
+  buildLift,
+  buildOpacity,
+  DELIVERED_OPACITY,
+  NOT_ALLOWED_COLOUR,
+  pickBlueprint,
+  pickFinished,
+  seeThrough,
+  type BuildingPieceMeshes,
+} from "./structure-look";
 
-const BLUEPRINT_COLOUR = 0xbfe3ff;
-/** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
-const BLUEPRINT_OPACITY = 0.35;
-/** A plank the blueprint already has is this solid, so it stands out from the planks still needed. */
-const DELIVERED_OPACITY = 0.7;
 /** A door between the camera and the player is this solid, as its frame is. */
 const FADED_OPACITY = 0.2;
 /** How much darker or lighter each plank is than plank wood, so the three planks differ a little. */
@@ -44,13 +49,16 @@ const PLANK_GAP_METRES = 0.004;
 /** How thick each batten is, and how tall, in metres. */
 const BATTEN_THICKNESS_METRES = 0.03;
 const BATTEN_HEIGHT_METRES = 0.1;
+/** Each batten stops this short of the door's edges, in metres in all, half at each end. */
+const BATTEN_SHORTFALL_METRES = 0.03;
+/** The latch's width, height, and depth, in metres. */
+const LATCH_SIZE_METRES: readonly [number, number, number] = [0.03, 0.07, 0.03];
+/** How far the middle of the latch sits in from the door's free edge, in metres. */
+const LATCH_INSET_METRES = 0.07;
 /** How far each batten's middle sits from the top or bottom of the door, in metres. */
 const BATTEN_INSET_METRES = 0.32;
 /** How thick the invisible box that catches clicks is, across the doorway, in metres. Thicker than its frame's, so a click in the doorway finds the door. */
 const PICK_THICKNESS_METRES = 0.45;
-
-/** What a click on a door blueprint landed on. A finished door is found with `pickFinished`. */
-export type DoorHit = { kind: "blueprint"; entity: Entity };
 
 /** What one frame of drawing needs to know. Without `player`, every door stays shut. Without `camera` too, no door fades. */
 export interface DoorFrame {
@@ -59,20 +67,8 @@ export interface DoorFrame {
   readonly player?: Vec3 | undefined;
 }
 
-export interface DoorMeshes {
-  readonly group: THREE.Group;
-  /** Brings every door and door blueprint up to date with game state, and swings each door toward open or shut. */
-  update(frame: DoorFrame): void;
-  /** What a ray from the camera hits first among door blueprints, and how far away. */
-  pick(raycaster: THREE.Raycaster): { hit: DoorHit; distance: number } | undefined;
-  /** The finished door a ray hits first, and how far away. */
-  pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
-  /** The parts of a door or door blueprint, placed in the world. Empty once it is gone. */
-  outlineOf(hit: { readonly entity: Entity }): OutlinePart[];
-  /** Shows a door blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
-  showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
-  dispose(): void;
-}
+/** Its update also swings each door toward open or shut. Its blueprint under the mouse faces the way the frame does. */
+export type DoorMeshes = BuildingPieceMeshes<DoorFrame>;
 
 /** One box-shaped part of the door: its size and middle, in metres, with the hinge at the origin and the door shut along +x. */
 interface DoorPart {
@@ -95,7 +91,7 @@ const STAGES: readonly (readonly DoorPart[])[] = Array.from({ length: DOOR_PLANK
   if (index < DOOR_PLANK_COST - 1) return [plank];
   const battenZ = -(PLANK_THICKNESS_METRES + BATTEN_THICKNESS_METRES) / 2;
   const batten = (y: number): DoorPart => ({
-    size: [DOOR_WIDTH_METRES - 0.03, BATTEN_HEIGHT_METRES, BATTEN_THICKNESS_METRES],
+    size: [DOOR_WIDTH_METRES - BATTEN_SHORTFALL_METRES, BATTEN_HEIGHT_METRES, BATTEN_THICKNESS_METRES],
     at: [DOOR_WIDTH_METRES / 2, y, battenZ],
     kind: "batten",
     shade: BATTEN_SHADE,
@@ -105,8 +101,9 @@ const STAGES: readonly (readonly DoorPart[])[] = Array.from({ length: DOOR_PLANK
     batten(GAP_METRES + BATTEN_INSET_METRES),
     batten(GAP_METRES + DOOR_HEIGHT_METRES - BATTEN_INSET_METRES),
     {
-      size: [0.03, 0.07, 0.03],
-      at: [DOOR_WIDTH_METRES - 0.07, GAP_METRES + DOOR_HEIGHT_METRES * 0.5, PLANK_THICKNESS_METRES / 2 + 0.015],
+      size: LATCH_SIZE_METRES,
+      // It stands proud of the planks' outside face by half its depth.
+      at: [DOOR_WIDTH_METRES - LATCH_INSET_METRES, GAP_METRES + DOOR_HEIGHT_METRES * 0.5, (PLANK_THICKNESS_METRES + LATCH_SIZE_METRES[2]) / 2],
       kind: "latch",
       shade: 1,
     },
@@ -277,8 +274,6 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
     drawn.delete(entity);
   }
 
-  const hits: THREE.Intersection[] = [];
-
   return {
     group,
     update({ nowSeconds, camera, player }) {
@@ -305,14 +300,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },
     pick(raycaster) {
-      hits.length = 0;
-      raycaster.intersectObjects(pickers, false, hits);
-      hits.sort((a, b) => a.distance - b.distance);
-      for (const hit of hits) {
-        const entity = hit.object.userData.entity as Entity | undefined;
-        if (entity?.blueprint !== undefined) return { hit: { kind: "blueprint", entity }, distance: hit.distance };
-      }
-      return undefined;
+      return pickBlueprint(raycaster, pickers);
     },
     pickFinished(raycaster) {
       return pickFinished(raycaster, pickers);

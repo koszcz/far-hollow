@@ -88,9 +88,10 @@ describe("placing a blueprint", () => {
 
 describe("placing floors", () => {
   it("keeps placing floors after a click, but stops placing anything else", () => {
-    expect(modeAfterPlacing(pickBuildEntry("floor"))).toEqual(pickBuildEntry("floor"));
-    expect(modeAfterPlacing(pickBuildEntry("campfire"))).toEqual(NOT_BUILDING);
-    expect(pressBuildKey(modeAfterPlacing(pickBuildEntry("floor")), "Escape")).toEqual(NOT_BUILDING);
+    const { buildMenu } = createGame({ seed: 42 }).client.getView();
+    expect(modeAfterPlacing(pickBuildEntry("floor"), buildMenu)).toEqual(pickBuildEntry("floor"));
+    expect(modeAfterPlacing(pickBuildEntry("campfire"), buildMenu)).toEqual(NOT_BUILDING);
+    expect(pressBuildKey(modeAfterPlacing(pickBuildEntry("floor"), buildMenu), "Escape")).toEqual(NOT_BUILDING);
   });
 
   it("sweeps only floors", () => {
@@ -112,10 +113,12 @@ describe("placing floors", () => {
     if (sweep === undefined) throw new Error("No sweep");
     // The pointer passes over each square several times, and off the end onto bare ground.
     for (let x = start.x + 0.1; x < start.x + 5; x += 0.2) {
-      const command = sweep.over({ kind: "ground", spot: { x, z: start.z + 0.5 } });
-      if (command !== undefined) game.client.send(command);
+      for (const command of sweep.over({ kind: "ground", spot: { x, z: start.z + 0.5 } })) game.client.send(command);
     }
+    const last = sweep.end();
     game.step();
+
+    expect(last).toBeUndefined();
 
     const blueprints = game.entities.with("blueprint", "position").entities;
     expect(blueprints.map(({ blueprint, position }) => `${blueprint.structure} at ${position.x}`)).toEqual([0, 2, 3].map((i) => `floor at ${squares[i]?.x}`));
@@ -125,6 +128,23 @@ describe("placing floors", () => {
     const game = createGame({ seed: 42 });
     const sweep = startSweep(pickBuildEntry("floor"), game.client);
 
-    expect(sweep?.over({ kind: "tree", id: 3 })).toBeUndefined();
+    expect(sweep?.over({ kind: "tree", id: 3 })).toEqual([]);
+  });
+
+  it("places a floor and starts building it on a Shift-click that never leaves its square, as a plain click does", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const start = openSpotNear(game);
+    const square = { x: start.x + 0.5, z: start.z + 0.5 };
+    game.entities.add({ foundation: true, position: { x: square.x, y: 0, z: square.z } });
+
+    const sweep = startSweep(pickBuildEntry("floor"), game.client);
+    if (sweep === undefined) throw new Error("No sweep");
+    const placedWhileHeld = [
+      ...sweep.over({ kind: "ground", spot: { x: square.x - 0.2, z: square.z } }),
+      ...sweep.over({ kind: "ground", spot: { x: square.x + 0.1, z: square.z } }),
+    ];
+
+    expect(placedWhileHeld).toEqual([]);
+    expect(sweep.end()).toMatchObject({ type: "placeBlueprint", structure: "floor", x: square.x, z: square.z, thenBuild: true });
   });
 });

@@ -29,6 +29,7 @@ export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, Mat
 import { FURNITURE, type FurnitureUse } from "./furniture";
 export type { FurnitureUse } from "./furniture";
 import { FURNITURE_KINDS } from "./structure-kind";
+export { isPlacedInRows } from "./structure-kind";
 
 /** The HUD uses these to tell the player when a low need slows them, and which needs there are. */
 export { LOW_NEED, NEED_KINDS, type NeedKind } from "./needs";
@@ -424,6 +425,14 @@ export type PlainNotice =
   | "queueFull";
 
 /**
+ * Why the game refuses to load a save (ADR 0008):
+ * - `notASave`: the data is not a Far Hollow saved game, or it is damaged.
+ * - `largeValley`: the save was made in the 1 km valley, before the valley shrank.
+ * - `newerVersion`: the save was made by a newer version of the game.
+ */
+export type SaveRefusal = "notASave" | "largeValley" | "newerVersion";
+
+/**
  * What one save slot holds, as the start screen shows it.
  * `empty`: nothing is saved there. `broken`: the save cannot be loaded.
  * `filled`: a game the player can continue, with its seed and the day it reached.
@@ -462,6 +471,8 @@ export interface BuildMenuEntry {
   readonly tool?: BackpackContent;
   /** How its blueprint follows the mouse while the player places it. Furniture goes "anywhere", off the building grid. */
   readonly placement: Placement;
+  /** Present when R does not turn its blueprint, as for a roof section, a door, or a floor. Missing if R turns it. */
+  readonly fixedFacing?: true;
 }
 
 /** The build menu's furniture rows, in order, from each piece's definition. The HUD showcase shows the full build menu with them. */

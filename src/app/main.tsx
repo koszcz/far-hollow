@@ -16,6 +16,7 @@ import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
 import { pressHotbarKey } from "./hotbar";
 import { downloadFile, saveExportFile } from "./save-export";
+import { importSaveFile } from "./save-import";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import type { ThingAction } from "./thing-actions";
 import { attachWalkInput, menuForTarget, type MenuRequest } from "./walk-input";
@@ -85,26 +86,44 @@ async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame>
   // The start screen replaces the loading screen until the player chooses.
   setLoadingScreenShown(false);
   const chosen = await new Promise<ChosenGame>((resolve) => {
-    render(
-      <StartScreen
-        slots={stored.map(describeSave)}
-        canSave={storage !== undefined}
-        onContinue={(slot) => {
-          resolve({ game: continueOrStartGame(stored[slot], randomSeed()), slot });
-        }}
-        onNewGame={(slot, seed) => {
-          const game = createGame({ seed: seed ?? randomSeed() });
-          // Save at once, so a new game started over a saved one replaces it even if the page closes soon after.
-          saveToSlot(storage, slot, game);
-          resolve({ game, slot });
-        }}
-        onExport={(slot) => {
-          const file = saveExportFile(slot, stored[slot]);
-          if (file !== undefined) downloadFile(file);
-        }}
-      />,
-      ui,
-    );
+    const showStartScreen = (): void => {
+      render(
+        <StartScreen
+          slots={stored.map(describeSave)}
+          canSave={storage !== undefined}
+          onContinue={(slot) => {
+            resolve({ game: continueOrStartGame(stored[slot], randomSeed()), slot });
+          }}
+          onNewGame={(slot, seed) => {
+            const game = createGame({ seed: seed ?? randomSeed() });
+            // Save at once, so a new game started over a saved one replaces it even if the page closes soon after.
+            saveToSlot(storage, slot, game);
+            resolve({ game, slot });
+          }}
+          onExport={(slot) => {
+            const file = saveExportFile(slot, stored[slot]);
+            if (file !== undefined) downloadFile(file);
+          }}
+          onImport={async (slot, file) => {
+            const imported = importSaveFile(await file.text());
+            if (!imported.ok) return imported.reason;
+            if (storage === undefined) return "notStored";
+            try {
+              await storage.write(slot, imported.save);
+            } catch (error) {
+              console.warn(`The imported game could not be stored in slot ${slot + 1}.`, error);
+              return "notStored";
+            }
+            stored[slot] = imported.save;
+            // Show the slot's new day and seed. Import does not start the game.
+            showStartScreen();
+            return undefined;
+          }}
+        />,
+        ui,
+      );
+    };
+    showStartScreen();
   });
   render(null, ui);
   setLoadingScreenShown(true);

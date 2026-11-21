@@ -38,6 +38,7 @@ import {
   isPlacedFreely,
   isPlacedStructure,
   isTaken,
+  liesUnderfoot,
   roofFrameOn,
   stageMaterials,
   structureKindOf,
@@ -318,7 +319,7 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   return others.some((other) => {
     const kind = structureKindOf(other);
     if (kind === undefined) return false;
-    if (kind === "campfire" || kind === "fireplace" || kind === "floor") return isOnGridSquare(square, other.position);
+    if (kind === "campfire" || kind === "fireplace" || liesUnderfoot(kind)) return isOnGridSquare(square, other.position);
     return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
   });
 }

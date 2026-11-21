@@ -162,8 +162,3 @@ export const FURNITURE_DRAWINGS: Readonly<Record<FurnitureKind, BackpackIconDraw
   table: TABLE_DRAWING,
   stool: STOOL_DRAWING,
 };
-
-/** Whether a structure is a piece of furniture, so FURNITURE_DRAWINGS holds its icon. */
-export function hasFurnitureIcon(structure: string): structure is FurnitureKind {
-  return structure in FURNITURE_DRAWINGS;
-}

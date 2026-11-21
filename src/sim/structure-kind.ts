@@ -46,6 +46,11 @@ export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];
  */
 export type Placement = "onGround" | "onFoundation" | "underfoot" | "onEdge" | "overWalls" | "onFrame" | "inDoorFrame" | "anywhere";
 
+/** Whether the player places blueprints with this placement one after another: build mode stays open after each, and a Shift-drag places a row. Only `underfoot` does. */
+export function isPlacedInRows(placement: Placement): boolean {
+  return placement === "underfoot";
+}
+
 /** The four sides of a grid square, as `edgeMiddle` in edge-pieces.ts numbers them. */
 export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
 

@@ -173,3 +173,79 @@ test("slot 1 exports the old single save if slot 1 has not been saved since save
   expect(exported.name).toBe("far-hollow-slot-1-day-1.json");
   expect(exported.data).toEqual(saved);
 });
+
+/** Clicks a slot's Import button, confirms the warning if the slot is not empty, and picks a file with `text` in it. */
+async function importIntoSlot(page: Page, slot: number, text: string, confirm: boolean): Promise<void> {
+  const choosing = page.waitForEvent("filechooser");
+  await page.getByRole("listitem").nth(slot).getByRole("button", { name: "Import" }).click();
+  if (confirm) {
+    await expect(page.getByText(`Importing a file replaces the saved game in slot ${slot + 1}.`)).toBeVisible();
+    await page.getByRole("button", { name: "Choose file" }).click();
+  }
+  const chooser = await choosing;
+  await chooser.setFiles({ name: "far-hollow.json", mimeType: "application/json", buffer: Buffer.from(text) });
+}
+
+test("the player imports an exported file into an empty slot, then continues the same game", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await startAndSave(page, 0, "42");
+  await page.reload();
+
+  const slots = page.getByRole("listitem");
+  const exported = await exportSlot(page, 0);
+  await importIntoSlot(page, 2, JSON.stringify(exported.data, null, 2), false);
+  await expect(slots.nth(2)).toContainText("Day 1 · Seed 42");
+  await expect(page.locator(".start-screen")).toBeVisible();
+
+  await page.reload();
+  await expect(slots.nth(2)).toContainText("Day 1 · Seed 42");
+  await slots.nth(2).getByRole("button", { name: "Continue" }).click();
+  await page.waitForFunction(() => "farHollow" in window);
+  const continued = await gameView(page);
+  expect(continued.seed).toBe(42);
+  expect(continued.stepCount).toBeGreaterThanOrEqual((exported.data as { stepCount: number }).stepCount);
+  expect(errors).toEqual([]);
+});
+
+test("import warns before it replaces a filled slot, and a refused file leaves the slot as it was", async ({ page }) => {
+  await page.goto("/");
+  await startAndSave(page, 0, "7");
+  await page.reload();
+  const slots = page.getByRole("listitem");
+
+  await slots.nth(0).getByRole("button", { name: "Import" }).click();
+  await expect(page.getByText("Importing a file replaces the saved game in slot 1.")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Importing a file replaces the saved game in slot 1.")).toHaveCount(0);
+
+  await importIntoSlot(page, 0, "not a saved game", true);
+  await expect(slots.nth(0)).toContainText("This file is not a Far Hollow saved game.");
+  await expect(slots.nth(0)).toContainText("Day 1 · Seed 7");
+
+  const saved = (await readStored(page, "slot-1")) as Record<string, unknown>;
+  await importIntoSlot(page, 0, JSON.stringify({ ...saved, version: 1_000 }), true);
+  await expect(slots.nth(0)).toContainText("This saved game was made by a newer version of Far Hollow.");
+  await expect(slots.nth(0)).toContainText("Day 1 · Seed 7");
+  expect(await readStored(page, "slot-1")).toEqual(saved);
+
+  // The player's next action clears the reason.
+  await slots.nth(0).getByRole("button", { name: "New game" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("when the browser cannot save games, the start screen offers no Export or Import", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "indexedDB", {
+      get: () => {
+        throw new Error("Storage is turned off");
+      },
+    });
+  });
+  await page.goto("/");
+  await expect(page.getByText("This browser cannot save games")).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(3);
+  await expect(page.getByRole("button", { name: "Import" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
+});

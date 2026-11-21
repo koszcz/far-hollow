@@ -1392,7 +1392,7 @@
         "src/ui/floor-and-door-icons.tsx",
         "src/ui/structure-icon.tsx"
       ],
-      "description": "Build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The floor's icon is a square of plank boards seen from the front and above, narrowing as it goes back, with dark seams between the boards and two boards in a paler shade. Under its front edge lies the foundation deck, with the pale cut ends of its logs. The door's icon, added by ticket 02, is a door of three upright plank boards seen from the front, hung in a pale log door frame with a lintel across the top. Two darker battens cross the boards, and a small dark latch sits on the right.",
+      "description": "Build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The floor's icon is a square of plank boards seen from the front and above, narrowing as it goes back, with dark seams between the boards and two boards in a paler shade. Under its front edge lies the foundation deck, with the pale cut ends of its logs. The door's icon is a door of three upright plank boards seen from the front, hung in a pale log door frame with a lintel across the top. Two darker battens cross the boards, and a small dark latch sits on the right.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

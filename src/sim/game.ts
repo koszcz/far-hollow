@@ -135,12 +135,13 @@ type CommandRules = { readonly [Type in ActionCommand["type"]]: CommandRule<Extr
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
-  STRUCTURES.map(({ kind, cost, tool, placement }) =>
+  STRUCTURES.map(({ kind, cost, tool, placement, fixedFacing }) =>
     Object.freeze({
       structure: kind,
       cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))),
       ...(tool === undefined ? {} : { tool }),
       placement,
+      ...(fixedFacing === true ? { fixedFacing } : {}),
     }),
   ),
 );
@@ -335,7 +336,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       warmth: player.needs.warmth.level,
       sick: player.sickness !== undefined,
       raining: rain.falling,
-      notice: notice !== null && clock.minutes < notice.untilMinutes ? noticeView(notice) : null,
+      notice: notice !== null && isNoticeOnScreen() ? noticeView(notice) : null,
       lastSleep,
       lastEatOrDrink,
       sittingOn: player.sitting?.stoolId ?? null,
@@ -1015,11 +1016,20 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return true;
   }
 
-  /** Shows the banner that a snug room keeps out the cold, the first time in this game the player stands in one. */
+  /**
+   * Shows the banner that a snug room keeps out the cold, the first time in this game the player stands in one.
+   * It waits until no other notice is on screen, so neither notice hides the other. The step calls it last,
+   * so nothing later in the step can replace the banner before the player sees it.
+   */
   function noticeSnugRoom(): void {
-    if (snugRoomNoticeShown || !isInSnugRoom(entities, player.position)) return;
+    if (snugRoomNoticeShown || isNoticeOnScreen() || !isInSnugRoom(entities, player.position)) return;
     snugRoomNoticeShown = true;
     showNotice("snugRoomKeepsOutCold");
+  }
+
+  /** Whether a notice shows on screen now. */
+  function isNoticeOnScreen(): boolean {
+    return notice !== null && clock.minutes < notice.untilMinutes;
   }
 
   /**
@@ -1180,8 +1190,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       sleds.follow();
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
-      noticeSnugRoom();
       actionQueue.moveOn();
+      noticeSnugRoom();
       stepCount += 1;
     }
 

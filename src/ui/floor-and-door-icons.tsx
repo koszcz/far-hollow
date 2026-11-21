@@ -1,5 +1,4 @@
 // Build menu icons for the floor and the door: the draft "floor-and-door-icons" asset in asset-manifest.json. Built in code.
-// Added by floors-and-doors ticket 01, which draws the floor's icon. Ticket 02 adds the door's.
 // They are drawn on the same 24 by 24 grid, in the same shaded style, as the approved build icons in build-icons.tsx.
 import type { BackpackIconDrawing } from "./icon-drawing";
 

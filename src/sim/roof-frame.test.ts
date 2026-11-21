@@ -20,7 +20,7 @@ describe("the roof frame in the build menu", () => {
     const doorFrame = menu.findIndex(({ structure }) => structure === "doorFrame");
     expect(menu.slice(doorFrame + 1, doorFrame + 3)).toEqual([
       { structure: "roofFrame", cost: [{ material: "debarkedLog", count: ROOF_FRAME_LOG_COST }], placement: "overWalls" },
-      { structure: "roof", cost: [{ material: "plank", count: ROOF_PLANK_COST }], placement: "onFrame" },
+      { structure: "roof", cost: [{ material: "plank", count: ROOF_PLANK_COST }], placement: "onFrame", fixedFacing: true },
     ]);
   });
 });

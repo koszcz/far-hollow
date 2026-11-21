@@ -27,8 +27,13 @@ export function nearestDoorFrame(entities: EntityStore, at: GroundPoint, reach: 
   );
 }
 
+/** The finished door on the edge with this middle, if any. */
+export function finishedDoorOn(entities: EntityStore, edge: GroundPoint): (Entity & { position: Vec3 }) | undefined {
+  return doorEntities(entities).entities.find((door) => isSameEdge(door.position, edge));
+}
+
 /** Whether a door hangs on the edge with this middle, finished or as a blueprint. */
 export function hasDoor(entities: EntityStore, edge: GroundPoint): boolean {
-  if (doorEntities(entities).entities.some((door) => isSameEdge(door.position, edge))) return true;
+  if (finishedDoorOn(entities, edge) !== undefined) return true;
   return blueprintEntities(entities).entities.some(({ blueprint, position }) => blueprint.structure === "door" && isSameEdge(position, edge));
 }

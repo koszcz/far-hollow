@@ -17,7 +17,7 @@ describe("the door in the build menu", () => {
     expect(DOOR_PLANK_COST).toBe(3);
     const menu = game.client.getView().buildMenu;
     const roof = menu.findIndex(({ structure }) => structure === "roof");
-    expect(menu[roof + 1]).toEqual({ structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame" });
+    expect(menu[roof + 1]).toEqual({ structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true });
   });
 });
 

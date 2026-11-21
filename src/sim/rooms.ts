@@ -1,9 +1,11 @@
 // Rooms: foundation squares closed in on every side by log walls or door frames, with a roof over every square.
 // Rooms are not stored. They are worked out from the finished pieces each time they are asked for,
 // so finishing or taking down a piece changes them at once.
-import { edgeMiddle, edgePieceOn, isSameEdge, squaresBeside } from "./edge-pieces";
+import { finishedDoorOn } from "./doors";
+import { edgeMiddle, edgePieceOn, squaresBeside } from "./edge-pieces";
 import { isOnGridSquare, snapToGridSquare } from "./build-grid";
-import { campfireEntities, doorEntities, fireplaceEntities, floorEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
+import { campfireEntities, fireplaceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
+import { finishedFloorOn } from "./floors";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { SIDES } from "./structure-kind";
@@ -50,16 +52,10 @@ export function isRoomHeated(entities: EntityStore, room: Room): boolean {
  * A room with no door frame is snug once every square has a floor. Blueprints do not count.
  */
 export function isRoomSnug(entities: EntityStore, room: Room): boolean {
-  const floors = floorEntities(entities).entities;
-  const doors = doorEntities(entities).entities;
   return room.every(
     (square) =>
-      floors.some((floor) => isOnGridSquare(square, floor.position)) &&
-      SIDES.every((side) => {
-        if (edgePieceOn(entities, square, side) !== "doorFrame") return true;
-        const edge = edgeMiddle(square, side);
-        return doors.some((door) => isSameEdge(door.position, edge));
-      }),
+      finishedFloorOn(entities, square) !== undefined &&
+      SIDES.every((side) => edgePieceOn(entities, square, side) !== "doorFrame" || finishedDoorOn(entities, edgeMiddle(square, side)) !== undefined),
   );
 }
 

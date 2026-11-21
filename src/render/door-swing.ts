@@ -1,5 +1,5 @@
 // How a door swings open and shut: the draft "door-animation" asset in asset-manifest.json, timed in code.
-// Added by floors-and-doors ticket 02. The game rules say only whether a door stands open (see isDoorOpen in sim/doors.ts).
+// The game rules say only whether a door stands open (see isDoorOpen in sim/doors.ts).
 // This works out how far the door has turned on its hinges since it last began to swing, easing in and out.
 
 /** How far an open door stands turned on its hinges, in radians: a little past square to its frame. */

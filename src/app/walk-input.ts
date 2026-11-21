@@ -199,8 +199,8 @@ export function attachWalkInput({
     const seen = pickAt(clientX, clientY);
     // A blueprint is placed on what is under a finished structure, such as the ground under a foundation.
     const pick = seen?.kind === "structure" ? seen.under : seen;
-    const place = pick === undefined ? undefined : sweep.over(pick);
-    if (place !== undefined) client.send(place);
+    if (pick === undefined) return;
+    for (const place of sweep.over(pick)) client.send(place);
   }
 
   function onPointerMove(event: PointerEvent): void {
@@ -240,8 +240,13 @@ export function attachWalkInput({
 
   function onPointerUp(event: PointerEvent): void {
     if (event.button !== LEFT_BUTTON) return;
-    // A sweep places its blueprints as the pointer moves, so letting go only ends it.
+    // A sweep places its blueprints as the pointer moves. Letting go ends it. A sweep that never left its first spot was a click, so it places that blueprint now.
+    const last = sweep?.end();
     sweep = undefined;
+    if (last !== undefined) {
+      client.send(last);
+      setMode(modeAfterPlacing(mode, client.getView().buildMenu));
+    }
     if (press === null) return;
     const travelled = Math.hypot(event.clientX - press.x, event.clientY - press.y);
     press = null;
@@ -257,7 +262,7 @@ export function attachWalkInput({
       const place = placeCommandFor(mode, pick);
       if (place === undefined) return;
       client.send(place);
-      setMode(modeAfterPlacing(mode));
+      setMode(modeAfterPlacing(mode, client.getView().buildMenu));
       return;
     }
     if (seen.kind === "ground" && menuFor(seen, client) === undefined) {

@@ -33,6 +33,38 @@ describe("warmth in a snug room", () => {
 
     expect(warmthLostInOneNightHour(game)).toBeCloseTo(0.25, 2);
   });
+
+  it("rises by a lit fireplace in the room at night, as fast as in the same room without a door", () => {
+    const rises = (door: boolean): number => {
+      const game = createGame({ seed: 42 });
+      const [first, second] = cabinNearPlayer(game, { door });
+      standOn(game, first);
+      game.client.send({ type: "skipTime", hours: 12 }); // 20:00, night starts.
+      game.step();
+      game.entities.add({ fireplace: { lit: true, fuelMinutes: 600 }, facing: { turns: 0 }, position: { x: second.x, y: deckTop(game, second), z: second.z } });
+      onlyPlayer(game).needs.warmth.level = 0.2;
+      game.client.send({ type: "skipTime", hours: 1 });
+      game.step();
+      return game.client.getView().warmth - 0.2;
+    };
+
+    expect(rises(true)).toBeGreaterThan(0);
+    expect(rises(true)).toBeCloseTo(rises(false), 5);
+  });
+
+  it("stops being snug once the player takes down a floor, so warmth drains at the usual rate", () => {
+    const game = createGame({ seed: 42 });
+    const [first, second] = cabinNearPlayer(game, { door: true });
+    standOn(game, second);
+    const floor = game.entities.with("floor", "position").entities.find(({ position }) => position.x === first.x && position.z === first.z);
+    if (floor === undefined) throw new Error("No floor");
+
+    game.client.send({ type: "takeDown", pieceId: idOf(game, floor) });
+    stepUntil(game, () => !game.entities.has(floor));
+
+    expect(game.client.describeRooms()).toMatchObject([{ snug: false }]);
+    expect(warmthLostInOneNightHour(game)).toBeCloseTo(0.25, 2);
+  });
 });
 
 describe("the snug room banner", () => {
@@ -51,6 +83,24 @@ describe("the snug room banner", () => {
     expect(game.client.getView().notice).toBeNull();
     walkOutAndBackIn(game, square);
     expect(game.client.getView().notice).toBeNull();
+  });
+
+  it("waits for a notice the same step shows to go, then shows, so no other notice swallows it", () => {
+    const game = createGame({ seed: 42 });
+    const [square] = cabinNearPlayer(game, { door: true });
+    const foundation = game.entities.with("foundation", "position").entities.find(({ position }) => position.x === square.x && position.z === square.z);
+    if (foundation === undefined) throw new Error("No foundation");
+    standOn(game, square);
+    // The floor holds the foundation up, so the game refuses to take it down and says so.
+    game.client.send({ type: "takeDown", pieceId: idOf(game, foundation) });
+    game.step();
+    expect(game.client.getView().notice).toEqual({ kind: "holdsUpPiece" });
+    expect(game.progress().snugRoomNoticeShown).toBe(false);
+
+    stepUntil(game, () => game.client.getView().notice?.kind !== "holdsUpPiece");
+
+    expect(game.client.getView().notice).toEqual({ kind: "snugRoomKeepsOutCold" });
+    expect(game.progress().snugRoomNoticeShown).toBe(true);
   });
 
   it("does not show again after a save and load", () => {
@@ -193,6 +243,20 @@ function openRowNearPlayer(game: Game, length: number): GroundPoint {
   throw new Error("No open row");
 }
 
+function idOf(game: Game, entity: Entity): number {
+  const id = game.entities.id(entity);
+  if (id === undefined) throw new Error("Entity is not in the store");
+  return id;
+}
+
+function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): void {
+  for (let i = 0; i < maxSteps; i += 1) {
+    if (done()) return;
+    game.step();
+  }
+  throw new Error("Never happened");
+}
+
 function load(save: unknown): Game {
   const loaded = readSave(save);
   if (!loaded.ok) throw new Error("The save did not load");
@@ -200,7 +264,7 @@ function load(save: unknown): Game {
 }
 
 function onlyPlayer(game: Game) {
-  const player = game.entities.with("player", "position", "previousPosition", "backpack").first;
+  const player = game.entities.with("player", "position", "previousPosition", "backpack", "needs").first;
   if (player === undefined) throw new Error("No player");
   return player;
 }

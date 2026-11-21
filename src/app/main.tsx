@@ -15,8 +15,8 @@ import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
 import { pressHotbarKey } from "./hotbar";
-import { downloadFile, saveExportFile } from "./save-export";
-import { importSaveFile } from "./save-import";
+import { downloadFile, saveExportFile, unreadableSlotExportFile } from "./save-export";
+import { importIntoSlot } from "./save-import";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import type { ThingAction } from "./thing-actions";
 import { attachWalkInput, menuForTarget, type MenuRequest } from "./walk-input";
@@ -62,15 +62,24 @@ async function tryOpenSaveStorage(): Promise<SaveStorage | undefined> {
   }
 }
 
-/** Reads the save in one slot. A slot that cannot be read counts as broken. */
-async function readSlot(storage: SaveStorage | undefined, slot: number): Promise<unknown> {
-  if (storage === undefined) return undefined;
+/** What one slot holds: its stored data, or the error the browser gave when it could not read the slot. */
+type SlotContent = { readable: true; data: unknown } | { readable: false; error: unknown };
+
+/** Reads the save in one slot. */
+async function readSlot(storage: SaveStorage | undefined, slot: number): Promise<SlotContent> {
+  if (storage === undefined) return { readable: true, data: undefined };
   try {
-    return await storage.read(slot);
+    return { readable: true, data: await storage.read(slot) };
   } catch (error) {
     console.warn(`Save slot ${slot + 1} could not be read.`, error);
-    return null;
+    return { readable: false, error };
   }
+}
+
+/** The data a slot holds, as the game reads it. A slot that cannot be read holds `null`, so it counts as broken. */
+function slotData(content: SlotContent | undefined): unknown {
+  if (content === undefined) return undefined;
+  return content.readable ? content.data : null;
 }
 
 /** The game the player chose, and the save slot it saves to. A game started from `?seed=` has no slot and is not saved. */
@@ -89,10 +98,10 @@ async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame>
     const showStartScreen = (): void => {
       render(
         <StartScreen
-          slots={stored.map(describeSave)}
+          slots={stored.map((content) => describeSave(slotData(content)))}
           canSave={storage !== undefined}
           onContinue={(slot) => {
-            resolve({ game: continueOrStartGame(stored[slot], randomSeed()), slot });
+            resolve({ game: continueOrStartGame(slotData(stored[slot]), randomSeed()), slot });
           }}
           onNewGame={(slot, seed) => {
             const game = createGame({ seed: seed ?? randomSeed() });
@@ -101,20 +110,15 @@ async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame>
             resolve({ game, slot });
           }}
           onExport={(slot) => {
-            const file = saveExportFile(slot, stored[slot]);
+            const content = stored[slot];
+            if (content === undefined) return;
+            const file = content.readable ? saveExportFile(slot, content.data) : unreadableSlotExportFile(slot, content.error);
             if (file !== undefined) downloadFile(file);
           }}
           onImport={async (slot, file) => {
-            const imported = importSaveFile(await file.text());
+            const imported = await importIntoSlot(storage, slot, await file.text());
             if (!imported.ok) return imported.reason;
-            if (storage === undefined) return "notStored";
-            try {
-              await storage.write(slot, imported.save);
-            } catch (error) {
-              console.warn(`The imported game could not be stored in slot ${slot + 1}.`, error);
-              return "notStored";
-            }
-            stored[slot] = imported.save;
+            stored[slot] = { readable: true, data: imported.save };
             // Show the slot's new day and seed. Import does not start the game.
             showStartScreen();
             return undefined;

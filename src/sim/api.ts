@@ -433,6 +433,12 @@ export type PlainNotice =
 export type SaveRefusal = "notASave" | "largeValley" | "newerVersion";
 
 /**
+ * Why the game could not import a file into a save slot: any reason it refuses a save, or `notStored`.
+ * `notStored` means the file was fine, but the browser could not store it.
+ */
+export type ImportRefusal = SaveRefusal | "notStored";
+
+/**
  * What one save slot holds, as the start screen shows it.
  * `empty`: nothing is saved there. `broken`: the save cannot be loaded.
  * `filled`: a game the player can continue, with its seed and the day it reached.

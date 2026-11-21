@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createGame } from "../sim/game";
 import { writeSave } from "../sim/save";
-import { saveExportFile } from "./save-export";
+import { saveExportFile, unreadableSlotExportFile } from "./save-export";
 
 describe("exporting a save slot to a file", () => {
   it("names a filled slot's file after the slot and the day, and holds the stored saved game", () => {
@@ -23,6 +23,13 @@ describe("exporting a save slot to a file", () => {
 
     expect(file?.name).toBe("far-hollow-slot-2-broken.json");
     expect(JSON.parse(file?.text ?? "")).toEqual({ version: 3, seed: "not a number", notes: ["kept as is"] });
+  });
+
+  it("names a slot the browser could not read as broken, and holds the read error instead of empty data", () => {
+    const file = unreadableSlotExportFile(1, new Error("The stored value could not be read"));
+
+    expect(file.name).toBe("far-hollow-slot-2-broken.json");
+    expect(JSON.parse(file.text)).toEqual({ unreadable: "Error: The stored value could not be read" });
   });
 
   it("writes readable JSON, one value per line", () => {

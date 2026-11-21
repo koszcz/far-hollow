@@ -20,6 +20,14 @@ export function saveExportFile(slot: number, stored: unknown): ExportFile | unde
   return { name, text: JSON.stringify(stored, null, 2) };
 }
 
+/**
+ * The file for a slot the browser could not read. The browser gives back no data for such a slot, so the file holds the read error.
+ * The developer can use it with a bug report. Slots are numbered from 0.
+ */
+export function unreadableSlotExportFile(slot: number, error: unknown): ExportFile {
+  return { name: strings.startScreen.brokenExportFileName(slot + 1), text: JSON.stringify({ unreadable: String(error) }, null, 2) };
+}
+
 /** How long a download link stays valid after the click, in milliseconds. */
 const DOWNLOAD_LINK_LIFETIME_MS = 10_000;
 

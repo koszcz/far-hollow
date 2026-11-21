@@ -112,11 +112,30 @@ async function replaceStored(page: Page, key: string, data: unknown): Promise<un
   );
 }
 
-/** Reads what the game's save database holds under `key`, leaving it as it is. */
+/** Reads what the game's save database holds under `key`. */
 async function readStored(page: Page, key: string): Promise<unknown> {
-  const stored = await replaceStored(page, key, undefined);
-  if (stored !== undefined) await replaceStored(page, key, stored);
-  return stored;
+  return page.evaluate(async (key) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("far-hollow", 1);
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        reject(request.error ?? new Error("Could not open the save database"));
+      };
+    });
+    const stored = await new Promise<unknown>((resolve, reject) => {
+      const request = database.transaction("saves", "readonly").objectStore("saves").get(key);
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        reject(request.error ?? new Error("Could not read the save database"));
+      };
+    });
+    database.close();
+    return stored;
+  }, key);
 }
 
 /** Clicks a slot's Export button and returns the downloaded file's name and its parsed contents. */
@@ -137,41 +156,44 @@ async function startAndSave(page: Page, slot: number, seed: string): Promise<voi
   await hidePage(page);
 }
 
-test("the player exports a filled slot and a broken slot to files, and an empty slot has no Export button", async ({ page }) => {
-  await page.goto("/");
-  await startAndSave(page, 0, "42");
-  await replaceStored(page, "slot-2", { version: 3, seed: "broken" });
+test.describe("export from a filled slot 1", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await startAndSave(page, 0, "42");
+  });
 
-  await page.reload();
-  const slots = page.getByRole("listitem");
-  await expect(slots.nth(0)).toContainText("Seed 42");
-  await expect(slots.nth(2).getByRole("button", { name: "Export" })).toHaveCount(0);
+  test("the player exports a filled slot and a broken slot to files, and an empty slot has no Export button", async ({ page }) => {
+    await replaceStored(page, "slot-2", { version: 3, seed: "broken" });
 
-  const filled = await exportSlot(page, 0);
-  expect(filled.name).toBe("far-hollow-slot-1-day-1.json");
-  expect(filled.data).toEqual(await readStored(page, "slot-1"));
+    await page.reload();
+    const slots = page.getByRole("listitem");
+    await expect(slots.nth(0)).toContainText("Seed 42");
+    await expect(slots.nth(2).getByRole("button", { name: "Export" })).toHaveCount(0);
 
-  const broken = await exportSlot(page, 1);
-  expect(broken.name).toBe("far-hollow-slot-2-broken.json");
-  expect(broken.data).toEqual({ version: 3, seed: "broken" });
+    const filled = await exportSlot(page, 0);
+    expect(filled.name).toBe("far-hollow-slot-1-day-1.json");
+    expect(filled.data).toEqual(await readStored(page, "slot-1"));
 
-  await page.reload();
-  await expect(slots.nth(0)).toContainText("Seed 42");
-  await expect(slots.nth(1)).toContainText("This saved game cannot be loaded.");
-});
+    const broken = await exportSlot(page, 1);
+    expect(broken.name).toBe("far-hollow-slot-2-broken.json");
+    expect(broken.data).toEqual({ version: 3, seed: "broken" });
 
-test("slot 1 exports the old single save if slot 1 has not been saved since save slots came in", async ({ page }) => {
-  await page.goto("/");
-  await startAndSave(page, 0, "9");
-  // Move slot 1's save to where the game kept its one save before there were save slots.
-  const saved = await replaceStored(page, "slot-1", undefined);
-  await replaceStored(page, "current", saved);
+    await page.reload();
+    await expect(slots.nth(0)).toContainText("Seed 42");
+    await expect(slots.nth(1)).toContainText("This saved game cannot be loaded.");
+  });
 
-  await page.reload();
-  await expect(page.getByRole("listitem").nth(0)).toContainText("Seed 9");
-  const exported = await exportSlot(page, 0);
-  expect(exported.name).toBe("far-hollow-slot-1-day-1.json");
-  expect(exported.data).toEqual(saved);
+  test("slot 1 exports the old single save if slot 1 has not been saved since save slots came in", async ({ page }) => {
+    // Move slot 1's save to where the game kept its one save before there were save slots.
+    const saved = await replaceStored(page, "slot-1", undefined);
+    await replaceStored(page, "current", saved);
+
+    await page.reload();
+    await expect(page.getByRole("listitem").nth(0)).toContainText("Seed 42");
+    const exported = await exportSlot(page, 0);
+    expect(exported.name).toBe("far-hollow-slot-1-day-1.json");
+    expect(exported.data).toEqual(saved);
+  });
 });
 
 /** Clicks a slot's Import button, confirms the warning if the slot is not empty, and picks a file with `text` in it. */
@@ -220,11 +242,12 @@ test("import warns before it replaces a filled slot, and a refused file leaves t
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByText("Importing a file replaces the saved game in slot 1.")).toHaveCount(0);
 
+  const saved = (await readStored(page, "slot-1")) as Record<string, unknown>;
   await importIntoSlot(page, 0, "not a saved game", true);
   await expect(slots.nth(0)).toContainText("This file is not a Far Hollow saved game.");
   await expect(slots.nth(0)).toContainText("Day 1 · Seed 7");
+  expect(await readStored(page, "slot-1")).toEqual(saved);
 
-  const saved = (await readStored(page, "slot-1")) as Record<string, unknown>;
   await importIntoSlot(page, 0, JSON.stringify({ ...saved, version: 1_000 }), true);
   await expect(slots.nth(0)).toContainText("This saved game was made by a newer version of Far Hollow.");
   await expect(slots.nth(0)).toContainText("Day 1 · Seed 7");
@@ -232,6 +255,16 @@ test("import warns before it replaces a filled slot, and a refused file leaves t
 
   // The player's next action clears the reason.
   await slots.nth(0).getByRole("button", { name: "New game" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("a key press on the start screen clears the reason an import was refused", async ({ page }) => {
+  await page.goto("/");
+  const slots = page.getByRole("listitem");
+
+  await importIntoSlot(page, 0, "not a saved game", false);
+  await expect(page.getByRole("alert")).toBeVisible();
+  await slots.nth(0).getByRole("button", { name: "New game" }).press("Enter");
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 

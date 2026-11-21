@@ -1,9 +1,6 @@
 import { useRef, useState } from "preact/hooks";
-import { seedFromText, type SaveRefusal, type SaveSlotSummary } from "../sim/api";
+import { seedFromText, type ImportRefusal, type SaveSlotSummary } from "../sim/api";
 import { strings } from "../strings";
-
-/** Why the start screen could not import a file into a slot. `notStored`: the file was fine, but the browser could not store it. */
-export type ImportRefusal = SaveRefusal | "notStored";
 
 export interface StartScreenProps {
   /** What each save slot holds, in slot order. */
@@ -16,7 +13,11 @@ export interface StartScreenProps {
   onNewGame: (slot: number, seed: number | undefined) => void;
   /** Called when the player exports the saved game in a filled or broken slot to a file. */
   onExport: (slot: number) => void;
-  /** Called when the player picks a file to import into a slot. Resolves to why the file was refused, or undefined once the slot holds the imported game. */
+  /**
+   * Called when the player picks a file to import into a slot.
+   * Resolves to why the file was refused.
+   * Resolves to undefined once the slot holds the imported game.
+   */
   onImport: (slot: number, file: File) => Promise<ImportRefusal | undefined>;
 }
 
@@ -33,22 +34,18 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
   /** The slot the file picker is open for. */
   const importSlot = useRef(0);
 
+  /** Clears the reason the last import was refused. Any click, typing, or form submit on the start screen calls it. */
+  function clearRefusal(): void {
+    setRefusal(null);
+  }
+
   function pickFile(slot: number): void {
     importSlot.current = slot;
     fileInput.current?.click();
   }
 
   return (
-    <main
-      class="start-screen"
-      // Any action on the start screen clears the reason the last import was refused.
-      onClickCapture={() => {
-        setRefusal(null);
-      }}
-      onInputCapture={() => {
-        setRefusal(null);
-      }}
-    >
+    <main class="start-screen" onClickCapture={clearRefusal} onInputCapture={clearRefusal} onSubmitCapture={clearRefusal}>
       <h1>{strings.gameTitle}</h1>
       {!canSave && <p class="start-screen-warning">{strings.startScreen.cannotSave}</p>}
       {canSave && (
@@ -157,23 +154,22 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                 >
                   {strings.startScreen.newGame}
                 </button>
-                {canSave && slot.state !== "empty" && (
-                  <>
-                    {" "}
-                    <button
-                      type="button"
-                      class="hud-button"
-                      onClick={() => {
-                        onExport(index);
-                      }}
-                    >
-                      {strings.startScreen.exportGame}
-                    </button>
-                  </>
-                )}
                 {canSave && (
                   <>
-                    {" "}
+                    {slot.state !== "empty" && (
+                      <>
+                        {" "}
+                        <button
+                          type="button"
+                          class="hud-button"
+                          onClick={() => {
+                            onExport(index);
+                          }}
+                        >
+                          {strings.startScreen.exportGame}
+                        </button>
+                      </>
+                    )}{" "}
                     <button
                       type="button"
                       class="hud-button"

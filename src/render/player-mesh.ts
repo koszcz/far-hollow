@@ -8,9 +8,6 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
-// While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
-// forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
-// approved "sled-rope" starts.
 // While the player holds a lit torch, the draft "torch", built by torch-shape.ts, rides upright in the left hand through
 // every motion, with a small "fire-effect" flame on its head. scene-renderer.ts lights the ground from torchFlame().
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
@@ -22,7 +19,6 @@ import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
-import { sledDragPoseAt } from "./player-sled-drag-pose";
 import type { RopeHold } from "./sled-rope";
 import { smoothstep } from "./easing";
 import type { Leaving } from "./work-motion";
@@ -137,14 +133,12 @@ export interface PlayerMesh {
    * `distance` is how far the thing is in front of the player's feet, in metres, if known. The hand reaches toward it.
    */
   setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
-  /** Leans the player forward to drag a sled by a rope in the left hand, or stands them upright at once. */
-  setDragging(dragging: boolean): void;
   /**
    * Moves the motion `id`, from the list in player-motions/motion-list.ts, on to `moment`, or stops it when `moment` is
    * undefined. Each motion's module says what its moment is.
    */
   setMotion<Id extends MotionId>(id: Id, moment: MotionMoment<Id> | undefined): void;
-  /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. */
+  /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. See sled-drag-animation.ts. */
   ropeHold(): RopeHold | undefined;
   /**
    * Shows a lit torch in the player's left hand, its flame burning at `nowSeconds`, a steady real-time clock.
@@ -317,8 +311,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
   /** While standing up after a work motion stops. */
   let leavingBuild: Leaving | undefined;
-  /** Whether the player drags a sled. */
-  let dragging = false;
 
   // The lit torch rides in the left hand, upright, placed from the wrist each time the player is posed.
   const torchShape = createTorchShape();
@@ -352,8 +344,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     get walkedMetres() {
       return walkedMetres;
     },
+    strideMetres: STRIDE_METRES,
     get bodyMoves() {
-      return walkedMetres !== undefined || choppingAt !== undefined || splittingAt !== undefined || dragging || bodyMotions.some((motion) => motion.playing);
+      return walkedMetres !== undefined || choppingAt !== undefined || splittingAt !== undefined || bodyMotions.some((motion) => motion.playing);
     },
   };
   const motions = createPlayerMotions(rig);
@@ -539,14 +532,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       playing.pose?.();
       return;
     }
-    if (dragging) {
-      // Only the left hand takes the rope. The right arm keeps the clip's swing, or steadies a log on the shoulder.
-      // The walk clip takes two steps to each stride, and each step heaves into the pull.
-      rememberClipPose(...buildPosedBones);
-      const steps = walkedMetres === undefined ? undefined : (walkedMetres / STRIDE_METRES) * 2;
-      applyBuildPose(group, buildBones, sledDragPoseAt(steps), [leftArm]);
-      return;
-    }
     const pose = standingUpPose();
     // A hand steadying a log on the shoulder stays there, so only the left hand moves.
     if (pose !== undefined) rig.applyPose(pose, freeArms(rig));
@@ -684,16 +669,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (changed) updateAxe();
       pose();
     },
-    setDragging(draggingNow) {
-      if (draggingNow === dragging) return;
-      dragging = draggingNow;
-      pose();
-    },
     ropeHold() {
-      if (!dragging) return undefined;
-      group.updateWorldMatrix(true, true);
-      const hand = leftArm.end.getWorldPosition(new THREE.Vector3());
-      return { hand: { x: hand.x, y: hand.y, z: hand.z }, walking: walkedMetres !== undefined };
+      return motions["sled-drag-animation"].ropeHold();
     },
     setSitting(body) {
       const changed = (body === undefined) !== (sittingBody === undefined);

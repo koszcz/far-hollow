@@ -37,6 +37,7 @@ export function createTestRig(overrides: Partial<PlayerRig> = {}): PlayerRig {
     applyPose: () => {},
     carrying: false,
     walkedMetres: undefined,
+    strideMetres: 0.94,
     bodyMoves: false,
     ...overrides,
   };

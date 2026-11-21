@@ -24,6 +24,8 @@ export interface PlayerRig {
   readonly carrying: boolean;
   /** The total metres walked so far, or undefined while standing still. */
   readonly walkedMetres: number | undefined;
+  /** Metres walked in one full loop of the walk clip, left foot and right foot. */
+  readonly strideMetres: number;
   /** Whether the body is busy now: walking, chopping, splitting, or playing a body motion. */
   readonly bodyMoves: boolean;
 }

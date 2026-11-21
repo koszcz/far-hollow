@@ -12,6 +12,7 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
   "fishing-animation": { nowSeconds: 3, sinceCast: 3, toBite: 1, floatForward: 4, floatHeight: -0.5 },
   "gather-stone-animation": 1,
   "forage-eat-drink-animation": { kind: "drinkFromPot", seconds: 0.5 },
+  "sled-drag-animation": true,
 };
 
 describe("the player motions", () => {
@@ -24,10 +25,11 @@ describe("the player motions", () => {
       "fishing-animation",
       "gather-stone-animation",
       "forage-eat-drink-animation",
+      "sled-drag-animation",
     ]);
   });
 
-  it("puts the axe on the back for every motion", () => {
+  it("puts the axe on the back for every motion but sled dragging", () => {
     const motions = createPlayerMotions(createTestRig());
     const onBack = Object.fromEntries(Object.entries(motions).map(([id, motion]) => [id, motion.axeOnBack]));
     expect(onBack).toEqual({
@@ -38,6 +40,7 @@ describe("the player motions", () => {
       "fishing-animation": true,
       "gather-stone-animation": true,
       "forage-eat-drink-animation": true,
+      "sled-drag-animation": false,
     });
   });
 

@@ -213,7 +213,7 @@ const SLED_DRAG_SHOWCASE: Showcase = {
     const sledId = stage.store.id(sled);
     if (player !== undefined && sledId !== undefined) stage.store.addComponent(player, "dragging", { sledId });
     dragTo(stage, 0);
-    stage.player.setDragging(true);
+    stage.player.setMotion("sled-drag-animation", true);
   },
   pose({ player }, shot) {
     player.setWalking(shot.seconds === undefined ? undefined : shot.seconds * DRAG_WALK_METRES_PER_SECOND);

@@ -32,13 +32,14 @@ These tickets use the architecture words below.
 
 ## Tickets
 
-1. `issues/01-one-reach-module.md`: one module for walking within reach of a thing, then acting.
+1. `issues/01-one-reach-module.md`: one module for walking within reach of a thing, then acting. It covers act-once tasks.
 2. `issues/02-run-only-after-refusal.md`: the game checks a command's refusal before it runs it.
 3. `issues/03-activity-modules-own-their-command-rules.md`: each activity module declares its own command rule.
 4. `issues/04-action-queue-module.md`: the action queue becomes its own module and asks each rule whether its action is done.
 5. `issues/05-furniture-is-one-kind-of-pick.md`: furniture is one kind of pick, and each definition names its use.
 6. `issues/06-close-ui-leaks.md`: small fixes where the UI copies sim rules or skips refusals.
+7. `issues/07-timed-tasks-use-the-approach.md`: timed tasks, such as chopping, walk to their thing through the approach module.
 
-Tickets 01, 02, and 06 can start now. Ticket 03 needs 01 and 02. Ticket 04 needs 02.
+Tickets 02 and 06 can start now. Tickets 01 and 04 need 02. Ticket 03 needs 01 and 02. Ticket 07 needs 01.
 
 The review report with before and after diagrams was written to a temporary file and is not kept. This spec and the tickets hold everything it said.

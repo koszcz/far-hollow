@@ -84,6 +84,8 @@ export interface Recipe {
 export const SAW_CRAFT_SECONDS = 5;
 /** How long crafting the fishing rod takes, in seconds. */
 export const FISHING_ROD_CRAFT_SECONDS = 5;
+/** How long crafting a torch takes, in seconds. */
+export const TORCH_CRAFT_SECONDS = 4;
 /** How long cutting a debarked log into planks takes, in seconds. */
 export const PLANKS_CRAFT_SECONDS = 8;
 /** How many planks one debarked log makes. */
@@ -129,6 +131,16 @@ const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind:
     result: { content: "fishingRod", count: 1 },
     seconds: FISHING_ROD_CRAFT_SECONDS,
     tool: "knife",
+  },
+  // The torch: a hand recipe that wraps a strip of bark round the end of a stick. It needs no tool.
+  torch: {
+    kind: "torch",
+    materials: [
+      { material: "stick", count: 1 },
+      { material: "bark", count: 1 },
+    ],
+    result: { content: "torch", count: 1 },
+    seconds: TORCH_CRAFT_SECONDS,
   },
 };
 

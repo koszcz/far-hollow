@@ -205,6 +205,14 @@ export type Command =
    * or if the logs a station recipe uses do not lie within STATION_GROUND_METRES of the station.
    */
   | { type: "craft"; recipe: RecipeKind; stationId?: number }
+  /**
+   * Light a torch from the backpack with the steel and flint. It leaves the backpack and goes in the player's hand, lit for
+   * TORCH_BURN_MINUTES. It is refused without the steel and flint, or while the player already holds a lit torch.
+   * Nothing happens if the backpack holds no torch.
+   */
+  | { type: "lightTorch" }
+  /** Put out the lit torch in the player's hand. It is thrown away, since a torch is never lit twice. */
+  | { type: "putOutTorch" }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
@@ -261,6 +269,12 @@ export interface GameView {
   /** The sled the player drags behind them, or null if none. */
   readonly dragging: SledView | null;
   /**
+   * The lit torch in the player's hand, or null if they hold none. `minutesLeft` is how many more game minutes it burns.
+   * `burnLeft` is the same as a share of its whole burning time, from 1 (just lit) to 0 (burnt out). It lights the ground
+   * within TORCH_LIGHT_METRES of the player.
+   */
+  readonly litTorch: LitTorchView | null;
+  /**
    * The things within the player's reach that the HUD shows a panel for, at most one of each kind, in the order the HUD shows them.
    * `nearbyOf` finds one kind.
    */
@@ -299,6 +313,15 @@ export interface GameView {
    */
   readonly actionQueue: readonly ActionCommand[];
 }
+
+/** The lit torch in the player's hand. See `GameView.litTorch`. */
+export interface LitTorchView {
+  readonly minutesLeft: number;
+  readonly burnLeft: number;
+}
+
+/** How far a lit torch lights the ground around it, in metres. Drawing uses it for the torch's light. */
+export const TORCH_LIGHT_METRES = 6;
 
 /** A reach in progress. See `GameView.reach`. */
 export interface ReachView {
@@ -469,6 +492,7 @@ export type Refusal =
  * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
+ * - `torchAlreadyLit`: the player already holds a lit torch, and holds only one at a time.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -489,7 +513,8 @@ export type PlainRefusal =
   | "fishOnFire"
   | "holdsUpPiece"
   | "tooYoungToChop"
-  | "backpackFull";
+  | "backpackFull"
+  | "torchAlreadyLit";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {

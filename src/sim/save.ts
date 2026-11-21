@@ -56,6 +56,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   growStumpsBack,
   addStone,
   addFireplaces,
+  addTorches,
 ];
 
 /** The version of the save format this code writes. */
@@ -119,6 +120,8 @@ export const REGROWTH_SAVE_VERSION = SAVE_UPGRADES.indexOf(growStumpsBack) + 2;
 export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
 /** The first save version that can hold fireplaces. */
 export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
+/** The first save version that can hold torches, unlit in the backpack or lit in the player's hand. */
+export const TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTorches) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -612,5 +615,13 @@ function addStone(save: Readonly<Record<string, unknown>>): Record<string, unkno
 
 /** Version 35 to 36: the player can build fireplaces from stone. A save from before then has none, so it carries over unchanged. */
 function addFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 36 to 37: the player can craft torches and carry one lit. A save from before then has no torches, unlit or lit,
+ * so it carries over unchanged.
+ */
+function addTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

@@ -34,6 +34,7 @@ import { HudIcon, type HudIconName } from "./hud-icons";
 import { lowNeedsHint, needPulses, needRingShare } from "./need-gauge";
 import { placingHint } from "./placing-hint";
 import { SLED_DRAWING } from "./sled-icons";
+import { LIT_TORCH_DRAWING } from "./torch-icons";
 import { weightRingShare, weightRingWarns } from "./weight-ring";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -95,15 +96,12 @@ function ContentGrid({
 function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target: HotbarTarget, x: number, y: number) => void }) {
   return (
     <ul class="hud-hotbar-cells">
-      {hotbarCells(view).map(({ target, name, tip, count, key }) => (
-        <li
-          key={target.kind === "backpackContent" ? target.content : target.kind}
-          class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : target.kind === "sled" ? "hud-hotbar-sled" : undefined}
-        >
+      {hotbarCells(view).map(({ target, name, tip, count, key, gauge }) => (
+        <li key={target.kind === "backpackContent" ? target.content : target.kind} class={HOTBAR_CELL_CLASS[target.kind]}>
           <button
             type="button"
             class="hud-content-move hud-hotbar-cell"
-            aria-label={hotbarCellLabel(target, name, count, key)}
+            aria-label={hotbarCellLabel(target, name, count, key, tip)}
             onClick={(event) => {
               const cell = event.currentTarget.getBoundingClientRect();
               onOpenMenu(target, cell.left + cell.width / 2, cell.top);
@@ -123,6 +121,7 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
                 {key}
               </span>
             )}
+            {gauge !== undefined && <span class="hud-hotbar-gauge" style={{ "--hud-level": gauge }} aria-hidden="true" />}
           </button>
         </li>
       ))}
@@ -130,11 +129,21 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
   );
 }
 
-/** The full name of a hotbar cell, for screen readers. */
-function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined): string {
+/** The class of each kind of hotbar cell. The shoulder, sled, and lit torch cells sit apart from the backpack contents. */
+const HOTBAR_CELL_CLASS: Readonly<Record<HotbarTarget["kind"], string | undefined>> = {
+  backpackContent: undefined,
+  shoulder: "hud-hotbar-shoulder",
+  sled: "hud-hotbar-sled",
+  litTorch: "hud-hotbar-torch",
+};
+
+/** The full name of a hotbar cell, for screen readers. The lit torch cell's tip says how long it still burns. */
+function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined, tip: string): string {
   switch (target.kind) {
     case "shoulder":
       return strings.hotbar.shoulder(name);
+    case "litTorch":
+      return strings.hotbar.inHand(tip);
     case "sled":
       return strings.hotbar.dragging(name);
     case "backpackContent":
@@ -178,6 +187,8 @@ function HotbarCellIcon({ target }: { target: HotbarTarget }) {
       return <HudIcon name="log" />;
     case "sled":
       return <ShadedIcon drawing={SLED_DRAWING} className="backpack-icon" />;
+    case "litTorch":
+      return <ShadedIcon drawing={LIT_TORCH_DRAWING} className="backpack-icon" />;
   }
 }
 

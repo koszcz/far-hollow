@@ -130,6 +130,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   drinkTask: point,
   stoneTask: shape({ x: finite, z: finite, secondsDone: finite }),
   sickness: shape({ minutesLeft: finite }),
+  litTorch: shape({ minutesLeft: finite }),
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
@@ -177,6 +178,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   holdsUpPiece: true,
   tooYoungToChop: true,
   backpackFull: true,
+  torchAlreadyLit: true,
 };
 
 /** Why the game refused a command, as a notice about the action queue names it. */

@@ -46,6 +46,8 @@ export function actionsFor(target: ActionTarget, reader: ActionReader): readonly
       return shoulderActions(target.log, context);
     case "sled":
       return letGoActions(context);
+    case "litTorch":
+      return litTorchActions(context);
   }
 }
 
@@ -65,6 +67,11 @@ export function menuActions(target: ActionTarget, reader: ActionReader): readonl
 /** Letting go of the dragged sled, as the only and main action. */
 function letGoActions({ offer }: Context): readonly ThingAction[] {
   return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+}
+
+/** Putting out the lit torch in the player's hand, as the only and main action. */
+function litTorchActions({ offer }: Context): readonly ThingAction[] {
+  return withMain([offer("putOut", strings.actions.putOut, { content: "torch" }, { type: "putOutTorch" })], "putOut");
 }
 
 /** Puts the main action first and marks it. `main` is its id. Without one, no action is marked main. */
@@ -311,6 +318,8 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };
+    case "torch":
+      return { label: strings.actions.light, command: { type: "lightTorch" } };
     case "pot":
       return { label: strings.actions.fillPot, command: { type: "fillPot" } };
     case "potOfRiverWater":

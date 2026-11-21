@@ -53,6 +53,7 @@ import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTim
 import { createDrinking } from "./drinking";
 import { createFishing, fishingNow } from "./fishing";
 import { createStoneGathering } from "./stone";
+import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
@@ -225,6 +226,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stoneGathering = createStoneGathering(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
+  const torches = createTorches(entities);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
@@ -295,6 +297,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       action: currentAction(),
       carrying: player.carrying ?? null,
       dragging: sleds.dragged() ?? null,
+      litTorch: litTorchView(),
       nearby: nearbyThings(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -312,6 +315,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
       actionQueue: deepFreeze(structuredClone(actionQueue)),
     });
+  }
+
+  /** The lit torch in the player's hand, as the view shows it. */
+  function litTorchView(): GameView["litTorch"] {
+    const torch = torches.held();
+    return torch === undefined ? null : Object.freeze({ minutesLeft: torch.minutesLeft, burnLeft: torch.burnLeft });
   }
 
   /** Shows a notice for as long as its kind shows. A plain notice can be given by its kind alone. */
@@ -532,6 +541,20 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       needsFreeHands: true,
       refusal: (command) => crafting.refusal(command.recipe),
       run: (command) => crafting.start(command.recipe, command.stationId),
+    },
+    // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
+    lightTorch: {
+      start: "alongside",
+      refusal: () => torches.refusal(),
+      run: () => {
+        torches.light();
+      },
+    },
+    putOutTorch: {
+      start: "alongside",
+      run: () => {
+        torches.putOut();
+      },
     },
     pickUpStick: {
       start: "fresh",
@@ -850,9 +873,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return true;
   }
 
-  /** Moves the valley on by this many game minutes: fires burn, food and trees grow back, sticks fall, and pots and fish heat. */
+  /**
+   * Moves the valley on by this many game minutes: fires and the torch in the player's hand burn, food and trees grow back,
+   * sticks fall, and pots and fish heat.
+   */
   function passWorldTime(minutes: number): void {
     campfires.burn(minutes);
+    torches.burn(minutes);
     foraging.grow(minutes);
     regrowth.grow(minutes);
     stickFall.pass(minutes);
@@ -934,8 +961,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     lastEatOrDrink = deepFreeze({ count, kind, ...copyToward(toward) });
   }
 
-  /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */
+  /**
+   * The player puts down what they hold to lie down at `spot`, which becomes their respawn point.
+   * The game puts out the lit torch in their hand, which is then gone, as after putting it out.
+   */
   function lieDown(spot: GroundPoint): void {
+    torches.putOut();
     carrying.drop();
     sleds.letGo();
     entities.removeComponent(player, "walkPath");

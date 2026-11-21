@@ -546,6 +546,33 @@ describe("other things' actions", () => {
     expect(find(actions, "putInChest")?.label).toBe("Put one in the chest");
   });
 
+  it("lights a torch from the hotbar, greyed with the reason without the steel and flint or with a torch already lit", () => {
+    const torch: ActionTarget = { kind: "backpackContent", content: "torch" };
+    const world = worldWith({ backpack: { torch: 2, steelAndFlint: 1 } });
+    const actions = actionsFor(torch, world.reader);
+    expect(summary(actions)).toEqual(["use main", "drop"]);
+    expect(find(actions, "use")?.label).toBe("Light");
+    expect(find(actions, "use")?.command).toEqual({ type: "lightTorch" });
+
+    expect(summary(actionsFor(torch, worldWith({ backpack: { torch: 2 } }).reader))).toEqual(["use main off: needs the steel and flint", "drop"]);
+
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+    expect(summary(actionsFor(torch, world.reader))).toEqual(["use main off: you already hold a lit torch", "drop"]);
+  });
+
+  it("puts out the lit torch in the player's hand", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+
+    const actions = actionsFor({ kind: "litTorch" }, world.reader);
+
+    expect(summary(actions)).toEqual(["putOut main"]);
+    expect(mainAction(actions)?.label).toBe("Put out");
+    expect(mainAction(actions)?.command).toEqual({ type: "putOutTorch" });
+  });
+
   it("puts things on an open shelf first, named as a shelf", () => {
     const shelf = { id: 14, furniture: "shelf" as const, contents: {}, weight: 0, weightLimit: 30 };
     const withShelf = worldWith({ backpack: { stick: 2 } }).reader;

@@ -39,6 +39,6 @@ These tickets use the architecture words below.
 5. `issues/05-furniture-is-one-kind-of-pick.md`: furniture is one kind of pick, and each definition names its use.
 6. `issues/06-close-ui-leaks.md`: small fixes where the UI copies sim rules or skips refusals.
 
-Tickets 01, 02, and 06 can start now. Ticket 03 needs 01 and 02. Ticket 04 needs 02.
+Tickets 02, 05, and 06 can start now. Ticket 01 needs 02. Ticket 03 needs 01 and 02. Ticket 04 needs 02.
 
 The review report with before and after diagrams was written to a temporary file and is not kept. This spec and the tickets hold everything it said.

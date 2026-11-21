@@ -207,8 +207,8 @@ export interface Crafting {
    * Starts the player crafting. A hand recipe is crafted where the player stands.
    * For a station recipe, the player walks to the finished station given by `stationId`, or to the nearest finished one
    * of the right kind, then works there.
-   * Refuses if they lack its tool, station, or materials, carry a log, the result would not fit,
-   * or the logs a station recipe uses do not lie beside the station.
+   * The game calls it only once `refusal` passes, so the player has the recipe's tool, station, and materials.
+   * Refuses if they carry a log, the result would not fit, or the logs a station recipe uses do not lie beside the station.
    * Does nothing if the station given by `stationId` is not a finished one of the right kind.
    */
   start(kind: RecipeKind, stationId?: number): CraftRefusal | undefined;
@@ -335,11 +335,6 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
       let refusal: CraftRefusal | undefined;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        const lacks = recipeLacks(recipe, player.backpack, hasStation);
-        if (lacks.length > 0) {
-          refusal = { kind: "cannotCraftYet", lacks };
-          continue;
-        }
         let station: PlacedEntity | undefined;
         if (recipe.station !== undefined) {
           station = stationId === undefined ? nearestStation(recipe.station, player.position) : stationOf(recipe, stationId);

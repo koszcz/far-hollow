@@ -31,7 +31,7 @@ export type DebarkRefusal = "backpackFull";
 export interface Debarking {
   /**
    * Sets the player walking to a log on the ground to strip its bark with the drawknife.
-   * Does nothing if the entity is not a log on the ground, the player has no drawknife, or the bark would not fit.
+   * Does nothing if the entity is not a log on the ground, or the bark would not fit. The game calls it only once `refusal` passes.
    * Returns "backpackFull" when the backpack has no room for the bark.
    */
   start(logId: number): DebarkRefusal | undefined;
@@ -54,7 +54,7 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
       if (log?.log === undefined || log.position === undefined) return undefined;
       let refusal: DebarkRefusal | undefined;
       for (const player of players) {
-        if (player.backpack === undefined || toolRefusal(player, "drawknife") !== undefined) continue;
+        if (player.backpack === undefined) continue;
         if (!barkFits(player.backpack)) {
           refusal = "backpackFull";
           continue;

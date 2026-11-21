@@ -1,7 +1,7 @@
 import type { Refusal } from "./api";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
-import { shoulderRefusal, toolRefusal } from "./refusals";
+import { goneRefusal, shoulderRefusal, toolRefusal } from "./refusals";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
@@ -20,9 +20,6 @@ export function splittingNow(player: Entity): { progress: number } | undefined {
 /** How many pieces of firewood one log splits into. */
 export const FIREWOOD_PER_LOG = 4;
 
-/** Why the player could not start gathering. */
-export type GatherRefusal = "backpackFull";
-
 export interface Gathering {
   /**
    * Sets the player walking to a stick on the ground to put it in the backpack. Once there, they reach down for it.
@@ -32,22 +29,14 @@ export interface Gathering {
   pickUpStick(stickId: number): void;
   /** Like `pickUpStick`, for a piece of bark on the ground, such as one given back by taking down a building piece. */
   pickUpBark(barkId: number): void;
+  /** Starts the player splitting the log on their shoulder into firewood with the axe. The game calls it only once `splitRefusal` passes. */
+  splitLog(): void;
   /**
-   * Starts the player splitting the log on their shoulder into firewood with the axe.
-   * Does nothing if the player carries no log, has no axe, or the backpack has no room for all the firewood.
-   * Returns "backpackFull" when the backpack has no room for the firewood.
+   * Why the player could not split a log now: without the axe, or without room in the backpack for all the firewood.
+   * For the log on their shoulder, `logId` is undefined, and they must carry a log. For a log on the ground, given by `logId`,
+   * it must not be gone, and they must carry no log, since splitting picks it up first.
    */
-  splitLog(): GatherRefusal | undefined;
-  /**
-   * Why the player could not split a log now: without the axe, or, for a log on the ground, with a log already on their shoulder,
-   * since splitting picks it up first. The game greys out splitting for these.
-   */
-  refusal(fromGround: boolean): Refusal | undefined;
-  /**
-   * Whether the backpack has no room for all the firewood, checked before the player picks up a log to split.
-   * The game shows this as a notice when the player tries.
-   */
-  splitRefusal(): GatherRefusal | undefined;
+  splitRefusal(logId: number | undefined): Refusal | undefined;
   /** Stops the player walking to pick up a stick or piece of bark, or splitting a log. */
   cancel(): void;
   /** Starts the player reaching for sticks and bark they have walked to, and moves splitting on by one logic step. Run it after walking has moved the player. */
@@ -102,6 +91,16 @@ export function createGathering(entities: EntityStore, walking: Walking, hand: P
     });
   }
 
+  /** Why the player could not split the log on their shoulder: they carry none. */
+  function carriedLogRefusal(player: Entity | undefined): Refusal | undefined {
+    return player?.carrying === "log" ? undefined : { kind: "noLogCarried" };
+  }
+
+  /** Why the player could not pick up a log on the ground to split it: it is gone, or a log is already on their shoulder. */
+  function groundLogRefusal(player: Entity | undefined, logId: number): Refusal | undefined {
+    return goneRefusal(entities, logId) ?? shoulderRefusal(player);
+  }
+
   return {
     pickUpStick(stickId) {
       startPickUp(stickId, "stick", (player) => {
@@ -114,27 +113,16 @@ export function createGathering(entities: EntityStore, walking: Walking, hand: P
       });
     },
     splitLog() {
-      let refusal: GatherRefusal | undefined;
       for (const player of players) {
-        if (player.carrying !== "log" || player.backpack === undefined) continue;
-        if (!canSplitInto(player.backpack)) {
-          if (hasInBackpack(player.backpack, "axe")) refusal = "backpackFull";
-          continue;
-        }
         entities.removeComponent(player, "walkPath");
         setComponent(entities, player, "splitTask", { secondsDone: 0 });
       }
-      return refusal;
     },
-    refusal(fromGround) {
+    splitRefusal(logId) {
       const player = players.first;
-      return toolRefusal(player, "axe") ?? (fromGround ? shoulderRefusal(player) : undefined);
-    },
-    splitRefusal() {
-      for (const player of players) {
-        if (player.backpack !== undefined && !canSplitInto(player.backpack)) return "backpackFull";
-      }
-      return undefined;
+      const refusal = toolRefusal(player, "axe") ?? (logId === undefined ? carriedLogRefusal(player) : groundLogRefusal(player, logId));
+      if (refusal !== undefined) return refusal;
+      return player?.backpack === undefined || fitsInBackpack(player.backpack, "firewood", FIREWOOD_PER_LOG) ? undefined : { kind: "backpackFull" };
     },
     cancel() {
       for (const player of players) {

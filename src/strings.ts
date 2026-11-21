@@ -249,6 +249,8 @@ export const strings = {
     cannotQueue: (reason: string) => `You cannot line that up: ${reason}.`,
     /** A lined-up action's turn came, but the game refused it, such as "Skipped the next action: the fire is full." */
     actionSkipped: (reason: string) => `Skipped the next action: ${reason}.`,
+    /** The player sent an action the game refuses now, such as "You cannot do that: needs the fishing rod." */
+    refused: (reason: string) => `You cannot do that: ${reason}.`,
   },
   backpack: "Backpack",
   backpackContents: {
@@ -403,6 +405,8 @@ export const strings = {
     holdsUpPiece: "take down what stands on it first",
     tooYoungToChop: "the tree is too young to chop",
     backpackFull: "the backpack is full",
+    gone: "it is no longer there",
+    openFirst: "open it first",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

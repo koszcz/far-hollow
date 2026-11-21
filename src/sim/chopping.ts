@@ -49,7 +49,7 @@ function chopReach(tree: Entity): number {
 }
 
 export interface Chopping {
-  /** Sets the player walking to a standing tree to chop it. Does nothing if the entity is not a standing tree or the player has no axe. */
+  /** Sets the player walking to a standing tree to chop it. Does nothing if the entity is not a standing tree. The game calls it only once `refusal` passes. */
   start(treeId: number): void;
   /** Why the player could not chop this tree, given by its entity id: it is a young tree, or the player has no axe. */
   refusal(treeId: number): Refusal | undefined;
@@ -71,7 +71,6 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
       const tree = entities.entity(treeId);
       if (tree?.tree !== true || tree.position === undefined) return;
       for (const player of players) {
-        if (toolRefusal(player, "axe") !== undefined) continue;
         walking.walkWithin(tree.position, chopReach(tree) - WALK_REACH_MARGIN_METRES);
         const task = { treeId, secondsDone: 0 };
         setComponent(entities, player, "chopTask", task);

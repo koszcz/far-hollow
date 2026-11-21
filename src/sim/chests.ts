@@ -1,6 +1,6 @@
 // Opening a piece of furniture that stores things, and moving small materials, tools, and food between it and the backpack.
 // Every such piece works the same way and opens in the chest panel. Its definition in src/sim/furniture/ says how much it holds.
-import type { ChestView, ChestOrShelf, PlainNotice } from "./api";
+import type { ChestView, ChestOrShelf, PlainNotice, Refusal } from "./api";
 import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
 import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
@@ -41,6 +41,8 @@ export interface Chests {
   step(): undefined;
   /** The chest or shelf the player has open, as the HUD shows it. Undefined while none is open, or while the player walks. */
   opened(): ChestView | undefined;
+  /** Why the player could not put things in or take things from this chest or shelf now: it is not the one they have open. */
+  refusal(chestId: number): Refusal | undefined;
   /**
    * Moves one of `content` from the backpack into the open chest or shelf, or with `all` as many as fit within its weight limit.
    * Returns the piece's notice that it is full if none of it fits.
@@ -98,6 +100,9 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
         if (inReach && player.walkPath === undefined) reached = true;
         if (!inReach && (reached || player.walkPath === undefined)) openId = undefined;
       }
+    },
+    refusal(chestId) {
+      return openId === chestId && openChest() !== undefined ? undefined : { kind: "openFirst" };
     },
     opened() {
       const chest = openChest();

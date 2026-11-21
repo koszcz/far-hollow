@@ -103,8 +103,11 @@ describe("the main action on a finished building piece", () => {
 describe("the main action on other things", () => {
   it("does the main action", () => {
     expect(clickSends({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });
-    expect(clickSends({ kind: "bedroll", id: 9 })).toEqual({ type: "sleep", bedrollId: 9 });
-    expect(clickSends({ kind: "stool", id: 8 })).toEqual({ type: "sitOnStool", stoolId: 8 });
+    const world = worldWith({});
+    const bedrollId = world.add({ bedroll: true });
+    const stoolId = world.add({ furniture: "stool", facing: { turns: 0 } });
+    expect(mainActionFor({ kind: "bedroll", id: bedrollId }, world.reader)?.command).toEqual({ type: "sleep", bedrollId });
+    expect(mainActionFor({ kind: "stool", id: stoolId }, world.reader)?.command).toEqual({ type: "sitOnStool", stoolId });
     expect(clickSends({ kind: "pile", id: 4 })).toEqual({ type: "pickUpPile", pileId: 4 });
     expect(clickSends({ kind: "chest", id: 6 })).toEqual({ type: "openChest", chestId: 6 });
     expect(clickSends({ kind: "shelf", id: 7 })).toEqual({ type: "openChest", chestId: 7 });

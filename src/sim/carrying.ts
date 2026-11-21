@@ -13,7 +13,7 @@ const PICK_UP_REACH_METRES = 2;
 export interface Carrying {
   /**
    * Sets the player walking to a log or debarked log on the ground. Once there, they reach down and shoulder it.
-   * Does nothing if the entity is not one of those or the player already carries one.
+   * Does nothing if the entity is not one of those. The game calls it only once `pickUpRefusal` passes.
    * With `thenSplit`, the player starts splitting it into firewood once it is on their shoulder, if it is a log.
    */
   pickUp(logId: number, thenSplit?: boolean): void;
@@ -57,7 +57,6 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
       const log = entities.entity(logId);
       if (log === undefined || logKind(log) === undefined || log.position === undefined) return;
       for (const player of players) {
-        if (shoulderRefusal(player) !== undefined) continue;
         walkOntoOrWithinReach(walking, log.position, log.position, PICK_UP_REACH_METRES);
         setComponent(entities, player, "logPickUpTask", thenSplit ? { logId, thenSplit: true } : { logId });
       }

@@ -480,15 +480,16 @@ function FishOnFireMeter({ fish }: { fish: CampfireView["fish"][number] }) {
 }
 
 /**
- * Shows whether the campfire beside the player burns, how much fuel it has, how far the pot on it has boiled, and how far
- * each fish on it has cooked. Its actions are on the campfire itself.
+ * Shows whether the campfire or fireplace beside the player burns, how much fuel it has, how far the pot on it has boiled,
+ * and how far each fish on it has cooked. Its actions are on the campfire or fireplace itself.
  */
 function CampfirePanel({ campfire }: { campfire: CampfireView }) {
+  const title = campfire.kind === "fireplace" ? strings.fireplace : strings.campfire;
   return (
-    <section class="hud-section hud-campfire" aria-label={strings.campfire}>
+    <section class="hud-section hud-campfire" aria-label={title}>
       <h2>
         <HudIcon name="campfire" />
-        {strings.campfire}
+        {title}
         <span class={campfire.lit ? "hud-tag hud-tag-lit" : "hud-tag"}>{campfire.lit ? strings.campfireLit : strings.campfireUnlit}</span>
       </h2>
       <Meter icon="flame" label={strings.campfireFuel} value={campfire.fuelLeft} colour={`rgb(${WARM_RGB.join(" ")})`} />

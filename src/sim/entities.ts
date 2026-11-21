@@ -3,6 +3,7 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
+import type { Fire, Hearth } from "./fire";
 import type { FishOnFire } from "./fish-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
@@ -170,13 +171,14 @@ export interface Entity {
   /**
    * Marks a finished fireplace: a stone hearth with a short chimney on one foundation square.
    * Its position is the middle of that square, at the height of the foundation's deck. Its `facing` says which side its opening faces.
+   * It holds the fire in its hearth. A lit fireplace in a room warms the whole room.
    */
-  fireplace?: true;
+  fireplace?: Fire;
   /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
-  campfire?: { lit: boolean; fuelMinutes: number };
+  campfire?: Fire;
   /**
    * Marks a campfire built on a foundation, with the middle of that foundation's grid square.
    * A lit campfire on a foundation in a room warms the whole room. Missing for a campfire on the ground.
@@ -432,6 +434,30 @@ export function cabinRoofEntities(store: EntityStore) {
 /** Finished fireplaces. */
 export function fireplaceEntities(store: EntityStore) {
   return store.with("fireplace", "position");
+}
+
+/** A finished campfire or fireplace, which hearth it is, and the fire it holds. Set the fire back on `entity[hearth]` to change it. */
+export interface HeldFire {
+  readonly entity: Entity & { position: Vec3 };
+  readonly hearth: Hearth;
+  readonly fire: Fire;
+}
+
+/** The fire an entity holds, if it is a finished campfire or fireplace. */
+export function heldFireOf(entity: Entity | undefined): HeldFire | undefined {
+  if (entity === undefined || !hasPosition(entity)) return undefined;
+  if (entity.campfire !== undefined) return { entity, hearth: "campfire", fire: entity.campfire };
+  if (entity.fireplace !== undefined) return { entity, hearth: "fireplace", fire: entity.fireplace };
+  return undefined;
+}
+
+/** Every finished campfire and fireplace, with the fire it holds. */
+export function heldFires(store: EntityStore): HeldFire[] {
+  return [...campfireEntities(store), ...fireplaceEntities(store)].flatMap((entity) => heldFireOf(entity) ?? []);
+}
+
+function hasPosition(entity: Entity): entity is Entity & { position: Vec3 } {
+  return entity.position !== undefined;
 }
 
 /** Finished campfires. */

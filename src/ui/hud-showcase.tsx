@@ -93,6 +93,7 @@ const STATES: readonly ShowcaseState[] = [
           kind: "campfire",
           view: {
             id: 1,
+            kind: "campfire",
             lit: true,
             fuelLeft: 0.6,
             fuelMinutes: 90,
@@ -139,6 +140,7 @@ const BARK_STATES: readonly ShowcaseState[] = [
           kind: "campfire",
           view: {
             id: 1,
+            kind: "campfire",
             lit: true,
             fuelLeft: 0.3,
             fuelMinutes: 40,
@@ -308,6 +310,7 @@ const FISHING_ICON_STATES: readonly ShowcaseState[] = [
           kind: "campfire",
           view: {
             id: 1,
+            kind: "campfire",
             lit: true,
             fuelLeft: 0.5,
             fuelMinutes: 240,

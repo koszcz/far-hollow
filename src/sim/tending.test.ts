@@ -103,6 +103,7 @@ describe("describing a campfire or woodpile by its id", () => {
 
     expect(game.client.describeCampfire(idOf(game, campfire))).toEqual({
       id: idOf(game, campfire),
+      kind: "campfire",
       lit: false,
       fuelLeft: 460 / 480,
       fuelMinutes: 460,

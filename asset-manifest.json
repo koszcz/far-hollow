@@ -434,9 +434,10 @@
       "kind": "code",
       "code": [
         "src/render/fire-effect.ts",
-        "src/render/campfire-meshes.ts"
+        "src/render/campfire-meshes.ts",
+        "src/render/fireplace-meshes.ts"
       ],
-      "description": "Flames, embers, sparks, smoke, and glow of a lit campfire.",
+      "description": "Flames, embers, sparks, smoke, and glow of a lit campfire. A lit fireplace shows the same fire, shrunk to fit its hearth.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1279,7 +1280,7 @@
         "src/render/fireplace-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. The stones are plain boxes in three greys. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one stone per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down.",
+      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. The stones are plain boxes in three greys. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one stone per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down. A lit fireplace shows the approved fire-effect on its hearth floor, shrunk to 55%, with the campfire's glow and pool of light hung at its opening.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

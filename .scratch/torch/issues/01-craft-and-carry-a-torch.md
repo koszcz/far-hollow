@@ -2,7 +2,7 @@
 
 **What to build:** The player can craft a torch from a stick and bark, light it, and carry it. A lit torch lights the ground around the player for 3 game hours.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player` and `fire-effect`. Add the drafts `torch` and `torch-icons`.
 

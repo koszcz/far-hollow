@@ -345,8 +345,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   function nearbyCampfire(): CampfireView | null {
-    const campfire = campfires.nearby();
-    const id = campfire === undefined ? undefined : entities.id(campfire);
+    const id = campfires.nearbyFire();
     return id === undefined ? null : (campfires.describe(id) ?? null);
   }
 

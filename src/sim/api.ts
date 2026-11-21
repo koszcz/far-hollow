@@ -404,8 +404,10 @@ export type SaveSlotSummary =
   { readonly state: "empty" } | { readonly state: "broken" } | { readonly state: "filled"; readonly seed: number; readonly day: number };
 
 export interface CampfireView {
-  /** The campfire's entity id. */
+  /** The entity id of the campfire or fireplace. */
   readonly id: number;
+  /** Whether the fire is a campfire or in a fireplace. */
+  readonly kind: "campfire" | "fireplace";
   readonly lit: boolean;
   /** How full of fuel the campfire is, from 0 (empty) to 1 (it holds no more). */
   readonly fuelLeft: number;
@@ -489,6 +491,7 @@ export type Refusal =
  * - `noLogCarried`: the player carries no log to put there.
  * - `nothingToTake`: it holds none of what the command takes.
  * - `emptyFirst`, `potOnFire`, `fishOnFire`: it still holds something, so it cannot come down.
+ * - `fireNotOut`: the fireplace burns or still holds fuel, so it cannot come down.
  * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
@@ -511,6 +514,7 @@ export type PlainRefusal =
   | "emptyFirst"
   | "potOnFire"
   | "fishOnFire"
+  | "fireNotOut"
   | "holdsUpPiece"
   | "tooYoungToChop"
   | "backpackFull"
@@ -617,7 +621,20 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 export type ThingInReach =
   | {
       readonly kind:
-        "tree" | "log" | "debarkedLog" | "stick" | "bark" | "forage" | "blueprint" | "campfire" | "woodpile" | FurnitureKind | "bedroll" | "pile" | "sled";
+        | "tree"
+        | "log"
+        | "debarkedLog"
+        | "stick"
+        | "bark"
+        | "forage"
+        | "blueprint"
+        | "campfire"
+        | "fireplace"
+        | "woodpile"
+        | FurnitureKind
+        | "bedroll"
+        | "pile"
+        | "sled";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };

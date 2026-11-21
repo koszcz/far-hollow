@@ -15,6 +15,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
 /**
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
+ * No change may make an older save unplayable (ADR 0011).
  * A new kind of structure, notice, or component does not break older saves, so it needs no upgrade: the save check is built
  * from the structure catalogue and the notice table, and older code turns away a save that holds something it does not know.
  * Never remove or reorder an upgrade. Stored saves count on each version number keeping its place.
@@ -56,6 +57,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   growStumpsBack,
   addStone,
   addFireplaces,
+  lightFireplaces,
   addTorches,
 ];
 
@@ -120,6 +122,8 @@ export const REGROWTH_SAVE_VERSION = SAVE_UPGRADES.indexOf(growStumpsBack) + 2;
 export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
 /** The first save version that can hold fireplaces. */
 export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
+/** The first save version in which each fireplace holds a fire, with its fuel and whether it is lit. */
+export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplaces) + 2;
 /** The first save version that can hold torches, unlit in the backpack or lit in the player's hand. */
 export const TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTorches) + 2;
 
@@ -619,7 +623,21 @@ function addFireplaces(save: Readonly<Record<string, unknown>>): Record<string, 
 }
 
 /**
- * Version 36 to 37: the player can craft torches and carry one lit. A save from before then has no torches, unlit or lit,
+ * Version 36 to 37: a fireplace holds a fire, with its fuel and whether it is lit. A fireplace in an older save could not
+ * be fuelled, so it gets an empty fire that is out.
+ */
+function lightFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components?.fireplace !== true) return entity;
+    return { ...(entity as object), components: { ...components, fireplace: { lit: false, fuelMinutes: 0 } } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * Version 37 to 38: the player can craft torches and carry one lit. A save from before then has no torches, unlit or lit,
  * so it carries over unchanged.
  */
 function addTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {

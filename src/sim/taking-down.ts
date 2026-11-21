@@ -1,6 +1,7 @@
 // Taking down blueprints and finished structures, and giving back the materials in them.
 // Every structure can come down: a campfire, a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
-// A lit campfire goes out as it comes down, and any fuel still in it is lost.
+// A lit campfire goes out as it comes down, and any fuel still in it is lost. A fireplace comes down only once its fire is out
+// and holds no fuel.
 import type { Refusal } from "./api";
 import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";
@@ -21,6 +22,7 @@ import {
   type Entity,
   type EntityStore,
 } from "./entities";
+import { isColdAndEmpty } from "./fire";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { isSled, layLoadBeside } from "./sleds";
@@ -76,7 +78,7 @@ export interface TakingDown {
   start(structureId: number): TakeDownRefusal | undefined;
   /**
    * Why the player could not take a structure down now, wherever they stand: another structure stands on it,
-   * or it still holds something. A campfire names the pot or the fish on it.
+   * or it still holds something. A campfire names the pot or the fish on it. A fireplace says when its fire is not out.
    */
   refusal(structureId: number): Refusal | undefined;
   /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
@@ -261,11 +263,16 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
   return false;
 }
 
-/** Why a structure cannot come down yet: another structure stands on it, or it still holds something. Undefined if it can. */
+/**
+ * Why a structure cannot come down yet: another structure stands on it, it still holds something, or it is a fireplace whose
+ * fire burns or holds fuel. Undefined if it can.
+ */
 function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind: StructureKind): Refusal | undefined {
   if (holdsUpAnother(entities, structure, kind)) return { kind: "holdsUpPiece" };
   if (structure.potOnFire !== undefined) return { kind: "potOnFire" };
   if (structure.fishOnFire !== undefined) return { kind: "fishOnFire" };
+  // A fireplace keeps its fire, so it comes down only once the fire is out and its fuel is gone. A campfire just goes out.
+  if (structure.fireplace !== undefined && !isColdAndEmpty(structure.fireplace)) return { kind: "fireNotOut" };
   return holdsSomething(structure) ? { kind: "emptyFirst" } : undefined;
 }
 

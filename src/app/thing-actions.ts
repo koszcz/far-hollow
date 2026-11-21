@@ -89,6 +89,8 @@ function takeDown({ offer }: Context, id: number): Offer {
 
 function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[] {
   if (pick.kind !== "structure") return thingActions(pick, context);
+  // A finished fireplace offers its fire, as it does when the player reaches it with E, and taking it down.
+  if (pick.structure === "fireplace") return thingActions({ kind: "fireplace", id: pick.id }, context);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
   const under = pick.under === undefined ? [] : thingActions(pick.under, context);
   const [own] = structureOffers(pick, context);
@@ -137,9 +139,10 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([offer("pickUp", strings.actions.pickUp, { hud: "backpack" }, { type: "pickUpPile", pileId: pick.id })], "pickUp");
     case "forage":
       return withMain([offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId: pick.id })], "forage");
-    case "campfire": {
+    case "campfire":
+    case "fireplace": {
       const campfire = reader.describeCampfire(pick.id);
-      return campfire === null ? [] : campfireActions(campfire, context);
+      return campfire === null ? withMain([takeDown(context, pick.id)], undefined) : campfireActions(campfire, context);
     }
     case "woodpile": {
       const woodpile = reader.describeWoodpile(pick.id);
@@ -211,6 +214,7 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, cont
 
 /**
  * Light, each fuel, the pot, the fish, then Take down. Lighting shows only while the fire is out.
+ * A fireplace offers no pot or fish yet.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
 function campfireActions(campfire: CampfireView, context: Context): readonly ThingAction[] {
@@ -226,7 +230,8 @@ function campfireActions(campfire: CampfireView, context: Context): readonly Thi
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
   const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
   const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, takeDown(context, campfireId)];
+  const cooking = campfire.kind === "campfire" ? [pot, cookFish, ...takeFishOff] : [];
+  const offers = [...light, ...fuels, ...cooking, takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);

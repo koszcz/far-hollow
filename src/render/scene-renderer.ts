@@ -347,7 +347,7 @@ export function createSceneRenderer(
     const craftMotion = activity?.kind === "craft" && player.craftTask !== undefined ? craftMotionOf(player.craftTask.recipe) : undefined;
     const sawhorse = craftMotion === "saw" && target?.position !== undefined ? target : undefined;
     playerMesh.setHandCrafting(craftMotion === "hand" ? nowSeconds : undefined);
-    playerMesh.setSawing(sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
+    playerMesh.setMotion("sawing-animation", sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
     const stance = sawingStep.drawnAt(
       nowSeconds,
       sawhorse?.position === undefined ? undefined : { position: sawhorse.position, turns: sawhorse.facing?.turns ?? 0 },

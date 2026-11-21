@@ -6,8 +6,6 @@
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down and Lie_Idle clips, rolls onto the back into Death_A_Pose and
 // breathes slowly, then rolls back and plays Lie_StandUp. The owner approved it.
 // While sitting on a stool, the approved "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
-// While sawing planks, "sawing-animation", posed in code by player-saw-pose.ts, holds the log on the sawhorse with the
-// left hand and saws it with the right. The saw is the approved "saw-model", built by saw-model.ts. The axe goes on the back.
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
@@ -33,10 +31,8 @@ import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
-import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
 import { sledDragPoseAt } from "./player-sled-drag-pose";
 import type { RopeHold } from "./sled-rope";
-import { createSaw } from "./saw-model";
 import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
 import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
@@ -152,11 +148,6 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
-  /**
-   * Saws the log on the sawhorse in front of the player, the saw `progress` of the way through it, from 0 to 1.
-   * Pass undefined to stand upright. `nowSeconds` is a steady real-time clock.
-   */
-  setSawing(sawing: { nowSeconds: number; progress: number } | undefined): void;
   /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setBuilding(nowSeconds: number | undefined): void;
   /** Works at something small held at waist height, for a hand recipe. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
@@ -383,19 +374,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
    */
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
-  // Measure the log shape once, for how tall the log on the sawhorse is.
-  const logShapeBox =
-    logShape.geometry.boundingBox ?? new THREE.Box3().setFromBufferAttribute(logShape.geometry.getAttribute("position") as THREE.BufferAttribute);
-  /** How tall a log lying on its side is, in metres. */
-  const logThickness = logShapeBox.max.y - logShapeBox.min.y;
   /** Building, moved on by the steady clock time. */
   const building = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => buildPoseAt(now - since), leaveSeconds: BUILD_LEAVE_SECONDS });
-  /** Sawing, moved on by the steady clock time and how far through the log the saw is. */
-  const sawing = createWorkMotion<{ nowSeconds: number; progress: number }>({
-    startOf: (at) => at.nowSeconds,
-    poseAt: (at, since) => sawPoseAt(at.nowSeconds - since, at.progress, logThickness),
-    leaveSeconds: SAW_ENTER_SECONDS,
-  });
   /** Crafting by hand, moved on by the steady clock time. It stops at once. */
   const handCrafting = createHandCraftMotion();
   /** Fishing, moved on by the latest moment passed to `setFishing`. */
@@ -405,7 +385,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     leaveSeconds: FISH_ENTER_SECONDS,
   });
   /** The work motions, in the order they win when more than one plays. */
-  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, sawing, handCrafting, fishing];
+  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, handCrafting, fishing];
   /** While standing up after building, debarking, sawing, or fishing stops. */
   let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
@@ -413,11 +393,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Whether the player drags a sled. */
   let dragging = false;
 
-  // The saw rides in the right hand while sawing, placed from the wrist each frame.
-  const saw = createSaw();
-  saw.group.visible = false;
-  saw.group.scale.setScalar(SAW_IN_HAND_SCALE);
-  group.add(saw.group);
   // The bundle of sticks rides in the left hand while crafting by hand, with the cord running to the right hand.
   const handCraftWork = createHandCraftWork();
   handCraftWork.setVisible(false);
@@ -612,7 +587,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     poseEatingOrDrinking(eatDrinkPose);
     poseReaching();
     blendFromReach();
-    placeSaw();
     placeHandCraftWork();
     placeFishingRod();
     placePot(eatDrinkPose?.pot);
@@ -751,14 +725,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
 
   const leftWrist = new THREE.Vector3();
   const rightWrist = new THREE.Vector3();
-  /** Shows the saw while sawing, its grip in the right hand and its blade pointing the way the player faces. */
-  function placeSaw(): void {
-    saw.group.visible = sawing.since !== undefined;
-    if (!saw.group.visible) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(rightArm.end.getWorldPosition(saw.group.position));
-  }
-
   /** Shows the bundle of sticks in the left hand while crafting by hand, turned as the motion says, with the cord to the right hand. */
   function placeHandCraftWork(): void {
     const since = handCrafting.since;
@@ -954,9 +920,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       const motion: PlayerMotion<unknown> = motions[id];
       updateWork(motion, moment);
     },
-    setSawing(sawingNow) {
-      updateWork(sawing, sawingNow === undefined ? undefined : { ...sawingNow });
-    },
     setFishing(fishingNow) {
       updateWork(fishing, fishingNow === undefined ? undefined : { ...fishingNow });
     },
@@ -1026,7 +989,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       for (const made of materials) made.dispose();
       backpack.dispose();
       potMaker.dispose();
-      saw.dispose();
       handCraftWork.dispose();
       rod.dispose();
       rodBend.dispose();

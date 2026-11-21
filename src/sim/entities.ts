@@ -127,8 +127,8 @@ export interface Entity {
   /** The building in progress: the blueprint the player is building, given by its entity id. Its progress lives on the blueprint. */
   buildTask?: { blueprintId: number };
   /**
-   * The blueprint or finished structure the player is walking to or taking down, given by its entity id.
-   * `secondsDone` counts only the time spent taking it down, not walking.
+   * The taking down in progress: the blueprint or finished structure the player is taking down, given by its entity id,
+   * and how long they have worked at it.
    */
   takeDownTask?: { pieceId: number; secondsDone: number };
   /**

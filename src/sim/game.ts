@@ -743,8 +743,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => takingDown.refusal(command.pieceId),
-      run: (command) => {
-        takingDown.start(command.pieceId);
+      approach: {
+        reach: (command) => takingDown.reach(command.pieceId),
+        act: (command) => {
+          takingDown.start(command.pieceId);
+        },
       },
     },
     stopBuilding: {

@@ -724,6 +724,7 @@ const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unkn
   chopTask: (task) => ({ type: "chopTree", treeId: task.treeId }),
   debarkTask: (task) => ({ type: "debarkLog", logId: task.logId }),
   buildTask: (task) => ({ type: "build", blueprintId: task.blueprintId }),
+  takeDownTask: (task) => ({ type: "takeDown", pieceId: task.pieceId }),
 };
 
 /**

@@ -3,9 +3,10 @@
 // A lit campfire goes out as it comes down, and any fuel still in it is lost. A fireplace comes down only once its fire is out
 // and holds no fuel.
 import type { Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";
-import { BUILD_REACH_METRES, distanceOutside, walkWithinReach } from "./building";
+import { structureReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
 import {
@@ -71,7 +72,12 @@ export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
 
 export interface TakingDown {
   /**
-   * Sets the player walking to a blueprint or finished structure to take it down.
+   * Where the approach takes the player to take down a blueprint or finished structure: just outside the ground it covers.
+   * Undefined if the entity is not one the player can take down.
+   */
+  reach(structureId: number): ApproachReach | undefined;
+  /**
+   * Starts the player taking down a blueprint or finished structure within reach. The approach runs it once they arrive.
    * Does nothing if the entity is not one the player can take down. The game calls it only once `refusal` passes.
    */
   start(structureId: number): void;
@@ -80,9 +86,9 @@ export interface TakingDown {
    * or it still holds something. A campfire names the pot or the fish on it. A fireplace says when its fire is not out.
    */
   refusal(structureId: number): Refusal | undefined;
-  /** Stops the player taking a structure down, or walking to do it. The structure stays as it is. */
+  /** Stops the player taking a structure down. The structure stays as it is. */
   cancel(): void;
-  /** Moves taking down on by one logic step. Run it after walking has moved the player. Returns a refusal if the work had to stop. */
+  /** Moves taking down on by one logic step. Returns a refusal if the work had to stop. */
   step(stepSeconds: number): TakeDownRefusal | undefined;
 }
 
@@ -139,16 +145,22 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
     }
   }
 
+  /** The blueprint or finished structure with this id, if the player can take it down. */
+  function placedPiece(structureId: number): PlacedStructure | undefined {
+    const structure = entities.entity(structureId);
+    if (structure === undefined || takeDownKindOf(structure) === undefined || !isPlacedStructure(structure)) return undefined;
+    return structure;
+  }
+
   return {
+    reach(structureId) {
+      const structure = placedPiece(structureId);
+      const player = players.first;
+      return structure === undefined || player === undefined ? undefined : structureReach(structure, player.position);
+    },
     start(structureId) {
-      const structure = entities.entity(structureId);
-      const kind = structure === undefined ? undefined : takeDownKindOf(structure);
-      if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) return;
-      const footprint = footprintOfEntity(structure);
-      for (const player of players) {
-        walkWithinReach(walking, footprint, structure.position, player.position);
-        setComponent(entities, player, "takeDownTask", { pieceId: structureId, secondsDone: 0 });
-      }
+      if (placedPiece(structureId) === undefined) return;
+      for (const player of players) setComponent(entities, player, "takeDownTask", { pieceId: structureId, secondsDone: 0 });
     },
     refusal(structureId) {
       const structure = entities.entity(structureId);
@@ -163,16 +175,9 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
       let refusal: TakeDownRefusal | undefined;
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const worker of [...workers]) {
-        if (worker.walkPath) continue;
         const structure = entities.entity(worker.takeDownTask.pieceId);
         const kind = structure === undefined ? undefined : takeDownKindOf(structure);
-        // The worker may have got only as close as they could, still out of reach.
-        if (
-          structure === undefined ||
-          kind === undefined ||
-          !isPlacedStructure(structure) ||
-          distanceOutside(footprintOfEntity(structure), worker.position) > BUILD_REACH_METRES
-        ) {
+        if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) {
           entities.removeComponent(worker, "takeDownTask");
           continue;
         }
@@ -194,10 +199,10 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
 /** How long the player works to take down a finished structure of this kind, in seconds. A blueprint comes down at once. */
 /**
  * How far the player is through taking down a finished structure, from 0 to 1, and the structure.
- * Undefined if they are not taking one down now. Walking there does not count, and a blueprint is taken down at once.
+ * Undefined if they are not taking one down now. A blueprint is taken down at once.
  */
 export function takingDownNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
-  if (player.takeDownTask === undefined || player.walkPath !== undefined) return undefined;
+  if (player.takeDownTask === undefined) return undefined;
   const piece = entities.entity(player.takeDownTask.pieceId);
   const kind = piece === undefined ? undefined : takeDownKindOf(piece);
   if (piece?.blueprint !== undefined || kind === undefined) return undefined;

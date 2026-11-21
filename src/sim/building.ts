@@ -28,6 +28,7 @@ import {
   type GroundRect,
   type KeptMaterial,
   type MaterialCost,
+  type PlacedStructure,
   type StructureKind,
   type TakenMaterial,
 } from "./structures";
@@ -36,7 +37,7 @@ import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
-import { walkOntoOrWithinReach, type Walking } from "./walking";
+import type { Walking } from "./walking";
 
 /** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
 export const BUILD_STAND_METRES = 0.7;
@@ -275,12 +276,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       const blueprint = entities.entity(blueprintId);
       const player = players.first;
       if (blueprint?.blueprint === undefined || !isPlacedStructure(blueprint) || player === undefined) return undefined;
-      const footprint = footprintOfEntity(blueprint);
-      return {
-        target: footprint,
-        metres: BUILD_REACH_METRES,
-        walk: { style: "offAndBeside", spot: standSpot(footprint, blueprint.position, player.position) },
-      };
+      return structureReach(blueprint, player.position);
     },
     deliver(blueprintId) {
       for (const deliverer of players) {
@@ -486,13 +482,12 @@ export function distanceOutside(rect: GroundRect, spot: GroundPoint): number {
 }
 
 /**
- * Walks the player just outside the ground a blueprint or structure covers, on their side of it, if they are out of reach of it.
- * A player standing on it steps off it too, so a finished structure never traps them.
+ * Where the approach takes a player at `player` to work on a blueprint or structure: within BUILD_REACH_METRES of the ground
+ * it covers, just outside it, on their side of it. A player standing on it steps off it too, so a finished structure never traps them.
  */
-export function walkWithinReach(walking: Walking, footprint: GroundRect, centre: GroundPoint, player: GroundPoint): void {
-  const outside = distanceOutside(footprint, player);
-  if (outside === 0) walking.walkTo(standSpot(footprint, centre, player));
-  else if (outside > BUILD_REACH_METRES) walkOntoOrWithinReach(walking, standSpot(footprint, centre, player), footprint, BUILD_REACH_METRES);
+export function structureReach(structure: PlacedStructure, player: GroundPoint): ApproachReach {
+  const footprint = footprintOfEntity(structure);
+  return { target: footprint, metres: BUILD_REACH_METRES, walk: { style: "offAndBeside", spot: standSpot(footprint, structure.position, player) } };
 }
 
 /** Where the player stands to build: just outside the blueprint, on the line from its centre towards the player. */

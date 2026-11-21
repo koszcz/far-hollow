@@ -39,6 +39,7 @@ These tickets use the architecture words below.
 5. `issues/05-furniture-is-one-kind-of-pick.md`: furniture is one kind of pick, and each definition names its use.
 6. `issues/06-close-ui-leaks.md`: small fixes where the UI copies sim rules or skips refusals.
 7. `issues/07-timed-tasks-use-the-approach.md`: timed tasks, such as chopping, walk to their thing through the approach module.
+8. `issues/08-one-module-per-player-motion.md`: each player motion lives in its own module, so parallel asset sessions stop colliding in `player-mesh.ts`. It came from a retrospective on 2026-11-21, not from the architecture review. It needs no other ticket.
 
 Tickets 02, 05, and 06 can start now. Ticket 01 needs 02. Ticket 03 needs 01 and 02. Ticket 04 needs 02. Ticket 07 needs 01.
 

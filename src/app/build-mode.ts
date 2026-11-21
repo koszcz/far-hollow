@@ -1,5 +1,4 @@
-import type { ScenePick } from "../render/scene-renderer";
-import type { Command, StructureKind } from "../sim/api";
+import type { Command, ScenePick, StructureKind } from "../sim/api";
 import { turnQuarters, type QuarterTurns } from "../sim/quarter-turns";
 
 /**

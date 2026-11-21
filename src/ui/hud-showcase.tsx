@@ -15,6 +15,7 @@ const BASE_VIEW: GameView = {
   entityCount: 0,
   playerPosition: { x: 0, y: 0, z: 0 },
   time: { day: 1, hour: 12, minute: 0, hourOfDay: 12 },
+  night: false,
   backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 3 },
   backpackWeight: 4.2,
   backpackWeightLimit: 20,
@@ -112,6 +113,7 @@ const STATES: readonly ShowcaseState[] = [
       ...BASE_VIEW,
       paused: true,
       time: { day: 3, hour: 22, minute: 40, hourOfDay: 22 + 40 / 60 },
+      night: true,
       backpack: { axe: 1, knife: 1, steelAndFlint: 1, stick: 3 },
       nearby: [{ kind: "bedroll", view: { id: 2 } }],
       warmth: 0.15,
@@ -380,6 +382,7 @@ const ACTION_QUEUE_ICON_STATES: readonly ShowcaseState[] = [
       ...BASE_VIEW,
       paused: true,
       time: { day: 3, hour: 22, minute: 40, hourOfDay: 22 + 40 / 60 },
+      night: true,
       actionQueue: [
         { type: "walkTo", x: 0, z: 0 },
         { type: "forage", spotId: 14 },

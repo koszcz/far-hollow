@@ -151,4 +151,12 @@ describe("the game clock", () => {
     game.step();
     expect(game.client.getView().time).toMatchObject({ day: 1, hour: 21, minute: 0 });
   });
+
+  it("says whether it is night, so the HUD need not know the hours", () => {
+    const game = createGame({ seed: 1 });
+    expect(game.client.getView().night).toBe(false);
+    game.client.send({ type: "skipTime", hours: 13 });
+    game.step();
+    expect(game.client.getView().night).toBe(true);
+  });
 });

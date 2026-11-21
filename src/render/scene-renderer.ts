@@ -561,7 +561,7 @@ export function createSceneRenderer(
       }
       startEatOrDrinkIfNew(nowSeconds);
       posePlayer(nowSeconds);
-      playerMesh.setEatingOrDrinking(eatOrDrinkShown);
+      playerMesh.setMotion("forage-eat-drink-animation", eatOrDrinkShown);
       // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
       if (!cameraPlaced && players.first !== undefined) {
         cameraRig.snapToFollowTarget();

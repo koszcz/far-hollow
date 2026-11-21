@@ -8,9 +8,6 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
-// Foraging a berry bush, eating, drinking from the river, filling the pot, and drinking from the pot play the approved
-// "forage-eat-drink-animation", posed in code by player-eat-drink-pose.ts. The pot in the hands is the approved "pot",
-// built by pot-shape.ts. The axe goes on the back.
 // While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
 // forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
 // approved "sled-rope" starts.
@@ -34,8 +31,6 @@ import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
-import { eatDrinkPoseAt, upperBodyOf, type EatDrinkMotion, type EatDrinkPose } from "./player-eat-drink-pose";
-import { createPotMaker, POT_HEIGHT_METRES } from "./pot-shape";
 import { createFireMaker } from "./fire-effect";
 import { createTorchFlame, createTorchShape, TORCH_FLAME_HEIGHT_METRES } from "./torch-shape";
 import { createPlayerMotions, type MotionId, type MotionMoment } from "./player-motions/motion-list";
@@ -97,14 +92,6 @@ export const CHOP_STRIKE_SHARE = 0.38;
 /** How many times a second the player strikes down at a log when splitting: once per loop of the split clip. */
 export const SPLIT_STRIKES_PER_SECOND = 1 / SPLIT_CLIP_SECONDS;
 
-/**
- * How far in front of the hands the middle of a held pot rides, in metres. The arms are short, so the hands hold the
- * near side of the rim rather than the lugs, and the pot stays clear of the body.
- */
-const POT_AHEAD_OF_HANDS_METRES = 0.14;
-/** How much bigger the pot is in the hands than true size, so it shows beside the big head, like the saw. */
-const POT_IN_HAND_SCALE = 1.5;
-
 /** The carried log rests here on the player's right shoulder, from the player's feet, in metres. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = new THREE.Vector3(-0.3, 1.0, 0);
 /**
@@ -150,11 +137,6 @@ export interface PlayerMesh {
    * `distance` is how far the thing is in front of the player's feet, in metres, if known. The hand reaches toward it.
    */
   setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
-  /**
-   * Forages a berry bush, eats, drinks from the river, fills the pot, or drinks from the pot, as player-eat-drink-pose.ts
-   * poses it. Pass the seconds since the motion began, or undefined while not doing any of them.
-   */
-  setEatingOrDrinking(motion: EatDrinkMotion | undefined): void;
   /** Leans the player forward to drag a sled by a rope in the left hand, or stands them upright at once. */
   setDragging(dragging: boolean): void;
   /**
@@ -335,21 +317,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
   /** While standing up after a work motion stops. */
   let leavingBuild: Leaving | undefined;
-  /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
-  let eatingOrDrinking: EatDrinkMotion | undefined;
   /** Whether the player drags a sled. */
   let dragging = false;
 
-  // The pot rides between the hands while filling it or drinking from it. The holder sits at the hands and tips the pot
-  // about the line through them. The pot rides just ahead of the hands, its rim level with them.
-  const potMaker = createPotMaker();
-  const potInHands = potMaker.make();
-  const potHolder = new THREE.Group();
-  potInHands.group.position.set(0, -POT_HEIGHT_METRES, POT_AHEAD_OF_HANDS_METRES);
-  potHolder.add(potInHands.group);
-  potHolder.visible = false;
-  potHolder.scale.setScalar(POT_IN_HAND_SCALE);
-  group.add(potHolder);
   // The lit torch rides in the left hand, upright, placed from the wrist each time the player is posed.
   const torchShape = createTorchShape();
   const torchFireMaker = createFireMaker();
@@ -390,6 +360,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Every motion in the list, in its order. */
   const motionList: readonly PlayerMotion<unknown>[] = Object.values(motions);
   const bodyMotions = motionList.filter((motion) => motion.layer === "body");
+  const upperBodyMotions = motionList.filter((motion) => motion.layer === "upperBody");
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -469,8 +440,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       reaching !== undefined ||
       motionList.some((motion) => motion.playing && motion.axeOnBack) ||
       sleepingAt !== undefined ||
-      sittingBody !== undefined ||
-      eatingOrDrinking !== undefined;
+      sittingBody !== undefined;
     placeAxe(!swinging && handsBusy);
   }
 
@@ -488,11 +458,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     }
     poseBreathing();
     poseBody();
-    const eatDrinkPose = eatingOrDrinking === undefined ? undefined : eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds);
-    poseEatingOrDrinking(eatDrinkPose);
+    // An upper body motion, such as eating, poses the arms and head over whatever body motion plays.
+    for (const motion of upperBodyMotions) motion.pose?.();
     poseReaching();
     blendFromReach();
-    placePot(eatDrinkPose?.pot);
     placeTorch();
     for (const motion of motionList) motion.placeProps();
   }
@@ -510,33 +479,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     torchUp.set(0, 1, 0).applyQuaternion(TORCH_TILT);
     torchInHand.position.copy(torchHand).addScaledVector(torchUp, -TORCH_GRIP_METRES);
     torchFire.animate(torchAt, 1, 0.7);
-  }
-
-  /**
-   * Reaches into a bush, eats, or drinks, on top of the clip. Over walking or work, only the arms and head move,
-   * so the legs keep walking and the body keeps working.
-   */
-  function poseEatingOrDrinking(eatDrinkPose: EatDrinkPose | undefined): void {
-    if (eatDrinkPose === undefined) return;
-    const { body, arms } = eatDrinkPose;
-    rememberClipPose(...buildPosedBones);
-    // A hand steadying a log on the shoulder stays there, so only the left hand moves.
-    applyBuildPose(group, buildBones, rig.bodyMoves ? upperBodyOf(body) : body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
-  }
-
-  const potLeft = new THREE.Vector3();
-  const potRight = new THREE.Vector3();
-  /** Shows the pot between the hands while filling it or drinking from it, tipped as the motion says. */
-  function placePot(pot: EatDrinkPose["pot"]): void {
-    potHolder.visible = pot !== undefined;
-    if (pot === undefined) return;
-    potInHands.show(pot.look, performance.now() / 1000);
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(potLeft));
-    group.worldToLocal(rightArm.end.getWorldPosition(potRight));
-    potHolder.position.addVectors(potLeft, potRight).multiplyScalar(0.5);
-    // Turning about +x tips the rim toward +z, the way the player faces.
-    potHolder.rotation.set(pot.tilt, 0, 0);
   }
 
   /** Every bone of the model, for blending whole poses. */
@@ -736,12 +678,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (changed) updateAxe();
       pose();
     },
-    setEatingOrDrinking(motion) {
-      const changed = (motion === undefined) !== (eatingOrDrinking === undefined);
-      eatingOrDrinking = motion === undefined ? undefined : { ...motion };
-      if (changed) updateAxe();
-      pose();
-    },
     setSleeping(seconds) {
       const changed = (seconds === undefined) !== (sleepingAt === undefined);
       sleepingAt = seconds;
@@ -786,7 +722,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       for (const geometry of geometries) geometry.dispose();
       for (const made of materials) made.dispose();
       backpack.dispose();
-      potMaker.dispose();
     },
   };
 }

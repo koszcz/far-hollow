@@ -11,6 +11,7 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
   "hand-craft-animation": 1,
   "fishing-animation": { nowSeconds: 3, sinceCast: 3, toBite: 1, floatForward: 4, floatHeight: -0.5 },
   "gather-stone-animation": 1,
+  "forage-eat-drink-animation": { kind: "drinkFromPot", seconds: 0.5 },
 };
 
 describe("the player motions", () => {
@@ -22,6 +23,7 @@ describe("the player motions", () => {
       "hand-craft-animation",
       "fishing-animation",
       "gather-stone-animation",
+      "forage-eat-drink-animation",
     ]);
   });
 
@@ -35,6 +37,7 @@ describe("the player motions", () => {
       "hand-craft-animation": true,
       "fishing-animation": true,
       "gather-stone-animation": true,
+      "forage-eat-drink-animation": true,
     });
   });
 

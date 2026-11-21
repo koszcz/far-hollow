@@ -8,6 +8,8 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
+// Each motion posed in code, such as fishing or crafting by hand, lives in its own module in player-motions/, with its
+// props. The player mesh lends each one a rig and runs them in the order of player-motions/motion-list.ts.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -293,7 +295,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    */
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
   /** While standing up after a work motion stops. */
-  let leavingBuild: Leaving | undefined;
+  let standingUp: Leaving | undefined;
 
   /** What the player mesh lends each motion in the motion list. */
   const rig: PlayerRig = {
@@ -394,7 +396,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     ...[...buildBones.legs, ...buildBones.arms].flatMap((part) => [part.upper, part.lower, part.end]),
   ];
 
-  /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with building. */
+  /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with a motion that wants it there. */
   function updateAxe(): void {
     const swinging = choppingAt !== undefined || splittingAt !== undefined;
     const handsBusy =
@@ -468,13 +470,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   }
 
   /**
-   * Moves a work motion on to `at`, or stops it when `at` is undefined. Starting one ends any standing back up.
+   * Moves a motion on to `at`, or stops it when `at` is undefined. Starting a work motion ends any standing back up.
    * Stopping one stands the player back up the way that motion does.
    */
-  function updateWork<At>(motion: Pick<PlayerMotion<At>, "update">, at: At | undefined): void {
+  function updateMotion<At>(motion: Pick<PlayerMotion<At>, "update">, at: At | undefined): void {
     const change = motion.update(at, performance.now() / 1000);
-    if (change?.kind === "started") leavingBuild = undefined;
-    if (change?.kind === "stopped") leavingBuild = change.leaving;
+    if (change?.kind === "started") standingUp = undefined;
+    if (change?.kind === "stopped") standingUp = change.leaving;
     if (change !== undefined) updateAxe();
     pose();
   }
@@ -493,15 +495,15 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
 
   /** The pose while standing back up after a work motion stops, or undefined once the player stands. */
   function standingUpPose(): BuildPose | undefined {
-    if (leavingBuild === undefined) return undefined;
-    const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
+    if (standingUp === undefined) return undefined;
+    const done = (performance.now() / 1000 - standingUp.at) / standingUp.seconds;
     // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
     const idleNow = walkedMetres === undefined && choppingAt === undefined && splittingAt === undefined;
     if (done >= 1 || !idleNow) {
-      leavingBuild = undefined;
+      standingUp = undefined;
       return undefined;
     }
-    return scaleBuildPose(leavingBuild.pose, 1 - smoothstep(done));
+    return scaleBuildPose(standingUp.pose, 1 - smoothstep(done));
   }
 
   const breathTurn = new THREE.Quaternion();
@@ -606,7 +608,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     },
     setMotion(id, moment) {
       const motion: PlayerMotion<unknown> = motions[id];
-      updateWork(motion, moment);
+      updateMotion(motion, moment);
     },
     setReaching(reach) {
       const changed = (reach === undefined) !== (reaching === undefined);

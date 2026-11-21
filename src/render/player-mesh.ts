@@ -19,11 +19,11 @@
 // Foraging a berry bush, eating, drinking from the river, filling the pot, and drinking from the pot play the draft
 // "forage-eat-drink-animation", posed in code by player-eat-drink-pose.ts. The pot in the hands is the approved "pot",
 // built by pot-shape.ts. The axe goes on the back.
-// While dragging a sled, the draft "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
-// forward over the walk or idle clip, with the left hand holding the rope over the shoulder. ropeHold() says where the
-// draft "sled-rope" starts.
-// While crafting a hand recipe, the draft "hand-craft-animation", posed in code by player-hand-craft-pose.ts, works at
-// something small held at waist height with both hands. The axe goes on the back.
+// While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
+// forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
+// approved "sled-rope" starts.
+// While crafting a hand recipe, the approved "hand-craft-animation", posed in code by player-hand-craft-pose.ts, lashes a
+// small bundle of sticks at waist height, drawn by hand-craft-work.ts. The axe goes on the back.
 // While gathering stone, the draft "gather-stone-animation", posed in code by player-gather-stone-pose.ts, crouches at the
 // water's edge and lifts a stone, drawn by stone-shape.ts, in both hands. The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
@@ -40,14 +40,15 @@ import { GATHER_STONE_LEAVE_SECONDS, gatherStonePoseAt, holdsStoneAt } from "./p
 import { createStoneGeometry } from "./stone-shape";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
-import { SLED_DRAG_POSE } from "./player-sled-drag-pose";
+import { sledDragPoseAt } from "./player-sled-drag-pose";
 import type { RopeHold } from "./sled-rope";
 import { createSaw } from "./saw-model";
 import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
 import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
-import { createHandCraftMotion } from "./player-hand-craft-pose";
+import { createHandCraftMotion, handCraftWorkTurnAt } from "./player-hand-craft-pose";
+import { createHandCraftWork } from "./hand-craft-work";
 import { smoothstep } from "./easing";
 import { createWorkMotion, type Leaving, type WorkMotion } from "./work-motion";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
@@ -139,13 +140,6 @@ const CARRY_FOREARM = new THREE.Euler(0, 0, 0);
 const CARRY_UPPER_ARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_UPPER_ARM);
 const CARRY_FOREARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_FOREARM);
 
-/**
- * Where a sled's rope runs over the left shoulder, and where it leaves the back below the backpack, from the shoulder
- * joint, in metres. The player faces +z.
- */
-const ROPE_OVER_SHOULDER = new THREE.Vector3(0, 0.1, -0.06);
-const ROPE_DOWN_BACK = new THREE.Vector3(0, -0.2, -0.42);
-
 export interface PlayerMesh {
   /** Place this at the player's feet. */
   readonly group: THREE.Group;
@@ -195,7 +189,7 @@ export interface PlayerMesh {
    * poses it. Pass the seconds since the motion began, or undefined while not doing any of them.
    */
   setEatingOrDrinking(motion: EatDrinkMotion | undefined): void;
-  /** Leans the player forward to drag a sled by a rope over the left shoulder, or stands them upright at once. */
+  /** Leans the player forward to drag a sled by a rope in the left hand, or stands them upright at once. */
   setDragging(dragging: boolean): void;
   /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. */
   ropeHold(): RopeHold | undefined;
@@ -435,6 +429,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   saw.group.visible = false;
   saw.group.scale.setScalar(SAW_IN_HAND_SCALE);
   group.add(saw.group);
+  // The bundle of sticks rides in the left hand while crafting by hand, with the cord running to the right hand.
+  const handCraftWork = createHandCraftWork();
+  handCraftWork.setVisible(false);
+  group.add(handCraftWork.group);
   // The fishing rod rides in the right hand while fishing, its butt at the wrist. The line runs from its tip.
   const rod = createFishingRod();
   rod.group.visible = false;
@@ -580,6 +578,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     placeDrawknife();
     placeStone();
     placeSaw();
+    placeHandCraftWork();
     placeFishingRod();
     placePot(eatDrinkPose?.pot);
   }
@@ -673,8 +672,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     const working = workMotions.find((motion) => motion.since !== undefined)?.pose();
     if (working === undefined && dragging) {
       // Only the left hand takes the rope. The right arm keeps the clip's swing, or steadies a log on the shoulder.
+      // The walk clip takes two steps to each stride, and each step heaves into the pull.
       rememberClipPose(...buildPosedBones);
-      applyBuildPose(group, buildBones, SLED_DRAG_POSE, [leftArm]);
+      const steps = walkedMetres === undefined ? undefined : (walkedMetres / STRIDE_METRES) * 2;
+      applyBuildPose(group, buildBones, sledDragPoseAt(steps), [leftArm]);
       return;
     }
     const pose = working ?? standingUpPose();
@@ -745,6 +746,18 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     if (!saw.group.visible) return;
     group.updateWorldMatrix(true, true);
     group.worldToLocal(rightArm.end.getWorldPosition(saw.group.position));
+  }
+
+  /** Shows the bundle of sticks in the left hand while crafting by hand, turned as the motion says, with the cord to the right hand. */
+  function placeHandCraftWork(): void {
+    const since = handCrafting.since;
+    const now = handCrafting.at;
+    handCraftWork.setVisible(since !== undefined);
+    if (since === undefined || now === undefined) return;
+    group.updateWorldMatrix(true, true);
+    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
+    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
+    handCraftWork.place(leftWrist, rightWrist, handCraftWorkTurnAt(now - since));
   }
 
   const rodTip = new THREE.Vector3();
@@ -974,13 +987,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (!dragging) return undefined;
       group.updateWorldMatrix(true, true);
       const hand = leftArm.end.getWorldPosition(new THREE.Vector3());
-      // The rope runs back over the top of the left shoulder, then down the back clear of the backpack.
-      const joint = group.worldToLocal(leftArm.upper.getWorldPosition(new THREE.Vector3()));
-      const fromJoint = (offset: THREE.Vector3) => {
-        const spot = group.localToWorld(joint.clone().add(offset));
-        return { x: spot.x, y: spot.y, z: spot.z };
-      };
-      return { hand: { x: hand.x, y: hand.y, z: hand.z }, shoulder: fromJoint(ROPE_OVER_SHOULDER), back: fromJoint(ROPE_DOWN_BACK) };
+      return { hand: { x: hand.x, y: hand.y, z: hand.z }, walking: walkedMetres !== undefined };
     },
     setSitting(body) {
       const changed = (body === undefined) !== (sittingBody === undefined);
@@ -997,6 +1004,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       potMaker.dispose();
       drawknife.dispose();
       saw.dispose();
+      handCraftWork.dispose();
       rod.dispose();
       rodBend.dispose();
       fishingLine.dispose();

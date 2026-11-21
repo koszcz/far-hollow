@@ -17,7 +17,14 @@ import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_R
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "../player-mesh";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
-import { HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS } from "../player-hand-craft-pose";
+import {
+  HAND_CRAFT_CYCLE_SECONDS,
+  HAND_CRAFT_ENTER_SECONDS,
+  HAND_CRAFT_HOLD_SHARE,
+  HAND_CRAFT_TUGGED_SHARE,
+  HAND_CRAFT_WOUND_SHARE,
+} from "../player-hand-craft-pose";
+import { SLED_HEAVE_PEAK_SHARE } from "../player-sled-drag-pose";
 import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
 import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
 import {
@@ -188,17 +195,17 @@ function dragTo({ store, movePlayer }: Stage, walked: number): void {
 }
 
 /**
- * The draft "sled-drag-animation" and "sled-rope": the player drags a loaded sled along +x by a rope over the left shoulder.
+ * The "sled-drag-animation" and the "sled-rope": the player drags a loaded sled along +x by a rope over the left shoulder.
  * The stills show the stride from the rope hand's side, the loaded sled, the lean while standing, and the rope from behind.
  */
 const SLED_DRAG_SHOWCASE: Showcase = {
   radius: 1.9,
   focus: { x: -0.8, y: 0.7, z: 0 },
   shots: [
-    { label: "walking, left leg passes, rope hand side", yaw: 180, pitch: 5, share: 0.75, radius: 0.9, focus: { x: 0, y: 0.7 } },
+    { label: "push-off heave, rope hand side", yaw: 180, pitch: 5, share: SLED_HEAVE_PEAK_SHARE / 2, radius: 1.2, focus: { x: -0.2, y: 0.7 } },
     { label: "walking with the loaded sled, right foot lands", yaw: 40, pitch: 15, share: 0.5 },
-    { label: "standing, leaning into the rope", yaw: 120, pitch: 15, radius: 0.9, focus: { x: 0, y: 0.7 } },
-    { label: "rope down the back, from behind", yaw: 250, pitch: 40, radius: 1, focus: { x: 0, y: 0.7 } },
+    { label: "standing, leaning into the rope", yaw: 230, pitch: 15, radius: 1.2, focus: { x: -0.2, y: 0.7 } },
+    { label: "carrying a log while dragging", yaw: 150, pitch: 15, share: 0.25, radius: 1.6, focus: { x: -0.4, y: 0.8 } },
   ].map(({ share, ...shot }) => (share === undefined ? shot : { ...shot, seconds: (share * STRIDE_METRES) / DRAG_WALK_METRES_PER_SECOND })),
   build(stage) {
     const sled = stage.place(-DRAG_ROPE_METRES, 0, { sled: { log: 4, debarkedLog: 2, plank: 0 }, facing: { turns: 0 }, dragHeading: 0 });
@@ -210,6 +217,7 @@ const SLED_DRAG_SHOWCASE: Showcase = {
   },
   pose({ player }, shot) {
     player.setWalking(shot.seconds === undefined ? undefined : shot.seconds * DRAG_WALK_METRES_PER_SECOND);
+    player.setCarryingLog(shot.label.startsWith("carrying") ? "log" : undefined);
   },
   // The player drags the sled forward at dragging speed, then stands leaning into the rope, then walks on. The camera keeps pace.
   play: {
@@ -228,7 +236,18 @@ const SLED_DRAG_SHOWCASE: Showcase = {
 
 export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
   "sled-drag-animation": SLED_DRAG_SHOWCASE,
-  "sled-rope": SLED_DRAG_SHOWCASE,
+  // The rope close up from the rope hand's side: taut while walking, slack while standing, then the knot and the hand.
+  "sled-rope": {
+    ...SLED_DRAG_SHOWCASE,
+    radius: 1.1,
+    focus: { x: -0.4, y: 0.4, z: 0 },
+    shots: [
+      { label: "walking, rope taut", yaw: 180, pitch: 10, share: 0.5 },
+      { label: "standing, rope slack", yaw: 180, pitch: 10 },
+      { label: "the knot, walking", yaw: 150, pitch: 35, share: 0.5, radius: 0.7, focus: { x: -0.5, y: 0.3 } },
+      { label: "the hand, standing", yaw: 200, pitch: 15, radius: 0.65, focus: { x: -0.2, y: 0.45 } },
+    ].map(({ share, ...shot }) => (share === undefined ? shot : { ...shot, seconds: (share * STRIDE_METRES) / DRAG_WALK_METRES_PER_SECOND })),
+  },
   "campfire-build-animation": {
     radius: 1.3,
     focus: { x: 0, y: 0.3, z: 0 },
@@ -527,16 +546,16 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
-  // The draft "hand-craft-animation": the player crafts the saw, a hand recipe, working at it with both hands at waist height.
+  // The approved "hand-craft-animation": the player crafts the saw, a hand recipe, lashing a bundle of sticks at waist height.
   "hand-craft-animation": {
     radius: 1.3,
-    focus: { x: 0, y: 0.9, z: 0.2 },
+    focus: { x: 0, y: 0.85, z: 0.2 },
     shots: [
-      { label: "right hand up, front", share: 0.25, yaw: 0 },
-      { label: "right hand out, side on", share: 0, yaw: 270 },
-      { label: "right hand down", share: 0.75, yaw: 30 },
-      { label: "right hand in, from above", share: 0.5, yaw: 0, pitch: 70 },
-    ].map(({ label, share, yaw, pitch = 15 }) => ({ label, yaw, pitch, seconds: HAND_CRAFT_ENTER_SECONDS + share * HAND_CRAFT_CYCLE_SECONDS })),
+      { label: "winding over the front", share: 0.2, yaw: 20, pitch: 10 },
+      { label: "winding under, from the right", share: 0.275, yaw: 300, pitch: 10 },
+      { label: "holding the cord on top, from the left", share: (HAND_CRAFT_WOUND_SHARE + HAND_CRAFT_HOLD_SHARE) / 2, yaw: 50, pitch: 20 },
+      { label: "tugged tight", share: HAND_CRAFT_TUGGED_SHARE, yaw: 0, pitch: 10 },
+    ].map(({ label, share, yaw, pitch }) => ({ label, yaw, pitch, seconds: HAND_CRAFT_ENTER_SECONDS + share * HAND_CRAFT_CYCLE_SECONDS })),
     build({ movePlayer }) {
       movePlayer(0, 0, 0);
     },

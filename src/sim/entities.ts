@@ -275,8 +275,6 @@ export interface Entity {
    * `count` is how many it holds, always at least 1. A pile with nothing left is removed.
    */
   pile?: { content: BackpackContent; count: number };
-  /** The pile the player is walking to pick up, given by its entity id. */
-  pileTask?: { pileId: number };
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */

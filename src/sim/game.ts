@@ -244,7 +244,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
-  const piles = createPiles(entities, walking, valley, handReach);
+  const piles = createPiles(entities, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
   const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
@@ -268,7 +268,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stoneGathering,
     pot,
     chests,
-    piles,
     tending,
     approach,
     // Last, so a reach started by a step above moves on in that same step.
@@ -689,8 +688,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     pickUpPile: {
       start: "fresh",
       needsFreeHands: true,
-      run: (command) => {
-        piles.pickUp(command.pileId);
+      approach: {
+        reach: (command) => piles.reach(command.pileId),
+        act: (command) => {
+          piles.pickUp(command.pileId);
+        },
       },
     },
     placeBlueprint: {

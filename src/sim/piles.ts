@@ -1,10 +1,10 @@
+import type { ApproachReach } from "./approach";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack, type BackpackContent } from "./backpack";
-import { entityWith, pileEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { entityWith, pileEntities, playerEntities, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { type Terrain, type Valley } from "./valley";
 import { groundDistance, nearestWithin, type GroundPoint } from "./ground-point";
-import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
 export const JOIN_PILE_METRES = 1;
@@ -39,24 +39,21 @@ export interface Piles {
    * Sticks never form piles. Each one lies on the ground on its own, as a stick on the forest floor does.
    */
   drop(content: BackpackContent): void;
+  /** Where the player walks to pick up a pile: onto it, or beside it if something blocks its spot. Undefined if the entity is not a pile. */
+  reach(pileId: number): ApproachReach | undefined;
   /**
-   * Sets the player walking to a pile. Once there, they reach down and put as much of it in the backpack as fits.
-   * Does nothing if the entity is not a pile. If none of it fits when the hand gets to it, the reach gives "backpackFull".
+   * Has the player reach down for a pile within reach and put as much of it in the backpack as fits. The approach runs it once
+   * they arrive. If none of it fits when the hand gets to it, the reach gives "backpackFull".
    */
   pickUp(pileId: number): void;
-  /** Stops the player walking to a pile. */
-  cancel(): void;
-  /** Starts the player reaching for piles they have walked to. Run it after walking has moved the player. */
-  step(): undefined;
   /** The pile nearest the player that is within their reach, if any. */
   nearby(): PileEntity | undefined;
 }
 
 /** Lets the player drop things from the backpack in piles on the ground, and pick them up again. */
-export function createPiles(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Piles {
+export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<HandReach, "start">): Piles {
   const players = playerEntities(entities);
   const piles = pileEntities(entities);
-  const pickers = entities.with("pileTask", "position", "backpack");
 
   const pileById = (pileId: number): PileEntity | undefined => entityWith(entities, pileId, "pile", "position");
 
@@ -82,38 +79,26 @@ export function createPiles(entities: EntityStore, walking: Walking, valley: Val
         addToPileAt(entities, valley.terrain, content, count, player.position);
       }
     },
-    pickUp(pileId) {
+    reach(pileId) {
       const pile = pileById(pileId);
-      if (pile === undefined) return;
-      for (const player of players) {
-        if (player.backpack === undefined) continue;
-        walkOntoOrWithinReach(walking, pile.position, pile.position, PICK_UP_REACH_METRES);
-        setComponent(entities, player, "pileTask", { pileId });
-      }
+      return pile === undefined ? undefined : { target: pile.position, metres: PICK_UP_REACH_METRES, walk: { style: "onto", spot: pile.position } };
     },
-    cancel() {
-      for (const player of players) entities.removeComponent(player, "pileTask");
-    },
-    step() {
-      // Copy the list first, because players who finish leave the query while it is being walked.
-      for (const picker of [...pickers]) {
-        if (picker.walkPath !== undefined) continue;
-        const { pileId } = picker.pileTask;
-        entities.removeComponent(picker, "pileTask");
+    pickUp(pileId) {
+      for (const picker of players) {
+        const { backpack } = picker;
         const pile = pileInReach(pileId, picker);
-        if (pile === undefined) continue;
+        if (backpack === undefined || pile === undefined) continue;
         hand.start("low", pile.position, (): PileRefusal | undefined => {
           const still = pileInReach(pileId, picker);
           if (still === undefined) return undefined;
-          const taken = howManyFit(picker.backpack, still.pile.content, still.pile.count);
+          const taken = howManyFit(backpack, still.pile.content, still.pile.count);
           if (taken === 0) return "backpackFull";
-          addToBackpack(picker.backpack, still.pile.content, taken);
+          addToBackpack(backpack, still.pile.content, taken);
           still.pile.count -= taken;
           if (still.pile.count === 0) entities.remove(still);
           return undefined;
         });
       }
-      return undefined;
     },
     nearby() {
       const player = players.first;

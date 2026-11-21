@@ -674,6 +674,7 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
   bedrollTask: (task) => ({ type: task.then === "sleep" ? "sleep" : "pickUpBedroll", bedrollId: task.bedrollId }),
   layBedrollTask: (task) => ({ type: "layBedrollInLeanTo", leanToId: task.leanToId }),
   torchPickUpTask: (task) => ({ type: "pickUpTorch", torchId: task.torchId }),
+  pileTask: (task) => ({ type: "pickUpPile", pileId: task.pileId }),
 };
 
 /**

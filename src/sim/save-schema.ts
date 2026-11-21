@@ -67,7 +67,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("dropLogAt"), x: finite, z: finite })(value) ||
   shape({ type: exactly("pickUpBedroll", "sleep"), bedrollId: count })(value) ||
   shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value) ||
-  shape({ type: exactly("pickUpTorch"), torchId: count })(value);
+  shape({ type: exactly("pickUpTorch"), torchId: count })(value) ||
+  shape({ type: exactly("pickUpPile"), pileId: count })(value);
 
 /**
  * How each entity component must look in a save.
@@ -148,7 +149,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
     content: exactly(...Object.keys(CONTENT_WEIGHT_KG).filter((content) => content !== "stick")),
     count: (value) => count(value) && (value as number) > 0,
   }),
-  pileTask: shape({ pileId: count }),
 };
 
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));

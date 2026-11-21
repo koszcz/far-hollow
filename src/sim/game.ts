@@ -39,7 +39,7 @@ import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import { copyToward } from "./ground-point";
 import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
-import { createWalking, playerStartSpot, type Walking } from "./walking";
+import { createWalking, playerStartSpot, type Walking, walkingRules } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking, drinkingRules } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
@@ -373,12 +373,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         paused = command.paused;
       },
     },
-    walkTo: {
-      start: "fresh",
-      run: (command) => {
-        walking.walkTo({ x: command.x, z: command.z });
-      },
-    },
+    ...walkingRules(walking),
     ...choppingRules(chopping),
     ...carryingRules(carrying, ruleGame),
     ...debarkingRules(debarking, ruleGame),

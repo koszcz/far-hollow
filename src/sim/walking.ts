@@ -16,6 +16,7 @@ import {
   type WalkEdge,
   type WalkMap,
 } from "./walk-map";
+import type { CommandRules } from "./command-rule";
 
 /** How fast the player walks, in metres per second. */
 export const WALK_SPEED_METRES_PER_SECOND = 3;
@@ -174,4 +175,16 @@ function trackBlockers(walkMap: WalkMap, entities: EntityStore): void {
     blockedEdges.delete(entity);
     unblockEdges(walkMap, edges);
   });
+}
+
+/** The rule for walking to a spot. */
+export function walkingRules(walking: Walking): CommandRules<"walkTo"> {
+  return {
+    walkTo: {
+      start: "fresh",
+      run: (command) => {
+        walking.walkTo({ x: command.x, z: command.z });
+      },
+    },
+  };
 }

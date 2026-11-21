@@ -78,6 +78,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("build"), blueprintId: count })(value) ||
   shape({ type: exactly("takeDown"), pieceId: count })(value) ||
   shape({ type: exactly("drinkFromRiver"), x: finite, z: finite })(value) ||
+  shape({ type: exactly("fillPot") })(value) ||
   shape({ type: exactly("craft"), recipe: exactly(...RECIPE_KINDS), stationId: count })(value) ||
   tendCommand(value);
 
@@ -146,7 +147,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   sickness: shape({ minutesLeft: finite }),
   litTorch: shape({ minutesLeft: finite }),
   plantedTorch: shape({ minutesLeft: finite }),
-  fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),

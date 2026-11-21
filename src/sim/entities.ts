@@ -252,8 +252,6 @@ export interface Entity {
    * on the ground or on a foundation. It does not block walking.
    */
   plantedTorch?: BurnTime;
-  /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
-  fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */
   potOnFire?: PotOnFire;
   /** The fish on this campfire, raw or cooked, in the order they went on. Only campfires have them. Missing when it holds none. */

@@ -1,16 +1,16 @@
 // The pot: the player fills it at the river, boils the water on a lit campfire or fireplace, and drinks from it.
 import type { PlainNotice, Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack, type PotContent } from "./backpack";
 import type { Campfires } from "./campfires";
-import { canReachRiver } from "./drinking";
+import { riverReach } from "./drinking";
 import { heldFireOf, heldFires, playerEntities, setComponent, type EntityStore, type HeldFire } from "./entities";
 import type { HandReach } from "./hand-reach";
 import { FULL_NEED } from "./needs";
 import { BOIL_MINUTES, type PotWater } from "./pot-state";
 import { catchSickness } from "./sickness";
 import { nearestRiverPoint, type Valley } from "./valley";
-import { nearestWalkableSpot } from "./walk-map";
-import type { Walking } from "./walking";
+import type { WalkMap } from "./walk-map";
 
 /** The backpack content for a full pot of each kind of water. */
 const FULL_POT: Readonly<Record<PotWater, PotContent>> = {
@@ -19,12 +19,13 @@ const FULL_POT: Readonly<Record<PotWater, PotContent>> = {
 };
 
 export interface Pot {
-  /** Walks the player to the riverbank nearest them, then reaches down and fills the empty pot there. */
+  /** Where the approach takes the player to fill the pot: the riverbank nearest them. */
+  fillReach(): ApproachReach | undefined;
+  /**
+   * Starts the player reaching down to fill the empty pot at the river, once they stand on the bank. The approach runs it once they arrive.
+   * Does nothing if the backpack holds no empty pot.
+   */
   fill(): void;
-  /** Stops the player walking to fill the pot. */
-  cancel(): void;
-  /** Starts the player reaching down to fill the pot once they have walked to the bank. Run it after walking has moved the player. */
-  step(): undefined;
   /** Puts the full pot from the backpack on a lit campfire or fireplace within the player's reach. */
   putOnFire(campfireId: number): void;
   /**
@@ -43,9 +44,8 @@ export interface Pot {
   drink(): boolean;
 }
 
-export function createPot(entities: EntityStore, walking: Walking, valley: Valley, campfires: Campfires, hand: Pick<HandReach, "start">): Pot {
+export function createPot(entities: EntityStore, walkMap: WalkMap, valley: Valley, campfires: Campfires, hand: Pick<HandReach, "start">): Pot {
   const players = playerEntities(entities);
-  const fillers = entities.with("player", "fillPotTask", "position", "backpack");
   const backpacks = entities.with("player", "backpack");
 
   /** Why the player could not put a full pot on the fire: it is out, or the backpack holds no full pot. */
@@ -60,23 +60,14 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
       const held = heldFireOf(entities.entity(campfireId));
       return held === undefined ? undefined : putOnRefusal(held);
     },
+    fillReach() {
+      const player = players.first;
+      return player === undefined ? undefined : riverReach(valley, walkMap, player.position, nearestRiverPoint(valley.river, player.position));
+    },
     fill() {
-      for (const player of players) {
+      for (const player of backpacks) {
+        if (player.position === undefined || !hasInBackpack(player.backpack, "pot")) continue;
         const river = nearestRiverPoint(valley.river, player.position);
-        setComponent(entities, player, "fillPotTask", river);
-        walking.walkTo(nearestWalkableSpot(walking.walkMap, river) ?? river);
-      }
-    },
-    cancel() {
-      for (const player of [...fillers]) entities.removeComponent(player, "fillPotTask");
-    },
-    step() {
-      // Copy the list first, because players who fill the pot leave the query while it is being walked.
-      for (const player of [...fillers]) {
-        if (player.walkPath !== undefined) continue;
-        const river = player.fillPotTask;
-        entities.removeComponent(player, "fillPotTask");
-        if (!canReachRiver(valley, player.position) || !hasInBackpack(player.backpack, "pot")) continue;
         hand.start(
           "low",
           river,
@@ -87,7 +78,6 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
           "riverWater",
         );
       }
-      return undefined;
     },
     putOnFire(campfireId) {
       const held = campfires.nearestInReach(campfireId);

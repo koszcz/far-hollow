@@ -726,16 +726,17 @@ const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unkn
   buildTask: (task) => ({ type: "build", blueprintId: task.blueprintId }),
   takeDownTask: (task) => ({ type: "takeDown", pieceId: task.pieceId }),
   drinkTask: (task) => ({ type: "drinkFromRiver", x: task.x, z: task.z }),
+  fillPotTask: () => ({ type: "fillPot" }),
 };
 
 /** The task components that only ever marked a walk, so they become an approach even without a `walkPath`. */
-const WALK_ONLY_TIMED_TASKS: ReadonlySet<string> = new Set(["drinkTask"]);
+const WALK_ONLY_TIMED_TASKS: ReadonlySet<string> = new Set(["drinkTask", "fillPotTask"]);
 
 /**
  * Version 41 to 42: the player walking to timed work, such as chopping, has a pending approach too, and the timed task component
  * means the work in progress only. A timed task component on a player who still has a `walkPath` becomes the approach for its
  * command, so they carry on and start the work when they arrive. A timed task component without a `walkPath` is work already
- * under way, so it stays as it is. Drinking from the river takes no time, so its task component always becomes an approach.
+ * under way, so it stays as it is. Drinking from the river and filling the pot take no time once there, so their task components always become approaches.
  */
 function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };

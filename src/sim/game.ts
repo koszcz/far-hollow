@@ -240,7 +240,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   });
   const fishing = createFishing(entities, walking, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
   const stoneGathering = createStoneGathering(entities, walking, valley);
-  const pot = createPot(entities, walking, valley, campfires, handReach);
+  const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, valley, handReach);
@@ -265,7 +265,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stools,
     fishing,
     stoneGathering,
-    pot,
     chests,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
@@ -495,7 +494,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
-    return player.walkPath === undefined && player.approach === undefined && player.fillPotTask === undefined && currentAction() === null;
+    return player.walkPath === undefined && player.approach === undefined && currentAction() === null;
   }
 
   /** Whether the player's hands are busy dragging a sled, and the command needs them free. */
@@ -925,8 +924,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     fillPot: {
       start: "fresh",
-      run: () => {
-        pot.fill();
+      approach: {
+        reach: () => pot.fillReach(),
+        act: () => {
+          pot.fill();
+        },
       },
     },
     skipTime: {

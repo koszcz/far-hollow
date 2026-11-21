@@ -59,7 +59,6 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   takeDownTask: true,
   fishTask: true,
   stoneTask: true,
-  fillPotTask: true,
 };
 
 /**

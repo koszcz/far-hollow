@@ -223,6 +223,7 @@ const refusal: Check = (value) =>
 const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   collapsed: {},
   survivedFirstNight: {},
+  snugRoomKeepsOutCold: {},
   backpackFull: {},
   chestFull: {},
   shelfFull: {},
@@ -257,6 +258,7 @@ const saveShape = shape({
   clockMinutes: (value) => finite(value) && (value as number) >= 0,
   stepCount: count,
   firstNightOver: boolean,
+  snugRoomNoticeShown: boolean,
   notice: (value) => value === null || notice(value),
   entities: list(shape({ id: count, components })),
 });

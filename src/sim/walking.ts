@@ -1,5 +1,5 @@
 import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
-import { distanceToTarget, findPath, findPathWithin, type WalkTarget } from "./pathfinding";
+import { findPath, findPathWithin, type WalkTarget } from "./pathfinding";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, startSpotBeside, type Valley } from "./valley";
 import { type GroundPoint } from "./ground-point";
@@ -9,7 +9,6 @@ import {
   blockSpots,
   blockWhere,
   createWalkMap,
-  isWalkable,
   nearestWalkableSpot,
   unblockCircle,
   unblockEdges,
@@ -72,31 +71,8 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
   };
 }
 
-/**
- * Walks the player the shortest way to stand within `standMetres` of something, unless they are already within `reachMetres`.
- * Both distances are measured to a point's centre, or to a rectangle's edge, such as a sled's footprint.
- * On open ground the player stops `standMetres` from it, on their own side. `standMetres` must be less than `reachMetres`,
- * so the player always stops within reach. For things that block walking, such as a campfire, chest, or woodpile,
- * this stops the player beside them rather than on them.
- */
-export function walkBeside(walking: Walking, from: GroundPoint, target: WalkTarget, reachMetres: number, standMetres: number): void {
-  if (distanceToTarget(target, from) <= reachMetres) return;
-  walking.walkWithin(target, standMetres);
-}
-
 /** A walk to within reach of something stops this far inside the reach, so the player is surely within it when they stop, in metres. */
 export const WALK_REACH_MARGIN_METRES = 0.2;
-
-/**
- * Walks the player onto `spot` if it is open ground, such as a stick on the forest floor or the spot just off a log's end.
- * If something blocks `spot`, such as a tree, the player instead walks the shortest way to stand within reach of `target`.
- * `reachMetres` is measured the same way as `walkBeside` measures it: to a point, or to a rectangle's edge.
- * Walking to a blocked spot would end on the open ground nearest it, which can be on its far side or out of reach.
- */
-export function walkOntoOrWithinReach(walking: Walking, spot: GroundPoint, target: WalkTarget, reachMetres: number): void {
-  if (isWalkable(walking.walkMap, spot)) walking.walkTo(spot);
-  else walking.walkWithin(target, reachMetres - WALK_REACH_MARGIN_METRES);
-}
 
 /** Moves an entity up to `distance` metres along its path. Returns true once it has reached the end. */
 function walkAlong(walker: Entity & Required<Pick<Entity, "walkPath" | "position">>, distance: number, entities: EntityStore, valley: Valley): boolean {

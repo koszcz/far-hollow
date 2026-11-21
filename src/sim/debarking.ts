@@ -1,16 +1,16 @@
 import type { Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { toolRefusal } from "./refusals";
-import { addGroundPoints, groundDistance, type GroundPoint, scaleGroundPoint } from "./ground-point";
-import { walkOntoOrWithinReach, type Walking } from "./walking";
+import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 
 /** How long the player works at a log with the drawknife to strip its bark, in seconds. */
 export const DEBARK_SECONDS = 4;
 
-/** How far the player is through debarking, from 0 to 1, and the log they debark, or undefined if they are not debarking now. Walking there does not count. */
+/** How far the player is through debarking, from 0 to 1, and the log they debark, or undefined if they are not debarking now. */
 export function debarkingNow(player: Entity): { progress: number; targetId: number } | undefined {
-  if (player.debarkTask === undefined || player.walkPath !== undefined) return undefined;
+  if (player.debarkTask === undefined) return undefined;
   return { progress: Math.min(1, player.debarkTask.secondsDone / DEBARK_SECONDS), targetId: player.debarkTask.logId };
 }
 /** How much bark one log gives. */
@@ -30,25 +30,41 @@ export type DebarkRefusal = "backpackFull";
 
 export interface Debarking {
   /**
-   * Sets the player walking to a log on the ground to strip its bark with the drawknife.
+   * Where the approach takes the player to debark a log: onto the spot just off the log's end nearer them, or within reach of it.
+   * Undefined if the entity is not a log on the ground.
+   */
+  reach(logId: number): ApproachReach | undefined;
+  /**
+   * Starts the player stripping the bark off a log on the ground within reach, with the drawknife. The approach runs it once they arrive.
    * Does nothing if the entity is not a log on the ground, or the bark would not fit. The game calls it only once `refusal` passes.
    * Returns "backpackFull" when the backpack has no room for the bark.
    */
   start(logId: number): DebarkRefusal | undefined;
   /** Why the player could not debark a log now: without the drawknife. */
   refusal(): Refusal | undefined;
-  /** Stops the player debarking, or walking to debark. The log keeps its bark. */
+  /** "backpackFull" if the backpack has no room for a log's bark now, so the player does not set off to debark one. */
+  roomRefusal(): DebarkRefusal | undefined;
+  /** Stops the player debarking. The log keeps its bark. */
   cancel(): void;
   /** Moves every debarking on by one logic step. Run it after walking has moved the player. */
   step(stepSeconds: number): undefined;
 }
 
 /** Lets the player strip the bark off logs on the ground. Each log becomes a debarked log, and its bark goes in the backpack. */
-export function createDebarking(entities: EntityStore, walking: Walking): Debarking {
+export function createDebarking(entities: EntityStore): Debarking {
   const players = playerEntities(entities);
   const debarkers = entities.with("debarkTask", "position", "backpack");
 
   return {
+    reach(logId) {
+      const log = entities.entity(logId);
+      if (log?.log === undefined || log.position === undefined) return undefined;
+      return {
+        target: log.position,
+        metres: DEBARK_REACH_METRES,
+        walk: { style: "onto", spot: standingSpot(log.position, log.log.heading, players.first?.position) },
+      };
+    },
     start(logId) {
       const log = entities.entity(logId);
       if (log?.log === undefined || log.position === undefined) return undefined;
@@ -59,7 +75,6 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
           refusal = "backpackFull";
           continue;
         }
-        walkOntoOrWithinReach(walking, standingSpot(log.position, log.log.heading, player.position), log.position, DEBARK_REACH_METRES);
         setComponent(entities, player, "debarkTask", { logId, secondsDone: 0 });
       }
       return refusal;
@@ -67,20 +82,18 @@ export function createDebarking(entities: EntityStore, walking: Walking): Debark
     refusal() {
       return toolRefusal(players.first, "drawknife");
     },
+    roomRefusal() {
+      const backpack = players.first?.backpack;
+      return backpack === undefined || barkFits(backpack) ? undefined : "backpackFull";
+    },
     cancel() {
       for (const player of players) entities.removeComponent(player, "debarkTask");
     },
     step(stepSeconds) {
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const debarker of [...debarkers]) {
-        if (debarker.walkPath) continue;
         const log = entities.entity(debarker.debarkTask.logId);
         if (log?.log === undefined || log.position === undefined || !hasInBackpack(debarker.backpack, "drawknife") || !barkFits(debarker.backpack)) {
-          entities.removeComponent(debarker, "debarkTask");
-          continue;
-        }
-        if (groundDistance(log.position, debarker.position) > DEBARK_REACH_METRES) {
-          // The player walked as close as they could but the log is out of reach.
           entities.removeComponent(debarker, "debarkTask");
           continue;
         }

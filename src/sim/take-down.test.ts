@@ -49,7 +49,7 @@ describe("taking down a blueprint", () => {
     give(game, "bark", 2);
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
     // Build until every stick and the two pieces of bark are spent and construction waits for more bark.
-    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined);
+    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined && game.entities.with("player", "approach").first === undefined);
     expect(onlyPlayer(game).backpack.contents).toMatchObject({ stick: 0, bark: 0 });
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });

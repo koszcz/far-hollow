@@ -204,7 +204,7 @@ describe("taking down a fireplace", () => {
     const blueprint = lastBlueprint(game, "fireplace");
     onlyPlayer(game).backpack.contents = { stone: 5 };
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined);
+    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined && game.entities.with("player", "approach").first === undefined);
     expect(game.client.getView().backpack.stone ?? 0).toBe(0);
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
@@ -263,7 +263,7 @@ describe("saving fireplaces", () => {
     const blueprint = lastBlueprint(game, "fireplace");
     onlyPlayer(game).backpack.contents = { stone: 4 };
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined);
+    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined && game.entities.with("player", "approach").first === undefined);
 
     const loaded = readSave(structuredClone(writeSave(game)));
     if (!loaded.ok) throw new Error("The save was rejected");

@@ -144,7 +144,7 @@ function distanceToWater(game: Game, spot: GroundPoint): number {
 
 function runUntilStill(game: Game): void {
   const player = onlyPlayer(game);
-  for (let i = 0; player.walkPath !== undefined || player.drinkTask !== undefined; i += 1) {
+  for (let i = 0; player.walkPath !== undefined || player.approach !== undefined; i += 1) {
     if (i > 100_000) throw new Error("The player never stopped");
     game.step();
   }

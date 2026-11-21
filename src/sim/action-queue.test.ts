@@ -143,7 +143,7 @@ describe("running the action queue", () => {
     const player = onlyPlayer(game);
     stepUntil(game, () => (player.backpack.contents.rawFish ?? 0) === 1);
     expect(game.client.getView().actionQueue).toEqual([fish, pickUp(game, stick)]);
-    stepUntil(game, () => player.approach !== undefined);
+    stepUntil(game, () => player.approach?.command.type === "pickUpStick");
 
     expect(player.backpack.contents.rawFish).toBe(2);
     expect(player.fishTask).toBeUndefined();

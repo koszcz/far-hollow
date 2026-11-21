@@ -1,5 +1,5 @@
 import { createRegrowth } from "./regrowth";
-import { createActionQueue, type QueueRule } from "./action-queue";
+import { createActionQueue } from "./action-queue";
 import type {
   ActionCommand,
   BedrollView,
@@ -20,7 +20,7 @@ import type {
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
 import { createStools } from "./stools";
-import { createApproach, type ApproachReach } from "./approach";
+import { createApproach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
@@ -52,7 +52,8 @@ import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
-import { createFishing } from "./fishing";
+import { createFishing, fishingRules } from "./fishing";
+import type { ApproachRule, CommandRule, CommandRules } from "./command-rule";
 import { createStoneGathering } from "./stone";
 import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
@@ -95,43 +96,6 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
   tipOutSled: "waist",
   dragSled: undefined,
 };
-
-/**
- * How the game handles one kind of command. Each kind has one rule, in commandRules.
- * - `start`: "fresh" stops whatever the player was doing before the command runs. "alongside" leaves it going,
- *   so a command that sometimes starts afresh, such as placing a blueprint to build at once, stops it itself.
- * - `refusal`: why the game would turn the command away, wherever the player stands. The UI shows it before the player sends the command.
- *   The game checks it before it runs the command, and a refused command shows the refusal as a notice and does nothing.
- * - `run`: carries the command out. It only receives commands whose refusal passed. It returns a notice to show,
- *   if the work turns out not to be possible, such as a full backpack.
- * - `approach`: for a command the player walks within reach to carry out. `reach` says where the approach takes them, and
- *   `act` carries the command out once they stand there. The game checks the refusal again just before `act`. A rule with an
- *   approach and no `run` starts the approach when it runs. See approach.ts.
- * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
- * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
- * - `queue` and `canStopForNext`: how the command meets the action queue. See QueueRule in action-queue.ts.
- */
-type CommandRule<C extends ActionCommand> = CommandRuleParts<C> &
-  (
-    | { readonly run: (command: C) => Notice | PlainNotice | undefined; readonly approach?: ApproachRule<C> }
-    | { readonly run?: undefined; readonly approach: ApproachRule<C> }
-  );
-
-/** How a command the player walks within reach to carry out meets the approach. */
-interface ApproachRule<C extends ActionCommand> {
-  readonly reach: (command: C) => ApproachReach | undefined;
-  readonly act: (command: C) => Notice | PlainNotice | undefined;
-}
-
-interface CommandRuleParts<C extends ActionCommand> extends QueueRule {
-  readonly start: "fresh" | "alongside";
-  readonly refusal?: (command: C) => Refusal | undefined;
-  readonly needsFreeHands?: true | ((command: C) => boolean);
-  readonly keepsPlayerSitting?: true;
-}
-
-/** The rule for each kind of command. Queueing an action is handled before any rule. */
-type CommandRules = { readonly [Type in ActionCommand["type"]]: CommandRule<Extract<ActionCommand, { type: Type }>> };
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -909,19 +873,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         },
       },
     },
-    fish: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => fishing.refusal(),
-      approach: {
-        reach: (command) => fishing.reach(command),
-        act: (command) => {
-          fishing.fish({ x: command.x, z: command.z });
-        },
-      },
-      // Fishing has no end. A queued fishing trip catches one fish when another action waits.
-      canStopForNext: () => fishing.hasFishBitten(),
-    },
+    ...fishingRules(fishing),
     gatherStone: {
       start: "fresh",
       needsFreeHands: true,

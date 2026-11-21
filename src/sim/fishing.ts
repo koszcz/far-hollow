@@ -2,6 +2,7 @@
 // Each fish goes in the backpack, and the player casts again until they stop or a fish gets away.
 import type { PlainNotice, Refusal } from "./api";
 import type { ApproachReach } from "./approach";
+import type { CommandRules } from "./command-rule";
 import { addToBackpack } from "./backpack";
 import { riverReach } from "./drinking";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
@@ -117,6 +118,25 @@ export function createFishing(entities: EntityStore, walkMap: WalkMap, valley: V
         cast(fisher, task);
       }
       return notice;
+    },
+  };
+}
+
+/** The rule for fishing. */
+export function fishingRules(fishing: Fishing): CommandRules<"fish"> {
+  return {
+    fish: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: () => fishing.refusal(),
+      approach: {
+        reach: (command) => fishing.reach(command),
+        act: (command) => {
+          fishing.fish({ x: command.x, z: command.z });
+        },
+      },
+      // Fishing has no end. A queued fishing trip catches one fish when another action waits.
+      canStopForNext: () => fishing.hasFishBitten(),
     },
   };
 }

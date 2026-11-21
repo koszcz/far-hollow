@@ -1355,12 +1355,13 @@
         "src/render/floor-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "The floor: six plank boards laid side by side across the deck of one foundation square, each 2.5 cm thick, with thin gaps between them. They lie flush on the deck, so the player and anything on the square stand at the same height as on the bare deck. The boards are the plank wood of the furniture in six slightly different shades. As a blueprint it shows see-through, and the boards of each plank it already has wait pale and half solid. Construction has one stage per plank, 2 in all: each stage lays half the boards, which fade in above their place and are set down.",
+      "description": "The floor: six plank boards laid side by side across the deck of one foundation square, each 2.5 cm thick, with thin gaps between them. They lie flush on the deck, so the player and anything on the square stand at the same height as on the bare deck. The boards are a warm brown wood, darker than the pale deck logs, so a floored square stands out from a bare one. Each board is a little wider or narrower than the next and a slightly different shade. Three boards are made of two pieces, with their joints staggered. The boards' long sides and sawn ends are darker than their tops, so the seams show as dark lines. As a blueprint it shows see-through, and the boards of each plank it already has wait pale and half solid. Construction has one stage per plank, 2 in all: each stage lays half the boards, which fade in above their place and are set down.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

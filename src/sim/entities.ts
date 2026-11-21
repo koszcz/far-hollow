@@ -232,8 +232,8 @@ export interface Entity {
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
   /**
-   * The player is walking to the river bank to fish, or fishing there. The spot is where they clicked on the river.
-   * `minutesWaited` counts the game minutes since the latest cast, not walking. A fish bites after `biteAfterMinutes`.
+   * The fishing in progress, on the river bank. The spot is where the player clicked on the river.
+   * `minutesWaited` counts the game minutes since the latest cast. A fish bites after `biteAfterMinutes`.
    */
   fishTask?: { x: number; z: number; minutesWaited: number; biteAfterMinutes: number };
   /** How many times the player has cast a fishing line so far. It picks the wait for the next cast. Missing before the first. */

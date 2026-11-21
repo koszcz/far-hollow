@@ -79,6 +79,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("takeDown"), pieceId: count })(value) ||
   shape({ type: exactly("drinkFromRiver"), x: finite, z: finite })(value) ||
   shape({ type: exactly("fillPot") })(value) ||
+  shape({ type: exactly("fish", "gatherStone"), x: finite, z: finite })(value) ||
   shape({ type: exactly("craft"), recipe: exactly(...RECIPE_KINDS), stationId: count })(value) ||
   tendCommand(value);
 

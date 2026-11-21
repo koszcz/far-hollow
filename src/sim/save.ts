@@ -727,6 +727,7 @@ const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unkn
   takeDownTask: (task) => ({ type: "takeDown", pieceId: task.pieceId }),
   drinkTask: (task) => ({ type: "drinkFromRiver", x: task.x, z: task.z }),
   fillPotTask: () => ({ type: "fillPot" }),
+  fishTask: (task) => ({ type: "fish", x: task.x, z: task.z }),
 };
 
 /** The task components that only ever marked a walk, so they become an approach even without a `walkPath`. */
@@ -736,7 +737,8 @@ const WALK_ONLY_TIMED_TASKS: ReadonlySet<string> = new Set(["drinkTask", "fillPo
  * Version 41 to 42: the player walking to timed work, such as chopping, has a pending approach too, and the timed task component
  * means the work in progress only. A timed task component on a player who still has a `walkPath` becomes the approach for its
  * command, so they carry on and start the work when they arrive. A timed task component without a `walkPath` is work already
- * under way, so it stays as it is. Drinking from the river and filling the pot take no time once there, so their task components always become approaches.
+ * under way, so it stays as it is. The player used to cast as they set off to fish, and now casts on arrival, so fishing saved
+ * on the way takes that cast back off the count. The cast on arrival then waits as long as the saved one would have. Drinking from the river and filling the pot take no time once there, so their task components always become approaches.
  */
 function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
@@ -750,6 +752,7 @@ function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<str
     const command = APPROACH_OF_TIMED_TASK[first]?.(components[first] as Record<string, unknown>);
     // The player walked to one thing at a time, so a second task, which no save should hold, is dropped.
     const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
+    if (first === "fishTask" && typeof others.fishCasts === "number" && others.fishCasts > 0) others.fishCasts -= 1;
     return { ...(entity as object), components: { ...others, approach: { command } } };
   });
   return { ...save, entities };

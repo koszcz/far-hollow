@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
+import { fishWaitMinutes } from "./fishing";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { readSave, TIMED_APPROACHES_SAVE_VERSION, writeSave } from "./save";
@@ -62,6 +63,27 @@ describe("a save from before timed tasks walked through the approach", () => {
 
     stepUntil(loaded, () => loaded.client.getView().action?.kind === "build");
     expect(onlyPlayer(loaded).buildTask).toEqual({ blueprintId });
+  });
+
+  it("turns fishing saved on the way to the river into an approach, and the player casts on arrival with the same wait", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    if (player.backpack !== undefined) player.backpack.contents.fishingRod = 1;
+    // Three casts made earlier, so the cast saved on the way was the fourth.
+    player.fishCasts = 3;
+    const spot = riverSpotNearPlayer(game);
+    sendAndStep(game, { type: "fish", ...spot }, 3);
+    expect(onlyPlayer(game).walkPath).toBeDefined();
+
+    // Back then, the player cast as they set off, so the save counts the cast and holds its wait.
+    const loaded = load(olderSave(game, { fishTask: { x: spot.x, z: spot.z, minutesWaited: 0, biteAfterMinutes: fishWaitMinutes(42, 3) }, fishCasts: 4 }));
+    expect(onlyPlayer(loaded).approach).toEqual({ command: { type: "fish", x: spot.x, z: spot.z } });
+    expect(onlyPlayer(loaded).fishTask).toBeUndefined();
+    expect(onlyPlayer(loaded).fishCasts).toBe(3);
+
+    stepUntil(loaded, () => loaded.client.getView().action?.kind === "fish");
+    expect(onlyPlayer(loaded).fishTask?.biteAfterMinutes).toBe(fishWaitMinutes(42, 3));
+    expect(onlyPlayer(loaded).fishCasts).toBe(4);
   });
 
   it("turns a drink saved on the way to the river into an approach, and the player drinks on arrival", () => {

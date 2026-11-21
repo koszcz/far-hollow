@@ -68,7 +68,6 @@ import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
 import { furnitureOf } from "./furniture";
-import { createTending } from "./tending";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
@@ -225,11 +224,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const foraging = createForaging(entities, handReach);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
-  const campfires = createCampfires(entities, walking);
+  const campfires = createCampfires(entities);
   const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
   const beds = createBeds(entities, sleepIn);
-  const woodpiles = createWoodpiles(entities, walking);
-  const sleds = createSleds(entities, walking, valley);
+  const woodpiles = createWoodpiles(entities);
+  const sleds = createSleds(entities, valley);
   const chests = createChests(entities, walking);
   // The player puts down what they hold to sit, as they do to sleep.
   const stools = createStools(entities, () => {
@@ -247,7 +246,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const piles = createPiles(entities, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
-  const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
   const approach = createApproach(entities, walking, {
     reach: (command) => ruleOf(command).approach?.reach(command),
     refusal: refusalOf,
@@ -268,7 +266,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stoneGathering,
     pot,
     chests,
-    tending,
     approach,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
@@ -479,6 +476,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     });
   }
 
+  /** Reaches toward a thing the player stands beside, such as a campfire they came to tend. The reach carries nothing out. */
+  function reachToward(height: ReachHeight, thingId: number): void {
+    handReach.start(height, entities.entity(thingId)?.position);
+  }
+
   /** Reaches for a thing the player is walking to, once they stop beside it, if the thing exists. */
   function reachOnArrival(height: ReachHeight, thingId: number): void {
     const position = entities.entity(thingId)?.position;
@@ -491,15 +493,17 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /**
-   * Carries out a command on a campfire, woodpile, or sled now if the player stands within its reach. Returns a notice if it is refused.
-   * Otherwise the player stops what they were doing, walks beside it, and carries the command out there.
+   * The approach for a command on a campfire, woodpile, or sled. A player within reach carries it out at once, without
+   * stopping other work. Otherwise they stop what they were doing, walk beside it, and carry the command out there.
    */
-  function tend(command: TendTask): PlainNotice | undefined {
-    if (tending.inReach(command)) return reachToTend(command);
-    cancelTasks();
-    tending.walkThen(command);
-    return undefined;
-  }
+  const tendApproach: ApproachRule<TendTask> = {
+    reach: (command) => {
+      if ("campfireId" in command) return campfires.reach(command.campfireId);
+      if ("woodpileId" in command) return woodpiles.reach(command.woodpileId);
+      return sleds.reach(command.sledId);
+    },
+    act: reachToTend,
+  };
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
@@ -742,38 +746,42 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     tendCampfire: {
       start: "fresh",
-      run: (command) => {
-        campfires.tend(command.campfireId);
-        reachOnArrival("low", command.campfireId);
+      approach: {
+        reach: (command) => campfires.reach(command.campfireId),
+        act: (command) => {
+          reachToward("low", command.campfireId);
+        },
       },
     },
-    addFuel: { start: "alongside", refusal: (command) => campfires.refusal(command), run: tend },
-    lightCampfire: { start: "alongside", refusal: (command) => campfires.refusal(command), run: tend },
-    putPotOnFire: { start: "alongside", refusal: (command) => pot.putOnRefusal(command.campfireId), run: tend },
-    takePotOffFire: { start: "alongside", run: tend },
-    cookFish: { start: "alongside", refusal: (command) => cooking.refusal(command.campfireId), run: tend },
-    takeFishOff: { start: "alongside", run: tend },
+    addFuel: { start: "alongside", refusal: (command) => campfires.refusal(command), approach: tendApproach },
+    lightCampfire: { start: "alongside", refusal: (command) => campfires.refusal(command), approach: tendApproach },
+    putPotOnFire: { start: "alongside", refusal: (command) => pot.putOnRefusal(command.campfireId), approach: tendApproach },
+    takePotOffFire: { start: "alongside", approach: tendApproach },
+    cookFish: { start: "alongside", refusal: (command) => cooking.refusal(command.campfireId), approach: tendApproach },
+    takeFishOff: { start: "alongside", approach: tendApproach },
     tendWoodpile: {
       start: "fresh",
-      run: (command) => {
-        woodpiles.tend(command.woodpileId);
-        reachOnArrival("waist", command.woodpileId);
+      approach: {
+        reach: (command) => woodpiles.reach(command.woodpileId),
+        act: (command) => {
+          reachToward("waist", command.woodpileId);
+        },
       },
     },
-    stackOnWoodpile: { start: "alongside", refusal: (command) => woodpiles.refusal(command), run: tend },
+    stackOnWoodpile: { start: "alongside", refusal: (command) => woodpiles.refusal(command), approach: tendApproach },
     takeFromWoodpile: {
       start: "alongside",
       // Firewood goes in the backpack, so taking it does not need free hands. A log goes on the shoulder.
       needsFreeHands: (command) => command.wood !== "firewood",
       refusal: (command) => woodpiles.refusal(command),
-      run: tend,
+      approach: tendApproach,
     },
-    loadSled: { start: "alongside", refusal: (command) => sleds.refusal(command), run: tend },
-    takeFromSled: { start: "alongside", needsFreeHands: true, refusal: (command) => sleds.refusal(command), run: tend },
-    loadPlanksOnSled: { start: "alongside", refusal: (command) => sleds.refusal(command), run: tend },
-    takePlanksFromSled: { start: "alongside", refusal: (command) => sleds.refusal(command), run: tend },
-    tipOutSled: { start: "alongside", refusal: (command) => sleds.refusal(command), run: tend },
-    dragSled: { start: "alongside", refusal: (command) => sleds.refusal(command), run: tend },
+    loadSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
+    takeFromSled: { start: "alongside", needsFreeHands: true, refusal: (command) => sleds.refusal(command), approach: tendApproach },
+    loadPlanksOnSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
+    takePlanksFromSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
+    tipOutSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
+    dragSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
     letGoOfSled: {
       start: "alongside",
       run: () => {

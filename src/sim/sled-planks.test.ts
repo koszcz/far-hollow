@@ -347,7 +347,7 @@ function shoulder(game: Game, log: "log" | "debarkedLog"): void {
 /** Sends a command, then lets the player walk to where they carry it out. */
 function sendAndSettle(game: Game, command: Command): void {
   send(game, command);
-  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).tendTask === undefined);
+  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).approach === undefined);
   finishReach(game);
 }
 

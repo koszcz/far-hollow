@@ -194,7 +194,7 @@ describe("saving sleds", () => {
     send(game, { type: "walkTo", x: sled.position.x + 10, z: sled.position.z });
     stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
     send(game, { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
-    expect(onlyPlayer(game).tendTask).toEqual({ type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" });
+    expect(onlyPlayer(game).approach).toEqual({ command: { type: "takeFromSled", sledId: idOf(game, sled), log: "debarkedLog" } });
 
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save did not load");
@@ -283,7 +283,7 @@ describe("walking to a sled", () => {
     stepUntil(game, () => {
       walked += Math.hypot(player.position.x - at.x, player.position.z - at.z);
       at = { x: player.position.x, z: player.position.z };
-      return player.walkPath === undefined && player.tendTask === undefined;
+      return player.walkPath === undefined && player.approach === undefined;
     });
     finishReach(game);
 
@@ -567,7 +567,7 @@ function shoulder(game: Game, log: "log" | "debarkedLog"): void {
 /** Sends a command, then lets the player walk to where they carry it out. */
 function sendAndSettle(game: Game, command: Command): void {
   send(game, command);
-  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).tendTask === undefined);
+  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).approach === undefined);
   finishReach(game);
 }
 

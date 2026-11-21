@@ -8,7 +8,7 @@ import { cookProgress, isCooked } from "./fish-on-fire";
 import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { walkBeside, type Walking } from "./walking";
+import type { ApproachReach } from "./approach";
 
 export { FUEL_BURN_MINUTES } from "./fire";
 /** The most fuel a campfire holds, in game minutes of burning. Fuel that would go past it is not taken. */
@@ -28,8 +28,11 @@ type CampfireEntity = Entity & { campfire: NonNullable<Entity["campfire"]>; posi
  * the entity id of its campfire or fireplace. The rules for fuel and burning are in fire.ts.
  */
 export interface Campfires {
-  /** Walks the player beside a campfire or fireplace, if they are not already within reach of it. */
-  tend(campfireId: number): void;
+  /**
+   * Where the player walks to tend a campfire or fireplace: beside it, on their own side, since the fire blocks walking.
+   * Undefined if the entity is neither.
+   */
+  reach(campfireId: number): ApproachReach | undefined;
   /** Puts one piece of fuel from the backpack on a campfire or fireplace within the player's reach. Does nothing if it would not fit. */
   addFuel(campfireId: number, fuel: CampfireFuel): void;
   /** Lights a campfire or fireplace within the player's reach with the steel and flint. It needs fuel. */
@@ -38,8 +41,6 @@ export interface Campfires {
   refusal(command: Extract<Command, { type: "addFuel" | "lightCampfire" }>): Refusal | undefined;
   /** The campfire or fireplace as the HUD shows it, or undefined if the entity is neither, finished. */
   describe(campfireId: number): CampfireView | undefined;
-  /** True if the player stands still within reach of the campfire or fireplace, so they can tend it now. */
-  inReach(campfireId: number): boolean;
   /** The campfire nearest the player that is within their reach, if any. Fireplaces are left out. */
   nearby(): CampfireEntity | undefined;
   /** The entity id of the campfire or fireplace nearest the player that is within their reach, if any. */
@@ -49,7 +50,7 @@ export interface Campfires {
 }
 
 /** Lets the player light campfires and fireplaces, and keep them fuelled. */
-export function createCampfires(entities: EntityStore, walking: Walking): Campfires {
+export function createCampfires(entities: EntityStore): Campfires {
   const players = playerEntities(entities);
   const campfires = campfireEntities(entities);
 
@@ -100,11 +101,10 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
   }
 
   return {
-    tend(campfireId) {
+    reach(campfireId) {
       const held = fireById(campfireId);
-      if (held === undefined) return;
-      // The player stands beside the fire on the player's side, since the fire itself blocks walking.
-      for (const player of players) walkBeside(walking, player.position, held.entity.position, TEND_REACH_METRES, TEND_STAND_METRES);
+      if (held === undefined) return undefined;
+      return { target: held.entity.position, metres: TEND_REACH_METRES, walk: { style: "beside", standMetres: TEND_STAND_METRES } };
     },
     addFuel(campfireId, fuel) {
       const held = fireById(campfireId);
@@ -138,10 +138,6 @@ export function createCampfires(entities: EntityStore, walking: Walking): Campfi
       const held = fireById(campfireId);
       if (held === undefined || held.fire.lit || tenderOf(held) === undefined || lightRefusal(held) !== undefined) return;
       setFire(held, { ...held.fire, lit: true });
-    },
-    inReach(campfireId) {
-      const held = fireById(campfireId);
-      return held !== undefined && tenderOf(held) !== undefined;
     },
     nearby() {
       return nearest(campfires);

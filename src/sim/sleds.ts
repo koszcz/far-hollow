@@ -23,7 +23,7 @@ import { shoulderRefusal } from "./refusals";
 import { nearestQuarterTurns, quarterTurnsToRadians } from "./quarter-turns";
 import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
 import type { Valley } from "./valley";
-import { walkBeside, type Walking } from "./walking";
+import type { ApproachReach } from "./approach";
 import { CARRIED_LOGS } from "./wood-and-fuel";
 import { stackOnWoodpile } from "./woodpiles";
 import { scaleGroundPoint, subtractGroundPoints } from "./ground-point";
@@ -56,8 +56,11 @@ export type SledEntity = Entity & Required<Pick<Entity, "sled" | "position">>;
 type SledCommand = Extract<Command, { type: "loadSled" | "takeFromSled" | "loadPlanksOnSled" | "takePlanksFromSled" | "tipOutSled" | "dragSled" }>;
 
 export interface Sleds {
-  /** Walks the player beside a sled, if they are not already within reach of it. */
-  tend(sledId: number): void;
+  /**
+   * Where the player walks to use a sled: beside it, within reach of its footprint's edge. Undefined if the entity is not a
+   * finished sled. It measures to the edge, as the reach check does, so the player never stops out of reach of a long sled.
+   */
+  reach(sledId: number): ApproachReach | undefined;
   /** Why the player could not carry out a command on a sled, wherever they stand. */
   refusal(command: SledCommand): Refusal | undefined;
   /** Puts the log or debarked log on the player's shoulder on a sled within reach. Does nothing if the sled is full or the shoulder is empty. */
@@ -75,8 +78,6 @@ export interface Sleds {
   tipOut(sledId: number): void;
   /** The sled as the HUD shows it, near or far, or undefined if the entity is not a finished sled. */
   describe(sledId: number): SledView | undefined;
-  /** True if the player stands still within reach of the sled, so they can use it now. */
-  inReach(sledId: number): boolean;
   /** Starts dragging a sled within reach behind the player. Does nothing if they already drag one. */
   drag(sledId: number): void;
   /** Lets go of the sled the player drags. It stays where it is, with its load. */
@@ -150,7 +151,7 @@ export function layLoadBeside(entities: EntityStore, valley: Valley, sled: SledE
 }
 
 /** Lets the player keep logs on parked sleds. */
-export function createSleds(entities: EntityStore, walking: Walking, valley: Valley): Sleds {
+export function createSleds(entities: EntityStore, valley: Valley): Sleds {
   const players = playerEntities(entities);
   const woodpiles = woodpileEntities(entities);
 
@@ -222,11 +223,10 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
   }
 
   return {
-    tend(sledId) {
+    reach(sledId) {
       const sled = sledById(sledId);
-      if (sled === undefined || userOf(sled) !== undefined) return;
-      // Measure to the footprint's edge, as the reach check does, so the player never stops out of reach of a long sled.
-      for (const player of players) walkBeside(walking, player.position, footprintOfEntity(sled), USE_REACH_METRES, SLED_STAND_METRES);
+      if (sled === undefined) return undefined;
+      return { target: footprintOfEntity(sled), metres: USE_REACH_METRES, walk: { style: "beside", standMetres: SLED_STAND_METRES } };
     },
     refusal(command) {
       const sled = sledById(command.sledId);
@@ -270,10 +270,6 @@ export function createSleds(entities: EntityStore, walking: Walking, valley: Val
     describe(sledId) {
       const sled = sledById(sledId);
       return sled === undefined ? undefined : describe(sled);
-    },
-    inReach(sledId) {
-      const sled = sledById(sledId);
-      return sled !== undefined && userOf(sled) !== undefined;
     },
     drag(sledId) {
       const { player } = usable({ type: "dragSled", sledId }) ?? {};

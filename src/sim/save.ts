@@ -676,6 +676,8 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
   torchPickUpTask: (task) => ({ type: "pickUpTorch", torchId: task.torchId }),
   pileTask: (task) => ({ type: "pickUpPile", pileId: task.pileId }),
   deliverTask: (task) => ({ type: "deliverToBlueprint", blueprintId: task.blueprintId }),
+  // A tend task already held the command itself, such as adding fuel to a campfire.
+  tendTask: (task) => ({ ...task }),
 };
 
 /**

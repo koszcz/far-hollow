@@ -69,7 +69,10 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value) ||
   shape({ type: exactly("pickUpTorch"), torchId: count })(value) ||
   shape({ type: exactly("pickUpPile"), pileId: count })(value) ||
-  shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value);
+  shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value) ||
+  shape({ type: exactly("tendCampfire"), campfireId: count })(value) ||
+  shape({ type: exactly("tendWoodpile"), woodpileId: count })(value) ||
+  tendCommand(value);
 
 /**
  * How each entity component must look in a save.
@@ -128,7 +131,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   forageSpot: shape({ food: exactly("berries", "mushroom") }),
   regrowing: shape({ minutesLeft: finite }),
   bedroll: exactly(true),
-  tendTask: tendCommand,
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,
   fishTask: shape({ x: finite, z: finite, minutesWaited: finite, biteAfterMinutes: finite }),

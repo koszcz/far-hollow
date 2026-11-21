@@ -278,7 +278,7 @@ function openSquareNearPlayer(game: Game, from: number): { x: number; z: number 
 /** Sends a command, then lets the player walk to where they carry it out. */
 function sendAndSettle(game: Game, command: Command): void {
   send(game, command);
-  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).tendTask === undefined);
+  stepUntil(game, () => onlyPlayer(game).walkPath === undefined && onlyPlayer(game).approach === undefined);
 }
 
 function send(game: Game, command: Command): void {

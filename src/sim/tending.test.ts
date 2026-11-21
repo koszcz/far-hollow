@@ -57,11 +57,11 @@ describe("tending a campfire from out of reach", () => {
     walkAway(game);
 
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" });
-    expect(onlyPlayer(game).tendTask).toBeDefined();
+    expect(onlyPlayer(game).approach).toBeDefined();
     send(game, { type: "walkTo", x: onlyPlayer(game).position.x - 5, z: onlyPlayer(game).position.z });
     stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
 
-    expect(onlyPlayer(game).tendTask).toBeUndefined();
+    expect(onlyPlayer(game).approach).toBeUndefined();
     expect(campfire.campfire.fuelMinutes).toBe(0);
     expect(game.client.getView().backpack.bark).toBe(1);
   });
@@ -73,7 +73,7 @@ describe("tending a campfire from out of reach", () => {
     send(game, { type: "addFuel", campfireId: idOf(game, campfire), fuel: "stick" });
 
     expect(campfire.campfire.fuelMinutes).toBe(20);
-    expect(onlyPlayer(game).tendTask).toBeUndefined();
+    expect(onlyPlayer(game).approach).toBeUndefined();
   });
 
   it("keeps walking to the campfire after the game is saved and loaded", () => {
@@ -86,7 +86,7 @@ describe("tending a campfire from out of reach", () => {
     const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
     if (!loaded.ok) throw new Error("The save was rejected");
     const restored = loaded.game;
-    expect(onlyPlayer(restored).tendTask).toEqual({ type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" });
+    expect(onlyPlayer(restored).approach).toEqual({ command: { type: "addFuel", campfireId: idOf(game, campfire), fuel: "bark" } });
     stepUntil(restored, () => onlyPlayer(restored).walkPath === undefined);
     restored.step();
     finishReach(restored);

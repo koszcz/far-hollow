@@ -229,8 +229,6 @@ export interface Entity {
    * drawing shows that reach its own way. It is never saved. See hand-reach.ts.
    */
   handReach?: { height: ReachHeight; seconds: number; toward?: GroundPoint; reachingFor?: ReachingFor };
-  /** The campfire or woodpile command the player is walking to carry out. They carry it out once they stop beside it. */
-  tendTask?: TendTask;
   /** Hunger, thirst, warmth, and fatigue. Only the player has needs. */
   needs?: Needs;
   /** Where the entity wakes after a collapse. Only the player has one. */

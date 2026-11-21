@@ -125,6 +125,22 @@ describe("saving during an approach", () => {
     stepUntil(loaded, () => loaded.entities.entity(stickId) === undefined);
     expect(loaded.client.getView().backpack.stick).toBe(sticksBefore + 1);
   });
+
+  it("upgrades a save from before approaches, with the player walking to a sled to tip it out", () => {
+    const game = createGame({ seed: 42 });
+    const sled = game.entities.add({
+      sled: { log: 1, debarkedLog: 0, plank: 0 },
+      position: { ...openSpotAway(game, 10), y: 0 },
+      facing: { turns: 0 },
+    });
+    const sledId = idOf(game, sled);
+    const command = { type: "tipOutSled", sledId } as const;
+    send(game, command);
+
+    const loaded = load(olderSave(game, { tendTask: command }));
+    expect(onlyPlayer(loaded).approach).toEqual({ command });
+    stepUntil(loaded, () => loaded.entities.entity(sledId)?.sled?.log === 0);
+  });
 });
 
 /** The stick lying nearest the player. */

@@ -215,10 +215,6 @@ export interface Entity {
   regrowing?: { minutesLeft: number };
   /** Marks a bedroll laid out on the ground. Its position is the middle of the bedroll. A rolled-up bedroll is in the backpack. */
   bedroll?: true;
-  /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */
-  bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
-  /** The finished lean-to the player is walking into, given by its entity id, to lay their bedroll there. */
-  layBedrollTask?: { leanToId: number };
   /**
    * The player's pending approach: the walk to get within reach of a thing or a spot, with the command that started it.
    * The command is carried out when they arrive, if the game does not refuse it then. See approach.ts.

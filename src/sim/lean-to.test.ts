@@ -453,7 +453,7 @@ function onlyBedroll(game: Game) {
 /** Sends the command to lay the bedroll in the lean-to, and waits for the player to walk in and lay it. */
 function layBedrollIn(game: Game, leanToId: number): void {
   send(game, { type: "layBedrollInLeanTo", leanToId });
-  stepUntil(game, () => game.entities.with("player", "layBedrollTask").first === undefined);
+  stepUntil(game, () => game.entities.with("player", "approach").first === undefined);
   finishReach(game);
 }
 

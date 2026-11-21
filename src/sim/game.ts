@@ -226,7 +226,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
-  const bedrolls = createBedrolls(entities, walking, valley, handReach, sleepOn);
+  const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
   const beds = createBeds(entities, sleepIn);
   const woodpiles = createWoodpiles(entities, walking);
   const sleds = createSleds(entities, walking, valley);
@@ -262,7 +262,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     gathering,
     building,
     takingDown,
-    bedrolls,
     torches,
     stools,
     drinking,
@@ -817,21 +816,30 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     layBedrollInLeanTo: {
       start: "fresh",
-      run: (command) => {
-        bedrolls.layInLeanTo(command.leanToId);
+      approach: {
+        reach: (command) => bedrolls.layInLeanToReach(command.leanToId),
+        act: (command) => {
+          bedrolls.layInLeanTo(command.leanToId);
+        },
       },
     },
     pickUpBedroll: {
       start: "fresh",
-      run: (command) => {
-        bedrolls.pickUp(command.bedrollId);
+      approach: {
+        reach: (command) => bedrolls.reach(command.bedrollId),
+        act: (command) => {
+          bedrolls.pickUp(command.bedrollId);
+        },
       },
     },
     sleep: {
       start: "fresh",
       refusal: (command) => goneRefusal(entities, command.bedrollId),
-      run: (command) => {
-        bedrolls.sleep(command.bedrollId);
+      approach: {
+        reach: (command) => bedrolls.reach(command.bedrollId),
+        act: (command) => {
+          bedrolls.sleep(command.bedrollId);
+        },
       },
     },
     sleepInBed: {

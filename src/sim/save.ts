@@ -671,6 +671,8 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
   forageTask: (task) => ({ type: "forage", spotId: task.spotId }),
   logPickUpTask: (task) => ({ type: task.thenSplit === true ? "splitLog" : "pickUpLog", logId: task.logId }),
   logDropTask: (task) => ({ type: "dropLogAt", x: task.x, z: task.z }),
+  bedrollTask: (task) => ({ type: task.then === "sleep" ? "sleep" : "pickUpBedroll", bedrollId: task.bedrollId }),
+  layBedrollTask: (task) => ({ type: "layBedrollInLeanTo", leanToId: task.leanToId }),
 };
 
 /**

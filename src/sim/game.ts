@@ -29,7 +29,7 @@ import { STRUCTURES } from "./structures";
 import { createCarrying, carryingRules } from "./carrying";
 import { createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping, choppingRules } from "./chopping";
-import { createDebarking } from "./debarking";
+import { createDebarking, debarkingRules } from "./debarking";
 import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
@@ -493,17 +493,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     ...choppingRules(chopping),
     ...carryingRules(carrying, ruleGame),
-    debarkLog: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => debarking.refusal(),
-      // A full backpack turns the player away before they set off.
-      run: (command) => debarking.roomRefusal() ?? approach.start(command),
-      approach: {
-        reach: (command) => debarking.reach(command.logId),
-        act: (command) => debarking.start(command.logId),
-      },
-    },
+    ...debarkingRules(debarking, ruleGame),
     craft: {
       start: "fresh",
       needsFreeHands: true,

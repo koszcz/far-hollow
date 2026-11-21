@@ -6,7 +6,7 @@ import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "
 import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
 import { groundDistance } from "./ground-point";
-import { walkBeside, type Walking } from "./walking";
+import type { ApproachReach } from "./approach";
 
 /** The player walks to a spot this far from a chest's middle to open it, in metres. */
 const CHEST_STAND_METRES = 1.1;
@@ -30,9 +30,14 @@ export function chestOrShelfOf(entity: Entity | undefined): ChestOrShelfEntity |
 }
 
 export interface Chests {
-  /** Walks the player beside a chest or shelf, if they are not already within reach of it, and opens it once they stand there. */
+  /**
+   * Where the player walks to open a chest or shelf: beside it, on their own side, since the piece blocks walking.
+   * Undefined if the entity is not a finished piece of furniture that stores things.
+   */
+  reach(chestId: number): ApproachReach | undefined;
+  /** Opens a chest or shelf. The approach runs it once the player stands within reach. */
   open(chestId: number): void;
-  /** Closes the open chest, or stops the player going to open one. The player does this by starting something else. */
+  /** Closes the open chest. The player does this by starting something else. */
   cancel(): void;
   /**
    * Closes the open chest once the player is out of its reach: after they have stood at it and left,
@@ -60,9 +65,9 @@ export function contentsWeight(contents: Readonly<BackpackContents>): number {
 }
 
 /** Lets the player keep small things in the furniture that stores them. */
-export function createChests(entities: EntityStore, walking: Walking): Chests {
+export function createChests(entities: EntityStore): Chests {
   const players = playerEntities(entities);
-  /** The chest or shelf the player opened, or is walking to open. It is not saved: a loaded game starts with every chest closed. */
+  /** The chest or shelf the player opened. It is not saved: a loaded game starts with every chest closed. */
   let openId: number | undefined;
   /** Whether the player has stood within reach of the open chest since opening it. */
   let reached = false;
@@ -80,13 +85,15 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
   }
 
   return {
-    open(chestId) {
+    reach(chestId) {
       const chest = chestById(chestId);
-      if (chest === undefined) return;
+      if (chest === undefined) return undefined;
+      return { target: chest.position, metres: CHEST_REACH_METRES, walk: { style: "beside", standMetres: CHEST_STAND_METRES } };
+    },
+    open(chestId) {
+      if (chestById(chestId) === undefined) return;
       openId = chestId;
       reached = false;
-      // The player stands beside the chest on the player's side, since the chest itself blocks walking.
-      for (const player of players) walkBeside(walking, player.position, chest.position, CHEST_REACH_METRES, CHEST_STAND_METRES);
     },
     cancel() {
       openId = undefined;

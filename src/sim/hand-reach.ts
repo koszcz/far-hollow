@@ -23,12 +23,7 @@ export interface HandReach extends Activity {
    * `reachingFor` says what the hand takes, for drawing, such as berries from a bush. It changes no rule.
    */
   start(height: ReachHeight, toward: GroundPoint | undefined, act?: HandAct, reachingFor?: ReachingFor): void;
-  /**
-   * Starts the reach once the player stops walking, for a command that only walks the player to a thing,
-   * such as opening a chest. `toward` gives the thing's middle.
-   */
-  startOnArrival(height: ReachHeight, toward: GroundPoint): void;
-  /** Whether the player is reaching now, or waiting to reach once they stop walking. */
+  /** Whether the player is reaching now. */
   busy(): boolean;
 }
 
@@ -36,12 +31,9 @@ export function createHandReach(entities: EntityStore): HandReach {
   const players = playerEntities(entities);
   /** What the hand does when it gets to the thing. Undefined once it has run, or if the reach has nothing to do. */
   let act: HandAct | undefined;
-  /** A reach to start when the player stops walking. */
-  let onArrival: { height: ReachHeight; toward: GroundPoint } | undefined;
 
   function stop(): void {
     act = undefined;
-    onArrival = undefined;
     for (const player of players) entities.removeComponent(player, "handReach");
   }
 
@@ -61,18 +53,11 @@ export function createHandReach(entities: EntityStore): HandReach {
 
   return {
     start,
-    startOnArrival(height, toward) {
-      stop();
-      onArrival = { height, toward: { x: toward.x, z: toward.z } };
-    },
     busy() {
-      return onArrival !== undefined || players.entities.some((player) => player.handReach !== undefined);
+      return players.entities.some((player) => player.handReach !== undefined);
     },
     cancel: stop,
     step(playerSeconds) {
-      if (onArrival !== undefined && players.entities.every((player) => player.walkPath === undefined)) {
-        start(onArrival.height, onArrival.toward);
-      }
       let notice: Notice | PlainNotice | undefined;
       for (const player of players) {
         const reach = player.handReach;

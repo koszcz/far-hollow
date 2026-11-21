@@ -229,7 +229,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const beds = createBeds(entities, sleepIn);
   const woodpiles = createWoodpiles(entities);
   const sleds = createSleds(entities, valley);
-  const chests = createChests(entities, walking);
+  const chests = createChests(entities);
   // The player puts down what they hold to sit, as they do to sleep.
   const stools = createStools(entities, () => {
     carrying.drop();
@@ -476,15 +476,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     });
   }
 
-  /** Reaches toward a thing the player stands beside, such as a campfire they came to tend. The reach carries nothing out. */
+  /** Reaches toward a thing the player stands beside, such as a campfire they came to tend or a chest they open. The reach carries nothing out. */
   function reachToward(height: ReachHeight, thingId: number): void {
     handReach.start(height, entities.entity(thingId)?.position);
-  }
-
-  /** Reaches for a thing the player is walking to, once they stop beside it, if the thing exists. */
-  function reachOnArrival(height: ReachHeight, thingId: number): void {
-    const position = entities.entity(thingId)?.position;
-    if (position !== undefined) handReach.startOnArrival(height, position);
   }
 
   /** How high the player reaches into a piece of furniture that stores things. A piece whose definition gives no height is reached at the waist. */
@@ -792,9 +786,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       // Opening a chest opens its panel, a menu, so it is never queued.
       queue: "plainOnly",
-      run: (command) => {
-        chests.open(command.chestId);
-        reachOnArrival(storageReach(command.chestId), command.chestId);
+      approach: {
+        reach: (command) => chests.reach(command.chestId),
+        act: (command) => {
+          chests.open(command.chestId);
+          reachToward(storageReach(command.chestId), command.chestId);
+        },
       },
     },
     putInChest: {

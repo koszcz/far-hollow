@@ -237,6 +237,7 @@ export const strings = {
   fatigue: "Rest",
   notices: {
     survivedFirstNight: "You survived the night.",
+    snugRoomKeepsOutCold: "This room now keeps out the cold. At night, you lose warmth here at half the rate.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",
@@ -455,5 +456,6 @@ export const strings = {
   debugRainDry: "Dry",
   debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
   debugRooms: "Rooms",
-  debugRoom: (squares: number, heated: boolean) => `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}`,
+  debugRoom: (squares: number, heated: boolean, snug: boolean) =>
+    `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}, ${snug ? "snug" : "not snug"}`,
 } as const;

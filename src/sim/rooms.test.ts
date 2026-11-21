@@ -3,7 +3,7 @@ import { isWarmedByCampfire } from "./campfires";
 import { edgeMiddle } from "./edge-pieces";
 import { createEntityStore, type EntityStore } from "./entities";
 import { foundationOn } from "./foundations";
-import { findRooms, roomAround } from "./rooms";
+import { findRooms, isRoomSnug, roomAround, type Room } from "./rooms";
 import type { EdgePieceKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./ground-point";
@@ -158,6 +158,89 @@ describe("warmth in a room", () => {
     expect(isWarmedByCampfire(entities, { x: 6.5, z: 0.5 })).toBe(false);
   });
 });
+
+describe("snug rooms", () => {
+  const left = { x: 0.5, z: 0.5 };
+  const right = { x: 1.5, z: 0.5 };
+  const doorEdge = edgeMiddle(left, 1);
+
+  /** A two-square room with a door frame on the left square's outer edge, a finished floor on each square, and a door in the frame. */
+  function snugCabin(entities: EntityStore): Room {
+    cabin(entities, [left, right], { door: { square: left, side: 1 } });
+    floorAt(entities, left);
+    floorAt(entities, right);
+    doorAt(entities, left, 1);
+    return roomOf(entities, left);
+  }
+
+  it("is snug with a floor on every square and a door in every door frame", () => {
+    const entities = createEntityStore();
+    expect(isRoomSnug(entities, snugCabin(entities))).toBe(true);
+  });
+
+  it("is not snug with one floor missing", () => {
+    const entities = createEntityStore();
+    const room = snugCabin(entities);
+    removeAt(entities, "floor", right);
+    expect(isRoomSnug(entities, room)).toBe(false);
+  });
+
+  it("is not snug with the door missing", () => {
+    const entities = createEntityStore();
+    const room = snugCabin(entities);
+    removeAt(entities, "door", doorEdge);
+    expect(isRoomSnug(entities, room)).toBe(false);
+  });
+
+  it("is snug with no door frame once every square has a floor", () => {
+    const entities = createEntityStore();
+    cabin(entities, [left, right]);
+    floorAt(entities, left);
+    const room = roomOf(entities, left);
+    expect(isRoomSnug(entities, room)).toBe(false);
+
+    floorAt(entities, right);
+    expect(isRoomSnug(entities, room)).toBe(true);
+  });
+
+  it("does not count a floor blueprint or a door blueprint", () => {
+    const entities = createEntityStore();
+    const room = snugCabin(entities);
+    removeAt(entities, "floor", right);
+    entities.add({ blueprint: blueprintOf("floor"), position: { x: right.x, y: 1, z: right.z } });
+    expect(isRoomSnug(entities, room)).toBe(false);
+
+    floorAt(entities, right);
+    removeAt(entities, "door", doorEdge);
+    entities.add({ blueprint: blueprintOf("door"), facing: { turns: 1 }, position: { x: doorEdge.x, y: 1, z: doorEdge.z } });
+    expect(isRoomSnug(entities, room)).toBe(false);
+  });
+});
+
+function roomOf(entities: EntityStore, square: GroundPoint): Room {
+  const room = roomAround(entities, square);
+  if (room === undefined) throw new Error("No room");
+  return room;
+}
+
+function floorAt(entities: EntityStore, square: GroundPoint): void {
+  entities.add({ floor: true, position: { x: square.x, y: 1, z: square.z } });
+}
+
+function doorAt(entities: EntityStore, square: GroundPoint, side: QuarterTurns): void {
+  const edge = edgeMiddle(square, side);
+  entities.add({ door: true, facing: { turns: side }, position: { x: edge.x, y: 1, z: edge.z } });
+}
+
+function blueprintOf(structure: "floor" | "door") {
+  return { structure, progress: 0, materialsSpent: 0, delivered: {} };
+}
+
+function removeAt(entities: EntityStore, kind: "floor" | "door", at: GroundPoint): void {
+  const found = entities.with(kind, "position").entities.find(({ position }) => Math.abs(position.x - at.x) < 1e-6 && Math.abs(position.z - at.z) < 1e-6);
+  if (found === undefined) throw new Error(`No ${kind} there`);
+  entities.remove(found);
+}
 
 /** Adds a finished campfire. One on the middle of a foundation's square stands on that foundation, as a built one does. */
 function campfireAt(entities: EntityStore, at: GroundPoint, lit: boolean): void {

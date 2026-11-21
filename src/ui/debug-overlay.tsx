@@ -54,7 +54,7 @@ function DebugPanel({ client }: { client: GameClient }) {
         {rooms.map((room, index) => (
           <Fragment key={index}>
             <dt>{index + 1}</dt>
-            <dd>{strings.debugRoom(room.squares.length, room.heated)}</dd>
+            <dd>{strings.debugRoom(room.squares.length, room.heated, room.snug)}</dd>
           </Fragment>
         ))}
       </dl>

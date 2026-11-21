@@ -255,6 +255,10 @@ _Avoid_: Gutter, inside corner
 A set of foundation squares closed in on every side by log walls or door frames, with a roof over every square. A lit campfire in a room warms the whole room.
 _Avoid_: Interior, enclosure
 
+**Snug**:
+Said of a room with a finished floor on every square and a finished door in every door frame. A room with no door frame is snug once every square has a floor. At night, the player loses warmth in a snug room at half the usual rate.
+_Avoid_: Sealed, insulated, finished room
+
 **Build menu**:
 The menu, opened with B, of every structure the player can build and what it costs. It shows as a wheel in the middle of the screen.
 _Avoid_: Build bar, build wheel, construction menu

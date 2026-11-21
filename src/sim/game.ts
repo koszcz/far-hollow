@@ -32,7 +32,7 @@ import { createChopping, choppingRules } from "./chopping";
 import { createDebarking, debarkingRules } from "./debarking";
 import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
-import { createForaging, valleyForageSpots } from "./foraging";
+import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
 import {
   createEntityStore,
@@ -497,23 +497,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...craftingRules(crafting, ruleGame),
     ...torchRules(torches, ruleGame),
     ...gatheringRules(gathering, carrying, ruleGame),
-    forage: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => foraging.refusal(command.spotId),
-      approach: {
-        reach: (command) => foraging.reach(command.spotId),
-        act: (command) => {
-          foraging.forage(command.spotId);
-        },
-      },
-    },
-    eat: {
-      start: "alongside",
-      run: (command) => {
-        if (foraging.eat(command.food)) reportEatOrDrink("eat");
-      },
-    },
+    ...foragingRules(foraging, () => {
+      reportEatOrDrink("eat");
+    }),
     dropFromBackpack: {
       start: "alongside",
       run: (command) => {

@@ -9,6 +9,7 @@ import { catchSickness } from "./sickness";
 import { isAtTable, TABLE_HUNGER_FACTOR } from "./tables";
 import { terrainHeightAt, type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import type { CommandRules } from "./command-rule";
 
 /** The player can forage a bush or mushroom patch from this far away, in metres. */
 const FORAGE_REACH_METRES = 2;
@@ -115,4 +116,27 @@ export function valleyForageSpots(valley: Valley): Entity[] {
     position: { x, y: terrainHeightAt(valley.terrain, x, z), z },
   });
   return [...valley.berryBushes.map((at) => spot("berries", at)), ...valley.mushrooms.map((at) => spot("mushroom", at))];
+}
+
+/** The rules for foraging wild food and eating. `onEat` runs after the player eats, for drawing to play. */
+export function foragingRules(foraging: Foraging, onEat: () => void): CommandRules<"forage" | "eat"> {
+  return {
+    forage: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => foraging.refusal(command.spotId),
+      approach: {
+        reach: (command) => foraging.reach(command.spotId),
+        act: (command) => {
+          foraging.forage(command.spotId);
+        },
+      },
+    },
+    eat: {
+      start: "alongside",
+      run: (command) => {
+        if (foraging.eat(command.food)) onEat();
+      },
+    },
+  };
 }

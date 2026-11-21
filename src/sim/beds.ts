@@ -2,6 +2,8 @@
 import type { ApproachReach } from "./approach";
 import { entityWith, type Entity, type EntityStore } from "./entities";
 import { footprintOfEntity } from "./structures";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { goneRefusal } from "./refusals";
 
 /** The player can lie down in a bed from this far outside its edges, in metres. */
 export const BED_REACH_METRES = 1;
@@ -35,6 +37,22 @@ export function createBeds(entities: EntityStore, sleepIn: (bed: BedEntity) => v
     sleep(bedId) {
       const bed = bedById(bedId);
       if (bed !== undefined) sleepIn(bed);
+    },
+  };
+}
+
+/** The rule for sleeping in a bed. */
+export function bedRules(beds: Beds, { entities }: RuleGame): CommandRules<"sleepInBed"> {
+  return {
+    sleepInBed: {
+      start: "fresh",
+      refusal: (command) => goneRefusal(entities, command.bedId),
+      approach: {
+        reach: (command) => beds.reach(command.bedId),
+        act: (command) => {
+          beds.sleep(command.bedId);
+        },
+      },
     },
   };
 }

@@ -18,7 +18,7 @@ import type {
   EatOrDrinkView,
 } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
-import { createBeds, type BedEntity } from "./beds";
+import { createBeds, type BedEntity, bedRules } from "./beds";
 import { createStools, stoolRules } from "./stools";
 import { createApproach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
@@ -831,16 +831,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         },
       },
     },
-    sleepInBed: {
-      start: "fresh",
-      refusal: (command) => goneRefusal(entities, command.bedId),
-      approach: {
-        reach: (command) => beds.reach(command.bedId),
-        act: (command) => {
-          beds.sleep(command.bedId);
-        },
-      },
-    },
+    ...bedRules(beds, ruleGame),
     ...stoolRules(stools, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),

@@ -72,11 +72,12 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
 }
 
 /**
- * The icon of each structure but the sled, the fireplace, and the furniture. structure-icon.tsx picks the icon for each structure.
+ * The icon of each structure but the sled, the fireplace, the door, and the furniture. structure-icon.tsx picks the icon for each structure.
  * The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx. furniture-icons.tsx lists each piece of furniture's icon.
  * The fireplace's icon is the draft "fireplace-icon" asset, drawn in fireplace-icon.tsx.
+ * The door's icon is part of the draft "floor-and-door-icons" asset, drawn in floor-and-door-icons.tsx.
  */
-export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | "fireplace" | FurnitureKind>, IconDrawing>> = {
+export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | "fireplace" | "door" | FurnitureKind>, IconDrawing>> = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {
     colour: "#ff8a3c",

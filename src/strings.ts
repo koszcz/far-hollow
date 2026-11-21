@@ -126,6 +126,7 @@ export const strings = {
       doorFrame: "Door frame",
       roofFrame: "Roof frame",
       roof: "Roof section",
+      door: "Door",
       fireplace: "Fireplace",
       woodpile: "Woodpile",
       chest: "Chest",
@@ -156,6 +157,7 @@ export const strings = {
       overWalls: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
       onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
+      inDoorFrame: (structure: string) => `Placing: ${structure}. Point at a finished door frame with no door, and click to hang it there.`,
     },
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */

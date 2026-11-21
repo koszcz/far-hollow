@@ -3,8 +3,10 @@
 import { setComponent, type Entity, type EntityStore } from "../../sim/entities";
 import { BUILD_FADE_SHARE } from "../structure-look";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
+import { DOOR_SWING_SECONDS } from "../door-swing";
 import {
   DOOR_FRAME_LOG_COST,
+  DOOR_PLANK_COST,
   FIREPLACE_STONE_COST,
   FOUNDATION_LOG_COST,
   LOG_WALL_LOG_COST,
@@ -22,6 +24,10 @@ import { FURNITURE_SHOWCASES } from "./furniture";
 
 /** A sled is built in one stage per log and one per stick. */
 const SLED_STAGES = SLED_LOG_COST + SLED_STICK_COST;
+/** In the "door-animation" live loop, the player walks from inside the cabin, this far along z, out to this far, and back, in this long. */
+const DOOR_WALK_FROM_Z = -1.2;
+const DOOR_WALK_TO_Z = 2.2;
+const DOOR_WALK_CYCLE_SECONDS = 6;
 /** The fireplace showcase marks its lit shot with this time, past the end of the build. */
 const LIT_FIREPLACE_SHOT = 2;
 /** The fireplace showcase marks its shot of a pot and fish on the lit fire with this time. */
@@ -283,6 +289,80 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
+  door: {
+    radius: 1.5,
+    focus: { x: 0, y: 1, z: 0.5 },
+    // A door frame on the front edge of a foundation: a door blueprint with 1 of 3 planks, the 2nd plank being set down,
+    // then the finished door, shut, from the front with its latch and from behind with its battens. The player stands aside.
+    shots: [
+      { label: `blueprint, 1 of ${DOOR_PLANK_COST} planks`, yaw: 25, pitch: 15, seconds: 0 },
+      { label: "2nd plank above its place", yaw: 25, pitch: 15, seconds: (1 + BUILD_FADE_SHARE) / DOOR_PLANK_COST },
+      { label: "built, shut, front", yaw: 0, pitch: 10, seconds: 1 },
+      { label: "built, shut, back", yaw: 180, pitch: 10, seconds: 1 },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      onDeck(0, 0.5, { edgePiece: "doorFrame", facing: { turns: 0 } });
+      onDeck(0, 0.5, { blueprint: { structure: "door", progress: 0, materialsSpent: 0, delivered: { plank: 1 } }, facing: { turns: 0 } });
+      stage.movePlayer(1.4, 1.6, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      const progress = shot.seconds ?? 0;
+      for (const entity of [...store.with("blueprint"), ...store.with("door")]) {
+        if (progress >= 1) {
+          store.removeComponent(entity, "blueprint");
+          setComponent(store, entity, "door", true);
+          continue;
+        }
+        store.removeComponent(entity, "door");
+        setComponent(store, entity, "blueprint", { structure: "door", progress, materialsSpent: 0, delivered: {} });
+        if (entity.blueprint !== undefined) entity.blueprint.delivered.plank = Math.max(1, Math.ceil(progress * DOOR_PLANK_COST));
+      }
+    },
+  },
+  "door-animation": {
+    radius: 1.8,
+    focus: { x: 0, y: 1, z: 0.5 },
+    // A finished door in its frame. Each view hangs a new door, so it starts to swing as the view's clock starts:
+    // swinging open as the player steps up to it, standing open with the player in the doorway, swinging shut behind them, then shut.
+    shots: [
+      { label: "swinging open", yaw: 35, pitch: 20, seconds: DOOR_SWING_SECONDS * 0.4 },
+      { label: "open, player in the doorway", yaw: 35, pitch: 20, seconds: 1 },
+      { label: "swinging shut behind the player", yaw: 35, pitch: 20, seconds: DOOR_SWING_SECONDS * 0.5 },
+      { label: "shut", yaw: 35, pitch: 20, seconds: 1 },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      onDeck(0, 0.5, { edgePiece: "doorFrame", facing: { turns: 0 } });
+    },
+    pose(stage, shot) {
+      const { store, movePlayer } = stage;
+      for (const door of [...store.with("door")]) store.remove(door);
+      onDeckOf(stage)(0, 0.5, { door: true, facing: { turns: 0 } });
+      const near = shot.label.startsWith("swinging open") || shot.label.startsWith("open");
+      if (near) movePlayer(0, shot.label.startsWith("open") ? 0.5 : -0.2, 0);
+      else movePlayer(0, 2, 0);
+    },
+    // The player walks in a loop from inside the cabin, out through the door, and back.
+    play: {
+      shot: { label: "walking through the door and back", yaw: 60, pitch: 20 },
+      pose({ store, movePlayer }, seconds) {
+        if (store.with("door").first === undefined) {
+          const frame = store.with("edgePiece", "position").first;
+          if (frame !== undefined) store.add({ door: true, facing: { turns: 0 }, position: { ...frame.position } });
+        }
+        const t = seconds % DOOR_WALK_CYCLE_SECONDS;
+        const half = DOOR_WALK_CYCLE_SECONDS / 2;
+        const outward = t < half;
+        const share = outward ? t / half : (t - half) / half;
+        const z = outward ? DOOR_WALK_FROM_Z + (DOOR_WALK_TO_Z - DOOR_WALK_FROM_Z) * share : DOOR_WALK_TO_Z + (DOOR_WALK_FROM_Z - DOOR_WALK_TO_Z) * share;
+        movePlayer(0, z, outward ? 0 : Math.PI);
+        return undefined;
+      },
+    },
+  },
   "roof-frame": {
     radius: 1.7,
     // The views look at the front right square of the cabin, where the frame blueprint is, unless a view says otherwise.

@@ -1339,6 +1339,51 @@
         "status": "draft",
         "ticket": ".scratch/torch/issues/01-craft-and-carry-a-torch.md"
       }
+    },
+    {
+      "id": "door",
+      "kind": "code",
+      "code": [
+        "src/render/door-meshes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "A plank door hung in a door frame. Three upright planks of pale sawn wood, each a little lighter or darker than the next, fill the doorway between the frame's posts, about 0.48 m wide and 1.76 m tall, with a thin gap to the posts and the lintel. Two darker battens run across the inside face, and a small dark iron latch sits on the outside, on the side away from the hinges at the left post. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+      }
+    },
+    {
+      "id": "door-animation",
+      "kind": "code",
+      "code": [
+        "src/render/door-swing.ts",
+        "src/render/door-meshes.ts"
+      ],
+      "description": "A door swinging open and shut on its hinges at the left post. When the player comes within 1 m of the middle of the door frame, the door swings open, away from the side the player stands on, to 100 degrees from shut. Once the player is more than 1 m away, it swings back shut. A full swing takes 0.45 seconds, easing in and out. A door that turns back part way through a swing returns at the same pace, so it takes less time.",
+      "source": "Timed in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+      }
+    },
+    {
+      "id": "floor-and-door-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/floor-and-door-icons.tsx",
+        "src/ui/structure-icon.tsx"
+      ],
+      "description": "The build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The door icon is a door of three upright pale wooden planks, seen from the front, hung in a pale log door frame with a lintel across the top. Two darker battens cross the planks, and a small dark latch sits on the right.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+      }
     }
   ]
 }

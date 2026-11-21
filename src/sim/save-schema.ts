@@ -115,6 +115,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   takeDownTask: shape({ pieceId: count, secondsDone: finite }),
   foundation: exactly(true),
   edgePiece: exactly(...EDGE_PIECE_KINDS),
+  door: exactly(true),
   roofFrame: exactly(true),
   cabinRoof: exactly(true),
   fireplace: shape({ lit: boolean, fuelMinutes: finite }),

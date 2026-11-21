@@ -1,4 +1,5 @@
 import { World } from "miniplex";
+import type { ActionCommand } from "./api";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
@@ -231,10 +232,11 @@ export interface Entity {
   bedrollTask?: { bedrollId: number; then: "pickUp" | "sleep" };
   /** The finished lean-to the player is walking into, given by its entity id, to lay their bedroll there. */
   layBedrollTask?: { leanToId: number };
-  /** The finished bed the player is walking to, given by its entity id, to sleep in. */
-  bedTask?: { bedId: number };
-  /** The finished stool the player is walking to, given by its entity id, to sit on. */
-  stoolTask?: { stoolId: number };
+  /**
+   * The player's pending approach: the walk to get within reach of a thing or a spot, with the command that started it.
+   * The command is carried out when they arrive, if the game does not refuse it then. See approach.ts.
+   */
+  approach?: { command: ActionCommand };
   /**
    * The player sits on a finished stool, given by its entity id, and rests. Their position stays beside it, where they stood
    * to sit down. They stand up as soon as they walk or act. It is never saved, so a loaded game starts with the player standing.

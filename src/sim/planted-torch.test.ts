@@ -229,7 +229,7 @@ describe("saving planted torches", () => {
   });
 
   it("raises the save version for planted torches, and loads a save from before then", () => {
-    expect(PLANTED_TORCHES_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(PLANTED_TORCHES_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     expect(PLANTED_TORCHES_SAVE_VERSION).toBeGreaterThan(TORCHES_SAVE_VERSION);
     expect(TORCHES_SAVE_VERSION).toBeGreaterThan(FIREPLACES_SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(createGame({ seed: 42 })))) as { version: number };

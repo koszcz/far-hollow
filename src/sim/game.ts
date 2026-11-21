@@ -20,6 +20,7 @@ import type {
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
 import { createStools } from "./stools";
+import { createApproach, type ApproachReach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
@@ -104,15 +105,29 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
  *   The game checks it before it runs the command, and a refused command shows the refusal as a notice and does nothing.
  * - `run`: carries the command out. It only receives commands whose refusal passed. It returns a notice to show,
  *   if the work turns out not to be possible, such as a full backpack.
+ * - `approach`: for a command the player walks within reach to carry out. `reach` says where the approach takes them, and
+ *   `act` carries the command out once they stand there. The game checks the refusal again just before `act`. A rule with an
+ *   approach and no `run` starts the approach when it runs. See approach.ts.
  * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
  * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
  * - `queue`: how the command meets the action queue. Without it, the command can be queued, and sent on its own it empties the queue.
  *   "plainOnly": it is never queued. Sent to the queue, it runs as if sent on its own. "apart": as "plainOnly", and sent on its own
  *   it leaves the queue as it is, unless it stops what the player was doing.
  */
-interface CommandRule<C extends ActionCommand> {
+type CommandRule<C extends ActionCommand> = CommandRuleParts<C> &
+  (
+    | { readonly run: (command: C) => Notice | PlainNotice | undefined; readonly approach?: ApproachRule<C> }
+    | { readonly run?: undefined; readonly approach: ApproachRule<C> }
+  );
+
+/** How a command the player walks within reach to carry out meets the approach. */
+interface ApproachRule<C extends ActionCommand> {
+  readonly reach: (command: C) => ApproachReach | undefined;
+  readonly act: (command: C) => Notice | PlainNotice | undefined;
+}
+
+interface CommandRuleParts<C extends ActionCommand> {
   readonly start: "fresh" | "alongside";
-  readonly run: (command: C) => Notice | PlainNotice | undefined;
   readonly refusal?: (command: C) => Refusal | undefined;
   readonly needsFreeHands?: true | ((command: C) => boolean);
   readonly keepsPlayerSitting?: true;
@@ -212,12 +227,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
   const bedrolls = createBedrolls(entities, walking, valley, handReach, sleepOn);
-  const beds = createBeds(entities, walking, sleepIn);
+  const beds = createBeds(entities, sleepIn);
   const woodpiles = createWoodpiles(entities, walking);
   const sleds = createSleds(entities, walking, valley);
   const chests = createChests(entities, walking);
   // The player puts down what they hold to sit, as they do to sleep.
-  const stools = createStools(entities, walking, () => {
+  const stools = createStools(entities, () => {
     carrying.drop();
     sleds.letGo();
   });
@@ -233,6 +248,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
   const tending = createTending(entities, { campfires, woodpiles, sleds }, reachToTend);
+  const approach = createApproach(entities, walking, {
+    reach: (command) => ruleOf(command).approach?.reach(command),
+    refusal: refusalOf,
+    act: (command) => ruleOf(command).approach?.act(command),
+    stopOtherWork: cancelTasks,
+  });
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll or bed to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
     chopping,
@@ -245,7 +266,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     takingDown,
     bedrolls,
     torches,
-    beds,
     stools,
     drinking,
     fishing,
@@ -254,6 +274,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     chests,
     piles,
     tending,
+    approach,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
   ];
@@ -796,15 +817,21 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     sleepInBed: {
       start: "fresh",
       refusal: (command) => goneRefusal(entities, command.bedId),
-      run: (command) => {
-        beds.sleep(command.bedId);
+      approach: {
+        reach: (command) => beds.reach(command.bedId),
+        act: (command) => {
+          beds.sleep(command.bedId);
+        },
       },
     },
     sitOnStool: {
       start: "fresh",
       refusal: (command) => goneRefusal(entities, command.stoolId),
-      run: (command) => {
-        stools.sit(command.stoolId);
+      approach: {
+        reach: (command) => stools.reach(command.stoolId),
+        act: (command) => {
+          stools.sit(command.stoolId);
+        },
       },
     },
     drinkFromRiver: {
@@ -1030,7 +1057,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     if (command.type !== "setPaused") handReach.cancel();
     if (rule.start === "fresh") cancelTasks();
     castsWhenFishingBegan = undefined;
-    refuseWith(rule.run(command));
+    refuseWith(rule.run === undefined ? approach.start(command) : rule.run(command));
   }
 
   /** Carries out a command the UI sent: it adds an action to the action queue, or it runs on its own. */

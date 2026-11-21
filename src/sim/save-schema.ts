@@ -56,6 +56,10 @@ const tendCommand: Check = (value) =>
   shape({ type: exactly("loadSled", "tipOutSled", "dragSled", "loadPlanksOnSled", "takePlanksFromSled"), sledId: count })(value) ||
   shape({ type: exactly("takeFromSled"), sledId: count, log: exactly(...CARRIED_LOGS) })(value);
 
+/** A command the player is on their way to carry out, which a pending approach holds. Only commands that walk first appear. */
+const approachCommand: Check = (value) =>
+  shape({ type: exactly("sleepInBed"), bedId: count })(value) || shape({ type: exactly("sitOnStool"), stoolId: count })(value);
+
 /**
  * How each entity component must look in a save.
  * Every component of an entity needs an entry here. TypeScript reports a missing one,
@@ -67,6 +71,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   tree: exactly(true),
   player: exactly(true),
   walkPath: list(point),
+  approach: shape({ command: approachCommand }),
   blocksWalking: shape({ radius: finite }),
   blocksWalkingSpots: list(point),
   blocksWalkingEdges: list(shape({ from: point, to: point })),
@@ -120,8 +125,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   bedroll: exactly(true),
   bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   layBedrollTask: shape({ leanToId: count }),
-  bedTask: shape({ bedId: count }),
-  stoolTask: shape({ stoolId: count }),
   tendTask: tendCommand,
   needs: shape(Object.fromEntries(NEED_KINDS.map((kind) => [kind, shape({ level: finite, minutesWithout: finite })]))),
   respawnPoint: point,

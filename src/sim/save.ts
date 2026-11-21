@@ -60,6 +60,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   lightFireplaces,
   addTorches,
   plantTorches,
+  startApproaches,
 ];
 
 /** The version of the save format this code writes. */
@@ -129,6 +130,9 @@ export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplace
 export const TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTorches) + 2;
 /** The first save version that can hold torches planted in the ground. */
 export const PLANTED_TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantTorches) + 2;
+
+/** The first save version in which the player's walk to act on a thing is one pending approach, holding the command that started it. */
+export const APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(startApproaches) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -653,4 +657,34 @@ function addTorches(save: Readonly<Record<string, unknown>>): Record<string, unk
  */
 function plantTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * For each walk-only task component an older save can hold, the command a pending approach holds in its place.
+ * The commands are written out here, so later changes to a command do not change what the upgrade does.
+ */
+const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) => Record<string, unknown>>> = {
+  bedTask: (task) => ({ type: "sleepInBed", bedId: task.bedId }),
+  stoolTask: (task) => ({ type: "sitOnStool", stoolId: task.stoolId }),
+};
+
+/**
+ * Version 39 to 40: the player walking to act on a thing has one pending approach, which holds the command that started it,
+ * in place of a task component for each kind of thing. Each walk-only task component becomes the approach for its command,
+ * so a player saved on the way carries on and acts when they arrive. Timed work keeps its own task component.
+ */
+function startApproaches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components === undefined || components === null) return entity;
+    const tasks = Object.keys(APPROACH_OF_TASK).filter((name) => components[name] !== undefined);
+    const first = tasks[0];
+    if (first === undefined) return entity;
+    const command = APPROACH_OF_TASK[first]?.(components[first] as Record<string, unknown>);
+    // The player walked to one thing at a time, so a second walk-only task, which no save should hold, is dropped.
+    const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
+    return { ...(entity as object), components: { ...others, approach: { command } } };
+  });
+  return { ...save, entities };
 }

@@ -43,11 +43,12 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
 ];
 
 /** Each part of the player that means they are walking to do something, or doing it. */
-type TaskPart = Extract<keyof Entity, `${string}Task`> | "walkPath" | "handReach" | "sitting";
+type TaskPart = Extract<keyof Entity, `${string}Task`> | "walkPath" | "approach" | "handReach" | "sitting";
 
 /** Every task part. TypeScript reports a missing one, so a new kind of task counts at once. */
 const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   walkPath: true,
+  approach: true,
   handReach: true,
   sitting: true,
   chopTask: true,
@@ -63,8 +64,6 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   deliverTask: true,
   forageTask: true,
   bedrollTask: true,
-  bedTask: true,
-  stoolTask: true,
   tendTask: true,
   fishTask: true,
   drinkTask: true,

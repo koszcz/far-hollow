@@ -1,8 +1,8 @@
-// Sitting on a stool: walking to it, sitting down once the player stands beside it, and standing up again.
+// Sitting on a stool: where the player walks to reach it, sitting down once they stand beside it, and standing up again.
 // While the player sits, fatigue comes back slowly (see needs.ts). Their position stays beside the stool, which blocks walking.
+import type { Activity } from "./activity";
+import type { ApproachReach } from "./approach";
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
-import { groundDistance, type GroundPoint } from "./ground-point";
-import { walkBeside, type Walking } from "./walking";
 
 /** The player walks to a spot this far from a stool's middle to sit on it, in metres. */
 const STOOL_STAND_METRES = 1.1;
@@ -12,15 +12,14 @@ export const STOOL_REACH_METRES = 2;
 /** A finished stool, standing somewhere. */
 export type StoolEntity = Entity & Required<Pick<Entity, "furniture" | "position">>;
 
-export interface Stools {
-  /**
-   * Sits the player on a finished stool now, if they stand within reach of it.
-   * If it is further away, sets the player walking to it, and `step` sits them down once they arrive.
-   */
+export interface Stools extends Activity {
+  /** Where the player walks to sit on a finished stool: beside it, on their own side. Undefined if the entity is not a finished stool. */
+  reach(stoolId: number): ApproachReach | undefined;
+  /** Sits the player on a finished stool. The approach runs it once the player stands within reach. */
   sit(stoolId: number): void;
-  /** Stops the player walking to a stool. It does not stand up a player who already sits. */
+  /** Does nothing: a new command stands the player up through `standUp`, not through cancelling. */
   cancel(): void;
-  /** Sits the player down if they have just reached a stool they were walking to. Run it after walking. */
+  /** Stands the player up if they have started walking, or if their stool is gone. */
   step(): undefined;
   /** Stands the player up, if they sit. */
   standUp(): void;
@@ -29,47 +28,30 @@ export interface Stools {
 }
 
 /** Lets the player sit on a finished stool. `beforeSitting` runs just before they sit, so they can put down what they hold. */
-export function createStools(entities: EntityStore, walking: Walking, beforeSitting: () => void): Stools {
+export function createStools(entities: EntityStore, beforeSitting: () => void): Stools {
   const players = playerEntities(entities);
-  const walkers = entities.with("stoolTask", "position");
 
   const stoolById = (stoolId: number): StoolEntity | undefined => {
     const stool = entityWith(entities, stoolId, "furniture", "position");
     return stool?.furniture === "stool" ? stool : undefined;
   };
-  const withinReach = (stool: StoolEntity, at: GroundPoint) => groundDistance(stool.position, at) <= STOOL_REACH_METRES;
-
-  function sitDown(player: Entity, stoolId: number): void {
-    beforeSitting();
-    entities.removeComponent(player, "walkPath");
-    setComponent(entities, player, "sitting", { stoolId });
-  }
 
   return {
-    sit(stoolId) {
+    reach(stoolId) {
       const stool = stoolById(stoolId);
-      if (stool === undefined) return;
+      if (stool === undefined) return undefined;
+      return { target: stool.position, metres: STOOL_REACH_METRES, walk: { style: "beside", standMetres: STOOL_STAND_METRES } };
+    },
+    sit(stoolId) {
+      if (stoolById(stoolId) === undefined) return;
+      beforeSitting();
       for (const player of players) {
-        if (withinReach(stool, player.position)) {
-          sitDown(player, stoolId);
-          continue;
-        }
-        walkBeside(walking, player.position, stool.position, STOOL_REACH_METRES, STOOL_STAND_METRES);
-        setComponent(entities, player, "stoolTask", { stoolId });
+        entities.removeComponent(player, "walkPath");
+        setComponent(entities, player, "sitting", { stoolId });
       }
     },
-    cancel() {
-      for (const player of players) entities.removeComponent(player, "stoolTask");
-    },
+    cancel() {},
     step() {
-      // Copy the list first, because players who arrive leave the query while it is being walked.
-      for (const walker of [...walkers]) {
-        if (walker.walkPath !== undefined) continue;
-        const { stoolId } = walker.stoolTask;
-        entities.removeComponent(walker, "stoolTask");
-        const stool = stoolById(stoolId);
-        if (stool !== undefined && withinReach(stool, walker.position)) sitDown(walker, stoolId);
-      }
       // A player who starts walking, or whose stool is gone, is no longer sitting.
       for (const player of players) {
         if (player.sitting === undefined) continue;

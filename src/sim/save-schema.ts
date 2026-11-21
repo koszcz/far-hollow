@@ -62,7 +62,9 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
   shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
   shape({ type: exactly("pickUpBark"), barkId: count })(value) ||
-  shape({ type: exactly("forage"), spotId: count })(value);
+  shape({ type: exactly("forage"), spotId: count })(value) ||
+  shape({ type: exactly("pickUpLog", "splitLog"), logId: count })(value) ||
+  shape({ type: exactly("dropLogAt"), x: finite, z: finite })(value);
 
 /**
  * How each entity component must look in a save.
@@ -81,8 +83,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blocksWalkingEdges: list(shape({ from: point, to: point })),
   backpack: shape({ contents: backpackContents }),
   chopTask: shape({ treeId: count, secondsDone: finite }),
-  logPickUpTask: shape({ logId: count, thenSplit: exactly(true) }, ["thenSplit"]),
-  logDropTask: point,
   stump: exactly(true),
   fellHeading: finite,
   growth: shape({ stage: exactly(...GROWTH_STAGES), minutesLeft: finite }),

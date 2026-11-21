@@ -1,42 +1,39 @@
 import type { Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import { shoulderRefusal } from "./refusals";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** The player can pick up a log from this far away, in metres. */
 const PICK_UP_REACH_METRES = 2;
 
 export interface Carrying {
   /**
-   * Sets the player walking to a log or debarked log on the ground. Once there, they reach down and shoulder it.
-   * Does nothing if the entity is not one of those. The game calls it only once `pickUpRefusal` passes.
+   * Where the player walks to pick up a log or debarked log on the ground: onto it, or beside it if something blocks its spot.
+   * Undefined if the entity is not one of those.
+   */
+  pickUpReach(logId: number): ApproachReach | undefined;
+  /**
+   * Has the player reach down for a log or debarked log within reach and shoulder it. The approach runs it once they arrive.
    * With `thenSplit`, the player starts splitting it into firewood once it is on their shoulder, if it is a log.
    */
   pickUp(logId: number, thenSplit?: boolean): void;
   /** Why the player could not pick up a log now: one is already on their shoulder. */
   pickUpRefusal(): Refusal | undefined;
-  /** Stops the player walking to pick up or drop a log. */
-  cancel(): void;
   /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
   drop(): void;
-  /**
-   * Sets the player walking to a spot to lay the carried log there. When they stop within reach of the spot, they reach down and the log goes down.
-   * Does nothing if the player carries nothing.
-   */
+  /** Where the player walks to lay the carried log at a spot: to the spot itself. Undefined if the player carries nothing. */
+  dropReach(spot: GroundPoint): ApproachReach | undefined;
+  /** Has the player reach down and lay the carried log at a spot within reach. The approach runs it once they arrive. */
   dropAt(spot: GroundPoint): void;
-  /** Starts the player reaching to pick up logs and drop logs where they have walked to. Run it after walking has moved the player. */
-  step(): undefined;
 }
 
 /** Keeps track of what the player carries on their shoulder. One log or debarked log fits at a time. */
-export function createCarrying(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Carrying {
+export function createCarrying(entities: EntityStore, valley: Valley, hand: Pick<HandReach, "start">): Carrying {
   const players = playerEntities(entities);
-  const pickers = entities.with("logPickUpTask", "position");
-  const droppers = entities.with("logDropTask", "position");
 
   function dropFrom(player: Entity & { position: { x: number; z: number } }): void {
     const carried = player.carrying;
@@ -53,57 +50,40 @@ export function createCarrying(entities: EntityStore, walking: Walking, valley: 
   }
 
   return {
-    pickUp(logId, thenSplit = false) {
+    pickUpReach(logId) {
       const log = entities.entity(logId);
-      if (log === undefined || logKind(log) === undefined || log.position === undefined) return;
-      for (const player of players) {
-        walkOntoOrWithinReach(walking, log.position, log.position, PICK_UP_REACH_METRES);
-        setComponent(entities, player, "logPickUpTask", thenSplit ? { logId, thenSplit: true } : { logId });
-      }
+      if (log === undefined || logKind(log) === undefined || log.position === undefined) return undefined;
+      return { target: log.position, metres: PICK_UP_REACH_METRES, walk: { style: "onto", spot: log.position } };
     },
-    pickUpRefusal() {
-      return shoulderRefusal(players.first);
-    },
-    cancel() {
-      for (const player of players) {
-        entities.removeComponent(player, "logPickUpTask");
-        entities.removeComponent(player, "logDropTask");
-      }
-    },
-    drop() {
-      for (const player of players) dropFrom(player);
-    },
-    dropAt(spot) {
-      for (const player of players) {
-        if (player.carrying === undefined) continue;
-        walking.walkTo(spot);
-        setComponent(entities, player, "logDropTask", { x: spot.x, z: spot.z });
-      }
-    },
-    step() {
-      for (const dropper of [...droppers]) {
-        if (dropper.walkPath) continue;
-        const spot = dropper.logDropTask;
-        entities.removeComponent(dropper, "logDropTask");
-        if (groundDistance(spot, dropper.position) <= PICK_UP_REACH_METRES) {
-          hand.start("low", spot, () => {
-            dropFrom(dropper);
-            return undefined;
-          });
-        }
-      }
-      // Copy the list first, because players who finish or give up leave the query while it is being walked.
-      for (const picker of [...pickers]) {
-        if (picker.walkPath) continue;
-        const { logId, thenSplit } = picker.logPickUpTask;
-        entities.removeComponent(picker, "logPickUpTask");
+    pickUp(logId, thenSplit = false) {
+      for (const picker of players) {
         const log = logInReach(logId, picker);
         if (log?.position === undefined) continue;
         hand.start("low", log.position, () => {
           const still = logInReach(logId, picker);
           const shouldered = still !== undefined && shoulderLog(entities, picker, still);
           // Splitting checks the axe and the backpack's room each step, so it stops on its own if either is missing.
-          if (shouldered && thenSplit === true && picker.carrying === "log") setComponent(entities, picker, "splitTask", { secondsDone: 0 });
+          if (shouldered && thenSplit && picker.carrying === "log") setComponent(entities, picker, "splitTask", { secondsDone: 0 });
+          return undefined;
+        });
+      }
+    },
+    pickUpRefusal() {
+      return shoulderRefusal(players.first);
+    },
+    drop() {
+      for (const player of players) dropFrom(player);
+    },
+    dropReach(spot) {
+      if (players.first?.carrying === undefined) return undefined;
+      const at = { x: spot.x, z: spot.z };
+      return { target: at, metres: PICK_UP_REACH_METRES, walk: { style: "to", spot: at } };
+    },
+    dropAt(spot) {
+      for (const dropper of players) {
+        if (dropper.carrying === undefined || groundDistance(spot, dropper.position) > PICK_UP_REACH_METRES) continue;
+        hand.start("low", { x: spot.x, z: spot.z }, () => {
+          dropFrom(dropper);
           return undefined;
         });
       }

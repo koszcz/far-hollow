@@ -669,6 +669,8 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
   stickPickUpTask: (task) => ({ type: "pickUpStick", stickId: task.stickId }),
   barkPickUpTask: (task) => ({ type: "pickUpBark", barkId: task.barkId }),
   forageTask: (task) => ({ type: "forage", spotId: task.spotId }),
+  logPickUpTask: (task) => ({ type: task.thenSplit === true ? "splitLog" : "pickUpLog", logId: task.logId }),
+  logDropTask: (task) => ({ type: "dropLogAt", x: task.x, z: task.z }),
 };
 
 /**

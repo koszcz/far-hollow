@@ -218,7 +218,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const player = progress === undefined ? addNewPlayer(entities, walking, valley, freeBuilding) : savedPlayer(entities);
   const handReach = createHandReach(entities);
   const chopping = createChopping(entities, walking, valley);
-  const carrying = createCarrying(entities, walking, valley, handReach);
+  const carrying = createCarrying(entities, valley, handReach);
   const debarking = createDebarking(entities, walking);
   const crafting = createCrafting(entities, walking, valley.terrain);
   const gathering = createGathering(entities, handReach);
@@ -257,7 +257,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll or bed to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
     chopping,
-    carrying,
     debarking,
     crafting,
     gathering,
@@ -550,8 +549,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: () => carrying.pickUpRefusal(),
-      run: (command) => {
-        carrying.pickUp(command.logId);
+      approach: {
+        reach: (command) => carrying.pickUpReach(command.logId),
+        act: (command) => {
+          carrying.pickUp(command.logId);
+        },
       },
     },
     debarkLog: {
@@ -642,11 +644,18 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "alongside",
       needsFreeHands: true,
       refusal: (command) => gathering.splitRefusal(command.logId),
-      run: ({ logId }) => {
-        if (logId !== undefined && entities.entity(logId)?.log === undefined) return;
+      run: (command) => {
+        if (command.logId !== undefined) return approach.start(command);
         cancelTasks();
-        if (logId === undefined) gathering.splitLog();
-        else carrying.pickUp(logId, true);
+        gathering.splitLog();
+        return undefined;
+      },
+      // A log given by id is picked up first, then split on the player's shoulder.
+      approach: {
+        reach: ({ logId }) => (logId === undefined || entities.entity(logId)?.log === undefined ? undefined : carrying.pickUpReach(logId)),
+        act: ({ logId }) => {
+          if (logId !== undefined) carrying.pickUp(logId, true);
+        },
       },
     },
     dropLog: {
@@ -660,8 +669,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     dropLogAt: {
       start: "fresh",
-      run: (command) => {
-        carrying.dropAt({ x: command.x, z: command.z });
+      approach: {
+        reach: (command) => carrying.dropReach(command),
+        act: (command) => {
+          carrying.dropAt(command);
+        },
       },
     },
     dropFromBackpack: {

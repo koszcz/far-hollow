@@ -158,13 +158,25 @@ export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
  * Returns undefined if the data is not a save, or its version is missing or newer than the upgrades know.
  */
 export function upgradeSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_UPGRADES): Record<string, unknown> | undefined {
-  if (typeof data !== "object" || data === null) return undefined;
+  const checked = checkVersion(data, upgrades);
+  if (!checked.ok) return undefined;
+  let upgraded = checked.save;
+  for (const upgrade of upgrades.slice(checked.version - 1)) upgraded = upgrade(upgraded);
+  return { version: upgrades.length + 1, ...upgraded };
+}
+
+type VersionCheck = { ok: true; version: number; save: Record<string, unknown> } | { ok: false; reason: "notASave" | "newerVersion" };
+
+/**
+ * Splits stored data into its version and the rest of the save.
+ * The data must be an object with a whole-number version, from 1 up to the newest version that `upgrades` reach.
+ */
+function checkVersion(data: unknown, upgrades: readonly SaveUpgrade[]): VersionCheck {
+  if (typeof data !== "object" || data === null) return { ok: false, reason: "notASave" };
   const { version, ...save } = data as Record<string, unknown>;
-  const newest = upgrades.length + 1;
-  if (typeof version !== "number" || !Number.isInteger(version) || version < 1 || version > newest) return undefined;
-  let upgraded: Record<string, unknown> = save;
-  for (const upgrade of upgrades.slice(version - 1)) upgraded = upgrade(upgraded);
-  return { version: newest, ...upgraded };
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 1) return { ok: false, reason: "notASave" };
+  if (version > upgrades.length + 1) return { ok: false, reason: "newerVersion" };
+  return { ok: true, version, save };
 }
 
 /** A saved game, as stored in the browser. It is plain data. */
@@ -222,16 +234,15 @@ export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_
 }
 
 /**
- * Why the game refuses a save from its version number alone, before it upgrades the save, or undefined if the version is fine.
- * A save from the 1 km valley is refused only if `upgrades` would turn it away, so tests can still load one through
- * `LARGE_VALLEY_UPGRADES`.
+ * Says why the game refuses a save, from its version number alone.
+ * The game checks this before it upgrades the save. Returns undefined if the version is fine.
+ * A save from the 1 km valley is refused only if `upgrades` turn it away.
+ * So tests can still load such a save through `LARGE_VALLEY_UPGRADES`.
  */
 function refusalBeforeUpgrade(data: unknown, upgrades: readonly SaveUpgrade[]): SaveRefusal | undefined {
-  if (typeof data !== "object" || data === null) return "notASave";
-  const { version } = data as Record<string, unknown>;
-  if (typeof version !== "number" || !Number.isInteger(version) || version < 1) return "notASave";
-  if (version > upgrades.length + 1) return "newerVersion";
-  if (upgrades.slice(version - 1).includes(turnAwayLargeValley)) return "largeValley";
+  const checked = checkVersion(data, upgrades);
+  if (!checked.ok) return checked.reason;
+  if (upgrades.slice(checked.version - 1).includes(turnAwayLargeValley)) return "largeValley";
   return undefined;
 }
 

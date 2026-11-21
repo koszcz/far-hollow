@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { createGame } from "../sim/game";
 import { readSave, SAVE_VERSION, SMALL_VALLEY_SAVE_VERSION, SNUG_ROOM_NOTICE_SAVE_VERSION, writeSave } from "../sim/save";
 import { saveExportFile } from "./save-export";
-import { importSaveFile } from "./save-import";
+import { importIntoSlot, importSaveFile } from "./save-import";
+import type { SaveStorage } from "./save-storage";
 
 /** A saved game as a file's text, the way export writes it. */
 function fileText(save: unknown): string {
@@ -61,5 +62,46 @@ describe("importing a saved game from a file", () => {
     const loaded = readSave(structuredClone(imported.save));
     if (!loaded.ok) throw new Error("The imported save did not load");
     expect(loaded.game.client.getView()).toEqual(game.client.getView());
+  });
+});
+
+/** A save storage that keeps saves in memory. `failWrites` makes every write fail, the way a full browser storage does. */
+function memoryStorage(failWrites = false): SaveStorage & { saves: Map<number, unknown> } {
+  const saves = new Map<number, unknown>();
+  return {
+    saves,
+    read: (slot) => Promise.resolve(saves.get(slot)),
+    write: (slot, save) => {
+      if (failWrites) return Promise.reject(new Error("The storage is full"));
+      saves.set(slot, save);
+      return Promise.resolve();
+    },
+  };
+}
+
+describe("storing an imported saved game in a save slot", () => {
+  it("stores the imported saved game in the slot", async () => {
+    const storage = memoryStorage();
+    const save = writeSave(createGame({ seed: 5 }));
+
+    const imported = await importIntoSlot(storage, 1, fileText(save));
+
+    expect(imported).toEqual({ ok: true, save });
+    expect(storage.saves.get(1)).toEqual(save);
+  });
+
+  it("leaves the slot as it was when it refuses the file", async () => {
+    const storage = memoryStorage();
+    storage.saves.set(1, "kept");
+
+    expect(await importIntoSlot(storage, 1, "far hollow {")).toEqual({ ok: false, reason: "notASave" });
+    expect(storage.saves.get(1)).toBe("kept");
+  });
+
+  it("says the saved game could not be stored when the browser cannot store it", async () => {
+    const text = fileText(writeSave(createGame({ seed: 5 })));
+
+    expect(await importIntoSlot(memoryStorage(true), 1, text)).toEqual({ ok: false, reason: "notStored" });
+    expect(await importIntoSlot(undefined, 1, text)).toEqual({ ok: false, reason: "notStored" });
   });
 });

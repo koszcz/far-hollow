@@ -66,7 +66,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("pickUpLog", "splitLog"), logId: count })(value) ||
   shape({ type: exactly("dropLogAt"), x: finite, z: finite })(value) ||
   shape({ type: exactly("pickUpBedroll", "sleep"), bedrollId: count })(value) ||
-  shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value);
+  shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value) ||
+  shape({ type: exactly("pickUpTorch"), torchId: count })(value);
 
 /**
  * How each entity component must look in a save.
@@ -136,7 +137,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   sickness: shape({ minutesLeft: finite }),
   litTorch: shape({ minutesLeft: finite }),
   plantedTorch: shape({ minutesLeft: finite }),
-  torchPickUpTask: shape({ torchId: count }),
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,

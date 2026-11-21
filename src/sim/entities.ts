@@ -260,8 +260,6 @@ export interface Entity {
    * on the ground or on a foundation. It does not block walking.
    */
   plantedTorch?: { minutesLeft: number };
-  /** The planted torch the player is walking to, given by its entity id, to pick it up. */
-  torchPickUpTask?: { torchId: number };
   /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
   fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */

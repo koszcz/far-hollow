@@ -3,8 +3,8 @@
 // The player can plant the torch in their hand at their feet, and pick a planted torch up again with the time it has left.
 // Unlit torches are an ordinary backpack content. A lit torch is not, so it uses no backpack weight.
 // A planted torch is its own entity. It does not block walking.
-import type { Activity } from "./activity";
 import type { Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { plantedTorchEntities, playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { standingHeightAt } from "./foundations";
@@ -12,7 +12,6 @@ import { groundDistance, type GroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
 import { toolRefusal } from "./refusals";
 import type { Valley } from "./valley";
-import { walkOntoOrWithinReach, type Walking } from "./walking";
 
 /** How long a lit torch burns, in game minutes: 3 game hours. */
 export const TORCH_BURN_MINUTES = 180;
@@ -37,7 +36,7 @@ export interface PlantedTorch extends LitTorch {
 
 export type PlantedTorchEntity = Entity & { plantedTorch: { minutesLeft: number }; position: Vec3 };
 
-export interface Torches extends Activity {
+export interface Torches {
   /**
    * Takes one torch out of the backpack and puts it in the player's hand, lit for TORCH_BURN_MINUTES.
    * Does nothing if the backpack holds no torch. The game calls it only once `refusal` passes.
@@ -55,8 +54,13 @@ export interface Torches extends Activity {
   /** Why the player cannot plant their torch here: another planted torch stands within PLANTED_TORCH_SPACING_METRES. */
   plantRefusal(): Refusal | undefined;
   /**
-   * Walks the player to a planted torch, given by its entity id, if it is out of reach. They reach down for it there, and it goes
-   * in their hand with the time it has left. Does nothing if the entity is not a planted torch, or if `pickUpRefusal` gives a reason.
+   * Where the player walks to pick up a planted torch: onto its spot, or beside it if something blocks it. A player within reach
+   * picks it up from where they stand. Undefined if the entity is not a planted torch.
+   */
+  pickUpReach(torchId: number): ApproachReach | undefined;
+  /**
+   * Has the player reach down for a planted torch within reach, given by its entity id. It goes in their hand with the time it
+   * has left. The approach runs it once they arrive. Does nothing if `pickUpRefusal` gives a reason.
    */
   pickUp(torchId: number): void;
   /** Why the player cannot pick up a planted torch: they already hold a lit torch. */
@@ -72,10 +76,9 @@ export interface Torches extends Activity {
   planted(): readonly PlantedTorch[];
 }
 
-export function createTorches(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Torches {
+export function createTorches(entities: EntityStore, valley: Valley, hand: Pick<HandReach, "start">): Torches {
   const players = playerEntities(entities);
   const plantedTorches = plantedTorchEntities(entities);
-  const walkers = entities.with("torchPickUpTask", "position");
 
   function refusal(): Refusal | undefined {
     const player = players.first;
@@ -142,17 +145,14 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
       entities.removeComponent(player, "litTorch");
     },
     plantRefusal,
+    pickUpReach(torchId) {
+      const torch = torchById(torchId);
+      if (torch === undefined) return undefined;
+      return { target: torch.position, metres: PLANTED_TORCH_REACH_METRES, walk: { style: "onto", spot: torch.position, atOnceInReach: true } };
+    },
     pickUp(torchId) {
       const torch = torchById(torchId);
-      if (torch === undefined || pickUpRefusal() !== undefined) return;
-      for (const player of players) {
-        if (withinReach(torch, player.position)) {
-          pickUpNow(torchId, torch.position);
-          continue;
-        }
-        walkOntoOrWithinReach(walking, torch.position, torch.position, PLANTED_TORCH_REACH_METRES);
-        setComponent(entities, player, "torchPickUpTask", { torchId });
-      }
+      if (torch !== undefined && pickUpRefusal() === undefined) pickUpNow(torchId, torch.position);
     },
     pickUpRefusal,
     burn(minutes) {
@@ -179,20 +179,6 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
         const { minutesLeft } = torch.plantedTorch;
         return [{ id, position: { ...torch.position }, minutesLeft, burnLeft: minutesShare(minutesLeft) }];
       });
-    },
-    cancel() {
-      for (const player of players) entities.removeComponent(player, "torchPickUpTask");
-    },
-    step() {
-      // Copy the list first, because players who arrive leave the query while it is being walked.
-      for (const walker of [...walkers]) {
-        if (walker.walkPath !== undefined) continue;
-        const { torchId } = walker.torchPickUpTask;
-        entities.removeComponent(walker, "torchPickUpTask");
-        const torch = torchById(torchId);
-        if (torch !== undefined && withinReach(torch, walker.position)) pickUpNow(torchId, torch.position);
-      }
-      return undefined;
     },
   };
 }

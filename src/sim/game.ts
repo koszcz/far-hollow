@@ -243,7 +243,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stoneGathering = createStoneGathering(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
-  const torches = createTorches(entities, walking, valley, handReach);
+  const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
@@ -262,7 +262,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     gathering,
     building,
     takingDown,
-    torches,
     stools,
     drinking,
     fishing,
@@ -595,8 +594,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     pickUpTorch: {
       start: "fresh",
       refusal: () => torches.pickUpRefusal(),
-      run: (command) => {
-        torches.pickUp(command.torchId);
+      approach: {
+        reach: (command) => torches.pickUpReach(command.torchId),
+        act: (command) => {
+          torches.pickUp(command.torchId);
+        },
       },
     },
     pickUpStick: {

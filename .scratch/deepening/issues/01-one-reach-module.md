@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -88,16 +88,16 @@ See the agent brief under Comments.
 
 **Acceptance criteria:**
 
-- [ ] No act-once activity module calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`. It starts an approach instead. Ticket 07 does the same for timed tasks.
-- [ ] `HandReach.startOnArrival` is gone.
-- [ ] No walk-only task component remains on the player entity, in the save schema, or in the task parts list.
-- [ ] A save made mid-approach loads, and the player carries on and acts on arrival.
-- [ ] A save from the current version, with an old walk-only task component mid-walk, upgrades and loads. The player acts on arrival, as before. A test covers at least the bed and a stick pick-up.
-- [ ] Tests for walking within reach, cancelling, arriving out of reach, and being refused on arrival live with the approach module. They run once, not once per kind.
-- [ ] A thing that is gone, or that the game would refuse, by the time the player arrives shows its refusal reason. A test covers this.
-- [ ] Sending a queued command during an approach leaves the approach and the queue as they would be today.
-- [ ] Existing behaviour tests pass unchanged, except for edits that only rename task components. Examples are the bed, stool, chop, and action queue tests.
-- [ ] The first commit moves beds and stools. Each later commit moves one module. The tests pass after each commit.
+- [x] No act-once activity module calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`. It starts an approach instead. Ticket 07 does the same for timed tasks.
+- [x] `HandReach.startOnArrival` is gone.
+- [x] No walk-only task component remains on the player entity, in the save schema, or in the task parts list.
+- [x] A save made mid-approach loads, and the player carries on and acts on arrival.
+- [x] A save from the current version, with an old walk-only task component mid-walk, upgrades and loads. The player acts on arrival, as before. A test covers at least the bed and a stick pick-up.
+- [x] Tests for walking within reach, cancelling, arriving out of reach, and being refused on arrival live with the approach module. They run once, not once per kind.
+- [x] A thing that is gone, or that the game would refuse, by the time the player arrives shows its refusal reason. A test covers this.
+- [x] Sending a queued command during an approach leaves the approach and the queue as they would be today.
+- [x] Existing behaviour tests pass unchanged, except for edits that only rename task components. Examples are the bed, stool, chop, and action queue tests.
+- [x] The first commit moves beds and stools. Each later commit moves one module. The tests pass after each commit.
 
 **Out of scope:**
 

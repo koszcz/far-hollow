@@ -89,6 +89,7 @@ export function showAsset(
     "chop-animation",
     "split-animation",
     "debarking-animation",
+    "gather-stone-animation",
     "sleep-animation",
     "sit-animation",
     "player-build-animation",

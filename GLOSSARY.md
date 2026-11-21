@@ -77,6 +77,10 @@ The material left over from debarking a log.
 A flat board cut from a debarked log at a sawhorse.
 _Avoid_: Board, lumber
 
+**Stone**:
+A material the player gathers on the river bank and carries in the backpack. One stone weighs 2 kg. Gathering one takes a few seconds of work and needs no tool. The river bank never runs out of stone. A fireplace is built from stone.
+_Avoid_: Rock, boulder
+
 **Stick**:
 A small piece of dry wood the player picks up from the forest floor. Sticks are used as fuel. New sticks keep falling from the trees, so the forest floor never runs out of them.
 

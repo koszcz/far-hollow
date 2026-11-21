@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { chopSecondsForTreeSize, treeSizeAt } from "../../sim/tree-size";
 import { PLANKS_CRAFT_SECONDS, SAW_CRAFT_SECONDS } from "../../sim/crafting";
 import { DEBARK_SECONDS } from "../../sim/debarking";
+import { GATHER_STONE_SECONDS } from "../../sim/stone";
+import { GATHER_STONE_DOWN_SHARE, GATHER_STONE_GRIP_SHARE, GATHER_STONE_LIFT_SECONDS, GATHER_STONE_LIFTED_SHARE } from "../player-gather-stone-pose";
 import { WALK_SPEED_METRES_PER_SECOND } from "../../sim/walking";
 import { DRAG_ROPE_METRES, DRAG_SPEED } from "../../sim/sleds";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../../sim/hand-reach";
@@ -76,6 +78,9 @@ function poseEatDrink({ player, movePlayer }: Stage, kind: EatDrinkKind | undefi
 
 /** How long the player stands after debarking before the "debarking-animation" plays again, in seconds. */
 const DEBARK_PLAY_REST_SECONDS = 1.2;
+
+/** How long the player stands after gathering a stone before the "gather-stone-animation" plays again, in seconds. */
+const GATHER_STONE_PLAY_REST_SECONDS = 1.2;
 
 /** How long the player stands after waking before the "sleep-animation" plays again, in seconds. */
 const SLEEP_PLAY_REST_SECONDS = 1.5;
@@ -450,6 +455,37 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       pose({ player }, seconds) {
         const cycle = seconds % (DEBARK_SECONDS + DEBARK_PLAY_REST_SECONDS);
         player.setDebarking(cycle < DEBARK_SECONDS ? cycle : undefined);
+        return undefined;
+      },
+    },
+  },
+  // The draft "gather-stone-animation": the player crouches, feels about low in front, and lifts a stone to the chest.
+  // A pile of stones lies in front of the player, where the water's edge would be.
+  "gather-stone-animation": {
+    radius: 1.6,
+    focus: { x: 0, y: 0.6, z: 0.3 },
+    shots: [
+      { label: "crouching down", share: GATHER_STONE_DOWN_SHARE / 2 },
+      { label: "feeling for a stone", share: (GATHER_STONE_DOWN_SHARE + GATHER_STONE_GRIP_SHARE) / 2 },
+      { label: "lifting the stone", share: (GATHER_STONE_GRIP_SHARE + GATHER_STONE_LIFTED_SHARE) / 2 },
+      { label: "stone held at the chest", share: (GATHER_STONE_LIFTED_SHARE + 1) / 2 },
+    ].map(({ label, share }) => ({ label, yaw: 60, pitch: 20, seconds: share * GATHER_STONE_LIFT_SECONDS })),
+    build({ place, movePlayer }) {
+      place(0, 0.6, { pile: { content: "stone", count: 5 } });
+      movePlayer(0, 0, 0);
+    },
+    pose({ player }, shot) {
+      // Start gathering afresh at time 0 for each view, so the view shows the lift `shot.seconds` in.
+      player.setGatheringStone(undefined);
+      player.setGatheringStone(0);
+      player.setGatheringStone(shot.seconds);
+    },
+    // The player gathers one stone, as long as the game takes, stands up, rests, then starts again.
+    play: {
+      shot: { label: "gathering one stone, then standing up", yaw: 40, pitch: 20, radius: 1.8 },
+      pose({ player }, seconds) {
+        const cycle = seconds % (GATHER_STONE_SECONDS + GATHER_STONE_PLAY_REST_SECONDS);
+        player.setGatheringStone(cycle < GATHER_STONE_SECONDS ? cycle : undefined);
         return undefined;
       },
     },

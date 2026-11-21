@@ -7,6 +7,7 @@ import { movingEntities, playerEntities, type Entity, type EntityStore } from ".
 import { byFurnitureKind } from "../sim/structure-kind";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
+import { isRiverBank } from "../sim/stone";
 import { copyToward, groundDistance, headingToward, type GroundPoint } from "../sim/ground-point";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
@@ -48,6 +49,8 @@ const FISHING_DRIFT_SECONDS = 0.5;
 
 /** The player turns to face where they walk only when they move further than this in one frame, in metres. */
 const TURN_MIN_TRAVEL_METRES = 0.001;
+/** A player gathering stone this close to the spot clicked stands on it, so they keep facing the way they walked. In metres. */
+const STAND_ON_SPOT_METRES = 0.3;
 
 /**
  * What is under a point on the screen. Everything but the ground and the river is given by its entity id.
@@ -57,7 +60,8 @@ const TURN_MIN_TRAVEL_METRES = 0.001;
  */
 export type ScenePick =
   | { kind: "structure"; id: number; structure: StructureKind; under: GroundOrThingPick | undefined }
-  | { kind: "ground"; spot: GroundPoint }
+  /** Open ground. `riverBank` is true on river bank ground, where the player can gather stone. */
+  | { kind: "ground"; spot: GroundPoint; riverBank?: true }
   | { kind: "river"; spot: GroundPoint }
   | ThingInReach;
 
@@ -328,6 +332,10 @@ export function createSceneRenderer(
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
     playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
+    // Gathering stone crouches at the water's edge and lifts a stone, facing the spot clicked, unless the player stands on it.
+    const stoneTask = activity?.kind === "gatherStone" ? player.stoneTask : undefined;
+    playerMesh.setGatheringStone(stoneTask === undefined ? undefined : nowSeconds);
+    if (stoneTask !== undefined && groundDistance(playerDrawn, stoneTask) > STAND_ON_SPOT_METRES) playerMesh.setHeading(headingToward(playerDrawn, stoneTask));
     // Fishing casts the line out over the water, waits, and reels a fish in, facing the spot on the river.
     const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;
     if (fishTask === undefined) castDrawn = undefined;
@@ -488,7 +496,8 @@ export function createSceneRenderer(
     const spot = { x: ground.point.x, z: ground.point.z };
     // The ray passes through the see-through water to the riverbed below it.
     const onRiver = distanceToRiver(valley.river, spot) <= valley.river.width / 2;
-    return { pick: onRiver ? { kind: "river", spot } : { kind: "ground", spot }, distance: ground.distance };
+    if (onRiver) return { pick: { kind: "river", spot }, distance: ground.distance };
+    return { pick: isRiverBank(valley, spot) ? { kind: "ground", spot, riverBank: true } : { kind: "ground", spot }, distance: ground.distance };
   }
 
   /** Starts the sleep animation when game logic reports a sleep it has not played yet. Run it before the player is placed. */

@@ -333,6 +333,25 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The draft "stone": piles of 1, 4, and 12 stones beside a knife for size, with the HUD showing stone in the backpack.
+  // src/ui/hud-showcase.tsx draws the HUD over each view, in the same order.
+  stone: {
+    radius: 2.2,
+    focus: { x: 0, y: 0.2, z: 0 },
+    shots: [
+      { label: "HUD: one stone, and stone piles", yaw: 20, pitch: 40 },
+      { label: "HUD: gathering stone", yaw: -30, pitch: 30 },
+      { label: "HUD: a backpack full of stone", yaw: 40, pitch: 55, hour: 18 },
+      { label: "HUD: beside a pile of 12 stones", yaw: 0, pitch: 25, radius: 1.2, focus: { x: 0.8, y: 0.1, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-0.9, 0, { pile: { content: "stone", count: 1 } });
+      place(-0.65, 0.15, { pile: { content: "knife", count: 1 } });
+      place(0, 0, { pile: { content: "stone", count: 4 } });
+      place(0.8, 0, { pile: { content: "stone", count: 12 } });
+      movePlayer(0, -1.5, 0);
+    },
+  },
   // src/ui/hud-showcase.tsx draws the sled and log icons large, among every build icon, over the first view,
   // and the HUD with the full build menu open over the others.
 };

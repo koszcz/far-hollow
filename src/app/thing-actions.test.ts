@@ -258,6 +258,12 @@ describe("a sled's actions", () => {
     expect(find(actions, "take:plank")).toMatchObject({ label: "Take planks", command: { type: "takePlanksFromSled", sledId: world.sled } });
   });
 
+  it("offers nothing for stone, because a sled does not take stone", () => {
+    const world = worldWith({ backpack: { stone: 3 }, sled: { log: 1 } });
+
+    expect(summary(actionsFor(scene("sled", world.sled), world.reader))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+  });
+
   it("offers no plank actions when neither the backpack nor the sled holds planks", () => {
     const world = worldWith({ sled: { log: 1 } });
 
@@ -304,7 +310,11 @@ describe("actions while dragging a sled", () => {
   it("turns off fishing, but not drinking", () => {
     const world = worldWith({ backpack: { fishingRod: 1 }, dragging: "anotherSled" });
 
-    expect(summary(actionsFor(river(), world.reader))).toEqual(["drink main", "fish off: let go of the sled first"]);
+    expect(summary(actionsFor(river(), world.reader))).toEqual([
+      "drink main",
+      "fish off: let go of the sled first",
+      "gatherStone off: let go of the sled first",
+    ]);
   });
 
   it("still lets the player eat and drink", () => {
@@ -325,18 +335,49 @@ describe("other things' actions", () => {
     expect(actions[1]?.command).toEqual({ type: "dropLogAt", x: 1, z: 2 });
   });
 
+  it("gathers stone on river bank ground, with walking there as the main action", () => {
+    const actions = actionsFor(riverBank(), worldWith({}).reader);
+
+    expect(summary(actions)).toEqual(["walk main", "gatherStone"]);
+    expect(find(actions, "gatherStone")).toMatchObject({ label: "Gather stone", command: { type: "gatherStone", x: 1, z: 2 } });
+  });
+
+  it("gathers stone in the river", () => {
+    const actions = actionsFor(river(), worldWith({}).reader);
+
+    expect(find(actions, "gatherStone")).toMatchObject({ label: "Gather stone", enabled: true, command: { type: "gatherStone", x: 1, z: 2 } });
+  });
+
+  it("offers no stone on ground away from the river bank", () => {
+    expect(summary(actionsFor(ground(), worldWith({}).reader))).not.toContain("gatherStone");
+  });
+
+  it("greys out gathering stone when one more stone does not fit in the backpack", () => {
+    const full = worldWith({ backpack: { stone: 10 } });
+    const oneMoreFits = worldWith({ backpack: { stone: 9 } });
+
+    expect(summary(actionsFor(riverBank(), full.reader))).toContain("gatherStone off: the backpack is full");
+    expect(summary(actionsFor(river(), full.reader))).toContain("gatherStone off: the backpack is full");
+    expect(summary(actionsFor(riverBank(), oneMoreFits.reader))).toContain("gatherStone");
+  });
+
   it("drinks from the river, then fishes there with the fishing rod", () => {
     const actions = actionsFor(river(), worldWith({ backpack: { fishingRod: 1 } }).reader);
 
-    expect(summary(actions)).toEqual(["drink main", "fish"]);
+    expect(summary(actions)).toEqual(["drink main", "fish", "gatherStone"]);
     expect(find(actions, "fish")).toMatchObject({ label: "Fish", command: { type: "fish", x: 1, z: 2 } });
   });
 
   it("says fishing needs the fishing rod, and free hands", () => {
-    expect(summary(actionsFor(river(), worldWith({ backpack: { fishingLine: 1 } }).reader))).toEqual(["drink main", "fish off: needs the fishing rod"]);
+    expect(summary(actionsFor(river(), worldWith({ backpack: { fishingLine: 1 } }).reader))).toEqual([
+      "drink main",
+      "fish off: needs the fishing rod",
+      "gatherStone",
+    ]);
     expect(summary(actionsFor(river(), worldWith({ backpack: { fishingRod: 1 }, carrying: "log" }).reader))).toEqual([
       "drink main",
       "fish off: put the log down first",
+      "gatherStone",
     ]);
   });
 
@@ -385,7 +426,7 @@ describe("other things' actions", () => {
   it("fills the empty pot at the river", () => {
     const actions = actionsFor(river(), worldWith({ backpack: { pot: 1 } }).reader);
 
-    expect(summary(actions)).toEqual(["drink main", "fillPot", "fish off: needs the fishing rod"]);
+    expect(summary(actions)).toEqual(["drink main", "fillPot", "fish off: needs the fishing rod", "gatherStone"]);
     expect(find(actions, "fillPot")).toMatchObject({ label: "Fill the pot", command: { type: "fillPot" } });
     expect(summary(actionsFor(river(), worldWith({ backpack: { potOfRiverWater: 1 } }).reader))).not.toContain("fillPot");
   });
@@ -542,6 +583,10 @@ function scene(kind: ThingKind, id: number): ActionTarget {
 
 function ground(): ActionTarget {
   return { kind: "scene", pick: { kind: "ground", spot: { x: 1, z: 2 } } };
+}
+
+function riverBank(): ActionTarget {
+  return { kind: "scene", pick: { kind: "ground", spot: { x: 1, z: 2 }, riverBank: true } };
 }
 
 function river(): ActionTarget {

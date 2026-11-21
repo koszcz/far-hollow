@@ -172,6 +172,12 @@ export type Command =
    * and does nothing without a fishing rod.
    */
   | ({ type: "fish" } & GroundPoint)
+  /**
+   * Walk the player into reach of a spot on the river bank or in the river, given in metres, and gather one stone there.
+   * It takes 4 seconds of work and needs no tool. Stone never runs out. Nothing happens for a spot off the river bank.
+   * It is refused when one more stone does not fit in the backpack.
+   */
+  | ({ type: "gatherStone" } & GroundPoint)
   /** Walk the player to the riverbank nearest them and fill the empty pot with river water. */
   | { type: "fillPot" }
   /** Drink the water in the full pot. Boiled water fills thirst safely. Unboiled river water makes the player sick. */
@@ -462,6 +468,7 @@ export type Refusal =
  * - `emptyFirst`, `potOnFire`, `fishOnFire`: it still holds something, so it cannot come down.
  * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
+ * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -481,7 +488,8 @@ export type PlainRefusal =
   | "potOnFire"
   | "fishOnFire"
   | "holdsUpPiece"
-  | "tooYoungToChop";
+  | "tooYoungToChop"
+  | "backpackFull";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -600,8 +608,11 @@ export type ThingView =
   | { readonly kind: "tree" | "log" | "debarkedLog" | "stick" | "bark" | "bedroll" };
 
 export interface PlayerAction {
-  /** Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting, or fishing. */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish";
+  /**
+   * Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting,
+   * fishing, or gathering stone.
+   */
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone";
   /** How far along the work is, from 0 to 1. While fishing, how far through the wait for the next fish. */
   readonly progress: number;
 }

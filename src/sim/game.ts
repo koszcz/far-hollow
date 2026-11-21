@@ -20,7 +20,7 @@ import type {
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
 import { createStools } from "./stools";
-import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
+import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
 import { createTakingDown } from "./taking-down";
@@ -52,6 +52,7 @@ import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
 import { createFishing, fishingNow } from "./fishing";
+import { createStoneGathering } from "./stone";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
@@ -196,7 +197,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   if (progress === undefined) addValleyEntities(entities, valley);
   else restoreEntities(entities, structuredClone(progress.entities));
   const walking = createWalking(entities, valley);
-  const player = progress === undefined ? addNewPlayer(entities, walking, valley) : savedPlayer(entities);
+  const player = progress === undefined ? addNewPlayer(entities, walking, valley, freeBuilding) : savedPlayer(entities);
   const handReach = createHandReach(entities);
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, walking, valley, handReach);
@@ -221,6 +222,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     reportEatOrDrink("drinkFromRiver", river);
   });
   const fishing = createFishing(entities, walking, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
+  const stoneGathering = createStoneGathering(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const piles = createPiles(entities, walking, valley, handReach);
@@ -242,6 +244,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stools,
     drinking,
     fishing,
+    stoneGathering,
     pot,
     chests,
     piles,
@@ -764,6 +767,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       refusal: () => fishing.refusal(),
       run: (command) => fishing.fish({ x: command.x, z: command.z }),
     },
+    gatherStone: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: () => stoneGathering.refusal(),
+      run: (command) => {
+        stoneGathering.gather({ x: command.x, z: command.z });
+      },
+    },
     drinkFromPot: {
       start: "alongside",
       run: () => {
@@ -1157,15 +1168,20 @@ function addValleyEntities(entities: EntityStore, valley: Valley): void {
   for (const spot of valleyForageSpots(valley)) entities.add(spot);
 }
 
-/** Adds a new game's player near the river, with a starting backpack. */
-function addNewPlayer(entities: EntityStore, walking: Walking, valley: Valley): Player {
+/** How many stone a new playground game's backpack holds, so the player can try out stone without gathering it first. */
+export const PLAYGROUND_STONE = 5;
+
+/** Adds a new game's player near the river, with a starting backpack. In the playground, it also holds PLAYGROUND_STONE stone. */
+function addNewPlayer(entities: EntityStore, walking: Walking, valley: Valley, playground: boolean): Player {
+  const backpack = createStartingBackpack();
+  if (playground) addToBackpack(backpack, "stone", PLAYGROUND_STONE);
   const start = playerStartSpot(walking, valley);
   const startPosition = { x: start.x, y: terrainHeightAt(valley.terrain, start.x, start.z), z: start.z };
   return entities.add<Player>({
     player: true,
     position: startPosition,
     previousPosition: { ...startPosition },
-    backpack: createStartingBackpack(),
+    backpack,
     needs: createNeeds(),
     // Until the player has slept in a bed, they wake where they started after a collapse.
     respawnPoint: { x: start.x, z: start.z },

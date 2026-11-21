@@ -198,7 +198,7 @@ describe("saving foundations", () => {
     const components = saved.entities.map((entity) => entity.components);
     expect(components.some((entity) => entity.foundation)).toBe(true);
     expect(components.some((entity) => entity.blueprint?.delivered.debarkedLog === 1)).toBe(true);
-    expect(components.some((entity) => entity.deliverTask !== undefined)).toBe(true);
+    expect(components.some((entity) => entity.approach !== undefined)).toBe(true);
     const loaded = readSave(throughStorage(saved));
     if (!loaded.ok) throw new Error("The save was rejected");
 

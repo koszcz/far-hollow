@@ -718,8 +718,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     deliverToBlueprint: {
       start: "fresh",
       needsFreeHands: true,
-      run: (command) => {
-        building.deliver(command.blueprintId);
+      approach: {
+        reach: (command) => building.deliverReach(command.blueprintId),
+        act: (command) => {
+          building.deliver(command.blueprintId);
+        },
       },
     },
     takeDown: {

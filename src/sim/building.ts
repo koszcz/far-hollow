@@ -1,4 +1,5 @@
 import type { BlueprintView, BuildLack, PlacementCheck, Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, countOf, takeCount } from "./counts";
 import { snapToGridPoint } from "./build-grid";
@@ -82,11 +83,16 @@ export interface Building {
    */
   build(blueprintId: number): void;
   /**
-   * Sets the player walking to a blueprint to add the material on their shoulder, such as a debarked log, to it.
-   * The material is added only if the blueprint still needs more of it.
+   * Where the player walks to add a material to a blueprint: just outside the ground it covers, on their side of it.
+   * A player standing on it steps off it. Undefined if the entity is not a placed blueprint.
+   */
+  deliverReach(blueprintId: number): ApproachReach | undefined;
+  /**
+   * Has the player lay the material on their shoulder, such as a debarked log, by a blueprint within reach, which takes it when
+   * the hand gets there. The approach runs it once they arrive. The material is added only if the blueprint still needs more of it.
    */
   deliver(blueprintId: number): void;
-  /** Stops the player building, or walking to build or to add a material. The blueprint keeps its progress. */
+  /** Stops the player building, or walking to build. The blueprint keeps its progress. */
   cancel(): void;
   /** What a blueprint needs and has, or undefined if the entity is not a blueprint. */
   describe(blueprintId: number): BlueprintView | undefined;
@@ -106,7 +112,6 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
   const players = playerEntities(entities);
   const blueprints = blueprintEntities(entities);
   const builders = entities.with("buildTask", "position", "backpack");
-  const deliverers = entities.with("deliverTask", "position");
 
   function checkPlacement(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): PlacementCheck {
     const definition = structureOf(structure);
@@ -119,7 +124,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
   }
 
   /** Walks the player within reach of a blueprint, then gives them a task on it. */
-  function goTo(blueprintId: number, task: "buildTask" | "deliverTask"): void {
+  function goTo(blueprintId: number, task: "buildTask"): void {
     const blueprint = entities.entity(blueprintId);
     if (blueprint?.blueprint === undefined || !isPlacedStructure(blueprint)) return;
     const footprint = footprintOfEntity(blueprint);
@@ -270,14 +275,34 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     build(blueprintId) {
       goTo(blueprintId, "buildTask");
     },
+    deliverReach(blueprintId) {
+      const blueprint = entities.entity(blueprintId);
+      const player = players.first;
+      if (blueprint?.blueprint === undefined || !isPlacedStructure(blueprint) || player === undefined) return undefined;
+      const footprint = footprintOfEntity(blueprint);
+      return {
+        target: footprint,
+        metres: BUILD_REACH_METRES,
+        walk: { style: "offAndBeside", spot: standSpot(footprint, blueprint.position, player.position) },
+      };
+    },
     deliver(blueprintId) {
-      goTo(blueprintId, "deliverTask");
+      for (const deliverer of players) {
+        const reached = reachedBlueprint(deliverer, blueprintId);
+        if (reached === undefined || !canDeliver(deliverer, reached.target, reached.blueprint)) continue;
+        // The player lays the log down by the blueprint, then hands it over when the hand gets there.
+        hand.start("low", reached.position, () => {
+          const still = reachedBlueprint(deliverer, blueprintId);
+          const carried = deliverer.carrying;
+          if (still === undefined || carried === undefined || !canDeliver(deliverer, still.target, still.blueprint)) return undefined;
+          entities.removeComponent(deliverer, "carrying");
+          still.blueprint.delivered = addCount(still.blueprint.delivered, carried, 1);
+          return undefined;
+        });
+      }
     },
     cancel() {
-      for (const player of players) {
-        entities.removeComponent(player, "buildTask");
-        entities.removeComponent(player, "deliverTask");
-      }
+      for (const player of players) entities.removeComponent(player, "buildTask");
     },
     describe,
     nearby() {
@@ -293,23 +318,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       return nearest === undefined ? undefined : describe(nearest.id);
     },
     step(stepSeconds) {
-      // Copy each list first, because players who finish or give up leave the query while it is being walked.
-      for (const deliverer of [...deliverers]) {
-        if (deliverer.walkPath) continue;
-        const { blueprintId } = deliverer.deliverTask;
-        entities.removeComponent(deliverer, "deliverTask");
-        const reached = reachedBlueprint(deliverer, blueprintId);
-        if (reached === undefined || !canDeliver(deliverer, reached.target, reached.blueprint)) continue;
-        // The player lays the log down by the blueprint, then hands it over when the hand gets there.
-        hand.start("low", reached.position, () => {
-          const still = reachedBlueprint(deliverer, blueprintId);
-          const carried = deliverer.carrying;
-          if (still === undefined || carried === undefined || !canDeliver(deliverer, still.target, still.blueprint)) return undefined;
-          entities.removeComponent(deliverer, "carrying");
-          still.blueprint.delivered = addCount(still.blueprint.delivered, carried, 1);
-          return undefined;
-        });
-      }
+      // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const builder of [...builders]) {
         if (builder.walkPath) continue;
         const reached = reachedBlueprint(builder, builder.buildTask.blueprintId);

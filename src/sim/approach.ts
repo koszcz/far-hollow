@@ -19,11 +19,14 @@ import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
  * - "onto": onto `spot` if it is open ground, or else beside the target. Use it for things lying on the ground, such as a stick.
  *   The player walks onto the spot even from within reach, unless `atOnceInReach` is set.
  * - "to": always to `spot` itself, even from within reach, such as into a lean-to.
+ * - "offAndBeside": for a target the player may stand on, such as a blueprint. A player standing on it walks off it to `spot`.
+ *   A player within reach of it acts at once. From further away, they walk as for "onto".
  */
 export type ApproachWalk =
   | { readonly style: "beside"; readonly standMetres?: number }
   | { readonly style: "onto"; readonly spot: GroundPoint; readonly atOnceInReach?: true }
-  | { readonly style: "to"; readonly spot: GroundPoint };
+  | { readonly style: "to"; readonly spot: GroundPoint }
+  | { readonly style: "offAndBeside"; readonly spot: GroundPoint };
 
 /** Where a command's approach takes the player: within `metres` of a target, measured to a point or to a rectangle's edge. */
 export interface ApproachReach {
@@ -65,11 +68,15 @@ export function createApproach(entities: EntityStore, walking: Walking, rules: A
   function walk(reach: ApproachReach): void {
     const { walk: how } = reach;
     if (how.style === "to") walking.walkTo(how.spot);
-    else if (how.style === "onto" && isWalkable(walking.walkMap, how.spot)) walking.walkTo(how.spot);
+    else if ((how.style === "onto" || how.style === "offAndBeside") && isWalkable(walking.walkMap, how.spot)) walking.walkTo(how.spot);
     else walking.walkWithin(reach.target, how.style === "beside" && how.standMetres !== undefined ? how.standMetres : reach.metres - WALK_REACH_MARGIN_METRES);
   }
 
-  const actsAtOnce = ({ walk: how }: ApproachReach) => how.style === "beside" || (how.style === "onto" && how.atOnceInReach === true);
+  /** Whether a player at `at`, within reach, acts there without walking first. */
+  function actsAtOnce({ walk: how, target }: ApproachReach, at: GroundPoint): boolean {
+    if (how.style === "offAndBeside") return distanceToTarget(target, at) > 0;
+    return how.style === "beside" || (how.style === "onto" && how.atOnceInReach === true);
+  }
 
   function stopApproach(player: Entity): void {
     entities.removeComponent(player, "approach");
@@ -80,7 +87,7 @@ export function createApproach(entities: EntityStore, walking: Walking, rules: A
       const reach = rules.reach(command);
       const player = players.first;
       if (reach === undefined || player === undefined) return undefined;
-      if (actsAtOnce(reach) && withinReach(reach, player.position)) {
+      if (withinReach(reach, player.position) && actsAtOnce(reach, player.position)) {
         // A player already within reach but still walking stops here, so they act without walking past.
         entities.removeComponent(player, "walkPath");
         return rules.act(command);

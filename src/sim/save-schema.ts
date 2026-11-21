@@ -68,7 +68,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("pickUpBedroll", "sleep"), bedrollId: count })(value) ||
   shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value) ||
   shape({ type: exactly("pickUpTorch"), torchId: count })(value) ||
-  shape({ type: exactly("pickUpPile"), pileId: count })(value);
+  shape({ type: exactly("pickUpPile"), pileId: count })(value) ||
+  shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value);
 
 /**
  * How each entity component must look in a save.
@@ -108,7 +109,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   builtCost: list(shape({ material: exactly(...CARRIED_MATERIALS), count: (value) => count(value) && (value as number) > 0 })),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
   buildTask: shape({ blueprintId: count }),
-  deliverTask: shape({ blueprintId: count }),
   takeDownTask: shape({ pieceId: count, secondsDone: finite }),
   foundation: exactly(true),
   edgePiece: exactly(...EDGE_PIECE_KINDS),

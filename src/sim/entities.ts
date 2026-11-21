@@ -133,8 +133,6 @@ export interface Entity {
    * `secondsDone` counts only the time spent taking it down, not walking.
    */
   takeDownTask?: { pieceId: number; secondsDone: number };
-  /** The blueprint the player is walking to, to add the material on their shoulder to it, given by its entity id. */
-  deliverTask?: { blueprintId: number };
   /**
    * Marks a finished foundation: a deck of logs covering one building-grid square, on legs down to the ground.
    * Its position is the middle of the top of the deck. The player can walk onto it and across it.

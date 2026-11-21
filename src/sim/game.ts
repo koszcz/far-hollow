@@ -61,7 +61,7 @@ import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
-import { createPot } from "./pot";
+import { createPot, potRules } from "./pot";
 import { createCooking } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
@@ -351,11 +351,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
   function tendNow(command: TendTask): PlainNotice | undefined {
     switch (command.type) {
-      case "putPotOnFire":
-        pot.putOnFire(command.campfireId);
-        return undefined;
-      case "takePotOffFire":
-        return pot.takeOffFire(command.campfireId);
       case "cookFish":
         cooking.cookFish(command.campfireId);
         return undefined;
@@ -454,8 +449,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...buildingRules(building, ruleGame),
     ...takingDownRules(takingDown),
     ...campfireRules(campfires, ruleGame),
-    putPotOnFire: { start: "alongside", refusal: (command) => pot.putOnRefusal(command.campfireId), approach: remainingTendApproach },
-    takePotOffFire: { start: "alongside", approach: remainingTendApproach },
+    ...potRules(pot, campfires, ruleGame, () => {
+      reportEatOrDrink("drinkFromPot");
+    }),
     cookFish: { start: "alongside", refusal: (command) => cooking.refusal(command.campfireId), approach: remainingTendApproach },
     takeFishOff: { start: "alongside", approach: remainingTendApproach },
     tendWoodpile: {
@@ -494,21 +490,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...stoneRules(stoneGathering),
-    drinkFromPot: {
-      start: "alongside",
-      run: () => {
-        if (pot.drink()) reportEatOrDrink("drinkFromPot");
-      },
-    },
-    fillPot: {
-      start: "fresh",
-      approach: {
-        reach: () => pot.fillReach(),
-        act: () => {
-          pot.fill();
-        },
-      },
-    },
     skipTime: {
       start: "alongside",
       keepsPlayerSitting: true,

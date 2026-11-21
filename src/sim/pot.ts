@@ -11,6 +11,8 @@ import { BOIL_MINUTES, type PotWater } from "./pot-state";
 import { catchSickness } from "./sickness";
 import { nearestRiverPoint, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { tendApproach } from "./tending";
 
 /** The backpack content for a full pot of each kind of water. */
 const FULL_POT: Readonly<Record<PotWater, PotContent>> = {
@@ -134,4 +136,43 @@ function swapPot(backpack: Backpack, from: PotContent, to: PotContent): boolean 
   if (addToBackpack(backpack, to, 1)) return true;
   addToBackpack(backpack, from, 1);
   return false;
+}
+
+/**
+ * The rules for the pot: filling it at the river, putting it on a campfire and taking it off, and drinking from it.
+ * `onDrink` runs after the player drinks, for drawing to play.
+ */
+export function potRules(
+  pot: Pot,
+  campfires: Campfires,
+  game: RuleGame,
+  onDrink: () => void,
+): CommandRules<"putPotOnFire" | "takePotOffFire" | "drinkFromPot" | "fillPot"> {
+  const reach = (command: { campfireId: number }) => campfires.reach(command.campfireId);
+  return {
+    putPotOnFire: {
+      start: "alongside",
+      refusal: (command) => pot.putOnRefusal(command.campfireId),
+      approach: tendApproach(game, reach, (command) => {
+        pot.putOnFire(command.campfireId);
+        return undefined;
+      }),
+    },
+    takePotOffFire: { start: "alongside", approach: tendApproach(game, reach, (command) => pot.takeOffFire(command.campfireId)) },
+    drinkFromPot: {
+      start: "alongside",
+      run: () => {
+        if (pot.drink()) onDrink();
+      },
+    },
+    fillPot: {
+      start: "fresh",
+      approach: {
+        reach: () => pot.fillReach(),
+        act: () => {
+          pot.fill();
+        },
+      },
+    },
+  };
 }

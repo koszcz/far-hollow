@@ -467,7 +467,7 @@
       "kind": "code",
       "code": [
         "src/render/player-debark-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/debarking-animation.ts",
         "src/render/pile-meshes.ts",
         "src/render/scene-renderer.ts",
         "src/sim/debarking.ts"
@@ -490,7 +490,7 @@
       "code": [
         "src/render/player-saw-pose.ts",
         "src/render/sawing-stance.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/sawing-animation.ts",
         "src/render/forest-meshes.ts",
         "src/render/scene-renderer.ts"
       ],
@@ -508,7 +508,7 @@
       "kind": "code",
       "code": [
         "src/render/saw-model.ts",
-        "src/render/player-mesh.ts"
+        "src/render/player-motions/sawing-animation.ts"
       ],
       "description": "The bow saw the player holds while sawing planks: a thin steel blade with big teeth along its lower edge, 0.55 m long, strung across the ends of a stick bent into a bow that rises 0.2 m over it, and lashed on with turns of twine at each end. The stick tapers from its thick end at the grip and bends a little unevenly, like a cut sapling. A dark iron pin holds each end of the blade, and the teeth are set alternately left and right. It matches the saw in the approved crafting-icons. The player holds it by the near end of the bow, 1.3 times true size, like the other tools in the hand, because the player's head and beard are big for the body.",
       "source": "Built in code in this project",
@@ -562,7 +562,7 @@
       "kind": "code",
       "code": [
         "src/render/player-build-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/player-build-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player building: a person setting a heavy piece in place squats with the back bent, holds the piece just above its place with both hands, presses it down, and stands up again. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing and the split's overhead drop.",
@@ -941,7 +941,11 @@
     {
       "id": "action-queue-icons",
       "kind": "code",
-      "code": ["src/ui/action-queue-icons.tsx", "src/ui/action-queue-row.tsx", "src/ui/queued-actions.ts"],
+      "code": [
+        "src/ui/action-queue-icons.tsx",
+        "src/ui/action-queue-row.tsx",
+        "src/ui/queued-actions.ts"
+      ],
       "description": "The action queue beside the clock, and the icons for queued actions on things that have no icon elsewhere. The row is a smoked walnut glass pill right of the clock pill, holding one round chip per queued action, up to 4. The action under way comes first, in a larger chip with a faint amber ring. Pointing at a chip tints it amber and shows the action's name in a pill label below it, as a hotbar cell does. With an empty queue, the row is gone. Each chip shows what its action works on. Backpack contents, structures, furniture, the sled, logs, and debarked logs reuse their approved icons. Three icons, drawn in the build icons' shaded style on the same 24 by 24 grid, cover the rest: a standing tree, a conifer of three green tiers on a short brown trunk, standing on a grassy patch; the river, a blue stream with pale ripples winding across a round grassy patch; and a spot on the ground to walk to, an amber pin on a patch of earth. The tree and the pin share one ground patch, each with a soft shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
@@ -1023,7 +1027,7 @@
       "kind": "code",
       "code": [
         "src/render/fishing-rod-model.ts",
-        "src/render/player-mesh.ts"
+        "src/render/player-motions/fishing-animation.ts"
       ],
       "description": "The fishing rod in the player's hands while they fish, matching the rod in fishing-piles: a thin wooden rod, 1.5 m long, made of two sticks joined end to end. It tapers from the butt to the tip and bows gently down towards the tip. A dark cord grip wraps the butt where the right hand holds it, with spare pale line wound just above. Dark cord lashes the sticks where they meet, two trimmed twig knots stand on the lower stick, and a knot of pale line is tied at the tip. The player holds it at true size. The line runs from the tip and is drawn with the fishing animation.",
       "source": "Built in code in this project",
@@ -1057,7 +1061,7 @@
       "code": [
         "src/render/player-fish-pose.ts",
         "src/render/fishing-tackle.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/fishing-animation.ts",
         "src/render/scene-renderer.ts",
         "src/sim/fishing.ts"
       ],
@@ -1178,7 +1182,7 @@
       "code": [
         "src/render/player-hand-craft-pose.ts",
         "src/render/hand-craft-work.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/hand-craft-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player lashes a small bundle of sticks by hand, for a hand recipe such as the saw or the fishing rod. Real lashing: one hand holds the work and turns it, the other passes the cord over, under and back round, then pulls it tight with a short, sharp tug. The player stands still, rounds the shoulders, and bows the head to watch. The left hand holds a bundle of two pale sticks at waist height, in front of the belly, with a dark brown binding and a cord running to the right hand. Each 2-second cycle: the right hand winds once round the bundle while the left hand rolls it forward to meet the cord, holds on top, tugs the cord out to the side as the shoulders dip, bounces as the cord snaps tight, then settles back on top. The axe goes on the back. The hands lift to the work over 0.25 seconds when crafting starts. When it stops, the player stands straight back up at once, the bundle disappears, and the axe returns to the hand. It is posed in code over the idle clip. Cutting planks at the sawhorse uses sawing-animation instead.",
@@ -1195,7 +1199,7 @@
       "kind": "code",
       "code": [
         "src/render/player-sled-drag-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/sled-drag-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player dragging a sled. A real hauler pulling a loaded sled by a short rope holds it in one hand behind them, arm straight back, and leans forward so body weight does the pulling, heaving a little further into the rope at each push-off. Here the left hand holds the rope low behind the left hip, so the right hand stays free to swing the axe or steady a log on the right shoulder. The body leans forward from the hips with the chin up. Each step of the walk heaves the chest further over and pulls the rope hand back, then eases off as the other foot lands. The legs keep the walk's stride, played at the slower dragging pace so the feet stay planted. Standing still while dragging shows the same lean over the idle clip, with no heave. The lean starts and ends at once with dragging. It is posed in code over the approved walk-animation or the idle clip, with the build pose's bones. The rope is the draft sled-rope.",
@@ -1228,7 +1232,7 @@
       "kind": "code",
       "code": [
         "src/render/player-eat-drink-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/forage-eat-drink-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "Short motions the player plays once, each about one second. Foraging a berry bush leans in from the hips, pushes the right hand into the middle of the bush, plucks with a quick tug back, and drops the berries into the left hand, cupped in front of the belly. Eating raises the right hand to the mouth and bites twice: the head ducks in to bite and pulls back to tear, then nods while chewing. Drinking from the river kneels at the river bank, scoops water toward the body with both hands cupped, and raises them to the mouth with the head tipped back. Filling the pot kneels at the river bank and dips the approved pot into the water, which fills as the hand gets there. Drinking from the pot raises it to the mouth and tips it back, with two gulps. The player faces the bush or the river. A bite or drink taken while walking or working plays over the walk or the work, moving only the arms and head. Walking or another action that starts after a motion began cuts it short. Posed in code on top of the idle clip; the axe goes on the back. Foraging mushrooms reuses the approved pick-up-animation.",
@@ -1263,7 +1267,7 @@
       "kind": "code",
       "code": [
         "src/render/player-gather-stone-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/gather-stone-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player gathers one stone at the water's edge: they crouch, reach both hands low in front, feel about for a stone, then rise halfway and lift it to the chest in both hands. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip; the axe goes on the back.",
@@ -1314,7 +1318,7 @@
         "src/render/torch-shape.ts",
         "src/render/torch-lights.ts",
         "src/render/planted-torch-meshes.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/torch.ts",
         "src/render/pile-meshes.ts",
         "src/render/scene-renderer.ts"
       ],
@@ -1401,6 +1405,23 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+      }
+    },
+    {
+      "id": "sapling-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/sapling-icon.tsx",
+        "src/ui/backpack-icons.tsx",
+        "src/render/sapling-pile-shape.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "A dug-up sapling: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small young pine with two tiers of green over a thin brown stem, its roots in a ball of brown earth. In a pile, each sapling lies on its side, about 70 cm long: a lumpy ball of earth at one end, a thin brown stem, and two cones of green needles toward the tip, spread around the middle like other things in a pile.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/regrowth/issues/02-dig-up-a-sapling.md"
       }
     }
   ]

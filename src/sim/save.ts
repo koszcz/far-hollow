@@ -66,6 +66,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addFloors,
   addDoors,
   recordSnugRoomNotice,
+  addSaplings,
 ];
 
 /** The version of the save format this code writes. */
@@ -149,6 +150,8 @@ export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimed
 export const DOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDoors) + 2;
 /** The first save version that records whether the snug-room banner has shown. */
 export const SNUG_ROOM_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(recordSnugRoomNotice) + 2;
+/** The first save version in which the backpack can hold saplings. */
+export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -784,4 +787,9 @@ function addDoors(save: Readonly<Record<string, unknown>>): Record<string, unkno
 /** Version 44 to 45: the game saves whether the snug-room banner has shown. A save from before then has not shown it. */
 function recordSnugRoomNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save, snugRoomNoticeShown: false };
+}
+
+/** Version 45 to 46: the player can dig up saplings into the backpack. A save from before then holds none, so it carries over unchanged. */
+function addSaplings(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

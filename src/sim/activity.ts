@@ -9,6 +9,7 @@ import { debarkingNow } from "./debarking";
 import type { Entity, EntityStore } from "./entities";
 import { fishingNow } from "./fishing";
 import { splittingNow } from "./gathering";
+import { diggingUpNow } from "./digging-up";
 import { gatheringStoneNow } from "./stone";
 import { takingDownNow } from "./taking-down";
 
@@ -40,6 +41,7 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["chop", choppingNow],
   ["fish", (_entities, player) => fishingNow(player)],
   ["gatherStone", (_entities, player) => gatheringStoneNow(player)],
+  ["digUp", (_entities, player) => diggingUpNow(player)],
 ];
 
 /** Each part of the player that means they are walking to do something, or doing it. */
@@ -59,6 +61,7 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   takeDownTask: true,
   fishTask: true,
   stoneTask: true,
+  digUpTask: true,
 };
 
 /**

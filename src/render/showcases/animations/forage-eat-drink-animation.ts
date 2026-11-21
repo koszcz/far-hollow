@@ -25,7 +25,7 @@ const FACES_WATER: readonly EatDrinkKind[] = ["drinkFromRiver", "fillPot"];
 /** Turns the player to face the berry bush, or the stand-in river behind them, and plays `kind` `seconds` in. */
 function poseEatDrink({ player, movePlayer }: Stage, kind: EatDrinkKind | undefined, seconds: number): void {
   movePlayer(0, 0, kind !== undefined && FACES_WATER.includes(kind) ? Math.PI : 0);
-  player.setEatingOrDrinking(kind === undefined ? undefined : { kind, seconds });
+  player.setMotion("forage-eat-drink-animation", kind === undefined ? undefined : { kind, seconds });
 }
 
 export const FORAGE_EAT_DRINK_ANIMATION_SHOWCASE: Showcase = {

@@ -29,6 +29,7 @@ import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping } from "./chopping";
+import { createDiggingUp } from "./digging-up";
 import { createDebarking } from "./debarking";
 import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
@@ -239,6 +240,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   });
   const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
+  const diggingUp = createDiggingUp(entities);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
@@ -264,6 +266,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stools,
     fishing,
     stoneGathering,
+    diggingUp,
     chests,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
@@ -543,6 +546,17 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         reach: (command) => chopping.reach(command.treeId),
         act: (command) => {
           chopping.start(command.treeId);
+        },
+      },
+    },
+    digUpSapling: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => diggingUp.refusal(command.saplingId),
+      approach: {
+        reach: (command) => diggingUp.reach(command.saplingId),
+        act: (command) => {
+          diggingUp.start(command.saplingId);
         },
       },
     },

@@ -437,7 +437,39 @@ describe("other things' actions", () => {
     const world = worldWith({ backpack: { axe: 1 } });
     const youngTree = world.add({ growth: { stage: "youngTree", minutesLeft: 60 }, blocksWalking: { radius: 1.2 } });
 
-    expect(summary(actionsFor(scene("tree", youngTree), world.reader))).toEqual(["chop main off: the tree is too young to chop"]);
+    expect(summary(actionsFor(scene("youngTree", youngTree), world.reader))).toEqual([
+      "chop main off: the tree is too young to chop",
+      "digUp off: the tree is too big to dig up",
+    ]);
+  });
+
+  it("digs up a sapling growing from a stump, with no tool", () => {
+    const world = worldWith({});
+    const sapling = world.add({ stump: true, growth: { stage: "sapling", minutesLeft: 60 }, blocksWalking: { radius: 0.9 } });
+
+    const actions = actionsFor(scene("sapling", sapling), world.reader);
+    expect(summary(actions)).toEqual(["digUp main"]);
+    expect(find(actions, "digUp")).toMatchObject({ label: "Dig up", command: { type: "digUpSapling", saplingId: sapling } });
+  });
+
+  it("says a bare stump has no sapling to dig up yet", () => {
+    const world = worldWith({});
+    const stump = world.add({ stump: true, growth: { stage: "stump", minutesLeft: 60 }, blocksWalking: { radius: 0.9 } });
+
+    expect(summary(actionsFor(scene("stump", stump), world.reader))).toEqual(["digUp main off: no sapling grows on the stump yet"]);
+  });
+
+  it("says the backpack is full when a sapling does not fit", () => {
+    const world = worldWith({ backpack: { stone: 10 } });
+    const sapling = world.add({ stump: true, growth: { stage: "sapling", minutesLeft: 60 }, blocksWalking: { radius: 0.9 } });
+
+    expect(summary(actionsFor(scene("sapling", sapling), world.reader))).toEqual(["digUp main off: the backpack is full"]);
+  });
+
+  it("drops a sapling from the backpack", () => {
+    const actions = actionsFor({ kind: "backpackContent", content: "sapling" }, worldWith({ backpack: { sapling: 2 } }).reader);
+
+    expect(summary(actions)).toContain("drop");
   });
 
   it("picks up a log, splits it, or debarks it", () => {
@@ -684,7 +716,8 @@ function summary(actions: readonly ThingAction[]): string[] {
   return actions.map(({ id, isMain, enabled, reason }) => [id, isMain ? "main" : "", enabled ? "" : `off: ${reason}`].filter(Boolean).join(" "));
 }
 
-type ThingKind = "campfire" | "woodpile" | "sled" | "tree" | "log" | "debarkedLog" | "stick" | "bedroll" | "blueprint" | "plantedTorch";
+type ThingKind =
+  "campfire" | "woodpile" | "sled" | "tree" | "youngTree" | "sapling" | "stump" | "log" | "debarkedLog" | "stick" | "bedroll" | "blueprint" | "plantedTorch";
 
 /** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */
 function scene(kind: ThingKind, id: number): ActionTarget {

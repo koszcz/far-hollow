@@ -66,12 +66,12 @@ import { createCooking, cookingRules } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
-import { createWoodpiles } from "./woodpiles";
+import { createWoodpiles, woodpileRules } from "./woodpiles";
 import { createChests, chestRules } from "./chests";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
-import { createHandReach, reachToward } from "./hand-reach";
+import { createHandReach } from "./hand-reach";
 import type { GroundPoint } from "./ground-point";
 
 /** The build menu never changes, so every view shares one frozen copy. */
@@ -351,11 +351,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
   function tendNow(command: TendTask): PlainNotice | undefined {
     switch (command.type) {
-      case "stackOnWoodpile":
-        woodpiles.stack(command.woodpileId, command.wood, command.all);
-        return undefined;
-      case "takeFromWoodpile":
-        return woodpiles.take(command.woodpileId, command.wood);
       case "loadSled":
         sleds.load(command.sledId);
         return undefined;
@@ -448,23 +443,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       reportEatOrDrink("drinkFromPot");
     }),
     ...cookingRules(cooking, campfires, ruleGame),
-    tendWoodpile: {
-      start: "fresh",
-      approach: {
-        reach: (command) => woodpiles.reach(command.woodpileId),
-        act: (command) => {
-          reachToward(handReach, entities, "waist", command.woodpileId);
-        },
-      },
-    },
-    stackOnWoodpile: { start: "alongside", refusal: (command) => woodpiles.refusal(command), approach: remainingTendApproach },
-    takeFromWoodpile: {
-      start: "alongside",
-      // Firewood goes in the backpack, so taking it does not need free hands. A log goes on the shoulder.
-      needsFreeHands: (command) => command.wood !== "firewood",
-      refusal: (command) => woodpiles.refusal(command),
-      approach: remainingTendApproach,
-    },
+    ...woodpileRules(woodpiles, ruleGame),
     loadSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
     takeFromSled: { start: "alongside", needsFreeHands: true, refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
     loadPlanksOnSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },

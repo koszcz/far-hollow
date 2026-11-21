@@ -722,6 +722,7 @@ function startApproaches(save: Readonly<Record<string, unknown>>): Record<string
  */
 const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unknown>) => Record<string, unknown>>> = {
   chopTask: (task) => ({ type: "chopTree", treeId: task.treeId }),
+  debarkTask: (task) => ({ type: "debarkLog", logId: task.logId }),
 };
 
 /**

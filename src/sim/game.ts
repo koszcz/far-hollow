@@ -218,7 +218,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const handReach = createHandReach(entities);
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, valley, handReach);
-  const debarking = createDebarking(entities, walking);
+  const debarking = createDebarking(entities);
   const crafting = createCrafting(entities, walking, valley.terrain);
   const gathering = createGathering(entities, handReach);
   const foraging = createForaging(entities, handReach);
@@ -552,7 +552,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: () => debarking.refusal(),
-      run: (command) => debarking.start(command.logId),
+      // A full backpack turns the player away before they set off.
+      run: (command) => debarking.roomRefusal() ?? approach.start(command),
+      approach: {
+        reach: (command) => debarking.reach(command.logId),
+        act: (command) => debarking.start(command.logId),
+      },
     },
     craft: {
       start: "fresh",

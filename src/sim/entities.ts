@@ -92,7 +92,7 @@ export interface Entity {
   log?: { heading: number };
   /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */
   debarkedLog?: { heading: number };
-  /** The log on the ground the player is walking to or debarking, given by its entity id. `secondsDone` counts only the time spent debarking. */
+  /** The debarking in progress: the log on the ground the player is debarking, given by its entity id, and how long they have worked at it. */
   debarkTask?: { logId: number; secondsDone: number };
   /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
   carrying?: CarriedLog;

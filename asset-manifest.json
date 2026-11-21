@@ -1279,14 +1279,17 @@
       "kind": "code",
       "code": [
         "src/render/fireplace-meshes.ts",
+        "src/render/fireplace-shape.ts",
+        "src/render/stone-shape.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. The stones are plain boxes in three greys. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one stone per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down. A lit fireplace shows the approved fire-effect on its hearth floor, shrunk to 55%, with the campfire's glow and pool of light hung at its opening. A pot on its fire shows the approved pot sitting on the flames under the slab, steaming while lit. Fish on its fire show the approved fish-on-fire skewers standing upright in a row of 3 just in front of the opening, with their flat sides to the fire.",
+      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. It is hand-stacked rubble: lumpy, blocky river stones in the warm greys of the approved stone, laid in rough courses with dark mortar showing between them. The hearth floor is four flagstones, the slab is one rough stone, and the chimney narrows as it rises, under a cap stone held up on two small stones over a black flue. Soot blackens the inside of the fire box, the hearth, the underside of the slab, and the slab's front above the opening. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one part per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down. A lit fireplace shows the approved fire-effect on its hearth floor, shrunk to 55%, with the campfire's glow and pool of light hung at its opening. A pot on its fire shows the approved pot sitting on the flames under the slab, steaming while lit. Fish on its fire show the approved fish-on-fire skewers standing upright in a row of 3 just in front of the opening, with their flat sides to the fire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fireplace/issues/02-build-a-fireplace.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

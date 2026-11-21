@@ -1,4 +1,4 @@
-// The light that lit torches cast on the ground around them. Part of the draft "torch" asset in asset-manifest.json.
+// The light that lit torches cast on the ground around them. Part of the approved "torch" asset in asset-manifest.json.
 // A small fixed set of point lights stays in the scene all the time. A light with no torch to show sits at zero strength,
 // as an unlit campfire's glow does, because adding or removing a light makes three.js rebuild every material.
 // Torches cast no shadows.

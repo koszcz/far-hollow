@@ -4,6 +4,8 @@ import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack } from 
 import type { Campfires } from "./campfires";
 import { heldFireOf, heldFires, type EntityStore, type HeldFire } from "./entities";
 import { COOK_MINUTES, FISH_ON_FIRE_LIMIT, isCooked, type FishOnFire } from "./fish-on-fire";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { tendApproach } from "./tending";
 
 /** A fish this close to cooked counts as cooked, so rounding errors in the clock cannot leave it a sliver short. */
 const COOKED_ALLOWANCE_MINUTES = 1e-6;
@@ -82,5 +84,21 @@ export function createCooking(entities: EntityStore, campfires: Campfires): Cook
         }
       }
     },
+  };
+}
+
+/** The rules for cooking a fish on a campfire and taking it off. */
+export function cookingRules(cooking: Cooking, campfires: Campfires, game: RuleGame): CommandRules<"cookFish" | "takeFishOff"> {
+  const reach = (command: { campfireId: number }) => campfires.reach(command.campfireId);
+  return {
+    cookFish: {
+      start: "alongside",
+      refusal: (command) => cooking.refusal(command.campfireId),
+      approach: tendApproach(game, reach, (command) => {
+        cooking.cookFish(command.campfireId);
+        return undefined;
+      }),
+    },
+    takeFishOff: { start: "alongside", approach: tendApproach(game, reach, (command) => cooking.takeFishOff(command.campfireId)) },
   };
 }

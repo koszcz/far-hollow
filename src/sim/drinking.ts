@@ -5,6 +5,7 @@ import { catchSickness } from "./sickness";
 import { distanceToRiver, nearestRiverPoint, type Valley } from "./valley";
 import { type GroundPoint } from "./ground-point";
 import { nearestWalkableSpot, type WalkMap } from "./walk-map";
+import type { CommandRules } from "./command-rule";
 
 /** The player can drink from the river, or fill the pot, from this many metres from the water's edge. */
 const RIVER_REACH_METRES = 3;
@@ -54,6 +55,21 @@ export function createDrinking(entities: EntityStore, walkMap: WalkMap, valley: 
         setComponent(entities, player, "sickness", catchSickness());
         onDrink({ x: spot.x, z: spot.z });
       }
+    },
+  };
+}
+
+/** The rule for drinking from the river. */
+export function drinkingRules(drinking: Drinking): CommandRules<"drinkFromRiver"> {
+  return {
+    drinkFromRiver: {
+      start: "fresh",
+      approach: {
+        reach: (command) => drinking.reach(command),
+        act: (command) => {
+          drinking.drinkFromRiver(command);
+        },
+      },
     },
   };
 }

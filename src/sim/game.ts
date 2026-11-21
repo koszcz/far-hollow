@@ -1,5 +1,5 @@
 import { createRegrowth } from "./regrowth";
-import { createActionQueue, type QueueRule } from "./action-queue";
+import { createActionQueue } from "./action-queue";
 import type {
   ActionCommand,
   BedrollView,
@@ -17,122 +17,62 @@ import type {
   SleepView,
   EatOrDrinkView,
 } from "./api";
-import { createBedrolls, type BedrollEntity } from "./bedrolls";
-import { createBeds, type BedEntity } from "./beds";
-import { createStools } from "./stools";
-import { createApproach, type ApproachReach } from "./approach";
-import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
+import { createBedrolls, type BedrollEntity, bedrollRules } from "./bedrolls";
+import { createBeds, type BedEntity, bedRules } from "./beds";
+import { createStools, stoolRules } from "./stools";
+import { createApproach } from "./approach";
+import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
-import { createBuilding } from "./building";
-import { createTakingDown } from "./taking-down";
+import { createBuilding, buildingRules } from "./building";
+import { createTakingDown, takingDownRules } from "./taking-down";
 import { STRUCTURES } from "./structures";
-import { createCarrying } from "./carrying";
-import { createCampfires, isWarmedByCampfire } from "./campfires";
-import { createChopping } from "./chopping";
-import { createDiggingUp } from "./digging-up";
-import { createDebarking } from "./debarking";
-import { createCrafting, RECIPES } from "./crafting";
-import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
-import { createForaging, valleyForageSpots } from "./foraging";
-import { createGathering } from "./gathering";
+import { createCarrying, carryingRules } from "./carrying";
+import { createCampfires, isWarmedByCampfire, campfireRules } from "./campfires";
+import { createChopping, choppingRules } from "./chopping";
+import { createDiggingUp, diggingUpRules } from "./digging-up";
+import { createDebarking, debarkingRules } from "./debarking";
+import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import {
-  createEntityStore,
-  movingEntities,
-  rainEntities,
-  restoreEntities,
-  saveEntities,
-  type Entity,
-  type TendTask,
-  type EntityStore,
-  type SavedEntity,
-} from "./entities";
+  clockStartMinutes,
+  createClock,
+  isNight,
+  MINUTES_PER_HOUR,
+  nextMorning,
+  readClock,
+  REAL_MS_PER_GAME_MINUTE,
+  type ClockStart,
+  timeRules,
+} from "./clock";
+import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
+import { createGathering, gatheringRules } from "./gathering";
+import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import { copyToward } from "./ground-point";
 import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
-import { createWalking, playerStartSpot, type Walking } from "./walking";
+import { createWalking, playerStartSpot, type Walking, walkingRules } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
-import { createDrinking } from "./drinking";
-import { createFishing } from "./fishing";
-import { createStoneGathering } from "./stone";
-import { createTorches } from "./torches";
+import { createDrinking, drinkingRules } from "./drinking";
+import { createFishing, fishingRules } from "./fishing";
+import type { CommandRule, CommandRules, RuleGame } from "./command-rule";
+import { createStoneGathering, stoneRules } from "./stone";
+import { createTorches, torchRules } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug } from "./rooms";
 import { passSicknessTime } from "./sickness";
-import { createPot } from "./pot";
-import { createCooking } from "./cooking";
+import { createPot, potRules } from "./pot";
+import { createCooking, cookingRules } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
-import { goneRefusal } from "./refusals";
-import { createPiles } from "./piles";
-import { createSleds, DRAG_SPEED } from "./sleds";
-import { createWoodpiles } from "./woodpiles";
-import { createChests } from "./chests";
-import { furnitureOf } from "./furniture";
+import { createPiles, pileRules } from "./piles";
+import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
+import { createWoodpiles, woodpileRules } from "./woodpiles";
+import { createChests, chestRules } from "./chests";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
 import { createHandReach } from "./hand-reach";
 import type { GroundPoint } from "./ground-point";
-import type { ReachHeight } from "./entities";
-
-/**
- * How the player reaches to carry out each campfire, woodpile, or sled command: to the ground at a campfire, at waist
- * height at a woodpile or sled. Lighting a fire and taking a sled's ropes need motions of their own, so they have none.
- */
-const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = {
-  addFuel: "low",
-  lightCampfire: undefined,
-  putPotOnFire: "low",
-  takePotOffFire: "low",
-  cookFish: "low",
-  takeFishOff: "low",
-  stackOnWoodpile: "waist",
-  takeFromWoodpile: "waist",
-  loadSled: "waist",
-  takeFromSled: "waist",
-  loadPlanksOnSled: "waist",
-  takePlanksFromSled: "waist",
-  tipOutSled: "waist",
-  dragSled: undefined,
-};
-
-/**
- * How the game handles one kind of command. Each kind has one rule, in commandRules.
- * - `start`: "fresh" stops whatever the player was doing before the command runs. "alongside" leaves it going,
- *   so a command that sometimes starts afresh, such as placing a blueprint to build at once, stops it itself.
- * - `refusal`: why the game would turn the command away, wherever the player stands. The UI shows it before the player sends the command.
- *   The game checks it before it runs the command, and a refused command shows the refusal as a notice and does nothing.
- * - `run`: carries the command out. It only receives commands whose refusal passed. It returns a notice to show,
- *   if the work turns out not to be possible, such as a full backpack.
- * - `approach`: for a command the player walks within reach to carry out. `reach` says where the approach takes them, and
- *   `act` carries the command out once they stand there. The game checks the refusal again just before `act`. A rule with an
- *   approach and no `run` starts the approach when it runs. See approach.ts.
- * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
- * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
- * - `queue` and `canStopForNext`: how the command meets the action queue. See QueueRule in action-queue.ts.
- */
-type CommandRule<C extends ActionCommand> = CommandRuleParts<C> &
-  (
-    | { readonly run: (command: C) => Notice | PlainNotice | undefined; readonly approach?: ApproachRule<C> }
-    | { readonly run?: undefined; readonly approach: ApproachRule<C> }
-  );
-
-/** How a command the player walks within reach to carry out meets the approach. */
-interface ApproachRule<C extends ActionCommand> {
-  readonly reach: (command: C) => ApproachReach | undefined;
-  readonly act: (command: C) => Notice | PlainNotice | undefined;
-}
-
-interface CommandRuleParts<C extends ActionCommand> extends QueueRule {
-  readonly start: "fresh" | "alongside";
-  readonly refusal?: (command: C) => Refusal | undefined;
-  readonly needsFreeHands?: true | ((command: C) => boolean);
-  readonly keepsPlayerSitting?: true;
-}
-
-/** The rule for each kind of command. Queueing an action is handled before any rule. */
-type CommandRules = { readonly [Type in ActionCommand["type"]]: CommandRule<Extract<ActionCommand, { type: Type }>> };
 
 /** The build menu never changes, so every view shares one frozen copy. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
@@ -414,98 +354,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     if (refusal !== undefined) showNotice(refusal);
   }
 
-  /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
-  function tendNow(command: TendTask): PlainNotice | undefined {
-    switch (command.type) {
-      case "addFuel":
-        campfires.addFuel(command.campfireId, command.fuel);
-        return undefined;
-      case "lightCampfire":
-        campfires.light(command.campfireId);
-        return undefined;
-      case "putPotOnFire":
-        pot.putOnFire(command.campfireId);
-        return undefined;
-      case "takePotOffFire":
-        return pot.takeOffFire(command.campfireId);
-      case "cookFish":
-        cooking.cookFish(command.campfireId);
-        return undefined;
-      case "takeFishOff":
-        return cooking.takeFishOff(command.campfireId);
-      case "stackOnWoodpile":
-        woodpiles.stack(command.woodpileId, command.wood, command.all);
-        return undefined;
-      case "takeFromWoodpile":
-        return woodpiles.take(command.woodpileId, command.wood);
-      case "loadSled":
-        sleds.load(command.sledId);
-        return undefined;
-      case "takeFromSled":
-        sleds.take(command.sledId, command.log);
-        return undefined;
-      case "loadPlanksOnSled":
-        sleds.loadPlanks(command.sledId);
-        return undefined;
-      case "takePlanksFromSled":
-        return sleds.takePlanks(command.sledId);
-      case "tipOutSled":
-        sleds.tipOut(command.sledId);
-        return undefined;
-      case "dragSled":
-        sleds.drag(command.sledId);
-        return undefined;
-    }
-  }
-
-  /**
-   * Starts the player reaching to carry out a command on a campfire, woodpile, or sled within reach. The command is
-   * carried out when the hand gets there. A command with no reach of its own, such as lighting a fire, is carried out now.
-   */
-  function reachToTend(command: TendTask): PlainNotice | undefined {
-    const height = TEND_REACH[command.type];
-    if (height === undefined) return tendNow(command);
-    handReach.start(height, placeOf(command), () => tendNow(command));
-    return undefined;
-  }
-
-  /** Where the campfire, woodpile, or sled a command works on stands, if it still exists. */
-  function placeOf(command: TendTask): GroundPoint | undefined {
-    const id = "campfireId" in command ? command.campfireId : "woodpileId" in command ? command.woodpileId : command.sledId;
-    return entities.entity(id)?.position;
-  }
-
-  /** Starts the player reaching down to put something at their feet. `put` runs when the hand gets to the ground. */
-  function putDown(put: () => void): void {
-    handReach.start("low", undefined, () => {
-      put();
-      return undefined;
-    });
-  }
-
-  /** Reaches toward a thing the player stands beside, such as a campfire they came to tend or a chest they open. The reach carries nothing out. */
-  function reachToward(height: ReachHeight, thingId: number): void {
-    handReach.start(height, entities.entity(thingId)?.position);
-  }
-
-  /** How high the player reaches into a piece of furniture that stores things. A piece whose definition gives no height is reached at the waist. */
-  function storageReach(chestId: number): ReachHeight {
-    return furnitureOf(entities.entity(chestId))?.reachHeight ?? "waist";
-  }
-
-  /**
-   * The approach for a command on a campfire, woodpile, or sled. A player within reach carries it out at once, without
-   * stopping other work. Otherwise they stop what they were doing, walk beside it, and carry the command out there.
-   */
-  const tendApproach: ApproachRule<TendTask> = {
-    reach: (command) => {
-      if ("campfireId" in command) return campfires.reach(command.campfireId);
-      if ("woodpileId" in command) return woodpiles.reach(command.woodpileId);
-      return sleds.reach(command.sledId);
-    },
-    act: reachToTend,
-  };
-
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
     return player.walkPath === undefined && player.approach === undefined && currentAction() === null;
@@ -524,469 +372,63 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return commandRules[command.type] as CommandRule<ActionCommand>;
   }
 
+  /** What the command rules use from the game. */
+  const ruleGame: RuleGame = {
+    entities,
+    player,
+    hand: handReach,
+    startApproach: (command) => approach.start(command),
+    stopOtherWork: cancelTasks,
+  };
+
+  /**
+   * The rule for each kind of command, from the module that carries it out. TypeScript reports a kind with no rule.
+   * This file keeps only what every command shares: hands busy with a sled, standing up from a stool, cancelling tasks,
+   * and the action queue. A new command touches these files, and no other file in the sim:
+   * - its activity module, which exports its rule (see command-rule.ts);
+   * - the `Command` union in src/sim/api.ts;
+   * - the save check for commands in src/sim/save-schema.ts;
+   * - the UI files that offer it, such as src/app/thing-actions.ts;
+   * - src/strings.ts, for its label.
+   */
   const commandRules: CommandRules = {
-    setPaused: {
-      start: "alongside",
-      keepsPlayerSitting: true,
-      queue: "apart",
-      run: (command) => {
-        paused = command.paused;
+    ...timeRules({
+      setPaused: (now) => {
+        paused = now;
       },
-    },
-    walkTo: {
-      start: "fresh",
-      run: (command) => {
-        walking.walkTo({ x: command.x, z: command.z });
+      passTime: (gameMinutes) => {
+        passTime(gameMinutes);
       },
-    },
-    chopTree: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => chopping.refusal(command.treeId),
-      approach: {
-        reach: (command) => chopping.reach(command.treeId),
-        act: (command) => {
-          chopping.start(command.treeId);
-        },
-      },
-    },
-    digUpSapling: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => diggingUp.refusal(command.saplingId),
-      approach: {
-        reach: (command) => diggingUp.reach(command.saplingId),
-        act: (command) => {
-          diggingUp.start(command.saplingId);
-        },
-      },
-    },
-    pickUpLog: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => carrying.pickUpRefusal(),
-      approach: {
-        reach: (command) => carrying.pickUpReach(command.logId),
-        act: (command) => {
-          carrying.pickUp(command.logId);
-        },
-      },
-    },
-    debarkLog: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => debarking.refusal(),
-      // A full backpack turns the player away before they set off.
-      run: (command) => debarking.roomRefusal() ?? approach.start(command),
-      approach: {
-        reach: (command) => debarking.reach(command.logId),
-        act: (command) => debarking.start(command.logId),
-      },
-    },
-    craft: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => crafting.refusal(command.recipe),
-      // A hand recipe is crafted where the player stands. A station recipe is followed beside the station, so the player
-      // walks there first, unless they could not start it anyway. The approach holds the station the player walks to.
-      run: (command) => {
-        const stationId = crafting.stationFor(command.recipe, command.stationId);
-        if (stationId === undefined) return crafting.start(command.recipe, command.stationId);
-        return crafting.startRefusal(command.recipe, stationId) ?? approach.start({ type: "craft", recipe: command.recipe, stationId });
-      },
-      approach: {
-        reach: (command) => crafting.reach(command.recipe, command.stationId),
-        act: (command) => crafting.start(command.recipe, command.stationId),
-      },
-    },
-    // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
-    lightTorch: {
-      start: "alongside",
-      refusal: () => torches.lightRefusal(),
-      run: () => {
-        torches.light();
-      },
-    },
-    putOutTorch: {
-      start: "alongside",
-      run: () => {
-        torches.putOut();
-      },
-    },
-    // Planting the torch reaches down to stand it at the player's feet, as laying the bedroll does.
-    plantTorch: {
-      start: "alongside",
-      refusal: () => torches.plantRefusal(),
-      run: () => {
-        if (torches.plantRefusal() === undefined)
-          putDown(() => {
-            torches.plant();
-          });
-      },
-    },
-    pickUpTorch: {
-      start: "fresh",
-      refusal: () => torches.pickUpRefusal(),
-      approach: {
-        reach: (command) => torches.pickUpReach(command.torchId),
-        act: (command) => {
-          torches.pickUp(command.torchId);
-        },
-      },
-    },
-    pickUpStick: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => goneRefusal(entities, command.stickId),
-      approach: {
-        reach: (command) => gathering.reach(command.stickId, "stick"),
-        act: (command) => {
-          gathering.pickUp(command.stickId, "stick");
-        },
-      },
-    },
-    pickUpBark: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => goneRefusal(entities, command.barkId),
-      approach: {
-        reach: (command) => gathering.reach(command.barkId, "bark"),
-        act: (command) => {
-          gathering.pickUp(command.barkId, "bark");
-        },
-      },
-    },
-    forage: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => foraging.refusal(command.spotId),
-      approach: {
-        reach: (command) => foraging.reach(command.spotId),
-        act: (command) => {
-          foraging.forage(command.spotId);
-        },
-      },
-    },
-    eat: {
-      start: "alongside",
-      run: (command) => {
-        if (foraging.eat(command.food)) reportEatOrDrink("eat");
-      },
-    },
-    splitLog: {
-      // A log given by id must lie on the ground, and only then does the player stop what they were doing. A debarked log cannot be split.
-      start: "alongside",
-      needsFreeHands: true,
-      refusal: (command) => gathering.splitRefusal(command.logId),
-      run: (command) => {
-        if (command.logId !== undefined) return approach.start(command);
-        cancelTasks();
-        gathering.splitLog();
-        return undefined;
-      },
-      // A log given by id is picked up first, then split on the player's shoulder.
-      approach: {
-        reach: ({ logId }) => (logId === undefined || entities.entity(logId)?.log === undefined ? undefined : carrying.pickUpReach(logId)),
-        act: ({ logId }) => {
-          if (logId !== undefined) carrying.pickUp(logId, true);
-        },
-      },
-    },
-    dropLog: {
-      start: "alongside",
-      run: () => {
-        if (player.carrying !== undefined)
-          putDown(() => {
-            carrying.drop();
-          });
-      },
-    },
-    dropLogAt: {
-      start: "fresh",
-      approach: {
-        reach: (command) => carrying.dropReach(command),
-        act: (command) => {
-          carrying.dropAt(command);
-        },
-      },
-    },
-    dropFromBackpack: {
-      start: "alongside",
-      run: (command) => {
-        if (countInBackpack(player.backpack, command.content) > 0)
-          putDown(() => {
-            piles.drop(command.content);
-          });
-      },
-    },
-    pickUpPile: {
-      start: "fresh",
-      needsFreeHands: true,
-      approach: {
-        reach: (command) => piles.reach(command.pileId),
-        act: (command) => {
-          piles.pickUp(command.pileId);
-        },
-      },
-    },
-    placeBlueprint: {
-      // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
-      start: "alongside",
-      queue: "apart",
-      needsFreeHands: (command) => command.thenBuild === true,
-      run: (command) => {
-        const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
-        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return undefined;
-        cancelTasks();
-        return approach.start({ type: "build", blueprintId: id });
-      },
-    },
-    build: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => building.refusal(command.blueprintId),
-      approach: {
-        reach: (command) => building.reach(command.blueprintId),
-        act: (command) => {
-          building.build(command.blueprintId);
-        },
-      },
-    },
-    deliverToBlueprint: {
-      start: "fresh",
-      needsFreeHands: true,
-      approach: {
-        reach: (command) => building.reach(command.blueprintId),
-        act: (command) => {
-          building.deliver(command.blueprintId);
-        },
-      },
-    },
-    takeDown: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => takingDown.refusal(command.pieceId),
-      approach: {
-        reach: (command) => takingDown.reach(command.pieceId),
-        act: (command) => {
-          takingDown.start(command.pieceId);
-        },
-      },
-    },
-    stopBuilding: {
-      start: "alongside",
-      queue: "apart",
-      run: () => {
-        building.cancel();
-      },
-    },
-    tendCampfire: {
-      start: "fresh",
-      approach: {
-        reach: (command) => campfires.reach(command.campfireId),
-        act: (command) => {
-          reachToward("low", command.campfireId);
-        },
-      },
-    },
-    addFuel: { start: "alongside", refusal: (command) => campfires.refusal(command), approach: tendApproach },
-    lightCampfire: { start: "alongside", refusal: (command) => campfires.refusal(command), approach: tendApproach },
-    putPotOnFire: { start: "alongside", refusal: (command) => pot.putOnRefusal(command.campfireId), approach: tendApproach },
-    takePotOffFire: { start: "alongside", approach: tendApproach },
-    cookFish: { start: "alongside", refusal: (command) => cooking.refusal(command.campfireId), approach: tendApproach },
-    takeFishOff: { start: "alongside", approach: tendApproach },
-    tendWoodpile: {
-      start: "fresh",
-      approach: {
-        reach: (command) => woodpiles.reach(command.woodpileId),
-        act: (command) => {
-          reachToward("waist", command.woodpileId);
-        },
-      },
-    },
-    stackOnWoodpile: { start: "alongside", refusal: (command) => woodpiles.refusal(command), approach: tendApproach },
-    takeFromWoodpile: {
-      start: "alongside",
-      // Firewood goes in the backpack, so taking it does not need free hands. A log goes on the shoulder.
-      needsFreeHands: (command) => command.wood !== "firewood",
-      refusal: (command) => woodpiles.refusal(command),
-      approach: tendApproach,
-    },
-    loadSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
-    takeFromSled: { start: "alongside", needsFreeHands: true, refusal: (command) => sleds.refusal(command), approach: tendApproach },
-    loadPlanksOnSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
-    takePlanksFromSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
-    tipOutSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
-    dragSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: tendApproach },
-    letGoOfSled: {
-      start: "alongside",
-      run: () => {
-        sleds.letGo();
-      },
-    },
-    openChest: {
-      start: "fresh",
-      // Opening a chest opens its panel, a menu, so it is never queued.
-      queue: "plainOnly",
-      approach: {
-        reach: (command) => chests.reach(command.chestId),
-        act: (command) => {
-          chests.open(command.chestId);
-          reachToward(storageReach(command.chestId), command.chestId);
-        },
-      },
-    },
-    putInChest: {
-      start: "alongside",
-      queue: "apart",
-      refusal: (command) => chests.refusal(command.chestId),
-      run: (command) => {
-        handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
-          chests.put(command.chestId, command.content, command.all),
-        );
-      },
-    },
-    takeFromChest: {
-      start: "alongside",
-      queue: "apart",
-      refusal: (command) => {
-        const kind = chests.takeRefusal(command.chestId, command.content);
-        return chests.refusal(command.chestId) ?? (kind === undefined ? undefined : { kind });
-      },
-      run: (command) => {
-        handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
-          chests.take(command.chestId, command.content, command.all),
-        );
-      },
-    },
-    layBedroll: {
-      start: "alongside",
-      run: () => {
-        if (countInBackpack(player.backpack, "bedroll") > 0)
-          putDown(() => {
-            bedrolls.lay();
-          });
-      },
-    },
-    layBedrollInLeanTo: {
-      start: "fresh",
-      approach: {
-        reach: (command) => bedrolls.layInLeanToReach(command.leanToId),
-        act: (command) => {
-          bedrolls.layInLeanTo(command.leanToId);
-        },
-      },
-    },
-    pickUpBedroll: {
-      start: "fresh",
-      approach: {
-        reach: (command) => bedrolls.reach(command.bedrollId),
-        act: (command) => {
-          bedrolls.pickUp(command.bedrollId);
-        },
-      },
-    },
-    sleep: {
-      start: "fresh",
-      refusal: (command) => goneRefusal(entities, command.bedrollId),
-      approach: {
-        reach: (command) => bedrolls.reach(command.bedrollId),
-        act: (command) => {
-          bedrolls.sleep(command.bedrollId);
-        },
-      },
-    },
-    sleepInBed: {
-      start: "fresh",
-      refusal: (command) => goneRefusal(entities, command.bedId),
-      approach: {
-        reach: (command) => beds.reach(command.bedId),
-        act: (command) => {
-          beds.sleep(command.bedId);
-        },
-      },
-    },
-    sitOnStool: {
-      start: "fresh",
-      // Once seated, the player sits on with nothing to end it, so they stand up at once for a queued action.
-      canStopForNext: () => player.sitting !== undefined,
-      refusal: (command) => goneRefusal(entities, command.stoolId),
-      approach: {
-        reach: (command) => stools.reach(command.stoolId),
-        act: (command) => {
-          stools.sit(command.stoolId);
-        },
-      },
-    },
-    drinkFromRiver: {
-      start: "fresh",
-      approach: {
-        reach: (command) => drinking.reach(command),
-        act: (command) => {
-          drinking.drinkFromRiver(command);
-        },
-      },
-    },
-    fish: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => fishing.refusal(),
-      approach: {
-        reach: (command) => fishing.reach(command),
-        act: (command) => {
-          fishing.fish({ x: command.x, z: command.z });
-        },
-      },
-      // Fishing has no end. A queued fishing trip catches one fish when another action waits.
-      canStopForNext: () => fishing.hasFishBitten(),
-    },
-    gatherStone: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => stoneGathering.refusal(),
-      approach: {
-        reach: (command) => stoneGathering.reach(command),
-        act: (command) => {
-          stoneGathering.gather({ x: command.x, z: command.z });
-        },
-      },
-    },
-    drinkFromPot: {
-      start: "alongside",
-      run: () => {
-        if (pot.drink()) reportEatOrDrink("drinkFromPot");
-      },
-    },
-    fillPot: {
-      start: "fresh",
-      approach: {
-        reach: () => pot.fillReach(),
-        act: () => {
-          pot.fill();
-        },
-      },
-    },
-    skipTime: {
-      start: "alongside",
-      keepsPlayerSitting: true,
-      queue: "apart",
-      run: (command) => {
-        // Time only moves forward. Ignore a negative or broken amount.
-        if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
-      },
-    },
-    skipToRainChange: {
-      start: "alongside",
-      keepsPlayerSitting: true,
-      queue: "apart",
-      run: () => {
-        const wasFalling = rain.falling;
-        // Slice by slice, so the skip stops on the minute rain starts or stops, or at a collapse.
-        while (rain.falling === wasFalling) {
-          if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
-        }
-      },
-    },
+      skipToRainChange,
+    }),
+    ...walkingRules(walking),
+    ...choppingRules(chopping),
+    ...diggingUpRules(diggingUp),
+    ...carryingRules(carrying, ruleGame),
+    ...debarkingRules(debarking, ruleGame),
+    ...craftingRules(crafting, ruleGame),
+    ...torchRules(torches, ruleGame),
+    ...gatheringRules(gathering, carrying, ruleGame),
+    ...foragingRules(foraging, () => {
+      reportEatOrDrink("eat");
+    }),
+    ...pileRules(piles, ruleGame),
+    ...buildingRules(building, ruleGame),
+    ...takingDownRules(takingDown),
+    ...campfireRules(campfires, ruleGame),
+    ...potRules(pot, campfires, ruleGame, () => {
+      reportEatOrDrink("drinkFromPot");
+    }),
+    ...cookingRules(cooking, campfires, ruleGame),
+    ...woodpileRules(woodpiles, ruleGame),
+    ...sledRules(sleds, ruleGame),
+    ...chestRules(chests, ruleGame),
+    ...bedrollRules(bedrolls, ruleGame),
+    ...bedRules(beds, ruleGame),
+    ...stoolRules(stools, ruleGame),
+    ...drinkingRules(drinking),
+    ...fishingRules(fishing),
+    ...stoneRules(stoneGathering),
   };
 
   /**
@@ -1028,6 +470,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       }
     }
     return true;
+  }
+
+  /** Moves the clock on until rain starts or stops, slice by slice, so the skip stops on that minute, or at a collapse. */
+  function skipToRainChange(): void {
+    const wasFalling = rain.falling;
+    while (rain.falling === wasFalling) {
+      if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
+    }
   }
 
   /**

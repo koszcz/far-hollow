@@ -6,6 +6,9 @@ import type { HandReach } from "./hand-reach";
 import { leanToBedrollSpot } from "./structures";
 import { type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { putDown } from "./hand-reach";
+import { goneRefusal } from "./refusals";
 
 /** The player can pick up or lie down on a bedroll from this far from its middle, in metres. */
 export const BEDROLL_REACH_METRES = 2;
@@ -128,6 +131,52 @@ export function createBedrolls(entities: EntityStore, valley: Valley, hand: Pick
         }
       }
       return nearest;
+    },
+  };
+}
+
+/** The rules for laying out, picking up, and sleeping on a bedroll. */
+export function bedrollRules(
+  bedrolls: Bedrolls,
+  { entities, player, hand }: RuleGame,
+): CommandRules<"layBedroll" | "layBedrollInLeanTo" | "pickUpBedroll" | "sleep"> {
+  return {
+    layBedroll: {
+      start: "alongside",
+      run: () => {
+        if (countInBackpack(player.backpack, "bedroll") > 0)
+          putDown(hand, () => {
+            bedrolls.lay();
+          });
+      },
+    },
+    layBedrollInLeanTo: {
+      start: "fresh",
+      approach: {
+        reach: (command) => bedrolls.layInLeanToReach(command.leanToId),
+        act: (command) => {
+          bedrolls.layInLeanTo(command.leanToId);
+        },
+      },
+    },
+    pickUpBedroll: {
+      start: "fresh",
+      approach: {
+        reach: (command) => bedrolls.reach(command.bedrollId),
+        act: (command) => {
+          bedrolls.pickUp(command.bedrollId);
+        },
+      },
+    },
+    sleep: {
+      start: "fresh",
+      refusal: (command) => goneRefusal(entities, command.bedrollId),
+      approach: {
+        reach: (command) => bedrolls.reach(command.bedrollId),
+        act: (command) => {
+          bedrolls.sleep(command.bedrollId);
+        },
+      },
     },
   };
 }

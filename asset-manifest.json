@@ -1322,12 +1322,13 @@
         "src/render/pile-meshes.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The torch: a brown stick about 55 cm long with a head of bark wrapped round its top end, tied with two dark bands, its tip charred black. Lit, it rides upright in the player's left hand, leaning a little forward and out, through walking, work, carrying a log, and dragging a sled. A small copy of the approved fire-effect, about a sixth of a campfire's size, burns on its head. A warm orange point light at the flame flickers and lights the ground about 6 m around the player. It casts no shadows. Unlit torches lie on their sides in a pile, spread like other things in a pile. Planted, the lit torch stands upright with its butt a little in the ground or the foundation deck, with the same small flame and a soft orange glow round it that lights nothing. Four warm orange point lights stay in the scene at all times, at zero strength while unused. Each frame they go to the torch in the hand first, then to the planted torches nearest the camera. Planted torches added by torch ticket 02 (.scratch/torch/issues/02-plant-a-torch.md).",
+      "description": "The torch: a brown stick about 55 cm long that thickens a little towards its top, with a chunky, lumpy head of bark wrapped round its top end, tied with two light rope bands, its tip charred black. On a lit torch the charred tip glows faintly like embers. Lit, it rides upright in the player's left hand, leaning a little forward and out, through walking, work, carrying a log, and dragging a sled. A small copy of the approved fire-effect, about a sixth of a campfire's size, burns on its head. A warm orange point light at the flame flickers and lights the ground about 6 m around the player. It casts no shadows. Unlit torches lie on their sides in a pile, spread like other things in a pile. Planted, the lit torch stands upright with its butt a little in the ground or the foundation deck, with the same small flame and a soft orange glow round it that lights nothing. Four warm orange point lights stay in the scene at all times, at zero strength while unused. Each frame they go to the torch in the hand first, then to the planted torches nearest the camera. Planted torches added by torch ticket 02 (.scratch/torch/issues/02-plant-a-torch.md).",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/torch/issues/01-craft-and-carry-a-torch.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

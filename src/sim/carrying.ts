@@ -6,6 +6,8 @@ import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { putDown } from "./hand-reach";
 
 /** The player can pick up a log from this far away, in metres. */
 const PICK_UP_REACH_METRES = 2;
@@ -108,4 +110,39 @@ function logKind(entity: Entity): CarriedLog | undefined {
   if (entity.log !== undefined) return "log";
   if (entity.debarkedLog !== undefined) return "debarkedLog";
   return undefined;
+}
+
+/** The rules for shouldering a log and putting it down. */
+export function carryingRules(carrying: Carrying, { player, hand }: RuleGame): CommandRules<"pickUpLog" | "dropLog" | "dropLogAt"> {
+  return {
+    pickUpLog: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: () => carrying.pickUpRefusal(),
+      approach: {
+        reach: (command) => carrying.pickUpReach(command.logId),
+        act: (command) => {
+          carrying.pickUp(command.logId);
+        },
+      },
+    },
+    dropLog: {
+      start: "alongside",
+      run: () => {
+        if (player.carrying !== undefined)
+          putDown(hand, () => {
+            carrying.drop();
+          });
+      },
+    },
+    dropLogAt: {
+      start: "fresh",
+      approach: {
+        reach: (command) => carrying.dropReach(command),
+        act: (command) => {
+          carrying.dropAt(command);
+        },
+      },
+    },
+  };
 }

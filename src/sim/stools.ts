@@ -3,6 +3,8 @@
 import type { Activity } from "./activity";
 import type { ApproachReach } from "./approach";
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { goneRefusal } from "./refusals";
 
 /** The player walks to a spot this far from a stool's middle to sit on it, in metres. */
 const STOOL_STAND_METRES = 1.1;
@@ -67,6 +69,24 @@ export function createStools(entities: EntityStore, beforeSitting: () => void): 
         if (player.sitting !== undefined) return stoolById(player.sitting.stoolId);
       }
       return undefined;
+    },
+  };
+}
+
+/** The rule for sitting on a stool. */
+export function stoolRules(stools: Stools, { entities, player }: RuleGame): CommandRules<"sitOnStool"> {
+  return {
+    sitOnStool: {
+      start: "fresh",
+      // Once seated, the player sits on with nothing to end it, so they stand up at once for a queued action.
+      canStopForNext: () => player.sitting !== undefined,
+      refusal: (command) => goneRefusal(entities, command.stoolId),
+      approach: {
+        reach: (command) => stools.reach(command.stoolId),
+        act: (command) => {
+          stools.sit(command.stoolId);
+        },
+      },
     },
   };
 }

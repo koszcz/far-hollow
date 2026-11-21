@@ -6,6 +6,9 @@ import { entityWith, playerEntities, woodpileEntities, type Entity, type EntityS
 import { shoulderRefusal } from "./refusals";
 import { groundDistance, nearestWithin } from "./ground-point";
 import type { ApproachReach } from "./approach";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { reachToward } from "./hand-reach";
+import { tendApproach } from "./tending";
 
 /** A woodpile holds up to this many logs, debarked logs, and pieces of firewood in all, in any mix. */
 export const WOODPILE_CAPACITY = 20;
@@ -144,6 +147,37 @@ export function createWoodpiles(entities: EntityStore): Woodpiles {
       const player = players.first;
       const nearest = player === undefined ? undefined : nearestWithin(player.position, woodpiles, WOODPILE_REACH_METRES);
       return nearest === undefined ? undefined : describe(nearest);
+    },
+  };
+}
+
+/** The rules for tending a woodpile: coming to it, stacking wood on it, and taking wood from it. */
+export function woodpileRules(woodpiles: Woodpiles, game: RuleGame): CommandRules<"tendWoodpile" | "stackOnWoodpile" | "takeFromWoodpile"> {
+  const reach = (command: { woodpileId: number }) => woodpiles.reach(command.woodpileId);
+  return {
+    tendWoodpile: {
+      start: "fresh",
+      approach: {
+        reach,
+        act: (command) => {
+          reachToward(game.hand, game.entities, "waist", command.woodpileId);
+        },
+      },
+    },
+    stackOnWoodpile: {
+      start: "alongside",
+      refusal: (command) => woodpiles.refusal(command),
+      approach: tendApproach(game, reach, (command) => {
+        woodpiles.stack(command.woodpileId, command.wood, command.all);
+        return undefined;
+      }),
+    },
+    takeFromWoodpile: {
+      start: "alongside",
+      // Firewood goes in the backpack, so taking it does not need free hands. A log goes on the shoulder.
+      needsFreeHands: (command) => command.wood !== "firewood",
+      refusal: (command) => woodpiles.refusal(command),
+      approach: tendApproach(game, reach, (command) => woodpiles.take(command.woodpileId, command.wood)),
     },
   };
 }

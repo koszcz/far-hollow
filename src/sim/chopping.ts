@@ -9,6 +9,7 @@ import { terrainHeightAt, type Valley } from "./valley";
 import { groundDistance, headingToward, type GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";
 import type { Walking } from "./walking";
+import type { CommandRules } from "./command-rule";
 
 export { CHOP_SECONDS, MOST_LOGS_PER_TREE } from "./tree-size";
 
@@ -165,4 +166,21 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     }
     return blocked;
   }
+}
+
+/** The rule for chopping a tree. */
+export function choppingRules(chopping: Chopping): CommandRules<"chopTree"> {
+  return {
+    chopTree: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => chopping.refusal(command.treeId),
+      approach: {
+        reach: (command) => chopping.reach(command.treeId),
+        act: (command) => {
+          chopping.start(command.treeId);
+        },
+      },
+    },
+  };
 }

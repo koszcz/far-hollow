@@ -5,6 +5,8 @@ import { playerEntities, setComponent, type Entity, type EntityStore } from "./e
 import { goneRefusal, shoulderRefusal, toolRefusal } from "./refusals";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
+import type { Carrying } from "./carrying";
 
 /** The player can pick up a stick from this far away, in metres. */
 const PICK_UP_REACH_METRES = 2;
@@ -133,4 +135,55 @@ export function createGathering(entities: EntityStore, hand: Pick<HandReach, "st
 /** True if the backpack has the axe and room for all the firewood from one log. */
 function canSplitInto(backpack: Backpack): boolean {
   return hasInBackpack(backpack, "axe") && fitsInBackpack(backpack, "firewood", FIREWOOD_PER_LOG);
+}
+
+/** The rules for picking up sticks and bark, and for splitting a log into firewood. */
+export function gatheringRules(
+  gathering: Gathering,
+  carrying: Carrying,
+  { entities, startApproach, stopOtherWork }: RuleGame,
+): CommandRules<"pickUpStick" | "pickUpBark" | "splitLog"> {
+  return {
+    pickUpStick: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => goneRefusal(entities, command.stickId),
+      approach: {
+        reach: (command) => gathering.reach(command.stickId, "stick"),
+        act: (command) => {
+          gathering.pickUp(command.stickId, "stick");
+        },
+      },
+    },
+    pickUpBark: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => goneRefusal(entities, command.barkId),
+      approach: {
+        reach: (command) => gathering.reach(command.barkId, "bark"),
+        act: (command) => {
+          gathering.pickUp(command.barkId, "bark");
+        },
+      },
+    },
+    splitLog: {
+      // A log given by id must lie on the ground, and only then does the player stop what they were doing. A debarked log cannot be split.
+      start: "alongside",
+      needsFreeHands: true,
+      refusal: (command) => gathering.splitRefusal(command.logId),
+      run: (command) => {
+        if (command.logId !== undefined) return startApproach(command);
+        stopOtherWork();
+        gathering.splitLog();
+        return undefined;
+      },
+      // A log given by id is picked up first, then split on the player's shoulder.
+      approach: {
+        reach: ({ logId }) => (logId === undefined || entities.entity(logId)?.log === undefined ? undefined : carrying.pickUpReach(logId)),
+        act: ({ logId }) => {
+          if (logId !== undefined) carrying.pickUp(logId, true);
+        },
+      },
+    },
+  };
 }

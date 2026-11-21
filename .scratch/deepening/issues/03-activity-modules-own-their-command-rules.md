@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 02, 04, 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 

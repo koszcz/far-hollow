@@ -6,6 +6,7 @@ import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { goneRefusal } from "./refusals";
+import type { CommandRules } from "./command-rule";
 
 /** How long the player works to dig up one sapling, in seconds. */
 export const DIG_UP_SECONDS = 4;
@@ -97,6 +98,23 @@ export function createDiggingUp(entities: EntityStore): DiggingUp {
         entities.remove(sapling);
       }
       return notice;
+    },
+  };
+}
+
+/** The rule for digging up a sapling. */
+export function diggingUpRules(diggingUp: DiggingUp): CommandRules<"digUpSapling"> {
+  return {
+    digUpSapling: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => diggingUp.refusal(command.saplingId),
+      approach: {
+        reach: (command) => diggingUp.reach(command.saplingId),
+        act: (command) => {
+          diggingUp.start(command.saplingId);
+        },
+      },
     },
   };
 }

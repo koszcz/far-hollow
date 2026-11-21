@@ -9,6 +9,9 @@ import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import type { ApproachReach } from "./approach";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { reachToward } from "./hand-reach";
+import { tendApproach } from "./tending";
 
 export { FUEL_BURN_MINUTES } from "./fire";
 /** The most fuel a campfire holds, in game minutes of burning. Fuel that would go past it is not taken. */
@@ -164,4 +167,36 @@ export function isWarmedByCampfire(entities: EntityStore, at: GroundPoint): bool
   }
   const room = roomAround(entities, snapToGridSquare(at));
   return room !== undefined && isRoomHeated(entities, room);
+}
+
+/** The rules for tending a campfire: coming to it, adding fuel, and lighting it. */
+export function campfireRules(campfires: Campfires, game: RuleGame): CommandRules<"tendCampfire" | "addFuel" | "lightCampfire"> {
+  const reach = (command: { campfireId: number }) => campfires.reach(command.campfireId);
+  return {
+    tendCampfire: {
+      start: "fresh",
+      approach: {
+        reach,
+        act: (command) => {
+          reachToward(game.hand, game.entities, "low", command.campfireId);
+        },
+      },
+    },
+    addFuel: {
+      start: "alongside",
+      refusal: (command) => campfires.refusal(command),
+      approach: tendApproach(game, reach, (command) => {
+        campfires.addFuel(command.campfireId, command.fuel);
+        return undefined;
+      }),
+    },
+    lightCampfire: {
+      start: "alongside",
+      refusal: (command) => campfires.refusal(command),
+      approach: tendApproach(game, reach, (command) => {
+        campfires.light(command.campfireId);
+        return undefined;
+      }),
+    },
+  };
 }

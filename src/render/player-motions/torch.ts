@@ -1,4 +1,4 @@
-// Runs the draft "torch" asset in asset-manifest.json while the player holds it lit: built by torch-shape.ts, it rides
+// Runs the approved "torch" asset in asset-manifest.json while the player holds it lit: built by torch-shape.ts, it rides
 // upright in the left hand through every motion, with a small "fire-effect" flame on its head. scene-renderer.ts lights
 // the ground from torchFlame(). It is an overlay, so it poses nothing and places its props after every other motion.
 // The axe stays in the hand. Its moment is the steady real-time clock its flame burns at, in seconds.

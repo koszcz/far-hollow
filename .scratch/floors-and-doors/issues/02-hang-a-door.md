@@ -4,25 +4,25 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `door-frame`. Add the drafts `door`, `door-animation`, and `floor-and-door-icons` (door icon).
 
-- [ ] The build menu lists the door with its cost of 3 planks, and shows its icon.
-- [ ] The blueprint snaps to a finished door frame that has no door. A click places it. Esc cancels.
-- [ ] Planks reach the blueprint from the backpack, a parked sled next to it, and plank piles within 2 m, over several trips.
-- [ ] The player holds the build action for 6 seconds to build it. Building needs no tool.
-- [ ] The door shows its build stages.
-- [ ] A door opens when the player comes within 1 m of the middle of its door frame, and closes once they are more than 1 m away.
-- [ ] A door does not change where the player can walk, or the paths they take.
-- [ ] The player can take down a door or its blueprint and get back every plank.
-- [ ] The player cannot take down a door frame that has a door. The action shows greyed with the reason.
-- [ ] Doors and their blueprints are saved. Whether a door stands open is not saved. The save version goes up, and older saves are upgraded when loaded.
-- [ ] In the playground, a door spends no planks.
-- [ ] `GLOSSARY.md` defines the door as the spec does.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover placement, plank delivery, building, opening and closing, and taking down a door and its frame.
+- [x] The build menu lists the door with its cost of 3 planks, and shows its icon.
+- [x] The blueprint snaps to a finished door frame that has no door. A click places it. Esc cancels.
+- [x] Planks reach the blueprint from the backpack, a parked sled next to it, and plank piles within 2 m, over several trips.
+- [x] The player holds the build action for 6 seconds to build it. Building needs no tool.
+- [x] The door shows its build stages.
+- [x] A door opens when the player comes within 1 m of the middle of its door frame, and closes once they are more than 1 m away.
+- [x] A door does not change where the player can walk, or the paths they take.
+- [x] The player can take down a door or its blueprint and get back every plank.
+- [x] The player cannot take down a door frame that has a door. The action shows greyed with the reason.
+- [x] Doors and their blueprints are saved. Whether a door stands open is not saved. The save version goes up, and older saves are upgraded when loaded.
+- [x] In the playground, a door spends no planks.
+- [x] `GLOSSARY.md` defines the door as the spec does.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover placement, plank delivery, building, opening and closing, and taking down a door and its frame.
 
 ## Comments
 
@@ -62,12 +62,12 @@
 
 **Acceptance criteria:**
 
-- [ ] Every checkbox in this ticket's list above is met.
-- [ ] A unit test refuses a door blueprint on a door frame blueprint, on a log wall, and on a frame that already has a door.
-- [ ] A unit test opens a door when the player is 0.9 m from the frame's middle, and shuts it at 1.1 m.
-- [ ] A unit test shows the walk map is the same with and without a door.
-- [ ] A save from the previous version loads with no doors.
-- [ ] `make check` passes.
+- [x] Every checkbox in this ticket's list above is met.
+- [x] A unit test refuses a door blueprint on a door frame blueprint, on a log wall, and on a frame that already has a door.
+- [x] A unit test opens a door when the player is 0.9 m from the frame's middle, and shuts it at 1.1 m.
+- [x] A unit test shows the walk map is the same with and without a door.
+- [x] A save from the previous version loads with no doors.
+- [x] `make check` passes.
 
 **Out of scope:**
 

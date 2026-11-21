@@ -24,6 +24,7 @@ import {
   type Entity,
   type EntityStore,
 } from "./entities";
+import { hasDoor } from "./doors";
 import { isColdAndEmpty } from "./fire";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
@@ -247,6 +248,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
  * Whether another structure stands on this one, so it cannot come down yet.
  * A log wall, door frame, floor, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
+ * A door, finished or as a blueprint, hangs in its door frame.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
  */
@@ -255,6 +257,7 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
   if (kind === "foundation") return standsOnSquare(entities, structure.position);
   const blueprintsOf = (structureKind: StructureKind) => blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === structureKind);
   if (isEdgePiece(kind)) {
+    if (kind === "doorFrame" && hasDoor(entities, structure.position)) return true;
     const frameBlueprints = blueprintsOf("roofFrame");
     return squaresBeside(structure.position, structure.facing?.turns ?? 0).some(
       (square) => roofFrameOn(entities, square) !== undefined || frameBlueprints.some((frame) => isOnGridSquare(square, frame.position)),

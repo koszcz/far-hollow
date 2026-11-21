@@ -15,6 +15,7 @@ import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
 import { pressHotbarKey } from "./hotbar";
+import { downloadFile, saveExportFile } from "./save-export";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
 import type { ThingAction } from "./thing-actions";
 import { attachWalkInput, menuForTarget, type MenuRequest } from "./walk-input";
@@ -96,6 +97,10 @@ async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame>
           // Save at once, so a new game started over a saved one replaces it even if the page closes soon after.
           saveToSlot(storage, slot, game);
           resolve({ game, slot });
+        }}
+        onExport={(slot) => {
+          const file = saveExportFile(slot, stored[slot]);
+          if (file !== undefined) downloadFile(file);
         }}
       />,
       ui,

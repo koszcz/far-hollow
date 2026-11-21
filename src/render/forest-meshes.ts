@@ -64,8 +64,10 @@ const STICK_PICK_WIDTH_METRES = 0.35;
 const STICK_SHADE_SPREAD = 0.08;
 
 /** What a click on the forest landed on. */
-export type ForestHit =
-  { kind: "tree"; entity: Entity } | { kind: "log"; entity: Entity } | { kind: "debarkedLog"; entity: Entity } | { kind: "stick"; entity: Entity };
+export interface ForestHit {
+  readonly kind: "tree" | "youngTree" | "sapling" | "stump" | "log" | "debarkedLog" | "stick";
+  readonly entity: Entity;
+}
 
 export interface ForestMeshes {
   readonly group: THREE.Group;
@@ -76,12 +78,12 @@ export interface ForestMeshes {
   /** Draws only the standing and growing trees each camera can see. Call it once the cameras have moved for this frame. */
   cull(views: CullViews): void;
   /**
-   * What a ray from the camera hits first among standing trees, young trees, logs, debarked logs, and sticks, and how far away.
-   * A young tree counts as a tree.
+   * What a ray from the camera hits first among standing trees, young trees, saplings, stumps, logs, debarked logs, and sticks,
+   * and how far away. A hit on the stump a sapling grows from counts as the sapling.
    * The ray passes through trees faded to show the player, so the player can reach what they can see behind them.
    */
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
-  /** The shapes that draw a tree, log, or stick, placed in the world. Empty once it is gone. */
+  /** The shapes that draw a tree, young tree, sapling, stump, log, or stick, placed in the world. Empty once it is gone. */
   outlineOf(hit: ForestHit): OutlinePart[];
   dispose(): void;
 }
@@ -226,17 +228,20 @@ export function createForestMeshes(
       treeMatrix(tree.position, matrix);
       for (const batch of batches) batch.set(index, matrix);
     });
-    for (const batch of [...batches, youngNear, youngFar]) {
+    for (const batch of [...batches, youngNear, youngFar, saplings]) {
       for (const mesh of batch.viewMeshes) treesOfMesh.set(mesh, { batch, trees: ofType });
     }
     for (const batch of [...batches, youngNear, youngFar, saplings]) {
       batch.cull();
       group.add(...batch.meshes);
     }
-    return { near, batches, trunk, crown, youngNear, youngFar, young, stageBatches, growingBatches: [youngNear, youngFar, saplings] };
+    const sapling = { trunk: growing.sapling.trunk, crown: growing.sapling.crown };
+    return { near, batches, trunk, crown, youngNear, youngFar, young, saplings, sapling, stageBatches, growingBatches: [youngNear, youngFar, saplings] };
   });
   const allTreeBatches = treeBatches.flatMap(({ batches, growingBatches }) => [...batches, ...growingBatches]);
-  const treePickTargets = treeBatches.flatMap(({ batches, youngNear, youngFar }) => [...batches, youngNear, youngFar].flatMap((batch) => batch.viewMeshes));
+  const treePickTargets = treeBatches.flatMap(({ batches, youngNear, youngFar, saplings }) =>
+    [...batches, youngNear, youngFar, saplings].flatMap((batch) => batch.viewMeshes),
+  );
 
   // Stumps: one batch per bark tone. A tree's stump keeps the tree's size and turn, and its foot is as wide as the trunk's.
   const stumpGeometry = track(stumpShape.geometry);
@@ -251,6 +256,13 @@ export function createForestMeshes(
     dark: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], Math.max(1, trees.length))),
     light: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.light, cutMaterial], Math.max(1, trees.length))),
   };
+  /** The stump drawn at each instance of each tone's batch, so a click on one finds its entity. */
+  const stumpsDrawn: Record<TreeTone, Entity[]> = { dark: [], light: [] };
+  /** Where a stump is drawn, before the group's own placement. */
+  function stumpMatrix(stump: Entity & { position: Vec3 }, out: THREE.Matrix4): THREE.Matrix4 {
+    treeMatrix(stump.position, out);
+    return out.multiply(stumpFits[typeOf.get(stump) ?? 0] ?? IDENTITY);
+  }
   for (const stumps of Object.values(stumpBatches)) {
     stumps.count = 0;
     stumps.frustumCulled = false;
@@ -433,20 +445,23 @@ export function createForestMeshes(
 
   function rebuildStumps(): void {
     const counts: Record<TreeTone, number> = { dark: 0, light: 0 };
+    stumpsDrawn.dark = [];
+    stumpsDrawn.light = [];
     for (const stump of stumpQuery) {
       // A stump is the felled tree's entity, so it keeps the tree's type.
       const type = typeOf.get(stump) ?? 0;
       const tone = treeShapes[type]?.trunkTone ?? "dark";
       const stumps = stumpBatches[tone];
       if (counts[tone] >= stumps.instanceMatrix.count) continue;
-      treeMatrix(stump.position, matrix);
-      matrix.multiply(stumpFits[type] ?? IDENTITY);
-      stumps.setMatrixAt(counts[tone], matrix);
+      stumps.setMatrixAt(counts[tone], stumpMatrix(stump, matrix));
+      stumpsDrawn[tone].push(stump);
       counts[tone] += 1;
     }
     for (const tone of ["dark", "light"] as const) {
       stumpBatches[tone].count = counts[tone];
       stumpBatches[tone].instanceMatrix.needsUpdate = true;
+      // Clicks test this sphere first, so it must cover the stumps as they stand now.
+      stumpBatches[tone].computeBoundingSphere();
     }
   }
 
@@ -601,7 +616,7 @@ export function createForestMeshes(
     },
     pick(raycaster) {
       hits.length = 0;
-      raycaster.intersectObjects([...treePickTargets, logs, debarkedLogs, stickPickers], false, hits);
+      raycaster.intersectObjects([...treePickTargets, stumpBatches.dark, stumpBatches.light, logs, debarkedLogs, stickPickers], false, hits);
       hits.sort((a, b) => a.distance - b.distance);
       for (const hit of hits) {
         if (hit.instanceId === undefined) continue;
@@ -632,12 +647,17 @@ export function createForestMeshes(
             };
           continue;
         }
+        if (hit.object === stumpBatches.dark || hit.object === stumpBatches.light) {
+          const stump = stumpsDrawn[hit.object === stumpBatches.dark ? "dark" : "light"][hit.instanceId];
+          if (stump?.stump === true) return { hit: { kind: stump.growth?.stage === "sapling" ? "sapling" : "stump", entity: stump }, distance: hit.distance };
+          continue;
+        }
         const drawn = treesOfMesh.get(hit.object);
         const index = drawn?.batch.instanceHit(hit.instanceId);
         const tree = index === undefined ? undefined : drawn?.trees[index];
-        if (tree === undefined || (tree.tree !== true && !isYoungTree(tree.growth)) || seeThrough.clicksPassThrough(tree.position, raycaster.ray.origin))
-          continue;
-        return { hit: { kind: "tree", entity: tree }, distance: hit.distance };
+        const kind = tree === undefined ? undefined : standingKindOf(tree);
+        if (tree === undefined || kind === undefined || seeThrough.clicksPassThrough(tree.position, raycaster.ray.origin)) continue;
+        return { hit: { kind, entity: tree }, distance: hit.distance };
       }
       return undefined;
     },
@@ -647,7 +667,24 @@ export function createForestMeshes(
         batch.getMatrixAt(index, matrix);
         return new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
       };
-      if (hit.kind === "tree") {
+      if (hit.kind === "stump" || hit.kind === "sapling") {
+        const index = instanceOf.get(hit.entity);
+        const type = typeOf.get(hit.entity);
+        const batch = type === undefined ? undefined : treeBatches[type];
+        const { position } = hit.entity;
+        if (position === undefined) return [];
+        const parts: OutlinePart[] = [];
+        if (hit.entity.stump === true) {
+          const stumpAt = new THREE.Matrix4().multiplyMatrices(group.matrixWorld, stumpMatrix({ ...hit.entity, position }, matrix));
+          parts.push({ geometry: stumpGeometry, matrix: stumpAt });
+        }
+        if (hit.kind === "sapling" && index !== undefined && batch !== undefined && batch.saplings.matrixAt(index, matrix)) {
+          const at = new THREE.Matrix4().multiplyMatrices(group.matrixWorld, matrix);
+          parts.push({ geometry: batch.sapling.trunk, matrix: at }, { geometry: batch.sapling.crown, matrix: at });
+        }
+        return parts;
+      }
+      if (hit.kind === "tree" || hit.kind === "youngTree") {
         const index = instanceOf.get(hit.entity);
         const type = typeOf.get(hit.entity);
         const batch = type === undefined ? undefined : treeBatches[type];
@@ -697,6 +734,13 @@ export function createForestMeshes(
 }
 
 const IDENTITY = new THREE.Matrix4();
+
+/** What a click on a drawn tree lands on: a standing tree, a young tree, or a sapling. Undefined for anything else, such as a bare stump. */
+function standingKindOf(tree: Entity): "tree" | "youngTree" | "sapling" | undefined {
+  if (tree.tree === true) return "tree";
+  if (isYoungTree(tree.growth)) return "youngTree";
+  return tree.growth?.stage === "sapling" ? "sapling" : undefined;
+}
 const treeRotation = new THREE.Quaternion();
 const treeScale = new THREE.Vector3();
 const treePosition = new THREE.Vector3();

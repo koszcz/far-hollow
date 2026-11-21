@@ -588,6 +588,7 @@ const actionLabels = {
   craft: strings.crafting,
   fish: strings.fishing,
   gatherStone: strings.gatheringStone,
+  digUp: strings.diggingUp,
 } as const;
 
 const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
@@ -600,6 +601,8 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
   fish: "droplet",
   // Stone comes from the river bank, so its meter shows the river's droplet, as fishing does.
   gatherStone: "droplet",
+  // A dug-up sapling goes in the backpack.
+  digUp: "backpack",
 };
 
 /** The colour of the bar for timed work, such as chopping. */

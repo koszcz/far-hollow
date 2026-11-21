@@ -353,6 +353,24 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
+  // The draft "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
+  // src/ui/hud-showcase.tsx draws the HUD over the last view only, with saplings in the backpack, digging up under way, and the pile's tooltip.
+  "sapling-icon": {
+    radius: 2.2,
+    focus: { x: 0, y: 0.2, z: 0 },
+    shots: [
+      { label: "one sapling beside a knife", yaw: 20, pitch: 35, radius: 1, focus: { x: -1.1, y: 0.05, z: 0.07 } },
+      { label: "a pile of 3 saplings", yaw: -30, pitch: 30, radius: 1.3, focus: { x: 0.4, y: 0.05, z: 0 } },
+      { label: "both piles from above", yaw: 40, pitch: 60, radius: 2.2, focus: { x: -0.3, y: 0.05, z: 0 } },
+      { label: "HUD: beside a pile of 3 saplings", yaw: 0, pitch: 40, radius: 1.6, focus: { x: 0.4, y: 0.1, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-1.2, 0, { pile: { content: "sapling", count: 1 } });
+      place(-0.9, 0.35, { pile: { content: "knife", count: 1 } });
+      place(0.4, 0, { pile: { content: "sapling", count: 3 } });
+      movePlayer(0, -1.5, 0);
+    },
+  },
   // The draft "torch": the lit torch in the player's hand at night, lighting the ground around them, torches planted in a row
   // at night, walking with it at night, and unlit torches lying in piles of 1 and 4.
   // Of the six planted torches, the three nearest the camera light the ground, after the torch in the hand. The rest only glow.
@@ -373,7 +391,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
     pose({ player }, shot) {
       player.setWalking(shot.label.startsWith("walking") ? 0.6 : undefined);
-      player.setLitTorch(shot.seconds ?? 0);
+      player.setMotion("torch", shot.seconds ?? 0);
     },
   },
   // src/ui/hud-showcase.tsx draws the sled and log icons large, among every build icon, over the first view,

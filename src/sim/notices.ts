@@ -7,6 +7,7 @@ import type { GameNotice, Notice, PlainNotice, PlainRefusal, Refusal } from "./a
 export const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   collapsed: 30,
   survivedFirstNight: 30,
+  snugRoomKeepsOutCold: 30,
   backpackFull: 4,
   holdsUpPiece: 4,
   stillHoldsSomething: 4,

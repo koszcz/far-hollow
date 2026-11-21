@@ -20,6 +20,7 @@ import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
 import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
 import { createTorchShape } from "./torch-shape";
+import { saplingPileParts } from "./sapling-pile-shape";
 import type { OutlinePart } from "./hover-outline";
 import type { MushroomsShape } from "./mushrooms-model";
 import { createPotMaker, type PotMesh } from "./pot-shape";
@@ -322,6 +323,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     stone: stoneShapes[0] ?? [],
     // Unlit torches lie on their sides. The torch is the draft "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,
+    // Saplings lie on their sides, root ball and all. The shape is part of the draft "sapling-icon" asset, drawn by sapling-pile-shape.ts.
+    sapling: owned(saplingPileParts((colour) => material(colour))),
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });
   const LAYOUTS: Readonly<Record<Exclude<BackpackContent, "stick">, Layout>> = {
@@ -336,6 +339,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     plank: spread(0.12),
     stone: spread(0.13),
     torch: spread(0.1),
+    sapling: spread(0.2),
     fishingLine: spread(0.08),
     fishingRod: spread(0.1),
     rawFish: spread(0.12),

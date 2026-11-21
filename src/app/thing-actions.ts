@@ -102,6 +102,14 @@ function withMain(offers: readonly Offer[], main: ActionId | undefined): readonl
 
 const has = (view: GameView, content: BackpackContent): boolean => (view.backpack[content] ?? 0) > 0;
 
+function chop({ offer }: Context, treeId: number): Offer {
+  return offer("chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId });
+}
+
+function digUp({ offer }: Context, saplingId: number): Offer {
+  return offer("digUp", strings.actions.digUp, { content: "sapling" }, { type: "digUpSapling", saplingId });
+}
+
 function takeDown({ offer }: Context, id: number): Offer {
   return offer("takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
 }
@@ -141,7 +149,13 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
     case "river":
       return riverActions(pick.spot, context);
     case "tree":
-      return withMain([offer("chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId: pick.id })], "chop");
+      return withMain([chop(context, pick.id)], "chop");
+    // A young tree, a bare stump, and a sapling all offer to dig up. The game says why it refuses the first two.
+    case "youngTree":
+      return withMain([chop(context, pick.id), digUp(context, pick.id)], "chop");
+    case "stump":
+    case "sapling":
+      return withMain([digUp(context, pick.id)], "digUp");
     case "log":
     case "debarkedLog": {
       const pickUp = offer("pickUp", strings.actions.pickUp, { hud: "log" }, { type: "pickUpLog", logId: pick.id });

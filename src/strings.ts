@@ -31,6 +31,7 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   bark: (count) => (count === 1 ? "1 piece of bark" : `${count} pieces of bark`),
   stone: (count) => (count === 1 ? "1 stone" : `${count} stones`),
   torch: (count) => (count === 1 ? "1 torch" : `${count} torches`),
+  sapling: (count) => (count === 1 ? "1 sapling" : `${count} saplings`),
   berries: (count) => (count === 1 ? "1 handful of berries" : `${count} handfuls of berries`),
   mushroom: (count) => (count === 1 ? "1 mushroom" : `${count} mushrooms`),
   pot: () => "An empty pot",
@@ -63,6 +64,9 @@ export const strings = {
     replace: "Replace saved game",
     cancel: "Cancel",
     cannotSave: "This browser cannot save games, so your progress will be lost when you close the page.",
+    exportGame: "Export",
+    exportFileName: (slot: number, day: number) => `far-hollow-slot-${slot}-day-${day}.json`,
+    brokenExportFileName: (slot: number) => `far-hollow-slot-${slot}-broken.json`,
   },
   pause: "Pause",
   resume: "Resume",
@@ -77,6 +81,7 @@ export const strings = {
   crafting: "Crafting",
   fishing: "Fishing",
   gatheringStone: "Gathering stone",
+  diggingUp: "Digging up",
   craftMenu: {
     open: "Craft",
     title: "Craft",
@@ -127,6 +132,7 @@ export const strings = {
       doorFrame: "Door frame",
       roofFrame: "Roof frame",
       roof: "Roof section",
+      door: "Door",
       fireplace: "Fireplace",
       woodpile: "Woodpile",
       chest: "Chest",
@@ -159,6 +165,7 @@ export const strings = {
       overWalls: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
       onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
+      inDoorFrame: (structure: string) => `Placing: ${structure}. Point at a finished door frame with no door, and click to hang it there.`,
     },
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */
@@ -235,6 +242,7 @@ export const strings = {
   fatigue: "Rest",
   notices: {
     survivedFirstNight: "You survived the night.",
+    snugRoomKeepsOutCold: "This room now keeps out the cold. At night, you lose warmth here at half the rate.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",
@@ -271,6 +279,7 @@ export const strings = {
     bark: "Bark",
     stone: "Stone",
     torch: "Torch",
+    sapling: "Sapling",
     pot: "Pot (empty)",
     potOfRiverWater: "Pot of river water",
     potOfBoiledWater: "Pot of boiled water",
@@ -356,6 +365,7 @@ export const strings = {
     fish: "Fish",
     gatherStone: "Gather stone",
     chop: "Chop",
+    digUp: "Dig up",
     pickUp: "Pick up",
     forage: "Forage",
     debark: "Debark",
@@ -428,6 +438,8 @@ export const strings = {
     fireNotOut: "let the fire burn out first",
     holdsUpPiece: "take down what stands on it first",
     tooYoungToChop: "the tree is too young to chop",
+    noSaplingYet: "no sapling grows on the stump yet",
+    tooBigToDigUp: "the tree is too big to dig up",
     backpackFull: "the backpack is full",
     torchAlreadyLit: "you already hold a lit torch",
     gone: "it is no longer there",
@@ -453,5 +465,6 @@ export const strings = {
   debugRainDry: "Dry",
   debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
   debugRooms: "Rooms",
-  debugRoom: (squares: number, heated: boolean) => `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}`,
+  debugRoom: (squares: number, heated: boolean, snug: boolean) =>
+    `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}, ${snug ? "snug" : "not snug"}`,
 } as const;

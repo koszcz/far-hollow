@@ -17,7 +17,7 @@ import type {
   SleepView,
   EatOrDrinkView,
 } from "./api";
-import { createBedrolls, type BedrollEntity } from "./bedrolls";
+import { createBedrolls, type BedrollEntity, bedrollRules } from "./bedrolls";
 import { createBeds, type BedEntity, bedRules } from "./beds";
 import { createStools, stoolRules } from "./stools";
 import { createApproach } from "./approach";
@@ -72,7 +72,7 @@ import { furnitureOf } from "./furniture";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
-import { createHandReach } from "./hand-reach";
+import { createHandReach, putDown, reachToward } from "./hand-reach";
 import type { GroundPoint } from "./ground-point";
 import type { ReachHeight } from "./entities";
 
@@ -432,19 +432,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return entities.entity(id)?.position;
   }
 
-  /** Starts the player reaching down to put something at their feet. `put` runs when the hand gets to the ground. */
-  function putDown(put: () => void): void {
-    handReach.start("low", undefined, () => {
-      put();
-      return undefined;
-    });
-  }
-
-  /** Reaches toward a thing the player stands beside, such as a campfire they came to tend or a chest they open. The reach carries nothing out. */
-  function reachToward(height: ReachHeight, thingId: number): void {
-    handReach.start(height, entities.entity(thingId)?.position);
-  }
-
   /** How high the player reaches into a piece of furniture that stores things. A piece whose definition gives no height is reached at the waist. */
   function storageReach(chestId: number): ReachHeight {
     return furnitureOf(entities.entity(chestId))?.reachHeight ?? "waist";
@@ -564,7 +551,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       refusal: () => torches.plantRefusal(),
       run: () => {
         if (torches.plantRefusal() === undefined)
-          putDown(() => {
+          putDown(handReach, () => {
             torches.plant();
           });
       },
@@ -641,7 +628,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "alongside",
       run: () => {
         if (player.carrying !== undefined)
-          putDown(() => {
+          putDown(handReach, () => {
             carrying.drop();
           });
       },
@@ -659,7 +646,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "alongside",
       run: (command) => {
         if (countInBackpack(player.backpack, command.content) > 0)
-          putDown(() => {
+          putDown(handReach, () => {
             piles.drop(command.content);
           });
       },
@@ -720,7 +707,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       approach: {
         reach: (command) => campfires.reach(command.campfireId),
         act: (command) => {
-          reachToward("low", command.campfireId);
+          reachToward(handReach, entities, "low", command.campfireId);
         },
       },
     },
@@ -735,7 +722,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       approach: {
         reach: (command) => woodpiles.reach(command.woodpileId),
         act: (command) => {
-          reachToward("waist", command.woodpileId);
+          reachToward(handReach, entities, "waist", command.woodpileId);
         },
       },
     },
@@ -767,7 +754,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         reach: (command) => chests.reach(command.chestId),
         act: (command) => {
           chests.open(command.chestId);
-          reachToward(storageReach(command.chestId), command.chestId);
+          reachToward(handReach, entities, storageReach(command.chestId), command.chestId);
         },
       },
     },
@@ -794,43 +781,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         );
       },
     },
-    layBedroll: {
-      start: "alongside",
-      run: () => {
-        if (countInBackpack(player.backpack, "bedroll") > 0)
-          putDown(() => {
-            bedrolls.lay();
-          });
-      },
-    },
-    layBedrollInLeanTo: {
-      start: "fresh",
-      approach: {
-        reach: (command) => bedrolls.layInLeanToReach(command.leanToId),
-        act: (command) => {
-          bedrolls.layInLeanTo(command.leanToId);
-        },
-      },
-    },
-    pickUpBedroll: {
-      start: "fresh",
-      approach: {
-        reach: (command) => bedrolls.reach(command.bedrollId),
-        act: (command) => {
-          bedrolls.pickUp(command.bedrollId);
-        },
-      },
-    },
-    sleep: {
-      start: "fresh",
-      refusal: (command) => goneRefusal(entities, command.bedrollId),
-      approach: {
-        reach: (command) => bedrolls.reach(command.bedrollId),
-        act: (command) => {
-          bedrolls.sleep(command.bedrollId);
-        },
-      },
-    },
+    ...bedrollRules(bedrolls, ruleGame),
     ...bedRules(beds, ruleGame),
     ...stoolRules(stools, ruleGame),
     ...drinkingRules(drinking),

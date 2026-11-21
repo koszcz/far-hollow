@@ -74,3 +74,16 @@ export function createHandReach(entities: EntityStore): HandReach {
     },
   };
 }
+
+/** Starts the player reaching down to put something at their feet. `put` runs when the hand gets to the ground. */
+export function putDown(hand: Pick<HandReach, "start">, put: () => void): void {
+  hand.start("low", undefined, () => {
+    put();
+    return undefined;
+  });
+}
+
+/** Reaches toward a thing the player stands beside, such as a campfire they came to tend or a chest they open. The reach carries nothing out. */
+export function reachToward(hand: Pick<HandReach, "start">, entities: EntityStore, height: ReachHeight, thingId: number): void {
+  hand.start(height, entities.entity(thingId)?.position);
+}

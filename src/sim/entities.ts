@@ -238,7 +238,7 @@ export interface Entity {
   fishTask?: { x: number; z: number; minutesWaited: number; biteAfterMinutes: number };
   /** How many times the player has cast a fishing line so far. It picks the wait for the next cast. Missing before the first. */
   fishCasts?: number;
-  /** The player is gathering one stone at this spot on the river bank or in the river, or walking there to gather it. */
+  /** The stone gathering in progress: the player is gathering one stone at this spot on the river bank or in the river. */
   stoneTask?: { x: number; z: number; secondsDone: number };
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;

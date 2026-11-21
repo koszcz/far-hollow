@@ -239,7 +239,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     reportEatOrDrink("drinkFromRiver", river);
   });
   const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
-  const stoneGathering = createStoneGathering(entities, walking, valley);
+  const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
@@ -915,8 +915,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: () => stoneGathering.refusal(),
-      run: (command) => {
-        stoneGathering.gather({ x: command.x, z: command.z });
+      approach: {
+        reach: (command) => stoneGathering.reach(command),
+        act: (command) => {
+          stoneGathering.gather({ x: command.x, z: command.z });
+        },
       },
     },
     drinkFromPot: {

@@ -728,6 +728,7 @@ const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unkn
   drinkTask: (task) => ({ type: "drinkFromRiver", x: task.x, z: task.z }),
   fillPotTask: () => ({ type: "fillPot" }),
   fishTask: (task) => ({ type: "fish", x: task.x, z: task.z }),
+  stoneTask: (task) => ({ type: "gatherStone", x: task.x, z: task.z }),
 };
 
 /** The task components that only ever marked a walk, so they become an approach even without a `walkPath`. */

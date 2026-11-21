@@ -1,4 +1,4 @@
-// Draws torches planted in the ground with the code-built "torch" (draft) in asset-manifest.json, added by torch ticket 02.
+// Draws torches planted in the ground with the code-built "torch" (approved) in asset-manifest.json, added by torch ticket 02.
 // Each one stands upright, its butt pushed a little into the ground or the foundation deck, and burns with the approved
 // "fire-effect" at a small size on its head, as the torch in the player's hand does. A soft glow round the flame shows
 // from far away. It is a picture, not a light, so it lights nothing.

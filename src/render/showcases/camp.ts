@@ -371,7 +371,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
-  // The draft "torch": the lit torch in the player's hand at night, lighting the ground around them, torches planted in a row
+  // The approved "torch": the lit torch in the player's hand at night, lighting the ground around them, torches planted in a row
   // at night, walking with it at night, and unlit torches lying in piles of 1 and 4.
   // Of the six planted torches, the three nearest the camera light the ground, after the torch in the hand. The rest only glow.
   torch: {

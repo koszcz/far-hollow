@@ -7,7 +7,7 @@
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // The fishing line, the fishing rod, raw fish, and cooked fish are the approved "fishing-piles" asset, built in fishing-pile-shapes.ts.
-// Stone is the approved "stone" asset, built in stone-shape.ts. The torch is the draft "torch" asset, built in torch-shape.ts.
+// Stone is the approved "stone" asset, built in stone-shape.ts. The torch is the approved "torch" asset, built in torch-shape.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
@@ -321,7 +321,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     ...fishingPileParts((colour) => material(colour), track),
     // Stone is the approved "stone" asset, drawn by stone-shape.ts.
     stone: stoneShapes[0] ?? [],
-    // Unlit torches lie on their sides. The torch is the draft "torch" asset, drawn by torch-shape.ts.
+    // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,
     // Saplings lie on their sides, root ball and all. The shape is part of the draft "sapling-icon" asset, drawn by sapling-pile-shape.ts.
     sapling: owned(saplingPileParts((colour) => material(colour))),

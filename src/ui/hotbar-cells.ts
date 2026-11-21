@@ -1,6 +1,6 @@
 // The cells of the hotbar: the sled the player drags, if any, the log on their shoulder, if any, the lit torch in their hand, if any,
 // then one cell per kind of thing in the backpack.
-import { CONTENT_WEIGHT_KG, type BackpackContent, type CarriedLog, type GameView } from "../sim/api";
+import { burnShare, CONTENT_WEIGHT_KG, type BackpackContent, type CarriedLog, type GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /**
@@ -34,9 +34,9 @@ const KEYED_CELLS = 9;
 
 /**
  * The sled cell first, where the shoulder cell goes, then the shoulder cell, then the lit torch cell, then each kind in the
- * backpack in a steady order. The backpack cells are numbered from 1. A view without `litTorch` shows no lit torch.
+ * backpack in a steady order. The backpack cells are numbered from 1.
  */
-export function hotbarCells(view: Pick<GameView, "backpack" | "carrying" | "dragging"> & Partial<Pick<GameView, "litTorch">>): readonly HotbarCell[] {
+export function hotbarCells(view: Pick<GameView, "backpack" | "carrying" | "dragging" | "litTorch">): readonly HotbarCell[] {
   const sled: HotbarCell[] =
     view.dragging === null
       ? []
@@ -61,7 +61,7 @@ export function hotbarCells(view: Pick<GameView, "backpack" | "carrying" | "drag
             key: undefined,
           },
         ];
-  const torch = view.litTorch ?? null;
+  const torch = view.litTorch;
   const litTorch: HotbarCell[] =
     torch === null
       ? []
@@ -72,7 +72,7 @@ export function hotbarCells(view: Pick<GameView, "backpack" | "carrying" | "drag
             tip: strings.hotbar.burnsFor(strings.hotbar.litTorch, torch.minutesLeft),
             count: 1,
             key: undefined,
-            gauge: torch.burnLeft,
+            gauge: burnShare(torch),
           },
         ];
   const contents = (Object.keys(strings.backpackContents) as BackpackContent[])

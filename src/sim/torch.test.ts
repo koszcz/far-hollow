@@ -65,7 +65,6 @@ describe("lighting a torch", () => {
     const view = game.client.getView();
     expect(view.backpack.torch).toBe(1);
     expect(view.litTorch?.minutesLeft).toBeCloseTo(180, 0);
-    expect(view.litTorch?.burnLeft).toBeCloseTo(1, 2);
   });
 
   it("is refused while the player already holds a lit torch, and leaves the second torch in the backpack", () => {
@@ -87,7 +86,6 @@ describe("a lit torch burning", () => {
 
     send(game, { type: "skipTime", hours: 1.5 });
     expect(game.client.getView().litTorch?.minutesLeft).toBeCloseTo(90, 0);
-    expect(game.client.getView().litTorch?.burnLeft).toBeCloseTo(0.5, 2);
 
     send(game, { type: "skipTime", hours: 1.4 });
     expect(game.client.getView().litTorch).not.toBeNull();

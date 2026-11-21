@@ -264,12 +264,12 @@ const TORCH_ICON_STATES: readonly ShowcaseState[] = [
   },
   { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 3 } }, buildMenuOpen: false, placing: null },
   {
-    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 2 }, litTorch: { minutesLeft: 178, burnLeft: 178 / 180 } },
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 2 }, litTorch: { minutesLeft: 178 } },
     buildMenuOpen: false,
     placing: null,
   },
   {
-    view: { ...BASE_VIEW, carrying: "log", backpack: { ...BASE_VIEW.backpack, torch: 1 }, litTorch: { minutesLeft: 25, burnLeft: 25 / 180 } },
+    view: { ...BASE_VIEW, carrying: "log", backpack: { ...BASE_VIEW.backpack, torch: 1 }, litTorch: { minutesLeft: 25 } },
     buildMenuOpen: false,
     placing: null,
   },

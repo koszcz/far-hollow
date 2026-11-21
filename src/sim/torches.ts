@@ -4,8 +4,9 @@
 // Unlit torches are an ordinary backpack content. A lit torch is not, so it uses no backpack weight.
 // A planted torch is its own entity. It does not block walking.
 import type { Activity } from "./activity";
-import type { Refusal } from "./api";
+import type { PlantedTorchView, Refusal } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
+import { burnDown, freshBurnTime, type BurnTime } from "./burn-time";
 import { plantedTorchEntities, playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { groundDistance, type GroundPoint } from "./ground-point";
@@ -14,37 +15,21 @@ import { toolRefusal } from "./refusals";
 import type { Valley } from "./valley";
 import { walkOntoOrWithinReach, type Walking } from "./walking";
 
-/** How long a lit torch burns, in game minutes: 3 game hours. */
-export const TORCH_BURN_MINUTES = 180;
 /** The player cannot plant a torch this close to another planted torch, in metres. */
 export const PLANTED_TORCH_SPACING_METRES = 1;
 /** The player can pick up a planted torch from this far away, in metres. */
 export const PLANTED_TORCH_REACH_METRES = 2;
 
-/** A lit torch, with how long it still burns. */
-export interface LitTorch {
-  /** How many more game minutes the torch burns. */
-  readonly minutesLeft: number;
-  /** How much of its burning time is left, from 1 (just lit) to 0 (burnt out). */
-  readonly burnLeft: number;
-}
-
-/** A torch planted in the ground: its entity id, where it stands, and how long it still burns. */
-export interface PlantedTorch extends LitTorch {
-  readonly id: number;
-  readonly position: Readonly<Vec3>;
-}
-
-export type PlantedTorchEntity = Entity & { plantedTorch: { minutesLeft: number }; position: Vec3 };
+export type PlantedTorchEntity = Entity & { plantedTorch: BurnTime; position: Vec3 };
 
 export interface Torches extends Activity {
   /**
    * Takes one torch out of the backpack and puts it in the player's hand, lit for TORCH_BURN_MINUTES.
-   * Does nothing if the backpack holds no torch, or if `refusal` gives a reason.
+   * Does nothing if the backpack holds no torch, or if `lightRefusal` gives a reason.
    */
   light(): void;
   /** Why the player cannot light a torch now: they lack the steel and flint, or already hold a lit torch. */
-  refusal(): Refusal | undefined;
+  lightRefusal(): Refusal | undefined;
   /** Throws the lit torch in the player's hand away. A torch is never lit twice, so nothing goes back in the backpack. */
   putOut(): void;
   /**
@@ -66,10 +51,10 @@ export interface Torches extends Activity {
    * Rain does not change it.
    */
   burn(minutes: number): void;
-  /** The lit torch in the player's hand, if any. */
-  held(): LitTorch | undefined;
+  /** How long the lit torch in the player's hand still burns, if they hold one. */
+  held(): BurnTime | undefined;
   /** Every planted torch, in no set order. */
-  planted(): readonly PlantedTorch[];
+  planted(): readonly PlantedTorchView[];
 }
 
 export function createTorches(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">): Torches {
@@ -77,7 +62,7 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
   const plantedTorches = plantedTorchEntities(entities);
   const walkers = entities.with("torchPickUpTask", "position");
 
-  function refusal(): Refusal | undefined {
+  function lightRefusal(): Refusal | undefined {
     const player = players.first;
     if (player?.litTorch !== undefined) return { kind: "torchAlreadyLit" };
     return toolRefusal(player, "steelAndFlint");
@@ -104,30 +89,26 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
     return groundDistance(torch.position, at) <= PLANTED_TORCH_REACH_METRES;
   }
 
-  /** Reaches down for the planted torch. When the hand gets to it, it goes in the hand if it still burns there and the hand is free. */
-  function pickUpNow(torchId: number, at: GroundPoint): void {
+  /** Starts the hand reaching down for the planted torch. When the hand gets to it, it goes in the hand if it still burns there and the hand is free. */
+  function startPickUpReach(torchId: number, at: GroundPoint): void {
     hand.start("low", at, () => {
       const player = players.first;
-      const still = torchById(torchId);
-      if (player === undefined || still === undefined || !withinReach(still, player.position) || pickUpRefusal() !== undefined) return undefined;
-      setComponent(entities, player, "litTorch", { minutesLeft: still.plantedTorch.minutesLeft });
-      entities.remove(still);
+      const torch = torchById(torchId);
+      if (player === undefined || torch === undefined || !withinReach(torch, player.position) || pickUpRefusal() !== undefined) return undefined;
+      setComponent(entities, player, "litTorch", torch.plantedTorch);
+      entities.remove(torch);
       return undefined;
     });
-  }
-
-  function minutesShare(minutesLeft: number): number {
-    return Math.max(0, Math.min(1, minutesLeft / TORCH_BURN_MINUTES));
   }
 
   return {
     light() {
       const player = players.first;
-      if (player?.backpack === undefined || refusal() !== undefined || !hasInBackpack(player.backpack, "torch")) return;
+      if (player?.backpack === undefined || lightRefusal() !== undefined || !hasInBackpack(player.backpack, "torch")) return;
       removeFromBackpack(player.backpack, "torch", 1);
-      setComponent(entities, player, "litTorch", { minutesLeft: TORCH_BURN_MINUTES });
+      setComponent(entities, player, "litTorch", freshBurnTime());
     },
-    refusal,
+    lightRefusal,
     putOut() {
       for (const player of players) entities.removeComponent(player, "litTorch");
     },
@@ -136,7 +117,7 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
       if (player?.litTorch === undefined || plantRefusal() !== undefined) return;
       const { x, z } = player.position;
       entities.add({
-        plantedTorch: { minutesLeft: player.litTorch.minutesLeft },
+        plantedTorch: player.litTorch,
         position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z },
       });
       entities.removeComponent(player, "litTorch");
@@ -147,7 +128,7 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
       if (torch === undefined || pickUpRefusal() !== undefined) return;
       for (const player of players) {
         if (withinReach(torch, player.position)) {
-          pickUpNow(torchId, torch.position);
+          startPickUpReach(torchId, torch.position);
           continue;
         }
         walkOntoOrWithinReach(walking, torch.position, torch.position, PLANTED_TORCH_REACH_METRES);
@@ -158,26 +139,26 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
     burn(minutes) {
       for (const player of [...players]) {
         if (player.litTorch === undefined) continue;
-        player.litTorch.minutesLeft -= minutes;
-        if (player.litTorch.minutesLeft <= 0) entities.removeComponent(player, "litTorch");
+        const left = burnDown(player.litTorch, minutes);
+        if (left === undefined) entities.removeComponent(player, "litTorch");
+        else player.litTorch = left;
       }
       // Copy the list first, because burnt-out torches leave the query while it is being walked.
       for (const torch of [...plantedTorches]) {
-        torch.plantedTorch.minutesLeft -= minutes;
-        if (torch.plantedTorch.minutesLeft <= 0) entities.remove(torch);
+        const left = burnDown(torch.plantedTorch, minutes);
+        if (left === undefined) entities.remove(torch);
+        else torch.plantedTorch = left;
       }
     },
     held() {
       const torch = players.first?.litTorch;
-      if (torch === undefined) return undefined;
-      return { minutesLeft: torch.minutesLeft, burnLeft: minutesShare(torch.minutesLeft) };
+      return torch === undefined ? undefined : { ...torch };
     },
     planted() {
       return plantedTorches.entities.flatMap((torch) => {
         const id = entities.id(torch);
         if (id === undefined) return [];
-        const { minutesLeft } = torch.plantedTorch;
-        return [{ id, position: { ...torch.position }, minutesLeft, burnLeft: minutesShare(minutesLeft) }];
+        return [{ ...torch.plantedTorch, id, position: { ...torch.position } }];
       });
     },
     cancel() {
@@ -190,7 +171,7 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
         const { torchId } = walker.torchPickUpTask;
         entities.removeComponent(walker, "torchPickUpTask");
         const torch = torchById(torchId);
-        if (torch !== undefined && withinReach(torch, walker.position)) pickUpNow(torchId, torch.position);
+        if (torch !== undefined && withinReach(torch, walker.position)) startPickUpReach(torchId, torch.position);
       }
       return undefined;
     },

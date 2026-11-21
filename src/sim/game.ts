@@ -299,7 +299,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       action: currentAction(),
       carrying: player.carrying ?? null,
       dragging: sleds.dragged() ?? null,
-      litTorch: litTorchView(),
+      litTorch: deepFreeze(torches.held() ?? null),
       plantedTorches: deepFreeze(torches.planted()),
       nearby: nearbyThings(),
       needs: Object.freeze({
@@ -318,12 +318,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
       actionQueue: deepFreeze(structuredClone(actionQueue)),
     });
-  }
-
-  /** The lit torch in the player's hand, as the view shows it. */
-  function litTorchView(): GameView["litTorch"] {
-    const torch = torches.held();
-    return torch === undefined ? null : Object.freeze({ minutesLeft: torch.minutesLeft, burnLeft: torch.burnLeft });
   }
 
   /** Shows a notice for as long as its kind shows. A plain notice can be given by its kind alone. */
@@ -547,7 +541,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
     lightTorch: {
       start: "alongside",
-      refusal: () => torches.refusal(),
+      refusal: () => torches.lightRefusal(),
       run: () => {
         torches.light();
       },

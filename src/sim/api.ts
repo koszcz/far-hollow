@@ -12,6 +12,10 @@ import type { TimeOfDay } from "./clock";
 /** The HUD clock uses these to name the time of day. */
 export { HOURS_PER_DAY, MORNING_HOUR, NIGHT_START_HOUR, type TimeOfDay } from "./clock";
 import type { Vec3 } from "./entities";
+import type { BurnTime } from "./burn-time";
+
+/** The hotbar and drawing use these to show how long a lit torch still burns. */
+export { burnShare, type BurnTime } from "./burn-time";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
@@ -283,11 +287,10 @@ export interface GameView {
   /** The sled the player drags behind them, or null if none. */
   readonly dragging: SledView | null;
   /**
-   * The lit torch in the player's hand, or null if they hold none. `minutesLeft` is how many more game minutes it burns.
-   * `burnLeft` is the same as a share of its whole burning time, from 1 (just lit) to 0 (burnt out). It lights the ground
-   * within TORCH_LIGHT_METRES of the player.
+   * The lit torch in the player's hand, or null if they hold none: how long it still burns. `burnShare` gives that as a share
+   * of its whole burning time. It lights the ground within TORCH_LIGHT_METRES of the player.
    */
-  readonly litTorch: LitTorchView | null;
+  readonly litTorch: BurnTime | null;
   /** Every torch planted in the ground, in no set order. Each burns down as the one in the hand does, sleep included. */
   readonly plantedTorches: readonly PlantedTorchView[];
   /**
@@ -330,14 +333,8 @@ export interface GameView {
   readonly actionQueue: readonly ActionCommand[];
 }
 
-/** The lit torch in the player's hand. See `GameView.litTorch`. */
-export interface LitTorchView {
-  readonly minutesLeft: number;
-  readonly burnLeft: number;
-}
-
 /** A torch planted in the ground, given by its entity id: where it stands and how long it still burns. See `GameView.plantedTorches`. */
-export interface PlantedTorchView extends LitTorchView {
+export interface PlantedTorchView extends BurnTime {
   readonly id: number;
   readonly position: Readonly<Vec3>;
 }

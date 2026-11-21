@@ -5,8 +5,8 @@
 import * as THREE from "three";
 import { TORCH_LIGHT_METRES } from "../sim/api";
 
-/** How many torches cast real light at once. Now only the torch in the player's hand does. */
-export const TORCH_LIGHT_COUNT = 1;
+/** How many torches cast real light at once: the one in the player's hand, then the planted torches nearest the camera. */
+export const TORCH_LIGHT_COUNT = 4;
 /** A warm orange, a little yellower than a campfire's glow. */
 const TORCH_LIGHT_COLOUR = 0xffa552;
 /** How bright a torch's light is. */
@@ -30,10 +30,10 @@ export interface TorchLights {
   /** Holds every light. Add it to the scene once. */
   readonly group: THREE.Group;
   /**
-   * Lights the ground from the first TORCH_LIGHT_COUNT flames, flickering at `nowSeconds`. The lights left over go dark.
-   * The caller lists the flames in the order they should get a light.
+   * Lights the ground from at most TORCH_LIGHT_COUNT flames, flickering at `nowSeconds`: the torch in the player's hand, if
+   * they hold one, then the planted torches nearest `camera`. The lights left over go dark. The other planted torches cast no light.
    */
-  update(flames: readonly TorchFlame[], nowSeconds: number): void;
+  update(hand: TorchFlame | undefined, planted: readonly TorchFlame[], camera: THREE.Vector3, nowSeconds: number): void;
 }
 
 export function createTorchLights(): TorchLights {
@@ -44,11 +44,40 @@ export function createTorchLights(): TorchLights {
     group.add(light);
     return light;
   });
+  /** The flames that get a light this frame, in order. Reused every frame, so drawing makes no garbage. */
+  const chosen: TorchFlame[] = [];
+  const chosenDistances: number[] = [];
+
+  /** Puts the planted flames nearest `camera` into `chosen` after the hand torch, nearest first, until every light has one. */
+  function chooseNearest(planted: readonly TorchFlame[], camera: THREE.Vector3): void {
+    const from = chosen.length;
+    for (const flame of planted) {
+      const distance = flame.position.distanceToSquared(camera);
+      // Insertion into a short list kept sorted, dropping whatever falls off the end.
+      let at = chosen.length;
+      while (at > from && (chosenDistances[at - 1] ?? 0) > distance) at -= 1;
+      if (at >= TORCH_LIGHT_COUNT) continue;
+      chosen.splice(at, 0, flame);
+      chosenDistances.splice(at, 0, distance);
+      if (chosen.length > TORCH_LIGHT_COUNT) {
+        chosen.length = TORCH_LIGHT_COUNT;
+        chosenDistances.length = TORCH_LIGHT_COUNT;
+      }
+    }
+  }
+
   return {
     group,
-    update(flames, nowSeconds) {
+    update(hand, planted, camera, nowSeconds) {
+      chosen.length = 0;
+      chosenDistances.length = 0;
+      if (hand !== undefined) {
+        chosen.push(hand);
+        chosenDistances.push(0);
+      }
+      chooseNearest(planted, camera);
       for (const [index, light] of lights.entries()) {
-        const flame = flames[index];
+        const flame = chosen[index];
         if (flame === undefined) {
           light.intensity = 0;
           continue;

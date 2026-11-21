@@ -594,9 +594,53 @@ describe("other things' actions", () => {
 
     const actions = actionsFor({ kind: "litTorch" }, world.reader);
 
-    expect(summary(actions)).toEqual(["putOut main"]);
-    expect(mainAction(actions)?.label).toBe("Put out");
-    expect(mainAction(actions)?.command).toEqual({ type: "putOutTorch" });
+    expect(find(actions, "putOut")?.label).toBe("Put out");
+    expect(find(actions, "putOut")?.command).toEqual({ type: "putOutTorch" });
+  });
+
+  it("plants the lit torch in the player's hand, as its main action, before putting it out", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+
+    const actions = actionsFor({ kind: "litTorch" }, world.reader);
+
+    expect(summary(actions)).toEqual(["plant main", "putOut"]);
+    expect(mainAction(actions)?.label).toBe("Plant");
+    expect(mainAction(actions)?.command).toEqual({ type: "plantTorch" });
+  });
+
+  it("greys out planting within 1 m of a planted torch, with the reason", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+    const at = world.game.client.getView().playerPosition;
+    world.game.entities.add({ plantedTorch: { minutesLeft: 60 }, position: { ...at, x: at.x + 0.5 } });
+    world.game.step();
+
+    expect(summary(actionsFor({ kind: "litTorch" }, world.reader))).toEqual(["plant main off: another torch stands too close", "putOut"]);
+  });
+});
+
+describe("a planted torch's actions", () => {
+  it("picks it up, as the only and main action", () => {
+    const world = worldWith({});
+    const torch = world.add({ plantedTorch: { minutesLeft: 60 } });
+
+    const actions = actionsFor(scene("plantedTorch", torch), world.reader);
+
+    expect(summary(actions)).toEqual(["pickUp main"]);
+    expect(mainAction(actions)?.label).toBe("Pick up");
+    expect(mainAction(actions)?.command).toEqual({ type: "pickUpTorch", torchId: torch });
+  });
+
+  it("greys out picking it up while the player holds a lit torch, with the reason", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    const torch = world.add({ plantedTorch: { minutesLeft: 60 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+
+    expect(summary(actionsFor(scene("plantedTorch", torch), world.reader))).toEqual(["pickUp main off: you already hold a lit torch"]);
   });
 
   it("puts things on an open shelf first, named as a shelf", () => {
@@ -625,7 +669,7 @@ function summary(actions: readonly ThingAction[]): string[] {
   return actions.map(({ id, isMain, enabled, reason }) => [id, isMain ? "main" : "", enabled ? "" : `off: ${reason}`].filter(Boolean).join(" "));
 }
 
-type ThingKind = "campfire" | "woodpile" | "sled" | "tree" | "log" | "debarkedLog" | "stick" | "bedroll" | "blueprint";
+type ThingKind = "campfire" | "woodpile" | "sled" | "tree" | "log" | "debarkedLog" | "stick" | "bedroll" | "blueprint" | "plantedTorch";
 
 /** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */
 function scene(kind: ThingKind, id: number): ActionTarget {

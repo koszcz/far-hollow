@@ -34,6 +34,7 @@ import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
+import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -118,6 +119,8 @@ export function createSceneRenderer(
   const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
   scene.add(pileMeshes.group);
   const barkMeshes = createBarkMeshes(entities);
+  const plantedTorchMeshes = createPlantedTorchMeshes(entities);
+  scene.add(plantedTorchMeshes.group);
   scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
@@ -144,6 +147,7 @@ export function createSceneRenderer(
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
+    plantedTorch: (entity) => plantedTorchMeshes.outlineOf(entity),
   };
 
   /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */
@@ -175,13 +179,14 @@ export function createSceneRenderer(
   // The torch lights stay in the scene whether a torch is lit or not, so lighting one does not rebuild every material.
   const torchLights = createTorchLights();
   scene.add(torchLights.group);
-  const torchFlames: TorchFlame[] = [];
   const handTorchFlame: TorchFlame = { position: new THREE.Vector3(), seed: 0 };
-  /** Lights the ground from the lit torch in the player's hand, if they hold one. */
+  /**
+   * Lights the ground from the lit torch in the player's hand, if they hold one, then from the planted torches nearest the camera.
+   * Run it once the camera is placed.
+   */
   function lightTorches(nowSeconds: number): void {
-    torchFlames.length = 0;
-    if (playerMesh.torchFlame(handTorchFlame.position)) torchFlames.push(handTorchFlame);
-    torchLights.update(torchFlames, nowSeconds);
+    const hand = playerMesh.torchFlame(handTorchFlame.position) ? handTorchFlame : undefined;
+    torchLights.update(hand, plantedTorchMeshes.flames(), camera.position, nowSeconds);
   }
   /** Where the player is drawn this frame. Space moves the camera to it, and the camera follows it when follow is on. */
   const playerDrawn = { x: 0, y: 0, z: 0 };
@@ -475,6 +480,7 @@ export function createSceneRenderer(
       bedrollMeshes.pick(raycaster),
       pileMeshes.pick(raycaster),
       barkMeshes.pick(raycaster),
+      plantedTorchMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {
@@ -543,6 +549,7 @@ export function createSceneRenderer(
       bedrollMeshes.update();
       pileMeshes.update();
       barkMeshes.update();
+      plantedTorchMeshes.update(nowSeconds);
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -554,13 +561,13 @@ export function createSceneRenderer(
       startEatOrDrinkIfNew(nowSeconds);
       posePlayer(nowSeconds);
       playerMesh.setEatingOrDrinking(eatOrDrinkShown);
-      lightTorches(nowSeconds);
       // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
       if (!cameraPlaced && players.first !== undefined) {
         cameraRig.snapToFollowTarget();
         cameraPlaced = true;
       }
       placeCamera();
+      lightTorches(nowSeconds);
       // Trees between the camera and the player fade, so the player stays in view in a dense forest.
       forestMeshes.seeThroughTo(players.first === undefined ? null : playerDrawn);
       // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
@@ -607,6 +614,7 @@ export function createSceneRenderer(
       bedrollMeshes.dispose();
       pileMeshes.dispose();
       barkMeshes.dispose();
+      plantedTorchMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();

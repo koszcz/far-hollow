@@ -36,6 +36,7 @@ const BASE_VIEW: GameView = {
   carrying: null,
   dragging: null,
   litTorch: null,
+  plantedTorches: [],
   nearby: [],
   warmth: 0.9,
   needs: { hunger: 1, thirst: 0.8, warmth: 0.9, fatigue: 1 },

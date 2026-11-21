@@ -94,11 +94,11 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 9,
     focus: { x: 0, y: 1, z: 1 },
     shots: FOUR_ANGLES,
-    build({ addProp, place, treeShapes }) {
+    build({ addProp, place, treeShapes, saplingModels }) {
       const material = (colour: number) => new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
       treeShapes.forEach((shape, index) => {
         const x = (index - (treeShapes.length - 1) / 2) * SAPLING_SPACING_METRES;
-        const { sapling, youngTree } = createSaplingShapes(shape);
+        const { sapling, youngTree } = createSaplingShapes(shape, saplingModels);
         for (const [part, z] of [
           [youngTree, -2],
           [sapling, 1],

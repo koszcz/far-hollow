@@ -125,7 +125,7 @@ export function createSceneRenderer(
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
   const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities);
   scene.add(undergrowthMeshes.group);
-  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.stump, shapes.log);
+  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
   scene.add(forestMeshes.group);
   const structureMeshes = createStructureMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z), shapes.log);
   scene.add(structureMeshes.group);

@@ -3,12 +3,15 @@ import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
 import { createForestMeshes } from "./forest-meshes";
 
+const noTree = { name: "none", trunk: new THREE.BoxGeometry(), crown: new THREE.BoxGeometry(), trunkTone: "light", crownTone: "light" } as const;
+
 function forestWithSticks(count: number) {
   const store = createEntityStore();
   for (let i = 0; i < count; i += 1) store.add({ stick: true, position: { x: i, y: 0, z: 0 } });
   const forest = createForestMeshes(
     store,
     [],
+    { pine: noTree, leafy: noTree },
     { geometry: new THREE.BoxGeometry(), footRadius: 0.3, height: 0.4 },
     { geometry: new THREE.BoxGeometry(), restHeight: 0.15 },
   );
@@ -50,6 +53,7 @@ function sawhorseWithLog(turns: 0 | 1) {
   const forest = createForestMeshes(
     store,
     [],
+    { pine: noTree, leafy: noTree },
     { geometry: new THREE.BoxGeometry(), footRadius: 0.3, height: 0.4 },
     { geometry: new THREE.BoxGeometry(), restHeight: 0.15 },
   );

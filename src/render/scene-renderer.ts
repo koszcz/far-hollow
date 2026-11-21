@@ -33,6 +33,7 @@ import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
+import { createTorchLights, type TorchFlame } from "./torch-lights";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -189,6 +190,17 @@ export function createSceneRenderer(
   const playerMesh = createPlayerMesh(shapes.player, shapes.log);
   scene.add(playerMesh.group);
   skyLighting.addShadowCasters(playerMesh.group);
+  // The torch lights stay in the scene whether a torch is lit or not, so lighting one does not rebuild every material.
+  const torchLights = createTorchLights();
+  scene.add(torchLights.group);
+  const torchFlames: TorchFlame[] = [];
+  const handTorchFlame: TorchFlame = { position: new THREE.Vector3(), seed: 0 };
+  /** Lights the ground from the lit torch in the player's hand, if they hold one. */
+  function lightTorches(nowSeconds: number): void {
+    torchFlames.length = 0;
+    if (playerMesh.torchFlame(handTorchFlame.position)) torchFlames.push(handTorchFlame);
+    torchLights.update(torchFlames, nowSeconds);
+  }
   /** Where the player is drawn this frame. Space moves the camera to it, and the camera follows it when follow is on. */
   const playerDrawn = { x: 0, y: 0, z: 0 };
   const playerDrawnBefore = { x: 0, y: 0, z: 0 };
@@ -289,6 +301,8 @@ export function createSceneRenderer(
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
+    // The lit torch stays in the left hand through every motion. Game logic puts it out before the player sleeps.
+    playerMesh.setLitTorch(player.litTorch === undefined || sleeping !== undefined ? undefined : nowSeconds);
     // Dragging a sled leans the player into the rope, walking or standing. Letting go stands them up at once.
     playerMesh.setDragging(player.dragging !== undefined && sleeping === undefined);
     if (sleeping !== undefined) {
@@ -558,6 +572,7 @@ export function createSceneRenderer(
       startEatOrDrinkIfNew(nowSeconds);
       posePlayer(nowSeconds);
       playerMesh.setEatingOrDrinking(eatOrDrinkShown);
+      lightTorches(nowSeconds);
       // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
       if (!cameraPlaced && players.first !== undefined) {
         cameraRig.snapToFollowTarget();

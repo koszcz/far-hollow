@@ -30,6 +30,22 @@ describe("the hotbar cells", () => {
     ]);
   });
 
+  it("shows the lit torch in the player's hand after the shoulder, with a gauge of its burning time left", () => {
+    const cells = hotbarCells({
+      carrying: "log",
+      dragging: null,
+      litTorch: { minutesLeft: 130, burnLeft: 130 / 180 },
+      backpack: { torch: 2 },
+    });
+
+    expect(cells.map(({ target, name, count, key, gauge }) => [target, name, count, key, gauge])).toEqual([
+      [{ kind: "shoulder", log: "log" }, "Log", 1, undefined, undefined],
+      [{ kind: "litTorch" }, "Lit torch", 1, undefined, 130 / 180],
+      [{ kind: "backpackContent", content: "torch" }, "Torch", 2, "1", undefined],
+    ]);
+    expect(cells[1]?.tip).toBe("Lit torch · 2 h 10 min left");
+  });
+
   it("counts each plank on the sled as a quarter of a log space", () => {
     const cells = hotbarCells({
       carrying: null,

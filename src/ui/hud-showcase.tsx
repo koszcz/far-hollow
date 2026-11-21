@@ -34,6 +34,7 @@ const BASE_VIEW: GameView = {
   action: null,
   carrying: null,
   dragging: null,
+  litTorch: null,
   nearby: [],
   warmth: 0.9,
   needs: { hunger: 1, thirst: 0.8, warmth: 0.9, fatigue: 1 },
@@ -233,6 +234,42 @@ const CRAFTING_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { saw: 1, sawBlade: 3, plank: 4, stick: 1 } }, buildMenuOpen: false, placing: null },
   // CraftingIconSheet replaces this view.
   { view: BASE_VIEW, buildMenuOpen: false, placing: null },
+];
+
+/** The torch recipe as the craft menu lists it, with what the player has. */
+const TORCH_RECIPE: GameView["craftMenu"][number] = {
+  kind: "torch",
+  materials: [
+    { material: "stick", count: 1 },
+    { material: "bark", count: 1 },
+  ],
+  result: { content: "torch", count: 1 },
+  seconds: 4,
+  lacks: [],
+};
+
+/**
+ * The draft "torch-icons" asset: the torch recipe in the craft menu, unlit torches in the backpack, and the lit torch in the
+ * hand with its gauge full and nearly burnt out. The lit torch cell shows its label, as when the player points at it.
+ */
+const TORCH_ICON_STATES: readonly ShowcaseState[] = [
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, bark: 2 }, craftMenu: [...BASE_VIEW.craftMenu, TORCH_RECIPE] },
+    buildMenuOpen: false,
+    placing: null,
+    craftMenuOpen: true,
+  },
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 3 } }, buildMenuOpen: false, placing: null },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 2 }, litTorch: { minutesLeft: 178, burnLeft: 178 / 180 } },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  {
+    view: { ...BASE_VIEW, carrying: "log", backpack: { ...BASE_VIEW.backpack, torch: 1 }, litTorch: { minutesLeft: 25, burnLeft: 25 / 180 } },
+    buildMenuOpen: false,
+    placing: null,
+  },
 ];
 
 /** The fishing rod recipe as the craft menu lists it, with what the player has. */
@@ -486,9 +523,10 @@ const STATES_BY_ASSET = {
   // So does the fireplace's icon.
   "fireplace-icon": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
+  "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", or "action-queue-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {

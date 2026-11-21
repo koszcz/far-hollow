@@ -4,6 +4,7 @@
 // a motion merge without a conflict. A line kept twice fails the typecheck. See docs/adr/0012-each-player-motion-is-its-own-module.md.
 import { createDebarkingMotion } from "./debarking-animation";
 import { createGatherStoneMotion } from "./gather-stone-animation";
+import { createHandCraftMotion } from "./hand-craft-animation";
 import { createBuildingMotion } from "./player-build-animation";
 import { createSawingMotion } from "./sawing-animation";
 import type { PlayerMotion, PlayerRig } from "./player-motion";
@@ -13,6 +14,7 @@ export const PLAYER_MOTIONS = {
   "player-build-animation": createBuildingMotion,
   "debarking-animation": createDebarkingMotion,
   "sawing-animation": createSawingMotion,
+  "hand-craft-animation": createHandCraftMotion,
   "gather-stone-animation": createGatherStoneMotion,
 } as const;
 

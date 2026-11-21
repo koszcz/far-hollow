@@ -17,8 +17,6 @@
 // While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
 // forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
 // approved "sled-rope" starts.
-// While crafting a hand recipe, the approved "hand-craft-animation", posed in code by player-hand-craft-pose.ts, lashes a
-// small bundle of sticks at waist height, drawn by hand-craft-work.ts. The axe goes on the back.
 // While the player holds a lit torch, the draft "torch", built by torch-shape.ts, rides upright in the left hand through
 // every motion, with a small "fire-effect" flame on its head. scene-renderer.ts lights the ground from torchFlame().
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
@@ -36,8 +34,6 @@ import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
 import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
-import { createHandCraftMotion, handCraftWorkTurnAt } from "./player-hand-craft-pose";
-import { createHandCraftWork } from "./hand-craft-work";
 import { smoothstep } from "./easing";
 import { createWorkMotion, type Leaving, type WorkMotion } from "./work-motion";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
@@ -145,8 +141,6 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
-  /** Works at something small held at waist height, for a hand recipe. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setHandCrafting(nowSeconds: number | undefined): void;
   /** Fishes with the rod held out over the water, as player-fish-pose.ts poses it. Pass undefined to stand upright. */
   setFishing(fishing: Fishing | undefined): void;
   /**
@@ -369,8 +363,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
    */
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
-  /** Crafting by hand, moved on by the steady clock time. It stops at once. */
-  const handCrafting = createHandCraftMotion();
   /** Fishing, moved on by the latest moment passed to `setFishing`. */
   const fishing = createWorkMotion<Fishing>({
     startOf: (at) => at.nowSeconds,
@@ -378,7 +370,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     leaveSeconds: FISH_ENTER_SECONDS,
   });
   /** The work motions, in the order they win when more than one plays. */
-  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [handCrafting, fishing];
+  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [fishing];
   /** While standing up after building, debarking, sawing, or fishing stops. */
   let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
@@ -386,10 +378,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Whether the player drags a sled. */
   let dragging = false;
 
-  // The bundle of sticks rides in the left hand while crafting by hand, with the cord running to the right hand.
-  const handCraftWork = createHandCraftWork();
-  handCraftWork.setVisible(false);
-  group.add(handCraftWork.group);
   // The fishing rod rides in the right hand while fishing, its butt at the wrist. The line runs from its tip.
   const rod = createFishingRod();
   rod.group.visible = false;
@@ -580,7 +568,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     poseEatingOrDrinking(eatDrinkPose);
     poseReaching();
     blendFromReach();
-    placeHandCraftWork();
     placeFishingRod();
     placePot(eatDrinkPose?.pot);
     placeTorch();
@@ -714,20 +701,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       return undefined;
     }
     return scaleBuildPose(leavingBuild.pose, 1 - smoothstep(done));
-  }
-
-  const leftWrist = new THREE.Vector3();
-  const rightWrist = new THREE.Vector3();
-  /** Shows the bundle of sticks in the left hand while crafting by hand, turned as the motion says, with the cord to the right hand. */
-  function placeHandCraftWork(): void {
-    const since = handCrafting.since;
-    const now = handCrafting.at;
-    handCraftWork.setVisible(since !== undefined);
-    if (since === undefined || now === undefined) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
-    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
-    handCraftWork.place(leftWrist, rightWrist, handCraftWorkTurnAt(now - since));
   }
 
   const rodTip = new THREE.Vector3();
@@ -916,9 +889,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     setFishing(fishingNow) {
       updateWork(fishing, fishingNow === undefined ? undefined : { ...fishingNow });
     },
-    setHandCrafting(nowSeconds) {
-      updateWork(handCrafting, nowSeconds);
-    },
     setReaching(reach) {
       const changed = (reach === undefined) !== (reaching === undefined);
       // A reach that starts, starts again, or ends blends from the pose shown now.
@@ -979,7 +949,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       for (const made of materials) made.dispose();
       backpack.dispose();
       potMaker.dispose();
-      handCraftWork.dispose();
       rod.dispose();
       rodBend.dispose();
       fishingLine.dispose();

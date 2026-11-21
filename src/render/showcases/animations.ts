@@ -561,16 +561,16 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
     pose({ player }, shot) {
       // Start crafting afresh at time 0 for each view, so the view shows the work `shot.seconds` in.
-      player.setHandCrafting(undefined);
-      player.setHandCrafting(0);
-      player.setHandCrafting(shot.seconds);
+      player.setMotion("hand-craft-animation", undefined);
+      player.setMotion("hand-craft-animation", 0);
+      player.setMotion("hand-craft-animation", shot.seconds);
     },
     // The player crafts the saw for as long as the game takes, stands, rests, then starts again.
     play: {
       shot: { label: "crafting the saw, then standing", yaw: 30, pitch: 15, radius: 1.6 },
       pose({ player }, seconds) {
         const cycle = seconds % (SAW_CRAFT_SECONDS + HAND_CRAFT_PLAY_REST_SECONDS);
-        player.setHandCrafting(cycle < SAW_CRAFT_SECONDS ? cycle : undefined);
+        player.setMotion("hand-craft-animation", cycle < SAW_CRAFT_SECONDS ? cycle : undefined);
         return undefined;
       },
     },

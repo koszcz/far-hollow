@@ -346,7 +346,7 @@ export function createSceneRenderer(
     // A hand recipe, such as crafting the saw, works at it with both hands where the player stands.
     const craftMotion = activity?.kind === "craft" && player.craftTask !== undefined ? craftMotionOf(player.craftTask.recipe) : undefined;
     const sawhorse = craftMotion === "saw" && target?.position !== undefined ? target : undefined;
-    playerMesh.setHandCrafting(craftMotion === "hand" ? nowSeconds : undefined);
+    playerMesh.setMotion("hand-craft-animation", craftMotion === "hand" ? nowSeconds : undefined);
     playerMesh.setMotion("sawing-animation", sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
     const stance = sawingStep.drawnAt(
       nowSeconds,

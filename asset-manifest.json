@@ -1178,7 +1178,7 @@
       "code": [
         "src/render/player-hand-craft-pose.ts",
         "src/render/hand-craft-work.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/hand-craft-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player lashes a small bundle of sticks by hand, for a hand recipe such as the saw or the fishing rod. Real lashing: one hand holds the work and turns it, the other passes the cord over, under and back round, then pulls it tight with a short, sharp tug. The player stands still, rounds the shoulders, and bows the head to watch. The left hand holds a bundle of two pale sticks at waist height, in front of the belly, with a dark brown binding and a cord running to the right hand. Each 2-second cycle: the right hand winds once round the bundle while the left hand rolls it forward to meet the cord, holds on top, tugs the cord out to the side as the shoulders dip, bounces as the cord snaps tight, then settles back on top. The axe goes on the back. The hands lift to the work over 0.25 seconds when crafting starts. When it stops, the player stands straight back up at once, the bundle disappears, and the axe returns to the hand. It is posed in code over the idle clip. Cutting planks at the sawhorse uses sawing-animation instead.",

@@ -281,7 +281,7 @@ const QUEUE_THINGS: Readonly<Record<number, ThingView>> = {
 };
 
 /**
- * The draft "action-queue-icons" asset: the action queue beside the clock. The first view is the icon sheet. The others show
+ * The approved "action-queue-icons" asset: the action queue beside the clock. The first view is the icon sheet. The others show
  * a full queue while chopping, two actions in the evening, and three while paused at night.
  */
 const ACTION_QUEUE_ICON_STATES: readonly ShowcaseState[] = [

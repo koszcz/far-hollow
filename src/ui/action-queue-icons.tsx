@@ -1,5 +1,5 @@
 // Icons for queued actions on things that have no icon elsewhere: a standing tree, the river, and a spot on the ground.
-// The draft "action-queue-icons" asset in asset-manifest.json, added by .scratch/action-queue/issues/02-show-and-cancel-the-queue.md.
+// The approved "action-queue-icons" asset in asset-manifest.json.
 // Built in code, in the build icons' shaded style on the same 24 by 24 grid. Logs and debarked logs reuse their approved icons.
 import type { BackpackIconDrawing } from "./icon-drawing";
 
@@ -11,34 +11,51 @@ function circle(x: number, y: number, r: number): string {
   return `M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0z`;
 }
 
+/** An ellipse path, centred on (x, y) with radii rx and ry. */
+function ellipse(x: number, y: number, rx: number, ry: number): string {
+  return `M${x - rx} ${y}a${rx} ${ry} 0 1 0 ${2 * rx} 0a${rx} ${ry} 0 1 0 ${-2 * rx} 0z`;
+}
+
+const GRASS = "#5f8f45";
+const EARTH = "#8a6a45";
+
+/** The patch of ground that the tree and the pin both stand on, so the icons read as one set in the round chips. */
+const PATCH = ellipse(12, 19.6, 9, 3.2);
+
 export const QUEUE_THING_DRAWINGS: Readonly<Record<QueueThing, BackpackIconDrawing>> = {
-  /** A conifer: three green tiers stacked on a short brown trunk. */
+  /** A conifer: three green tiers on a short brown trunk, standing on a grassy patch with its shadow. */
   tree: {
     colour: "#3f7a3a",
     parts: [
-      { d: "M10.5 18h3v4.5h-3z", as: "fill", colour: "#7a5232" },
-      { d: "M12 11l7 8H5z", as: "fill", colour: "#356b31" },
-      { d: "M12 6.5l5.8 7H6.2z", as: "fill" },
-      { d: "M12 2l4.5 6.2h-9z", as: "fill", colour: "#4d8c46" },
+      { d: PATCH, as: "fill", colour: GRASS },
+      { d: ellipse(13, 20.2, 5, 1.5), as: "fill", colour: "#47703a" },
+      { d: "M10.6 16.5h2.8v4.2h-2.8z", as: "fill", colour: "#7a5232" },
+      { d: "M12 9.6l7.3 8c-2.4-.7-4.9-.7-7.3 0s-4.9-.7-7.3 0z", as: "fill", colour: "#356b31" },
+      { d: "M12 5.4l5.9 6.8c-2-.6-3.9-.6-5.9 0s-3.9-.6-5.9 0z", as: "fill" },
+      { d: "M12 1.5l4.5 5.4c-1.5-.5-3-.5-4.5 0s-3-.5-4.5 0z", as: "fill", colour: "#4d8c46" },
     ],
   },
-  /** A stretch of river: a blue band between two grassy banks, with pale ripples. */
+  /** A stretch of river: a blue stream winding across a round grassy patch, with pale ripples. */
   river: {
     colour: "#3f86c0",
     parts: [
-      { d: "M2 4h20v4.5c-3 1-5-1-8 0s-5 1-8 0c-1.5-.5-3 0-4 .5z", as: "fill", colour: "#5f8f45" },
-      { d: "M2 9c1-.5 2.5-1 4-.5 3 1 5 1 8 0s5 1 8 0v7c-3 1-5-1-8 0s-5 1-8 0c-1.5-.5-3 0-4 .5z", as: "fill" },
-      { d: "M2 16.5c1-.5 2.5-1 4-.5 3 1 5 1 8 0s5 1 8 0V20H2z", as: "fill", colour: "#5f8f45" },
-      { d: "M5 12.2c1.5-.8 3-.8 4.5 0M13 12.6c1.5-.8 3-.8 4.5 0", as: "shine", colour: "#cfe8f7" },
+      { d: ellipse(12, 12, 10, 8), as: "fill", colour: GRASS },
+      // The stream's banks run from edge to edge of the patch. The arcs follow the patch's own outline.
+      {
+        d: "M2.08 13C6 10 9 15.5 12 12.5S16.5 8 19.81 7A10 8 0 0 1 21.92 11C18.5 11.5 16.5 14 13.5 16.5S7.5 15.5 4.19 17A10 8 0 0 1 2.08 13z",
+        as: "fill",
+      },
+      { d: "M5.6 14.2c1.2-.7 2.3-.6 3.4 0M14.2 11.6c1.2-.9 2.4-1.1 3.6-.6", as: "shine", colour: "#cfe8f7" },
     ],
   },
-  /** A spot on the ground to walk to: an amber pin standing on a patch of earth. */
+  /** A spot on the ground to walk to: an amber pin standing on a patch of earth, with a small shadow at its tip. */
   ground: {
     colour: "#f0a04b",
     parts: [
-      { d: "M3 18.5c0-2 4-3.5 9-3.5s9 1.5 9 3.5-4 3.5-9 3.5-9-1.5-9-3.5z", as: "fill", colour: "#8a6a45" },
-      { d: "M12 19s-5-4.6-5-8.5a5 5 0 0 1 10 0c0 3.9-5 8.5-5 8.5z", as: "fill" },
-      { d: circle(12, 10.5, 1.8), as: "cut" },
+      { d: PATCH, as: "fill", colour: EARTH },
+      { d: ellipse(13, 19.9, 4, 1.3), as: "fill", colour: "#6e5236" },
+      { d: "M12 19.4s-5.2-4.8-5.2-8.9a5.2 5.2 0 0 1 10.4 0c0 4.1-5.2 8.9-5.2 8.9z", as: "fill" },
+      { d: circle(12, 10.5, 1.9), as: "cut" },
     ],
   },
 };

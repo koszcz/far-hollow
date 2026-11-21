@@ -3,7 +3,7 @@
 // log lying along the beam in front of them. When sawing stops, they step back to where game logic has them.
 // Game logic's record of where the player stands does not change.
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import type { GroundPoint } from "../sim/ground-point";
+import { blendGroundPoints, type GroundPoint } from "../sim/ground-point";
 import { SAW_ENTER_SECONDS, SAW_STANCE_METRES } from "./player-saw-pose";
 
 /** A spot on the ground and which way the player faces there, in radians from the +z axis toward +x. */
@@ -68,7 +68,7 @@ export function createSawingStep(): SawingStep {
 
   const between = (from: StanceSpot, to: StanceSpot, t: number): StanceSpot => {
     const eased = smoothstep(t);
-    return { x: from.x + (to.x - from.x) * eased, z: from.z + (to.z - from.z) * eased, heading: blendHeading(from.heading, to.heading, eased) };
+    return { ...blendGroundPoints(from, to, eased), heading: blendHeading(from.heading, to.heading, eased) };
   };
 
   return {

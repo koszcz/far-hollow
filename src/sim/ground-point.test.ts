@@ -1,5 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { addGroundPoints, copyToward, groundDistance, headingToward, nearestWithin, scaleGroundPoint, subtractGroundPoints } from "./ground-point";
+import {
+  addGroundPoints,
+  blendGroundPoints,
+  copyToward,
+  groundDistance,
+  headingToward,
+  nearestWithin,
+  scaleGroundPoint,
+  stepAlongHeading,
+  subtractGroundPoints,
+} from "./ground-point";
 
 describe("addGroundPoints", () => {
   it("adds the x parts and the z parts", () => {
@@ -36,6 +46,29 @@ describe("headingToward", () => {
     expect(headingToward({ x: 1, z: 1 }, { x: 1, z: 5 })).toBeCloseTo(0, 9);
     expect(headingToward({ x: 1, z: 1 }, { x: 4, z: 1 })).toBeCloseTo(Math.PI / 2, 9);
     expect(Math.abs(headingToward({ x: 1, z: 1 }, { x: 1, z: -3 }))).toBeCloseTo(Math.PI, 9);
+  });
+});
+
+describe("stepAlongHeading", () => {
+  it("steps toward +z at heading 0 and toward +x at a quarter turn", () => {
+    expect(stepAlongHeading({ x: 1, z: 2 }, 0, 3)).toEqual({ x: 1, z: 5 });
+    const quarter = stepAlongHeading({ x: 1, z: 2 }, Math.PI / 2, 3);
+    expect(quarter.x).toBeCloseTo(4);
+    expect(quarter.z).toBeCloseTo(2);
+  });
+
+  it("steps backward for a negative distance", () => {
+    expect(stepAlongHeading({ x: 0, z: 0 }, 0, -2)).toEqual({ x: 0, z: -2 });
+  });
+});
+
+describe("blendGroundPoints", () => {
+  it("gives the start at 0, the end at 1, and the spot that share of the way between", () => {
+    const a = { x: 1, z: 2 };
+    const b = { x: 5, z: -2 };
+    expect(blendGroundPoints(a, b, 0)).toEqual(a);
+    expect(blendGroundPoints(a, b, 1)).toEqual(b);
+    expect(blendGroundPoints(a, b, 0.25)).toEqual({ x: 2, z: 1 });
   });
 });
 

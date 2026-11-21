@@ -26,7 +26,7 @@ import { edgePieceOn } from "../sim/edge-pieces";
 import { blueprintEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { roofAbove } from "../sim/roofs";
 import { SIDES, type EdgePieceKind } from "../sim/structure-kind";
-import { areOpposite, quarterTurnsToRadians, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
+import { areOpposite, quarterTurnsToRadians, runsAlongX, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
 import { ROOF_FRAME_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { CORNER_STAGGER_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
@@ -249,7 +249,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
    * along z for stage 1.
    */
   function beamsOf(beams: readonly BeamPlan[], stage: number): THREE.BufferGeometry {
-    const along = beams.filter(({ side }) => side % 2 === stage);
+    const along = beams.filter(({ side }) => runsAlongX(side) === (stage === 0));
     const name = `${stage}:${along.map(({ side, under, startReach, endReach }) => `${side}${under}${startReach}${endReach}`).join(",")}`;
     const known = beamGeometries.get(name);
     if (known !== undefined) return known;
@@ -257,13 +257,13 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       const beamRandom = seededRandom(ROOF_SEED + 10 + side);
       const wobble = (size: number) => (beamRandom() * 2 - 1) * size;
       // A log wall along z sits lower, so its beam is hewn taller, and its top is level with the others. Every beam is as wide.
-      const radius = BEAM_RADIUS_METRES + (under === "logWall" && side % 2 === 1 ? CORNER_STAGGER_METRES / 2 : 0);
+      const radius = BEAM_RADIUS_METRES + (under === "logWall" && !runsAlongX(side) ? CORNER_STAGGER_METRES / 2 : 0);
       const geometry = hewnTimber(BUILD_GRID_METRES + startReach + endReach, radius, wobble, BEAM_RADIUS_METRES, 0.006);
       const middle = turnOffset({ x: 0, z: BUILD_GRID_METRES / 2 }, side);
       const shift = (endReach - startReach) / 2;
       // A beam on side 0 or 2 runs along x. Logs are made along z.
-      if (side % 2 === 0) geometry.rotateY(Math.PI / 2);
-      geometry.translate(middle.x + (side % 2 === 0 ? shift : 0), FRAME_TOP_METRES - radius, middle.z + (side % 2 === 0 ? 0 : shift));
+      if (runsAlongX(side)) geometry.rotateY(Math.PI / 2);
+      geometry.translate(middle.x + (runsAlongX(side) ? shift : 0), FRAME_TOP_METRES - radius, middle.z + (runsAlongX(side) ? 0 : shift));
       return geometry;
     });
     const geometry = logs.length === 0 ? empty : mergeGeometries(logs);
@@ -292,7 +292,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         const theirs = finishedHere === finishedThere ? side === 1 || side === 2 : finishedThere;
         if (theirs) return [];
       }
-      return side % 2 === 0
+      return runsAlongX(side)
         ? [{ side, under, startReach: reach(-1, 0), endReach: reach(1, 0) }]
         : [{ side, under, startReach: reach(0, -1), endReach: reach(0, 1) }];
     });

@@ -1,5 +1,5 @@
 // Which way a structure faces, as whole quarter turns, and every rule about it. See docs/adr/0009.
-import { type GroundPoint, scaleGroundPoint } from "./ground-point";
+import type { GroundPoint } from "./ground-point";
 
 /** Which way a structure faces: how many quarter turns clockwise, seen from above, from 0 to 3. */
 export type QuarterTurns = 0 | 1 | 2 | 3;
@@ -28,6 +28,14 @@ export function areAtRightAngles(a: QuarterTurns, b: QuarterTurns): boolean {
 }
 
 /**
+ * Whether an edge piece facing `turns`, such as a wall or a beam, runs along the x axis.
+ * It does when it faces 0 or 2 quarter turns, and runs along z when it faces 1 or 3.
+ */
+export function runsAlongX(turns: QuarterTurns): boolean {
+  return turns % 2 === 0;
+}
+
+/**
  * How far round a structure facing `turns` is drawn, in radians about the vertical axis.
  * Quarter turns go clockwise seen from above, so the radians are negative.
  */
@@ -51,7 +59,7 @@ export function turnOffset(offset: GroundPoint, turns: QuarterTurns): GroundPoin
     case 1:
       return { x: -offset.z, z: offset.x };
     case 2:
-      return scaleGroundPoint(offset, -1);
+      return { x: -offset.x, z: -offset.z };
     case 3:
       return { x: offset.z, z: -offset.x };
   }

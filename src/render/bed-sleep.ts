@@ -3,7 +3,7 @@
 // In a bed, the player steps up onto the mattress, turned to lie along the bed, which may face any of four ways.
 // Once standing again, they step back down to where they stood beside the bed. The bed blocks walking, so game logic keeps them there.
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import type { GroundPoint } from "../sim/ground-point";
+import { blendGroundPoints, stepAlongHeading, type GroundPoint } from "../sim/ground-point";
 import { BED_MATTRESS_TOP_METRES } from "./bed-meshes";
 import { SLEEP_FEET_Z, SLEEP_HEADING, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, type SleepSpot } from "./sleep-animation";
 
@@ -30,13 +30,12 @@ function settle(t: number): number {
 export function bedSleepSpotFrom(from: SleepSpot, bed: GroundPoint, turns: QuarterTurns, seconds: number): BedSleepSpot {
   const facing = quarterTurnsToRadians(turns);
   const heading = SLEEP_HEADING + facing;
-  const lying = { x: bed.x + Math.sin(facing) * SLEEP_FEET_Z, z: bed.z + Math.cos(facing) * SLEEP_FEET_Z };
+  const lying = stepAlongHeading(bed, facing, SLEEP_FEET_Z);
   const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));
   // How far onto the bed the player is: 0 beside it, 1 on the mattress.
   const on = seconds < SLEEP_SECONDS ? settle(seconds / SLEEP_STEP_ON_SECONDS) : 1 - settle((seconds - SLEEP_SECONDS) / BED_STEP_OFF_SECONDS);
   return {
-    x: from.x + (lying.x - from.x) * on,
-    z: from.z + (lying.z - from.z) * on,
+    ...blendGroundPoints(from, lying, on),
     heading: seconds < SLEEP_SECONDS ? from.heading + turn * on : heading,
     lift: BED_MATTRESS_TOP_METRES * on,
   };

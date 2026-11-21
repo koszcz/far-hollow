@@ -6,6 +6,7 @@
 import type { SleepSpot } from "./sleep-animation";
 import { STOOL_SEAT_TOP_METRES } from "./stool-meshes";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
+import { blendGroundPoints, groundDistance, headingToward, stepAlongHeading } from "../sim/ground-point";
 
 /** Seconds the player takes to step up to the stool and turn their back to it, before sitting down begins. */
 export const SIT_STEP_ON_SECONDS = 0.5;
@@ -98,11 +99,7 @@ export function standSinkAt(seconds: number, seatedFor: number): number {
 /** Where the player's feet stand while seated on a stool whose middle is `stool`, facing `turns`, and which way they face. */
 export function seatedSpot(stool: { x: number; z: number }, turns: QuarterTurns): SleepSpot {
   const heading = quarterTurnsToRadians(turns);
-  return {
-    x: stool.x + Math.sin(heading) * SIT_FEET_FORWARD_METRES,
-    z: stool.z + Math.cos(heading) * SIT_FEET_FORWARD_METRES,
-    heading,
-  };
+  return { ...stepAlongHeading(stool, heading, SIT_FEET_FORWARD_METRES), heading };
 }
 
 /**
@@ -118,13 +115,13 @@ export function sitSpotFrom(from: SleepSpot, seat: SleepSpot, seconds: number): 
  * back to `to`, where game logic keeps them. They rise in place, then step across, turning to face the way they step.
  */
 export function standSpotFrom(seat: SleepSpot, to: { x: number; z: number }, seconds: number, seatedFor: number): SleepSpot {
-  const away = Math.hypot(to.x - seat.x, to.z - seat.z);
-  const heading = away > 0.05 ? Math.atan2(to.x - seat.x, to.z - seat.z) : seat.heading;
+  const away = groundDistance(to, seat);
+  const heading = away > 0.05 ? headingToward(seat, to) : seat.heading;
   return between(seat, { ...to, heading }, settle((seconds - riseSeconds(seatedFor)) / SIT_STEP_OFF_SECONDS));
 }
 
 /** The spot `t` of the way from `a` to `b`, turning the short way round. */
 function between(a: SleepSpot, b: SleepSpot, t: number): SleepSpot {
   const turn = Math.atan2(Math.sin(b.heading - a.heading), Math.cos(b.heading - a.heading));
-  return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, heading: a.heading + turn * t };
+  return { ...blendGroundPoints(a, b, t), heading: a.heading + turn * t };
 }

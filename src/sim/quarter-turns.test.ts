@@ -1,5 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import { areAtRightAngles, areOpposite, nearestQuarterTurns, quarterTurnsToRadians, turnOffset, turnQuarters, wrapQuarterTurns } from "./quarter-turns";
+import {
+  areAtRightAngles,
+  areOpposite,
+  nearestQuarterTurns,
+  quarterTurnsToRadians,
+  runsAlongX,
+  turnOffset,
+  turnQuarters,
+  wrapQuarterTurns,
+} from "./quarter-turns";
 
 describe("turnQuarters", () => {
   it("turns one step clockwise", () => {
@@ -50,6 +59,15 @@ describe("areOpposite", () => {
     expect(areOpposite(1, 1)).toBe(false);
     expect(areOpposite(0, 1)).toBe(false);
     expect(areOpposite(0, 3)).toBe(false);
+  });
+});
+
+describe("runsAlongX", () => {
+  it("says an edge facing 0 or 2 quarter turns runs along x, and one facing 1 or 3 runs along z", () => {
+    expect(runsAlongX(0)).toBe(true);
+    expect(runsAlongX(1)).toBe(false);
+    expect(runsAlongX(2)).toBe(true);
+    expect(runsAlongX(3)).toBe(false);
   });
 });
 

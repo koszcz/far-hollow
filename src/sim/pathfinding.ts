@@ -74,6 +74,7 @@ export function findPathWithin(map: WalkMap, from: GroundPoint, target: WalkTarg
   if (startCell === undefined) return [];
 
   // On open ground, the shortest walk is straight towards the target's nearest point, stopping `distance` short of it.
+  // Keeps raw numbers: dividing by `away` before scaling rounds differently from the ground point functions.
   const nearest = {
     x: nearestPoint.x + ((from.x - nearestPoint.x) / away) * distance,
     z: nearestPoint.z + ((from.z - nearestPoint.z) / away) * distance,

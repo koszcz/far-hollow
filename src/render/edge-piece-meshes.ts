@@ -23,7 +23,7 @@ import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
-import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
+import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
@@ -270,7 +270,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
 
   /** Puts a piece of this kind at `spot`, facing `turns`. A log wall running along z sits lower, so corners interlock. */
   function place(root: THREE.Group, kind: EdgePieceKind, spot: Vec3, turns: QuarterTurns): void {
-    const stagger = kind === "logWall" && turns % 2 !== 0 ? CORNER_STAGGER_METRES : 0;
+    const stagger = kind === "logWall" && !runsAlongX(turns) ? CORNER_STAGGER_METRES : 0;
     root.position.set(spot.x, spot.y - stagger, spot.z);
     root.rotation.y = quarterTurnsToRadians(turns);
   }
@@ -466,7 +466,7 @@ function endsOf(wall: WallLine): [{ x: number; z: number }, { x: number; z: numb
 export function wallEnds(wall: WallLine, walls: readonly WallLine[]): WallEnds {
   const [start, end] = endsOf(wall);
   const same = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.abs(a.x - b.x) < SAME_POINT_METRES && Math.abs(a.z - b.z) < SAME_POINT_METRES;
-  const crossing = walls.filter((other) => Math.abs(other.turns - wall.turns) % 2 === 1).flatMap(endsOf);
+  const crossing = walls.filter((other) => areAtRightAngles(other.turns, wall.turns)).flatMap(endsOf);
   return { start: crossing.some((point) => same(point, start)), end: crossing.some((point) => same(point, end)) };
 }
 
@@ -476,8 +476,7 @@ export function wallEnds(wall: WallLine, walls: readonly WallLine[]): WallEnds {
  * It is in the way when the line from the camera to the player's middle crosses the piece, or passes just beyond its ends or over its top.
  */
 export function isBetweenCameraAndPlayer(middle: Vec3, turns: QuarterTurns, camera: Vec3, player: Vec3): boolean {
-  // The piece runs along x when it faces 0 or 2 quarter turns, and along z otherwise.
-  const alongX = turns % 2 === 0;
+  const alongX = runsAlongX(turns);
   const across = (spot: Vec3) => (alongX ? spot.z - middle.z : spot.x - middle.x);
   const along = (spot: Vec3) => (alongX ? spot.x - middle.x : spot.z - middle.z);
   const target = { x: player.x, y: player.y + PLAYER_MIDDLE_METRES, z: player.z };

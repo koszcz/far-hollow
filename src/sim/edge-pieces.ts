@@ -4,7 +4,7 @@
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, edgePieceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
 import { type EdgePieceKind } from "./structure-kind";
-import { turnOffset, type QuarterTurns } from "./quarter-turns";
+import { areAtRightAngles, turnOffset, type QuarterTurns } from "./quarter-turns";
 import { addGroundPoints, type GroundPoint, subtractGroundPoints } from "./ground-point";
 
 /** Two edge middles closer than this, in metres, are the same edge. */
@@ -78,7 +78,7 @@ export function meetsDoorAtCorner(entities: EntityStore, kind: EdgePieceKind, ed
   return pieces.some(
     (piece) =>
       (kind === "doorFrame" || piece.kind === "doorFrame") &&
-      (piece.turns - turns) % 2 !== 0 &&
+      areAtRightAngles(piece.turns, turns) &&
       edgeEnds(piece.position, piece.turns).some((end) => ends.some((own) => isSameEdge(end, own))),
   );
 }

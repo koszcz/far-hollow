@@ -3,6 +3,7 @@
 // they sleep, and the night passes. Light comes back on the morning, the person rolls onto their side again, sits up,
 // gets their feet under them, and stands. The body plays KayKit's Lie_Down, Lie_Idle, Death_A_Pose (the back-lying pose),
 // and Lie_StandUp clips from the player's own model, in player-mesh.ts. This file says what shows at each moment. The owner approved it.
+import { blendGroundPoints, stepAlongHeading } from "../sim/ground-point";
 
 /** Seconds the player takes to step onto the bedroll and turn to lie along it, before lying down begins. */
 export const SLEEP_STEP_ON_SECONDS = 0.4;
@@ -111,10 +112,9 @@ export function sleepSpotFrom(from: SleepSpot, bedroll: { x: number; z: number }
   const stepped = settle(seconds / SLEEP_STEP_ON_SECONDS);
   const heading = SLEEP_HEADING + facing;
   const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));
-  const lying = { x: bedroll.x + Math.sin(facing) * SLEEP_FEET_Z, z: bedroll.z + Math.cos(facing) * SLEEP_FEET_Z };
+  const lying = stepAlongHeading(bedroll, facing, SLEEP_FEET_Z);
   return {
-    x: from.x + (lying.x - from.x) * stepped,
-    z: from.z + (lying.z - from.z) * stepped,
+    ...blendGroundPoints(from, lying, stepped),
     heading: from.heading + turn * stepped,
   };
 }

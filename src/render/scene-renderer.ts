@@ -252,7 +252,8 @@ export function createSceneRenderer(
 
   /** Where the line lands: just past the water's edge, towards the spot the player fishes, from their feet. */
   function floatSpot(spot: GroundPoint, from: { x: number; y: number; z: number }): { floatForward: number; floatHeight: number } {
-    const away = Math.hypot(spot.x - from.x, spot.z - from.z) || 1;
+    const away = groundDistance(spot, from) || 1;
+    // Keeps raw numbers: stepAlongHeading or blendGroundPoints would round differently and move the float.
     const along = (metres: number): GroundPoint => ({ x: from.x + ((spot.x - from.x) / away) * metres, z: from.z + ((spot.z - from.z) / away) * metres });
     let edge = FLOAT_MIN_METRES;
     for (let metres = 0; metres <= FLOAT_MAX_METRES; metres += 0.25) {

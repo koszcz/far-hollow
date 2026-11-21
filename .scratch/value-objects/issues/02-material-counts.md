@@ -41,3 +41,7 @@ Weight limits and other rules that belong to one holder, such as how much fits i
 - [x] Saved games keep the same shape. Old saves still load.
 - [x] Unit tests cover each function, including taking more than there is.
 - [x] `make check` passes.
+
+## Comments
+
+- A pile holds one kind and one number, `{ content, count }`, not a counts record. So `piles.ts` and the plank take in `building.ts` still change `pile.count` with `+=` and `-=`. The counts module works on records of several kinds, so it does not fit here.

@@ -7,7 +7,7 @@ import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { bedrollEntities, type EntityStore } from "../sim/entities";
 import { placedStructures, structureOf } from "../sim/structures";
 import type { StructureKind } from "../sim/structure-kind";
-import type { QuarterTurns } from "../sim/quarter-turns";
+import { runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { BEDROLL_LENGTH_METRES, BEDROLL_WIDTH_METRES } from "./bedroll-meshes";
 import { STONE_RING_RADIUS_METRES } from "./campfire-meshes";
 
@@ -49,7 +49,7 @@ const EDGE_PIECE_HALF_THICKNESS_METRES = 0.2;
 
 /** The strip of ground under a log wall or door frame: along its edge, facing `turns`, and a little either side. */
 function edgePieceFootprint(x: number, z: number, turns: QuarterTurns): CampFootprint {
-  const alongX = turns % 2 === 0;
+  const alongX = runsAlongX(turns);
   const half = BUILD_GRID_METRES / 2;
   return { x, z, halfX: alongX ? half : EDGE_PIECE_HALF_THICKNESS_METRES, halfZ: alongX ? EDGE_PIECE_HALF_THICKNESS_METRES : half };
 }

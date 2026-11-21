@@ -4,21 +4,21 @@
 
 **Blocked by:** 01 (Lay a floor), 02 (Hang a door)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None.
 
-- [ ] A room is snug when every square has a finished floor and every door frame on its edge has a finished door.
-- [ ] A room with no door frame is snug once every square has a floor.
-- [ ] In a snug room, warmth drains at half the usual rate at night.
-- [ ] A lit campfire or fireplace in the room warms the player as before.
-- [ ] Whether a room is snug updates when a floor or door is finished or taken down. It is not saved.
-- [ ] The first time the player stands in a snug room, a banner says the room now keeps out the cold. It shows once in each game.
-- [ ] Whether the banner has shown is saved. It does not show again after loading. The save version goes up, and older saves are upgraded when loaded with the banner not yet shown.
-- [ ] The debug overlay shows which rooms are snug.
-- [ ] `GLOSSARY.md` defines snug as the spec does.
-- [ ] All player-facing text is in the strings file.
-- [ ] Unit tests cover what makes a room snug, a missing floor, a missing door, and the warmth drain inside and outside a snug room.
+- [x] A room is snug when every square has a finished floor and every door frame on its edge has a finished door.
+- [x] A room with no door frame is snug once every square has a floor.
+- [x] In a snug room, warmth drains at half the usual rate at night.
+- [x] A lit campfire or fireplace in the room warms the player as before.
+- [x] Whether a room is snug updates when a floor or door is finished or taken down. It is not saved.
+- [x] The first time the player stands in a snug room, a banner says the room now keeps out the cold. It shows once in each game.
+- [x] Whether the banner has shown is saved. It does not show again after loading. The save version goes up, and older saves are upgraded when loaded with the banner not yet shown.
+- [x] The debug overlay shows which rooms are snug.
+- [x] `GLOSSARY.md` defines snug as the spec does.
+- [x] All player-facing text is in the strings file.
+- [x] Unit tests cover what makes a room snug, a missing floor, a missing door, and the warmth drain inside and outside a snug room.
 
 ## Comments
 
@@ -56,12 +56,12 @@
 
 **Acceptance criteria:**
 
-- [ ] Every checkbox in this ticket's list above is met.
-- [ ] A unit test: a room with every floor and door is snug. Remove one floor and it is not. Remove one door instead and it is not.
-- [ ] A unit test: a floor blueprint or door blueprint does not make a room snug.
-- [ ] A unit test: one night hour drains half as much warmth in a snug room as in the same room without a door.
-- [ ] A unit test: the banner shows once, and not again after a save and load.
-- [ ] `make check` passes.
+- [x] Every checkbox in this ticket's list above is met.
+- [x] A unit test: a room with every floor and door is snug. Remove one floor and it is not. Remove one door instead and it is not.
+- [x] A unit test: a floor blueprint or door blueprint does not make a room snug.
+- [x] A unit test: one night hour drains half as much warmth in a snug room as in the same room without a door.
+- [x] A unit test: the banner shows once, and not again after a save and load.
+- [x] `make check` passes.
 
 **Out of scope:**
 

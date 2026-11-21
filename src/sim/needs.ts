@@ -8,6 +8,8 @@ export type NeedKind = (typeof NEED_KINDS)[number];
 export const FULL_NEED = 1;
 /** How much warmth the player loses per game hour at night, away from a lit campfire. Full warmth lasts 4 hours. */
 export const WARMTH_DRAIN_PER_HOUR = 0.25;
+/** In a snug room, the night's warmth drain is this share of the usual rate. Rain does not fall indoors, so it does not change. */
+export const SNUG_ROOM_NIGHT_DRAIN_SHARE = 1 / 2;
 /** How much hunger the player loses per game hour, all day and night. Full hunger lasts two days. */
 export const HUNGER_DRAIN_PER_HOUR = 1 / 48;
 
@@ -76,6 +78,8 @@ export interface NeedConditions {
   inRain?: boolean;
   /** Whether the player is under a roof, so sleep restores fatigue faster. Missing means in the open. */
   underRoof?: boolean;
+  /** Whether the player stands in a snug room, so the night's cold drains warmth more slowly. Missing means not in one. */
+  inSnugRoom?: boolean;
   /** Whether the player sleeps in a bed rather than on a bedroll, so sleep restores fatigue faster. Missing means not in a bed. */
   inBed?: boolean;
   /** Whether the player sits on a stool, awake, so fatigue comes back slowly. Missing means not sitting. */
@@ -106,8 +110,8 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
   switch (kind) {
     case "warmth":
       if (conditions.warmedByCampfire) return WARMTH_RECOVERY_PER_HOUR;
-      // Rain chills the player on top of the night's cold.
-      return -((conditions.night ? WARMTH_DRAIN_PER_HOUR : 0) + (conditions.inRain === true ? RAIN_WARMTH_DRAIN_PER_HOUR : 0));
+      // Rain chills the player on top of the night's cold. A snug room keeps out half the night's cold.
+      return -(nightWarmthDrainPerHour(conditions) + (conditions.inRain === true ? RAIN_WARMTH_DRAIN_PER_HOUR : 0));
     case "thirst":
       return -THIRST_DRAIN_PER_HOUR;
     case "hunger":
@@ -117,6 +121,12 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
       if (conditions.sitting === true) return FATIGUE_RECOVERY_PER_HOUR * SITTING_REST_SHARE;
       return -FATIGUE_DRAIN_PER_HOUR * (conditions.working ? WORK_FATIGUE_FACTOR : 1);
   }
+}
+
+/** How much warmth the night's cold drains per game hour away from a fire: none by day, and half as much in a snug room. */
+function nightWarmthDrainPerHour(conditions: NeedConditions): number {
+  if (!conditions.night) return 0;
+  return WARMTH_DRAIN_PER_HOUR * (conditions.inSnugRoom === true ? SNUG_ROOM_NIGHT_DRAIN_SHARE : 1);
 }
 
 /** How much fatigue the player regains per game hour asleep, under a roof or in the open, in a bed or on a bedroll. */

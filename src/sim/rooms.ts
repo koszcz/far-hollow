@@ -1,9 +1,9 @@
 // Rooms: foundation squares closed in on every side by log walls or door frames, with a roof over every square.
 // Rooms are not stored. They are worked out from the finished pieces each time they are asked for,
 // so finishing or taking down a piece changes them at once.
-import { edgeMiddle, edgePieceOn, squaresBeside } from "./edge-pieces";
-import { isOnGridSquare } from "./build-grid";
-import { campfireEntities, fireplaceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
+import { edgeMiddle, edgePieceOn, isSameEdge, squaresBeside } from "./edge-pieces";
+import { isOnGridSquare, snapToGridSquare } from "./build-grid";
+import { campfireEntities, doorEntities, fireplaceEntities, floorEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { SIDES } from "./structure-kind";
@@ -43,6 +43,30 @@ export function isRoomHeated(entities: EntityStore, room: Room): boolean {
     if (fireplace.lit && room.some((square) => isOnGridSquare(square, position))) return true;
   }
   return false;
+}
+
+/**
+ * Whether this room is snug: every square has a finished floor, and every door frame on a square's edge has a finished door.
+ * A room with no door frame is snug once every square has a floor. Blueprints do not count.
+ */
+export function isRoomSnug(entities: EntityStore, room: Room): boolean {
+  const floors = floorEntities(entities).entities;
+  const doors = doorEntities(entities).entities;
+  return room.every(
+    (square) =>
+      floors.some((floor) => isOnGridSquare(square, floor.position)) &&
+      SIDES.every((side) => {
+        if (edgePieceOn(entities, square, side) !== "doorFrame") return true;
+        const edge = edgeMiddle(square, side);
+        return doors.some((door) => isSameEdge(door.position, edge));
+      }),
+  );
+}
+
+/** Whether this spot is on a square of a snug room. */
+export function isInSnugRoom(entities: EntityStore, at: GroundPoint): boolean {
+  const room = roomAround(entities, snapToGridSquare(at));
+  return room !== undefined && isRoomSnug(entities, room);
 }
 
 /**

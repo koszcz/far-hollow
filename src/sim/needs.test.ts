@@ -136,6 +136,23 @@ describe("warmth in the rain", () => {
   });
 });
 
+describe("warmth in a snug room", () => {
+  const NIGHT_AWAY_FROM_FIRE = { night: true, warmedByCampfire: false, working: false, asleep: false, sick: false };
+
+  it("drains at half the usual rate at night", () => {
+    const needs = createNeeds();
+    passNeedsTime(needs, 60, { ...NIGHT_AWAY_FROM_FIRE, inSnugRoom: true });
+    expect(needs.warmth.level).toBeCloseTo(0.875, 5);
+  });
+
+  it("still recovers by a lit fire", () => {
+    const needs = createNeeds();
+    needs.warmth.level = 0.2;
+    passNeedsTime(needs, 30, { ...NIGHT_AWAY_FROM_FIRE, warmedByCampfire: true, inSnugRoom: true });
+    expect(needs.warmth.level).toBeCloseTo(0.7, 5);
+  });
+});
+
 function send(game: Game, command: Command): void {
   game.client.send(command);
   game.step();

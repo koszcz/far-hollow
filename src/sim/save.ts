@@ -65,6 +65,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   approachTimedTasks,
   addFloors,
   addDoors,
+  recordSnugRoomNotice,
 ];
 
 /** The version of the save format this code writes. */
@@ -146,6 +147,8 @@ export const FLOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFloors) + 2;
 export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimedTasks) + 2;
 /** The first save version that can hold doors and their blueprints. */
 export const DOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDoors) + 2;
+/** The first save version that records whether the snug-room banner has shown. */
+export const SNUG_ROOM_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(recordSnugRoomNotice) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -201,9 +204,12 @@ export function describeSave(stored: unknown): SaveSlotSummary {
 export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_UPGRADES): ReadSaveResult {
   const save = upgradeSave(data, upgrades);
   if (!isValidSave(save)) return { ok: false };
-  const { seed, clockMinutes, stepCount, firstNightOver, notice, entities } = save as unknown as SaveFile;
+  const { seed, clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } = save as unknown as SaveFile;
   try {
-    return { ok: true, game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, notice, entities } }) };
+    return {
+      ok: true,
+      game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } }),
+    };
   } catch {
     // The save had the right shape but still could not be loaded.
     return { ok: false };
@@ -773,4 +779,9 @@ function addFloors(save: Readonly<Record<string, unknown>>): Record<string, unkn
 /** Version 43 to 44: the player can hang doors in door frames. A save from before then has none, so it carries over unchanged. */
 function addDoors(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/** Version 44 to 45: the game saves whether the snug-room banner has shown. A save from before then has not shown it. */
+function recordSnugRoomNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return { ...save, snugRoomNoticeShown: false };
 }

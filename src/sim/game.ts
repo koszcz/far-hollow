@@ -21,7 +21,7 @@ import { createBedrolls, type BedrollEntity, bedrollRules } from "./bedrolls";
 import { createBeds, type BedEntity, bedRules } from "./beds";
 import { createStools, stoolRules } from "./stools";
 import { createApproach } from "./approach";
-import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
+import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
 import { createTakingDown, takingDownRules } from "./taking-down";
@@ -63,7 +63,7 @@ import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { createCooking } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
-import { createPiles } from "./piles";
+import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
 import { createChests } from "./chests";
@@ -71,7 +71,7 @@ import { furnitureOf } from "./furniture";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
-import { createHandReach, putDown, reachToward } from "./hand-reach";
+import { createHandReach, reachToward } from "./hand-reach";
 import type { GroundPoint } from "./ground-point";
 import type { ReachHeight } from "./entities";
 
@@ -500,25 +500,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...foragingRules(foraging, () => {
       reportEatOrDrink("eat");
     }),
-    dropFromBackpack: {
-      start: "alongside",
-      run: (command) => {
-        if (countInBackpack(player.backpack, command.content) > 0)
-          putDown(handReach, () => {
-            piles.drop(command.content);
-          });
-      },
-    },
-    pickUpPile: {
-      start: "fresh",
-      needsFreeHands: true,
-      approach: {
-        reach: (command) => piles.reach(command.pileId),
-        act: (command) => {
-          piles.pickUp(command.pileId);
-        },
-      },
-    },
+    ...pileRules(piles, ruleGame),
     placeBlueprint: {
       // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
       start: "alongside",

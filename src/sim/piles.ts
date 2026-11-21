@@ -5,6 +5,8 @@ import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { type Terrain, type Valley } from "./valley";
 import { groundDistance, nearestWithin, type GroundPoint } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { putDown } from "./hand-reach";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
 export const JOIN_PILE_METRES = 1;
@@ -124,4 +126,29 @@ export function addToPileAt(entities: EntityStore, terrain: Terrain, content: Ba
   }
   const { x, z } = spot;
   entities.add({ pile: { content, count }, position: { x, y: standingHeightAt(entities, terrain, { x, z }), z } });
+}
+
+/** The rules for dropping things from the backpack into a pile and picking a pile up. */
+export function pileRules(piles: Piles, { player, hand }: RuleGame): CommandRules<"dropFromBackpack" | "pickUpPile"> {
+  return {
+    dropFromBackpack: {
+      start: "alongside",
+      run: (command) => {
+        if (countInBackpack(player.backpack, command.content) > 0)
+          putDown(hand, () => {
+            piles.drop(command.content);
+          });
+      },
+    },
+    pickUpPile: {
+      start: "fresh",
+      needsFreeHands: true,
+      approach: {
+        reach: (command) => piles.reach(command.pileId),
+        act: (command) => {
+          piles.pickUp(command.pileId);
+        },
+      },
+    },
+  };
 }

@@ -222,7 +222,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const debarking = createDebarking(entities, walking);
   const crafting = createCrafting(entities, walking, valley.terrain);
   const gathering = createGathering(entities, handReach);
-  const foraging = createForaging(entities, walking, handReach);
+  const foraging = createForaging(entities, handReach);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities, walking);
@@ -261,7 +261,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     debarking,
     crafting,
     gathering,
-    foraging,
     building,
     takingDown,
     bedrolls,
@@ -625,8 +624,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => foraging.refusal(command.spotId),
-      run: (command) => {
-        foraging.forage(command.spotId);
+      approach: {
+        reach: (command) => foraging.reach(command.spotId),
+        act: (command) => {
+          foraging.forage(command.spotId);
+        },
       },
     },
     eat: {

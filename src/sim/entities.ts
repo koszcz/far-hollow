@@ -220,8 +220,6 @@ export interface Entity {
   forageSpot?: { food: WildFood };
   /** A foraged bush or mushroom patch growing back. It has food again when `minutesLeft` game minutes have passed. */
   regrowing?: { minutesLeft: number };
-  /** The bush or mushroom patch the player is walking to forage, given by its entity id. */
-  forageTask?: { spotId: number };
   /** Marks a bedroll laid out on the ground. Its position is the middle of the bedroll. A rolled-up bedroll is in the backpack. */
   bedroll?: true;
   /** The laid bedroll the player is walking to, given by its entity id, and what they do there: pick it up or sleep on it. */

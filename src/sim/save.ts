@@ -668,6 +668,7 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
   stoolTask: (task) => ({ type: "sitOnStool", stoolId: task.stoolId }),
   stickPickUpTask: (task) => ({ type: "pickUpStick", stickId: task.stickId }),
   barkPickUpTask: (task) => ({ type: "pickUpBark", barkId: task.barkId }),
+  forageTask: (task) => ({ type: "forage", spotId: task.spotId }),
 };
 
 /**

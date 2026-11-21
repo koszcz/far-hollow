@@ -61,7 +61,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
   shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
-  shape({ type: exactly("pickUpBark"), barkId: count })(value);
+  shape({ type: exactly("pickUpBark"), barkId: count })(value) ||
+  shape({ type: exactly("forage"), spotId: count })(value);
 
 /**
  * How each entity component must look in a save.
@@ -122,7 +123,6 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   roof: shape({ min: point, max: point }),
   forageSpot: shape({ food: exactly("berries", "mushroom") }),
   regrowing: shape({ minutesLeft: finite }),
-  forageTask: shape({ spotId: count }),
   bedroll: exactly(true),
   bedrollTask: shape({ bedrollId: count, then: exactly("pickUp", "sleep") }),
   layBedrollTask: shape({ leanToId: count }),

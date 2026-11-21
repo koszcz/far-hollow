@@ -60,6 +60,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   lightFireplaces,
   addTorches,
   plantTorches,
+  cookOnFireplaces,
   startApproaches,
 ];
 
@@ -130,6 +131,8 @@ export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplace
 export const TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTorches) + 2;
 /** The first save version that can hold torches planted in the ground. */
 export const PLANTED_TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantTorches) + 2;
+/** The first save version that can hold a pot and fish on a fireplace. */
+export const FIREPLACE_COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookOnFireplaces) + 2;
 
 /** The first save version in which the player's walk to act on a thing is one pending approach, holding the command that started it. */
 export const APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(startApproaches) + 2;
@@ -660,6 +663,14 @@ function plantTorches(save: Readonly<Record<string, unknown>>): Record<string, u
 }
 
 /**
+ * Version 39 to 40: the player can cook fish and boil water on a fireplace. A save from before then has no pot or fish on any
+ * fireplace, so it carries over unchanged.
+ */
+function cookOnFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
  * For each walk-only task component an older save can hold, the command a pending approach holds in its place.
  * The commands are written out here, so later changes to a command do not change what the upgrade does.
  */
@@ -681,7 +692,7 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
 };
 
 /**
- * Version 39 to 40: the player walking to act on a thing has one pending approach, which holds the command that started it,
+ * Version 40 to 41: the player walking to act on a thing has one pending approach, which holds the command that started it,
  * in place of a task component for each kind of thing. Each walk-only task component becomes the approach for its command,
  * so a player saved on the way carries on and acts when they arrive. Timed work keeps its own task component.
  */

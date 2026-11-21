@@ -129,10 +129,25 @@ describe("a campfire's actions", () => {
         "addFuel:firewood off: no firewood",
         "addFuel:stick",
         "addFuel:bark off: no bark",
+        "putPotOn off: light the fire first",
+        "cookFish off: light the fire first",
         "takeDown off: let the fire burn out first",
       ]);
       expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: fireplace });
     }
+  });
+
+  it("offers the pot and the fish on a lit fireplace as on a campfire, and greys taking it down while it holds them", () => {
+    const world = worldWith({ backpack: { rawFish: 1 } });
+    const lit = { lit: true, fuelMinutes: 60 };
+    const fireplace = world.add({ fireplace: lit, facing: { turns: 0 }, potOnFire: { water: "river", minutesBoiling: 0 }, fishOnFire: [{ minutesCooked: 0 }] });
+
+    const actions = actionsFor({ kind: "scene", pick: { kind: "fireplace", id: fireplace } }, world.reader);
+
+    expect(summary(actions).slice(2)).toEqual(["addFuel:bark off: no bark", "takePotOff", "cookFish", "takeFishOff", "takeDown off: take the pot off first"]);
+    expect(find(actions, "cookFish")?.command).toEqual({ type: "cookFish", campfireId: fireplace });
+    expect(find(actions, "takeFishOff")?.command).toEqual({ type: "takeFishOff", campfireId: fireplace });
+    expect(find(actions, "takePotOff")?.command).toEqual({ type: "takePotOffFire", campfireId: fireplace });
   });
 
   it("greys taking down a fire with fish on it, and says to take the fish off first", () => {

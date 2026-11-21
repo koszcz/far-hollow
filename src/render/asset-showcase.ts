@@ -169,7 +169,7 @@ export function showAsset(
   // Lit torches light the ground as in the game: the one in the player's hand, then the planted torches nearest the camera.
   const torchLights = createTorchLights();
   scene.add(torchLights.group);
-  const torchFlame = { position: new THREE.Vector3(), seed: 0 };
+  const torchFlame = { position: new THREE.Vector3(), seed: 0, aboveGroundMetres: 0 };
 
   const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEGREES, width / height, 0.05, 4000);
   /** Draws one view into a rectangle of the canvas, counted in pixels from the bottom left. */
@@ -201,7 +201,7 @@ export function showAsset(
     camera.aspect = view.width / view.height;
     camera.updateProjectionMatrix();
     camera.lookAt(focus);
-    torchLights.update(player.torchFlame(torchFlame.position) ? torchFlame : undefined, plantedTorches.flames(), camera.position, seconds);
+    torchLights.update(player.torchFlame(torchFlame) ? torchFlame : undefined, plantedTorches.flames(), camera.position, seconds);
     renderer.setViewport(view.left, view.bottom, view.width, view.height);
     renderer.setScissor(view.left, view.bottom, view.width, view.height);
     renderer.render(scene, camera);

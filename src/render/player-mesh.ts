@@ -208,8 +208,11 @@ export interface PlayerMesh {
    * Pass undefined to hide it. The player keeps it through every motion.
    */
   setLitTorch(nowSeconds: number | undefined): void;
-  /** Copies where the lit torch's flame is, as a world point, into `target`. Returns false, and copies nothing, while no torch shows. */
-  torchFlame(target: THREE.Vector3): boolean;
+  /**
+   * Copies where the lit torch's flame is, as a world point, into `target.position`, and how high it is above the player's feet
+   * into `target.aboveGroundMetres`. Returns false, and copies nothing, while no torch shows.
+   */
+  torchFlame(target: { readonly position: THREE.Vector3; aboveGroundMetres: number }): boolean;
   dispose(): void;
 }
 
@@ -495,6 +498,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const torchShape = createTorchShape();
   const torchFireMaker = createFireMaker();
   const torchInHand = new THREE.Group();
+  /** Where the player's feet are in the world, worked out again each time torchFlame runs. */
+  const feet = new THREE.Vector3();
   for (const part of torchShape.parts) torchInHand.add(new THREE.Mesh(part.geometry, part.material));
   const torchFire = createTorchFlame(torchFireMaker);
   torchInHand.add(torchFire.group);
@@ -1047,8 +1052,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     torchFlame(target) {
       if (torchAt === undefined) return false;
       torchInHand.updateWorldMatrix(true, false);
-      target.set(0, TORCH_FLAME_HEIGHT_METRES, 0);
-      torchInHand.localToWorld(target);
+      target.position.set(0, TORCH_FLAME_HEIGHT_METRES, 0);
+      torchInHand.localToWorld(target.position);
+      target.aboveGroundMetres = target.position.y - feet.setFromMatrixPosition(group.matrixWorld).y;
       return true;
     },
     dispose() {

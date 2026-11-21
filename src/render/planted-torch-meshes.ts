@@ -37,7 +37,8 @@ export interface PlantedTorchMeshes {
   dispose(): void;
 }
 
-interface Drawn {
+/** What draws one planted torch: its group, its meshes, its click box, its fire, and the flame that the torch lights use. */
+interface TorchDrawing {
   readonly root: THREE.Group;
   readonly parts: THREE.Mesh[];
   readonly picker: THREE.Mesh;
@@ -83,12 +84,12 @@ export function createPlantedTorchMeshes(entities: EntityStore): PlantedTorchMes
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const torches = plantedTorchEntities(entities);
-  const drawn = new Map<Entity, Drawn>();
+  const drawn = new Map<Entity, TorchDrawing>();
   const pickers: THREE.Mesh[] = [];
   const flames: TorchFlame[] = [];
   const hits: THREE.Intersection[] = [];
 
-  function draw(entity: Entity & { position: { x: number; y: number; z: number } }): Drawn {
+  function draw(entity: Entity & { position: { x: number; y: number; z: number } }): TorchDrawing {
     const existing = drawn.get(entity);
     if (existing !== undefined) return existing;
     const root = new THREE.Group();
@@ -113,10 +114,14 @@ export function createPlantedTorchMeshes(entities: EntityStore): PlantedTorchMes
     root.position.set(entity.position.x, entity.position.y, entity.position.z);
     group.add(root);
     const id = entities.id(entity) ?? 0;
-    const flame = { position: new THREE.Vector3(entity.position.x, entity.position.y + FLAME_ABOVE_GROUND_METRES, entity.position.z), seed: id * 1.7 };
-    const made = { root, parts, picker, fire, flame };
-    drawn.set(entity, made);
-    return made;
+    const flame = {
+      position: new THREE.Vector3(entity.position.x, entity.position.y + FLAME_ABOVE_GROUND_METRES, entity.position.z),
+      seed: id * 1.7,
+      aboveGroundMetres: FLAME_ABOVE_GROUND_METRES,
+    };
+    const drawing = { root, parts, picker, fire, flame };
+    drawn.set(entity, drawing);
+    return drawing;
   }
 
   return {
@@ -125,18 +130,18 @@ export function createPlantedTorchMeshes(entities: EntityStore): PlantedTorchMes
       const seen = new Set<Entity>();
       flames.length = 0;
       for (const torch of torches) {
-        const item = draw(torch);
+        const drawing = draw(torch);
         // A torch dropped off a foundation that was taken down stands lower.
-        item.root.position.y = torch.position.y;
-        item.flame.position.y = torch.position.y + FLAME_ABOVE_GROUND_METRES;
-        item.fire.animate(nowSeconds, 1, item.flame.seed);
-        flames.push(item.flame);
+        drawing.root.position.y = torch.position.y;
+        drawing.flame.position.y = torch.position.y + FLAME_ABOVE_GROUND_METRES;
+        drawing.fire.animate(nowSeconds, 1, drawing.flame.seed);
+        flames.push(drawing.flame);
         seen.add(torch);
       }
-      for (const [entity, item] of [...drawn]) {
+      for (const [entity, drawing] of [...drawn]) {
         if (seen.has(entity)) continue;
-        group.remove(item.root);
-        pickers.splice(pickers.indexOf(item.picker), 1);
+        group.remove(drawing.root);
+        pickers.splice(pickers.indexOf(drawing.picker), 1);
         drawn.delete(entity);
       }
     },
@@ -153,10 +158,10 @@ export function createPlantedTorchMeshes(entities: EntityStore): PlantedTorchMes
       return { hit: { kind: "plantedTorch", entity }, distance: first.distance };
     },
     outlineOf(entity) {
-      const item = drawn.get(entity);
-      if (item === undefined) return [];
-      item.root.updateMatrixWorld(true);
-      return item.parts.map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
+      const drawing = drawn.get(entity);
+      if (drawing === undefined) return [];
+      drawing.root.updateMatrixWorld(true);
+      return drawing.parts.map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
     dispose() {
       shape.dispose();

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { TORCH_LIGHT_METRES } from "../sim/api";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 
-const flame = { position: new THREE.Vector3(3, 1.6, -2), seed: 0 };
+const flame = { position: new THREE.Vector3(3, 1.6, -2), seed: 0, aboveGroundMetres: 1.6 };
 const camera = new THREE.Vector3(0, 10, 0);
 
 function pointLights(group: THREE.Group): THREE.PointLight[] {
@@ -20,7 +20,7 @@ function litSpots(group: THREE.Group): number[][] {
 
 /** A planted torch's flame at x along the ground, half a metre up. */
 function plantedAt(x: number): TorchFlame {
-  return { position: new THREE.Vector3(x, 0.5, 0), seed: x };
+  return { position: new THREE.Vector3(x, 0.5, 0), seed: x, aboveGroundMetres: 0.5 };
 }
 
 describe("the torch lights", () => {
@@ -52,9 +52,28 @@ describe("the torch lights", () => {
     expect(light?.castShadow).toBe(false);
   });
 
+  it("light the ground about 6 m around a planted torch's flame too, though it stands lower than one in hand", () => {
+    const lights = createTorchLights();
+    // The planted torch stands on a deck 2 m above the valley floor, so its flame is 2.5 m up but 0.5 m above where it stands.
+    const planted = { position: new THREE.Vector3(1, 2.5, 0), seed: 0, aboveGroundMetres: 0.5 };
+    lights.update(undefined, [planted], camera, 0);
+    const [light] = pointLights(lights.group);
+
+    expect(Math.sqrt((light?.distance ?? 0) ** 2 - 0.5 ** 2)).toBeCloseTo(TORCH_LIGHT_METRES, 1);
+  });
+
+  it("give the first light to the torch in hand, then the planted torches from nearest the camera outwards", () => {
+    const lights = createTorchLights();
+    const hand = { position: new THREE.Vector3(-40, 1.6, 0), seed: 0, aboveGroundMetres: 1.6 };
+
+    lights.update(hand, [8, 3, -9, 1, -2].map(plantedAt), camera, 0);
+
+    expect(pointLights(lights.group).map((light) => light.position.x)).toEqual([-40, 1, -2, 3]);
+  });
+
   it("with 6 torches lit, light only 4: the one in hand, then the 3 planted nearest the camera", () => {
     const lights = createTorchLights();
-    const hand = { position: new THREE.Vector3(-40, 1.6, 0), seed: 0 };
+    const hand = { position: new THREE.Vector3(-40, 1.6, 0), seed: 0, aboveGroundMetres: 1.6 };
     // The camera is at x = 0, so the planted torches at 1, -2, and 3 are nearest it, and those at 8 and -9 are not.
     const planted = [8, 3, -9, 1, -2].map(plantedAt);
 

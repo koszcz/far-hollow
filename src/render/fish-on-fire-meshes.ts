@@ -5,10 +5,12 @@
 // top of the fire's sticks.
 // The fish is the trout from fishing-pile-shapes.ts. As it cooks, it darkens from raw to cooked colours, and the cooked
 // fish's char marks show on both its flat sides.
+// A fireplace's fish stand upright in a row at its opening instead. See FIREPLACE_FEET.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { campfireEntities, type Entity, type EntityStore } from "../sim/entities";
+import { campfireEntities, fireplaceEntities, type Entity, type EntityStore } from "../sim/entities";
 import { cookProgress, FISH_ON_FIRE_LIMIT } from "../sim/fish-on-fire";
+import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { CHAR_COLOUR, charMarkPart, COOKED_FISH_COLOURS, FISH_THICKNESS_METRES, fishParts, RAW_FISH_COLOURS } from "./fishing-pile-shapes";
 
 /** A peeled green stick, paler than the dead sticks on the forest floor. */
@@ -34,6 +36,16 @@ const CHAR_FROM_PROGRESS = 0.3;
 const SLOT_ANGLES: readonly number[] = Array.from({ length: FISH_ON_FIRE_LIMIT }, (_, slot) => 0.6 + (slot * Math.PI * 2) / FISH_ON_FIRE_LIMIT);
 /** A spot more than this high above the ground stands on a foundation deck. The skewers then stand on the deck. */
 const ON_DECK_METRES = 0.05;
+/**
+ * On a fireplace, the skewers stand upright in a row just in front of its opening, on its foundation square, so the fish hang
+ * at the opening with their flat sides to the fire. Added by fireplace ticket 04. These are the feet's offsets from the
+ * fireplace's middle across the opening and toward the front, in metres, with the fireplace facing the default way.
+ */
+const FIREPLACE_FEET: readonly (readonly [number, number])[] = [
+  [-0.15, 0.47],
+  [0, 0.47],
+  [0.15, 0.47],
+];
 
 export interface FishOnFireMeshes {
   readonly group: THREE.Group;
@@ -93,9 +105,11 @@ export function createFishOnFireMeshes(entities: EntityStore, groundAt: (x: numb
   const charred = new THREE.Color(CHAR_COLOUR);
 
   const campfires = campfireEntities(entities);
+  const fireplaces = fireplaceEntities(entities);
   const drawn = new Map<Entity, Slot[]>();
 
-  function makeSlot(): Slot {
+  /** Makes one skewer and its fish, leaning in toward -z by `lean` radians from upright. */
+  function makeSlot(lean: number): Slot {
     const root = new THREE.Group();
     // These two are the slot's own, so forget() disposes them, not dispose().
     const back = new THREE.MeshStandardMaterial({ color: RAW_FISH_COLOURS.back, roughness: 0.9, flatShading: true });
@@ -103,7 +117,7 @@ export function createFishOnFireMeshes(entities: EntityStore, groundAt: (x: numb
     const char = new THREE.MeshStandardMaterial({ color: CHAR_COLOUR, roughness: 0.9, flatShading: true });
     // The skewer's foot is the root's middle. It leans toward -z, which the slot's turn points at the fire.
     const leaning = new THREE.Group();
-    leaning.rotation.x = -SKEWER_LEAN_RADIANS;
+    leaning.rotation.x = -lean;
     root.add(leaning);
     const skewer = new THREE.Mesh(skewerGeometry, skewerMaterial);
     skewer.castShadow = true;
@@ -133,9 +147,24 @@ export function createFishOnFireMeshes(entities: EntityStore, groundAt: (x: numb
     const existing = drawn.get(campfire);
     if (existing !== undefined) return existing;
     const { x, y, z } = campfire.position;
+    if (campfire.fireplace !== undefined) {
+      const yaw = quarterTurnsToRadians(campfire.facing?.turns ?? 0);
+      const slots = FIREPLACE_FEET.map(([across, forward]) => {
+        const slot = makeSlot(0);
+        // Turn the offset with the fireplace, the same way three.js turns a child of a group turned by `yaw`.
+        const footX = x + across * Math.cos(yaw) + forward * Math.sin(yaw);
+        const footZ = z - across * Math.sin(yaw) + forward * Math.cos(yaw);
+        slot.root.position.set(footX, y - SKEWER_SUNK_METRES, footZ);
+        // The root's +z points out of the opening, so the fish's flat side faces the fire.
+        slot.root.rotation.y = yaw;
+        return slot;
+      });
+      drawn.set(campfire, slots);
+      return slots;
+    }
     const onDeck = y - groundAt(x, z) > ON_DECK_METRES;
     const slots = SLOT_ANGLES.map((angle) => {
-      const slot = makeSlot();
+      const slot = makeSlot(SKEWER_LEAN_RADIANS);
       const footX = x + Math.sin(angle) * SKEWER_FOOT_METRES;
       const footZ = z + Math.cos(angle) * SKEWER_FOOT_METRES;
       slot.root.position.set(footX, (onDeck ? y : groundAt(footX, footZ)) - SKEWER_SUNK_METRES, footZ);
@@ -161,7 +190,7 @@ export function createFishOnFireMeshes(entities: EntityStore, groundAt: (x: numb
     group,
     update() {
       const seen = new Set<Entity>();
-      for (const campfire of campfires) {
+      for (const campfire of [...campfires, ...fireplaces]) {
         if (campfire.fishOnFire === undefined) continue;
         seen.add(campfire);
         slotsOf(campfire).forEach((slot, index) => {

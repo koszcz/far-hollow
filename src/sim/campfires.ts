@@ -2,7 +2,7 @@ import type { CampfireFuel, CampfireView, Command, Refusal } from "./api";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { toolRefusal } from "./refusals";
 import { snapToGridSquare } from "./build-grid";
-import { campfireEntities, heldFireOf, heldFires, playerEntities, type Entity, type EntityStore, type HeldFire } from "./entities";
+import { heldFireOf, heldFires, playerEntities, type EntityStore, type HeldFire } from "./entities";
 import { burnt, fuelFits, fuelShare, FUEL_LIMIT_MINUTES, withFuel, type Fire } from "./fire";
 import { cookProgress, isCooked } from "./fish-on-fire";
 import { boilProgress } from "./pot-state";
@@ -20,8 +20,6 @@ export const CAMPFIRE_WARMTH_RADIUS_METRES = 4;
 const TEND_STAND_METRES = 1.5;
 /** The player can tend a fire from this far from its centre, in metres. */
 const TEND_REACH_METRES = 2.5;
-
-type CampfireEntity = Entity & { campfire: NonNullable<Entity["campfire"]>; position: NonNullable<Entity["position"]> };
 
 /**
  * The player tends two kinds of fire the same way: a campfire, and the fire in a fireplace. Each command names the fire by
@@ -41,8 +39,8 @@ export interface Campfires {
   refusal(command: Extract<Command, { type: "addFuel" | "lightCampfire" }>): Refusal | undefined;
   /** The campfire or fireplace as the HUD shows it, or undefined if the entity is neither, finished. */
   describe(campfireId: number): CampfireView | undefined;
-  /** The campfire nearest the player that is within their reach, if any. Fireplaces are left out. */
-  nearby(): CampfireEntity | undefined;
+  /** The campfire or fireplace with this id, if it is the one nearest the player within their reach. */
+  nearestInReach(campfireId: number): HeldFire | undefined;
   /** The entity id of the campfire or fireplace nearest the player that is within their reach, if any. */
   nearbyFire(): number | undefined;
   /** Burns the fuel of every lit campfire and fireplace for this many game minutes. A fire goes out when its fuel runs out. */
@@ -52,7 +50,6 @@ export interface Campfires {
 /** Lets the player light campfires and fireplaces, and keep them fuelled. */
 export function createCampfires(entities: EntityStore): Campfires {
   const players = playerEntities(entities);
-  const campfires = campfireEntities(entities);
 
   function fireById(campfireId: number): HeldFire | undefined {
     return heldFireOf(entities.entity(campfireId));
@@ -100,6 +97,11 @@ export function createCampfires(entities: EntityStore): Campfires {
     return found;
   }
 
+  function nearbyFire(): number | undefined {
+    const found = nearest(heldFires(entities).map((held) => ({ held, position: held.entity.position })));
+    return found === undefined ? undefined : entities.id(found.held.entity);
+  }
+
   return {
     reach(campfireId) {
       const held = fireById(campfireId);
@@ -139,13 +141,10 @@ export function createCampfires(entities: EntityStore): Campfires {
       if (held === undefined || held.fire.lit || tenderOf(held) === undefined || lightRefusal(held) !== undefined) return;
       setFire(held, { ...held.fire, lit: true });
     },
-    nearby() {
-      return nearest(campfires);
+    nearestInReach(campfireId) {
+      return nearbyFire() === campfireId ? fireById(campfireId) : undefined;
     },
-    nearbyFire() {
-      const found = nearest(heldFires(entities).map((held) => ({ held, position: held.entity.position })));
-      return found === undefined ? undefined : entities.id(found.held.entity);
-    },
+    nearbyFire,
     burn(gameMinutes) {
       for (const held of heldFires(entities)) {
         if (held.fire.lit) setFire(held, burnt(held.fire, gameMinutes));

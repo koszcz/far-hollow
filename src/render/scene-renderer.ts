@@ -179,13 +179,13 @@ export function createSceneRenderer(
   // The torch lights stay in the scene whether a torch is lit or not, so lighting one does not rebuild every material.
   const torchLights = createTorchLights();
   scene.add(torchLights.group);
-  const handTorchFlame: TorchFlame = { position: new THREE.Vector3(), seed: 0 };
+  const handTorchFlame = { position: new THREE.Vector3(), seed: 0, aboveGroundMetres: 0 };
   /**
    * Lights the ground from the lit torch in the player's hand, if they hold one, then from the planted torches nearest the camera.
    * Run it once the camera is placed.
    */
   function lightTorches(nowSeconds: number): void {
-    const hand = playerMesh.torchFlame(handTorchFlame.position) ? handTorchFlame : undefined;
+    const hand: TorchFlame | undefined = playerMesh.torchFlame(handTorchFlame) ? handTorchFlame : undefined;
     torchLights.update(hand, plantedTorchMeshes.flames(), camera.position, nowSeconds);
   }
   /** Where the player is drawn this frame. Space moves the camera to it, and the camera follows it when follow is on. */

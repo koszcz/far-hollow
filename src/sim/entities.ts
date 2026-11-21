@@ -10,6 +10,7 @@ import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
+import type { BurnTime } from "./burn-time";
 import type { TreeGrowth } from "./tree-growth";
 import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, StructureKind, WorkStationKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
@@ -247,15 +248,15 @@ export interface Entity {
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
   /**
-   * The lit torch in the player's hand, with the game minutes it still burns. Missing when they hold none.
+   * The lit torch in the player's hand, with how long it still burns. Missing when they hold none.
    * It is not a backpack content, so it uses no backpack weight. Only the player has one.
    */
-  litTorch?: { minutesLeft: number };
+  litTorch?: BurnTime;
   /**
-   * Marks a lit torch planted in the ground, with the game minutes it still burns. Its position is the spot where it stands,
+   * Marks a lit torch planted in the ground, with how long it still burns. Its position is the spot where it stands,
    * on the ground or on a foundation. It does not block walking.
    */
-  plantedTorch?: { minutesLeft: number };
+  plantedTorch?: BurnTime;
   /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
   fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */

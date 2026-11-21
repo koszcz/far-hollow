@@ -62,7 +62,7 @@ import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot, potRules } from "./pot";
-import { createCooking } from "./cooking";
+import { createCooking, cookingRules } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
@@ -351,11 +351,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
   function tendNow(command: TendTask): PlainNotice | undefined {
     switch (command.type) {
-      case "cookFish":
-        cooking.cookFish(command.campfireId);
-        return undefined;
-      case "takeFishOff":
-        return cooking.takeFishOff(command.campfireId);
       case "stackOnWoodpile":
         woodpiles.stack(command.woodpileId, command.wood, command.all);
         return undefined;
@@ -452,8 +447,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...potRules(pot, campfires, ruleGame, () => {
       reportEatOrDrink("drinkFromPot");
     }),
-    cookFish: { start: "alongside", refusal: (command) => cooking.refusal(command.campfireId), approach: remainingTendApproach },
-    takeFishOff: { start: "alongside", approach: remainingTendApproach },
+    ...cookingRules(cooking, campfires, ruleGame),
     tendWoodpile: {
       start: "fresh",
       approach: {

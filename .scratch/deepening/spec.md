@@ -40,6 +40,6 @@ These tickets use the architecture words below.
 6. `issues/06-close-ui-leaks.md`: small fixes where the UI copies sim rules or skips refusals.
 7. `issues/07-timed-tasks-use-the-approach.md`: timed tasks, such as chopping, walk to their thing through the approach module.
 
-Tickets 02, 05, and 06 can start now. Ticket 01 needs 02. Ticket 03 needs 01 and 02. Ticket 04 needs 02. Ticket 07 needs 01.
+Tickets 02, 05, and 06 can start now. Ticket 01 needs 02. Ticket 03 needs 01, 02, 04, and 07. Ticket 04 needs 02. Ticket 07 needs 01.
 
 The review report with before and after diagrams was written to a temporary file and is not kept. This spec and the tickets hold everything it said.

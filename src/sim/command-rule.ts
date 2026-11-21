@@ -51,7 +51,7 @@ export interface RuleGame {
   readonly player: Entity & Required<Pick<Entity, "backpack">>;
   readonly hand: Pick<HandReach, "start">;
   /** Carries a command out now if the player stands within its reach, or else starts the approach for it. See approach.ts. */
-  startApproach(command: ActionCommand): Notice | PlainNotice | undefined;
+  readonly startApproach: (command: ActionCommand) => Notice | PlainNotice | undefined;
   /** Stops whatever the player was doing, for a command that starts afresh only some of the time. */
-  stopOtherWork(): void;
+  readonly stopOtherWork: () => void;
 }

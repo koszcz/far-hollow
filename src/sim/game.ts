@@ -33,7 +33,7 @@ import { createDebarking } from "./debarking";
 import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
-import { createGathering } from "./gathering";
+import { createGathering, gatheringRules } from "./gathering";
 import {
   createEntityStore,
   movingEntities,
@@ -63,7 +63,6 @@ import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { createCooking } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
-import { goneRefusal } from "./refusals";
 import { createPiles } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
@@ -522,28 +521,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       },
     },
     ...torchRules(torches, ruleGame),
-    pickUpStick: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => goneRefusal(entities, command.stickId),
-      approach: {
-        reach: (command) => gathering.reach(command.stickId, "stick"),
-        act: (command) => {
-          gathering.pickUp(command.stickId, "stick");
-        },
-      },
-    },
-    pickUpBark: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => goneRefusal(entities, command.barkId),
-      approach: {
-        reach: (command) => gathering.reach(command.barkId, "bark"),
-        act: (command) => {
-          gathering.pickUp(command.barkId, "bark");
-        },
-      },
-    },
+    ...gatheringRules(gathering, carrying, ruleGame),
     forage: {
       start: "fresh",
       needsFreeHands: true,
@@ -559,25 +537,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "alongside",
       run: (command) => {
         if (foraging.eat(command.food)) reportEatOrDrink("eat");
-      },
-    },
-    splitLog: {
-      // A log given by id must lie on the ground, and only then does the player stop what they were doing. A debarked log cannot be split.
-      start: "alongside",
-      needsFreeHands: true,
-      refusal: (command) => gathering.splitRefusal(command.logId),
-      run: (command) => {
-        if (command.logId !== undefined) return approach.start(command);
-        cancelTasks();
-        gathering.splitLog();
-        return undefined;
-      },
-      // A log given by id is picked up first, then split on the player's shoulder.
-      approach: {
-        reach: ({ logId }) => (logId === undefined || entities.entity(logId)?.log === undefined ? undefined : carrying.pickUpReach(logId)),
-        act: ({ logId }) => {
-          if (logId !== undefined) carrying.pickUp(logId, true);
-        },
       },
     },
     dropFromBackpack: {

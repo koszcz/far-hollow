@@ -78,6 +78,10 @@ export const COURSE_RADIUS_METRES = (() => {
 const POST_FOOT_RADIUS_METRES = 0.125;
 const POST_TOP_RADIUS_METRES = 0.11;
 const LINTEL_RADIUS_METRES = 0.11;
+/** How wide the doorway is between the feet of a door frame's posts, in metres. A door hung in it fits this gap. */
+export const DOORWAY_WIDTH_METRES = BUILD_GRID_METRES - 4 * POST_FOOT_RADIUS_METRES;
+/** How high the doorway is, from the deck to the underside of the lintel, in metres. */
+export const DOORWAY_HEIGHT_METRES = EDGE_PIECE_HEIGHT_METRES - 2 * LINTEL_RADIUS_METRES;
 /** How far the lintel reaches past the outside of each post, in metres. */
 const LINTEL_OVERHANG_METRES = 0.08;
 /** How far each door post leans from upright, in radians, so the frame looks set up by hand. */

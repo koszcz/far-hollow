@@ -208,6 +208,7 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame" },
+  { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame" },
   { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   ...FURNITURE_BUILD_MENU,
@@ -527,7 +528,7 @@ const STATES_BY_ASSET = {
   "furniture-icons": BUILD_ICON_STATES,
   // So does the fireplace's icon.
   "fireplace-icon": BUILD_ICON_STATES,
-  // And the floor's.
+  // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,

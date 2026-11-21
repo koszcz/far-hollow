@@ -235,6 +235,10 @@ _Avoid_: Truss, rafters (for the whole frame)
 The planks laid on one roof frame, in overlapping rows. Only a finished roof section keeps the rain off.
 _Avoid_: Roof tile, shingle
 
+**Door**:
+A building piece of 3 planks that hangs in a finished door frame. It opens by itself when the player walks through, and closes behind them. It never changes where the player can walk. A door frame with a door cannot come down.
+_Avoid_: Gate, hatch
+
 **Ridge**:
 The top line of a roof, where two slopes that face away from each other meet.
 _Avoid_: Peak, apex

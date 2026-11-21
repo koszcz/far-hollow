@@ -103,6 +103,21 @@ describe("running the action queue", () => {
     expect(game.entities.has(second)).toBe(true);
   });
 
+  it("skips picking up a stick that is gone when its turn comes, says why, and starts the one after", () => {
+    const game = createGame({ seed: 42 });
+    const [stick, other] = sticksNearPlayer(game, 2);
+
+    send(game, queued(pickUp(game, stick)));
+    // Allowed now, but the stick is gone once the first action picks it up.
+    send(game, queued(pickUp(game, stick)));
+    send(game, queued(pickUp(game, other)));
+    stepUntil(game, () => game.client.getView().notice !== null);
+
+    const view = game.client.getView();
+    expect(view.notice).toEqual({ kind: "actionSkipped", refusal: { kind: "gone" } });
+    expect(view.actionQueue).toEqual([pickUp(game, other)]);
+  });
+
   it("keeps fishing while nothing waits behind it", () => {
     const game = createGame({ seed: 42 });
     giveRod(game);

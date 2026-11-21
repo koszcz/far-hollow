@@ -245,6 +245,7 @@ function noticeText(notice: Notice): string {
       return strings.notices.droppedBesideStation(strings.pile.holds(notice.content, notice.count), strings.buildMenu.structures[notice.station]);
     case "cannotQueue":
     case "actionSkipped":
+    case "refused":
       return strings.notices[notice.kind](refusalText(notice.refusal));
     default:
       return strings.notices[notice.kind];

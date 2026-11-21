@@ -38,7 +38,7 @@ export function gatheringStoneNow(player: Entity): { progress: number } | undefi
 export interface StoneGathering {
   /**
    * Walks the player into reach of a spot on the river bank or in the river, then gathers one stone there.
-   * Does nothing if the spot is not on the river bank, or one more stone does not fit in the backpack.
+   * Does nothing if the spot is not on the river bank. The game calls it only once `refusal` passes.
    */
   gather(spot: GroundPoint): void;
   /** Why the player could not gather stone now: one more stone does not fit in the backpack. */
@@ -68,7 +68,7 @@ export function createStoneGathering(entities: EntityStore, walking: Walking, va
     gather(spot) {
       if (!isRiverBank(valley, spot)) return;
       for (const player of players) {
-        if (player.backpack === undefined || !stoneFits(player.backpack)) continue;
+        if (player.backpack === undefined) continue;
         setComponent(entities, player, "stoneTask", { x: spot.x, z: spot.z, secondsDone: 0 });
         if (inRiver(spot)) walking.walkTo(nearestWalkableSpot(walking.walkMap, spot) ?? spot);
         else walkOntoOrWithinReach(walking, spot, spot, GATHER_STONE_REACH_METRES);

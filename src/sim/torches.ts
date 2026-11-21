@@ -25,7 +25,7 @@ export type PlantedTorchEntity = Entity & { plantedTorch: BurnTime; position: Ve
 export interface Torches extends Activity {
   /**
    * Takes one torch out of the backpack and puts it in the player's hand, lit for TORCH_BURN_MINUTES.
-   * Does nothing if the backpack holds no torch, or if `lightRefusal` gives a reason.
+   * Does nothing if the backpack holds no torch. The game calls it only once `lightRefusal` passes.
    */
   light(): void;
   /** Why the player cannot light a torch now: they lack the steel and flint, or already hold a lit torch. */
@@ -104,7 +104,7 @@ export function createTorches(entities: EntityStore, walking: Walking, valley: V
   return {
     light() {
       const player = players.first;
-      if (player?.backpack === undefined || lightRefusal() !== undefined || !hasInBackpack(player.backpack, "torch")) return;
+      if (player?.backpack === undefined || !hasInBackpack(player.backpack, "torch")) return;
       removeFromBackpack(player.backpack, "torch", 1);
       setComponent(entities, player, "litTorch", freshBurnTime());
     },

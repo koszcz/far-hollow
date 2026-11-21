@@ -2,7 +2,7 @@
 
 The game logic decides whether the player can do something. The UI never decides this itself. Before the action menu lists an action, it asks the game client, `client.refusal(command)`, why the game would turn that command away. If the game gives a reason, the menu greys the action out and shows that reason. If it gives none, the action is allowed.
 
-Each module that carries out a command also gives its refusal, such as `woodpiles.refusal` for stacking and taking wood. The module checks the same rule again when it carries the command out, because things can change while the player walks there. So one rule serves both the menu and the work.
+Each module that carries out a command also gives its refusal, such as `woodpiles.refusal` for stacking and taking wood. The game checks that refusal before it runs any command. A refused command does nothing, and a notice shows the reason. The module checks the same rule again, with the same function, when the player gets to the thing, because things can change while the player walks there. So one rule serves both the menu and the work.
 
 Each kind of command has one rule in `commandRules` in `src/sim/game.ts`. The rule says whether the command stops what the player was doing, how to carry it out, why it is refused, and whether it needs free hands.
 

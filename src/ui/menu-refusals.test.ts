@@ -26,10 +26,14 @@ describe("why the craft menu greys out a recipe", () => {
 describe("why the chest panel greys out a content", () => {
   it("greys out a content that does not fit in the backpack, and leaves one that does", () => {
     const game = gameWithBackpack({ stone: 9, stick: 3 });
+    const at = player(game).position ?? { x: 0, y: 0, z: 0 };
     const chestId = game.entities.id(
-      game.entities.add({ position: { x: 30, y: 0, z: 30 }, furniture: "chest", storage: { contents: { stone: 1, berries: 1 } } }),
+      game.entities.add({ position: { x: at.x + 1, y: at.y, z: at.z }, furniture: "chest", storage: { contents: { stone: 1, berries: 1 } } }),
     );
     if (chestId === undefined) throw new Error("No chest");
+    // The panel only shows an open chest.
+    game.client.send({ type: "openChest", chestId });
+    game.step();
 
     expect(chestTakeReason(game.client, chestId, "stone")).toBe("the backpack is full");
     expect(chestTakeReason(game.client, chestId, "berries")).toBeNull();

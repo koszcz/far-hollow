@@ -33,6 +33,8 @@ export interface World {
   add(components: Entity): number;
   /** Adds a blueprint with this much delivered to it, well away from the player, and returns its id. The view updates. */
   addBlueprint(structure: StructureKind, delivered?: Partial<Record<"log" | "debarkedLog" | "plank", number>>): number;
+  /** Adds an empty chest or shelf beside the player, opens it, and returns its id. The view updates. */
+  openStorage(furniture: "chest" | "shelf"): number;
 }
 
 /** A new game set up as given. */
@@ -85,5 +87,15 @@ export function worldWith(setup: Setup): World {
     sled: sledId,
     add,
     addBlueprint: (structure, delivered = {}) => add({ blueprint: { structure, progress: 0, materialsSpent: 0, delivered }, facing: { turns: 0 } }),
+    openStorage: (furniture) => {
+      const { x, y, z } = player.position;
+      const id = game.entities.id(game.entities.add({ furniture, storage: { contents: {} }, facing: { turns: 0 }, position: { x: x + 1, y, z } }));
+      if (id === undefined) throw new Error("No id");
+      game.client.send({ type: "setPaused", paused: false });
+      game.client.send({ type: "openChest", chestId: id });
+      game.step();
+      refresh();
+      return id;
+    },
   };
 }

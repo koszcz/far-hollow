@@ -1,7 +1,7 @@
 // Fishing at the river with the fishing rod. The player walks to the bank, casts, and waits for a fish to bite.
 // Each fish goes in the backpack, and the player casts again until they stop or a fish gets away.
 import type { PlainNotice, Refusal } from "./api";
-import { addToBackpack, hasInBackpack } from "./backpack";
+import { addToBackpack } from "./backpack";
 import { canReachRiver } from "./drinking";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { createRandom, scramble } from "./random";
@@ -30,11 +30,8 @@ export function fishingNow(player: Entity): { progress: number } | undefined {
 }
 
 export interface Fishing {
-  /**
-   * Walks the player to the river bank nearest a spot on the river, then fishes there. Returns a notice if it is refused:
-   * "putLogDownFirst" while they carry a log. Does nothing if the backpack holds no fishing rod.
-   */
-  fish(spot: GroundPoint): PlainNotice | undefined;
+  /** Walks the player to the river bank nearest a spot on the river, then fishes there. The game calls it only once `refusal` passes. */
+  fish(spot: GroundPoint): void;
   /** Why the player could not fish now: without the fishing rod, or while they carry a log. */
   refusal(): Refusal | undefined;
   /** Stops the player fishing, or walking to fish. */
@@ -54,6 +51,11 @@ export function createFishing(entities: EntityStore, walking: Walking, valley: V
   const players = playerEntities(entities);
   const fishers = entities.with("player", "fishTask", "position", "backpack");
 
+  /** Why this player could not fish now: without the fishing rod, or while they carry a log. */
+  function refusalFor(player: Entity | undefined): Refusal | undefined {
+    return toolRefusal(player, "fishingRod") ?? (player?.carrying === undefined ? undefined : { kind: "putLogDownFirst" });
+  }
+
   /** Casts the line: starts a new wait for a fish and counts the cast. */
   function cast(player: Entity, spot: GroundPoint): void {
     const casts = player.fishCasts ?? 0;
@@ -64,17 +66,11 @@ export function createFishing(entities: EntityStore, walking: Walking, valley: V
   return {
     fish(spot) {
       for (const player of players) {
-        if (toolRefusal(player, "fishingRod") !== undefined) continue;
-        if (player.carrying !== undefined) return "putLogDownFirst";
         cast(player, spot);
         walking.walkTo(nearestWalkableSpot(walking.walkMap, spot) ?? spot);
       }
-      return undefined;
     },
-    refusal() {
-      const player = players.first;
-      return toolRefusal(player, "fishingRod") ?? (player?.carrying === undefined ? undefined : { kind: "putLogDownFirst" });
-    },
+    refusal: () => refusalFor(players.first),
     cancel() {
       for (const player of [...fishers]) entities.removeComponent(player, "fishTask");
     },
@@ -84,8 +80,8 @@ export function createFishing(entities: EntityStore, walking: Walking, valley: V
       // Copy the list first, because players who stop fishing leave the query while it is being walked.
       for (const fisher of [...fishers]) {
         if (fisher.walkPath !== undefined) continue;
-        // The player stops if they could not get near enough to the water, or no longer hold the rod.
-        if (!canReachRiver(valley, fisher.position) || !hasInBackpack(fisher.backpack, "fishingRod")) {
+        // The player stops if they could not get near enough to the water, or could no longer fish, such as without the rod.
+        if (!canReachRiver(valley, fisher.position) || refusalFor(fisher) !== undefined) {
           entities.removeComponent(fisher, "fishTask");
           continue;
         }

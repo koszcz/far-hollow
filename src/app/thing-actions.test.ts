@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent, CarriedLog, FurnitureKind, StructureKind } from "../sim/api";
 import { worldWith, type Setup } from "./test-world";
-import { actionsFor, mainAction, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
+import { actionsFor, mainAction, type ActionTarget, type ThingAction } from "./thing-actions";
 
 // Each test sets up a real game, so every action is allowed or refused by the game's own rules.
 
@@ -426,10 +426,13 @@ describe("other things' actions", () => {
   });
 
   it("picks up a log, splits it, or debarks it", () => {
-    const actions = actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1, drawknife: 1 } }).reader);
+    const world = worldWith({ backpack: { axe: 1, drawknife: 1 } });
+    const log = world.add({ log: { heading: 0 } });
+    const actions = actionsFor(scene("log", log), world.reader);
     expect(summary(actions)).toEqual(["pickUp main", "split", "debark"]);
-    expect(find(actions, "split")).toMatchObject({ label: "Split into firewood", command: { type: "splitLog", logId: 4 } });
-    expect(summary(actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1 }, carrying: "log" }).reader))).toEqual([
+    expect(find(actions, "split")).toMatchObject({ label: "Split into firewood", command: { type: "splitLog", logId: log } });
+    const carrying = worldWith({ backpack: { axe: 1 }, carrying: "log" });
+    expect(summary(actionsFor(scene("log", carrying.add({ log: { heading: 0 } })), carrying.reader))).toEqual([
       "pickUp main off: your shoulder is full",
       "split off: your shoulder is full",
       "debark off: needs the drawknife",
@@ -450,13 +453,16 @@ describe("other things' actions", () => {
   });
 
   it("sleeps on a laid bedroll, or picks it up", () => {
-    expect(summary(actionsFor(scene("bedroll", 5), worldWith({}).reader))).toEqual(["sleep main", "pickUp"]);
+    const world = worldWith({});
+    expect(summary(actionsFor(scene("bedroll", world.add({ bedroll: true })), world.reader))).toEqual(["sleep main", "pickUp"]);
   });
 
   it("sleeps in a bed as its main action, or takes it down", () => {
-    const actions = actionsFor(furniture("bed", 7), worldWith({}).reader);
+    const world = worldWith({});
+    const bed = world.add({ furniture: "bed", facing: { turns: 0 } });
+    const actions = actionsFor(furniture("bed", bed), world.reader);
     expect(summary(actions)).toEqual(["sleep main", "takeDown"]);
-    expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: 7 });
+    expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: bed });
   });
 
   it("offers only taking down a table, since eating at it needs no new action", () => {
@@ -464,9 +470,11 @@ describe("other things' actions", () => {
   });
 
   it("sits on a stool as its main action, or takes it down", () => {
-    const actions = actionsFor(furniture("stool", 8), worldWith({}).reader);
+    const world = worldWith({});
+    const stool = world.add({ furniture: "stool", facing: { turns: 0 } });
+    const actions = actionsFor(furniture("stool", stool), world.reader);
     expect(summary(actions)).toEqual(["sit main", "takeDown"]);
-    expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: 8 });
+    expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: stool });
   });
 
   it("opens a chest, or takes it down", () => {
@@ -521,8 +529,9 @@ describe("other things' actions", () => {
   });
 
   it("acts on the thing under a finished structure, then takes the structure down", () => {
-    const pick = { kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: 4 } } as const;
-    const actions = actionsFor({ kind: "scene", pick }, worldWith({}).reader);
+    const world = worldWith({});
+    const pick = { kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: world.add({ stick: true }) } } as const;
+    const actions = actionsFor({ kind: "scene", pick }, world.reader);
 
     expect(summary(actions)).toEqual(["pickUp main", "takeDownStructure"]);
     expect(find(actions, "takeDownStructure")?.command).toEqual({ type: "takeDown", pieceId: 11 });
@@ -555,12 +564,11 @@ describe("other things' actions", () => {
     expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, worldWith({ backpack: { berries: 2 } }).reader))).toEqual(["use main", "drop"]);
     expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, worldWith({ backpack: { stick: 2 } }).reader))).toEqual(["drop"]);
 
-    const chest = { id: 12, furniture: "chest" as const, contents: {}, weight: 0, weightLimit: 60 };
-    const withChest = worldWith({ backpack: { berries: 2 } }).reader;
-    const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
-    const actions = actionsFor({ kind: "backpackContent", content: "berries" }, chestReader);
+    const withChest = worldWith({ backpack: { berries: 2 } });
+    const chestId = withChest.openStorage("chest");
+    const actions = actionsFor({ kind: "backpackContent", content: "berries" }, withChest.reader);
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
-    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
+    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId, content: "berries", all: true });
     expect(find(actions, "putInChest")?.label).toBe("Put one in the chest");
   });
 
@@ -636,15 +644,14 @@ describe("a planted torch's actions", () => {
   });
 
   it("puts things on an open shelf first, named as a shelf", () => {
-    const shelf = { id: 14, furniture: "shelf" as const, contents: {}, weight: 0, weightLimit: 30 };
-    const withShelf = worldWith({ backpack: { stick: 2 } }).reader;
-    const shelfReader: ActionReader = { ...withShelf, getView: () => ({ ...withShelf.getView(), nearby: [{ kind: "openChest", view: shelf }] }) };
-    const actions = actionsFor({ kind: "backpackContent", content: "stick" }, shelfReader);
+    const withShelf = worldWith({ backpack: { stick: 2 } });
+    const shelfId = withShelf.openStorage("shelf");
+    const actions = actionsFor({ kind: "backpackContent", content: "stick" }, withShelf.reader);
 
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "drop"]);
     expect(find(actions, "putInChest")?.label).toBe("Put one on the shelf");
     expect(find(actions, "putInChest:all")?.label).toBe("Put all on the shelf");
-    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 14, content: "stick", all: true });
+    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: shelfId, content: "stick", all: true });
   });
 
   it("drops the log on the shoulder, or splits it with the axe", () => {

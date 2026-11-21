@@ -1,3 +1,5 @@
+import type { Refusal } from "./api";
+import { goneRefusal } from "./refusals";
 import { addToBackpack, removeFromBackpack, type Food, type WildFood } from "./backpack";
 import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import type { HandReach } from "./hand-reach";
@@ -29,6 +31,8 @@ export interface Foraging {
    * there, the food stays and the reach gives "backpackFull".
    */
   forage(spotId: number): void;
+  /** Why the player could not forage a spot now: it is gone, or it is growing back, so it has no food. */
+  refusal(spotId: number): Refusal | undefined;
   /**
    * Eats one of this food from the backpack, which fills hunger, more so within reach of a finished table. Raw fish makes
    * the player sick. Does nothing if the backpack holds none. Returns whether the player ate.
@@ -51,8 +55,12 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
   /** The forage spot with this id, if it has food and is within the player's reach. */
   function spotInReach(spotId: number, player: { position: GroundPoint }) {
     const spot = entityWith(entities, spotId, "forageSpot", "position");
-    if (spot === undefined || spot.regrowing !== undefined || groundDistance(spot.position, player.position) > FORAGE_REACH_METRES) return undefined;
+    if (spot === undefined || refusal(spotId) !== undefined || groundDistance(spot.position, player.position) > FORAGE_REACH_METRES) return undefined;
     return spot;
+  }
+
+  function refusal(spotId: number): Refusal | undefined {
+    return goneRefusal(entities, spotId) ?? (entities.entity(spotId)?.regrowing === undefined ? undefined : { kind: "nothingToTake" });
   }
 
   return {
@@ -65,6 +73,7 @@ export function createForaging(entities: EntityStore, walking: Walking, hand: Pi
         setComponent(entities, player, "forageTask", { spotId });
       }
     },
+    refusal,
     eat(food) {
       let ate = false;
       for (const player of players) {

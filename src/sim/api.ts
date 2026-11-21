@@ -386,6 +386,7 @@ export interface SleepView {
  * `queueFull`: the player tried to add an action to the action queue, but it already held ACTION_QUEUE_LIMIT.
  * `cannotQueue`: the player tried to add an action to the action queue that the game refuses now, for the `refusal`.
  * `actionSkipped`: a queued action's turn came, but the game refused it, for the `refusal`, so it was dropped.
+ * `refused`: the player sent a command that the game refuses now, for the `refusal`, so nothing happened.
  * `droppedBesideStation`: crafting at the `station` finished, and `count` of the result, `content`, did not fit in the backpack,
  * so they dropped in a pile beside the station.
  */
@@ -393,7 +394,7 @@ export type Notice =
   | { readonly kind: PlainNotice }
   | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind }
   | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] }
-  | { readonly kind: "cannotQueue" | "actionSkipped"; readonly refusal: Refusal }
+  | { readonly kind: "cannotQueue" | "actionSkipped" | "refused"; readonly refusal: Refusal }
   | { readonly kind: "droppedBesideStation"; readonly content: BackpackContent; readonly count: number; readonly station: WorkStationKind };
 
 /** The kind of each notice. */
@@ -520,6 +521,8 @@ export type Refusal =
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
  * - `torchAlreadyLit`: the player already holds a lit torch, and holds only one at a time.
+ * - `gone`: the thing the command acts on is no longer there, such as a stick already picked up.
+ * - `openFirst`: the chest or shelf is not the one the player has open.
  * - `torchTooClose`: another planted torch stands too close to plant one here.
  */
 export type PlainRefusal =
@@ -544,6 +547,8 @@ export type PlainRefusal =
   | "tooYoungToChop"
   | "backpackFull"
   | "torchAlreadyLit"
+  | "gone"
+  | "openFirst"
   | "torchTooClose";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */

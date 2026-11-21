@@ -2,7 +2,7 @@
 
 **What to build:** `scripts/shot.ts` gets a `--compare <commit>` option. It takes the screenshot on the current code and on the given commit, then prints how many pixels differ and where. An agent can then check that a refactor left a page looking the same, without reading either image.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 **Assets:** None. This ticket changes no asset.
 

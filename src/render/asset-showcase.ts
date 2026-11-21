@@ -119,6 +119,7 @@ export function showAsset(
     player,
     undergrowthShapes: shapes.undergrowth,
     treeShapes: shapes.trees,
+    saplingModels: shapes.saplings,
     place(x, z, entity) {
       return store.add({ ...entity, position: at(x, z) });
     },
@@ -148,7 +149,7 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.stump, shapes.log);
+  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
   const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();

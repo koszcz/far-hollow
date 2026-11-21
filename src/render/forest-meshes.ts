@@ -3,7 +3,7 @@
 // Each asset's shape lives in its own file: tree-model.ts, stump-model.ts, log-shape.ts, and stick-shape.ts.
 // Trees far from the camera draw with the "far-trees" asset (approved), built in tree-far-shape.ts.
 // Felled trees fall with tree-fall.ts, part of the approved "chop-animation".
-// Felled trees grow back as a sapling on the stump, then a young tree: the draft "saplings" asset, built in sapling-shape.ts.
+// Felled trees grow back as a sapling on the stump, then a young tree: the approved "saplings" asset, built in sapling-shape.ts.
 // Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
 // While the player saws a debarked log into planks, it is drawn lying along the sawhorse beam. Game logic keeps it on the ground.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
@@ -30,7 +30,7 @@ import { BEAM_TOP_METRES } from "./sawhorse-meshes";
 import { createFarTreeShape, FAR_TREE_METRES } from "./tree-far-shape";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
-import { createSaplingShapes } from "./sapling-shape";
+import { createSaplingShapes, type SaplingModels } from "./sapling-shape";
 import { createGroundStickGeometry, GROUND_STICK_SHAPE_COUNT, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
@@ -86,7 +86,13 @@ export interface ForestMeshes {
   dispose(): void;
 }
 
-export function createForestMeshes(entities: EntityStore, treeShapes: readonly TreeShape[], stumpShape: StumpShape, logShape: LogShape): ForestMeshes {
+export function createForestMeshes(
+  entities: EntityStore,
+  treeShapes: readonly TreeShape[],
+  saplingModels: SaplingModels,
+  stumpShape: StumpShape,
+  logShape: LogShape,
+): ForestMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -177,7 +183,7 @@ export function createForestMeshes(entities: EntityStore, treeShapes: readonly T
     );
     const batches = [near, far];
     // A growing tree draws as a sapling on its stump, then as a young tree, near and far like a full tree.
-    const growing = createSaplingShapes(shape);
+    const growing = createSaplingShapes(shape, saplingModels);
     track(growing.sapling.trunk);
     track(growing.sapling.crown);
     track(growing.youngTree.trunk);

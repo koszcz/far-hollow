@@ -23,7 +23,7 @@ import { createStools, stoolRules } from "./stools";
 import { createApproach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
-import { createBuilding } from "./building";
+import { createBuilding, buildingRules } from "./building";
 import { createTakingDown, takingDownRules } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying, carryingRules } from "./carrying";
@@ -501,47 +501,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       reportEatOrDrink("eat");
     }),
     ...pileRules(piles, ruleGame),
-    placeBlueprint: {
-      // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
-      start: "alongside",
-      queue: "apart",
-      needsFreeHands: (command) => command.thenBuild === true,
-      run: (command) => {
-        const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
-        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return undefined;
-        cancelTasks();
-        return approach.start({ type: "build", blueprintId: id });
-      },
-    },
-    build: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => building.refusal(command.blueprintId),
-      approach: {
-        reach: (command) => building.reach(command.blueprintId),
-        act: (command) => {
-          building.build(command.blueprintId);
-        },
-      },
-    },
-    deliverToBlueprint: {
-      start: "fresh",
-      needsFreeHands: true,
-      approach: {
-        reach: (command) => building.reach(command.blueprintId),
-        act: (command) => {
-          building.deliver(command.blueprintId);
-        },
-      },
-    },
+    ...buildingRules(building, ruleGame),
     ...takingDownRules(takingDown),
-    stopBuilding: {
-      start: "alongside",
-      queue: "apart",
-      run: () => {
-        building.cancel();
-      },
-    },
     tendCampfire: {
       start: "fresh",
       approach: {

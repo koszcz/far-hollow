@@ -116,8 +116,9 @@ export function createLumpyStoneGeometry(recipe: LumpyStoneRecipe): THREE.Buffer
     positions.setXYZ(i, out.x, out.y, out.z);
   }
 
-  const loose = ball.toNonIndexed();
-  ball.dispose();
+  // An icosahedron is built without an index, so it already has its own corners for each face.
+  const loose = ball.index === null ? ball : ball.toNonIndexed();
+  if (loose !== ball) ball.dispose();
   loose.computeBoundingBox();
   const box = loose.boundingBox ?? new THREE.Box3();
   if (recipe.fitSize === true) {

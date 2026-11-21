@@ -1,4 +1,4 @@
-// The backpack icon for stone, part of the draft "stone" asset in asset-manifest.json. Built in code.
+// The backpack icon for stone, part of the approved "stone" asset in asset-manifest.json. Built in code.
 // Added by fireplace ticket 01. BackpackIcon in backpack-icons.tsx draws it, in the same style as the approved "backpack-icons".
 import type { BackpackIconDrawing } from "./icon-drawing";
 

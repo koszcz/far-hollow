@@ -1250,8 +1250,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fireplace/issues/01-gather-stone.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

@@ -65,8 +65,6 @@ const MODEL_SCALE = 0.78;
 const HIDDEN_PARTS = ["1H_Axe_Offhand", "Barbarian_Round_Shield", "2H_Axe", "Mug", "Barbarian_Hat", "Barbarian_Cape"];
 const AXE_PART = "1H_Axe";
 const BEANIE_COLOUR = 0xb08a5e;
-/** The stone in the hands while gathering stone: the same grey as stone in a pile. */
-const STONE_IN_HANDS_COLOUR = 0x8a8d8f;
 /** How much bigger the stone is in the hands than in a pile. The player's head and beard are big for the body, so a true-size stone hides under them. */
 const STONE_IN_HANDS_SCALE = 2;
 /** How far below and ahead of the middle of the wrists the stone sits while the player lifts it, in metres, so the hands hold it rather than hide it. */
@@ -419,7 +417,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   // The stone rides between the hands while the player lifts it, placed from the wrists each frame.
   const stoneGeometry = createStoneGeometry();
   geometries.push(stoneGeometry);
-  const stoneInHands = new THREE.Mesh(stoneGeometry, material(STONE_IN_HANDS_COLOUR, { flatShading: true }));
+  // The stone's faces carry their own colours and normals, the same as stone in a pile.
+  const stoneInHands = new THREE.Mesh(stoneGeometry, material(0xffffff, { vertexColors: true, flatShading: false }));
   stoneInHands.castShadow = true;
   stoneInHands.scale.setScalar(STONE_IN_HANDS_SCALE);
   stoneInHands.visible = false;

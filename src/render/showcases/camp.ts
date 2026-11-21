@@ -333,22 +333,23 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft "stone": piles of 1, 4, and 12 stones beside a knife for size, with the HUD showing stone in the backpack.
-  // src/ui/hud-showcase.tsx draws the HUD over each view, in the same order.
+  // The approved "stone": piles of 1, 4, and 12 stones beside a knife for size. The first three views show the stones close up.
+  // src/ui/hud-showcase.tsx draws the HUD over the last view only, with stone in the backpack and the pile's tooltip.
+  // The "gather-stone-animation" showcase shows the stone in the player's hands.
   stone: {
     radius: 2.2,
     focus: { x: 0, y: 0.2, z: 0 },
     shots: [
-      { label: "HUD: one stone, and stone piles", yaw: 20, pitch: 40 },
-      { label: "HUD: gathering stone", yaw: -30, pitch: 30 },
-      { label: "HUD: a backpack full of stone", yaw: 40, pitch: 55, hour: 18 },
-      { label: "HUD: beside a pile of 12 stones", yaw: 0, pitch: 25, radius: 1.2, focus: { x: 0.8, y: 0.1, z: 0 } },
+      { label: "one stone beside a knife", yaw: 20, pitch: 35, radius: 0.55, focus: { x: -1.1, y: 0.04, z: 0.07 } },
+      { label: "a pile of 4 stones", yaw: -30, pitch: 30, radius: 0.8, focus: { x: 0, y: 0.04, z: 0 } },
+      { label: "a pile of 12 stones", yaw: 40, pitch: 45, radius: 1.2, focus: { x: 1.3, y: 0.04, z: 0 } },
+      { label: "HUD: beside a pile of 12 stones", yaw: 0, pitch: 40, radius: 1.4, focus: { x: 1.3, y: 0.1, z: 0 } },
     ],
     build({ place, movePlayer }) {
-      place(-0.9, 0, { pile: { content: "stone", count: 1 } });
-      place(-0.65, 0.15, { pile: { content: "knife", count: 1 } });
+      place(-1.2, 0, { pile: { content: "stone", count: 1 } });
+      place(-0.95, 0.15, { pile: { content: "knife", count: 1 } });
       place(0, 0, { pile: { content: "stone", count: 4 } });
-      place(0.8, 0, { pile: { content: "stone", count: 12 } });
+      place(1.3, 0, { pile: { content: "stone", count: 12 } });
       movePlayer(0, -1.5, 0);
     },
   },

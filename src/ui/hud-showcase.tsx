@@ -167,17 +167,21 @@ const BACKPACK_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { knife: 1, firewood: 1, berries: 1, mushroom: 2, potOfBoiledWater: 1 } }, buildMenuOpen: false, placing: null },
 ];
 
-/** The draft "stone" asset: stone in the backpack, one and many, while gathering, in a full backpack, and beside a pile of stone. */
-const STONE_STATES: readonly ShowcaseState[] = [
-  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 1 } }, buildMenuOpen: false, placing: null },
+/**
+ * The approved "stone" asset. The first three views show stones close up, with no HUD over them.
+ * The last shows stone first in the hotbar while gathering, beside a pile of stone.
+ */
+const STONE_STATES: readonly (ShowcaseState | null)[] = [
+  null,
+  null,
+  null,
   {
-    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 3 }, action: { kind: "gatherStone", progress: 0.6 } },
-    buildMenuOpen: false,
-    placing: null,
-  },
-  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 7 }, backpackWeight: 18.2 }, buildMenuOpen: false, placing: null },
-  {
-    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 2 }, nearby: [{ kind: "pile", view: { id: 1, content: "stone", count: 12 } }] },
+    view: {
+      ...BASE_VIEW,
+      backpack: { stone: 3, axe: 1, knife: 1 },
+      action: { kind: "gatherStone", progress: 0.6 },
+      nearby: [{ kind: "pile", view: { id: 1, content: "stone", count: 12 } }],
+    },
     buildMenuOpen: false,
     placing: null,
   },
@@ -486,7 +490,11 @@ const STATES_BY_ASSET = {
 
 /** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", or "action-queue-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
-  STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
+  const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
+  states.forEach((state, index) => {
+    // A view with no state shows the scene alone.
+    if (state === null) return;
+    const { view, buildMenuOpen, placing, craftMenuOpen = false } = state;
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);

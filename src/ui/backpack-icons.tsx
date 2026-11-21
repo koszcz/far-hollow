@@ -42,7 +42,7 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the draft "stone" asset.
+ * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset.
  */
 const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent | FishingContent | Fish | "stone">, BackpackIconDrawing>> = {
   /** A steel axe head on a red-painted handle. */

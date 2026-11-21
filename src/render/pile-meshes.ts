@@ -7,7 +7,7 @@
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // The fishing line, the fishing rod, raw fish, and cooked fish are the approved "fishing-piles" asset, built in fishing-pile-shapes.ts.
-// Stone is the draft "stone" asset, built in stone-shape.ts.
+// Stone is the approved "stone" asset, built in stone-shape.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
@@ -16,7 +16,7 @@ import type { BackpackContent } from "../sim/backpack";
 import { pileEntities, type Entity, type EntityStore } from "../sim/entities";
 import { barkParts } from "./bark-meshes";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
-import { stonePileParts } from "./stone-shape";
+import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
 import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
 import type { OutlinePart } from "./hover-outline";
@@ -293,6 +293,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
   const mushroomGeometry = track(mushrooms.clone().scale(MUSHROOM_SCALE, MUSHROOM_SCALE, MUSHROOM_SCALE));
   const rolledBedroll = track(createRolledBedrollShape());
   const steelAndFlint = track(createSteelAndFlintShape());
+  // Stone has three shapes. A pile takes them in turn.
+  const stoneShapes = stonePileShapes(material, track);
 
   const SHAPES: Readonly<Record<Exclude<BackpackContent, "stick" | "pot" | "potOfRiverWater" | "potOfBoiledWater">, readonly Part[]>> = {
     firewood: [{ geometry: track(createFirewoodGeometry().center().translate(0, 0.07, 0)), material: material(FIREWOOD_COLOUR, { vertexColors: true }) }],
@@ -314,8 +316,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     plank: [{ geometry: track(new THREE.BoxGeometry(0.1, 0.025, 0.8).translate(0, 0.0125, 0)), material: material(0xd9b07a) }],
     bedroll: rolledBedroll.parts,
     ...fishingPileParts((colour) => material(colour), track),
-    // Stone is the draft "stone" asset, drawn by stone-shape.ts.
-    stone: stonePileParts((colour) => material(colour), track),
+    // Stone is the approved "stone" asset, drawn by stone-shape.ts.
+    stone: stoneShapes[0] ?? [],
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });
   const LAYOUTS: Readonly<Record<Exclude<BackpackContent, "stick">, Layout>> = {
@@ -328,7 +330,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     sawBlade: spread(0.1),
     saw: spread(0.12),
     plank: spread(0.12),
-    stone: spread(0.11),
+    stone: spread(0.13),
     fishingLine: spread(0.08),
     fishingRod: spread(0.1),
     rawFish: spread(0.12),
@@ -364,7 +366,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
       holder.add(pot.group);
       return pot.group.children.filter((child): child is THREE.Mesh => child instanceof THREE.Mesh && child.visible);
     }
-    return SHAPES[content].map(({ geometry, material: drawnWith }) => {
+    const parts = content === "stone" ? (stoneShapes[index % STONE_SHAPE_COUNT] ?? SHAPES.stone) : SHAPES[content];
+    return parts.map(({ geometry, material: drawnWith }) => {
       const mesh = new THREE.Mesh(geometry, drawnWith);
       mesh.castShadow = true;
       mesh.receiveShadow = true;

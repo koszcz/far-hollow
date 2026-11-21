@@ -23,4 +23,5 @@ export const CHEST: FurnitureDefinition<"chest"> = {
   blocks: { radius: 0.71 },
   storage: { weightLimitKg: CHEST_WEIGHT_LIMIT_KG, fullNotice: "chestFull" },
   reachHeight: "waist",
+  use: { name: "open", command: (id) => ({ type: "openChest", chestId: id }) },
 };

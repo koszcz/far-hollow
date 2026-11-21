@@ -4,7 +4,6 @@ import { playerActivity } from "../sim/activity";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
-import { byFurnitureKind } from "../sim/structure-kind";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/stone";
@@ -158,7 +157,7 @@ export function createSceneRenderer(
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     fireplace: (entity) => structureMeshes.outlineOf({ kind: "fireplace", entity }),
     woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
-    ...byFurnitureKind((kind) => (entity: Entity) => structureMeshes.outlineOf({ kind, entity })),
+    furniture: (entity) => structureMeshes.outlineOf({ kind: "furniture", entity }),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
@@ -503,8 +502,11 @@ export function createSceneRenderer(
       const { kind, entity } = nearest.hit;
       const id = entities.id(entity);
       if (id !== undefined) {
-        if (kind !== "workStation") return { pick: { kind, id }, distance: nearest.distance };
-        if (entity.workStation !== undefined) return { pick: { kind, id, station: entity.workStation }, distance: nearest.distance };
+        if (kind === "workStation") {
+          if (entity.workStation !== undefined) return { pick: { kind, id, station: entity.workStation }, distance: nearest.distance };
+        } else if (kind === "furniture") {
+          if (entity.furniture !== undefined) return { pick: { kind, id, furniture: entity.furniture }, distance: nearest.distance };
+        } else return { pick: { kind, id }, distance: nearest.distance };
       }
     }
     if (ground === undefined) return undefined;

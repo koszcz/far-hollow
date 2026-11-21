@@ -22,4 +22,5 @@ export const SHELF: FurnitureDefinition<"shelf"> = {
   blocks: { radius: 0.71 },
   storage: { weightLimitKg: SHELF_WEIGHT_LIMIT_KG, fullNotice: "shelfFull" },
   reachHeight: "waist",
+  use: { name: "open", command: (id) => ({ type: "openChest", chestId: id }) },
 };

@@ -34,17 +34,7 @@ import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
-import {
-  createEntityStore,
-  movingEntities,
-  rainEntities,
-  restoreEntities,
-  saveEntities,
-  type Entity,
-  type TendTask,
-  type EntityStore,
-  type SavedEntity,
-} from "./entities";
+import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
 import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import { copyToward } from "./ground-point";
@@ -54,7 +44,6 @@ import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTim
 import { createDrinking, drinkingRules } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
 import type { CommandRule, CommandRules, RuleGame } from "./command-rule";
-import { tendApproach } from "./tending";
 import { createStoneGathering, stoneRules } from "./stone";
 import { createTorches, torchRules } from "./torches";
 import { createRain, passRainTime } from "./rain";
@@ -65,7 +54,7 @@ import { createPot, potRules } from "./pot";
 import { createCooking, cookingRules } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
-import { createSleds, DRAG_SPEED } from "./sleds";
+import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
 import { createWoodpiles, woodpileRules } from "./woodpiles";
 import { createChests, chestRules } from "./chests";
 import { nearestInReach } from "./reach";
@@ -348,31 +337,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     if (refusal !== undefined) showNotice(refusal);
   }
 
-  /** Carries out a command on a campfire or woodpile within the player's reach. Returns a notice if it is refused. */
-  function tendNow(command: TendTask): PlainNotice | undefined {
-    switch (command.type) {
-      case "loadSled":
-        sleds.load(command.sledId);
-        return undefined;
-      case "takeFromSled":
-        sleds.take(command.sledId, command.log);
-        return undefined;
-      case "loadPlanksOnSled":
-        sleds.loadPlanks(command.sledId);
-        return undefined;
-      case "takePlanksFromSled":
-        return sleds.takePlanks(command.sledId);
-      case "tipOutSled":
-        sleds.tipOut(command.sledId);
-        return undefined;
-      case "dragSled":
-        sleds.drag(command.sledId);
-        return undefined;
-      default:
-        return undefined;
-    }
-  }
-
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
     return player.walkPath === undefined && player.approach === undefined && currentAction() === null;
@@ -399,17 +363,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     startApproach: (command) => approach.start(command),
     stopOtherWork: cancelTasks,
   };
-
-  /** The approach for the tend commands whose modules do not declare their own rules yet. */
-  const remainingTendApproach = tendApproach<TendTask>(
-    ruleGame,
-    (command) => {
-      if ("campfireId" in command) return campfires.reach(command.campfireId);
-      if ("woodpileId" in command) return woodpiles.reach(command.woodpileId);
-      return sleds.reach(command.sledId);
-    },
-    tendNow,
-  );
 
   const commandRules: CommandRules = {
     setPaused: {
@@ -444,18 +397,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     }),
     ...cookingRules(cooking, campfires, ruleGame),
     ...woodpileRules(woodpiles, ruleGame),
-    loadSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
-    takeFromSled: { start: "alongside", needsFreeHands: true, refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
-    loadPlanksOnSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
-    takePlanksFromSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
-    tipOutSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
-    dragSled: { start: "alongside", refusal: (command) => sleds.refusal(command), approach: remainingTendApproach },
-    letGoOfSled: {
-      start: "alongside",
-      run: () => {
-        sleds.letGo();
-      },
-    },
+    ...sledRules(sleds, ruleGame),
     ...chestRules(chests, ruleGame),
     ...bedrollRules(bedrolls, ruleGame),
     ...bedRules(beds, ruleGame),

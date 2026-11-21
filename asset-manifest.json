@@ -562,7 +562,7 @@
       "kind": "code",
       "code": [
         "src/render/player-build-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/player-build-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player building: a person setting a heavy piece in place squats with the back bent, holds the piece just above its place with both hands, presses it down, and stands up again. The feet stay planted and the axe goes on the back. It is posed in code over the idle clip, and reads apart from the chop's side swing and the split's overhead drop.",

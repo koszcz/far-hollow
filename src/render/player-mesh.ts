@@ -2,7 +2,6 @@
 // its hood, cape, shield, mug, and big axe, and with a light brown knit beanie built here. The owner approved the asset.
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
-// While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down and Lie_Idle clips, rolls onto the back into Death_A_Pose and
 // breathes slowly, then rolls back and plays Lie_StandUp. The owner approved it.
 // While sitting on a stool, the approved "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
@@ -29,7 +28,7 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import type { CarriedLog, ReachHeight } from "../sim/entities";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
-import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
+import { applyBuildPose, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { sledDragPoseAt } from "./player-sled-drag-pose";
 import type { RopeHold } from "./sled-rope";
@@ -109,8 +108,6 @@ export const CHOP_STRIKE_SHARE = 0.38;
 /** How many times a second the player strikes down at a log when splitting: once per loop of the split clip. */
 export const SPLIT_STRIKES_PER_SECOND = 1 / SPLIT_CLIP_SECONDS;
 
-/** Seconds the player takes to stand up when building stops partway through a crouch. */
-const BUILD_LEAVE_SECONDS = 0.3;
 /**
  * How far in front of the hands the middle of a held pot rides, in metres. The arms are short, so the hands hold the
  * near side of the rim rather than the lugs, and the pot stays clear of the body.
@@ -148,8 +145,6 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
-  /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setBuilding(nowSeconds: number | undefined): void;
   /** Works at something small held at waist height, for a hand recipe. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setHandCrafting(nowSeconds: number | undefined): void;
   /** Fishes with the rod held out over the water, as player-fish-pose.ts poses it. Pass undefined to stand upright. */
@@ -374,8 +369,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
    */
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
-  /** Building, moved on by the steady clock time. */
-  const building = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => buildPoseAt(now - since), leaveSeconds: BUILD_LEAVE_SECONDS });
   /** Crafting by hand, moved on by the steady clock time. It stops at once. */
   const handCrafting = createHandCraftMotion();
   /** Fishing, moved on by the latest moment passed to `setFishing`. */
@@ -385,7 +378,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     leaveSeconds: FISH_ENTER_SECONDS,
   });
   /** The work motions, in the order they win when more than one plays. */
-  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, handCrafting, fishing];
+  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [handCrafting, fishing];
   /** While standing up after building, debarking, sawing, or fishing stops. */
   let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
@@ -922,9 +915,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     },
     setFishing(fishingNow) {
       updateWork(fishing, fishingNow === undefined ? undefined : { ...fishingNow });
-    },
-    setBuilding(nowSeconds) {
-      updateWork(building, nowSeconds);
     },
     setHandCrafting(nowSeconds) {
       updateWork(handCrafting, nowSeconds);

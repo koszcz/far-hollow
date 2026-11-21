@@ -44,6 +44,7 @@ function testRig(): PlayerRig {
 
 /** A moment for each motion, a little way into it. */
 const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
+  "player-build-animation": 1,
   "debarking-animation": 1,
   "sawing-animation": { nowSeconds: 1, progress: 0.2 },
   "gather-stone-animation": 1,
@@ -51,13 +52,13 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
 
 describe("the player motions", () => {
   it("names every motion posed in code, in the order body motions win", () => {
-    expect(Object.keys(PLAYER_MOTIONS)).toEqual(["debarking-animation", "sawing-animation", "gather-stone-animation"]);
+    expect(Object.keys(PLAYER_MOTIONS)).toEqual(["player-build-animation", "debarking-animation", "sawing-animation", "gather-stone-animation"]);
   });
 
   it("puts the axe on the back for every motion", () => {
     const motions = createPlayerMotions(testRig());
     const onBack = Object.fromEntries(Object.entries(motions).map(([id, motion]) => [id, motion.axeOnBack]));
-    expect(onBack).toEqual({ "debarking-animation": true, "sawing-animation": true, "gather-stone-animation": true });
+    expect(onBack).toEqual({ "player-build-animation": true, "debarking-animation": true, "sawing-animation": true, "gather-stone-animation": true });
   });
 
   it("plays from its first moment until it is given none, and has a pose unless it is an overlay", () => {

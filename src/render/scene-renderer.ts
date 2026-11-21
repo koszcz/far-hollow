@@ -328,7 +328,7 @@ export function createSceneRenderer(
       if (target?.position !== undefined) playerMesh.setHeading(headingToward(playerDrawn, target.position));
     };
     // Building crouches the player over the blueprint, facing its middle.
-    playerMesh.setBuilding(activity?.kind === "build" ? nowSeconds : undefined);
+    playerMesh.setMotion("player-build-animation", activity?.kind === "build" ? nowSeconds : undefined);
     // Splitting has its own overhead strike, aimed where the player already faces.
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
@@ -464,7 +464,7 @@ export function createSceneRenderer(
     playerMesh.setWalking(undefined);
     playerMesh.setReaching(undefined);
     playerMesh.setChopping(undefined);
-    playerMesh.setBuilding(undefined);
+    playerMesh.setMotion("player-build-animation", undefined);
   }
 
   /**

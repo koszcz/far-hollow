@@ -64,8 +64,8 @@ export function createCampfires(entities: EntityStore): Campfires {
   }
 
   /** Puts a changed fire back on its campfire or fireplace. */
-  function setFire({ entity, hearth }: HeldFire, fire: Fire): void {
-    entity[hearth] = fire;
+  function setFire({ entity, kind }: HeldFire, fire: Fire): void {
+    entity[kind] = fire;
   }
 
   /** Why the player could not light the fire: it has no fuel, or they lack the steel and flint. A lit fire gives no refusal. */
@@ -75,10 +75,10 @@ export function createCampfires(entities: EntityStore): Campfires {
   }
 
   /** Why the player could not put one piece of this fuel on the fire: the backpack holds none, or it would not fit. */
-  function fuelRefusal({ fire, hearth }: HeldFire, fuel: CampfireFuel): Refusal | undefined {
+  function fuelRefusal({ fire, kind }: HeldFire, fuel: CampfireFuel): Refusal | undefined {
     const backpack = players.first?.backpack;
     if (backpack === undefined || !hasInBackpack(backpack, fuel)) return { kind: "noContent", content: fuel };
-    return fuelFits(fire, hearth, fuel) ? undefined : { kind: "fireFull" };
+    return fuelFits(fire, kind, fuel) ? undefined : { kind: "fireFull" };
   }
 
   /** Of `candidates`, the one nearest the player that is within their reach, if any. */
@@ -114,7 +114,7 @@ export function createCampfires(entities: EntityStore): Campfires {
       const player = tenderOf(held);
       if (player?.backpack === undefined || fuelRefusal(held, fuel) !== undefined) return;
       if (!removeFromBackpack(player.backpack, fuel, 1)) return;
-      setFire(held, withFuel(held.fire, held.hearth, fuel));
+      setFire(held, withFuel(held.fire, held.kind, fuel));
     },
     refusal(command) {
       const held = fireById(command.campfireId);
@@ -128,9 +128,9 @@ export function createCampfires(entities: EntityStore): Campfires {
       const { potOnFire, fishOnFire = [] } = held.entity;
       return Object.freeze({
         id: campfireId,
-        kind: held.hearth,
+        kind: held.kind,
         lit,
-        fuelLeft: fuelShare(held.fire, held.hearth),
+        fuelLeft: fuelShare(held.fire, held.kind),
         fuelMinutes,
         pot: potOnFire === undefined ? null : Object.freeze({ water: potOnFire.water, boilProgress: boilProgress(potOnFire) }),
         fish: Object.freeze(fishOnFire.map((fish) => Object.freeze({ cooked: isCooked(fish), cookProgress: cookProgress(fish) }))),

@@ -576,7 +576,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "alongside",
       refusal: () => torches.plantRefusal(),
       run: () => {
-        if (player.litTorch !== undefined && torches.plantRefusal() === undefined)
+        if (torches.plantRefusal() === undefined)
           putDown(() => {
             torches.plant();
           });

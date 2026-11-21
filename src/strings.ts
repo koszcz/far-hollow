@@ -428,6 +428,7 @@ export const strings = {
     gone: "it is no longer there",
     openFirst: "open it first",
     torchTooClose: "another torch stands too close",
+    noLitTorch: "you hold no lit torch",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

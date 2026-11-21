@@ -26,7 +26,7 @@ import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
 import { createTakingDown, takingDownRules } from "./taking-down";
 import { STRUCTURES } from "./structures";
-import { createCarrying } from "./carrying";
+import { createCarrying, carryingRules } from "./carrying";
 import { createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping, choppingRules } from "./chopping";
 import { createDebarking } from "./debarking";
@@ -493,17 +493,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       },
     },
     ...choppingRules(chopping),
-    pickUpLog: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => carrying.pickUpRefusal(),
-      approach: {
-        reach: (command) => carrying.pickUpReach(command.logId),
-        act: (command) => {
-          carrying.pickUp(command.logId);
-        },
-      },
-    },
+    ...carryingRules(carrying, ruleGame),
     debarkLog: {
       start: "fresh",
       needsFreeHands: true,
@@ -587,24 +577,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         reach: ({ logId }) => (logId === undefined || entities.entity(logId)?.log === undefined ? undefined : carrying.pickUpReach(logId)),
         act: ({ logId }) => {
           if (logId !== undefined) carrying.pickUp(logId, true);
-        },
-      },
-    },
-    dropLog: {
-      start: "alongside",
-      run: () => {
-        if (player.carrying !== undefined)
-          putDown(handReach, () => {
-            carrying.drop();
-          });
-      },
-    },
-    dropLogAt: {
-      start: "fresh",
-      approach: {
-        reach: (command) => carrying.dropReach(command),
-        act: (command) => {
-          carrying.dropAt(command);
         },
       },
     },

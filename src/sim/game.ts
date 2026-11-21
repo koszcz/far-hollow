@@ -219,7 +219,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, valley, handReach);
   const debarking = createDebarking(entities);
-  const crafting = createCrafting(entities, walking, valley.terrain);
+  const crafting = createCrafting(entities, valley.terrain);
   const gathering = createGathering(entities, handReach);
   const foraging = createForaging(entities, handReach);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
@@ -563,7 +563,17 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => crafting.refusal(command.recipe),
-      run: (command) => crafting.start(command.recipe, command.stationId),
+      // A hand recipe is crafted where the player stands. A station recipe is followed beside the station, so the player
+      // walks there first, unless they could not start it anyway. The approach holds the station the player walks to.
+      run: (command) => {
+        const stationId = crafting.stationFor(command.recipe, command.stationId);
+        if (stationId === undefined) return crafting.start(command.recipe, command.stationId);
+        return crafting.startRefusal(command.recipe, stationId) ?? approach.start({ type: "craft", recipe: command.recipe, stationId });
+      },
+      approach: {
+        reach: (command) => crafting.reach(command.recipe, command.stationId),
+        act: (command) => crafting.start(command.recipe, command.stationId),
+      },
     },
     // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
     lightTorch: {

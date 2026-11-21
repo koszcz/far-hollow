@@ -4,6 +4,7 @@ import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
+import { RECIPE_KINDS } from "./recipe-kind";
 import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, isKept, STRUCTURES } from "./structures";
 import { GROWTH_STAGES } from "./tree-growth";
@@ -74,6 +75,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("tendWoodpile"), woodpileId: count })(value) ||
   shape({ type: exactly("chopTree"), treeId: count })(value) ||
   shape({ type: exactly("debarkLog"), logId: count })(value) ||
+  shape({ type: exactly("craft"), recipe: exactly(...RECIPE_KINDS), stationId: count })(value) ||
   tendCommand(value);
 
 /**

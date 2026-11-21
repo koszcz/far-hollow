@@ -373,6 +373,28 @@ The only weather in the valley. Being out in the rain without a roof overhead dr
 **Day**:
 One full cycle of daylight and night in the valley.
 
+## Saved games
+
+**Saved game**:
+The whole state of one game, kept in a save slot so the player can continue it later.
+_Avoid_: Save file, savegame, backup
+
+**Save slot**:
+One of the few places a saved game is kept. Each slot holds at most one saved game.
+_Avoid_: Profile, save
+
+**Continue**:
+To go on playing the saved game in a save slot.
+_Avoid_: Load, resume
+
+**Export**:
+To copy the saved game in a save slot into a file on the player's computer. The slot keeps its saved game.
+_Avoid_: Download, backup, save as
+
+**Import**:
+To put the saved game from a file into a save slot, replacing whatever the slot held. Importing does not start the game. The player continues it afterwards.
+_Avoid_: Load, upload, restore
+
 ## Assets
 
 **Asset**:

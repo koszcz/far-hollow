@@ -54,6 +54,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addStools,
   putFurnitureInOnePart,
   growStumpsBack,
+  addStone,
 ];
 
 /** The version of the save format this code writes. */
@@ -113,6 +114,8 @@ export const STOOLS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStools) + 2;
 export const FURNITURE_PART_SAVE_VERSION = SAVE_UPGRADES.indexOf(putFurnitureInOnePart) + 2;
 /** The first save version in which felled trees grow back. */
 export const REGROWTH_SAVE_VERSION = SAVE_UPGRADES.indexOf(growStumpsBack) + 2;
+/** The first save version that can hold stone. */
+export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -597,4 +600,9 @@ function growStumpsBack(save: Readonly<Record<string, unknown>>): Record<string,
     return { ...(entity as object), components: { ...components, growth: { stage: "stump", minutesLeft: STUMP_STAGE_MINUTES } } };
   });
   return { ...save, entities };
+}
+
+/** Version 34 to 35: the player can gather stone. A save from before then has none, so it carries over unchanged. */
+function addStone(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

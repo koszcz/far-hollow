@@ -9,6 +9,7 @@ import { debarkingNow } from "./debarking";
 import type { Entity, EntityStore } from "./entities";
 import { fishingNow } from "./fishing";
 import { splittingNow } from "./gathering";
+import { gatheringStoneNow } from "./stone";
 import { takingDownNow } from "./taking-down";
 
 /** Something the player does over time, which a new command cancels. */
@@ -38,6 +39,7 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["split", (_entities, player) => splittingNow(player)],
   ["chop", choppingNow],
   ["fish", (_entities, player) => fishingNow(player)],
+  ["gatherStone", (_entities, player) => gatheringStoneNow(player)],
 ];
 
 /** Each part of the player that means they are walking to do something, or doing it. */
@@ -66,6 +68,7 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   tendTask: true,
   fishTask: true,
   drinkTask: true,
+  stoneTask: true,
   fillPotTask: true,
   pileTask: true,
   layBedrollTask: true,

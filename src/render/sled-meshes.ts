@@ -15,7 +15,8 @@
 // The planks on a sled are the "sled-planks" asset, drawn by sled-plank-meshes.ts on top of the logs.
 // A sled the player has dragged points the way it was last dragged, and a dragged sled
 // moves smoothly between logic steps with the player.
-// While the player drags a sled, the draft "sled-rope", drawn by sled-rope.ts, runs from their hand to the loop at the front of the sled's rope.
+// While the player drags a sled, its flat tow rope hides. The draft "sled-rope", drawn by sled-rope.ts, takes its place:
+// a V from the runner tips to a knot, lifted toward the player's hand, and a rope from the knot to the hand.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
@@ -25,7 +26,7 @@ import { SLED_LENGTH_METRES, SLED_LOG_COST, SLED_STICK_COST, SLED_WIDTH_METRES }
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, LOG_LENGTH_METRES, type LogShape } from "./log-shape";
 import { createSledPlankShapes } from "./sled-plank-meshes";
-import { createSledRope, type RopeHold } from "./sled-rope";
+import { createSledRope, type RopeHold, type RunnerTips } from "./sled-rope";
 import { createStickSegment } from "./stick-shape";
 import type { OutlinePart } from "./hover-outline";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
@@ -63,8 +64,11 @@ const LASHING_TILT = 0.45;
 const TOW_KNOT_METRES = SLED_LENGTH_METRES / 2 + 0.3;
 /** The radius of the loop at the end of the tow rope, in metres. */
 const TOW_LOOP_RADIUS_METRES = 0.06;
-/** How far in front of the sled's middle the player's rope is tied to the loop at the front of the sled's rope, in metres: the loop's far edge. */
-const ROPE_LOOP_FRONT_METRES = TOW_KNOT_METRES + 2 * TOW_LOOP_RADIUS_METRES;
+/** Where each tow rope leaves its runner tip, from the sled's middle, in metres. */
+const TOW_TIP_METRES = SLED_LENGTH_METRES / 2 - 0.04;
+const TOW_TIP_HEIGHT_METRES = RUNNER_RADIUS_METRES + RUNNER_TIP_LIFT_METRES;
+/** How far apart the runners' middles are across the sled, from the middle, in metres. */
+const RUNNER_SIDE_METRES = SLED_WIDTH_METRES / 2 - RUNNER_RADIUS_METRES;
 /** The bottom layer of the load holds this many logs side by side. Each layer above rests in the gaps, one fewer. */
 const LOGS_PER_BOTTOM_LAYER = 3;
 /** Logs in a layer sit this much further apart than they are thick, in metres, so they do not overlap. */
@@ -82,7 +86,7 @@ export interface SledMeshes {
   /**
    * Brings every sled and sled blueprint up to date with game state.
    * `player` is where the player is drawn this frame. The sled they drag is drawn moved as far as they are, so it keeps up smoothly.
-   * `ropeHold` is where the player holds the rope while dragging. The rope runs from it to the loop at the front of the dragged sled's rope.
+   * `ropeHold` is where the player holds the rope while dragging. The dragged sled's tow rope lifts from its runner tips toward it.
    */
   update(player?: Vec3, ropeHold?: RopeHold): void;
   /** What a ray from the camera hits first among sleds and sled blueprints, and how far away. */
@@ -94,16 +98,18 @@ export interface SledMeshes {
   dispose(): void;
 }
 
+const UP = new THREE.Vector3(0, 1, 0);
+
 /**
- * Where the player's rope is tied to the loop at the front of a sled's rope, for a sled whose middle is at `position`, turned by `heading` radians.
- * Turned by θ, the runners run along (cos θ, -sin θ), with the front leading.
+ * Where the tow rope leaves the two runner tips, as world points, for a sled whose middle is at `position`, turned by
+ * `heading` radians about the up axis.
  */
-export function ropeLoopAt(position: Vec3, heading: number): Vec3 {
-  return {
-    x: position.x + Math.cos(heading) * ROPE_LOOP_FRONT_METRES,
-    y: position.y + ROPE_RADIUS_METRES,
-    z: position.z - Math.sin(heading) * ROPE_LOOP_FRONT_METRES,
+export function runnerTipsAt(position: Vec3, heading: number): RunnerTips {
+  const at = (side: number): Vec3 => {
+    const tip = new THREE.Vector3(TOW_TIP_METRES, TOW_TIP_HEIGHT_METRES, side * RUNNER_SIDE_METRES).applyAxisAngle(UP, heading);
+    return { x: position.x + tip.x, y: position.y + tip.y, z: position.z + tip.z };
   };
+  return { left: at(-1), right: at(1) };
 }
 
 /** One part of the sled: its shape, the materials it draws with when solid, and where its middle sits. */
@@ -267,8 +273,8 @@ function lashing(runnerZ: number): THREE.BufferGeometry[] {
 
 /** The tow rope: a V from the two runner tips, meeting in a knot in front of the sled, with a loop beyond it. Height 0 is the ground. */
 function towRope(runnerZ: number): THREE.BufferGeometry[] {
-  const tipX = SLED_LENGTH_METRES / 2 - 0.04;
-  const tipY = RUNNER_RADIUS_METRES + RUNNER_TIP_LIFT_METRES;
+  const tipX = TOW_TIP_METRES;
+  const tipY = TOW_TIP_HEIGHT_METRES;
   const knot = new THREE.Vector3(TOW_KNOT_METRES, ROPE_RADIUS_METRES, 0);
   const loop = new THREE.TorusGeometry(TOW_LOOP_RADIUS_METRES, ROPE_RADIUS_METRES, 4, 10);
   loop.rotateX(Math.PI / 2);
@@ -282,13 +288,14 @@ function towRope(runnerZ: number): THREE.BufferGeometry[] {
 
 /**
  * The parts in the order construction lays them: a runner for each log, then a cross piece for each stick.
- * Each cross piece comes with its lashings, and the last one with the tow rope.
+ * Each cross piece comes with its lashings, and the last one with the tow rope, unless `withTowRope` is false.
  */
 function sledParts(
   logShape: LogShape,
   materials: { bark: THREE.MeshStandardMaterial; cut: THREE.MeshStandardMaterial; stick: THREE.MeshStandardMaterial },
+  withTowRope = true,
 ): Part[] {
-  const runnerZ = SLED_WIDTH_METRES / 2 - RUNNER_RADIUS_METRES;
+  const runnerZ = RUNNER_SIDE_METRES;
   const runners = Array.from({ length: SLED_LOG_COST }, (_, i): Part => {
     const side = -1 + (2 * i) / Math.max(1, SLED_LOG_COST - 1);
     return {
@@ -329,7 +336,7 @@ function sledParts(
         barkColour: SLED_STICK_COLOUR,
       }),
       ...[-runnerZ, runnerZ].flatMap((z) => lashing(z).map((wrap) => wrap.translate(0, -crossY, 0))),
-      ...(i === SLED_STICK_COST - 1 ? towRope(runnerZ).map((rope) => rope.translate(-x, -crossY, 0)) : []),
+      ...(withTowRope && i === SLED_STICK_COST - 1 ? towRope(runnerZ).map((rope) => rope.translate(-x, -crossY, 0)) : []),
     ];
     for (const piece of pieces) if (piece.hasAttribute("uv")) piece.deleteAttribute("uv");
     const geometry = mergeGeometries(pieces);
@@ -349,6 +356,10 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
   const parts = sledParts(logShape, { bark: barkMaterial, cut: cutMaterial, stick: stickMaterial });
   const geometries = parts.map(({ geometry }) => geometry);
   const solidMaterials = parts.map(({ solid }) => solid);
+  // A dragged sled draws its last cross piece without the flat tow rope, because sled-rope.ts draws it lifted.
+  const towlessParts = sledParts(logShape, { bark: barkMaterial, cut: cutMaterial, stick: stickMaterial }, false);
+  const towlessLastCross = towlessParts.pop()?.geometry;
+  for (const part of towlessParts) part.geometry.dispose();
   const height = 2 * RUNNER_RADIUS_METRES + 2 * CROSS_RADIUS_METRES;
   const pickGeometry = new THREE.BoxGeometry(SLED_LENGTH_METRES, height, SLED_WIDTH_METRES).translate(0, height / 2, 0);
 
@@ -416,7 +427,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
   const sleds = sledEntities(entities);
   const draggers = entities.with("player", "position", "dragging");
   const rope = createSledRope();
-  group.add(rope.mesh);
+  group.add(rope.group);
 
   /** Adds every part, one per stage, to `root`, all in one material. */
   function addStages(root: THREE.Group): Stage[] {
@@ -496,6 +507,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
   }
 
   const hits: THREE.Intersection[] = [];
+  const dragged = new Map<Drawn, THREE.BufferGeometry>();
 
   return {
     group,
@@ -515,7 +527,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
         seen.add(entity);
       }
       // The player is drawn between logic steps. Move the sled they drag by as much, so it does not lag a step behind them.
-      let ropeLoop: Vec3 | undefined;
+      let tips: RunnerTips | undefined;
       for (const dragger of draggers) {
         const sled = entities.entity(dragger.dragging.sledId);
         const item = sled === undefined ? undefined : drawn.get(sled);
@@ -524,9 +536,17 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
           item.root.position.x += player.x - dragger.position.x;
           item.root.position.z += player.z - dragger.position.z;
         }
-        ropeLoop = ropeLoopAt(item.root.position, item.root.rotation.y);
+        tips = runnerTipsAt(item.root.position, item.root.rotation.y);
+        if (towlessLastCross !== undefined) dragged.set(item, towlessLastCross);
       }
-      rope.show(ropeHold, ropeLoop);
+      // Only the dragged sled hides its flat tow rope. Every other sled shows its own.
+      for (const item of drawn.values()) {
+        const last = item.stages.at(-1);
+        const geometry = dragged.get(item) ?? geometries.at(-1);
+        if (last !== undefined && geometry !== undefined && last.mesh.geometry !== geometry) last.mesh.geometry = geometry;
+      }
+      dragged.clear();
+      rope.show(ropeHold, tips);
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },
     pick(raycaster) {
@@ -561,6 +581,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
     dispose() {
       for (const item of [
         ...geometries,
+        ...(towlessLastCross === undefined ? [] : [towlessLastCross]),
         pickGeometry,
         barkMaterial,
         cutMaterial,

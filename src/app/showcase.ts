@@ -26,6 +26,7 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
     if (
       id === "hud" ||
       id === "bark" ||
+      id === "stone" ||
       id === "backpack-icons" ||
       id === "build-icons" ||
       id === "crafting-icons" ||

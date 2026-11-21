@@ -62,6 +62,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   plantTorches,
   cookOnFireplaces,
   startApproaches,
+  addFloors,
 ];
 
 /** The version of the save format this code writes. */
@@ -136,6 +137,8 @@ export const FIREPLACE_COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookOnFirepl
 
 /** The first save version in which the player's walk to act on a thing is one pending approach, holding the command that started it. */
 export const APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(startApproaches) + 2;
+/** The first save version that can hold floors. */
+export const FLOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFloors) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -710,4 +713,9 @@ function startApproaches(save: Readonly<Record<string, unknown>>): Record<string
     return { ...(entity as object), components: { ...others, approach: { command } } };
   });
   return { ...save, entities };
+}
+
+/** Version 41 to 42: the player can lay floors on foundations. A save from before then has none, so it carries over unchanged. */
+function addFloors(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

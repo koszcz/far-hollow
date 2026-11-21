@@ -6,6 +6,7 @@ import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
 import {
   DOOR_FRAME_LOG_COST,
   FIREPLACE_STONE_COST,
+  FLOOR_PLANK_COST,
   FOUNDATION_LOG_COST,
   LOG_WALL_LOG_COST,
   ROOF_PLANK_COST,
@@ -162,6 +163,33 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   ...FURNITURE_SHOWCASES,
+  floor: {
+    radius: 2.6,
+    focus: { x: 0, y: 0.4, z: 0 },
+    // Three foundation squares in a row: a finished floor with a stool on it, a floor blueprint in the middle, and a bare deck.
+    // The blueprint has 1 of 2 planks, then its first boards are set down, then the rest, then it is finished.
+    shots: [
+      { label: `blueprint, 1 of ${FLOOR_PLANK_COST} planks`, yaw: 20, pitch: 35, seconds: 0 },
+      { label: "first boards above their place", yaw: 20, pitch: 35, seconds: BUILD_FADE_SHARE / FLOOR_PLANK_COST },
+      { label: "last boards going down", yaw: 20, pitch: 35, seconds: (1 + 0.5) / FLOOR_PLANK_COST },
+      { label: "built, beside a bare deck", yaw: 20, pitch: 35, seconds: 1 },
+      { label: "built, low from the side", yaw: 90, pitch: 10, seconds: 1 },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      for (const x of [-1, 0, 1]) onDeck(x, 0, { foundation: true });
+      onDeck(-1, 0, { floor: true });
+      onDeck(-1, 0, { furniture: "stool", facing: { turns: 0 } });
+      onDeck(0, 0, { blueprint: { structure: "floor", progress: 0, materialsSpent: 0, delivered: { plank: 1 } }, facing: { turns: 0 } });
+      stage.movePlayer(0, 1.3, Math.PI);
+    },
+    pose({ store }, shot) {
+      for (const entity of store.with("blueprint")) {
+        entity.blueprint.progress = shot.seconds ?? 0;
+        entity.blueprint.delivered.plank = Math.max(1, Math.ceil((shot.seconds ?? 0) * FLOOR_PLANK_COST));
+      }
+    },
+  },
   fireplace: {
     radius: 2.2,
     focus: { x: 0, y: 0.8, z: 0 },

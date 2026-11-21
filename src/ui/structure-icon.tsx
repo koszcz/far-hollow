@@ -4,6 +4,7 @@ import type { StructureKind } from "../sim/api";
 import { ShadedIcon } from "./backpack-icons";
 import { STRUCTURE_DRAWINGS } from "./build-icons";
 import { FIREPLACE_DRAWING } from "./fireplace-icon";
+import { FLOOR_DRAWING } from "./floor-and-door-icons";
 import { FURNITURE_DRAWINGS, hasFurnitureIcon } from "./furniture-icons";
 import type { BackpackIconDrawing } from "./icon-drawing";
 import { SLED_DRAWING } from "./sled-icons";
@@ -12,6 +13,7 @@ import { SLED_DRAWING } from "./sled-icons";
 export function structureDrawing(structure: StructureKind): BackpackIconDrawing {
   if (structure === "sled") return SLED_DRAWING;
   if (structure === "fireplace") return FIREPLACE_DRAWING;
+  if (structure === "floor") return FLOOR_DRAWING;
   return hasFurnitureIcon(structure) ? FURNITURE_DRAWINGS[structure] : STRUCTURE_DRAWINGS[structure];
 }
 

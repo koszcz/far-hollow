@@ -1339,6 +1339,36 @@
         "status": "draft",
         "ticket": ".scratch/torch/issues/01-craft-and-carry-a-torch.md"
       }
+    },
+    {
+      "id": "floor",
+      "kind": "code",
+      "code": [
+        "src/render/floor-meshes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "The floor: six plank boards laid side by side across the deck of one foundation square, each 2.5 cm thick, with thin gaps between them. They lie flush on the deck, so the player and anything on the square stand at the same height as on the bare deck. The boards are the plank wood of the furniture in six slightly different shades. As a blueprint it shows see-through, and the boards of each plank it already has wait pale and half solid. Construction has one stage per plank, 2 in all: each stage lays half the boards, which fade in above their place and are set down.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+      }
+    },
+    {
+      "id": "floor-and-door-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/floor-and-door-icons.tsx",
+        "src/ui/structure-icon.tsx"
+      ],
+      "description": "Build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The floor's icon is a square of plank boards seen from the front and above, narrowing as it goes back, with dark seams between the boards and two boards in a paler shade. Under its front edge lies the foundation deck, with the pale cut ends of its logs. Ticket 02 adds the door's icon.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+      }
     }
   ]
 }

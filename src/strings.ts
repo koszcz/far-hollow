@@ -122,6 +122,7 @@ export const strings = {
       campfire: "Campfire",
       leanTo: "Lean-to",
       foundation: "Foundation",
+      floor: "Floor",
       logWall: "Log wall",
       doorFrame: "Door frame",
       roofFrame: "Roof frame",
@@ -152,6 +153,8 @@ export const strings = {
       anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere.`,
       onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it.`,
       onFoundation: (structure: string) => `Placing: ${structure}. Point at a finished foundation and click to place it. R turns it.`,
+      underfoot: (structure: string) =>
+        `Placing: ${structure}. Point at a finished foundation and click to place it. Hold Shift and drag to place one on each square.`,
       onEdge: (structure: string) => `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. R picks another edge.`,
       overWalls: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
@@ -168,6 +171,8 @@ export const strings = {
     placingKeys: {
       rotate: "R to rotate",
       cancel: "Esc to cancel",
+      /** Placing floors goes on after each click, so Esc stops it rather than cancelling one placement. */
+      stop: "Esc to stop",
       join: (keys: readonly string[]) => keys.join(" · "),
     },
   },

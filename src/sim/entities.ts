@@ -140,6 +140,11 @@ export interface Entity {
    */
   foundation?: true;
   /**
+   * Marks a finished floor: planks laid flush across the deck of one foundation square.
+   * Its position is the middle of that square, at the height of the foundation's deck. It changes only how the square looks.
+   */
+  floor?: true;
+  /**
    * Marks a finished log wall or door frame. It stands on the edge of a foundation square, along the line between two squares.
    * Its position is the middle of that edge, at the height of the foundation's deck. Its `facing` says which edge of the square it is.
    */
@@ -399,6 +404,11 @@ export function blueprintEntities(store: EntityStore) {
 /** Finished foundations. */
 export function foundationEntities(store: EntityStore) {
   return store.with("foundation", "position");
+}
+
+/** Finished floors. */
+export function floorEntities(store: EntityStore) {
+  return store.with("floor", "position");
 }
 
 /** Finished log walls and door frames. */

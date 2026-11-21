@@ -148,6 +148,8 @@ const cameraInput = attachCameraInput({
   canvas,
   rig: sceneRenderer.cameraRig,
   fieldOfViewDegrees: CAMERA_FIELD_OF_VIEW_DEGREES,
+  // A Shift-drag that places floors does not pan the camera.
+  holdsPan: () => walkInput.isSweeping(),
 });
 const walkInput = attachWalkInput({
   canvas,

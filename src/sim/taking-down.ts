@@ -13,6 +13,7 @@ import {
   cabinRoofEntities,
   campfireEntities,
   fireplaceEntities,
+  floorEntities,
   furnitureEntities,
   leanToEntities,
   lyingThings,
@@ -238,7 +239,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
  * Whether another structure stands on this one, so it cannot come down yet.
- * A log wall, door frame, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
+ * A log wall, door frame, floor, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
@@ -289,7 +290,7 @@ export function holdsSomething(structure: Entity): boolean {
 
 /**
  * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
- * a log wall or door frame on one of its edges, a campfire or fireplace whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
+ * a log wall or door frame on one of its edges, a campfire, fireplace, or floor whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
  * over any of it. A structure placed freely, such as a piece of furniture, stands on every foundation its base reaches over.
  */
 function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
@@ -298,6 +299,7 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   const others = [
     ...campfireEntities(entities),
     ...fireplaceEntities(entities),
+    ...floorEntities(entities),
     ...leanToEntities(entities),
     ...roofFrameEntities(entities),
     ...cabinRoofEntities(entities),
@@ -307,7 +309,7 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   return others.some((other) => {
     const kind = structureKindOf(other);
     if (kind === undefined) return false;
-    if (kind === "campfire" || kind === "fireplace") return isOnGridSquare(square, other.position);
+    if (kind === "campfire" || kind === "fireplace" || kind === "floor") return isOnGridSquare(square, other.position);
     return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
   });
 }

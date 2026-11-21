@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createGame, type Game } from "../sim/game";
 import { isWalkable } from "../sim/walk-map";
-import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey } from "./build-mode";
+import { modeAfterPlacing, NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, startSweep } from "./build-mode";
 
 /** A spot on the building grid a few metres from the player, with open ground all round it. */
 function openSpotNear(game: Game): { x: number; z: number } {
@@ -83,5 +83,48 @@ describe("placing a blueprint", () => {
 
   it("ignores R when nothing is being placed", () => {
     expect(pressBuildKey(NOT_BUILDING, "KeyR")).toBeUndefined();
+  });
+});
+
+describe("placing floors", () => {
+  it("keeps placing floors after a click, but stops placing anything else", () => {
+    expect(modeAfterPlacing(pickBuildEntry("floor"))).toEqual(pickBuildEntry("floor"));
+    expect(modeAfterPlacing(pickBuildEntry("campfire"))).toEqual(NOT_BUILDING);
+    expect(pressBuildKey(modeAfterPlacing(pickBuildEntry("floor")), "Escape")).toEqual(NOT_BUILDING);
+  });
+
+  it("sweeps only floors", () => {
+    const game = createGame({ seed: 42 });
+    expect(startSweep(pickBuildEntry("floor"), game.client)).toBeDefined();
+    expect(startSweep(pickBuildEntry("foundation"), game.client)).toBeUndefined();
+    expect(startSweep(NOT_BUILDING, game.client)).toBeUndefined();
+  });
+
+  it("places a floor blueprint on each foundation square a sweep crosses, once each, and skips a square that has a floor", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const start = openSpotNear(game);
+    const squares = [0, 1, 2, 3].map((dx) => ({ x: start.x + dx + 0.5, z: start.z + 0.5 }));
+    for (const square of squares) game.entities.add({ foundation: true, position: { x: square.x, y: 0, z: square.z } });
+    const floored = squares[1] ?? start;
+    game.entities.add({ floor: true, position: { x: floored.x, y: 0, z: floored.z } });
+
+    const sweep = startSweep(pickBuildEntry("floor"), game.client);
+    if (sweep === undefined) throw new Error("No sweep");
+    // The pointer passes over each square several times, and off the end onto bare ground.
+    for (let x = start.x + 0.1; x < start.x + 5; x += 0.2) {
+      const command = sweep.over({ kind: "ground", spot: { x, z: start.z + 0.5 } });
+      if (command !== undefined) game.client.send(command);
+    }
+    game.step();
+
+    const blueprints = game.entities.with("blueprint", "position").entities;
+    expect(blueprints.map(({ blueprint, position }) => `${blueprint.structure} at ${position.x}`)).toEqual([0, 2, 3].map((i) => `floor at ${squares[i]?.x}`));
+  });
+
+  it("places nothing when the sweep passes over something other than the ground", () => {
+    const game = createGame({ seed: 42 });
+    const sweep = startSweep(pickBuildEntry("floor"), game.client);
+
+    expect(sweep?.over({ kind: "tree", id: 3 })).toBeUndefined();
   });
 });

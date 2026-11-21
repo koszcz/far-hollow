@@ -10,12 +10,13 @@ export interface PlacingHint {
 /**
  * The hint for placing `placing`. Pieces on an edge, over walls, or placed anywhere snap differently, so they say so.
  * A roof section follows its frame and cannot turn, so its hint names only the cancel key.
+ * A floor cannot turn either, and placing floors goes on until Esc stops it.
  */
 export function placingHint(entries: readonly BuildMenuEntry[], placing: StructureKind): PlacingHint {
   const placement = entries.find(({ structure }) => structure === placing)?.placement ?? "onGround";
-  const { rotate, cancel, join } = strings.hudLabels.placingKeys;
+  const { rotate, cancel, stop, join } = strings.hudLabels.placingKeys;
   return {
     what: strings.buildMenu.placing[placement](strings.buildMenu.structures[placing]),
-    keys: join(placement === "onFrame" ? [cancel] : [rotate, cancel]),
+    keys: join(placement === "underfoot" ? [stop] : placement === "onFrame" ? [cancel] : [rotate, cancel]),
   };
 }

@@ -114,6 +114,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   buildTask: shape({ blueprintId: count }),
   takeDownTask: shape({ pieceId: count, secondsDone: finite }),
   foundation: exactly(true),
+  floor: exactly(true),
   edgePiece: exactly(...EDGE_PIECE_KINDS),
   roofFrame: exactly(true),
   cabinRoof: exactly(true),

@@ -54,9 +54,9 @@ export const FISHING_ANIMATION_SHOWCASE: Showcase = {
   pose({ player }, shot) {
     // Start fishing afresh for each view, with the rod already lifted, so the view shows the cast `shot.seconds` in.
     const seconds = shot.seconds ?? 0;
-    player.setFishing(undefined);
-    player.setFishing(fishingAt(0, seconds));
-    player.setFishing(fishingAt(10, seconds));
+    player.setMotion("fishing-animation", undefined);
+    player.setMotion("fishing-animation", fishingAt(0, seconds));
+    player.setMotion("fishing-animation", fishingAt(10, seconds));
   },
   // The player casts and catches a fish twice, at the shortest wait the game has, lowers the rod, rests, then starts again.
   play: {
@@ -64,7 +64,7 @@ export const FISHING_ANIMATION_SHOWCASE: Showcase = {
     pose({ player }, seconds) {
       const fishing = FISH_PLAY_WAIT_SECONDS * FISH_PLAY_CASTS;
       const cycle = seconds % (fishing + FISH_PLAY_REST_SECONDS);
-      player.setFishing(cycle < fishing ? fishingAt(cycle, cycle % FISH_PLAY_WAIT_SECONDS) : undefined);
+      player.setMotion("fishing-animation", cycle < fishing ? fishingAt(cycle, cycle % FISH_PLAY_WAIT_SECONDS) : undefined);
       return undefined;
     },
   },

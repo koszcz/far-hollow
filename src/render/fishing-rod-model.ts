@@ -3,7 +3,7 @@
 // the butt, with a dark cord grip and spare line wound just above the grip. In the hand it shows a little more character:
 // it bows gently down towards the tip, two trimmed twig knots stand on the lower stick, and dark cord lashes the two
 // sticks where they meet. A turn of line is tied at the tip.
-// The line itself runs from the tip and is drawn by player-mesh.ts, because its far end moves as the player casts.
+// The line itself runs from the tip and is drawn by player-motions/fishing-animation.ts, because its far end moves as the player casts.
 // The butt is at the group's origin and the rod points along +z. The bow drops the tip towards -y.
 import * as THREE from "three";
 

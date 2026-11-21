@@ -17,7 +17,8 @@ import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
-import { createPlayerMesh, type Fishing } from "./player-mesh";
+import { createPlayerMesh } from "./player-mesh";
+import type { Fishing } from "./player-motions/fishing-animation";
 import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
@@ -289,9 +290,9 @@ export function createSceneRenderer(
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
     // The lit torch stays in the left hand through every motion. Game logic puts it out before the player sleeps.
-    playerMesh.setLitTorch(player.litTorch === undefined || sleeping !== undefined ? undefined : nowSeconds);
+    playerMesh.setMotion("torch", player.litTorch === undefined || sleeping !== undefined ? undefined : nowSeconds);
     // Dragging a sled leans the player into the rope, walking or standing. Letting go stands them up at once.
-    playerMesh.setDragging(player.dragging !== undefined && sleeping === undefined);
+    playerMesh.setMotion("sled-drag-animation", player.dragging !== undefined && sleeping === undefined ? true : undefined);
     if (sleeping !== undefined) {
       // The player steps onto the bedroll and lies along it. Nothing else moves them until they are up again.
       // In a bed, they step up onto the mattress, and back down beside the bed once they stand.
@@ -328,26 +329,26 @@ export function createSceneRenderer(
       if (target?.position !== undefined) playerMesh.setHeading(headingToward(playerDrawn, target.position));
     };
     // Building crouches the player over the blueprint, facing its middle.
-    playerMesh.setBuilding(activity?.kind === "build" ? nowSeconds : undefined);
+    playerMesh.setMotion("player-build-animation", activity?.kind === "build" ? nowSeconds : undefined);
     // Splitting has its own overhead strike, aimed where the player already faces.
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
-    playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
+    playerMesh.setMotion("debarking-animation", activity?.kind === "debark" ? nowSeconds : undefined);
     // Gathering stone crouches at the water's edge and lifts a stone, facing the spot clicked, unless the player stands on it.
     const stoneTask = activity?.kind === "gatherStone" ? player.stoneTask : undefined;
-    playerMesh.setGatheringStone(stoneTask === undefined ? undefined : nowSeconds);
+    playerMesh.setMotion("gather-stone-animation", stoneTask === undefined ? undefined : nowSeconds);
     if (stoneTask !== undefined && groundDistance(playerDrawn, stoneTask) > STAND_ON_SPOT_METRES) playerMesh.setHeading(headingToward(playerDrawn, stoneTask));
     // Fishing casts the line out over the water, waits, and reels a fish in, facing the spot on the river.
     const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;
     if (fishTask === undefined) castDrawn = undefined;
-    playerMesh.setFishing(fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
+    playerMesh.setMotion("fishing-animation", fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
     if (fishTask !== undefined) playerMesh.setHeading(headingToward(playerDrawn, fishTask));
     // A recipe made at the sawhorse saws. The player steps up beside the beam to saw, and back when sawing stops.
     // A hand recipe, such as crafting the saw, works at it with both hands where the player stands.
     const craftMotion = activity?.kind === "craft" && player.craftTask !== undefined ? craftMotionOf(player.craftTask.recipe) : undefined;
     const sawhorse = craftMotion === "saw" && target?.position !== undefined ? target : undefined;
-    playerMesh.setHandCrafting(craftMotion === "hand" ? nowSeconds : undefined);
-    playerMesh.setSawing(sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
+    playerMesh.setMotion("hand-craft-animation", craftMotion === "hand" ? nowSeconds : undefined);
+    playerMesh.setMotion("sawing-animation", sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
     const stance = sawingStep.drawnAt(
       nowSeconds,
       sawhorse?.position === undefined ? undefined : { position: sawhorse.position, turns: sawhorse.facing?.turns ?? 0 },
@@ -464,7 +465,7 @@ export function createSceneRenderer(
     playerMesh.setWalking(undefined);
     playerMesh.setReaching(undefined);
     playerMesh.setChopping(undefined);
-    playerMesh.setBuilding(undefined);
+    playerMesh.setMotion("player-build-animation", undefined);
   }
 
   /**
@@ -560,7 +561,7 @@ export function createSceneRenderer(
       }
       startEatOrDrinkIfNew(nowSeconds);
       posePlayer(nowSeconds);
-      playerMesh.setEatingOrDrinking(eatOrDrinkShown);
+      playerMesh.setMotion("forage-eat-drink-animation", eatOrDrinkShown);
       // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
       if (!cameraPlaced && players.first !== undefined) {
         cameraRig.snapToFollowTarget();

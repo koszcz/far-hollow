@@ -4,7 +4,7 @@
 // While the player walks, the rope pulls taut. When they stop, it goes slack: the knot drops and the rope sags.
 // It eases between the two over a short moment.
 // While the sled is dragged it takes the place of the sled's own flat tow rope, so the whole rope lifts off the ground.
-// It shows only while the player drags a sled. sled-meshes.ts draws it from where player-mesh.ts says the hand is.
+// It shows only while the player drags a sled. sled-meshes.ts draws it from where player-motions/sled-drag-animation.ts says the hand is.
 // It is built in code. The owner approved it.
 import * as THREE from "three";
 import type { Vec3 } from "../sim/entities";

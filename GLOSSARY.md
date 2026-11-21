@@ -157,6 +157,10 @@ _Avoid_: Interact, activate
 How close the player must stand to act on a thing. If the player is out of reach, they walk to the thing first, then act.
 _Avoid_: Range, interaction distance
 
+**Approach**:
+The walk the player makes to get within reach of a thing or a spot, so they can act on it there.
+_Avoid_: Go-to, walk-to-act, errand
+
 **Tend**:
 To add fuel to a campfire, to stack things on or take things off a woodpile, or to load, take from, or tip out a sled.
 _Avoid_: Feed, refuel, manage
@@ -344,7 +348,12 @@ A stone building piece built from stone on one foundation square. It does everyt
 _Avoid_: Hearth, stove
 
 **Torch**:
-A carried or mounted light that lights a small area around it.
+A light the player makes by hand from a stick and bark. The player carries unlit torches in the backpack. Lighting one with the steel and flint puts it in the player's hand, where it lights the ground around them for 3 game hours, then is gone. The player holds one lit torch at a time. A torch gives no warmth, and rain does not put it out. Putting it out throws it away, so a torch is never lit twice.
+_Avoid_: Lantern, brand
+
+**Planted torch**:
+A lit torch the player has stood in the ground or on a foundation, at their feet. It keeps burning for the time it had left, even while the player sleeps, and lights the ground around it. It does not block walking. Picking it up puts it back in the player's hand. Two planted torches stand at least 1 m apart.
+_Avoid_: Torch post, standing torch
 
 ## Guidance
 

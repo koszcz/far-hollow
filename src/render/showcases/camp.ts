@@ -353,6 +353,29 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
+  // The draft "torch": the lit torch in the player's hand at night, lighting the ground around them, torches planted in a row
+  // at night, walking with it at night, and unlit torches lying in piles of 1 and 4.
+  // Of the six planted torches, the three nearest the camera light the ground, after the torch in the hand. The rest only glow.
+  torch: {
+    radius: 2.4,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "a lit torch in the hand, at night", yaw: 25, pitch: 30, radius: 5, hour: NIGHT },
+      { label: "planted torches at night: the 3 nearest light the ground", yaw: 90, pitch: 25, radius: 8, hour: NIGHT, focus: { x: -2, y: 0.3, z: -6 } },
+      { label: "walking with a lit torch, at night", yaw: -50, pitch: 20, radius: 2.4, hour: NIGHT, seconds: 0.3 },
+      { label: "unlit torches in piles of 1 and 4", yaw: 10, pitch: 45, radius: 1, focus: { x: 1.6, y: 0.05, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      movePlayer(0, 0, 0);
+      place(1.2, -0.2, { pile: { content: "torch", count: 1 } });
+      place(1.9, 0.2, { pile: { content: "torch", count: 4 } });
+      for (let i = 0; i < 6; i += 1) place(-8 + i * 2.5, -6, { plantedTorch: { minutesLeft: 120 } });
+    },
+    pose({ player }, shot) {
+      player.setWalking(shot.label.startsWith("walking") ? 0.6 : undefined);
+      player.setLitTorch(shot.seconds ?? 0);
+    },
+  },
   // src/ui/hud-showcase.tsx draws the sled and log icons large, among every build icon, over the first view,
   // and the HUD with the full build menu open over the others.
 };

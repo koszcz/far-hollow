@@ -9,6 +9,7 @@ import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
+import type { BurnTime } from "./burn-time";
 import type { TreeGrowth } from "./tree-growth";
 import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, StructureKind, WorkStationKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
@@ -265,6 +266,18 @@ export interface Entity {
   drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
+  /**
+   * The lit torch in the player's hand, with how long it still burns. Missing when they hold none.
+   * It is not a backpack content, so it uses no backpack weight. Only the player has one.
+   */
+  litTorch?: BurnTime;
+  /**
+   * Marks a lit torch planted in the ground, with how long it still burns. Its position is the spot where it stands,
+   * on the ground or on a foundation. It does not block walking.
+   */
+  plantedTorch?: BurnTime;
+  /** The planted torch the player is walking to, given by its entity id, to pick it up. */
+  torchPickUpTask?: { torchId: number };
   /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
   fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */
@@ -390,9 +403,9 @@ export function barkEntities(store: EntityStore) {
   return store.with("bark", "position");
 }
 
-/** Everything lying loose on the ground that the player can pick up: logs, debarked logs, sticks, bark, bedrolls, and piles. */
+/** Everything lying loose on the ground that the player can pick up: logs, debarked logs, sticks, bark, bedrolls, piles, and planted torches. */
 export function lyingThings(store: EntityStore): (Entity & { position: Vec3 })[] {
-  const queries = [logEntities, debarkedLogEntities, stickEntities, barkEntities, bedrollEntities, pileEntities];
+  const queries = [logEntities, debarkedLogEntities, stickEntities, barkEntities, bedrollEntities, pileEntities, plantedTorchEntities];
   return queries.flatMap((query): (Entity & { position: Vec3 })[] => [...query(store)]);
 }
 
@@ -458,6 +471,11 @@ function hasPosition(entity: Entity): entity is Entity & { position: Vec3 } {
 /** Finished campfires. */
 export function campfireEntities(store: EntityStore) {
   return store.with("campfire", "position");
+}
+
+/** Lit torches planted in the ground or on a foundation. */
+export function plantedTorchEntities(store: EntityStore) {
+  return store.with("plantedTorch", "position");
 }
 
 /** Bedrolls laid out on the ground. */

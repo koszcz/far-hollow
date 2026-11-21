@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, CarriedLog, StructureKind } from "../sim/api";
+import type { BackpackContent, CarriedLog, FurnitureKind, StructureKind } from "../sim/api";
 import { worldWith, type Setup } from "./test-world";
-import { actionsFor, mainAction, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
+import { actionsFor, mainAction, type ActionTarget, type ThingAction } from "./thing-actions";
 
 // Each test sets up a real game, so every action is allowed or refused by the game's own rules.
 
@@ -441,10 +441,13 @@ describe("other things' actions", () => {
   });
 
   it("picks up a log, splits it, or debarks it", () => {
-    const actions = actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1, drawknife: 1 } }).reader);
+    const world = worldWith({ backpack: { axe: 1, drawknife: 1 } });
+    const log = world.add({ log: { heading: 0 } });
+    const actions = actionsFor(scene("log", log), world.reader);
     expect(summary(actions)).toEqual(["pickUp main", "split", "debark"]);
-    expect(find(actions, "split")).toMatchObject({ label: "Split into firewood", command: { type: "splitLog", logId: 4 } });
-    expect(summary(actionsFor(scene("log", 4), worldWith({ backpack: { axe: 1 }, carrying: "log" }).reader))).toEqual([
+    expect(find(actions, "split")).toMatchObject({ label: "Split into firewood", command: { type: "splitLog", logId: log } });
+    const carrying = worldWith({ backpack: { axe: 1 }, carrying: "log" });
+    expect(summary(actionsFor(scene("log", carrying.add({ log: { heading: 0 } })), carrying.reader))).toEqual([
       "pickUp main off: your shoulder is full",
       "split off: your shoulder is full",
       "debark off: needs the drawknife",
@@ -465,29 +468,34 @@ describe("other things' actions", () => {
   });
 
   it("sleeps on a laid bedroll, or picks it up", () => {
-    expect(summary(actionsFor(scene("bedroll", 5), worldWith({}).reader))).toEqual(["sleep main", "pickUp"]);
+    const world = worldWith({});
+    expect(summary(actionsFor(scene("bedroll", world.add({ bedroll: true })), world.reader))).toEqual(["sleep main", "pickUp"]);
   });
 
   it("sleeps in a bed as its main action, or takes it down", () => {
-    const actions = actionsFor(scene("bed", 7), worldWith({}).reader);
+    const world = worldWith({});
+    const bed = world.add({ furniture: "bed", facing: { turns: 0 } });
+    const actions = actionsFor(furniture("bed", bed), world.reader);
     expect(summary(actions)).toEqual(["sleep main", "takeDown"]);
-    expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: 7 });
+    expect(find(actions, "sleep")?.command).toEqual({ type: "sleepInBed", bedId: bed });
   });
 
   it("offers only taking down a table, since eating at it needs no new action", () => {
-    expect(summary(actionsFor(scene("table", 8), worldWith({}).reader))).toEqual(["takeDown"]);
+    expect(summary(actionsFor(furniture("table", 8), worldWith({}).reader))).toEqual(["takeDown"]);
   });
 
   it("sits on a stool as its main action, or takes it down", () => {
-    const actions = actionsFor(scene("stool", 8), worldWith({}).reader);
+    const world = worldWith({});
+    const stool = world.add({ furniture: "stool", facing: { turns: 0 } });
+    const actions = actionsFor(furniture("stool", stool), world.reader);
     expect(summary(actions)).toEqual(["sit main", "takeDown"]);
-    expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: 8 });
+    expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: stool });
   });
 
   it("opens a chest, or takes it down", () => {
-    expect(summary(actionsFor(scene("chest", 6), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
-    expect(summary(actionsFor(scene("shelf", 7), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
-    expect(find(actionsFor(scene("shelf", 7), worldWith({}).reader), "open")?.command).toEqual({ type: "openChest", chestId: 7 });
+    expect(summary(actionsFor(furniture("chest", 6), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
+    expect(summary(actionsFor(furniture("shelf", 7), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
+    expect(find(actionsFor(furniture("shelf", 7), worldWith({}).reader), "open")?.command).toEqual({ type: "openChest", chestId: 7 });
   });
 
   it("greys taking down a chest that still holds something, and says to empty it first", () => {
@@ -498,7 +506,7 @@ describe("other things' actions", () => {
       facing: { turns: 0 },
     });
 
-    expect(summary(actionsFor(scene("chest", chest), world.reader))).toEqual(["open main", "takeDown off: empty it first"]);
+    expect(summary(actionsFor(furniture("chest", chest), world.reader))).toEqual(["open main", "takeDown off: empty it first"]);
   });
 
   it("builds a blueprint, adds a carried debarked log it needs first, and takes it down", () => {
@@ -536,8 +544,9 @@ describe("other things' actions", () => {
   });
 
   it("acts on the thing under a finished structure, then takes the structure down", () => {
-    const pick = { kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: 4 } } as const;
-    const actions = actionsFor({ kind: "scene", pick }, worldWith({}).reader);
+    const world = worldWith({});
+    const pick = { kind: "structure", id: 11, structure: "foundation", under: { kind: "stick", id: world.add({ stick: true }) } } as const;
+    const actions = actionsFor({ kind: "scene", pick }, world.reader);
 
     expect(summary(actions)).toEqual(["pickUp main", "takeDownStructure"]);
     expect(find(actions, "takeDownStructure")?.command).toEqual({ type: "takeDown", pieceId: 11 });
@@ -570,25 +579,94 @@ describe("other things' actions", () => {
     expect(summary(actionsFor({ kind: "backpackContent", content: "berries" }, worldWith({ backpack: { berries: 2 } }).reader))).toEqual(["use main", "drop"]);
     expect(summary(actionsFor({ kind: "backpackContent", content: "stick" }, worldWith({ backpack: { stick: 2 } }).reader))).toEqual(["drop"]);
 
-    const chest = { id: 12, furniture: "chest" as const, contents: {}, weight: 0, weightLimit: 60 };
-    const withChest = worldWith({ backpack: { berries: 2 } }).reader;
-    const chestReader: ActionReader = { ...withChest, getView: () => ({ ...withChest.getView(), nearby: [{ kind: "openChest", view: chest }] }) };
-    const actions = actionsFor({ kind: "backpackContent", content: "berries" }, chestReader);
+    const withChest = worldWith({ backpack: { berries: 2 } });
+    const chestId = withChest.openStorage("chest");
+    const actions = actionsFor({ kind: "backpackContent", content: "berries" }, withChest.reader);
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "use", "drop"]);
-    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 12, content: "berries", all: true });
+    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId, content: "berries", all: true });
     expect(find(actions, "putInChest")?.label).toBe("Put one in the chest");
   });
 
+  it("lights a torch from the hotbar, greyed with the reason without the steel and flint or with a torch already lit", () => {
+    const torch: ActionTarget = { kind: "backpackContent", content: "torch" };
+    const world = worldWith({ backpack: { torch: 2, steelAndFlint: 1 } });
+    const actions = actionsFor(torch, world.reader);
+    expect(summary(actions)).toEqual(["use main", "drop"]);
+    expect(find(actions, "use")?.label).toBe("Light");
+    expect(find(actions, "use")?.command).toEqual({ type: "lightTorch" });
+
+    expect(summary(actionsFor(torch, worldWith({ backpack: { torch: 2 } }).reader))).toEqual(["use main off: needs the steel and flint", "drop"]);
+
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+    expect(summary(actionsFor(torch, world.reader))).toEqual(["use main off: you already hold a lit torch", "drop"]);
+  });
+
+  it("puts out the lit torch in the player's hand", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+
+    const actions = actionsFor({ kind: "litTorch" }, world.reader);
+
+    expect(find(actions, "putOut")?.label).toBe("Put out");
+    expect(find(actions, "putOut")?.command).toEqual({ type: "putOutTorch" });
+  });
+
+  it("plants the lit torch in the player's hand, as its main action, before putting it out", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+
+    const actions = actionsFor({ kind: "litTorch" }, world.reader);
+
+    expect(summary(actions)).toEqual(["plant main", "putOut"]);
+    expect(mainAction(actions)?.label).toBe("Plant");
+    expect(mainAction(actions)?.command).toEqual({ type: "plantTorch" });
+  });
+
+  it("greys out planting within 1 m of a planted torch, with the reason", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+    const at = world.game.client.getView().playerPosition;
+    world.game.entities.add({ plantedTorch: { minutesLeft: 60 }, position: { ...at, x: at.x + 0.5 } });
+    world.game.step();
+
+    expect(summary(actionsFor({ kind: "litTorch" }, world.reader))).toEqual(["plant main off: another torch stands too close", "putOut"]);
+  });
+});
+
+describe("a planted torch's actions", () => {
+  it("picks it up, as the only and main action", () => {
+    const world = worldWith({});
+    const torch = world.add({ plantedTorch: { minutesLeft: 60 } });
+
+    const actions = actionsFor(scene("plantedTorch", torch), world.reader);
+
+    expect(summary(actions)).toEqual(["pickUp main"]);
+    expect(mainAction(actions)?.label).toBe("Pick up");
+    expect(mainAction(actions)?.command).toEqual({ type: "pickUpTorch", torchId: torch });
+  });
+
+  it("greys out picking it up while the player holds a lit torch, with the reason", () => {
+    const world = worldWith({ backpack: { torch: 1, steelAndFlint: 1 } });
+    const torch = world.add({ plantedTorch: { minutesLeft: 60 } });
+    world.game.client.send({ type: "lightTorch" });
+    world.game.step();
+
+    expect(summary(actionsFor(scene("plantedTorch", torch), world.reader))).toEqual(["pickUp main off: you already hold a lit torch"]);
+  });
+
   it("puts things on an open shelf first, named as a shelf", () => {
-    const shelf = { id: 14, furniture: "shelf" as const, contents: {}, weight: 0, weightLimit: 30 };
-    const withShelf = worldWith({ backpack: { stick: 2 } }).reader;
-    const shelfReader: ActionReader = { ...withShelf, getView: () => ({ ...withShelf.getView(), nearby: [{ kind: "openChest", view: shelf }] }) };
-    const actions = actionsFor({ kind: "backpackContent", content: "stick" }, shelfReader);
+    const withShelf = worldWith({ backpack: { stick: 2 } });
+    const shelfId = withShelf.openStorage("shelf");
+    const actions = actionsFor({ kind: "backpackContent", content: "stick" }, withShelf.reader);
 
     expect(summary(actions)).toEqual(["putInChest main", "putInChest:all", "drop"]);
     expect(find(actions, "putInChest")?.label).toBe("Put one on the shelf");
     expect(find(actions, "putInChest:all")?.label).toBe("Put all on the shelf");
-    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: 14, content: "stick", all: true });
+    expect(find(actions, "putInChest:all")?.command).toEqual({ type: "putInChest", chestId: shelfId, content: "stick", all: true });
   });
 
   it("drops the log on the shoulder, or splits it with the axe", () => {
@@ -606,12 +684,16 @@ function summary(actions: readonly ThingAction[]): string[] {
   return actions.map(({ id, isMain, enabled, reason }) => [id, isMain ? "main" : "", enabled ? "" : `off: ${reason}`].filter(Boolean).join(" "));
 }
 
-type ThingKind =
-  "campfire" | "woodpile" | "sled" | "tree" | "log" | "debarkedLog" | "stick" | "bedroll" | "bed" | "table" | "stool" | "chest" | "shelf" | "blueprint";
+type ThingKind = "campfire" | "woodpile" | "sled" | "tree" | "log" | "debarkedLog" | "stick" | "bedroll" | "blueprint" | "plantedTorch";
 
 /** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */
 function scene(kind: ThingKind, id: number): ActionTarget {
   return { kind: "scene", pick: { kind, id } };
+}
+
+/** A finished piece of furniture, given by its kind and entity id, as the scene reports it under the cursor. */
+function furniture(kind: FurnitureKind, id: number): ActionTarget {
+  return { kind: "scene", pick: { kind: "furniture", id, furniture: kind } };
 }
 
 function ground(): ActionTarget {

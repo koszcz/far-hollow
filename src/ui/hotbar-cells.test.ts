@@ -6,6 +6,7 @@ describe("the hotbar cells", () => {
     const cells = hotbarCells({
       carrying: "debarkedLog",
       dragging: null,
+      litTorch: null,
       backpack: { axe: 1, berries: 3, stick: 2 },
     });
 
@@ -20,6 +21,7 @@ describe("the hotbar cells", () => {
   it("shows the sled the player drags where the shoulder cell goes, with how many logs it holds", () => {
     const cells = hotbarCells({
       carrying: null,
+      litTorch: null,
       dragging: { id: 9, contents: { log: 3, debarkedLog: 1, plank: 0 }, total: 4, capacity: 6, logsThatFit: 2, planksThatFit: 8 },
       backpack: { axe: 1 },
     });
@@ -30,9 +32,26 @@ describe("the hotbar cells", () => {
     ]);
   });
 
+  it("shows the lit torch in the player's hand after the shoulder, with a gauge of its burning time left", () => {
+    const cells = hotbarCells({
+      carrying: "log",
+      dragging: null,
+      litTorch: { minutesLeft: 130 },
+      backpack: { torch: 2 },
+    });
+
+    expect(cells.map(({ target, name, count, key, gauge }) => [target, name, count, key, gauge])).toEqual([
+      [{ kind: "shoulder", log: "log" }, "Log", 1, undefined, undefined],
+      [{ kind: "litTorch" }, "Lit torch", 1, undefined, 130 / 180],
+      [{ kind: "backpackContent", content: "torch" }, "Torch", 2, "1", undefined],
+    ]);
+    expect(cells[1]?.tip).toBe("Lit torch · 2 h 10 min left");
+  });
+
   it("counts each plank on the sled as a quarter of a log space", () => {
     const cells = hotbarCells({
       carrying: null,
+      litTorch: null,
       dragging: { id: 9, contents: { log: 1, debarkedLog: 0, plank: 2 }, total: 1.5, capacity: 6, logsThatFit: 4, planksThatFit: 18 },
       backpack: {},
     });
@@ -44,6 +63,7 @@ describe("the hotbar cells", () => {
     const cells = hotbarCells({
       carrying: null,
       dragging: null,
+      litTorch: null,
       backpack: {
         axe: 1,
         knife: 1,
@@ -66,6 +86,7 @@ describe("the hotbar cells", () => {
     const cells = hotbarCells({
       carrying: "log",
       dragging: null,
+      litTorch: null,
       backpack: { axe: 1, plank: 5, berries: 3 },
     });
 

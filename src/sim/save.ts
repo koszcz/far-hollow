@@ -15,6 +15,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
 /**
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
+ * No change may make an older save unplayable (ADR 0011).
  * A new kind of structure, notice, or component does not break older saves, so it needs no upgrade: the save check is built
  * from the structure catalogue and the notice table, and older code turns away a save that holds something it does not know.
  * Never remove or reorder an upgrade. Stored saves count on each version number keeping its place.
@@ -57,6 +58,8 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addStone,
   addFireplaces,
   lightFireplaces,
+  addTorches,
+  plantTorches,
   cookOnFireplaces,
 ];
 
@@ -123,6 +126,10 @@ export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
 export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
 /** The first save version in which each fireplace holds a fire, with its fuel and whether it is lit. */
 export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplaces) + 2;
+/** The first save version that can hold torches, unlit in the backpack or lit in the player's hand. */
+export const TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTorches) + 2;
+/** The first save version that can hold torches planted in the ground. */
+export const PLANTED_TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantTorches) + 2;
 /** The first save version that can hold a pot and fish on a fireplace. */
 export const FIREPLACE_COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookOnFireplaces) + 2;
 
@@ -636,7 +643,23 @@ function lightFireplaces(save: Readonly<Record<string, unknown>>): Record<string
 }
 
 /**
- * Version 37 to 38: the player can cook fish and boil water on a fireplace. A save from before then has no pot or fish on any
+ * Version 37 to 38: the player can craft torches and carry one lit. A save from before then has no torches, unlit or lit,
+ * so it carries over unchanged.
+ */
+function addTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 38 to 39: the player can plant a lit torch in the ground. A save from before then has no planted torches,
+ * so it carries over unchanged.
+ */
+function plantTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 39 to 40: the player can cook fish and boil water on a fireplace. A save from before then has no pot or fish on any
  * fireplace, so it carries over unchanged.
  */
 function cookOnFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {

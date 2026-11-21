@@ -2,7 +2,7 @@
 
 **What to build:** The game checks a command's refusal before it runs the command, for every command. A refused command shows its reason and does nothing. Activity modules stop checking the same rule a second time in their own code.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 

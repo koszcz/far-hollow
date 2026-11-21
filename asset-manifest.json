@@ -1303,6 +1303,42 @@
         "status": "draft",
         "ticket": ".scratch/fireplace/issues/02-build-a-fireplace.md"
       }
+    },
+    {
+      "id": "torch",
+      "kind": "code",
+      "code": [
+        "src/render/torch-shape.ts",
+        "src/render/torch-lights.ts",
+        "src/render/planted-torch-meshes.ts",
+        "src/render/player-mesh.ts",
+        "src/render/pile-meshes.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The torch: a brown stick about 55 cm long with a head of bark wrapped round its top end, tied with two dark bands, its tip charred black. Lit, it rides upright in the player's left hand, leaning a little forward and out, through walking, work, carrying a log, and dragging a sled. A small copy of the approved fire-effect, about a sixth of a campfire's size, burns on its head. A warm orange point light at the flame flickers and lights the ground about 6 m around the player. It casts no shadows. Unlit torches lie on their sides in a pile, spread like other things in a pile. Planted, the lit torch stands upright with its butt a little in the ground or the foundation deck, with the same small flame and a soft orange glow round it that lights nothing. Four warm orange point lights stay in the scene at all times, at zero strength while unused. Each frame they go to the torch in the hand first, then to the planted torches nearest the camera. Planted torches added by torch ticket 02 (.scratch/torch/issues/02-plant-a-torch.md).",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/torch/issues/01-craft-and-carry-a-torch.md"
+      }
+    },
+    {
+      "id": "torch-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/torch-icons.tsx",
+        "src/ui/backpack-icons.tsx",
+        "src/ui/hud.tsx",
+        "src/app/style.css"
+      ],
+      "description": "The torch icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unlit torch, the backpack icon and the craft menu icon, is a brown stick leaning right with a head of bark tied round its top, its tip charred dark. The lit torch, shown in the hotbar cell for the torch in the player's hand, is the same torch with an orange flame and a yellow heart rising from the head. That cell sits apart from the backpack cells, like the shoulder cell, with a thin amber gauge along its bottom that shrinks as the torch burns down. Its label says how long the torch still burns, such as \"Lit torch · 2 h 10 min left\".",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/torch/issues/01-craft-and-carry-a-torch.md"
+      }
     }
   ]
 }

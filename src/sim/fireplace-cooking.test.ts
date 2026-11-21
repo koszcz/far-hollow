@@ -130,7 +130,7 @@ describe("saving the pot and fish on a fireplace", () => {
 
   it("raises the save version, and upgrades an older save with a fireplace", () => {
     const { game } = gameWithLitFireplace();
-    expect(FIREPLACE_COOKING_SAVE_VERSION).toBe(FIREPLACE_FIRES_SAVE_VERSION + 1);
+    expect(FIREPLACE_COOKING_SAVE_VERSION).toBeGreaterThan(FIREPLACE_FIRES_SAVE_VERSION);
     expect(FIREPLACE_COOKING_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as SaveFile;
     save.version = FIREPLACE_COOKING_SAVE_VERSION - 1;

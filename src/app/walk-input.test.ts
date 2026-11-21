@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { ScenePick } from "../render/scene-renderer";
-import type { Command } from "../sim/api";
+import type { Command, ScenePick } from "../sim/api";
 import { worldWith, type Setup, type World } from "./test-world";
 import { cursorFor, mainActionFor, menuFor, outlineFor } from "./walk-input";
 
@@ -103,11 +102,14 @@ describe("the main action on a finished building piece", () => {
 describe("the main action on other things", () => {
   it("does the main action", () => {
     expect(clickSends({ kind: "debarkedLog", id: 5 })).toEqual({ type: "pickUpLog", logId: 5 });
-    expect(clickSends({ kind: "bedroll", id: 9 })).toEqual({ type: "sleep", bedrollId: 9 });
-    expect(clickSends({ kind: "stool", id: 8 })).toEqual({ type: "sitOnStool", stoolId: 8 });
+    const world = worldWith({});
+    const bedrollId = world.add({ bedroll: true });
+    const stoolId = world.add({ furniture: "stool", facing: { turns: 0 } });
+    expect(mainActionFor({ kind: "bedroll", id: bedrollId }, world.reader)?.command).toEqual({ type: "sleep", bedrollId });
+    expect(mainActionFor({ kind: "furniture", id: stoolId, furniture: "stool" }, world.reader)?.command).toEqual({ type: "sitOnStool", stoolId });
     expect(clickSends({ kind: "pile", id: 4 })).toEqual({ type: "pickUpPile", pileId: 4 });
-    expect(clickSends({ kind: "chest", id: 6 })).toEqual({ type: "openChest", chestId: 6 });
-    expect(clickSends({ kind: "shelf", id: 7 })).toEqual({ type: "openChest", chestId: 7 });
+    expect(clickSends({ kind: "furniture", id: 6, furniture: "chest" })).toEqual({ type: "openChest", chestId: 6 });
+    expect(clickSends({ kind: "furniture", id: 7, furniture: "shelf" })).toEqual({ type: "openChest", chestId: 7 });
     expect(clickSends({ kind: "river", spot: { x: 3, z: -4 } })).toEqual({ type: "drinkFromRiver", x: 3, z: -4 });
     expect(clickSends({ kind: "tree", id: 2 }, { backpack: { axe: 1 } })).toEqual({ type: "chopTree", treeId: 2 });
   });
@@ -172,6 +174,12 @@ describe("the pointer", () => {
     for (const kind of ["tree", "log", "stick", "blueprint", "campfire"] as const) {
       expect(cursorFor({ kind, id: 1 }, false)).toBe("pointer");
     }
+  });
+
+  it("shows a hand over a finished piece of furniture, and outlines it", () => {
+    const stool = { kind: "furniture", id: 1, furniture: "stool" } as const;
+    expect(cursorFor(stool, false)).toBe("pointer");
+    expect(outlineFor(stool, false)).toEqual(stool);
   });
 
   it("stays the default arrow over the ground and the sky", () => {

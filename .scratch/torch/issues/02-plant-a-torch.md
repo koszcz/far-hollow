@@ -4,24 +4,24 @@
 
 **Blocked by:** 01 (Craft and carry a torch)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `torch` and `fire-effect`.
 
-- [ ] "Plant" stands the lit torch at the player's feet, on the ground or on a foundation.
-- [ ] The player cannot plant a torch within 1 m of another planted torch. The action shows greyed with the reason.
-- [ ] A planted torch keeps burning for the time it had left. When it burns out, it is gone.
-- [ ] Planted torches keep burning while the player sleeps. Sleep uses up their burning time, so they can burn out before the player wakes.
-- [ ] A planted torch lights the ground around it and does not block walking.
-- [ ] "Pick up" is the main action of a planted torch. It puts the torch in the player's hand with its time left.
-- [ ] With a lit torch already in hand, "Pick up" shows greyed with the reason.
-- [ ] At most 4 torches cast real light at once: the one in hand, then the planted torches nearest the camera.
-- [ ] Every other planted torch shows its flame and a glow, but does not light the ground.
-- [ ] With 20 planted torches in view, the game meets the frame-rate targets in `.scratch/first-playable/spec.md`.
-- [ ] Planted torches and their burning time left are saved. The save version goes up, and older saves are upgraded when loaded.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover planting, the spacing rule, burning out, picking up, and which torches cast light.
+- [x] "Plant" stands the lit torch at the player's feet, on the ground or on a foundation.
+- [x] The player cannot plant a torch within 1 m of another planted torch. The action shows greyed with the reason.
+- [x] A planted torch keeps burning for the time it had left. When it burns out, it is gone.
+- [x] Planted torches keep burning while the player sleeps. Sleep uses up their burning time, so they can burn out before the player wakes.
+- [x] A planted torch lights the ground around it and does not block walking.
+- [x] "Pick up" is the main action of a planted torch. It puts the torch in the player's hand with its time left.
+- [x] With a lit torch already in hand, "Pick up" shows greyed with the reason.
+- [x] At most 4 torches cast real light at once: the one in hand, then the planted torches nearest the camera.
+- [x] Every other planted torch shows its flame and a glow, but does not light the ground.
+- [x] With 20 planted torches in view, the game meets the frame-rate targets in `.scratch/first-playable/spec.md`.
+- [x] Planted torches and their burning time left are saved. The save version goes up, and older saves are upgraded when loaded.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover planting, the spacing rule, burning out, picking up, and which torches cast light.
 
 ## Comments
 
@@ -65,20 +65,20 @@
 
 **Acceptance criteria:**
 
-- [ ] "Plant" puts the lit torch at the player's feet on the ground and on a foundation. The hand is then empty.
-- [ ] "Plant" within 1 m of a planted torch shows greyed with a reason.
-- [ ] A planted torch burns for the time it had left, then is gone.
-- [ ] Sleeping uses up planted torches' burning time. A torch with less time left than the sleep is gone when the player wakes.
-- [ ] The player can walk through a planted torch.
-- [ ] "Pick up" puts the torch in the player's hand with its time left. With a lit torch already in hand, it shows greyed with a reason.
-- [ ] With 6 torches near the camera, exactly 4 cast real light: the hand torch, then the 3 nearest planted torches. The others show a flame and a glow only.
-- [ ] Planting and picking up torches never changes the number of lights in the scene.
-- [ ] With 20 planted torches in view, the game meets the frame-rate targets in `.scratch/first-playable/spec.md`.
-- [ ] A save with planted, part-burnt torches loads back the same. A save from the version before loads without error.
-- [ ] All player-facing text is in the strings file.
-- [ ] Any new asset entries are in the asset catalogue as drafts (ADR 0006).
-- [ ] Unit tests cover planting, the spacing rule, burning out, sleeping, picking up, and which torches cast light.
-- [ ] `make check` passes.
+- [x] "Plant" puts the lit torch at the player's feet on the ground and on a foundation. The hand is then empty.
+- [x] "Plant" within 1 m of a planted torch shows greyed with a reason.
+- [x] A planted torch burns for the time it had left, then is gone.
+- [x] Sleeping uses up planted torches' burning time. A torch with less time left than the sleep is gone when the player wakes.
+- [x] The player can walk through a planted torch.
+- [x] "Pick up" puts the torch in the player's hand with its time left. With a lit torch already in hand, it shows greyed with a reason.
+- [x] With 6 torches near the camera, exactly 4 cast real light: the hand torch, then the 3 nearest planted torches. The others show a flame and a glow only.
+- [x] Planting and picking up torches never changes the number of lights in the scene.
+- [x] With 20 planted torches in view, the game meets the frame-rate targets in `.scratch/first-playable/spec.md`.
+- [x] A save with planted, part-burnt torches loads back the same. A save from the version before loads without error.
+- [x] All player-facing text is in the strings file.
+- [x] Any new asset entries are in the asset catalogue as drafts (ADR 0006).
+- [x] Unit tests cover planting, the spacing rule, burning out, sleeping, picking up, and which torches cast light.
+- [x] `make check` passes.
 
 **Out of scope:**
 

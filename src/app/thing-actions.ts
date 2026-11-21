@@ -3,9 +3,22 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
-import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
-import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, SledView, WoodpileView, WoodpileWood } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureUse, WOODPILE_WOODS } from "../sim/api";
+import type {
+  BackpackContent,
+  CampfireView,
+  CarriedLog,
+  Command,
+  FurnitureKind,
+  FurnitureUse,
+  GroundOrThingPick,
+  ScenePick,
+  GameClient,
+  GameView,
+  SledView,
+  WoodpileView,
+  WoodpileWood,
+} from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import { refusalText } from "../ui/refusal-text";
@@ -46,6 +59,8 @@ export function actionsFor(target: ActionTarget, reader: ActionReader): readonly
       return shoulderActions(target.log, context);
     case "sled":
       return letGoActions(context);
+    case "litTorch":
+      return litTorchActions(context);
   }
 }
 
@@ -65,6 +80,17 @@ export function menuActions(target: ActionTarget, reader: ActionReader): readonl
 /** Letting go of the dragged sled, as the only and main action. */
 function letGoActions({ offer }: Context): readonly ThingAction[] {
   return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+}
+
+/** Planting the lit torch in the player's hand, as the main action, then putting it out. */
+function litTorchActions({ offer }: Context): readonly ThingAction[] {
+  return withMain(
+    [
+      offer("plant", strings.actions.plant, { content: "torch" }, { type: "plantTorch" }),
+      offer("putOut", strings.actions.putOut, { content: "torch" }, { type: "putOutTorch" }),
+    ],
+    "plant",
+  );
 }
 
 /** Puts the main action first and marks it. `main` is its id. Without one, no action is marked main. */
@@ -130,6 +156,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "bark" }, { type: "pickUpBark", barkId: pick.id })], "pickUp");
     case "pile":
       return withMain([offer("pickUp", strings.actions.pickUp, { hud: "backpack" }, { type: "pickUpPile", pileId: pick.id })], "pickUp");
+    case "plantedTorch":
+      return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "forage":
       return withMain([offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId: pick.id })], "forage");
     case "campfire":
@@ -145,16 +173,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       const sled = reader.describeSled(pick.id);
       return sled === null ? withMain([takeDown(context, pick.id)], undefined) : sledActions(sled, context);
     }
-    case "chest":
-    case "shelf":
-      return withMain([offer("open", strings.actions.open, { hud: "backpack" }, { type: "openChest", chestId: pick.id }), takeDown(context, pick.id)], "open");
-    case "bed":
-      return withMain([offer("sleep", strings.actions.sleep, { hud: "moon" }, { type: "sleepInBed", bedId: pick.id }), takeDown(context, pick.id)], "sleep");
-    case "table":
-      // The player eats at a table as they eat anywhere, so the table offers nothing but taking it down.
-      return withMain([takeDown(context, pick.id)], undefined);
-    case "stool":
-      return withMain([offer("sit", strings.actions.sit, { hud: "moon" }, { type: "sitOnStool", stoolId: pick.id }), takeDown(context, pick.id)], "sit");
+    case "furniture":
+      return furnitureActions(pick.furniture, pick.id, context);
     case "bedroll":
       return withMain(
         [
@@ -180,6 +200,24 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
         "openMenu",
       );
   }
+}
+
+/** The action id, label, and icon for each way the player uses a piece of furniture. */
+const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: { readonly id: ActionId; readonly label: string; readonly icon: ActionIcon } } = {
+  open: { id: "open", label: strings.actions.open, icon: { hud: "backpack" } },
+  sleep: { id: "sleep", label: strings.actions.sleep, icon: { hud: "moon" } },
+  sit: { id: "sit", label: strings.actions.sit, icon: { hud: "moon" } },
+};
+
+/**
+ * Use the piece, if its definition gives it a use, then take it down. Using it is the main action.
+ * A piece with no use, such as a table, offers only taking it down. The player eats at a table as they eat anywhere.
+ */
+function furnitureActions(kind: FurnitureKind, id: number, context: Context): readonly ThingAction[] {
+  const use = furnitureUse(kind);
+  if (use === undefined) return withMain([takeDown(context, id)], undefined);
+  const action = FURNITURE_USE_ACTIONS[use.name];
+  return withMain([context.offer(action.id, action.label, action.icon, use.command(id)), takeDown(context, id)], action.id);
 }
 
 /** Gathering one stone at a spot on the river bank or in the river. */
@@ -315,6 +353,8 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };
+    case "torch":
+      return { label: strings.actions.light, command: { type: "lightTorch" } };
     case "pot":
       return { label: strings.actions.fillPot, command: { type: "fillPot" } };
     case "potOfRiverWater":

@@ -695,7 +695,7 @@ function overlapsOpenGroundCampfire(entities: EntityStore, rect: GroundRect): bo
   return fires.some((fire) => foundationUnderCampfire(entities, fire.position) === undefined && rectsOverlap(rect, campfire.footprint(fire.position, 0)));
 }
 
-/** Whether a log, debarked log, stick, piece of bark, or bedroll lies on `rect`, edges included. */
+/** Whether a log, debarked log, stick, piece of bark, bedroll, pile, or planted torch lies on `rect`, edges included. */
 function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
   return lyingThings(entities).some(({ position }) => isInRect(rect, position));
 }

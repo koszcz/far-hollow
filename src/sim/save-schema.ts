@@ -130,6 +130,9 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   drinkTask: point,
   stoneTask: shape({ x: finite, z: finite, secondsDone: finite }),
   sickness: shape({ minutesLeft: finite }),
+  litTorch: shape({ minutesLeft: finite }),
+  plantedTorch: shape({ minutesLeft: finite }),
+  torchPickUpTask: shape({ torchId: count }),
   fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
@@ -178,9 +181,13 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   holdsUpPiece: true,
   tooYoungToChop: true,
   backpackFull: true,
+  torchAlreadyLit: true,
+  gone: true,
+  openFirst: true,
+  torchTooClose: true,
 };
 
-/** Why the game refused a command, as a notice about the action queue names it. */
+/** Why the game refused a command, as a notice names it. */
 const refusal: Check = (value) =>
   shape({ kind: exactly(...Object.keys(PLAIN_REFUSALS)) })(value) ||
   shape({ kind: exactly("needsTool"), tool: backpackContent })(value) ||
@@ -215,6 +222,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   queueFull: {},
   cannotQueue: { refusal },
   actionSkipped: { refusal },
+  refused: { refusal },
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

@@ -121,6 +121,14 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       const take = "structure" in icon && icon.structure === "shelf" ? strings.shelf.take : strings.chest.take;
       return { icon, name: take(strings.backpackContents[command.content]) };
     }
+    case "lightTorch":
+      return { icon: { content: "torch" }, name: actions.light };
+    case "putOutTorch":
+      return { icon: { content: "torch" }, name: actions.putOut };
+    case "plantTorch":
+      return { icon: { content: "torch" }, name: actions.plant };
+    case "pickUpTorch":
+      return { icon: { content: "torch" }, name: actions.pickUp };
     case "layBedroll":
       return { icon: { content: "bedroll" }, name: actions.layOut };
     case "layBedrollInLeanTo":

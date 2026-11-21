@@ -53,13 +53,15 @@ import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTim
 import { createDrinking } from "./drinking";
 import { createFishing, fishingNow } from "./fishing";
 import { createStoneGathering } from "./stone";
+import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { createCooking } from "./cooking";
-import { NOTICE_MINUTES } from "./notices";
+import { NOTICE_MINUTES, refusedNotice } from "./notices";
+import { goneRefusal } from "./refusals";
 import { createPiles } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
@@ -98,9 +100,10 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
  * How the game handles one kind of command. Each kind has one rule, in commandRules.
  * - `start`: "fresh" stops whatever the player was doing before the command runs. "alongside" leaves it going,
  *   so a command that sometimes starts afresh, such as placing a blueprint to build at once, stops it itself.
- * - `run`: carries the command out. It returns a notice to show, if the game refuses it now.
  * - `refusal`: why the game would turn the command away, wherever the player stands. The UI shows it before the player sends the command.
- *   `run` checks the same rule again when it acts, through the module that does the work.
+ *   The game checks it before it runs the command, and a refused command shows the refusal as a notice and does nothing.
+ * - `run`: carries the command out. It only receives commands whose refusal passed. It returns a notice to show,
+ *   if the work turns out not to be possible, such as a full backpack.
  * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
  * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
  * - `queue`: how the command meets the action queue. Without it, the command can be queued, and sent on its own it empties the queue.
@@ -225,6 +228,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stoneGathering = createStoneGathering(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
+  const torches = createTorches(entities, walking, valley, handReach);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
@@ -240,6 +244,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     building,
     takingDown,
     bedrolls,
+    torches,
     beds,
     stools,
     drinking,
@@ -287,6 +292,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       entityCount: entities.entities.length,
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
+      night: isNight(readClock(clock.minutes).hourOfDay),
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
@@ -295,6 +301,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       action: currentAction(),
       carrying: player.carrying ?? null,
       dragging: sleds.dragged() ?? null,
+      litTorch: deepFreeze(torches.held() ?? null),
+      plantedTorches: deepFreeze(torches.planted()),
       nearby: nearbyThings(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -532,9 +540,42 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       refusal: (command) => crafting.refusal(command.recipe),
       run: (command) => crafting.start(command.recipe, command.stationId),
     },
+    // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
+    lightTorch: {
+      start: "alongside",
+      refusal: () => torches.lightRefusal(),
+      run: () => {
+        torches.light();
+      },
+    },
+    putOutTorch: {
+      start: "alongside",
+      run: () => {
+        torches.putOut();
+      },
+    },
+    // Planting the torch reaches down to stand it at the player's feet, as laying the bedroll does.
+    plantTorch: {
+      start: "alongside",
+      refusal: () => torches.plantRefusal(),
+      run: () => {
+        if (player.litTorch !== undefined && torches.plantRefusal() === undefined)
+          putDown(() => {
+            torches.plant();
+          });
+      },
+    },
+    pickUpTorch: {
+      start: "fresh",
+      refusal: () => torches.pickUpRefusal(),
+      run: (command) => {
+        torches.pickUp(command.torchId);
+      },
+    },
     pickUpStick: {
       start: "fresh",
       needsFreeHands: true,
+      refusal: (command) => goneRefusal(entities, command.stickId),
       run: (command) => {
         gathering.pickUpStick(command.stickId);
       },
@@ -542,6 +583,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     pickUpBark: {
       start: "fresh",
       needsFreeHands: true,
+      refusal: (command) => goneRefusal(entities, command.barkId),
       run: (command) => {
         gathering.pickUpBark(command.barkId);
       },
@@ -549,6 +591,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     forage: {
       start: "fresh",
       needsFreeHands: true,
+      refusal: (command) => foraging.refusal(command.spotId),
       run: (command) => {
         foraging.forage(command.spotId);
       },
@@ -563,16 +606,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       // A log given by id must lie on the ground, and only then does the player stop what they were doing. A debarked log cannot be split.
       start: "alongside",
       needsFreeHands: true,
-      refusal: (command) => gathering.refusal(command.logId !== undefined),
+      refusal: (command) => gathering.splitRefusal(command.logId),
       run: ({ logId }) => {
-        if (logId !== undefined && entities.entity(logId)?.log === undefined) return undefined;
+        if (logId !== undefined && entities.entity(logId)?.log === undefined) return;
         cancelTasks();
-        if (logId === undefined) return gathering.splitLog();
-        if (gathering.refusal(false) !== undefined) return undefined;
-        const refusal = gathering.splitRefusal();
-        if (refusal !== undefined) return refusal;
-        carrying.pickUp(logId, true);
-        return undefined;
+        if (logId === undefined) gathering.splitLog();
+        else carrying.pickUp(logId, true);
       },
     },
     dropLog: {
@@ -637,7 +676,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => takingDown.refusal(command.pieceId),
-      run: (command) => takingDown.start(command.pieceId),
+      run: (command) => {
+        takingDown.start(command.pieceId);
+      },
     },
     stopBuilding: {
       start: "alongside",
@@ -698,8 +739,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     putInChest: {
       start: "alongside",
       queue: "apart",
+      refusal: (command) => chests.refusal(command.chestId),
       run: (command) => {
-        if (chests.opened()?.id !== command.chestId) return;
         handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
           chests.put(command.chestId, command.content, command.all),
         );
@@ -708,8 +749,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     takeFromChest: {
       start: "alongside",
       queue: "apart",
+      refusal: (command) => {
+        const kind = chests.takeRefusal(command.chestId, command.content);
+        return chests.refusal(command.chestId) ?? (kind === undefined ? undefined : { kind });
+      },
       run: (command) => {
-        if (chests.opened()?.id !== command.chestId) return;
         handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
           chests.take(command.chestId, command.content, command.all),
         );
@@ -738,18 +782,21 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     sleep: {
       start: "fresh",
+      refusal: (command) => goneRefusal(entities, command.bedrollId),
       run: (command) => {
         bedrolls.sleep(command.bedrollId);
       },
     },
     sleepInBed: {
       start: "fresh",
+      refusal: (command) => goneRefusal(entities, command.bedId),
       run: (command) => {
         beds.sleep(command.bedId);
       },
     },
     sitOnStool: {
       start: "fresh",
+      refusal: (command) => goneRefusal(entities, command.stoolId),
       run: (command) => {
         stools.sit(command.stoolId);
       },
@@ -764,7 +811,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: () => fishing.refusal(),
-      run: (command) => fishing.fish({ x: command.x, z: command.z }),
+      run: (command) => {
+        fishing.fish({ x: command.x, z: command.z });
+      },
     },
     gatherStone: {
       start: "fresh",
@@ -849,9 +898,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return true;
   }
 
-  /** Moves the valley on by this many game minutes: fires burn, food and trees grow back, sticks fall, and pots and fish heat. */
+  /**
+   * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
+   * sticks fall, and pots and fish heat.
+   */
   function passWorldTime(minutes: number): void {
     campfires.burn(minutes);
+    torches.burn(minutes);
     foraging.grow(minutes);
     regrowth.grow(minutes);
     stickFall.pass(minutes);
@@ -861,6 +914,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /**
    * The player collapses from a neglected need. They drop what is on their shoulder and lose the rest of the day.
+   * The lit torch in their hand goes out and is gone, as when they lie down to sleep.
    * They wake the next morning at their respawn point with that need low, keeping everything in their backpack.
    */
   function collapse(): void {
@@ -869,6 +923,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     cancelTasks();
     actionQueue.length = 0;
     stools.standUp();
+    torches.putOut();
     carrying.drop();
     // The sled stays where the player fell, with its load.
     sleds.letGo();
@@ -933,8 +988,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     lastEatOrDrink = deepFreeze({ count, kind, ...copyToward(toward) });
   }
 
-  /** The player puts down what they hold to lie down at `spot`, which becomes their respawn point. */
+  /**
+   * The player puts down what they hold to lie down at `spot`, which becomes their respawn point.
+   * The game puts out the lit torch in their hand, which is then gone, as after putting it out.
+   */
   function lieDown(spot: GroundPoint): void {
+    torches.putOut();
     carrying.drop();
     sleds.letGo();
     entities.removeComponent(player, "walkPath");
@@ -953,10 +1012,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 
+  /** Carries out a command, once its refusal passes. A refused command does nothing, and a notice says why. */
   function applyCommand(command: ActionCommand): void {
-    // While dragging a sled, the player's hands are busy until they let go.
-    if (handsBusy(command)) {
-      showNotice("letGoFirst");
+    const refusal = refusalOf(command);
+    if (refusal !== null) {
+      showNotice(refusedNotice(refusal));
       return;
     }
     const rule = ruleOf(command);
@@ -1074,13 +1134,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return casts > castsWhenFishingBegan;
   }
 
-  /** Why the game would turn a command away now: its own rule first, then the player's hands being busy with a sled. */
+  /** Why the game would turn a command away now: the player's hands being busy with a sled first, then the command's own rule. */
   function refusalOf(command: Command): Refusal | null {
     if (command.type === "queueAction") return refusalOf(command.action);
     if (command.type === "cancelQueuedAction") return null;
+    if (handsBusy(command)) return Object.freeze({ kind: "letGoFirst" });
     const refusal = ruleOf(command).refusal?.(command);
-    if (refusal !== undefined) return Object.freeze(refusal);
-    return handsBusy(command) ? Object.freeze({ kind: "letGoFirst" }) : null;
+    return refusal === undefined ? null : Object.freeze(refusal);
   }
 
   function step(): void {

@@ -2,7 +2,7 @@
 // Code that works the same way for every piece loops over FURNITURE and names no piece.
 //
 // A new piece adds these files:
-// - src/sim/furniture/<piece>.ts, its definition: cost, build time, size, how it blocks walking, and what it stores.
+// - src/sim/furniture/<piece>.ts, its definition: cost, build time, size, how it blocks walking, what it stores, and how the player uses it.
 // - a behaviour file under src/sim/, if the piece does something of its own, such as stools.ts for sitting.
 // - src/render/<piece>-meshes.ts, its model.
 // - src/render/showcases/furniture/<piece>.ts, its asset showcase.
@@ -14,12 +14,11 @@
 // - FURNITURE_SHOWCASES in src/render/showcases/furniture/index.ts.
 // - FURNITURE_DRAWINGS in src/ui/furniture-icons.tsx, its build menu icon.
 // - strings.buildMenu.structures in src/strings.ts, its name.
-// - the switch in thingActions in src/app/thing-actions.ts, what clicking a finished piece offers.
 //
 // It needs no save upgrade. Older saves hold none of it, and older code turns away a save that holds a name it does not know.
 // Keep definition files apart from behaviour files. structures.ts imports the definitions, so a definition that imports
 // structures.ts, or a file that imports it, makes an import loop that fails when the game loads.
-import type { PlainNotice } from "./api";
+import type { Command, PlainNotice } from "./api";
 import type { BackpackContent } from "./backpack";
 import type { Entity, ReachHeight } from "./entities";
 import { BED } from "./furniture/bed";
@@ -36,6 +35,15 @@ export interface FurnitureStorage {
   readonly weightLimitKg: number;
   /** The notice that it has no room left. */
   readonly fullNotice: PlainNotice;
+}
+
+/**
+ * How the player uses a finished piece of furniture: the use's name, and the command that does it for the piece with entity id `id`.
+ * The action menu turns the name into its label and icon.
+ */
+export interface FurnitureUse {
+  readonly name: "open" | "sleep" | "sit";
+  readonly command: (id: number) => Command;
 }
 
 /**
@@ -62,6 +70,8 @@ export interface FurnitureDefinition<Kind extends FurnitureKind = FurnitureKind>
   readonly storage?: FurnitureStorage;
   /** How high the player reaches to put things in it or take them out, if they do. */
   readonly reachHeight?: ReachHeight;
+  /** How the player uses a finished piece, if they can. Every finished piece can also be taken down. */
+  readonly use?: FurnitureUse;
 }
 
 /** Each piece of furniture by its kind. */

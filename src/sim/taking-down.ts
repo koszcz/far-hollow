@@ -72,10 +72,9 @@ export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
 export interface TakingDown {
   /**
    * Sets the player walking to a blueprint or finished structure to take it down.
-   * Does nothing if the entity is not one the player can take down. Returns a refusal if another structure stands on it,
-   * or if it is a piece of furniture or woodpile that still holds something, or a campfire with a pot or fish on it.
+   * Does nothing if the entity is not one the player can take down. The game calls it only once `refusal` passes.
    */
-  start(structureId: number): TakeDownRefusal | undefined;
+  start(structureId: number): void;
   /**
    * Why the player could not take a structure down now, wherever they stand: another structure stands on it,
    * or it still holds something. A campfire names the pot or the fish on it. A fireplace says when its fire is not out.
@@ -144,15 +143,12 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
     start(structureId) {
       const structure = entities.entity(structureId);
       const kind = structure === undefined ? undefined : takeDownKindOf(structure);
-      if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) return undefined;
-      const why = takeDownRefusal(entities, structure, kind);
-      if (why !== undefined) return noticeOf(why);
+      if (structure === undefined || kind === undefined || !isPlacedStructure(structure)) return;
       const footprint = footprintOfEntity(structure);
       for (const player of players) {
         walkWithinReach(walking, footprint, structure.position, player.position);
         setComponent(entities, player, "takeDownTask", { pieceId: structureId, secondsDone: 0 });
       }
-      return undefined;
     },
     refusal(structureId) {
       const structure = entities.entity(structureId);

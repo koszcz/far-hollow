@@ -7,7 +7,20 @@ import { addCount, countOf, takeCount, weightedTotal } from "./counts";
 
 /** Every kind of thing that can go in the backpack. Add new kinds here, with a weight in CONTENT_WEIGHT_KG. */
 export type BackpackContent =
-  "axe" | "knife" | "drawknife" | "steelAndFlint" | "bedroll" | "stick" | "firewood" | "bark" | "stone" | Food | PotContent | CraftingContent | FishingContent;
+  | "axe"
+  | "knife"
+  | "drawknife"
+  | "steelAndFlint"
+  | "bedroll"
+  | "stick"
+  | "firewood"
+  | "bark"
+  | "stone"
+  | "torch"
+  | Food
+  | PotContent
+  | CraftingContent
+  | FishingContent;
 
 /** Things that crafting uses or makes: the saw blade, a material, the saw, a tool made from it, and planks, cut at the sawhorse. */
 export type CraftingContent = "sawBlade" | "saw" | "plank";
@@ -51,6 +64,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   firewood: 1.5,
   bark: 0.3,
   stone: 2,
+  torch: 0.8,
   berries: 0.1,
   mushroom: 0.1,
   pot: 1,

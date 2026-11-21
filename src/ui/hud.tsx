@@ -25,6 +25,7 @@ import { nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { ActionQueueRow } from "./action-queue-row";
+import { chestTakeReason, recipeReason, type RefusalReader } from "./menu-refusals";
 import { lackingText, refusalText } from "./refusal-text";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
@@ -34,6 +35,7 @@ import { HudIcon, type HudIconName } from "./hud-icons";
 import { lowNeedsHint, needPulses, needRingShare } from "./need-gauge";
 import { placingHint } from "./placing-hint";
 import { SLED_DRAWING } from "./sled-icons";
+import { LIT_TORCH_DRAWING } from "./torch-icons";
 import { weightRingShare, weightRingWarns } from "./weight-ring";
 
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
@@ -54,24 +56,31 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
 function ContentGrid({
   contents,
   label,
+  reason,
   onClick,
 }: {
   contents: GameView["backpack"];
   label: (name: string) => string;
+  /** Why the game would refuse a click on this content now, or null if it would not. A refused cell is dimmed and does nothing. */
+  reason: (content: BackpackContent) => string | null;
   onClick: (content: BackpackContent, shiftKey: boolean) => void;
 }) {
   return (
     <ul>
       {backpackContents(contents).map(([content, count]) => {
         const name = strings.backpackContents[content];
+        const refused = reason(content);
+        const described = label(strings.backpackContentCount(name, count));
         return (
           <li key={content}>
             <button
               type="button"
-              class="hud-content-move"
-              aria-label={label(strings.backpackContentCount(name, count))}
+              class={refused === null ? "hud-content-move" : "hud-content-move hud-content-move-dimmed"}
+              aria-label={refused === null ? described : `${described} · ${refused}`}
+              aria-disabled={refused !== null}
+              title={refused ?? undefined}
               onClick={(event) => {
-                onClick(content, event.shiftKey);
+                if (refused === null) onClick(content, event.shiftKey);
               }}
             >
               <BackpackIcon content={content} />
@@ -95,15 +104,12 @@ function ContentGrid({
 function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target: HotbarTarget, x: number, y: number) => void }) {
   return (
     <ul class="hud-hotbar-cells">
-      {hotbarCells(view).map(({ target, name, tip, count, key }) => (
-        <li
-          key={target.kind === "backpackContent" ? target.content : target.kind}
-          class={target.kind === "shoulder" ? "hud-hotbar-shoulder" : target.kind === "sled" ? "hud-hotbar-sled" : undefined}
-        >
+      {hotbarCells(view).map(({ target, name, tip, count, key, gauge }) => (
+        <li key={target.kind === "backpackContent" ? target.content : target.kind} class={HOTBAR_CELL_CLASS[target.kind]}>
           <button
             type="button"
             class="hud-content-move hud-hotbar-cell"
-            aria-label={hotbarCellLabel(target, name, count, key)}
+            aria-label={hotbarCellLabel(target, name, count, key, tip)}
             onClick={(event) => {
               const cell = event.currentTarget.getBoundingClientRect();
               onOpenMenu(target, cell.left + cell.width / 2, cell.top);
@@ -123,6 +129,7 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
                 {key}
               </span>
             )}
+            {gauge !== undefined && <span class="hud-hotbar-gauge" style={{ "--hud-level": gauge }} aria-hidden="true" />}
           </button>
         </li>
       ))}
@@ -130,11 +137,21 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
   );
 }
 
-/** The full name of a hotbar cell, for screen readers. */
-function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined): string {
+/** The class of each kind of hotbar cell. The shoulder, sled, and lit torch cells sit apart from the backpack contents. */
+const HOTBAR_CELL_CLASS: Readonly<Record<HotbarTarget["kind"], string | undefined>> = {
+  backpackContent: undefined,
+  shoulder: "hud-hotbar-shoulder",
+  sled: "hud-hotbar-sled",
+  litTorch: "hud-hotbar-torch",
+};
+
+/** The full name of a hotbar cell, for screen readers. The lit torch cell's tip says how long it still burns. */
+function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined, tip: string): string {
   switch (target.kind) {
     case "shoulder":
       return strings.hotbar.shoulder(name);
+    case "litTorch":
+      return strings.hotbar.inHand(tip);
     case "sled":
       return strings.hotbar.dragging(name);
     case "backpackContent":
@@ -178,6 +195,8 @@ function HotbarCellIcon({ target }: { target: HotbarTarget }) {
       return <HudIcon name="log" />;
     case "sled":
       return <ShadedIcon drawing={SLED_DRAWING} className="backpack-icon" />;
+    case "litTorch":
+      return <ShadedIcon drawing={LIT_TORCH_DRAWING} className="backpack-icon" />;
   }
 }
 
@@ -226,6 +245,7 @@ function noticeText(notice: Notice): string {
       return strings.notices.droppedBesideStation(strings.pile.holds(notice.content, notice.count), strings.buildMenu.structures[notice.station]);
     case "cannotQueue":
     case "actionSkipped":
+    case "refused":
       return strings.notices[notice.kind](refusalText(notice.refusal));
     default:
       return strings.notices[notice.kind];
@@ -275,13 +295,21 @@ function ListMenu({ title, entries, onClose }: { title: string; entries: readonl
  * The craft menu: one row per recipe, with the icon of what it makes. Each row shows what the recipe uses, how long
  * it takes, and which tool or work station it lacks. A recipe the player cannot follow yet is dimmed. Choosing one starts crafting it.
  */
-function CraftMenu({ view, onChoose, onClose }: { view: GameView; onChoose: (recipe: RecipeKind) => void; onClose: () => void }) {
-  const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, lacks, result }): MenuEntry => {
+function CraftMenu({
+  client,
+  view,
+  onChoose,
+  onClose,
+}: {
+  client: RefusalReader;
+  view: GameView;
+  onChoose: (recipe: RecipeKind) => void;
+  onClose: () => void;
+}) {
+  const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, result }): MenuEntry => {
     const name = strings.craftMenu.recipes[kind];
-    const notes = [
-      ...(lacks.length === 0 ? [] : [strings.craftMenu.needs(lacks.map(lackingText))]),
-      ...(view.carrying === null ? [] : [strings.notices.putLogDownFirst]),
-    ];
+    const reason = recipeReason(client, kind);
+    const notes = reason === null ? [] : [reason];
     const cost = strings.craftMenu.cost(
       [
         ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
@@ -626,7 +654,6 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
 
   const hasContext = view.action !== null || placing !== null || nearbyPanels.length > 0;
   const lowNeeds = lowNeedsHint(view.needs);
-  const daylight = view.time.hourOfDay >= 6 && view.time.hourOfDay < 20;
 
   return (
     <>
@@ -644,7 +671,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
       <div class="hud hud-clock">
         <p class="hud-panel">
           <span class="hud-clock-ring" style={{ "--hud-day": dayShare(view.time.hourOfDay) }}>
-            <HudIcon name={daylight ? "sun" : "moon"} />
+            <HudIcon name={view.night ? "moon" : "sun"} />
           </span>
           {strings.clock(view.time.day, view.time.hour, view.time.minute)}
           <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay)]}</small>
@@ -717,6 +744,7 @@ export function Hud({ client, buildMenuOpen, placing, onToggleBuildMenu, onPickB
               {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
               {craftMenuOpen && (
                 <CraftMenu
+                  client={client}
                   view={view}
                   onChoose={(recipe) => {
                     client.send({ type: "craft", recipe });
@@ -752,6 +780,7 @@ function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView })
         <ContentGrid
           contents={chest.contents}
           label={text.take}
+          reason={(content) => chestTakeReason(client, chest.id, content)}
           onClick={(content, all) => {
             client.send({ type: "takeFromChest", chestId: chest.id, content, all });
           }}

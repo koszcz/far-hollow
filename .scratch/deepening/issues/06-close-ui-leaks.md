@@ -2,7 +2,7 @@
 
 **What to build:** The HUD reads day and night from the game view. The chest panel and the craft menu grey out actions the game would refuse, with the reason. The app no longer imports a type from the renderer.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -29,3 +29,6 @@ ADR 0005 says the UI only reads state and sends commands. ADR 0008 says the UI a
 - [ ] Existing tests pass.
 
 ## Comments
+
+- The app's action logic (`thing-actions.ts`, `build-mode.ts`, `walk-input.ts`) now imports the pick type and `PlacingBlueprint` from `src/sim/api.ts`. Three app files still import from `src/render` on purpose: `main.tsx` and `showcase.ts` create the renderer, and `walk-input.ts` drives the camera rig.
+- The craft refusal now also says "put the log down first" and "the backpack is full". Taking from a chest now has a refusal: nothing to take, or the backpack is full.

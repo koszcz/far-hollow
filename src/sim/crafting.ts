@@ -84,6 +84,8 @@ export interface Recipe {
 export const SAW_CRAFT_SECONDS = 5;
 /** How long crafting the fishing rod takes, in seconds. */
 export const FISHING_ROD_CRAFT_SECONDS = 5;
+/** How long crafting a torch takes, in seconds. */
+export const TORCH_CRAFT_SECONDS = 4;
 /** How long cutting a debarked log into planks takes, in seconds. */
 export const PLANKS_CRAFT_SECONDS = 8;
 /** How many planks one debarked log makes. */
@@ -129,6 +131,16 @@ const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind:
     result: { content: "fishingRod", count: 1 },
     seconds: FISHING_ROD_CRAFT_SECONDS,
     tool: "knife",
+  },
+  // The torch: a hand recipe that wraps a strip of bark round the end of a stick. It needs no tool.
+  torch: {
+    kind: "torch",
+    materials: [
+      { material: "stick", count: 1 },
+      { material: "bark", count: 1 },
+    ],
+    result: { content: "torch", count: 1 },
+    seconds: TORCH_CRAFT_SECONDS,
   },
 };
 
@@ -207,8 +219,8 @@ export interface Crafting {
    * Starts the player crafting. A hand recipe is crafted where the player stands.
    * For a station recipe, the player walks to the finished station given by `stationId`, or to the nearest finished one
    * of the right kind, then works there.
-   * Refuses if they lack its tool, station, or materials, carry a log, the result would not fit,
-   * or the logs a station recipe uses do not lie beside the station.
+   * The game calls it only once `refusal` passes, so the player has the recipe's tool, station, and materials.
+   * Refuses if they carry a log, the result would not fit, or the logs a station recipe uses do not lie beside the station.
    * Does nothing if the station given by `stationId` is not a finished one of the right kind.
    */
   start(kind: RecipeKind, stationId?: number): CraftRefusal | undefined;
@@ -225,7 +237,10 @@ export interface Crafting {
   step(stepSeconds: number): CraftRefusal | DroppedBesideStation | undefined;
   /** Everything the player lacks to follow a recipe now. Empty when they can follow it. */
   lacks(kind: RecipeKind): readonly RecipeLack[];
-  /** Why the player could not follow a recipe now: everything it lacks. */
+  /**
+   * Why the player could not follow a recipe now, wherever they stand: everything it lacks, then a log on their shoulder,
+   * then a result that would not fit in the backpack. Whether logs lie beside the station is checked only at the station.
+   */
   refusal(kind: RecipeKind): Refusal | undefined;
 }
 
@@ -335,11 +350,6 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
       let refusal: CraftRefusal | undefined;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        const lacks = recipeLacks(recipe, player.backpack, hasStation);
-        if (lacks.length > 0) {
-          refusal = { kind: "cannotCraftYet", lacks };
-          continue;
-        }
         let station: PlacedEntity | undefined;
         if (recipe.station !== undefined) {
           station = stationId === undefined ? nearestStation(recipe.station, player.position) : stationOf(recipe, stationId);
@@ -415,7 +425,11 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
     lacks,
     refusal(kind) {
       const lacking = lacks(kind);
-      return lacking.length === 0 ? undefined : { kind: "cannotCraftYet", lacks: lacking };
+      if (lacking.length > 0) return { kind: "cannotCraftYet", lacks: lacking };
+      const player = players.first;
+      if (player?.carrying !== undefined) return { kind: "putLogDownFirst" };
+      if (player?.backpack !== undefined && !resultFits(recipeOf(kind), player.backpack)) return { kind: "backpackFull" };
+      return undefined;
     },
   };
 }

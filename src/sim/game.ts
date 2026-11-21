@@ -287,6 +287,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       entityCount: entities.entities.length,
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
+      night: isNight(readClock(clock.minutes).hourOfDay),
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
@@ -708,6 +709,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     takeFromChest: {
       start: "alongside",
       queue: "apart",
+      refusal: (command) => {
+        const kind = chests.takeRefusal(command.chestId, command.content);
+        return kind === undefined ? undefined : { kind };
+      },
       run: (command) => {
         if (chests.opened()?.id !== command.chestId) return;
         handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>

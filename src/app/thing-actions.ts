@@ -3,9 +3,20 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import type { GroundOrThingPick, ScenePick } from "../render/scene-renderer";
 import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "../sim/api";
-import type { BackpackContent, CampfireView, CarriedLog, Command, GameClient, GameView, SledView, WoodpileView, WoodpileWood } from "../sim/api";
+import type {
+  BackpackContent,
+  CampfireView,
+  GroundOrThingPick,
+  ScenePick,
+  CarriedLog,
+  Command,
+  GameClient,
+  GameView,
+  SledView,
+  WoodpileView,
+  WoodpileWood,
+} from "../sim/api";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import { refusalText } from "../ui/refusal-text";

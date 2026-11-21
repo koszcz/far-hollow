@@ -225,7 +225,10 @@ export interface Crafting {
   step(stepSeconds: number): CraftRefusal | DroppedBesideStation | undefined;
   /** Everything the player lacks to follow a recipe now. Empty when they can follow it. */
   lacks(kind: RecipeKind): readonly RecipeLack[];
-  /** Why the player could not follow a recipe now: everything it lacks. */
+  /**
+   * Why the player could not follow a recipe now, wherever they stand: everything it lacks, then a log on their shoulder,
+   * then a result that would not fit in the backpack. Whether logs lie beside the station is checked only at the station.
+   */
   refusal(kind: RecipeKind): Refusal | undefined;
 }
 
@@ -415,7 +418,11 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
     lacks,
     refusal(kind) {
       const lacking = lacks(kind);
-      return lacking.length === 0 ? undefined : { kind: "cannotCraftYet", lacks: lacking };
+      if (lacking.length > 0) return { kind: "cannotCraftYet", lacks: lacking };
+      const player = players.first;
+      if (player?.carrying !== undefined) return { kind: "putLogDownFirst" };
+      if (player?.backpack !== undefined && !resultFits(recipeOf(kind), player.backpack)) return { kind: "backpackFull" };
+      return undefined;
     },
   };
 }

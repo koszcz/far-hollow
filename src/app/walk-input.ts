@@ -1,6 +1,5 @@
 import type { CameraRig, CameraView } from "../render/camera-rig";
-import type { PlacingBlueprint, ScenePick } from "../render/scene-renderer";
-import { queued, type GameClient, type StructureKind, type ThingInReach } from "../sim/api";
+import { queued, type GameClient, type PlacingBlueprint, type ScenePick, type StructureKind, type ThingInReach } from "../sim/api";
 import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
 import { actionsFor, mainAction, menuActions, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 

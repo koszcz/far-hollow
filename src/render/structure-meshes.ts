@@ -2,8 +2,7 @@
 // It is the one place that knows which meshes draw which structure kind, so the scene renderer and the asset showcase
 // add, update, pick, outline, and dispose every structure through it alone.
 import * as THREE from "three";
-import type { StructureKind } from "../sim/api";
-import type { QuarterTurns } from "../sim/quarter-turns";
+import type { PlacingBlueprint, StructureKind } from "../sim/api";
 import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
 import { createCampfireMeshes } from "./campfire-meshes";
@@ -27,16 +26,6 @@ export type StructureHit = {
   kind: "blueprint" | "campfire" | "fireplace" | "woodpile" | FurnitureKind | "workStation" | "sled";
   entity: Entity;
 };
-
-/** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
-export interface PlacingBlueprint {
-  readonly structure: StructureKind;
-  /** The building-grid spot it snaps to, on the ground, in metres. */
-  readonly spot: Readonly<Vec3>;
-  readonly turns: QuarterTurns;
-  /** False where its placement rule refuses the spot, so it shows as not allowed. */
-  readonly allowed: boolean;
-}
 
 /** What one frame of drawing needs to know. Without `camera` and `player`, no wall fades and no roof hides. */
 export interface StructureFrame {

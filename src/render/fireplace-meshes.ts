@@ -1,8 +1,9 @@
-// Draws fireplaces and fireplace blueprints: the draft "fireplace" asset in asset-manifest.json, built in code.
-// Added by fireplace ticket 02. A fireplace is a squat stone fire box on one foundation square: a back wall and two side walls
-// round a stone floor, a stone slab across their tops, and a short chimney rising from the back.
-// Its opening faces +z when it faces the default way.
-// Construction has one stage per stone. Each stone fades in above its place and is set down, like the logs of a sawhorse.
+// Draws fireplaces and fireplace blueprints: the approved "fireplace" asset in asset-manifest.json, built in code.
+// Added by fireplace ticket 02. A fireplace is a squat fire box of rubble stone on one foundation square: a back wall and two
+// side walls round a flagstone floor, a rough slab across their tops, and a short chimney rising from the back.
+// fireplace-shape.ts builds its stones. Its opening faces +z when it faces the default way.
+// Construction has one stage per stone the fireplace costs. Each stage is a few stones built as one piece. It fades in above
+// its place and is set down, like the logs of a sawhorse.
 // A blueprint shows the stones see-through. A stone the blueprint already has shows pale and half solid.
 // While the player places a fireplace from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 // A lit fireplace burns with the approved "fire-effect" from fire-effect.ts, shrunk to fit its hearth, with the same glow and
@@ -14,6 +15,7 @@ import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, ty
 import { FIREPLACE_STONE_COST } from "../sim/structures";
 import { FUEL_LIMIT_MINUTES } from "../sim/fire";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
+import { createFireplaceStageShapes } from "./fireplace-shape";
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import type { OutlinePart } from "./hover-outline";
@@ -24,12 +26,10 @@ const BLUEPRINT_COLOUR = 0xbfe3ff;
 const BLUEPRINT_OPACITY = 0.35;
 /** A stone the blueprint already has is this solid, so it stands out from the stones still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** Three greys of river stone, matching the stone in a pile, so neighbouring stones differ a little. */
-const STONE_COLOURS = [0x8a8d8f, 0x7f8386, 0x96999b] as const;
 /** The pale grey of a stone waiting in its place. */
 const DELIVERED_COLOUR = 0xb9bec2;
 /** How high the picker reaches, in metres: to the top of the chimney. */
-const PICK_HEIGHT_METRES = 1.7;
+const PICK_HEIGHT_METRES = 1.73;
 /** The fire sits on the hearth floor, this far from the middle toward the opening and this high, in metres. */
 const FIRE_FORWARD_METRES = 0.1;
 const FIRE_HEIGHT_METRES = 0.06;
@@ -63,28 +63,6 @@ export interface FireplaceMeshes {
   dispose(): void;
 }
 
-/** One stone: its size across x, up y, and along z, and where its middle is, in metres, with the fireplace facing the default way. */
-interface StoneBlock {
-  readonly size: readonly [number, number, number];
-  readonly middle: readonly [number, number, number];
-}
-
-/** The 12 stones in the order construction lays them: two courses of walls round the hearth floor, the slab on top, then the chimney. */
-const STONES: readonly StoneBlock[] = [
-  { size: [0.46, 0.06, 0.5], middle: [0, 0.03, 0.1] },
-  { size: [0.9, 0.3, 0.25], middle: [0, 0.15, -0.3] },
-  { size: [0.22, 0.3, 0.55], middle: [-0.34, 0.15, 0.1] },
-  { size: [0.22, 0.3, 0.55], middle: [0.34, 0.15, 0.1] },
-  { size: [0.9, 0.3, 0.25], middle: [0, 0.45, -0.3] },
-  { size: [0.22, 0.3, 0.55], middle: [-0.34, 0.45, 0.1] },
-  { size: [0.22, 0.3, 0.55], middle: [0.34, 0.45, 0.1] },
-  { size: [0.96, 0.14, 0.86], middle: [0, 0.67, -0.03] },
-  { size: [0.6, 0.24, 0.45], middle: [0, 0.86, -0.2] },
-  { size: [0.4, 0.3, 0.35], middle: [0, 1.13, -0.22] },
-  { size: [0.4, 0.3, 0.35], middle: [0, 1.43, -0.22] },
-  { size: [0.5, 0.08, 0.44], middle: [0, 1.62, -0.22] },
-];
-
 /** One stage of construction: its stone, with its own see-through copy of the stone material for fading in. */
 interface Stage {
   readonly mesh: THREE.Mesh;
@@ -104,9 +82,9 @@ interface Drawn {
 
 export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
   const group = new THREE.Group();
-  const geometries = STONES.map(({ size }) => new THREE.BoxGeometry(...size));
+  const shapes = createFireplaceStageShapes();
   const pickGeometry = new THREE.BoxGeometry(1, PICK_HEIGHT_METRES, 1).translate(0, PICK_HEIGHT_METRES / 2, 0);
-  const stoneMaterials = STONE_COLOURS.map((color) => new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.95 }));
+  const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.92 });
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DELIVERED_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
@@ -121,11 +99,11 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
 
   /** Adds every stone to `root`, all in the blueprint material. */
   function addStages(root: THREE.Group): Stage[] {
-    return STONES.map(({ middle }, index) => {
-      const solid = stoneMaterials[index % stoneMaterials.length] ?? blueprintMaterial;
+    return shapes.map(({ geometry, middle }) => {
+      const solid = stoneMaterial;
       const fading = solid.clone();
       fading.transparent = true;
-      const mesh = new THREE.Mesh(geometries[index], blueprintMaterial);
+      const mesh = new THREE.Mesh(geometry, blueprintMaterial);
       mesh.position.set(...middle);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -163,7 +141,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
     item.root.rotation.y = quarterTurnsToRadians(entity.facing?.turns ?? 0);
     const stagesDone = progress * FIREPLACE_STONE_COST;
     item.stages.forEach((stage, index) => {
-      const [x, y, z] = STONES[index]?.middle ?? [0, 0, 0];
+      const [x, y, z] = shapes[index]?.middle ?? [0, 0, 0];
       const share = Math.min(1, Math.max(0, stagesDone - index));
       if (share <= 0) {
         stage.mesh.material = index < delivered ? deliveredMaterial : blueprintMaterial;
@@ -263,13 +241,21 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
       placingStages.forEach((stage, index) => {
         stage.mesh.material = material;
-        stage.mesh.position.set(...(STONES[index]?.middle ?? [0, 0, 0]));
+        stage.mesh.position.set(...(shapes[index]?.middle ?? [0, 0, 0]));
       });
       placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
       placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
-      for (const item of [...geometries, pickGeometry, ...stoneMaterials, blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
+      for (const item of [
+        ...shapes.map(({ geometry }) => geometry),
+        pickGeometry,
+        stoneMaterial,
+        blueprintMaterial,
+        deliveredMaterial,
+        notAllowedMaterial,
+        pickMaterial,
+      ]) {
         item.dispose();
       }
       disposeFading(placingStages);

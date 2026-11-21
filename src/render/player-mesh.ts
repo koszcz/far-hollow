@@ -2,32 +2,14 @@
 // its hood, cape, shield, mug, and big axe, and with a light brown knit beanie built here. The owner approved the asset.
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
-// While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
-// While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
-// pulling a drawknife, and the axe goes on the back. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down and Lie_Idle clips, rolls onto the back into Death_A_Pose and
 // breathes slowly, then rolls back and plays Lie_StandUp. The owner approved it.
 // While sitting on a stool, the approved "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
-// While sawing planks, "sawing-animation", posed in code by player-saw-pose.ts, holds the log on the sawhorse with the
-// left hand and saws it with the right. The saw is the approved "saw-model", built by saw-model.ts. The axe goes on the back.
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
-// While fishing, the approved "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
-// built by fishing-rod-model.ts, waits for the float to dip, then lifts out a raw fish from "fishing-piles" and catches
-// it in the left hand. fishing-tackle.ts bends the rod and draws the line and the float. The axe goes on the back.
-// Foraging a berry bush, eating, drinking from the river, filling the pot, and drinking from the pot play the approved
-// "forage-eat-drink-animation", posed in code by player-eat-drink-pose.ts. The pot in the hands is the approved "pot",
-// built by pot-shape.ts. The axe goes on the back.
-// While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
-// forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
-// approved "sled-rope" starts.
-// While crafting a hand recipe, the approved "hand-craft-animation", posed in code by player-hand-craft-pose.ts, lashes a
-// small bundle of sticks at waist height, drawn by hand-craft-work.ts. The axe goes on the back.
-// While gathering stone, the draft "gather-stone-animation", posed in code by player-gather-stone-pose.ts, crouches at the
-// water's edge and lifts a stone, drawn by stone-shape.ts, in both hands. The axe goes on the back.
-// While the player holds a lit torch, the draft "torch", built by torch-shape.ts, rides upright in the left hand through
-// every motion, with a small "fire-effect" flame on its head. scene-renderer.ts lights the ground from torchFlame().
+// Each motion posed in code, such as fishing or crafting by hand, lives in its own module in player-motions/, with its
+// props. The player mesh lends each one a rig and runs them in the order of player-motions/motion-list.ts.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -35,41 +17,18 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import type { CarriedLog, ReachHeight } from "../sim/entities";
 import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
-import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
+import { applyBuildPose, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
-import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
-import { GATHER_STONE_LEAVE_SECONDS, gatherStonePoseAt, holdsStoneAt } from "./player-gather-stone-pose";
-import { createStoneGeometry } from "./stone-shape";
-import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
-import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
-import { sledDragPoseAt } from "./player-sled-drag-pose";
 import type { RopeHold } from "./sled-rope";
-import { createSaw } from "./saw-model";
-import { createFishingRod } from "./fishing-rod-model";
-import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
-import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
-import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
-import { createHandCraftMotion, handCraftWorkTurnAt } from "./player-hand-craft-pose";
-import { createHandCraftWork } from "./hand-craft-work";
 import { smoothstep } from "./easing";
-import { createWorkMotion, type Leaving, type WorkMotion } from "./work-motion";
+import type { Leaving } from "./work-motion";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
-import { eatDrinkPoseAt, upperBodyOf, type EatDrinkMotion, type EatDrinkPose } from "./player-eat-drink-pose";
-import { createPotMaker, POT_HEIGHT_METRES } from "./pot-shape";
-import { createFireMaker } from "./fire-effect";
-import { createTorchFlame, createTorchShape, TORCH_FLAME_HEIGHT_METRES } from "./torch-shape";
-
-/**
- * The lit torch rides in the left hand, gripped this far up from its butt, in metres. It leans this far forward and this far
- * out from the body, in radians, so the flame stays clear of the head. Part of the draft "torch" asset.
- */
-const TORCH_GRIP_METRES = 0.14;
-const TORCH_LEAN_FORWARD = 0.25;
-const TORCH_LEAN_OUT = 0.2;
+import { createPlayerMotions, type MotionId, type MotionMoment } from "./player-motions/motion-list";
+import { freeArms, type PlayerMotion, type PlayerRig } from "./player-motions/player-motion";
 
 /** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
 const MODEL_SCALE = 0.78;
@@ -77,11 +36,6 @@ const MODEL_SCALE = 0.78;
 const HIDDEN_PARTS = ["1H_Axe_Offhand", "Barbarian_Round_Shield", "2H_Axe", "Mug", "Barbarian_Hat", "Barbarian_Cape"];
 const AXE_PART = "1H_Axe";
 const BEANIE_COLOUR = 0xb08a5e;
-/** How much bigger the stone is in the hands than in a pile. The player's head and beard are big for the body, so a true-size stone hides under them. */
-const STONE_IN_HANDS_SCALE = 2;
-/** How far below and ahead of the middle of the wrists the stone sits while the player lifts it, in metres, so the hands hold it rather than hide it. */
-const STONE_BELOW_WRISTS_METRES = 0.06;
-const STONE_AHEAD_OF_WRISTS_METRES = 0.08;
 const BEANIE_CUFF_COLOUR = 0x96714a;
 
 const IDLE_CLIP = "Idle";
@@ -124,16 +78,6 @@ export const CHOP_STRIKE_SHARE = 0.38;
 /** How many times a second the player strikes down at a log when splitting: once per loop of the split clip. */
 export const SPLIT_STRIKES_PER_SECOND = 1 / SPLIT_CLIP_SECONDS;
 
-/** Seconds the player takes to stand up when building stops partway through a crouch. */
-const BUILD_LEAVE_SECONDS = 0.3;
-/**
- * How far in front of the hands the middle of a held pot rides, in metres. The arms are short, so the hands hold the
- * near side of the rim rather than the lugs, and the pot stays clear of the body.
- */
-const POT_AHEAD_OF_HANDS_METRES = 0.14;
-/** How much bigger the pot is in the hands than true size, so it shows beside the big head, like the saw. */
-const POT_IN_HAND_SCALE = 1.5;
-
 /** The carried log rests here on the player's right shoulder, from the player's feet, in metres. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = new THREE.Vector3(-0.3, 1.0, 0);
 /**
@@ -163,21 +107,6 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
-  /** Bends the player over a log, pulling a drawknife along it. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setDebarking(nowSeconds: number | undefined): void;
-  /** Crouches at the water's edge and lifts a stone. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setGatheringStone(nowSeconds: number | undefined): void;
-  /**
-   * Saws the log on the sawhorse in front of the player, the saw `progress` of the way through it, from 0 to 1.
-   * Pass undefined to stand upright. `nowSeconds` is a steady real-time clock.
-   */
-  setSawing(sawing: { nowSeconds: number; progress: number } | undefined): void;
-  /** Crouches the player to set pieces in place. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setBuilding(nowSeconds: number | undefined): void;
-  /** Works at something small held at waist height, for a hand recipe. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setHandCrafting(nowSeconds: number | undefined): void;
-  /** Fishes with the rod held out over the water, as player-fish-pose.ts poses it. Pass undefined to stand upright. */
-  setFishing(fishing: Fishing | undefined): void;
   /**
    * Lies the player down to sleep, and gets them up again, as sleep-animation.ts times it. Pass the seconds since the
    * player reached the bedroll, or undefined while not sleeping.
@@ -195,47 +124,19 @@ export interface PlayerMesh {
    */
   setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
   /**
-   * Forages a berry bush, eats, drinks from the river, fills the pot, or drinks from the pot, as player-eat-drink-pose.ts
-   * poses it. Pass the seconds since the motion began, or undefined while not doing any of them.
+   * Moves the motion `id`, from the list in player-motions/motion-list.ts, on to `moment`, or stops it when `moment` is
+   * undefined. Each motion's module says what its moment is.
    */
-  setEatingOrDrinking(motion: EatDrinkMotion | undefined): void;
-  /** Leans the player forward to drag a sled by a rope in the left hand, or stands them upright at once. */
-  setDragging(dragging: boolean): void;
-  /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. */
+  setMotion<Id extends MotionId>(id: Id, moment: MotionMoment<Id> | undefined): void;
+  /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. See sled-drag-animation.ts. */
   ropeHold(): RopeHold | undefined;
   /**
-   * Shows a lit torch in the player's left hand, its flame burning at `nowSeconds`, a steady real-time clock.
-   * Pass undefined to hide it. The player keeps it through every motion.
-   */
-  setLitTorch(nowSeconds: number | undefined): void;
-  /**
    * Copies where the lit torch's flame is, as a world point, into `target.position`, and how high it is above the player's feet
-   * into `target.aboveGroundMetres`. Returns false, and copies nothing, while no torch shows.
+   * into `target.aboveGroundMetres`. Returns false, and copies nothing, while no torch shows. See player-motions/torch.ts.
    */
   torchFlame(target: { readonly position: THREE.Vector3; aboveGroundMetres: number }): boolean;
   dispose(): void;
 }
-
-/**
- * What the player mesh needs to pose fishing. `nowSeconds` is a steady real-time clock. `sinceCast` is the seconds since
- * the latest cast began, and `toBite` the seconds until a fish bites. The line reaches the water `floatForward` metres in
- * front of the player's feet and `floatHeight` metres above them.
- */
-export interface Fishing {
-  readonly nowSeconds: number;
-  readonly sinceCast: number;
-  readonly toBite: number;
-  readonly floatForward: number;
-  readonly floatHeight: number;
-}
-
-/** How thick the fishing line is drawn, as a radius, in metres. It is thicker than true so it shows from the camera. */
-const FISHING_LINE_RADIUS_METRES = 0.004;
-/** How much larger than true the caught fish is drawn, so it shows from the camera as it swings in on the line. */
-const CAUGHT_FISH_SCALE = 1.6;
-/** How far the float rides above the hook while the line is out of the water, in metres. */
-const FLOAT_ABOVE_HOOK_METRES = 0.25;
-const FISHING_LINE_COLOUR = 0xe8e2cc;
 
 /** playerModel is the loaded Barbarian, from loadPlayerModel. logShape is the loaded log, from loadLogShape. */
 export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): PlayerMesh {
@@ -393,120 +294,37 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
    */
   let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
-  // Measure the log shape once, for how tall the log on the sawhorse is.
-  const logShapeBox =
-    logShape.geometry.boundingBox ?? new THREE.Box3().setFromBufferAttribute(logShape.geometry.getAttribute("position") as THREE.BufferAttribute);
-  /** How tall a log lying on its side is, in metres. */
-  const logThickness = logShapeBox.max.y - logShapeBox.min.y;
-  /** Building, moved on by the steady clock time. */
-  const building = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => buildPoseAt(now - since), leaveSeconds: BUILD_LEAVE_SECONDS });
-  /** Debarking, moved on by the steady clock time. */
-  const debarking = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => debarkPoseAt(now - since), leaveSeconds: DEBARK_ENTER_SECONDS });
-  /** Sawing, moved on by the steady clock time and how far through the log the saw is. */
-  const sawing = createWorkMotion<{ nowSeconds: number; progress: number }>({
-    startOf: (at) => at.nowSeconds,
-    poseAt: (at, since) => sawPoseAt(at.nowSeconds - since, at.progress, logThickness),
-    leaveSeconds: SAW_ENTER_SECONDS,
-  });
-  /** Crafting by hand, moved on by the steady clock time. It stops at once. */
-  const handCrafting = createHandCraftMotion();
-  /** Fishing, moved on by the latest moment passed to `setFishing`. */
-  const fishing = createWorkMotion<Fishing>({
-    startOf: (at) => at.nowSeconds,
-    poseAt: (at, since) => fishPoseAt(at.sinceCast, at.toBite, at.nowSeconds - since).body,
-    leaveSeconds: FISH_ENTER_SECONDS,
-  });
-  /** The work motions, in the order they win when more than one plays. */
-  /** Gathering stone, moved on by the steady clock time. */
-  const gatheringStone = createWorkMotion<number>({
-    startOf: (now) => now,
-    poseAt: (now, since) => gatherStonePoseAt(now - since),
-    leaveSeconds: GATHER_STONE_LEAVE_SECONDS,
-  });
-  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, debarking, sawing, handCrafting, fishing, gatheringStone];
-  /** While standing up after building, debarking, sawing, or fishing stops. */
-  let leavingBuild: Leaving | undefined;
-  /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
-  let eatingOrDrinking: EatDrinkMotion | undefined;
-  /** Whether the player drags a sled. */
-  let dragging = false;
+  /** While standing up after a work motion stops. */
+  let standingUp: Leaving | undefined;
 
-  // The drawknife rides between the hands while debarking, placed from the wrists each frame.
-  const drawknife = createDrawknife();
-  drawknife.group.visible = false;
-  drawknife.group.scale.setScalar(DRAWKNIFE_IN_HAND_SCALE);
-  group.add(drawknife.group);
-  // The stone rides between the hands while the player lifts it, placed from the wrists each frame.
-  const stoneGeometry = createStoneGeometry();
-  geometries.push(stoneGeometry);
-  // The stone's faces carry their own colours and normals, the same as stone in a pile.
-  const stoneInHands = new THREE.Mesh(stoneGeometry, material(0xffffff, { vertexColors: true, flatShading: false }));
-  stoneInHands.castShadow = true;
-  stoneInHands.scale.setScalar(STONE_IN_HANDS_SCALE);
-  stoneInHands.visible = false;
-  group.add(stoneInHands);
-  // The saw rides in the right hand while sawing, placed from the wrist each frame.
-  const saw = createSaw();
-  saw.group.visible = false;
-  saw.group.scale.setScalar(SAW_IN_HAND_SCALE);
-  group.add(saw.group);
-  // The bundle of sticks rides in the left hand while crafting by hand, with the cord running to the right hand.
-  const handCraftWork = createHandCraftWork();
-  handCraftWork.setVisible(false);
-  group.add(handCraftWork.group);
-  // The fishing rod rides in the right hand while fishing, its butt at the wrist. The line runs from its tip.
-  const rod = createFishingRod();
-  rod.group.visible = false;
-  group.add(rod.group);
-  const rodBend = createRodBend(rod);
-  const fishingLine = createFishingLine(FISHING_LINE_RADIUS_METRES, material(FISHING_LINE_COLOUR, { roughness: 0.8 }));
-  fishingLine.mesh.visible = false;
-  group.add(fishingLine.mesh);
-  const linePoints = Array.from({ length: fishingLine.pointCount }, () => new THREE.Vector3());
-  const fishingFloat = createFishingFloat();
-  fishingFloat.group.visible = false;
-  group.add(fishingFloat.group);
-  // The caught fish hangs head up from the end of the line, hooked by the mouth. The inner group puts the snout at the
-  // outer group's origin, so the outer group turns the fish about the hook.
-  const caughtFish = new THREE.Group();
-  const caughtFishBody = new THREE.Group();
-  caughtFishBody.position.z = -FISH_LENGTH_METRES / 2;
-  caughtFish.add(caughtFishBody);
-  const keepGeometry = <T extends { dispose(): void }>(made: T): T => {
-    if (made instanceof THREE.BufferGeometry) geometries.push(made);
-    return made;
+  /** What the player mesh lends each motion in the motion list. */
+  const rig: PlayerRig = {
+    group,
+    bones: buildBones,
+    leftArm,
+    rightArm,
+    logShape,
+    material,
+    applyPose(pose, arms) {
+      rememberClipPose(...buildPosedBones);
+      applyBuildPose(group, buildBones, pose, arms);
+    },
+    get carrying() {
+      return carrying;
+    },
+    get walkedMetres() {
+      return walkedMetres;
+    },
+    strideMetres: STRIDE_METRES,
+    get bodyMoves() {
+      return walkedMetres !== undefined || choppingAt !== undefined || splittingAt !== undefined || bodyMotions.some((motion) => motion.playing);
+    },
   };
-  for (const part of rawFishParts((colour) => material(colour), keepGeometry)) {
-    const mesh = new THREE.Mesh(part.geometry, part.material);
-    mesh.castShadow = true;
-    caughtFishBody.add(mesh);
-  }
-  caughtFish.visible = false;
-  caughtFish.scale.setScalar(CAUGHT_FISH_SCALE);
-  group.add(caughtFish);
-  // The pot rides between the hands while filling it or drinking from it. The holder sits at the hands and tips the pot
-  // about the line through them. The pot rides just ahead of the hands, its rim level with them.
-  const potMaker = createPotMaker();
-  const potInHands = potMaker.make();
-  const potHolder = new THREE.Group();
-  potInHands.group.position.set(0, -POT_HEIGHT_METRES, POT_AHEAD_OF_HANDS_METRES);
-  potHolder.add(potInHands.group);
-  potHolder.visible = false;
-  potHolder.scale.setScalar(POT_IN_HAND_SCALE);
-  group.add(potHolder);
-  // The lit torch rides in the left hand, upright, placed from the wrist each time the player is posed.
-  const torchShape = createTorchShape();
-  const torchFireMaker = createFireMaker();
-  const torchInHand = new THREE.Group();
-  /** Where the player's feet are in the world, worked out again each time torchFlame runs. */
-  const feet = new THREE.Vector3();
-  for (const part of torchShape.parts) torchInHand.add(new THREE.Mesh(part.geometry, part.material));
-  const torchFire = createTorchFlame(torchFireMaker);
-  torchInHand.add(torchFire.group);
-  torchInHand.visible = false;
-  group.add(torchInHand);
-  /** When the lit torch shows, the steady clock time its flame burns at. Undefined while the player holds no lit torch. */
-  let torchAt: number | undefined;
+  const motions = createPlayerMotions(rig);
+  /** Every motion in the list, in its order. */
+  const motionList: readonly PlayerMotion<unknown>[] = Object.values(motions);
+  const bodyMotions = motionList.filter((motion) => motion.layer === "body");
+  const upperBodyMotions = motionList.filter((motion) => motion.layer === "upperBody");
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -578,16 +396,15 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     ...[...buildBones.legs, ...buildBones.arms].flatMap((part) => [part.upper, part.lower, part.end]),
   ];
 
-  /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with building. */
+  /** Puts the axe in the right hand, or on the back while the hands are busy with a log or with a motion that wants it there. */
   function updateAxe(): void {
     const swinging = choppingAt !== undefined || splittingAt !== undefined;
     const handsBusy =
       carrying ||
       reaching !== undefined ||
-      workMotions.some((motion) => motion.since !== undefined) ||
+      motionList.some((motion) => motion.playing && motion.axeOnBack) ||
       sleepingAt !== undefined ||
-      sittingBody !== undefined ||
-      eatingOrDrinking !== undefined;
+      sittingBody !== undefined;
     placeAxe(!swinging && handsBusy);
   }
 
@@ -604,66 +421,13 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       rightForearm.quaternion.multiply(CARRY_FOREARM_TURN);
     }
     poseBreathing();
-    poseBuilding();
-    const eatDrinkPose = eatingOrDrinking === undefined ? undefined : eatDrinkPoseAt(eatingOrDrinking.kind, eatingOrDrinking.seconds);
-    poseEatingOrDrinking(eatDrinkPose);
+    poseBody();
+    // An upper body motion, such as eating, poses the arms and head over whatever body motion plays.
+    for (const motion of upperBodyMotions) motion.pose?.();
     poseReaching();
     blendFromReach();
-    placeDrawknife();
-    placeStone();
-    placeSaw();
-    placeHandCraftWork();
-    placeFishingRod();
-    placePot(eatDrinkPose?.pot);
-    placeTorch();
-  }
-
-  const torchHand = new THREE.Vector3();
-  const TORCH_TILT = new THREE.Quaternion().setFromEuler(new THREE.Euler(TORCH_LEAN_FORWARD, 0, -TORCH_LEAN_OUT));
-  const torchUp = new THREE.Vector3();
-  /** Shows the lit torch in the left hand, gripped near its butt and leaning a little forward and out, with its flame burning. */
-  function placeTorch(): void {
-    torchInHand.visible = torchAt !== undefined;
-    if (torchAt === undefined) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(torchHand));
-    torchInHand.quaternion.copy(TORCH_TILT);
-    torchUp.set(0, 1, 0).applyQuaternion(TORCH_TILT);
-    torchInHand.position.copy(torchHand).addScaledVector(torchUp, -TORCH_GRIP_METRES);
-    torchFire.animate(torchAt, 1, 0.7);
-  }
-
-  /**
-   * Reaches into a bush, eats, or drinks, on top of the clip. Over walking or work, only the arms and head move,
-   * so the legs keep walking and the body keeps working.
-   */
-  function poseEatingOrDrinking(eatDrinkPose: EatDrinkPose | undefined): void {
-    if (eatDrinkPose === undefined) return;
-    const { body, arms } = eatDrinkPose;
-    const underneath =
-      walkedMetres !== undefined ||
-      choppingAt !== undefined ||
-      splittingAt !== undefined ||
-      dragging ||
-      workMotions.some((motion) => motion.since !== undefined);
-    rememberClipPose(...buildPosedBones);
-    // A hand steadying a log on the shoulder stays there, so only the left hand moves.
-    applyBuildPose(group, buildBones, underneath ? upperBodyOf(body) : body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
-  }
-
-  const potLeft = new THREE.Vector3();
-  const potRight = new THREE.Vector3();
-  /** Shows the pot between the hands while filling it or drinking from it, tipped as the motion says. */
-  function placePot(pot: EatDrinkPose["pot"]): void {
-    potHolder.visible = pot !== undefined;
-    if (pot === undefined) return;
-    potInHands.show(pot.look, performance.now() / 1000);
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(potLeft));
-    group.worldToLocal(rightArm.end.getWorldPosition(potRight));
-    potHolder.position.addVectors(potLeft, potRight).multiplyScalar(0.5);
-    // Turning about +x tips the rim toward +z, the way the player faces.
-    potHolder.rotation.set(pot.tilt, 0, 0);
+    // Props go on last, once every pose is applied, so they follow the hands.
+    for (const motion of motionList) motion.placeProps();
   }
 
   /** Every bone of the model, for blending whole poses. */
@@ -706,178 +470,40 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   }
 
   /**
-   * Moves a work motion on to `at`, or stops it when `at` is undefined. Starting one ends any standing back up.
+   * Moves a motion on to `at`, or stops it when `at` is undefined. Starting a work motion ends any standing back up.
    * Stopping one stands the player back up the way that motion does.
    */
-  function updateWork<At>(motion: WorkMotion<At>, at: At | undefined): void {
+  function updateMotion<At>(motion: Pick<PlayerMotion<At>, "update">, at: At | undefined): void {
     const change = motion.update(at, performance.now() / 1000);
-    if (change?.kind === "started") leavingBuild = undefined;
-    if (change?.kind === "stopped") leavingBuild = change.leaving;
+    if (change?.kind === "started") standingUp = undefined;
+    if (change?.kind === "stopped") standingUp = change.leaving;
     if (change !== undefined) updateAxe();
     pose();
   }
 
-  /** Crouches over the clip while building, or stands back up for a moment after building stops. */
-  function poseBuilding(): void {
-    const working = workMotions.find((motion) => motion.since !== undefined)?.pose();
-    if (working === undefined && dragging) {
-      // Only the left hand takes the rope. The right arm keeps the clip's swing, or steadies a log on the shoulder.
-      // The walk clip takes two steps to each stride, and each step heaves into the pull.
-      rememberClipPose(...buildPosedBones);
-      const steps = walkedMetres === undefined ? undefined : (walkedMetres / STRIDE_METRES) * 2;
-      applyBuildPose(group, buildBones, sledDragPoseAt(steps), [leftArm]);
+  /** Poses the body for the first body motion playing, or stands back up for a moment after a work motion stops. */
+  function poseBody(): void {
+    const playing = bodyMotions.find((motion) => motion.playing);
+    if (playing !== undefined) {
+      playing.pose?.();
       return;
     }
-    const pose = working ?? standingUpPose();
-    if (pose === undefined) return;
-    rememberClipPose(...buildPosedBones);
-    // A hand steadying a log on the shoulder stays there, so only the left hand reaches.
-    applyBuildPose(group, buildBones, pose, carrying ? [leftArm] : buildBones.arms);
+    const pose = standingUpPose();
+    // A hand steadying a log on the shoulder stays there, so only the left hand moves.
+    if (pose !== undefined) rig.applyPose(pose, freeArms(rig));
   }
 
   /** The pose while standing back up after a work motion stops, or undefined once the player stands. */
   function standingUpPose(): BuildPose | undefined {
-    if (leavingBuild === undefined) return undefined;
-    const done = (performance.now() / 1000 - leavingBuild.at) / leavingBuild.seconds;
+    if (standingUp === undefined) return undefined;
+    const done = (performance.now() / 1000 - standingUp.at) / standingUp.seconds;
     // Standing up eases out only over the idle clip. Walking or swinging takes over the whole body at once.
     const idleNow = walkedMetres === undefined && choppingAt === undefined && splittingAt === undefined;
     if (done >= 1 || !idleNow) {
-      leavingBuild = undefined;
+      standingUp = undefined;
       return undefined;
     }
-    return scaleBuildPose(leavingBuild.pose, 1 - smoothstep(done));
-  }
-
-  const leftWrist = new THREE.Vector3();
-  const rightWrist = new THREE.Vector3();
-  const knifeAcross = new THREE.Vector3();
-  const knifeUp = new THREE.Vector3();
-  const knifeForward = new THREE.Vector3();
-  const knifeTurn = new THREE.Matrix4();
-  /** Shows the stone between the hands while the player lifts it. */
-  function placeStone(): void {
-    const since = gatheringStone.since;
-    const now = gatheringStone.at;
-    stoneInHands.visible = since !== undefined && now !== undefined && holdsStoneAt(now - since);
-    if (!stoneInHands.visible) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
-    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
-    // The stone sits just below the middle of the wrists, held from either side.
-    stoneInHands.position.addVectors(leftWrist, rightWrist).multiplyScalar(0.5);
-    stoneInHands.position.y -= STONE_BELOW_WRISTS_METRES;
-    stoneInHands.position.z += STONE_AHEAD_OF_WRISTS_METRES;
-  }
-
-  /** Shows the drawknife while debarking, its handles in the two hands. */
-  function placeDrawknife(): void {
-    drawknife.group.visible = debarking.since !== undefined;
-    if (!drawknife.group.visible) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
-    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
-    // The blade runs level across the hands, beyond them, with the handles pointing back towards the player.
-    knifeAcross.subVectors(rightWrist, leftWrist).normalize();
-    knifeUp.set(0, 1, 0);
-    knifeForward.crossVectors(knifeAcross, knifeUp).normalize();
-    knifeUp.crossVectors(knifeForward, knifeAcross);
-    knifeTurn.makeBasis(knifeAcross, knifeUp, knifeForward);
-    drawknife.group.quaternion.setFromRotationMatrix(knifeTurn);
-    // The grips sit at the wrists, so the middle of the blade lies out beyond them.
-    drawknife.group.position
-      .addVectors(leftWrist, rightWrist)
-      .multiplyScalar(0.5)
-      .addScaledVector(knifeForward, -DRAWKNIFE_GRIP.forward * DRAWKNIFE_IN_HAND_SCALE);
-  }
-
-  /** Shows the saw while sawing, its grip in the right hand and its blade pointing the way the player faces. */
-  function placeSaw(): void {
-    saw.group.visible = sawing.since !== undefined;
-    if (!saw.group.visible) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(rightArm.end.getWorldPosition(saw.group.position));
-  }
-
-  /** Shows the bundle of sticks in the left hand while crafting by hand, turned as the motion says, with the cord to the right hand. */
-  function placeHandCraftWork(): void {
-    const since = handCrafting.since;
-    const now = handCrafting.at;
-    handCraftWork.setVisible(since !== undefined);
-    if (since === undefined || now === undefined) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
-    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
-    handCraftWork.place(leftWrist, rightWrist, handCraftWorkTurnAt(now - since));
-  }
-
-  const rodTip = new THREE.Vector3();
-  const lineEnd = new THREE.Vector3();
-  const lineHang = new THREE.Vector3();
-  const lineFloat = new THREE.Vector3();
-  const leftHand = new THREE.Vector3();
-  const lineSpot = new THREE.Vector3();
-  const FISH_HANG = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-  const fishTwist = new THREE.Quaternion();
-  const fishKick = new THREE.Quaternion();
-  const AXIS_Y = new THREE.Vector3(0, 1, 0);
-  const AXIS_Z = new THREE.Vector3(0, 0, 1);
-  /**
-   * Shows the fishing rod in the right hand while fishing, lifted and bent as the pose says, with the line, the float,
-   * and any fish on it. Everything is placed in the player's own space, where the player faces +z and their right is -x.
-   */
-  function placeFishingRod(): void {
-    const fishingSince = fishing.since;
-    const fishingNow = fishingSince === undefined ? undefined : fishing.at;
-    rod.group.visible = fishingNow !== undefined;
-    fishingLine.mesh.visible = fishingNow !== undefined;
-    fishingFloat.group.visible = fishingNow !== undefined;
-    caughtFish.visible = false;
-    if (fishingNow === undefined || fishingSince === undefined) return;
-    const fishPose = fishPoseAt(fishingNow.sinceCast, fishingNow.toBite, fishingNow.nowSeconds - fishingSince);
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(rightArm.end.getWorldPosition(rod.group.position));
-    group.worldToLocal(leftArm.end.getWorldPosition(leftHand));
-    // The rod lifts from level about -x, which turns +z towards +y, then leans out to the right about +z.
-    rod.group.rotation.set(-fishPose.rodLift, 0, fishPose.rodLean, "ZYX");
-    rod.group.updateMatrix();
-    rodBend.bend(fishPose.rodBend);
-    rodTip.copy(rodBend.tip).applyMatrix4(rod.group.matrix);
-
-    // Drawn in, the line hangs below the tip, streaming back as the rod swings. Cast out, it reaches the float on the
-    // water, flying in an arc on the way. The left hand can take hold of its end.
-    lineHang
-      .set(0, -(1 - fishPose.lineTrail * 0.8), -fishPose.lineTrail)
-      .normalize()
-      .multiplyScalar(fishPose.lineHang)
-      .add(rodTip);
-    lineHang.z += fishPose.fishSwing;
-    lineFloat.set(rodTip.x, fishingNow.floatHeight, fishingNow.floatForward);
-    lineEnd.lerpVectors(lineHang, lineFloat, fishPose.lineOut);
-    lineEnd.y += fishPose.lineArc;
-    lineEnd.lerp(leftHand, fishPose.lineInHand);
-    // The line sags in the middle, most of all when it lies slack out to the water.
-    const last = linePoints.length - 1;
-    linePoints.forEach((point, index) => {
-      const t = index / last;
-      point.lerpVectors(rodTip, lineEnd, t);
-      point.y -= fishPose.lineSag * 4 * t * (1 - t);
-    });
-    fishingLine.setPoints(linePoints);
-
-    // The float sits on the water at the end of the line, or rides up the line above the hook once the line leaves it.
-    const lineLength = rodTip.distanceTo(lineEnd) || 1;
-    pointOnLine(1 - Math.min(0.9, (FLOAT_ABOVE_HOOK_METRES * fishPose.floatUp) / lineLength), lineSpot);
-    fishingFloat.group.position.copy(lineSpot);
-    fishingFloat.group.position.y -= fishPose.floatDip * (1 - fishPose.floatUp);
-
-    if (fishPose.fishShown) {
-      caughtFish.visible = true;
-      caughtFish.position.copy(lineEnd);
-      // The fish hangs head up from the hook, twisting about the line and kicking its tail out to the side.
-      fishTwist.setFromAxisAngle(AXIS_Y, fishPose.fishThrash);
-      fishKick.setFromAxisAngle(AXIS_Z, fishPose.fishThrash * 0.5);
-      caughtFish.quaternion.copy(fishTwist).multiply(fishKick).multiply(FISH_HANG);
-    }
+    return scaleBuildPose(standingUp.pose, 1 - smoothstep(done));
   }
 
   const breathTurn = new THREE.Quaternion();
@@ -889,15 +515,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     if (onBack <= 0) return;
     rememberClipPose(chestBone);
     chestBone.quaternion.multiply(breathTurn.setFromAxisAngle(chestAxis, -SLEEP_BREATH_RADIANS * onBack * sleepBreathAt(sleepingAt)));
-  }
-
-  /** The point `t` of the way along the line drawn now, from the tip to the end. */
-  function pointOnLine(t: number, out: THREE.Vector3): THREE.Vector3 {
-    const at = Math.min(Math.max(t, 0), 1) * (linePoints.length - 1);
-    const index = Math.min(Math.floor(at), linePoints.length - 2);
-    const from = linePoints[index];
-    const to = linePoints[index + 1];
-    return from === undefined || to === undefined ? out.copy(lineEnd) : out.lerpVectors(from, to, at - index);
   }
 
   function posePlayingClip(): void {
@@ -989,23 +606,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       updateAxe();
       pose();
     },
-    setDebarking(nowSeconds) {
-      updateWork(debarking, nowSeconds);
-    },
-    setGatheringStone(nowSeconds) {
-      updateWork(gatheringStone, nowSeconds);
-    },
-    setSawing(sawingNow) {
-      updateWork(sawing, sawingNow === undefined ? undefined : { ...sawingNow });
-    },
-    setFishing(fishingNow) {
-      updateWork(fishing, fishingNow === undefined ? undefined : { ...fishingNow });
-    },
-    setBuilding(nowSeconds) {
-      updateWork(building, nowSeconds);
-    },
-    setHandCrafting(nowSeconds) {
-      updateWork(handCrafting, nowSeconds);
+    setMotion(id, moment) {
+      const motion: PlayerMotion<unknown> = motions[id];
+      updateMotion(motion, moment);
     },
     setReaching(reach) {
       const changed = (reach === undefined) !== (reaching === undefined);
@@ -1016,28 +619,14 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (changed) updateAxe();
       pose();
     },
-    setEatingOrDrinking(motion) {
-      const changed = (motion === undefined) !== (eatingOrDrinking === undefined);
-      eatingOrDrinking = motion === undefined ? undefined : { ...motion };
-      if (changed) updateAxe();
-      pose();
-    },
     setSleeping(seconds) {
       const changed = (seconds === undefined) !== (sleepingAt === undefined);
       sleepingAt = seconds;
       if (changed) updateAxe();
       pose();
     },
-    setDragging(draggingNow) {
-      if (draggingNow === dragging) return;
-      dragging = draggingNow;
-      pose();
-    },
     ropeHold() {
-      if (!dragging) return undefined;
-      group.updateWorldMatrix(true, true);
-      const hand = leftArm.end.getWorldPosition(new THREE.Vector3());
-      return { hand: { x: hand.x, y: hand.y, z: hand.z }, walking: walkedMetres !== undefined };
+      return motions["sled-drag-animation"].ropeHold();
     },
     setSitting(body) {
       const changed = (body === undefined) !== (sittingBody === undefined);
@@ -1045,34 +634,16 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (changed) updateAxe();
       pose();
     },
-    setLitTorch(nowSeconds) {
-      torchAt = nowSeconds;
-      placeTorch();
-    },
     torchFlame(target) {
-      if (torchAt === undefined) return false;
-      torchInHand.updateWorldMatrix(true, false);
-      target.position.set(0, TORCH_FLAME_HEIGHT_METRES, 0);
-      torchInHand.localToWorld(target.position);
-      target.aboveGroundMetres = target.position.y - feet.setFromMatrixPosition(group.matrixWorld).y;
-      return true;
+      return motions.torch.torchFlame(target);
     },
     dispose() {
-      torchShape.dispose();
-      torchFireMaker.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(model);
+      for (const motion of motionList) motion.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const made of materials) made.dispose();
       backpack.dispose();
-      potMaker.dispose();
-      drawknife.dispose();
-      saw.dispose();
-      handCraftWork.dispose();
-      rod.dispose();
-      rodBend.dispose();
-      fishingLine.dispose();
-      fishingFloat.dispose();
     },
   };
 }

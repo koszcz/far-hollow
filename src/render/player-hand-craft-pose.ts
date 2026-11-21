@@ -6,7 +6,6 @@
 // ticket 02. The owner approved it.
 import { recipeOf, type RecipeKind } from "../sim/crafting";
 import { scaleBuildPose, type BuildPose, type HandSpot } from "./player-build-pose";
-import { createWorkMotion, type WorkMotion } from "./work-motion";
 import { easeInOut, lerp, smoothstep } from "./easing";
 
 /** Seconds one wind-and-tug cycle takes. */
@@ -137,12 +136,4 @@ export function handCraftPoseAt(seconds: number): BuildPose {
 export function handCraftWorkTurnAt(seconds: number): number {
   const { tug, turn } = momentAt(shareAt(seconds));
   return WORK_TURN_RADIANS * Math.sin(turn / 2) ** 2 - WORK_TUG_TURN_RADIANS * tug;
-}
-
-/**
- * The hand-craft motion, moved on by the clock time in seconds while the player crafts by hand. It lifts the hands to
- * the work as it starts. When crafting stops, the player stands straight back up, with no easing.
- */
-export function createHandCraftMotion(): WorkMotion<number> {
-  return createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => handCraftPoseAt(now - since) });
 }

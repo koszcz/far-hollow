@@ -46,6 +46,12 @@ export type Command =
   | ({ type: "walkTo" } & GroundPoint)
   /** Walk the player to a standing tree and chop it down. The tree is given by its entity id. */
   | { type: "chopTree"; treeId: number }
+  /**
+   * Walk the player to a sapling and dig it up into the backpack. It takes a few seconds and needs no tool.
+   * Digging up the sapling on a stump removes the stump for good. It is refused for a bare stump, a young or full tree,
+   * and when the sapling does not fit in the backpack.
+   */
+  | { type: "digUpSapling"; saplingId: number }
   /** Walk the player to a log or debarked log on the ground and shoulder it. The player carries one at a time. */
   | { type: "pickUpLog"; logId: number }
   /**
@@ -419,6 +425,14 @@ export type PlainNotice =
   | "queueFull";
 
 /**
+ * Why the game refuses to load a save (ADR 0008):
+ * - `notASave`: the data is not a Far Hollow saved game, or it is damaged.
+ * - `largeValley`: the save was made in the 1 km valley, before the valley shrank.
+ * - `newerVersion`: the save was made by a newer version of the game.
+ */
+export type SaveRefusal = "notASave" | "largeValley" | "newerVersion";
+
+/**
  * What one save slot holds, as the start screen shows it.
  * `empty`: nothing is saved there. `broken`: the save cannot be loaded.
  * `filled`: a game the player can continue, with its seed and the day it reached.
@@ -524,6 +538,8 @@ export type Refusal =
  * - `fireNotOut`: the fireplace burns or still holds fuel, so it cannot come down.
  * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
+ * - `noSaplingYet`: the stump has no sapling growing from it yet, so there is nothing to dig up.
+ * - `tooBigToDigUp`: the tree is a young or full tree, too big to dig up.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
  * - `torchAlreadyLit`: the player already holds a lit torch, and holds only one at a time.
  * - `gone`: the thing the command acts on is no longer there, such as a stick already picked up.
@@ -551,6 +567,8 @@ export type PlainRefusal =
   | "fireNotOut"
   | "holdsUpPiece"
   | "tooYoungToChop"
+  | "noSaplingYet"
+  | "tooBigToDigUp"
   | "backpackFull"
   | "torchAlreadyLit"
   | "gone"
@@ -657,11 +675,16 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 /**
  * A thing in the world the player can act on with E, given by its entity id, with its kind.
  * What the scene reports under the cursor is built from this type, so the app can treat both the same way.
+ * A `youngTree` is a tree growing back, too young to chop. A `sapling` grows on a stump. A `stump` is a bare stump:
+ * the player can click it, but E never reaches it, so it does not hide the logs lying beside it.
  */
 export type ThingInReach =
   | {
       readonly kind:
         | "tree"
+        | "youngTree"
+        | "sapling"
+        | "stump"
         | "log"
         | "debarkedLog"
         | "stick"
@@ -705,14 +728,14 @@ export type ThingView =
   | { readonly kind: "structure"; readonly structure: StructureKind }
   | { readonly kind: "forage"; readonly food: WildFood }
   | { readonly kind: "pile"; readonly content: BackpackContent }
-  | { readonly kind: "tree" | "log" | "debarkedLog" | "stick" | "bark" | "bedroll" };
+  | { readonly kind: "tree" | "sapling" | "stump" | "log" | "debarkedLog" | "stick" | "bark" | "bedroll" };
 
 export interface PlayerAction {
   /**
    * Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting,
-   * fishing, or gathering stone.
+   * fishing, gathering stone, or digging up a sapling.
    */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone";
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digUp";
   /** How far along the work is, from 0 to 1. While fishing, how far through the wait for the next fish. */
   readonly progress: number;
 }

@@ -22,16 +22,16 @@ export const GATHER_STONE_ANIMATION_SHOWCASE: Showcase = {
   },
   pose({ player }, shot) {
     // Start gathering afresh at time 0 for each view, so the view shows the lift `shot.seconds` in.
-    player.setGatheringStone(undefined);
-    player.setGatheringStone(0);
-    player.setGatheringStone(shot.seconds);
+    player.setMotion("gather-stone-animation", undefined);
+    player.setMotion("gather-stone-animation", 0);
+    player.setMotion("gather-stone-animation", shot.seconds);
   },
   // The player gathers one stone, as long as the game takes, stands up, rests, then starts again.
   play: {
     shot: { label: "gathering one stone, then standing up", yaw: 40, pitch: 20, radius: 1.8 },
     pose({ player }, seconds) {
       const cycle = seconds % (GATHER_STONE_SECONDS + GATHER_STONE_PLAY_REST_SECONDS);
-      player.setGatheringStone(cycle < GATHER_STONE_SECONDS ? cycle : undefined);
+      player.setMotion("gather-stone-animation", cycle < GATHER_STONE_SECONDS ? cycle : undefined);
       return undefined;
     },
   },

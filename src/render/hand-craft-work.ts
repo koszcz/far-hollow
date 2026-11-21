@@ -1,5 +1,5 @@
 // Part of the "hand-craft-animation" asset in asset-manifest.json: the small bundle of sticks the player lashes while
-// crafting by hand, and the cord running from its binding to the right hand. player-mesh.ts places it from the wrists
+// crafting by hand, and the cord running from its binding to the right hand. player-motions/hand-craft-animation.ts places it from the wrists
 // each frame. player-hand-craft-pose.ts says how far the left hand turns it. The owner approved it.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";

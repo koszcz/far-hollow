@@ -1,5 +1,5 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
-import type { BackpackContent, SaveSlotSummary } from "./api";
+import type { BackpackContent, SaveRefusal, SaveSlotSummary } from "./api";
 import { readClock } from "./clock";
 import { addCount, countOf } from "./counts";
 import type { Entity, SavedEntity } from "./entities";
@@ -66,6 +66,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addFloors,
   addDoors,
   recordSnugRoomNotice,
+  addSaplings,
 ];
 
 /** The version of the save format this code writes. */
@@ -149,6 +150,8 @@ export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimed
 export const DOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDoors) + 2;
 /** The first save version that records whether the snug-room banner has shown. */
 export const SNUG_ROOM_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(recordSnugRoomNotice) + 2;
+/** The first save version in which the backpack can hold saplings. */
+export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -170,7 +173,7 @@ export interface SaveFile extends GameProgress {
   seed: number;
 }
 
-export type ReadSaveResult = { ok: true; game: Game } | { ok: false };
+export type ReadSaveResult = { ok: true; game: Game } | { ok: false; reason: SaveRefusal };
 
 /** Reads a game's state into a save. Changing the save does not change the game. */
 export function writeSave(game: Game): SaveFile {
@@ -202,8 +205,10 @@ export function describeSave(stored: unknown): SaveSlotSummary {
  * `upgrades` defaults to every upgrade. Tests pass fewer, to load a save the way an older game did.
  */
 export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_UPGRADES): ReadSaveResult {
+  const refusal = refusalBeforeUpgrade(data, upgrades);
+  if (refusal !== undefined) return { ok: false, reason: refusal };
   const save = upgradeSave(data, upgrades);
-  if (!isValidSave(save)) return { ok: false };
+  if (!isValidSave(save)) return { ok: false, reason: "notASave" };
   const { seed, clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } = save as unknown as SaveFile;
   try {
     return {
@@ -212,8 +217,22 @@ export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_
     };
   } catch {
     // The save had the right shape but still could not be loaded.
-    return { ok: false };
+    return { ok: false, reason: "notASave" };
   }
+}
+
+/**
+ * Why the game refuses a save from its version number alone, before it upgrades the save, or undefined if the version is fine.
+ * A save from the 1 km valley is refused only if `upgrades` would turn it away, so tests can still load one through
+ * `LARGE_VALLEY_UPGRADES`.
+ */
+function refusalBeforeUpgrade(data: unknown, upgrades: readonly SaveUpgrade[]): SaveRefusal | undefined {
+  if (typeof data !== "object" || data === null) return "notASave";
+  const { version } = data as Record<string, unknown>;
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 1) return "notASave";
+  if (version > upgrades.length + 1) return "newerVersion";
+  if (upgrades.slice(version - 1).includes(turnAwayLargeValley)) return "largeValley";
+  return undefined;
 }
 
 /**
@@ -784,4 +803,9 @@ function addDoors(save: Readonly<Record<string, unknown>>): Record<string, unkno
 /** Version 44 to 45: the game saves whether the snug-room banner has shown. A save from before then has not shown it. */
 function recordSnugRoomNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save, snugRoomNoticeShown: false };
+}
+
+/** Version 45 to 46: the player can dig up saplings into the backpack. A save from before then holds none, so it carries over unchanged. */
+function addSaplings(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

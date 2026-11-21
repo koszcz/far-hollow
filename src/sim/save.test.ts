@@ -265,7 +265,6 @@ describe("rejecting a broken save", () => {
   const breakages: Record<string, Breakage> = {
     "nothing at all": () => undefined,
     "text instead of a save": () => "far hollow",
-    "a version from a newer game": (save) => ({ ...save, version: SAVE_VERSION + 1 }),
     "no seed": (save) => ({ ...save, seed: undefined }),
     "a clock that is not a number": (save) => ({ ...save, clockMinutes: "noon" }),
     "a clock that is not finite": (save) => ({ ...save, clockMinutes: null }),
@@ -290,9 +289,21 @@ describe("rejecting a broken save", () => {
   for (const [name, breakSave] of Object.entries(breakages)) {
     it(`rejects a save with ${name}`, () => {
       const save = throughStorage(writeSave(createGame({ seed: 5 }))) as SaveFile;
-      expect(readSave(throughStorage(breakSave(save)))).toEqual({ ok: false });
+      expect(readSave(throughStorage(breakSave(save)))).toEqual({ ok: false, reason: "notASave" });
     });
   }
+
+  it("says a save from a newer game was made by a newer version", () => {
+    const save = throughStorage(writeSave(createGame({ seed: 5 }))) as SaveFile;
+    expect(readSave({ ...save, version: SAVE_VERSION + 1 })).toEqual({ ok: false, reason: "newerVersion" });
+  });
+
+  it("says a save with no version, or a version that is not a whole number, is not a saved game", () => {
+    const save = throughStorage(writeSave(createGame({ seed: 5 }))) as SaveFile;
+    expect(readSave({ ...save, version: undefined })).toEqual({ ok: false, reason: "notASave" });
+    expect(readSave({ ...save, version: 2.5 })).toEqual({ ok: false, reason: "notASave" });
+    expect(readSave({ ...save, version: 0 })).toEqual({ ok: false, reason: "notASave" });
+  });
 
   it("accepts the same save when nothing is broken", () => {
     const save = throughStorage(writeSave(createGame({ seed: 5 })));
@@ -460,7 +471,8 @@ describe("saves from before the valley shrank", () => {
   it("cannot be loaded, and their slot shows as broken", () => {
     const save = writeSave(createGame({ seed: 7 }));
     const older = { ...save, version: SMALL_VALLEY_SAVE_VERSION - 1 };
-    expect(readSave(older)).toEqual({ ok: false });
+    expect(readSave(older)).toEqual({ ok: false, reason: "largeValley" });
+    expect(readSave({ ...save, version: 1 })).toEqual({ ok: false, reason: "largeValley" });
     expect(describeSave(older)).toEqual({ state: "broken" });
   });
 

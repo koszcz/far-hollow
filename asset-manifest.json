@@ -1370,12 +1370,13 @@
         "src/render/door-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "A plank door hung in a door frame. Three upright planks of pale sawn wood, each a little lighter or darker than the next, fill the doorway between the frame's posts, about 0.48 m wide and 1.76 m tall, with a thin gap to the posts and the lintel. Two darker battens run across the inside face, and a small dark iron latch sits on the outside, on the side away from the hinges at the left post. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player.",
+      "description": "A plank door hung in a door frame. Three upright planks of pale hand-sawn wood, butted together with no gap, fill the doorway between the frame's posts. The door reaches 6 cm into each post and 5 cm up into the lintel, so no gap shows round it where the posts lean and taper; only a 5 mm gap is left above the floor. Each plank is a little lighter or darker than the next, and stands a few millimetres proud of or back from its neighbours. Two darker battens and a diagonal brace, rising from the hinge side to the free side, cross the inside face. On the outside, two dark iron strap hinges reach in from round knuckles at the left post, level with the battens, and an iron ring hangs from a small backplate near the free edge. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens, brace, hinges, and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

@@ -532,7 +532,11 @@
       "description": "The player going to sleep on a laid bedroll or in a bed, and waking. A person going to bed sits down, lies back on their side with the head at the head end, then rolls onto their back and sleeps there, the chest rising and falling in slow breaths. The view dims to black while the night passes, and lights up on the morning. Then the person rolls onto their side again, sits up, gets their feet under them, and stands. The body plays KayKit's Lie_Down and Lie_Idle clips, blends over 0.7 s into Death_A_Pose as the back-lying pose, blends back, and plays Lie_StandUp; the lie-down and stand-up clips play a little faster than made. Code times the step onto the bedroll, the rolls, the breathing, the dimming, and the sky change. Game logic waits while it plays. It reads apart from the build's squat: the whole body goes down flat.",
       "source": "KayKit Character Pack: Adventurers 1.0 by Kay Lousberg, https://kaylousberg.itch.io/kaykit-adventurers (also https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0). Characters/gltf/Barbarian.glb, unchanged. Clips Lie_Down, Lie_Idle, Death_A_Pose, and Lie_StandUp",
       "license": "CC0 1.0",
-      "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
+      }
     },
     {
       "id": "pick-up-animation",
@@ -926,7 +930,11 @@
       "description": "The 0 to 24 planks lying on a finished sled, drawn on top of the approved sled model. Each plank is the pile's plank shape: a flat board of pale sawn wood, 0.8 m long, in one of three near tones, with darker sawn ends. The planks lie flat along the runners in layers of eight, two end to end and four side by side. Each layer and plank slides a little so the ends of the stack are ragged. Two rope lashings bind every full layer. Planks in a layer that is not full lie loose on top. They rest on the cross pieces when the sled holds no logs, and on top of the logs when it does.",
       "source": "Built in code in this project",
       "license": "Project code",
-      "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
+      }
     },
     {
       "id": "action-queue-icons",
@@ -1107,7 +1115,11 @@
       "description": "The bed: a cabin bed 1 m wide and 2 m long. Four square corner posts with capped tops stand tall at the head and low at the foot, joined by rails, with seven slats across them. The headboard is five upright planks under a top rail, the footboard four. Each plank is a slightly different shade of pale sawn wood. On the slats lies a pale linen mattress with a soft top edge and a plump pillow, and a blue wool blanket covers the foot half, hanging down over the side rails, with its top edge turned back. As a blueprint it shows see-through, the stages whose planks it has wait pale and half solid, and construction builds it in four stages: the frame, the slats, the head and foot boards, then the bedding. To sleep, the player steps up onto the mattress, turned to lie along the bed, plays the approved sleep animation there, and steps back down beside the bed once standing.",
       "source": "Built in code in this project",
       "license": "Project code",
-      "approval": { "status": "approved", "by": "owner", "date": "2026-11-15" }
+      "approval": {
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-15"
+      }
     },
     {
       "id": "table",
@@ -1220,6 +1232,39 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/player-motions/issues/04-forage-eat-and-drink.md"
+      }
+    },
+    {
+      "id": "stone",
+      "kind": "code",
+      "code": [
+        "src/render/stone-shape.ts",
+        "src/render/pile-meshes.ts",
+        "src/ui/stone-icon.tsx",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "Stone: how it looks lying on the ground in a pile, and its backpack icon. In a pile, each stone is a low, lumpy, grey river stone about 20 cm long with flat faces, spread around the middle like other things in a pile. The backpack icon, drawn in the same style as backpack-icons, is two rounded grey river stones, a big one in front of a smaller one, with a glint on the big one. The same stone shape shows in the player's hands while gathering stone.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fireplace/issues/01-gather-stone.md"
+      }
+    },
+    {
+      "id": "gather-stone-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-gather-stone-pose.ts",
+        "src/render/player-mesh.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player gathers one stone at the water's edge: they crouch, reach both hands low in front, feel about for a stone, then rise halfway and lift it to the chest in both hands. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip; the axe goes on the back.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fireplace/issues/01-gather-stone.md"
       }
     }
   ]

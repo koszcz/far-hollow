@@ -106,7 +106,9 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       const walk = offer("walk", strings.actions.walk, { hud: "place" }, { type: "walkTo", x, z });
       // With a log on the shoulder, the player can also carry it to the spot and drop it there.
       const dropHere = view.carrying === null ? [] : [offer("dropHere", strings.actions.dropHere[view.carrying], { hud: "log" }, { type: "dropLogAt", x, z })];
-      return withMain([walk, ...dropHere], "walk");
+      // River bank ground also gives stone.
+      const gatherStone = pick.riverBank === true ? [gatherStoneOffer(pick.spot, context)] : [];
+      return withMain([walk, ...dropHere, ...gatherStone], "walk");
     }
     case "river":
       return riverActions(pick.spot, context);
@@ -177,14 +179,24 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
   }
 }
 
-/** Drink, fill the empty pot, then fish. Drinking is the main action. Filling the pot shows only when the backpack holds the empty pot. */
-function riverActions({ x, z }: { readonly x: number; readonly z: number }, { view, offer }: Context): readonly ThingAction[] {
+/** Gathering one stone at a spot on the river bank or in the river. */
+function gatherStoneOffer({ x, z }: { readonly x: number; readonly z: number }, { offer }: Context): Offer {
+  return offer("gatherStone", strings.actions.gatherStone, { content: "stone" }, { type: "gatherStone", x, z });
+}
+
+/**
+ * Drink, fill the empty pot, fish, then gather stone. Drinking is the main action.
+ * Filling the pot shows only when the backpack holds the empty pot.
+ */
+function riverActions({ x, z }: { readonly x: number; readonly z: number }, context: Context): readonly ThingAction[] {
+  const { view, offer } = context;
   const fillPot = has(view, "pot") ? [offer("fillPot", strings.actions.fillPotHere, { content: "potOfRiverWater" }, { type: "fillPot" })] : [];
   return withMain(
     [
       offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
       ...fillPot,
       offer("fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
+      gatherStoneOffer({ x, z }, context),
     ],
     "drink",
   );

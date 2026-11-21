@@ -1,4 +1,4 @@
-// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
+// Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=stone, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/showcases/interface.ts and src/render/showcases/camp.ts. Development builds only.
 import { render } from "preact";
 import { FURNITURE_BUILD_MENU, type BackpackContent, type GameClient, type GameView, type StructureKind, type ThingView } from "../sim/api";
@@ -163,6 +163,22 @@ const BACKPACK_ICON_STATES: readonly ShowcaseState[] = [
   { view: { ...BASE_VIEW, backpack: { axe: 1, stick: 1, firewood: 4, bark: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { stick: 7, bark: 3, berries: 5, mushroom: 1, potOfRiverWater: 1 } }, buildMenuOpen: false, placing: null },
   { view: { ...BASE_VIEW, backpack: { knife: 1, firewood: 1, berries: 1, mushroom: 2, potOfBoiledWater: 1 } }, buildMenuOpen: false, placing: null },
+];
+
+/** The draft "stone" asset: stone in the backpack, one and many, while gathering, in a full backpack, and beside a pile of stone. */
+const STONE_STATES: readonly ShowcaseState[] = [
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 1 } }, buildMenuOpen: false, placing: null },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 3 }, action: { kind: "gatherStone", progress: 0.6 } },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 7 }, backpackWeight: 18.2 }, buildMenuOpen: false, placing: null },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, stone: 2 }, nearby: [{ kind: "pile", view: { id: 1, content: "stone", count: 12 } }] },
+    buildMenuOpen: false,
+    placing: null,
+  },
 ];
 
 /** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
@@ -450,6 +466,7 @@ function stillClient(view: GameView, things: Readonly<Record<number, ThingView>>
 const STATES_BY_ASSET = {
   hud: STATES,
   bark: BARK_STATES,
+  stone: STONE_STATES,
   "backpack-icons": BACKPACK_ICON_STATES,
   "crafting-icons": CRAFTING_ICON_STATES,
   "fishing-icons": FISHING_ICON_STATES,
@@ -461,7 +478,7 @@ const STATES_BY_ASSET = {
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", or "action-queue-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", or "action-queue-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
     const quarter = document.createElement("div");

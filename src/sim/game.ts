@@ -54,7 +54,7 @@ import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTim
 import { createDrinking } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
 import type { ApproachRule, CommandRule, CommandRules } from "./command-rule";
-import { createStoneGathering } from "./stone";
+import { createStoneGathering, stoneRules } from "./stone";
 import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
@@ -874,17 +874,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       },
     },
     ...fishingRules(fishing),
-    gatherStone: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: () => stoneGathering.refusal(),
-      approach: {
-        reach: (command) => stoneGathering.reach(command),
-        act: (command) => {
-          stoneGathering.gather({ x: command.x, z: command.z });
-        },
-      },
-    },
+    ...stoneRules(stoneGathering),
     drinkFromPot: {
       start: "alongside",
       run: () => {

@@ -66,8 +66,7 @@ import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED } from "./sleds";
 import { createWoodpiles } from "./woodpiles";
-import { createChests } from "./chests";
-import { furnitureOf } from "./furniture";
+import { createChests, chestRules } from "./chests";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
@@ -431,11 +430,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return entities.entity(id)?.position;
   }
 
-  /** How high the player reaches into a piece of furniture that stores things. A piece whose definition gives no height is reached at the waist. */
-  function storageReach(chestId: number): ReachHeight {
-    return furnitureOf(entities.entity(chestId))?.reachHeight ?? "waist";
-  }
-
   /**
    * The approach for a command on a campfire, woodpile, or sled. A player within reach carries it out at once, without
    * stopping other work. Otherwise they stop what they were doing, walk beside it, and carry the command out there.
@@ -547,41 +541,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         sleds.letGo();
       },
     },
-    openChest: {
-      start: "fresh",
-      // Opening a chest opens its panel, a menu, so it is never queued.
-      queue: "plainOnly",
-      approach: {
-        reach: (command) => chests.reach(command.chestId),
-        act: (command) => {
-          chests.open(command.chestId);
-          reachToward(handReach, entities, storageReach(command.chestId), command.chestId);
-        },
-      },
-    },
-    putInChest: {
-      start: "alongside",
-      queue: "apart",
-      refusal: (command) => chests.refusal(command.chestId),
-      run: (command) => {
-        handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
-          chests.put(command.chestId, command.content, command.all),
-        );
-      },
-    },
-    takeFromChest: {
-      start: "alongside",
-      queue: "apart",
-      refusal: (command) => {
-        const kind = chests.takeRefusal(command.chestId, command.content);
-        return chests.refusal(command.chestId) ?? (kind === undefined ? undefined : { kind });
-      },
-      run: (command) => {
-        handReach.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () =>
-          chests.take(command.chestId, command.content, command.all),
-        );
-      },
-    },
+    ...chestRules(chests, ruleGame),
     ...bedrollRules(bedrolls, ruleGame),
     ...bedRules(beds, ruleGame),
     ...stoolRules(stools, ruleGame),

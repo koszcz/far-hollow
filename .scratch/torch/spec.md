@@ -26,7 +26,7 @@ Terms in **bold** are defined in `GLOSSARY.md`. The game design spec in `.scratc
 - The hotbar shows the lit torch with a gauge of how much burning is left.
 - The player keeps the lit torch while they walk, work, carry a log on the shoulder, and drag a sled.
 - "Put out" throws the torch away. A torch cannot be lit twice.
-- The player puts out the torch before they sleep.
+- When the player sleeps, the game puts out the lit torch in their hand. It is gone, as after "Put out".
 - A torch gives no warmth.
 - Rain does not put out a torch.
 
@@ -38,6 +38,7 @@ Terms in **bold** are defined in `GLOSSARY.md`. The game design spec in `.scratc
 - "Pick up" is the main action of a planted torch. It puts the torch back in the player's hand, if the hand holds no torch.
 - A planted torch does not block walking.
 - When a planted torch burns out, it is gone.
+- Planted torches keep burning while the player sleeps. They can burn out before the player wakes.
 
 ## Light and frame rate
 

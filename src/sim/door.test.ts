@@ -6,7 +6,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { isDoorOpen } from "./doors";
 import { findPath } from "./pathfinding";
 import { type QuarterTurns } from "./quarter-turns";
-import { APPROACHES_SAVE_VERSION, DOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { DOORS_SAVE_VERSION, FLOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { DOOR_BUILD_SECONDS, DOOR_FRAME_LOG_COST, DOOR_PLANK_COST, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 
@@ -190,7 +190,7 @@ describe("taking down a door", () => {
     const blueprint = lastBlueprint(game, "door");
     onlyPlayer(game).backpack.contents = { plank: 2 };
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined);
+    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined && game.entities.with("player", "approach").first === undefined);
     expect(game.client.getView().backpack.plank ?? 0).toBe(0);
 
     send(game, { type: "takeDown", pieceId: idOf(game, blueprint) });
@@ -254,7 +254,7 @@ describe("saving doors", () => {
     const blueprint = lastBlueprint(game, "door");
     onlyPlayer(game).backpack.contents = { plank: 2 };
     send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined);
+    stepUntil(game, () => game.entities.with("player", "buildTask").first === undefined && game.entities.with("player", "approach").first === undefined);
 
     const loaded = readSave(structuredClone(writeSave(game)));
     if (!loaded.ok) throw new Error("The save was rejected");
@@ -267,7 +267,7 @@ describe("saving doors", () => {
 
   it("raises the save version, and loads a save from before doors with no doors", () => {
     const game = createGame({ seed: 42 });
-    expect(DOORS_SAVE_VERSION).toBeGreaterThan(APPROACHES_SAVE_VERSION);
+    expect(DOORS_SAVE_VERSION).toBeGreaterThan(FLOORS_SAVE_VERSION);
     expect(DOORS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const old = { ...writeSave(game), version: DOORS_SAVE_VERSION - 1 };
 

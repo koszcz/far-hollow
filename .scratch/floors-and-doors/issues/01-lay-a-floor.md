@@ -4,29 +4,29 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `foundation`. Add the drafts `floor` and `floor-and-door-icons` (floor icon).
 
-- [ ] The build menu lists the floor with its cost of 2 planks, and shows its icon.
-- [ ] The blueprint snaps to a finished foundation square. A click places it. Esc cancels.
-- [ ] Holding Shift and dragging across squares places a floor blueprint on each finished foundation square the pointer crosses. A plain drag still pans the camera.
-- [ ] Placing a floor keeps build mode open, so the player can place the next one. Esc leaves build mode.
-- [ ] A square holds one floor. A square with a floor or a floor blueprint takes no second one.
-- [ ] A floor can go on a square that holds furniture or a campfire. Nothing has to move.
-- [ ] If fireplaces exist when this ticket starts, a floor can also go on a square with a fireplace or its blueprint.
-- [ ] Planks reach the blueprint from the backpack, a parked sled next to it, and plank piles within 2 m, over several trips.
-- [ ] The player holds the build action for 4 seconds to build it. Building needs no tool.
-- [ ] The floor shows its build stages.
-- [ ] The player walks on a floor as on a bare foundation. Furniture and fires sit on top of it.
-- [ ] The player can take down a floor or its blueprint and get back every plank, whatever stands on it.
-- [ ] The player cannot take down a foundation that has a floor. The action shows greyed with the reason.
-- [ ] Floors and their blueprints are saved. The save version goes up, and older saves are upgraded when loaded.
-- [ ] In the playground, a floor spends no planks.
-- [ ] `GLOSSARY.md` describes the floor as the spec does.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover placement, sweeping, plank delivery, building, and taking down a floor and the foundation under it.
+- [x] The build menu lists the floor with its cost of 2 planks, and shows its icon.
+- [x] The blueprint snaps to a finished foundation square. A click places it. Esc cancels.
+- [x] Holding Shift and dragging across squares places a floor blueprint on each finished foundation square the pointer crosses. A plain drag still pans the camera.
+- [x] Placing a floor keeps build mode open, so the player can place the next one. Esc leaves build mode.
+- [x] A square holds one floor. A square with a floor or a floor blueprint takes no second one.
+- [x] A floor can go on a square that holds furniture or a campfire. Nothing has to move.
+- [x] If fireplaces exist when this ticket starts, a floor can also go on a square with a fireplace or its blueprint.
+- [x] Planks reach the blueprint from the backpack, a parked sled next to it, and plank piles within 2 m, over several trips.
+- [x] The player holds the build action for 4 seconds to build it. Building needs no tool.
+- [x] The floor shows its build stages.
+- [x] The player walks on a floor as on a bare foundation. Furniture and fires sit on top of it.
+- [x] The player can take down a floor or its blueprint and get back every plank, whatever stands on it.
+- [x] The player cannot take down a foundation that has a floor. The action shows greyed with the reason.
+- [x] Floors and their blueprints are saved. The save version goes up, and older saves are upgraded when loaded.
+- [x] In the playground, a floor spends no planks.
+- [x] `GLOSSARY.md` describes the floor as the spec does.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover placement, sweeping, plank delivery, building, and taking down a floor and the foundation under it.
 
 ## Comments
 
@@ -68,12 +68,12 @@
 
 **Acceptance criteria:**
 
-- [ ] Every checkbox in this ticket's list above is met.
-- [ ] A unit test places floors on three squares in one sweep, and skips a square that already has a floor.
-- [ ] A unit test refuses to take down a foundation that holds a floor blueprint, and allows it once the floor is gone.
-- [ ] A unit test takes down a floor under a table and gets back 2 planks. The table stays where it was.
-- [ ] A save from the previous version loads with no floors.
-- [ ] `make check` passes.
+- [x] Every checkbox in this ticket's list above is met.
+- [x] A unit test places floors on three squares in one sweep, and skips a square that already has a floor.
+- [x] A unit test refuses to take down a foundation that holds a floor blueprint, and allows it once the floor is gone.
+- [x] A unit test takes down a floor under a table and gets back 2 planks. The table stays where it was.
+- [x] A save from the previous version loads with no floors.
+- [x] `make check` passes.
 
 **Out of scope:**
 

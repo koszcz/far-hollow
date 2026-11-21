@@ -44,8 +44,8 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft fireplace icon shows among the build icons, so this showcase draws the same views as "build-icons".
-  "fireplace-icon": {
+  // The draft floor and door icons show among the build icons too, so this showcase draws the same views as "build-icons".
+  "floor-and-door-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -58,8 +58,8 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft floor and door icons show among the build icons, so this showcase draws the same views as "build-icons".
-  "floor-and-door-icons": {
+  // The draft fireplace icon shows among the build icons, so this showcase draws the same views as "build-icons".
+  "fireplace-icon": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [

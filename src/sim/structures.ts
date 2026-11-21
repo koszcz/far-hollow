@@ -10,6 +10,7 @@ import {
   campfireEntities,
   edgePieceEntities,
   fireplaceEntities,
+  floorEntities,
   foundationEntities,
   lyingThings,
   roofEntities,
@@ -85,7 +86,19 @@ export interface PlacementSite {
 
 /** The components that mark a finished structure. */
 export type FinishedMarker =
-  "campfire" | "leanTo" | "foundation" | "edgePiece" | "door" | "roofFrame" | "cabinRoof" | "fireplace" | "woodpile" | "furniture" | "workStation" | "sled";
+  | "campfire"
+  | "leanTo"
+  | "foundation"
+  | "floor"
+  | "edgePiece"
+  | "door"
+  | "roofFrame"
+  | "cabinRoof"
+  | "fireplace"
+  | "woodpile"
+  | "furniture"
+  | "workStation"
+  | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -177,7 +190,7 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
     }
     // A fireplace's square holds no campfire.
     if (fireplaceEntities(entities).entities.some((fireplace) => isOnGridSquare(fireplace.position, spot))) return false;
-    const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isPlacedFreely(blueprint.structure));
+    const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isPlacedFreely(blueprint.structure) && !liesUnderfoot(blueprint.structure));
     for (const other of [...campfireEntities(entities), ...plans, ...woodpileEntities(entities), ...workStationEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
     }
@@ -286,6 +299,39 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   },
   finish: () => ({ foundation: true }),
 };
+
+/** How many planks a floor costs. Construction spends one at the start of each stage. */
+export const FLOOR_PLANK_COST = 2;
+/** How long the player holds the build action to build a floor, in seconds. */
+export const FLOOR_BUILD_SECONDS = 4;
+
+/** The finished floor or floor blueprint on the foundation square with this middle, if any. */
+export function floorOn(entities: EntityStore, square: GroundPoint): Entity | undefined {
+  const floors = [...floorEntities(entities), ...blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "floor")];
+  return floors.find(({ position }) => isOnGridSquare(square, position));
+}
+
+/**
+ * A floor: planks laid flush across the deck of one finished foundation square. It changes only how the square looks.
+ * It lies underfoot, so nothing on the square is in its way, and it is in the way of nothing. A square holds one floor.
+ */
+const floor: StructureDefinition & { readonly kind: "floor" } = {
+  kind: "floor",
+  placement: "underfoot",
+  finishedAs: "floor",
+  cost: [{ material: "plank", count: FLOOR_PLANK_COST }],
+  buildSeconds: FLOOR_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
+  snap: (_site, at) => snapToGridSquare(at),
+  heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace: ({ entities }, spot) => foundationOn(entities, spot) !== undefined && floorOn(entities, spot) === undefined,
+  finish: () => ({ floor: true }),
+};
+
+/** Whether a structure lies flush on a foundation's deck, so it is never in the way of another structure. Only a floor does. */
+export function liesUnderfoot(kind: StructureKind): boolean {
+  return kind === "floor";
+}
 
 /** How many debarked logs a log wall costs. Construction spends one at the start of each stage. */
 export const LOG_WALL_LOG_COST = 4;
@@ -661,6 +707,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   campfire,
   leanTo,
   foundation,
+  floor,
   logWall,
   doorFrame,
   roofFrame,
@@ -759,7 +806,7 @@ function isClearOfTreesAndStructures(
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
     if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
-    if (ignoreFireplaces && structure === "fireplace") continue;
+    if ((ignoreFireplaces && structure === "fireplace") || liesUnderfoot(structure)) continue;
     if (rectsOverlap(rect, footprintOfEntity(blueprint))) return false;
   }
   for (const roofed of roofEntities(entities)) {
@@ -773,7 +820,7 @@ function isClearOfTreesAndStructures(
   if (!ignoreFreelyPlaced && !isClearOfFreelyPlaced(entities, rect)) return false;
   // Every other finished structure is in the way, so a new kind of structure is in the way unless it says otherwise.
   for (const { entity, kind } of finishedStructures(entities)) {
-    if (CHECKED_APART.has(kind) || isPlacedFreely(kind) || (ignoreFireplaces && kind === "fireplace")) continue;
+    if (CHECKED_APART.has(kind) || isPlacedFreely(kind) || liesUnderfoot(kind) || (ignoreFireplaces && kind === "fireplace")) continue;
     if (rectsOverlap(rect, footprintOfEntity(entity))) return false;
   }
   return true;

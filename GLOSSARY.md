@@ -220,7 +220,7 @@ One level of a building. A building can have up to two storeys, with stairs betw
 _Avoid_: Floor, level
 
 **Floor**:
-The building piece the player walks on inside a building.
+A building piece of 2 planks that covers one finished foundation square. The player walks on it as on the bare deck. Furniture, a campfire, or a fireplace can stand on it. A square holds one floor.
 _Avoid_: Floorboards, deck
 
 **Lean-to**:

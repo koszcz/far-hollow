@@ -5,6 +5,7 @@ import { placingHint } from "./placing-hint";
 const MENU: readonly BuildMenuEntry[] = [
   { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
   { structure: "roof", cost: [{ material: "bark", count: 4 }], placement: "onFrame" },
+  { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot" },
 ];
 
 describe("the placing hint", () => {
@@ -17,5 +18,12 @@ describe("the placing hint", () => {
 
   it("names only the cancel key for a roof section, which cannot turn", () => {
     expect(placingHint(MENU, "roof").keys).toBe("Esc to cancel");
+  });
+
+  it("tells the player a Shift-drag lays a floor on each square, and names only the cancel key", () => {
+    expect(placingHint(MENU, "floor")).toEqual({
+      what: "Placing: Floor. Point at a finished foundation and click to place it. Hold Shift and drag to place one on each square.",
+      keys: "Esc to stop",
+    });
   });
 });

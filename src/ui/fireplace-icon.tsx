@@ -13,7 +13,7 @@ const FLAME = "#ff8a3c";
 const FLAME_CORE = "#ffd25a";
 
 /**
- * Seen from the front: a squat stone hearth with an arched opening and a small fire in it, under a stone mantel,
+ * Seen from the front: a squat stone fire box with an arched opening and a small fire in it, under a stone mantel,
  * with a short chimney rising from the back. Cut lines mark the joints between the stones.
  */
 export const FIREPLACE_DRAWING: BackpackIconDrawing = {

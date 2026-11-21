@@ -42,6 +42,11 @@ export interface Fishing {
   /** Stops the player fishing. */
   cancel(): void;
   /**
+   * Whether a fish has bit on this fishing trip, the one the latest `fish` began, and the player fishes still.
+   * A queued fishing trip with another action waiting stops once one has. The trip is not saved.
+   */
+  hasFishBitten(): boolean;
+  /**
    * Moves fishing on by one logic step. A fish that bites goes in the backpack and the player casts again.
    * Returns "fishGotAway" if a fish bit while the backpack was full, which stops fishing.
    */
@@ -55,6 +60,8 @@ export interface Fishing {
 export function createFishing(entities: EntityStore, walkMap: WalkMap, valley: Valley, seed: number, stepGameMinutes: number): Fishing {
   const players = playerEntities(entities);
   const fishers = entities.with("player", "fishTask", "position", "backpack");
+  /** How many casts each player had made once they cast at the start of their latest fishing trip. It is not saved. */
+  const castsWhenTripBegan = new Map<Entity, number>();
 
   /** Why this player could not fish now: without the fishing rod, or while they carry a log. */
   function refusalFor(player: Entity | undefined): Refusal | undefined {
@@ -74,9 +81,18 @@ export function createFishing(entities: EntityStore, walkMap: WalkMap, valley: V
       return player === undefined ? undefined : riverReach(valley, walkMap, player.position, spot);
     },
     fish(spot) {
-      for (const player of players) cast(player, spot);
+      for (const player of players) {
+        cast(player, spot);
+        castsWhenTripBegan.set(player, player.fishCasts ?? 0);
+      }
     },
     refusal: () => refusalFor(players.first),
+    hasFishBitten() {
+      const player = players.first;
+      if (player === undefined || fishingNow(player) === undefined) return false;
+      // The player casts again each time a fish bites.
+      return (player.fishCasts ?? 0) > (castsWhenTripBegan.get(player) ?? Infinity);
+    },
     cancel() {
       for (const player of [...fishers]) entities.removeComponent(player, "fishTask");
     },

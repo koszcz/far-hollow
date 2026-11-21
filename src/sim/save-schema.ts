@@ -198,6 +198,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   gone: true,
   openFirst: true,
   torchTooClose: true,
+  noLitTorch: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

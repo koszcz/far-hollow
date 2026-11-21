@@ -4,7 +4,7 @@ import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
-import type { Fire, Hearth } from "./fire";
+import type { Fire, FireKind } from "./fire";
 import type { FishOnFire } from "./fish-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { Rain } from "./rain";
@@ -155,9 +155,9 @@ export interface Entity {
    */
   cabinRoof?: true;
   /**
-   * Marks a finished fireplace: a stone hearth with a short chimney on one foundation square.
+   * Marks a finished fireplace: a low stone fire box with a short chimney on one foundation square.
    * Its position is the middle of that square, at the height of the foundation's deck. Its `facing` says which side its opening faces.
-   * It holds the fire in its hearth. A lit fireplace in a room warms the whole room.
+   * It holds a fire. A lit fireplace in a room warms the whole room.
    */
   fireplace?: Fire;
   /**
@@ -414,18 +414,18 @@ export function fireplaceEntities(store: EntityStore) {
   return store.with("fireplace", "position");
 }
 
-/** A finished campfire or fireplace, which hearth it is, and the fire it holds. Set the fire back on `entity[hearth]` to change it. */
+/** A finished campfire or fireplace, which kind it is, and the fire it holds. Set the fire back on `entity[kind]` to change it. */
 export interface HeldFire {
   readonly entity: Entity & { position: Vec3 };
-  readonly hearth: Hearth;
+  readonly kind: FireKind;
   readonly fire: Fire;
 }
 
 /** The fire an entity holds, if it is a finished campfire or fireplace. */
 export function heldFireOf(entity: Entity | undefined): HeldFire | undefined {
   if (entity === undefined || !hasPosition(entity)) return undefined;
-  if (entity.campfire !== undefined) return { entity, hearth: "campfire", fire: entity.campfire };
-  if (entity.fireplace !== undefined) return { entity, hearth: "fireplace", fire: entity.fireplace };
+  if (entity.campfire !== undefined) return { entity, kind: "campfire", fire: entity.campfire };
+  if (entity.fireplace !== undefined) return { entity, kind: "fireplace", fire: entity.fireplace };
   return undefined;
 }
 

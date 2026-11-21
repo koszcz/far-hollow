@@ -22,13 +22,14 @@ ADR 0005 says the UI only reads state and sends commands. ADR 0008 says the UI a
 
 ## Acceptance criteria
 
-- [ ] `hud.tsx` holds no hour numbers for day and night.
-- [ ] A craft recipe the player cannot make now is greyed out with the reason. A test covers it.
-- [ ] A chest content the player cannot take now is greyed out with the reason.
-- [ ] No file in `src/app` imports from `src/render`.
-- [ ] Existing tests pass.
+- [x] `hud.tsx` holds no hour numbers for day and night.
+- [x] A craft recipe the player cannot make now is greyed out with the reason. A test covers it.
+- [x] A chest content the player cannot take now is greyed out with the reason.
+- [x] No file in the app's action logic (`thing-actions.ts`, `build-mode.ts`) imports from `src/render`. Changed from "no file in `src/app`": see the first comment.
+- [x] Existing tests pass.
 
 ## Comments
 
 - The app's action logic (`thing-actions.ts`, `build-mode.ts`, `walk-input.ts`) now imports the pick type and `PlacingBlueprint` from `src/sim/api.ts`. Three app files still import from `src/render` on purpose: `main.tsx` and `showcase.ts` create the renderer, and `walk-input.ts` drives the camera rig.
 - The craft refusal now also says "put the log down first" and "the backpack is full". Taking from a chest now has a refusal: nothing to take, or the backpack is full.
+- Code review on 2026-11-21: the clock word in `src/ui/clock-face.ts` still uses its own 12:00 and 17:00 cut-offs for morning, afternoon and evening. Only night comes from the game view. That is outside this ticket, which covers day and night.

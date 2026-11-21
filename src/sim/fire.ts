@@ -4,7 +4,7 @@
 import type { CampfireFuel } from "./wood-and-fuel";
 
 /** What holds a fire: a campfire on the ground or a foundation, or a stone fireplace. */
-export type Hearth = "campfire" | "fireplace";
+export type FireKind = "campfire" | "fireplace";
 
 /** A fire. `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0. */
 export interface Fire {
@@ -19,11 +19,11 @@ export const FUEL_BURN_MINUTES: Readonly<Record<CampfireFuel, number>> = {
   firewood: 90,
 };
 
-/** How many times longer each piece of fuel burns on each hearth than FUEL_BURN_MINUTES says. */
-const BURN_TIME_FACTOR: Readonly<Record<Hearth, number>> = { campfire: 1, fireplace: 2 };
+/** How many times longer each piece of fuel burns in each kind of fire than FUEL_BURN_MINUTES says. */
+const BURN_TIME_FACTOR: Readonly<Record<FireKind, number>> = { campfire: 1, fireplace: 2 };
 
-/** The most fuel each hearth holds, in game minutes of burning. Fuel that would go past it is not taken. */
-export const FUEL_LIMIT_MINUTES: Readonly<Record<Hearth, number>> = { campfire: 8 * 60, fireplace: 16 * 60 };
+/** The most fuel each kind of fire holds, in game minutes of burning. Fuel that would go past it is not taken. */
+export const FUEL_LIMIT_MINUTES: Readonly<Record<FireKind, number>> = { campfire: 8 * 60, fireplace: 16 * 60 };
 
 /** A fire with this little fuel left, in game minutes, counts as out of fuel. */
 const FUEL_EMPTY_MINUTES = 1e-6;
@@ -33,19 +33,19 @@ export function unlitFire(): Fire {
   return { lit: false, fuelMinutes: 0 };
 }
 
-/** How many game minutes one piece of this fuel keeps a fire on this hearth burning. */
-export function burnMinutesOf(hearth: Hearth, fuel: CampfireFuel): number {
-  return FUEL_BURN_MINUTES[fuel] * BURN_TIME_FACTOR[hearth];
+/** How many game minutes one piece of this fuel keeps this kind of fire burning. */
+export function burnMinutesOf(kind: FireKind, fuel: CampfireFuel): number {
+  return FUEL_BURN_MINUTES[fuel] * BURN_TIME_FACTOR[kind];
 }
 
-/** Whether one more piece of this fuel fits on the fire without going past the hearth's limit. */
-export function fuelFits(fire: Fire, hearth: Hearth, fuel: CampfireFuel): boolean {
-  return fire.fuelMinutes + burnMinutesOf(hearth, fuel) <= FUEL_LIMIT_MINUTES[hearth];
+/** Whether one more piece of this fuel fits on the fire without going past the limit for its kind. */
+export function fuelFits(fire: Fire, kind: FireKind, fuel: CampfireFuel): boolean {
+  return fire.fuelMinutes + burnMinutesOf(kind, fuel) <= FUEL_LIMIT_MINUTES[kind];
 }
 
 /** The fire with one more piece of this fuel on it. Check `fuelFits` first. */
-export function withFuel(fire: Fire, hearth: Hearth, fuel: CampfireFuel): Fire {
-  return { ...fire, fuelMinutes: fire.fuelMinutes + burnMinutesOf(hearth, fuel) };
+export function withFuel(fire: Fire, kind: FireKind, fuel: CampfireFuel): Fire {
+  return { ...fire, fuelMinutes: fire.fuelMinutes + burnMinutesOf(kind, fuel) };
 }
 
 /** The fire after it has burnt for this many game minutes. An unlit fire keeps its fuel. A lit one goes out when its fuel runs out. */
@@ -56,12 +56,12 @@ export function burnt(fire: Fire, gameMinutes: number): Fire {
   return fuelMinutes > FUEL_EMPTY_MINUTES ? { lit: true, fuelMinutes } : { lit: false, fuelMinutes: 0 };
 }
 
-/** How full of fuel the fire is, from 0 (empty) to 1 (its hearth holds no more). */
-export function fuelShare(fire: Fire, hearth: Hearth): number {
-  return fire.fuelMinutes / FUEL_LIMIT_MINUTES[hearth];
+/** How full of fuel the fire is, from 0 (empty) to 1 (it holds no more). */
+export function fuelShare(fire: Fire, kind: FireKind): number {
+  return fire.fuelMinutes / FUEL_LIMIT_MINUTES[kind];
 }
 
-/** Whether the fire is out and holds no fuel, so its hearth can come down without losing any. */
+/** Whether the fire is out and holds no fuel, so the campfire or fireplace can come down without losing any. */
 export function isColdAndEmpty(fire: Fire): boolean {
   return !fire.lit && fire.fuelMinutes <= 0;
 }

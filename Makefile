@@ -35,6 +35,7 @@ approve:
 	bun scripts/set-approval.ts "$(ID)" "$(STATUS)"
 
 # Screenshot a page: make shot URL="/?asset=bed" OUT=/tmp/bed.png. For more options, run bun scripts/shot.ts.
+# Compare it with an older commit: make shot URL="/?asset=bed" OUT=/tmp/bed.png ARGS="--compare HEAD".
 shot:
 	bun scripts/shot.ts "$(URL)" "$(OUT)" $(ARGS)
 

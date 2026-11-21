@@ -36,7 +36,7 @@ export interface Torches {
    * has left. Their hand is then empty. Does nothing if they hold no lit torch, or if `plantRefusal` gives a reason.
    */
   plant(): void;
-  /** Why the player cannot plant their torch here: another planted torch stands within PLANTED_TORCH_SPACING_METRES. */
+  /** Why the player cannot plant a torch: they hold no lit torch, or another planted torch stands within PLANTED_TORCH_SPACING_METRES. */
   plantRefusal(): Refusal | undefined;
   /**
    * Where the player walks to pick up a planted torch: onto its spot, or beside it if something blocks it. A player within reach
@@ -74,6 +74,7 @@ export function createTorches(entities: EntityStore, valley: Valley, hand: Pick<
   function plantRefusal(): Refusal | undefined {
     const player = players.first;
     if (player === undefined) return undefined;
+    if (player.litTorch === undefined) return { kind: "noLitTorch" };
     const tooClose = plantedTorches.entities.some((torch) => groundDistance(torch.position, player.position) < PLANTED_TORCH_SPACING_METRES);
     return tooClose ? { kind: "torchTooClose" } : undefined;
   }

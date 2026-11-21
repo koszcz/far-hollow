@@ -17,7 +17,13 @@ import { CROUCH_CYCLE_SECONDS, CROUCH_HOLD_SHARE, CROUCH_PRESSED_SHARE, CROUCH_R
 import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "../player-mesh";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
-import { HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS } from "../player-hand-craft-pose";
+import {
+  HAND_CRAFT_CYCLE_SECONDS,
+  HAND_CRAFT_ENTER_SECONDS,
+  HAND_CRAFT_HOLD_SHARE,
+  HAND_CRAFT_TUGGED_SHARE,
+  HAND_CRAFT_WOUND_SHARE,
+} from "../player-hand-craft-pose";
 import { SLED_HEAVE_PEAK_SHARE } from "../player-sled-drag-pose";
 import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
 import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
@@ -540,16 +546,16 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
-  // The draft "hand-craft-animation": the player crafts the saw, a hand recipe, working at it with both hands at waist height.
+  // The approved "hand-craft-animation": the player crafts the saw, a hand recipe, lashing a bundle of sticks at waist height.
   "hand-craft-animation": {
     radius: 1.3,
-    focus: { x: 0, y: 0.9, z: 0.2 },
+    focus: { x: 0, y: 0.85, z: 0.2 },
     shots: [
-      { label: "right hand up, front", share: 0.25, yaw: 0 },
-      { label: "right hand out, side on", share: 0, yaw: 270 },
-      { label: "right hand down", share: 0.75, yaw: 30 },
-      { label: "right hand in, from above", share: 0.5, yaw: 0, pitch: 70 },
-    ].map(({ label, share, yaw, pitch = 15 }) => ({ label, yaw, pitch, seconds: HAND_CRAFT_ENTER_SECONDS + share * HAND_CRAFT_CYCLE_SECONDS })),
+      { label: "winding over the front", share: 0.2, yaw: 20, pitch: 10 },
+      { label: "winding under, from the right", share: 0.275, yaw: 300, pitch: 10 },
+      { label: "holding the cord on top, from the left", share: (HAND_CRAFT_WOUND_SHARE + HAND_CRAFT_HOLD_SHARE) / 2, yaw: 50, pitch: 20 },
+      { label: "tugged tight", share: HAND_CRAFT_TUGGED_SHARE, yaw: 0, pitch: 10 },
+    ].map(({ label, share, yaw, pitch }) => ({ label, yaw, pitch, seconds: HAND_CRAFT_ENTER_SECONDS + share * HAND_CRAFT_CYCLE_SECONDS })),
     build({ movePlayer }) {
       movePlayer(0, 0, 0);
     },

@@ -22,8 +22,8 @@
 // While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
 // forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
 // approved "sled-rope" starts.
-// While crafting a hand recipe, the draft "hand-craft-animation", posed in code by player-hand-craft-pose.ts, works at
-// something small held at waist height with both hands. The axe goes on the back.
+// While crafting a hand recipe, the approved "hand-craft-animation", posed in code by player-hand-craft-pose.ts, lashes a
+// small bundle of sticks at waist height, drawn by hand-craft-work.ts. The axe goes on the back.
 // While gathering stone, the draft "gather-stone-animation", posed in code by player-gather-stone-pose.ts, crouches at the
 // water's edge and lifts a stone, drawn by stone-shape.ts, in both hands. The axe goes on the back.
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
@@ -47,7 +47,8 @@ import { createFishingRod } from "./fishing-rod-model";
 import { createFishingFloat, createFishingLine, createRodBend } from "./fishing-tackle";
 import { FISH_LENGTH_METRES, rawFishParts } from "./fishing-pile-shapes";
 import { FISH_ENTER_SECONDS, fishPoseAt } from "./player-fish-pose";
-import { createHandCraftMotion } from "./player-hand-craft-pose";
+import { createHandCraftMotion, handCraftWorkTurnAt } from "./player-hand-craft-pose";
+import { createHandCraftWork } from "./hand-craft-work";
 import { smoothstep } from "./easing";
 import { createWorkMotion, type Leaving, type WorkMotion } from "./work-motion";
 import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
@@ -428,6 +429,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   saw.group.visible = false;
   saw.group.scale.setScalar(SAW_IN_HAND_SCALE);
   group.add(saw.group);
+  // The bundle of sticks rides in the left hand while crafting by hand, with the cord running to the right hand.
+  const handCraftWork = createHandCraftWork();
+  handCraftWork.setVisible(false);
+  group.add(handCraftWork.group);
   // The fishing rod rides in the right hand while fishing, its butt at the wrist. The line runs from its tip.
   const rod = createFishingRod();
   rod.group.visible = false;
@@ -573,6 +578,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     placeDrawknife();
     placeStone();
     placeSaw();
+    placeHandCraftWork();
     placeFishingRod();
     placePot(eatDrinkPose?.pot);
   }
@@ -740,6 +746,18 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     if (!saw.group.visible) return;
     group.updateWorldMatrix(true, true);
     group.worldToLocal(rightArm.end.getWorldPosition(saw.group.position));
+  }
+
+  /** Shows the bundle of sticks in the left hand while crafting by hand, turned as the motion says, with the cord to the right hand. */
+  function placeHandCraftWork(): void {
+    const since = handCrafting.since;
+    const now = handCrafting.at;
+    handCraftWork.setVisible(since !== undefined);
+    if (since === undefined || now === undefined) return;
+    group.updateWorldMatrix(true, true);
+    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
+    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
+    handCraftWork.place(leftWrist, rightWrist, handCraftWorkTurnAt(now - since));
   }
 
   const rodTip = new THREE.Vector3();
@@ -986,6 +1004,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       potMaker.dispose();
       drawknife.dispose();
       saw.dispose();
+      handCraftWork.dispose();
       rod.dispose();
       rodBend.dispose();
       fishingLine.dispose();

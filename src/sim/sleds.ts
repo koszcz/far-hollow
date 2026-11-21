@@ -27,6 +27,8 @@ import type { ApproachReach } from "./approach";
 import { CARRIED_LOGS } from "./wood-and-fuel";
 import { stackOnWoodpile } from "./woodpiles";
 import { scaleGroundPoint, subtractGroundPoints } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { tendApproach } from "./tending";
 
 /** A sled has this many log spaces. Each holds one log, one debarked log, or PLANKS_PER_LOG_SPACE planks, in any mix. */
 export const SLED_CAPACITY = 6;
@@ -312,4 +314,63 @@ export function createSleds(entities: EntityStore, valley: Valley): Sleds {
     setComponent(entities, sled, "dragHeading", heading);
     setComponent(entities, sled, "facing", { turns: nearestQuarterTurns(heading) });
   }
+}
+
+/** The rules for a sled: loading it, taking from it, tipping it out, and dragging it and letting go. */
+export function sledRules(
+  sleds: Sleds,
+  game: RuleGame,
+): CommandRules<"loadSled" | "takeFromSled" | "loadPlanksOnSled" | "takePlanksFromSled" | "tipOutSled" | "dragSled" | "letGoOfSled"> {
+  const reach = (command: { sledId: number }) => sleds.reach(command.sledId);
+  const refusal = (command: SledCommand) => sleds.refusal(command);
+  return {
+    loadSled: {
+      start: "alongside",
+      refusal,
+      approach: tendApproach(game, reach, (command) => {
+        sleds.load(command.sledId);
+        return undefined;
+      }),
+    },
+    takeFromSled: {
+      start: "alongside",
+      needsFreeHands: true,
+      refusal,
+      approach: tendApproach(game, reach, (command) => {
+        sleds.take(command.sledId, command.log);
+        return undefined;
+      }),
+    },
+    loadPlanksOnSled: {
+      start: "alongside",
+      refusal,
+      approach: tendApproach(game, reach, (command) => {
+        sleds.loadPlanks(command.sledId);
+        return undefined;
+      }),
+    },
+    takePlanksFromSled: { start: "alongside", refusal, approach: tendApproach(game, reach, (command) => sleds.takePlanks(command.sledId)) },
+    tipOutSled: {
+      start: "alongside",
+      refusal,
+      approach: tendApproach(game, reach, (command) => {
+        sleds.tipOut(command.sledId);
+        return undefined;
+      }),
+    },
+    dragSled: {
+      start: "alongside",
+      refusal,
+      approach: tendApproach(game, reach, (command) => {
+        sleds.drag(command.sledId);
+        return undefined;
+      }),
+    },
+    letGoOfSled: {
+      start: "alongside",
+      run: () => {
+        sleds.letGo();
+      },
+    },
+  };
 }

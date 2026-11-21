@@ -3,10 +3,12 @@
 import type { ChestView, ChestOrShelf, PlainNotice, Refusal } from "./api";
 import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, fitsInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
-import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { playerEntities, type Entity, type EntityStore, type ReachHeight, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
 import { groundDistance } from "./ground-point";
 import type { ApproachReach } from "./approach";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { reachToward } from "./hand-reach";
 
 /** The player walks to a spot this far from a chest's middle to open it, in metres. */
 const CHEST_STAND_METRES = 1.1;
@@ -159,6 +161,45 @@ export function createChests(entities: EntityStore): Chests {
       if (chest === undefined || backpack === undefined) return undefined;
       if (countOf(chest.holding.contents, content) <= 0) return "nothingToTake";
       return fitsInBackpack(backpack, content, 1) ? undefined : "backpackFull";
+    },
+  };
+}
+
+/** The rules for opening a chest or shelf, and putting things in and taking them out. */
+export function chestRules(chests: Chests, { entities, hand }: RuleGame): CommandRules<"openChest" | "putInChest" | "takeFromChest"> {
+  /** How high the player reaches into a piece of furniture that stores things. A piece whose definition gives no height is reached at the waist. */
+  const storageReach = (chestId: number): ReachHeight => furnitureOf(entities.entity(chestId))?.reachHeight ?? "waist";
+  return {
+    openChest: {
+      start: "fresh",
+      // Opening a chest opens its panel, a menu, so it is never queued.
+      queue: "plainOnly",
+      approach: {
+        reach: (command) => chests.reach(command.chestId),
+        act: (command) => {
+          chests.open(command.chestId);
+          reachToward(hand, entities, storageReach(command.chestId), command.chestId);
+        },
+      },
+    },
+    putInChest: {
+      start: "alongside",
+      queue: "apart",
+      refusal: (command) => chests.refusal(command.chestId),
+      run: (command) => {
+        hand.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () => chests.put(command.chestId, command.content, command.all));
+      },
+    },
+    takeFromChest: {
+      start: "alongside",
+      queue: "apart",
+      refusal: (command) => {
+        const kind = chests.takeRefusal(command.chestId, command.content);
+        return chests.refusal(command.chestId) ?? (kind === undefined ? undefined : { kind });
+      },
+      run: (command) => {
+        hand.start(storageReach(command.chestId), entities.entity(command.chestId)?.position, () => chests.take(command.chestId, command.content, command.all));
+      },
     },
   };
 }

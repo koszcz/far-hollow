@@ -38,6 +38,7 @@ import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
 import type { Walking } from "./walking";
+import type { CommandRules, RuleGame } from "./command-rule";
 
 /** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
 export const BUILD_STAND_METRES = 0.7;
@@ -502,4 +503,53 @@ export function standSpot(rect: GroundRect, centre: GroundPoint, player: GroundP
   const toEdge = Math.min(away.x === 0 ? Infinity : halfX / Math.abs(away.x), away.z === 0 ? Infinity : halfZ / Math.abs(away.z));
   const reach = toEdge + BUILD_STAND_METRES;
   return addGroundPoints(centre, scaleGroundPoint(away, reach));
+}
+
+/** The rules for placing blueprints, bringing materials to them, and building them. */
+export function buildingRules(
+  building: Building,
+  { startApproach, stopOtherWork }: RuleGame,
+): CommandRules<"placeBlueprint" | "build" | "deliverToBlueprint" | "stopBuilding"> {
+  return {
+    placeBlueprint: {
+      // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
+      start: "alongside",
+      queue: "apart",
+      needsFreeHands: (command) => command.thenBuild === true,
+      run: (command) => {
+        const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
+        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return undefined;
+        stopOtherWork();
+        return startApproach({ type: "build", blueprintId: id });
+      },
+    },
+    build: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => building.refusal(command.blueprintId),
+      approach: {
+        reach: (command) => building.reach(command.blueprintId),
+        act: (command) => {
+          building.build(command.blueprintId);
+        },
+      },
+    },
+    deliverToBlueprint: {
+      start: "fresh",
+      needsFreeHands: true,
+      approach: {
+        reach: (command) => building.reach(command.blueprintId),
+        act: (command) => {
+          building.deliver(command.blueprintId);
+        },
+      },
+    },
+    stopBuilding: {
+      start: "alongside",
+      queue: "apart",
+      run: () => {
+        building.cancel();
+      },
+    },
+  };
 }

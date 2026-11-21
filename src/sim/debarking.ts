@@ -4,6 +4,7 @@ import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./b
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { toolRefusal } from "./refusals";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
 
 /** How long the player works at a log with the drawknife to strip its bark, in seconds. */
 export const DEBARK_SECONDS = 4;
@@ -119,4 +120,21 @@ function standingSpot(middle: GroundPoint, heading: number, from: GroundPoint | 
 
 function barkFits(backpack: Backpack): boolean {
   return fitsInBackpack(backpack, "bark", BARK_PER_LOG);
+}
+
+/** The rule for debarking a log. */
+export function debarkingRules(debarking: Debarking, { startApproach }: RuleGame): CommandRules<"debarkLog"> {
+  return {
+    debarkLog: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: () => debarking.refusal(),
+      // A full backpack turns the player away before they set off.
+      run: (command) => debarking.roomRefusal() ?? startApproach(command),
+      approach: {
+        reach: (command) => debarking.reach(command.logId),
+        act: (command) => debarking.start(command.logId),
+      },
+    },
+  };
 }

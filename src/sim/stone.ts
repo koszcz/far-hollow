@@ -9,6 +9,7 @@ import { createGroundMap, groundTypeAt, type GroundMap } from "./ground-types";
 import type { GroundPoint } from "./ground-point";
 import { distanceToRiver, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
+import type { CommandRules } from "./command-rule";
 
 /** How long the player works to gather one stone, in seconds. */
 export const GATHER_STONE_SECONDS = 4;
@@ -105,4 +106,21 @@ export function createStoneGathering(entities: EntityStore, walkMap: WalkMap, va
 
 function stoneFits(backpack: Backpack): boolean {
   return fitsInBackpack(backpack, "stone", 1);
+}
+
+/** The rule for gathering stone. */
+export function stoneRules(stoneGathering: StoneGathering): CommandRules<"gatherStone"> {
+  return {
+    gatherStone: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: () => stoneGathering.refusal(),
+      approach: {
+        reach: (command) => stoneGathering.reach(command),
+        act: (command) => {
+          stoneGathering.gather({ x: command.x, z: command.z });
+        },
+      },
+    },
+  };
 }

@@ -62,6 +62,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   plantTorches,
   cookOnFireplaces,
   startApproaches,
+  approachTimedTasks,
   addFloors,
 ];
 
@@ -139,6 +140,9 @@ export const FIREPLACE_COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookOnFirepl
 export const APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(startApproaches) + 2;
 /** The first save version that can hold floors. */
 export const FLOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFloors) + 2;
+
+/** The first save version in which the player's walk to timed work, such as chopping, is a pending approach too. */
+export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimedTasks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -715,7 +719,50 @@ function startApproaches(save: Readonly<Record<string, unknown>>): Record<string
   return { ...save, entities };
 }
 
-/** Version 41 to 42: the player can lay floors on foundations. A save from before then has none, so it carries over unchanged. */
+/**
+ * For each timed task component an older save can hold, the command a pending approach holds in its place, if the player
+ * was still walking to the work. The commands are written out here, so later changes to a command do not change what the upgrade does.
+ */
+const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unknown>) => Record<string, unknown>>> = {
+  chopTask: (task) => ({ type: "chopTree", treeId: task.treeId }),
+  debarkTask: (task) => ({ type: "debarkLog", logId: task.logId }),
+  buildTask: (task) => ({ type: "build", blueprintId: task.blueprintId }),
+  takeDownTask: (task) => ({ type: "takeDown", pieceId: task.pieceId }),
+  drinkTask: (task) => ({ type: "drinkFromRiver", x: task.x, z: task.z }),
+  fillPotTask: () => ({ type: "fillPot" }),
+  fishTask: (task) => ({ type: "fish", x: task.x, z: task.z }),
+  stoneTask: (task) => ({ type: "gatherStone", x: task.x, z: task.z }),
+};
+
+/** The task components that only ever marked a walk, so they become an approach even without a `walkPath`. */
+const WALK_ONLY_TIMED_TASKS: ReadonlySet<string> = new Set(["drinkTask", "fillPotTask"]);
+
+/**
+ * Version 41 to 42: the player walking to timed work, such as chopping, has a pending approach too, and the timed task component
+ * means the work in progress only. A timed task component on a player who still has a `walkPath` becomes the approach for its
+ * command, so they carry on and start the work when they arrive. A timed task component without a `walkPath` is work already
+ * under way, so it stays as it is. The player used to cast as they set off to fish, and now casts on arrival, so fishing saved
+ * on the way takes that cast back off the count. The cast on arrival then waits as long as the saved one would have. Drinking from the river and filling the pot take no time once there, so their task components always become approaches.
+ */
+function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components === undefined || components === null) return entity;
+    const walking = components.walkPath !== undefined;
+    const tasks = Object.keys(APPROACH_OF_TIMED_TASK).filter((name) => components[name] !== undefined && (walking || WALK_ONLY_TIMED_TASKS.has(name)));
+    const first = tasks[0];
+    if (first === undefined) return entity;
+    const command = APPROACH_OF_TIMED_TASK[first]?.(components[first] as Record<string, unknown>);
+    // The player walked to one thing at a time, so a second task, which no save should hold, is dropped.
+    const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
+    if (first === "fishTask" && typeof others.fishCasts === "number" && others.fishCasts > 0) others.fishCasts -= 1;
+    return { ...(entity as object), components: { ...others, approach: { command } } };
+  });
+  return { ...save, entities };
+}
+
+/** Version 42 to 43: the player can lay floors on foundations. A save from before then has none, so it carries over unchanged. */
 function addFloors(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

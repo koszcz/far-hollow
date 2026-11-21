@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -30,11 +30,11 @@ The agent brief under Comments is the contract. It corrects the task list and th
 
 ## Acceptance criteria
 
-- [ ] Outside the approach module and the walking module, only the free walk command calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`.
-- [ ] Each timed task component holds only the state of the work.
-- [ ] A test loads a save made at the previous version with a `chopTask` mid-walk. The player arrives and chops. A second test loads a save with a `chopTask` mid-chop. The chop continues from its saved progress.
-- [ ] Existing behaviour tests pass, such as the chopping, crafting, fishing, and action queue tests.
-- [ ] `make check` passes.
+- [x] Outside the approach module and the walking module, only the free walk command calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`.
+- [x] Each timed task component holds only the state of the work.
+- [x] A test loads a save made at the previous version with a `chopTask` mid-walk. The player arrives and chops. A second test loads a save with a `chopTask` mid-chop. The chop continues from its saved progress.
+- [x] Existing behaviour tests pass, such as the chopping, crafting, fishing, and action queue tests.
+- [x] `make check` passes.
 
 ## Comments
 
@@ -84,17 +84,17 @@ The agent brief under Comments is the contract. It corrects the task list and th
 
 **Acceptance criteria:**
 
-- [ ] Outside the approach module and the walking module, only the free walk command calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`.
-- [ ] Each timed task component holds only the state of the work. It is set only when the player arrives.
-- [ ] `drinkTask` and `fillPotTask` are gone from the player entity, the save schema, and the task parts list.
-- [ ] A test loads a save made at the previous version with a `chopTask` mid-walk. The player arrives and chops.
-- [ ] A test loads a save made at the previous version with a `chopTask` mid-chop. The chop continues from its saved progress.
-- [ ] A test loads a save made at the previous version with a `buildTask` mid-walk. The player arrives and builds.
-- [ ] A test loads a save made at the previous version with a `fishTask` mid-walk. The player arrives and casts. `fishCasts` and the bite time match what the old save would have given.
-- [ ] A test loads a save made at the previous version with a `drinkTask` mid-walk. The player arrives and drinks.
-- [ ] Existing behaviour tests pass, such as the chopping, debarking, crafting, fishing, stone, building, taking-down, drinking, pot, and action queue tests. Edits that only rename task components, or that move a cast to arrival, are allowed.
-- [ ] Each commit moves one module. The tests pass after each commit.
-- [ ] `make check` passes.
+- [x] Outside the approach module and the walking module, only the free walk command calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`.
+- [x] Each timed task component holds only the state of the work. It is set only when the player arrives.
+- [x] `drinkTask` and `fillPotTask` are gone from the player entity, the save schema, and the task parts list.
+- [x] A test loads a save made at the previous version with a `chopTask` mid-walk. The player arrives and chops.
+- [x] A test loads a save made at the previous version with a `chopTask` mid-chop. The chop continues from its saved progress.
+- [x] A test loads a save made at the previous version with a `buildTask` mid-walk. The player arrives and builds.
+- [x] A test loads a save made at the previous version with a `fishTask` mid-walk. The player arrives and casts. `fishCasts` and the bite time match what the old save would have given.
+- [x] A test loads a save made at the previous version with a `drinkTask` mid-walk. The player arrives and drinks.
+- [x] Existing behaviour tests pass, such as the chopping, debarking, crafting, fishing, stone, building, taking-down, drinking, pot, and action queue tests. Edits that only rename task components, or that move a cast to arrival, are allowed.
+- [x] Each commit moves one module. The tests pass after each commit.
+- [x] `make check` passes.
 
 **Out of scope:**
 

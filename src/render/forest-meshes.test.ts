@@ -61,7 +61,11 @@ function sawhorseWithLog(turns: 0 | 1) {
   const startSawing = () => {
     store.addComponent(player, "craftTask", { recipe: "planks", secondsDone: 2, stationId: sawhorseId });
   };
-  return { store, forest, log, player, startSawing };
+  const walkToSaw = () => {
+    store.addComponent(player, "approach", { command: { type: "craft", recipe: "planks", stationId: sawhorseId } });
+    store.addComponent(player, "walkPath", [{ x: 10, z: 19 }]);
+  };
+  return { store, forest, log, player, startSawing, walkToSaw };
 }
 
 /** Where a debarked log is drawn: its middle, and which way its length runs. */
@@ -111,9 +115,8 @@ describe("the debarked log the player saws", () => {
   });
 
   it("stays on the ground while the player only walks to the sawhorse", () => {
-    const { store, forest, log, player, startSawing } = sawhorseWithLog(0);
-    startSawing();
-    store.addComponent(player, "walkPath", [{ x: 10, z: 19 }]);
+    const { forest, log, walkToSaw } = sawhorseWithLog(0);
+    walkToSaw();
     forest.update(0);
     expect(drawnLog(forest, log).middle.y).toBeCloseTo(0.4 + 0.15);
     forest.dispose();

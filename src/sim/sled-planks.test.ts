@@ -200,7 +200,7 @@ describe("a blueprint taking planks from nearby", () => {
 
     expect(game.client.describeBlueprint(idOf(game, chest))?.lacks).toEqual({ kind: "material", material: "plank" });
     send(game, { type: "build", blueprintId: idOf(game, chest) });
-    stepUntil(game, () => onlyPlayer(game).buildTask === undefined);
+    stepUntil(game, () => onlyPlayer(game).buildTask === undefined && onlyPlayer(game).approach === undefined);
 
     expect(chest.blueprint?.delivered).toEqual({});
     expect(pile.pile?.count).toBe(4);
@@ -279,7 +279,7 @@ function plankPilesNear(game: Game, near: { position: { x: number; z: number } }
 /** Holds the build action on a blueprint until the player stops. */
 function build(game: Game, blueprint: Entity): void {
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-  stepUntil(game, () => onlyPlayer(game).buildTask === undefined);
+  stepUntil(game, () => onlyPlayer(game).buildTask === undefined && onlyPlayer(game).approach === undefined);
 }
 
 /** Places a chest blueprint on open ground near the player. */

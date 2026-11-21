@@ -4,6 +4,7 @@ import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
+import { RECIPE_KINDS } from "./recipe-kind";
 import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, isKept, STRUCTURES } from "./structures";
 import { GROWTH_STAGES } from "./tree-growth";
@@ -72,6 +73,14 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value) ||
   shape({ type: exactly("tendCampfire"), campfireId: count })(value) ||
   shape({ type: exactly("tendWoodpile"), woodpileId: count })(value) ||
+  shape({ type: exactly("chopTree"), treeId: count })(value) ||
+  shape({ type: exactly("debarkLog"), logId: count })(value) ||
+  shape({ type: exactly("build"), blueprintId: count })(value) ||
+  shape({ type: exactly("takeDown"), pieceId: count })(value) ||
+  shape({ type: exactly("drinkFromRiver"), x: finite, z: finite })(value) ||
+  shape({ type: exactly("fillPot") })(value) ||
+  shape({ type: exactly("fish", "gatherStone"), x: finite, z: finite })(value) ||
+  shape({ type: exactly("craft"), recipe: exactly(...RECIPE_KINDS), stationId: count })(value) ||
   tendCommand(value);
 
 /**
@@ -136,12 +145,10 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   respawnPoint: point,
   fishTask: shape({ x: finite, z: finite, minutesWaited: finite, biteAfterMinutes: finite }),
   fishCasts: count,
-  drinkTask: point,
   stoneTask: shape({ x: finite, z: finite, secondsDone: finite }),
   sickness: shape({ minutesLeft: finite }),
   litTorch: shape({ minutesLeft: finite }),
   plantedTorch: shape({ minutesLeft: finite }),
-  fillPotTask: point,
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),

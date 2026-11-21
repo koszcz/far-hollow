@@ -1,15 +1,15 @@
-// Fishing at the river with the fishing rod. The player walks to the bank, casts, and waits for a fish to bite.
+// Fishing at the river with the fishing rod. The player walks to the bank, casts there, and waits for a fish to bite.
 // Each fish goes in the backpack, and the player casts again until they stop or a fish gets away.
 import type { PlainNotice, Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { addToBackpack } from "./backpack";
-import { canReachRiver } from "./drinking";
+import { riverReach } from "./drinking";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { createRandom, scramble } from "./random";
 import { toolRefusal } from "./refusals";
 import type { Valley } from "./valley";
 import type { GroundPoint } from "./ground-point";
-import { nearestWalkableSpot } from "./walk-map";
-import type { Walking } from "./walking";
+import type { WalkMap } from "./walk-map";
 
 /** The shortest and longest wait for a fish to bite after a cast, in game minutes. */
 export const FISH_MIN_WAIT_MINUTES = 15;
@@ -23,18 +23,23 @@ export function fishWaitMinutes(seed: number, cast: number): number {
   return Math.round(FISH_MIN_WAIT_MINUTES + random() * (FISH_MAX_WAIT_MINUTES - FISH_MIN_WAIT_MINUTES));
 }
 
-/** How far through the wait for the next fish the player is, from 0 to 1, or undefined if they are not fishing now. Walking there does not count. */
+/** How far through the wait for the next fish the player is, from 0 to 1, or undefined if they are not fishing now. */
 export function fishingNow(player: Entity): { progress: number } | undefined {
-  if (player.fishTask === undefined || player.walkPath !== undefined) return undefined;
+  if (player.fishTask === undefined) return undefined;
   return { progress: Math.min(1, player.fishTask.minutesWaited / player.fishTask.biteAfterMinutes) };
 }
 
 export interface Fishing {
-  /** Walks the player to the river bank nearest a spot on the river, then fishes there. The game calls it only once `refusal` passes. */
+  /** Where the approach takes the player to fish toward a spot on the river: the river bank nearest it. */
+  reach(spot: GroundPoint): ApproachReach | undefined;
+  /**
+   * Casts toward a spot on the river, once the player stands on the bank, and starts the wait for a fish.
+   * The approach runs it once they arrive. The game calls it only once `refusal` passes.
+   */
   fish(spot: GroundPoint): void;
   /** Why the player could not fish now: without the fishing rod, or while they carry a log. */
   refusal(): Refusal | undefined;
-  /** Stops the player fishing, or walking to fish. */
+  /** Stops the player fishing. */
   cancel(): void;
   /**
    * Whether a fish has bit on this fishing trip, the one the latest `fish` began, and the player fishes still.
@@ -52,7 +57,7 @@ export interface Fishing {
  * Lets the player fish at the river. `seed` decides how long each cast waits for a fish.
  * Fish bite after a wait in game time, `stepGameMinutes` for each logic step, which a player slowed by a low need does not stretch.
  */
-export function createFishing(entities: EntityStore, walking: Walking, valley: Valley, seed: number, stepGameMinutes: number): Fishing {
+export function createFishing(entities: EntityStore, walkMap: WalkMap, valley: Valley, seed: number, stepGameMinutes: number): Fishing {
   const players = playerEntities(entities);
   const fishers = entities.with("player", "fishTask", "position", "backpack");
   /** How many casts each player had made once they cast at the start of their latest fishing trip. It is not saved. */
@@ -71,11 +76,14 @@ export function createFishing(entities: EntityStore, walking: Walking, valley: V
   }
 
   return {
+    reach(spot) {
+      const player = players.first;
+      return player === undefined ? undefined : riverReach(valley, walkMap, player.position, spot);
+    },
     fish(spot) {
       for (const player of players) {
         cast(player, spot);
         castsWhenTripBegan.set(player, player.fishCasts ?? 0);
-        walking.walkTo(nearestWalkableSpot(walking.walkMap, spot) ?? spot);
       }
     },
     refusal: () => refusalFor(players.first),
@@ -93,9 +101,8 @@ export function createFishing(entities: EntityStore, walking: Walking, valley: V
       let notice: PlainNotice | undefined;
       // Copy the list first, because players who stop fishing leave the query while it is being walked.
       for (const fisher of [...fishers]) {
-        if (fisher.walkPath !== undefined) continue;
-        // The player stops if they could not get near enough to the water, or could no longer fish, such as without the rod.
-        if (!canReachRiver(valley, fisher.position) || refusalFor(fisher) !== undefined) {
+        // The player stops if they could no longer fish, such as without the rod.
+        if (refusalFor(fisher) !== undefined) {
           entities.removeComponent(fisher, "fishTask");
           continue;
         }

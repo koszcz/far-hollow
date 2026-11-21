@@ -77,10 +77,7 @@ export interface Entity {
   blocksWalkingEdges?: { from: GroundPoint; to: GroundPoint }[];
   /** The tools and small materials the entity carries. Only the player has one. */
   backpack?: Backpack;
-  /**
-   * The tree the player is walking to or chopping, given by its entity id.
-   * `secondsDone` counts only the time spent chopping, not walking.
-   */
+  /** The chop in progress: the tree the player is chopping, given by its entity id, and how long they have chopped it. */
   chopTask?: { treeId: number; secondsDone: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. A sapling may grow from it. */
   stump?: true;
@@ -95,7 +92,7 @@ export interface Entity {
   log?: { heading: number };
   /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */
   debarkedLog?: { heading: number };
-  /** The log on the ground the player is walking to or debarking, given by its entity id. `secondsDone` counts only the time spent debarking. */
+  /** The debarking in progress: the log on the ground the player is debarking, given by its entity id, and how long they have worked at it. */
   debarkTask?: { logId: number; secondsDone: number };
   /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
   carrying?: CarriedLog;
@@ -127,11 +124,11 @@ export interface Entity {
   builtCost?: { material: DeliveredMaterial; count: number }[];
   /** Which way a blueprint, or the structure built from it, faces. A bedroll laid in a lean-to has it too. A bedroll without it lies along z. */
   facing?: { turns: QuarterTurns };
-  /** The blueprint the player is walking to or building, given by its entity id. */
+  /** The building in progress: the blueprint the player is building, given by its entity id. Its progress lives on the blueprint. */
   buildTask?: { blueprintId: number };
   /**
-   * The blueprint or finished structure the player is walking to or taking down, given by its entity id.
-   * `secondsDone` counts only the time spent taking it down, not walking.
+   * The taking down in progress: the blueprint or finished structure the player is taking down, given by its entity id,
+   * and how long they have worked at it.
    */
   takeDownTask?: { pieceId: number; secondsDone: number };
   /**
@@ -240,16 +237,14 @@ export interface Entity {
   /** Where the entity wakes after a collapse. Only the player has one. */
   respawnPoint?: GroundPoint;
   /**
-   * The player is walking to the river bank to fish, or fishing there. The spot is where they clicked on the river.
-   * `minutesWaited` counts the game minutes since the latest cast, not walking. A fish bites after `biteAfterMinutes`.
+   * The fishing in progress, on the river bank. The spot is where the player clicked on the river.
+   * `minutesWaited` counts the game minutes since the latest cast. A fish bites after `biteAfterMinutes`.
    */
   fishTask?: { x: number; z: number; minutesWaited: number; biteAfterMinutes: number };
   /** How many times the player has cast a fishing line so far. It picks the wait for the next cast. Missing before the first. */
   fishCasts?: number;
-  /** The player is gathering one stone at this spot on the river bank or in the river, or walking there to gather it. */
+  /** The stone gathering in progress: the player is gathering one stone at this spot on the river bank or in the river. */
   stoneTask?: { x: number; z: number; secondsDone: number };
-  /** The player is walking to the riverbank to drink. The spot is where they clicked on the river. */
-  drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
   /**
@@ -262,8 +257,6 @@ export interface Entity {
    * on the ground or on a foundation. It does not block walking.
    */
   plantedTorch?: BurnTime;
-  /** The player is walking to the riverbank to fill the pot. The spot is the middle of the river nearest where they set off. */
-  fillPotTask?: GroundPoint;
   /** The full pot sitting on this campfire. Only campfires have one. */
   potOnFire?: PotOnFire;
   /** The fish on this campfire, raw or cooked, in the order they went on. Only campfires have them. Missing when it holds none. */

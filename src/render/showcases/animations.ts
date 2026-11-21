@@ -70,7 +70,7 @@ const EAT_DRINK_PLAY_REST_SECONDS = 0.6;
 /** The stills of the "forage-eat-drink-animation" showcase: which motion each shows, and how far into it, in seconds. */
 const EAT_DRINK_SHOTS: readonly { label: string; kind: EatDrinkKind; seconds: number }[] = [
   { label: "hand in the berry bush", kind: "forageBush", seconds: HAND_AT_SECONDS },
-  { label: "hand at the mouth, eating", kind: "eat", seconds: 0.22 },
+  { label: "biting, eating", kind: "eat", seconds: 0.28 },
   { label: "kneeling, dipping the pot", kind: "fillPot", seconds: HAND_AT_SECONDS },
   { label: "pot at the mouth", kind: "drinkFromPot", seconds: 0.5 },
 ];
@@ -598,7 +598,7 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
       },
     },
   },
-  // The draft "forage-eat-drink-animation": the player reaches into a berry bush, eats, fills the approved "pot" at a
+  // The approved "forage-eat-drink-animation": the player reaches into a berry bush, eats, fills the approved "pot" at a
   // stand-in river, drinks from the pot, and drinks from the river with cupped hands. Foraging mushrooms reuses the
   // approved "pick-up-animation", so it is not shown here.
   "forage-eat-drink-animation": {

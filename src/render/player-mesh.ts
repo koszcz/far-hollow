@@ -16,7 +16,7 @@
 // While fishing, the approved "fishing-animation", posed in code by player-fish-pose.ts, casts the approved "fishing-rod",
 // built by fishing-rod-model.ts, waits for the float to dip, then lifts out a raw fish from "fishing-piles" and catches
 // it in the left hand. fishing-tackle.ts bends the rod and draws the line and the float. The axe goes on the back.
-// Foraging a berry bush, eating, drinking from the river, filling the pot, and drinking from the pot play the draft
+// Foraging a berry bush, eating, drinking from the river, filling the pot, and drinking from the pot play the approved
 // "forage-eat-drink-animation", posed in code by player-eat-drink-pose.ts. The pot in the hands is the approved "pot",
 // built by pot-shape.ts. The axe goes on the back.
 // While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player

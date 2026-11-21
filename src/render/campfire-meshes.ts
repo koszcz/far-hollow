@@ -4,17 +4,17 @@
 // A blueprint is built with the code-built "campfire-build-animation" (approved). First the stones drop into place
 // one by one round the ring. Then each stick fades in above its place, already at its lean, is lowered straight down,
 // and is set down. Sticks never turn or bounce. The ash spreads out from the centre at the end.
-// A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, a wide glow, and a brighter pool of light that
-// marks how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
+// A lit campfire has flames, embers, sparks, and smoke from fire-effect.ts, and the wide glow and brighter pool of light that
+// fire-effect.ts adds to mark how far its warmth reaches. Together they are the code-built "fire-effect" (approved).
 // While the player places a campfire from the build menu, a see-through copy of its stones and sticks follows the mouse.
 // It turns red where the campfire is not allowed.
 // A campfire with a pot on it shows the code-built "pot" (approved) from pot-shape.ts nested on its sticks, steaming while lit.
 import * as THREE from "three";
-import { createFireMaker, type Fire } from "./fire-effect";
+import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import { CAMPFIRE_STICK_COST } from "../sim/structures";
-import { CAMPFIRE_FUEL_LIMIT_MINUTES, CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
+import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
@@ -64,29 +64,8 @@ const BUILD_STONE_DROP_METRES = 0.08;
 const BUILD_STONE_DROP_SHARE = 0.3;
 /** The ash spreads out from the centre, settling, between this share of the whole build and the end. */
 const BUILD_ASH_SPREAD_FROM = 0.9;
-const GLOW_COLOUR = 0xff9a4a;
-/** Flames on a campfire with almost no fuel left shrink to this share of their full size. Fuller fires burn bigger. */
-const FLAME_SMALLEST_SCALE = 0.35;
 /** A campfire holding this much fuel, in game minutes, or more, burns at full size. */
 const FLAME_FULL_SIZE_FUEL_MINUTES = CAMPFIRE_FUEL_LIMIT_MINUTES / 4;
-/** How bright the glow is at full size. It lights the ground out to GLOW_REACH_METRES. */
-const GLOW_STRENGTH = 6;
-const GLOW_REACH_METRES = 14;
-/** How far the light falls off with distance. 1 is a gentle, game-like fall-off. */
-const GLOW_FALL_OFF = 1;
-const GLOW_HEIGHT_METRES = 0.8;
-/**
- * A second, brighter light lights a pool of ground that ends where the fire stops warming the player, at CAMPFIRE_WARMTH_RADIUS_METRES.
- * It does not fall off with distance, so it stays bright across the pool and fades only near its edge.
- * It does not shrink as the fuel runs low, because the warmth range does not either.
- */
-const WARMTH_POOL_STRENGTH = 3;
-const WARMTH_POOL_HEIGHT_METRES = 2;
-/** A light's reach is measured from the light itself, so this makes it end on the ground exactly at the warmth range. */
-const WARMTH_POOL_REACH_METRES = Math.hypot(CAMPFIRE_WARMTH_RADIUS_METRES, WARMTH_POOL_HEIGHT_METRES);
-/** How fast and how much the glow flickers. */
-const FLICKER_PER_SECOND = 9;
-const FLICKER_AMOUNT = 0.12;
 
 /** A pot on the fire nests over the tips of the sticks, this high above the ground. The tips hide inside it, below the water. */
 const POT_HEIGHT_METRES = 0.67;
@@ -121,9 +100,8 @@ interface Drawn {
   readonly picker: THREE.Mesh;
   /** Flames, embers, sparks, and smoke. Hidden while the campfire is unlit. */
   readonly fire: Fire;
-  readonly glow: THREE.PointLight;
-  /** Lights the ground out to the warmth range. */
-  readonly warmthPool: THREE.PointLight;
+  /** The wide glow, and the pool of light out to the warmth range. */
+  readonly lights: FireLights;
   /** The pot sitting on the fire. Hidden while there is none. */
   readonly pot: PotMesh;
 }
@@ -218,13 +196,7 @@ export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number
     });
     const fire = fireMaker.make();
     fire.group.visible = false;
-    // The glow stays in the scene while unlit, at zero strength, so lighting a fire does not rebuild every material.
-    const glow = new THREE.PointLight(GLOW_COLOUR, 0, GLOW_REACH_METRES, GLOW_FALL_OFF);
-    glow.position.set(0, GLOW_HEIGHT_METRES, 0);
-    root.add(glow);
-    const warmthPool = new THREE.PointLight(GLOW_COLOUR, 0, WARMTH_POOL_REACH_METRES, 0);
-    warmthPool.position.set(0, WARMTH_POOL_HEIGHT_METRES, 0);
-    root.add(warmthPool);
+    const lights = addFireLights(root);
     root.add(fire.group);
     const pot = potMaker.make();
     pot.group.position.y = POT_HEIGHT_METRES;
@@ -242,7 +214,7 @@ export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number
     const turn = new THREE.Quaternion().setFromAxisAngle(UP, yaw);
     base.quaternion.copy(turn.clone().invert().multiply(fit.tilt).multiply(turn));
     group.add(root);
-    const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, glow, warmthPool, pot };
+    const result = { root, stones: stoneMeshes, sticks, ash, picker, fire, lights, pot };
     drawn.set(entity, result);
     return result;
   }
@@ -287,23 +259,11 @@ export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number
    * so the player can see roughly how much fuel is left.
    */
   function showFire(item: Drawn, campfire: { lit: boolean; fuelMinutes: number }, nowSeconds: number, seed: number): void {
-    item.fire.group.visible = campfire.lit;
     for (const { mesh } of item.sticks) {
       mesh.material = stickMaterial;
       mesh.geometry = campfire.lit ? charredStickGeometry : stickGeometry;
     }
-    if (!campfire.lit) {
-      item.glow.intensity = 0;
-      item.warmthPool.intensity = 0;
-      return;
-    }
-    const fullness = Math.min(1, campfire.fuelMinutes / FLAME_FULL_SIZE_FUEL_MINUTES);
-    const size = FLAME_SMALLEST_SCALE + (1 - FLAME_SMALLEST_SCALE) * fullness;
-    const t = nowSeconds * FLICKER_PER_SECOND + seed;
-    const flicker = 1 + FLICKER_AMOUNT * (Math.sin(t) * 0.6 + Math.sin(t * 2.3 + 1.7) * 0.4);
-    item.fire.animate(nowSeconds, size, seed);
-    item.glow.intensity = GLOW_STRENGTH * size * flicker;
-    item.warmthPool.intensity = WARMTH_POOL_STRENGTH * flicker;
+    showLitFire(item.fire, item.lights, campfire, FLAME_FULL_SIZE_FUEL_MINUTES, nowSeconds, seed);
   }
 
   function forget(entity: Entity): void {

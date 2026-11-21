@@ -5,9 +5,13 @@
 // Construction has one stage per stone. Each stone fades in above its place and is set down, like the logs of a sawhorse.
 // A blueprint shows the stones see-through. A stone the blueprint already has shows pale and half solid.
 // While the player places a fireplace from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
+// A lit fireplace burns with the approved "fire-effect" from fire-effect.ts, shrunk to fit its hearth, with the same glow and
+// pool of light as a campfire. Added by fireplace ticket 03.
 import * as THREE from "three";
 import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { FIREPLACE_STONE_COST } from "../sim/structures";
+import { FUEL_LIMIT_MINUTES } from "../sim/fire";
+import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import type { OutlinePart } from "./hover-outline";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
@@ -23,20 +27,29 @@ const STONE_COLOURS = [0x8a8d8f, 0x7f8386, 0x96999b] as const;
 const DELIVERED_COLOUR = 0xb9bec2;
 /** How high the picker reaches, in metres: to the top of the chimney. */
 const PICK_HEIGHT_METRES = 1.7;
+/** The fire sits on the hearth floor, this far from the middle toward the opening and this high, in metres. */
+const FIRE_FORWARD_METRES = 0.1;
+const FIRE_HEIGHT_METRES = 0.06;
+/** The fire is shrunk to this share of a campfire's, so its flames fit under the slab. */
+const FIRE_SCALE = 0.55;
+/** The lights hang this far in front of the middle, at the opening, so the stones do not hide the fire's glow. */
+const LIGHTS_FORWARD_METRES = 0.45;
+/** A fireplace holding this much fuel, in game minutes, or more, burns at full size. */
+const FLAME_FULL_SIZE_FUEL_MINUTES = FUEL_LIMIT_MINUTES.fireplace / 4;
 
 /** What a click on a fireplace blueprint landed on. A finished fireplace is found with `pickFinished`. */
 export type FireplaceHit = { kind: "blueprint"; entity: Entity };
 
 export interface FireplaceMeshes {
   readonly group: THREE.Group;
-  /** Brings every fireplace and fireplace blueprint up to date with game state. */
-  update(): void;
+  /** Brings every fireplace and fireplace blueprint up to date with game state, and moves each fire to how it looks at `nowSeconds`. */
+  update(nowSeconds: number): void;
   /** What a ray from the camera hits first among fireplace blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: FireplaceHit; distance: number } | undefined;
   /** The finished fireplace a ray hits first, and how far away. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The stones of a fireplace or fireplace blueprint, placed in the world. Empty once it is gone. */
-  outlineOf(hit: FireplaceHit): OutlinePart[];
+  outlineOf(hit: { readonly entity: Entity }): OutlinePart[];
   /** Shows a fireplace blueprint under the mouse at `spot`, facing `turns`, red where it is not allowed. Undefined hides it. */
   showPlacingBlueprint(placingBlueprint: { spot: Vec3; turns: QuarterTurns; allowed: boolean } | undefined): void;
   dispose(): void;
@@ -75,6 +88,8 @@ interface Drawn {
   readonly root: THREE.Group;
   readonly stages: Stage[];
   readonly picker: THREE.Mesh;
+  /** The fire in the hearth, and its lights. Made for a finished fireplace the first time it is drawn, and hidden while it is out. */
+  lit?: { readonly fire: Fire; readonly lights: FireLights };
 }
 
 export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
@@ -86,6 +101,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
   const deliveredMaterial = seeThrough(DELIVERED_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  const fireMaker = createFireMaker();
 
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
@@ -150,6 +166,21 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
     });
   }
 
+  /** The fire in a finished fireplace's hearth, and its lights. */
+  function fireOf(item: Drawn): NonNullable<Drawn["lit"]> {
+    if (item.lit !== undefined) return item.lit;
+    const fire = fireMaker.make();
+    fire.group.position.set(0, FIRE_HEIGHT_METRES, FIRE_FORWARD_METRES);
+    fire.group.scale.setScalar(FIRE_SCALE);
+    fire.group.visible = false;
+    item.root.add(fire.group);
+    const lightsAt = new THREE.Group();
+    lightsAt.position.z = LIGHTS_FORWARD_METRES;
+    item.root.add(lightsAt);
+    item.lit = { fire, lights: addFireLights(lightsAt) };
+    return item.lit;
+  }
+
   function disposeFading(stages: readonly Stage[]): void {
     for (const stage of stages) stage.fading.dispose();
   }
@@ -167,7 +198,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
 
   return {
     group,
-    update() {
+    update(nowSeconds) {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "fireplace") continue;
@@ -175,7 +206,10 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
         seen.add(entity);
       }
       for (const entity of fireplaces) {
-        showProgress(draw(entity), entity, 1, FIREPLACE_STONE_COST);
+        const item = draw(entity);
+        showProgress(item, entity, 1, FIREPLACE_STONE_COST);
+        const { fire, lights } = fireOf(item);
+        showLitFire(fire, lights, entity.fireplace, FLAME_FULL_SIZE_FUEL_MINUTES, nowSeconds, entity.position.x * 3.1 + entity.position.z * 1.7);
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -215,6 +249,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
         item.dispose();
       }
       disposeFading(placingStages);
+      fireMaker.dispose();
       for (const item of drawn.values()) disposeFading(item.stages);
     },
   };

@@ -25,6 +25,7 @@ import {
   type Vec3,
 } from "./entities";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
+import { unlitFire } from "./fire";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
 import { isYoungTree } from "./tree-growth";
@@ -428,7 +429,7 @@ const fireplace: StructureDefinition & { readonly kind: "fireplace" } = {
     // Walls on the square's edges and a roof frame or roof over it are not in the way. Furniture and any other structure are.
     return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreCabinRoofs: true });
   },
-  finish: (spot) => ({ fireplace: true, blocksWalkingSpots: [{ x: spot.x, z: spot.z }] }),
+  finish: (spot) => ({ fireplace: unlitFire(), blocksWalkingSpots: [{ x: spot.x, z: spot.z }] }),
   blueprintBlocksWalkingSpots: (spot) => [{ x: spot.x, z: spot.z }],
 };
 

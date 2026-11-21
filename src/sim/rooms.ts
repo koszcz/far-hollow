@@ -3,7 +3,7 @@
 // so finishing or taking down a piece changes them at once.
 import { edgeMiddle, edgePieceOn, squaresBeside } from "./edge-pieces";
 import { isOnGridSquare } from "./build-grid";
-import { campfireEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
+import { campfireEntities, fireplaceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { SIDES } from "./structure-kind";
@@ -33,11 +33,14 @@ export function roomAround(entities: EntityStore, square: GroundPoint): Room | u
   return region.isRoom ? region.squares : undefined;
 }
 
-/** Whether a lit campfire stands on a foundation in this room, so it warms the whole room. */
+/** Whether a lit campfire on a foundation, or a lit fireplace, stands in this room, so it warms the whole room. */
 export function isRoomHeated(entities: EntityStore, room: Room): boolean {
   for (const { campfire, onFoundation } of campfireEntities(entities)) {
     if (!campfire.lit || onFoundation === undefined) continue;
     if (room.some((square) => isOnGridSquare(square, onFoundation))) return true;
+  }
+  for (const { fireplace, position } of fireplaceEntities(entities)) {
+    if (fireplace.lit && room.some((square) => isOnGridSquare(square, position))) return true;
   }
   return false;
 }

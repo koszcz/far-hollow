@@ -117,6 +117,24 @@ describe("a campfire's actions", () => {
     });
   });
 
+  it("offers a fireplace's fire the same way, clicked or reached with E, and greys taking it down while it holds fuel", () => {
+    const world = worldWith({ backpack: { steelAndFlint: 1, stick: 2 } });
+    const fireplace = world.add({ fireplace: { lit: false, fuelMinutes: 40 }, facing: { turns: 0 } });
+    const clicked: ActionTarget = { kind: "scene", pick: { kind: "structure", id: fireplace, structure: "fireplace", under: undefined } };
+
+    for (const target of [clicked, { kind: "scene", pick: { kind: "fireplace", id: fireplace } } as const]) {
+      const actions = actionsFor(target, world.reader);
+      expect(summary(actions)).toEqual([
+        "light main",
+        "addFuel:firewood off: no firewood",
+        "addFuel:stick",
+        "addFuel:bark off: no bark",
+        "takeDown off: let the fire burn out first",
+      ]);
+      expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: fireplace });
+    }
+  });
+
   it("greys taking down a fire with fish on it, and says to take the fish off first", () => {
     const world = worldWith({ campfire: { fish: [false] } });
 

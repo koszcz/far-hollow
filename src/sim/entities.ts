@@ -124,7 +124,7 @@ export interface Entity {
   builtCost?: { material: DeliveredMaterial; count: number }[];
   /** Which way a blueprint, or the structure built from it, faces. A bedroll laid in a lean-to has it too. A bedroll without it lies along z. */
   facing?: { turns: QuarterTurns };
-  /** The blueprint the player is walking to or building, given by its entity id. */
+  /** The building in progress: the blueprint the player is building, given by its entity id. Its progress lives on the blueprint. */
   buildTask?: { blueprintId: number };
   /**
    * The blueprint or finished structure the player is walking to or taking down, given by its entity id.

@@ -254,6 +254,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   });
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll or bed to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
+    // First, so timed work that an approach starts on arrival, such as chopping, moves on in that same step.
+    approach,
     chopping,
     debarking,
     crafting,
@@ -266,7 +268,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stoneGathering,
     pot,
     chests,
-    approach,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
   ];
@@ -712,24 +713,27 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {
         const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
-        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return;
+        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return undefined;
         cancelTasks();
-        building.build(id);
+        return approach.start({ type: "build", blueprintId: id });
       },
     },
     build: {
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => building.refusal(command.blueprintId),
-      run: (command) => {
-        building.build(command.blueprintId);
+      approach: {
+        reach: (command) => building.reach(command.blueprintId),
+        act: (command) => {
+          building.build(command.blueprintId);
+        },
       },
     },
     deliverToBlueprint: {
       start: "fresh",
       needsFreeHands: true,
       approach: {
-        reach: (command) => building.deliverReach(command.blueprintId),
+        reach: (command) => building.reach(command.blueprintId),
         act: (command) => {
           building.deliver(command.blueprintId);
         },

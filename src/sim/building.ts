@@ -78,21 +78,21 @@ export interface Building {
   /** Whether the player could start building a blueprint now: they have the tool it needs and the material for its next stage. */
   canStartBuilding(blueprintId: number): boolean;
   /**
-   * Starts the player building a blueprint, walking to it first if needed.
+   * Starts the player building a blueprint within reach. The approach runs it once they arrive.
    * Building goes on until the player stops, the piece is finished, or the next material runs out.
    */
   build(blueprintId: number): void;
   /**
-   * Where the player walks to add a material to a blueprint: just outside the ground it covers, on their side of it.
-   * A player standing on it steps off it. Undefined if the entity is not a placed blueprint.
+   * Where the approach takes the player to build a blueprint or add a material to it: just outside the ground it covers,
+   * on their side of it. A player standing on it steps off it. Undefined if the entity is not a placed blueprint.
    */
-  deliverReach(blueprintId: number): ApproachReach | undefined;
+  reach(blueprintId: number): ApproachReach | undefined;
   /**
    * Has the player lay the material on their shoulder, such as a debarked log, by a blueprint within reach, which takes it when
    * the hand gets there. The approach runs it once they arrive. The material is added only if the blueprint still needs more of it.
    */
   deliver(blueprintId: number): void;
-  /** Stops the player building, or walking to build. The blueprint keeps its progress. */
+  /** Stops the player building. The blueprint keeps its progress. */
   cancel(): void;
   /** What a blueprint needs and has, or undefined if the entity is not a blueprint. */
   describe(blueprintId: number): BlueprintView | undefined;
@@ -123,26 +123,21 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed });
   }
 
-  /** Walks the player within reach of a blueprint, then gives them a task on it. */
-  function goTo(blueprintId: number, task: "buildTask"): void {
-    const blueprint = entities.entity(blueprintId);
-    if (blueprint?.blueprint === undefined || !isPlacedStructure(blueprint)) return;
-    const footprint = footprintOfEntity(blueprint);
-    for (const player of players) {
-      walkWithinReach(walking, footprint, blueprint.position, player.position);
-      setComponent(entities, player, task, { blueprintId });
-    }
+  /** The placed blueprint with this id, if it still exists. */
+  function placedBlueprint(blueprintId: number) {
+    const target = entities.entity(blueprintId);
+    const blueprint = target?.blueprint;
+    const position = target?.position;
+    if (target === undefined || blueprint === undefined || position === undefined || !isPlacedStructure(target)) return undefined;
+    return { target, blueprint, position };
   }
 
   /** The blueprint a task points at, if it still exists and the worker has it within reach. */
   function reachedBlueprint(worker: { position: GroundPoint }, blueprintId: number) {
-    const target = entities.entity(blueprintId);
-    const blueprint = target?.blueprint;
-    const position = target?.position;
-    if (target === undefined || blueprint === undefined || position === undefined) return undefined;
+    const placed = placedBlueprint(blueprintId);
     // The player may have walked as close as they could but still be out of reach.
-    if (!isPlacedStructure(target) || distanceOutside(footprintOfEntity(target), worker.position) > BUILD_REACH_METRES) return undefined;
-    return { target, blueprint, position };
+    if (placed === undefined || distanceOutside(footprintOfEntity(placed.target), worker.position) > BUILD_REACH_METRES) return undefined;
+    return placed;
   }
 
   /**
@@ -273,9 +268,10 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       );
     },
     build(blueprintId) {
-      goTo(blueprintId, "buildTask");
+      if (placedBlueprint(blueprintId) === undefined) return;
+      for (const player of players) setComponent(entities, player, "buildTask", { blueprintId });
     },
-    deliverReach(blueprintId) {
+    reach(blueprintId) {
       const blueprint = entities.entity(blueprintId);
       const player = players.first;
       if (blueprint?.blueprint === undefined || !isPlacedStructure(blueprint) || player === undefined) return undefined;
@@ -320,8 +316,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     step(stepSeconds) {
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const builder of [...builders]) {
-        if (builder.walkPath) continue;
-        const reached = reachedBlueprint(builder, builder.buildTask.blueprintId);
+        const reached = placedBlueprint(builder.buildTask.blueprintId);
         if (
           reached === undefined ||
           !buildOn(
@@ -466,7 +461,7 @@ function spendStageMaterial(
 /** Which stage of construction a blueprint is in, from 0 to one less than its number of stages. */
 /** How far the blueprint the player builds has got, from 0 to 1, and the blueprint, or undefined if they are not building now. Walking there does not count. */
 export function buildingNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
-  if (player.buildTask === undefined || player.walkPath !== undefined) return undefined;
+  if (player.buildTask === undefined) return undefined;
   const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
   return blueprint === undefined ? undefined : { progress: blueprint.progress, targetId: player.buildTask.blueprintId };
 }

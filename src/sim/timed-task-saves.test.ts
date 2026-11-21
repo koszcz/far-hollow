@@ -2,8 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { groundDistance } from "./ground-point";
+import { groundDistance, type GroundPoint } from "./ground-point";
 import { readSave, TIMED_APPROACHES_SAVE_VERSION, writeSave } from "./save";
+import { CAMPFIRE_STICK_COST } from "./structures";
+import { isWalkable } from "./walk-map";
 
 // Saves made before timed tasks walked through the approach. Back then, a timed task component, such as `chopTask`, marked
 // both the walk to the thing and the work on it. A player saved on the way had the task component and a `walkPath`.
@@ -38,6 +40,28 @@ describe("a save from before timed tasks walked through the approach", () => {
     expect(onlyPlayer(loaded).chopTask?.secondsDone).toBeCloseTo(secondsDone + 1 / STEPS_PER_SECOND, 6);
     stepUntil(loaded, () => loaded.entities.entity(treeId)?.stump === true);
   });
+
+  it("turns a build saved on the way to the blueprint into an approach, and the player builds on arrival", () => {
+    const game = createGame({ seed: 42 });
+    const player = onlyPlayer(game);
+    if (player.backpack !== undefined) player.backpack.contents.stick = CAMPFIRE_STICK_COST;
+    // A spot on open ground may still be refused, such as one too near a tree, so try spots further out until one is taken.
+    for (let metres = 8; metres < 20 && game.entities.with("blueprint").size === 0; metres += 1) {
+      sendAndStep(game, { type: "placeBlueprint", structure: "campfire", turns: 0, ...openSpotAway(game, metres) }, 1);
+    }
+    const blueprint = game.entities.with("blueprint").first;
+    if (blueprint === undefined) throw new Error("No blueprint");
+    const blueprintId = idOf(game, blueprint);
+    sendAndStep(game, { type: "build", blueprintId }, 3);
+    expect(onlyPlayer(game).walkPath).toBeDefined();
+
+    const loaded = load(olderSave(game, { buildTask: { blueprintId } }));
+    expect(onlyPlayer(loaded).approach).toEqual({ command: { type: "build", blueprintId } });
+    expect(onlyPlayer(loaded).buildTask).toBeUndefined();
+
+    stepUntil(loaded, () => loaded.client.getView().action?.kind === "build");
+    expect(onlyPlayer(loaded).buildTask).toEqual({ blueprintId });
+  });
 });
 
 /** A standing tree at least `metres` from the player, the nearest such. */
@@ -50,6 +74,17 @@ function treeAway(game: Game, metres: number): Entity & { position: { x: number;
   const tree = trees[0]?.tree;
   if (tree === undefined) throw new Error("No tree far enough away");
   return tree;
+}
+
+/** An open spot about `distance` metres from the player. */
+function openSpotAway(game: Game, distance: number): GroundPoint {
+  const { position } = onlyPlayer(game);
+  for (let turn = 0; turn < 64; turn += 1) {
+    const angle = (turn / 64) * 2 * Math.PI;
+    const spot = { x: position.x + Math.cos(angle) * distance, z: position.z + Math.sin(angle) * distance };
+    if (isWalkable(game.walkMap, spot)) return spot;
+  }
+  throw new Error("No open spot");
 }
 
 /**

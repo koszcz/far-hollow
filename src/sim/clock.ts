@@ -1,4 +1,5 @@
 // The valley's clock. Game logic owns it. Rendering and the UI only read it.
+import type { CommandRules } from "./command-rule";
 
 /** One game hour passes in one real minute, so a day lasts 24 real minutes. */
 export const REAL_MS_PER_GAME_MINUTE = 1000;
@@ -85,4 +86,45 @@ export function isNight(hourOfDay: number): boolean {
 export function nextMorning(minutes: number): number {
   const morningOfThisDay = Math.floor(minutes / MINUTES_PER_DAY) * MINUTES_PER_DAY + MORNING_HOUR * MINUTES_PER_HOUR;
   return morningOfThisDay > minutes ? morningOfThisDay : morningOfThisDay + MINUTES_PER_DAY;
+}
+
+/** What the commands that pause the game or skip time change in it. */
+export interface TimeControls {
+  /** Pauses or unpauses the game. */
+  readonly setPaused: (paused: boolean) => void;
+  /** Moves the clock on by this many game minutes, with everything that happens over that time. */
+  readonly passTime: (gameMinutes: number) => void;
+  /** Moves the clock on until rain starts or stops, or the player collapses. */
+  readonly skipToRainChange: () => void;
+}
+
+/** The rules for pausing and skipping time. None of them is the player acting, so a player on a stool stays sitting. */
+export function timeRules(time: TimeControls): CommandRules<"setPaused" | "skipTime" | "skipToRainChange"> {
+  return {
+    setPaused: {
+      start: "alongside",
+      keepsPlayerSitting: true,
+      queue: "apart",
+      run: (command) => {
+        time.setPaused(command.paused);
+      },
+    },
+    skipTime: {
+      start: "alongside",
+      keepsPlayerSitting: true,
+      queue: "apart",
+      run: (command) => {
+        // Time only moves forward. Ignore a negative or broken amount.
+        if (command.hours > 0 && Number.isFinite(command.hours)) time.passTime(command.hours * MINUTES_PER_HOUR);
+      },
+    },
+    skipToRainChange: {
+      start: "alongside",
+      keepsPlayerSitting: true,
+      queue: "apart",
+      run: () => {
+        time.skipToRainChange();
+      },
+    },
+  };
 }

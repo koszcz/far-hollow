@@ -31,7 +31,17 @@ import { createCampfires, isWarmedByCampfire, campfireRules } from "./campfires"
 import { createChopping, choppingRules } from "./chopping";
 import { createDebarking, debarkingRules } from "./debarking";
 import { createCrafting, RECIPES, craftingRules } from "./crafting";
-import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
+import {
+  clockStartMinutes,
+  createClock,
+  isNight,
+  MINUTES_PER_HOUR,
+  nextMorning,
+  readClock,
+  REAL_MS_PER_GAME_MINUTE,
+  type ClockStart,
+  timeRules,
+} from "./clock";
 import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
 import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
@@ -365,14 +375,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   };
 
   const commandRules: CommandRules = {
-    setPaused: {
-      start: "alongside",
-      keepsPlayerSitting: true,
-      queue: "apart",
-      run: (command) => {
-        paused = command.paused;
+    ...timeRules({
+      setPaused: (now) => {
+        paused = now;
       },
-    },
+      passTime: (gameMinutes) => {
+        passTime(gameMinutes);
+      },
+      skipToRainChange,
+    }),
     ...walkingRules(walking),
     ...choppingRules(chopping),
     ...carryingRules(carrying, ruleGame),
@@ -400,27 +411,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...stoneRules(stoneGathering),
-    skipTime: {
-      start: "alongside",
-      keepsPlayerSitting: true,
-      queue: "apart",
-      run: (command) => {
-        // Time only moves forward. Ignore a negative or broken amount.
-        if (command.hours > 0 && Number.isFinite(command.hours)) passTime(command.hours * MINUTES_PER_HOUR);
-      },
-    },
-    skipToRainChange: {
-      start: "alongside",
-      keepsPlayerSitting: true,
-      queue: "apart",
-      run: () => {
-        const wasFalling = rain.falling;
-        // Slice by slice, so the skip stops on the minute rain starts or stops, or at a collapse.
-        while (rain.falling === wasFalling) {
-          if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
-        }
-      },
-    },
   };
 
   /**
@@ -461,6 +451,14 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       }
     }
     return true;
+  }
+
+  /** Moves the clock on until rain starts or stops, slice by slice, so the skip stops on that minute, or at a collapse. */
+  function skipToRainChange(): void {
+    const wasFalling = rain.falling;
+    while (rain.falling === wasFalling) {
+      if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
+    }
   }
 
   /**

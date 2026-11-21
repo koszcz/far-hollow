@@ -1,9 +1,9 @@
-// The pot: the player fills it at the river, boils the water on a lit campfire, and drinks from it.
+// The pot: the player fills it at the river, boils the water on a lit campfire or fireplace, and drinks from it.
 import type { PlainNotice, Refusal } from "./api";
 import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack, type PotContent } from "./backpack";
 import type { Campfires } from "./campfires";
 import { canReachRiver } from "./drinking";
-import { entityWith, playerEntities, setComponent, type EntityStore } from "./entities";
+import { heldFireOf, heldFires, playerEntities, setComponent, type EntityStore, type HeldFire } from "./entities";
 import type { HandReach } from "./hand-reach";
 import { FULL_NEED } from "./needs";
 import { BOIL_MINUTES, type PotWater } from "./pot-state";
@@ -25,15 +25,18 @@ export interface Pot {
   cancel(): void;
   /** Starts the player reaching down to fill the pot once they have walked to the bank. Run it after walking has moved the player. */
   step(): undefined;
-  /** Puts the full pot from the backpack on a lit campfire within the player's reach. */
+  /** Puts the full pot from the backpack on a lit campfire or fireplace within the player's reach. */
   putOnFire(campfireId: number): void;
-  /** Why the player could not put a full pot on the campfire, wherever they stand: it is out, or the backpack holds no full pot. */
+  /**
+   * Why the player could not put a full pot on the campfire or fireplace, wherever they stand: it is out, or the backpack holds
+   * no full pot.
+   */
   putOnRefusal(campfireId: number): Refusal | undefined;
-  /** Takes the pot off a campfire within the player's reach and puts it in the backpack. Returns a notice if it does not fit. */
+  /** Takes the pot off a campfire or fireplace within the player's reach and puts it in the backpack. Returns a notice if it does not fit. */
   takeOffFire(campfireId: number): PlainNotice | undefined;
   /**
-   * Heats every pot on a lit campfire for this many game minutes. River water boils after BOIL_MINUTES.
-   * Call it after the campfires burn, so a fire that went out does not heat the pot.
+   * Heats every pot on a lit campfire or fireplace for this many game minutes. River water boils after BOIL_MINUTES.
+   * Call it after the fires burn, so a fire that went out does not heat the pot.
    */
   heat(gameMinutes: number): void;
   /** Drinks the water in the full pot, which fills thirst. Unboiled river water makes the player sick. Returns whether the player drank. */
@@ -44,25 +47,18 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
   const players = playerEntities(entities);
   const fillers = entities.with("player", "fillPotTask", "position", "backpack");
   const backpacks = entities.with("player", "backpack");
-  const potsOnFire = entities.with("campfire", "potOnFire");
 
-  /** The campfire with this id, if the player stands within reach of it. */
-  function campfireInReach(campfireId: number) {
-    const campfire = campfires.nearby();
-    return campfire !== undefined && entities.id(campfire) === campfireId ? campfire : undefined;
-  }
-
-  /** Why the player could not put a full pot on the campfire: it is out, or the backpack holds no full pot. */
-  function putOnRefusal(campfire: { campfire: { lit: boolean } }): Refusal | undefined {
-    if (!campfire.campfire.lit) return { kind: "lightFirst" };
+  /** Why the player could not put a full pot on the fire: it is out, or the backpack holds no full pot. */
+  function putOnRefusal({ fire }: HeldFire): Refusal | undefined {
+    if (!fire.lit) return { kind: "lightFirst" };
     const hasFullPot = [...backpacks].some(({ backpack }) => hasInBackpack(backpack, FULL_POT.river) || hasInBackpack(backpack, FULL_POT.boiled));
     return hasFullPot ? undefined : { kind: "noPotOfWater" };
   }
 
   return {
     putOnRefusal(campfireId) {
-      const campfire = entityWith(entities, campfireId, "campfire");
-      return campfire === undefined ? undefined : putOnRefusal(campfire);
+      const held = heldFireOf(entities.entity(campfireId));
+      return held === undefined ? undefined : putOnRefusal(held);
     },
     fill() {
       for (const player of players) {
@@ -94,22 +90,22 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
       return undefined;
     },
     putOnFire(campfireId) {
-      const campfire = campfireInReach(campfireId);
-      if (campfire === undefined || campfire.potOnFire !== undefined || putOnRefusal(campfire) !== undefined) return;
+      const held = campfires.nearestInReach(campfireId);
+      if (held === undefined || held.entity.potOnFire !== undefined || putOnRefusal(held) !== undefined) return;
       for (const { backpack } of backpacks) {
         for (const water of ["river", "boiled"] as const) {
           if (!removeFromBackpack(backpack, FULL_POT[water], 1)) continue;
-          entities.addComponent(campfire, "potOnFire", { water, minutesBoiling: 0 });
+          entities.addComponent(held.entity, "potOnFire", { water, minutesBoiling: 0 });
           return;
         }
       }
     },
     takeOffFire(campfireId) {
-      const campfire = campfireInReach(campfireId);
-      if (campfire?.potOnFire === undefined) return undefined;
+      const entity = campfires.nearestInReach(campfireId)?.entity;
+      if (entity?.potOnFire === undefined) return undefined;
       for (const { backpack } of backpacks) {
-        if (!addToBackpack(backpack, FULL_POT[campfire.potOnFire.water], 1)) return "backpackFull";
-        entities.removeComponent(campfire, "potOnFire");
+        if (!addToBackpack(backpack, FULL_POT[entity.potOnFire.water], 1)) return "backpackFull";
+        entities.removeComponent(entity, "potOnFire");
       }
       return undefined;
     },
@@ -127,10 +123,11 @@ export function createPot(entities: EntityStore, walking: Walking, valley: Valle
       return false;
     },
     heat(gameMinutes) {
-      for (const { campfire, potOnFire } of potsOnFire) {
-        if (potOnFire.water === "boiled") continue;
+      for (const { entity, fire } of heldFires(entities)) {
+        const { potOnFire } = entity;
+        if (potOnFire === undefined || potOnFire.water === "boiled") continue;
         // Water on a fire that has gone out cools down again, so boiling starts over when it is relit.
-        potOnFire.minutesBoiling = campfire.lit ? potOnFire.minutesBoiling + gameMinutes : 0;
+        potOnFire.minutesBoiling = fire.lit ? potOnFire.minutesBoiling + gameMinutes : 0;
         if (potOnFire.minutesBoiling >= BOIL_MINUTES - 1e-6) potOnFire.water = "boiled";
       }
     },

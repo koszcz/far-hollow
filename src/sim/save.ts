@@ -57,6 +57,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addStone,
   addFireplaces,
   lightFireplaces,
+  cookOnFireplaces,
 ];
 
 /** The version of the save format this code writes. */
@@ -122,6 +123,8 @@ export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
 export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
 /** The first save version in which each fireplace holds a fire, with its fuel and whether it is lit. */
 export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplaces) + 2;
+/** The first save version that can hold a pot and fish on a fireplace. */
+export const FIREPLACE_COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookOnFireplaces) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -630,4 +633,12 @@ function lightFireplaces(save: Readonly<Record<string, unknown>>): Record<string
     return { ...(entity as object), components: { ...components, fireplace: { lit: false, fuelMinutes: 0 } } };
   });
   return { ...save, entities };
+}
+
+/**
+ * Version 37 to 38: the player can cook fish and boil water on a fireplace. A save from before then has no pot or fish on any
+ * fireplace, so it carries over unchanged.
+ */
+function cookOnFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

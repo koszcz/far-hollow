@@ -2,7 +2,7 @@
 // two side lugs, and a wire handle that leans back. Soot darkens it toward the base.
 // It shows empty, full of water, or full and steaming. While it steams, small bubbles rise and burst on the water,
 // and soft pale puffs rise, swell, and fade, in a loop.
-// campfire-meshes.ts sets one on each campfire that has a pot on it.
+// campfire-meshes.ts sets one on each campfire that has a pot on it, and fireplace-meshes.ts on each fireplace.
 import * as THREE from "three";
 
 /** The iron toward the rim, and the soot-darkened iron at the base. */

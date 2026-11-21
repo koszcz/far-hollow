@@ -7,11 +7,14 @@
 // While the player places a fireplace from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 // A lit fireplace burns with the approved "fire-effect" from fire-effect.ts, shrunk to fit its hearth, with the same glow and
 // pool of light as a campfire. Added by fireplace ticket 03.
+// A pot on the fire shows the approved "pot" from pot-shape.ts sitting on the fire, steaming while lit. Added by fireplace
+// ticket 04. The fish on a fireplace are drawn by fish-on-fire-meshes.ts.
 import * as THREE from "three";
 import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { FIREPLACE_STONE_COST } from "../sim/structures";
 import { FUEL_LIMIT_MINUTES } from "../sim/fire";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
+import { createPotMaker, type PotMesh } from "./pot-shape";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import type { OutlinePart } from "./hover-outline";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
@@ -34,6 +37,11 @@ const FIRE_HEIGHT_METRES = 0.06;
 const FIRE_SCALE = 0.55;
 /** The lights hang this far in front of the middle, at the opening, so the stones do not hide the fire's glow. */
 const LIGHTS_FORWARD_METRES = 0.45;
+/**
+ * A pot on the fire sits on the shrunken fire's sticks, this high above the hearth floor, so its rim and handle stay under
+ * the slab. It sits over the fire, FIRE_FORWARD_METRES toward the opening.
+ */
+const POT_HEIGHT_METRES = 0.28;
 /** A fireplace holding this much fuel, in game minutes, or more, burns at full size. */
 const FLAME_FULL_SIZE_FUEL_MINUTES = FUEL_LIMIT_MINUTES.fireplace / 4;
 
@@ -90,6 +98,8 @@ interface Drawn {
   readonly picker: THREE.Mesh;
   /** The fire in the hearth, and its lights. Made for a finished fireplace the first time it is drawn, and hidden while it is out. */
   lit?: { readonly fire: Fire; readonly lights: FireLights };
+  /** The pot on the fire. Made the first time a pot goes on, and hidden while there is none. */
+  pot?: PotMesh;
 }
 
 export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
@@ -102,6 +112,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
   const fireMaker = createFireMaker();
+  const potMaker = createPotMaker();
 
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
@@ -181,6 +192,18 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
     return item.lit;
   }
 
+  /** Shows the pot on a finished fireplace's fire while there is one, steaming while the fire burns. */
+  function showPot(item: Drawn, entity: Entity, nowSeconds: number): void {
+    if (entity.potOnFire === undefined && item.pot === undefined) return;
+    if (item.pot === undefined) {
+      item.pot = potMaker.make();
+      item.pot.group.position.set(0, POT_HEIGHT_METRES, FIRE_FORWARD_METRES);
+      item.root.add(item.pot.group);
+    }
+    item.pot.group.visible = entity.potOnFire !== undefined;
+    if (entity.potOnFire !== undefined) item.pot.show(entity.fireplace?.lit === true ? "steaming" : "full", nowSeconds);
+  }
+
   function disposeFading(stages: readonly Stage[]): void {
     for (const stage of stages) stage.fading.dispose();
   }
@@ -210,6 +233,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
         showProgress(item, entity, 1, FIREPLACE_STONE_COST);
         const { fire, lights } = fireOf(item);
         showLitFire(fire, lights, entity.fireplace, FLAME_FULL_SIZE_FUEL_MINUTES, nowSeconds, entity.position.x * 3.1 + entity.position.z * 1.7);
+        showPot(item, entity, nowSeconds);
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -250,6 +274,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
       }
       disposeFading(placingStages);
       fireMaker.dispose();
+      potMaker.dispose();
       for (const item of drawn.values()) disposeFading(item.stages);
     },
   };

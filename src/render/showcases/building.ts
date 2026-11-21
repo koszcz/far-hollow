@@ -16,6 +16,7 @@ import {
 } from "../../sim/structures";
 import { turnOffset, type QuarterTurns } from "../../sim/quarter-turns";
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
+import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { type Stage, type Showcase } from "./types";
 import { FURNITURE_SHOWCASES } from "./furniture";
 
@@ -23,6 +24,8 @@ import { FURNITURE_SHOWCASES } from "./furniture";
 const SLED_STAGES = SLED_LOG_COST + SLED_STICK_COST;
 /** The fireplace showcase marks its lit shot with this time, past the end of the build. */
 const LIT_FIREPLACE_SHOT = 2;
+/** The fireplace showcase marks its shot of a pot and fish on the lit fire with this time. */
+const COOKING_FIREPLACE_SHOT = 3;
 
 /**
  * Builds a 3 by 2 square cabin with log walls all round and a door frame in the middle of the front. Every square but the
@@ -122,7 +125,6 @@ function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Sho
       { label: "3rd log turning solid", yaw: 25, pitch: 20, seconds: 2.4 / logCost },
       { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
       { label: "built, back three-quarter", yaw: 215, pitch: 25, seconds: 1 },
-      { label: "lit, front", yaw: 0, pitch: 12, seconds: LIT_FIREPLACE_SHOT },
     ],
     build({ place, movePlayer }) {
       const deckTop = (entity: Entity) => {
@@ -165,13 +167,15 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     focus: { x: 0, y: 0.8, z: 0 },
     // On a foundation with a log wall behind it: a blueprint with 4 of 12 stones, the 5th stone being set down,
     // the chimney going up, then the finished fireplace from the front and from behind, with the player beside it for size.
-    // Last, the finished fireplace lit and full of fuel, from the front.
+    // Last, the finished fireplace lit and full of fuel, from the front, then with a pot and three fish on its fire.
     shots: [
       { label: `blueprint, 4 of ${FIREPLACE_STONE_COST} stones`, yaw: 30, pitch: 25, seconds: 0 },
       { label: "5th stone above its place", yaw: 30, pitch: 25, seconds: (4 + BUILD_FADE_SHARE) / FIREPLACE_STONE_COST },
       { label: "chimney going up", yaw: 30, pitch: 25, seconds: (10 + BUILD_FADE_SHARE) / FIREPLACE_STONE_COST },
       { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
       { label: "built, back three-quarter", yaw: 215, pitch: 25, seconds: 1 },
+      { label: "lit, front", yaw: 0, pitch: 12, seconds: LIT_FIREPLACE_SHOT },
+      { label: "lit, with a pot and fish, front three-quarter", yaw: 25, pitch: 20, seconds: COOKING_FIREPLACE_SHOT },
     ],
     build(stage) {
       const onDeck = onDeckOf(stage);
@@ -181,13 +185,20 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       stage.movePlayer(1.2, 0.6, -Math.PI / 2);
     },
     pose({ store }, shot) {
-      const lit = shot.seconds === LIT_FIREPLACE_SHOT;
+      const cooking = shot.seconds === COOKING_FIREPLACE_SHOT;
+      const lit = cooking || shot.seconds === LIT_FIREPLACE_SHOT;
       const progress = lit ? 1 : (shot.seconds ?? 0);
-      // The lit shot swaps the blueprint for a finished fireplace, and the other shots swap it back.
+      // The lit shots swap the blueprint for a finished fireplace, and the other shots swap it back.
       for (const entity of [...store.with("blueprint"), ...store.with("fireplace")]) {
+        store.removeComponent(entity, "potOnFire");
+        store.removeComponent(entity, "fishOnFire");
         if (lit) {
           store.removeComponent(entity, "blueprint");
           setComponent(store, entity, "fireplace", { lit: true, fuelMinutes: FUEL_LIMIT_MINUTES.fireplace });
+          if (cooking) {
+            setComponent(store, entity, "potOnFire", { water: "river", minutesBoiling: 0 });
+            setComponent(store, entity, "fishOnFire", [{ minutesCooked: 0 }, { minutesCooked: COOK_MINUTES / 2 }, { minutesCooked: COOK_MINUTES }]);
+          }
           continue;
         }
         store.removeComponent(entity, "fireplace");

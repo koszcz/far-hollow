@@ -207,7 +207,7 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, cont
 
 /**
  * Light, each fuel, the pot, the fish, then Take down. Lighting shows only while the fire is out.
- * A fireplace offers no pot or fish yet.
+ * A campfire and a fireplace offer the same actions.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
 function campfireActions(campfire: CampfireView, context: Context): readonly ThingAction[] {
@@ -223,8 +223,7 @@ function campfireActions(campfire: CampfireView, context: Context): readonly Thi
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
   const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
   const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const cooking = campfire.kind === "campfire" ? [pot, cookFish, ...takeFishOff] : [];
-  const offers = [...light, ...fuels, ...cooking, takeDown(context, campfireId)];
+  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);

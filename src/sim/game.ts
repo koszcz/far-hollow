@@ -374,6 +374,16 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stopOtherWork: cancelTasks,
   };
 
+  /**
+   * The rule for each kind of command, from the module that carries it out. TypeScript reports a kind with no rule.
+   * This file keeps only what every command shares: hands busy with a sled, standing up from a stool, cancelling tasks,
+   * and the action queue. A new command touches these files, and no other file in the sim:
+   * - its activity module, which exports its rule (see command-rule.ts);
+   * - the `Command` union in src/sim/api.ts;
+   * - the save check for commands in src/sim/save-schema.ts;
+   * - the UI files that offer it, such as src/app/thing-actions.ts;
+   * - src/strings.ts, for its label.
+   */
   const commandRules: CommandRules = {
     ...timeRules({
       setPaused: (now) => {

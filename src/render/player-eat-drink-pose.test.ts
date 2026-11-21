@@ -54,15 +54,18 @@ describe("the forage, eat, and drink motions", () => {
     }
   });
 
-  it("reaches into a berry bush at chest height when the hand gets there", () => {
-    const { body } = eatDrinkPoseAt("forageBush", HAND_AT_SECONDS);
+  it("leans in and reaches into the middle of a berry bush when the hand gets there, with the other hand cupped", () => {
+    const { body, arms } = eatDrinkPoseAt("forageBush", HAND_AT_SECONDS);
     const hand = body.rightHand ?? body.hands;
+    // The bush stands about 0.7 m tall.
     expect(body.reach).toBeCloseTo(1, 2);
-    expect(hand.height).toBeGreaterThan(0.8);
-    expect(hand.height).toBeLessThan(1.2);
-    expect(hand.forward).toBeGreaterThan(0.4);
-    expect(body.hipsDrop).toBeLessThan(0.05);
-    expect(eatDrinkPoseAt("forageBush", HAND_AT_SECONDS).arms).toBe("right");
+    expect(hand.height).toBeGreaterThan(0.35);
+    expect(hand.height).toBeLessThan(0.65);
+    expect(hand.forward).toBeGreaterThan(0.5);
+    expect(body.chestLean).toBeGreaterThan(0.2);
+    expect(body.hipsDrop).toBeLessThan(KNEELING);
+    expect(arms).toBe("both");
+    expect(body.hands.height).toBeGreaterThan(hand.height);
   });
 
   it("raises one hand to the mouth twice to eat", () => {

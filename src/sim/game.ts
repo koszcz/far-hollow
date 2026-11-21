@@ -19,7 +19,7 @@ import type {
 } from "./api";
 import { createBedrolls, type BedrollEntity } from "./bedrolls";
 import { createBeds, type BedEntity } from "./beds";
-import { createStools } from "./stools";
+import { createStools, stoolRules } from "./stools";
 import { createApproach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
@@ -53,7 +53,7 @@ import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking, drinkingRules } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
-import type { ApproachRule, CommandRule, CommandRules } from "./command-rule";
+import type { ApproachRule, CommandRule, CommandRules, RuleGame } from "./command-rule";
 import { createStoneGathering, stoneRules } from "./stone";
 import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
@@ -481,6 +481,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return commandRules[command.type] as CommandRule<ActionCommand>;
   }
 
+  /** What the command rules use from the game. */
+  const ruleGame: RuleGame = {
+    entities,
+    player,
+    hand: handReach,
+    startApproach: (command) => approach.start(command),
+    stopOtherWork: cancelTasks,
+  };
+
   const commandRules: CommandRules = {
     setPaused: {
       start: "alongside",
@@ -832,18 +841,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         },
       },
     },
-    sitOnStool: {
-      start: "fresh",
-      // Once seated, the player sits on with nothing to end it, so they stand up at once for a queued action.
-      canStopForNext: () => player.sitting !== undefined,
-      refusal: (command) => goneRefusal(entities, command.stoolId),
-      approach: {
-        reach: (command) => stools.reach(command.stoolId),
-        act: (command) => {
-          stools.sit(command.stoolId);
-        },
-      },
-    },
+    ...stoolRules(stools, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...stoneRules(stoneGathering),

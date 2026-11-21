@@ -184,7 +184,33 @@ describe("sleeping with a lit torch", () => {
     expect(game.client.getView().litTorch).toBeNull();
     expect(game.client.getView().backpack.torch ?? 0).toBe(0);
   });
+
+  it("after a collapse puts the torch out, even when it would still burn at morning", () => {
+    const game = createGame({ seed: 42 });
+    // Skip to 5:00 on day 2 an hour at a time, keeping every need full, so the player does not collapse on the way.
+    for (let hour = 0; hour < 21; hour += 1) {
+      fillNeeds(game);
+      send(game, { type: "skipTime", hours: 1 });
+    }
+    expect(game.client.getView().time).toMatchObject({ day: 2, hour: 5 });
+    fillNeeds(game);
+    give(game, { torch: 1 });
+    send(game, { type: "lightTorch" });
+
+    // An hour without food is a collapse. The player wakes at 6:00, before the torch would burn out.
+    Object.assign(onlyPlayer(game).needs.hunger, { level: 0, minutesWithout: 59 });
+    send(game, { type: "skipTime", hours: 0.1 });
+
+    expect(game.client.getView().notice?.kind).toBe("collapsed");
+    expect(game.client.getView().litTorch).toBeNull();
+    expect(game.client.getView().backpack.torch ?? 0).toBe(0);
+  });
 });
+
+/** Sets every need of the player to full. */
+function fillNeeds(game: Game): void {
+  for (const need of Object.values(onlyPlayer(game).needs)) Object.assign(need, { level: 1, minutesWithout: 0 });
+}
 
 describe("keeping a lit torch", () => {
   it("stays lit in the player's hand while they walk, chop, carry a log, and drag a sled", () => {

@@ -913,6 +913,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /**
    * The player collapses from a neglected need. They drop what is on their shoulder and lose the rest of the day.
+   * The lit torch in their hand goes out and is gone, as when they lie down to sleep.
    * They wake the next morning at their respawn point with that need low, keeping everything in their backpack.
    */
   function collapse(): void {
@@ -921,6 +922,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     cancelTasks();
     actionQueue.length = 0;
     stools.standUp();
+    torches.putOut();
     carrying.drop();
     // The sled stays where the player fell, with its load.
     sleds.letGo();

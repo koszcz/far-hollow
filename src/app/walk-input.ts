@@ -1,6 +1,6 @@
 import type { CameraRig, CameraView } from "../render/camera-rig";
 import { queued, type GameClient, type PlacingBlueprint, type ScenePick, type StructureKind, type ThingInReach } from "../sim/api";
-import { NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, type BuildMode } from "./build-mode";
+import { modeAfterPlacing, NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, startSweep, type BuildMode, type Sweep } from "./build-mode";
 import { actionsFor, mainAction, menuActions, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
 /**
@@ -112,6 +112,8 @@ export interface WalkInput {
   toggleBuildMenu(): void;
   /** Puts a structure's blueprint under the mouse. A click on the ground places it. R turns it. Escape cancels. */
   pickBuildEntry(structure: StructureKind): void;
+  /** Whether a Shift-drag is placing floors now. The camera does not pan while it does. */
+  isSweeping(): boolean;
   /** Removes the listeners. */
   dispose(): void;
 }
@@ -122,8 +124,9 @@ export interface WalkInput {
  * A click on a finished structure opens its menu, which offers what is under it and taking it down.
  * Pressing Escape, or a click elsewhere, closes the menu. Escape also stops building.
  * B opens and closes the build menu. While placing a blueprint picked from it, the blueprint follows the mouse,
- * R turns it, a click on the ground places it, and Escape cancels.
- * A left-drag pans the camera instead, so it never counts as a click. A right-drag turns the camera. A right-click does nothing.
+ * R turns it, a click on the ground places it, and Escape cancels. Placing a floor keeps build mode open on the floor.
+ * While placing a floor, Shift and a left-drag place a floor blueprint on each foundation square the pointer crosses.
+ * Any other left-drag pans the camera instead, so it never counts as a click. A right-drag turns the camera. A right-click does nothing.
  * Space snaps the camera back to the player.
  * E does the main action on the thing nearest the player within reach.
  */
@@ -139,6 +142,8 @@ export function attachWalkInput({
 }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let mode: BuildMode = NOT_BUILDING;
+  /** The Shift-drag placing floors now, if one is. */
+  let sweep: Sweep | undefined;
   /** Where the pointer last was over the canvas, or null if it has left. */
   let hover: { x: number; y: number } | null = null;
   /** The animation frame that will update the cursor, if one is waiting. */
@@ -188,7 +193,18 @@ export function attachWalkInput({
     watchFrame = requestAnimationFrame(watchUnderPointer);
   }
 
+  /** Places a blueprint where the pointer is, if a sweep is under way and the spot takes one. */
+  function sweepAt(clientX: number, clientY: number): void {
+    if (sweep === undefined) return;
+    const seen = pickAt(clientX, clientY);
+    // A blueprint is placed on what is under a finished structure, such as the ground under a foundation.
+    const pick = seen?.kind === "structure" ? seen.under : seen;
+    const place = pick === undefined ? undefined : sweep.over(pick);
+    if (place !== undefined) client.send(place);
+  }
+
   function onPointerMove(event: PointerEvent): void {
+    sweepAt(event.clientX, event.clientY);
     hover = { x: event.clientX, y: event.clientY };
     queueCursorUpdate();
     watchFrame ??= requestAnimationFrame(watchUnderPointer);
@@ -209,6 +225,11 @@ export function attachWalkInput({
     // Any press on the scene closes an open menu.
     onMenuChange?.(undefined);
     if (event.button !== LEFT_BUTTON) return;
+    if (event.shiftKey) sweep = startSweep(mode, client);
+    if (sweep !== undefined) {
+      sweepAt(event.clientX, event.clientY);
+      return;
+    }
     press = { x: event.clientX, y: event.clientY };
   }
 
@@ -219,6 +240,8 @@ export function attachWalkInput({
 
   function onPointerUp(event: PointerEvent): void {
     if (event.button !== LEFT_BUTTON) return;
+    // A sweep places its blueprints as the pointer moves, so letting go only ends it.
+    sweep = undefined;
     if (press === null) return;
     const travelled = Math.hypot(event.clientX - press.x, event.clientY - press.y);
     press = null;
@@ -234,7 +257,7 @@ export function attachWalkInput({
       const place = placeCommandFor(mode, pick);
       if (place === undefined) return;
       client.send(place);
-      setMode(NOT_BUILDING);
+      setMode(modeAfterPlacing(mode));
       return;
     }
     if (seen.kind === "ground" && menuFor(seen, client) === undefined) {
@@ -289,6 +312,9 @@ export function attachWalkInput({
     },
     pickBuildEntry(structure) {
       setMode(pickBuildEntry(structure));
+    },
+    isSweeping() {
+      return sweep !== undefined;
     },
     dispose() {
       canvas.removeEventListener("pointerdown", onPointerDown);

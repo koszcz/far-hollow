@@ -57,15 +57,17 @@ export interface CameraInputOptions {
   readonly rig: CameraRig;
   /** The camera's vertical field of view, so a left-drag moves the ground with the pointer. */
   readonly fieldOfViewDegrees: number;
+  /** Whether a left-drag should leave the camera still now, such as while a Shift-drag places floors. */
+  readonly holdsPan?: () => boolean;
 }
 
 /**
  * Turns mouse, trackpad, and keyboard input into camera moves.
- * Left-drag pans the camera. Right-drag turns and tilts it.
+ * Left-drag pans the camera, unless `holdsPan` says to leave it still. Right-drag turns and tilts it.
  * No key turns the camera. E is the use key, handled in walk-input.ts.
  * It only moves the camera. It never sends commands to the game.
  */
-export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInputOptions): CameraInput {
+export function attachCameraInput({ canvas, rig, fieldOfViewDegrees, holdsPan }: CameraInputOptions): CameraInput {
   const heldKeys = new Set<string>();
   let pointer: PointerPosition | null = null;
   let press: { button: number; lastX: number; lastY: number; travelled: number; dragging: boolean } | null = null;
@@ -96,7 +98,7 @@ export function attachCameraInput({ canvas, rig, fieldOfViewDegrees }: CameraInp
     if (press.button === RIGHT_BUTTON) {
       rig.rotate(-dx * DRAG_ROTATE_RADIANS_PER_PIXEL);
       rig.tilt(dy * DRAG_TILT_RADIANS_PER_PIXEL);
-    } else {
+    } else if (holdsPan?.() !== true) {
       // The ground follows the pointer, as if the player grabbed it.
       const metres = groundMetresPerPixel();
       rig.pan(-dx * metres, dy * metres);

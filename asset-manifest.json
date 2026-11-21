@@ -1339,6 +1339,66 @@
         "status": "draft",
         "ticket": ".scratch/torch/issues/01-craft-and-carry-a-torch.md"
       }
+    },
+    {
+      "id": "floor",
+      "kind": "code",
+      "code": [
+        "src/render/floor-meshes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "The floor: six plank boards laid side by side across the deck of one foundation square, each 2.5 cm thick, with thin gaps between them. They lie flush on the deck, so the player and anything on the square stand at the same height as on the bare deck. The boards are the plank wood of the furniture in six slightly different shades. As a blueprint it shows see-through, and the boards of each plank it already has wait pale and half solid. Construction has one stage per plank, 2 in all: each stage lays half the boards, which fade in above their place and are set down.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+      }
+    },
+    {
+      "id": "door",
+      "kind": "code",
+      "code": [
+        "src/render/door-meshes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "A plank door hung in a door frame. Three upright planks of pale sawn wood, each a little lighter or darker than the next, fill the doorway between the frame's posts, about 0.48 m wide and 1.76 m tall, with a thin gap to the posts and the lintel. Two darker battens run across the inside face, and a small dark iron latch sits on the outside, on the side away from the hinges at the left post. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+      }
+    },
+    {
+      "id": "door-animation",
+      "kind": "code",
+      "code": [
+        "src/render/door-swing.ts",
+        "src/render/door-meshes.ts"
+      ],
+      "description": "A door swinging open and shut on its hinges at the left post. When the player comes within 1 m of the middle of the door frame, the door swings open, away from the side the player stands on, to 100 degrees from shut. Once the player is more than 1 m away, it swings back shut. A full swing takes 0.45 seconds, easing in and out. A door that turns back part way through a swing returns at the same pace, so it takes less time.",
+      "source": "Timed in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+      }
+    },
+    {
+      "id": "floor-and-door-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/floor-and-door-icons.tsx",
+        "src/ui/structure-icon.tsx"
+      ],
+      "description": "Build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The floor's icon is a square of plank boards seen from the front and above, narrowing as it goes back, with dark seams between the boards and two boards in a paler shade. Under its front edge lies the foundation deck, with the pale cut ends of its logs. The door's icon, added by ticket 02, is a door of three upright plank boards seen from the front, hung in a pale log door frame with a lintel across the top. Two darker battens cross the boards, and a small dark latch sits on the right.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+      }
     }
   ]
 }

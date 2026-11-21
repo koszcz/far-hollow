@@ -1,3 +1,4 @@
-# Each line of these lists names one item, so git keeps the lines from both sides when two branches add one each.
+# Git keeps both sides of a merge in these lists, so two branches that each add a line do not conflict.
 # A line kept twice fails the typecheck. See docs/adr/0012-each-player-motion-is-its-own-module.md.
 src/render/player-motions/motion-list.ts merge=union
+src/render/showcases/animations/registry.ts merge=union

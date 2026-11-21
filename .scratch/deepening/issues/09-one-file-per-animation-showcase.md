@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset. Every showcase must look the same before and after.
 
@@ -14,10 +14,10 @@ On 2026-11-21, landing two asset branches hit merge conflicts in `src/render/sho
 
 ## Acceptance criteria
 
-- [ ] Each animation showcase has its own file.
-- [ ] Two new showcases can be added on separate branches and merged without a conflict.
-- [ ] Every animation showcase looks the same before and after.
-- [ ] Existing tests pass.
+- [x] Each animation showcase has its own file.
+- [x] Two new showcases can be added on separate branches and merged without a conflict.
+- [x] Every animation showcase looks the same before and after.
+- [x] Existing tests pass.
 
 ## Comments
 
@@ -51,12 +51,12 @@ On 2026-11-21, landing two asset branches hit merge conflicts in `src/render/sho
 
 **Acceptance criteria:**
 
-- [ ] Every key in `ANIMATIONS_SHOWCASES` has its own file, and the registry adds each in one line.
-- [ ] `.gitattributes` marks the registry `merge=union`.
-- [ ] A test shows that `ANIMATIONS_SHOWCASES` has the same keys as before the split.
-- [ ] A scratch check proves the merge works. Make two throwaway branches, each adding a showcase line to the registry. Merge both into a third throwaway branch with no conflict, then delete all three. Record the result in the commit message.
-- [ ] For each animation showcase, `bun scripts/shot.ts "/?asset=<id>" <out.png>` is run on `main` and on the branch. A script compares each pair. Do not open the images yourself (see `docs/agents/game-testing.md`). Any pair that differs beyond a small threshold is listed for the owner to check by eye before landing.
-- [ ] `bun test` and `make check` pass.
+- [x] Every key in `ANIMATIONS_SHOWCASES` has its own file, and the registry adds each in one line.
+- [x] `.gitattributes` marks the registry `merge=union`.
+- [x] A test shows that `ANIMATIONS_SHOWCASES` has the same keys as before the split.
+- [x] A scratch check proves the merge works. Make two throwaway branches, each adding a showcase line to the registry. Merge both into a third throwaway branch with no conflict, then delete all three. Record the result in the commit message.
+- [x] For each animation showcase, `bun scripts/shot.ts "/?asset=<id>" <out.png>` is run on `main` and on the branch. A script compares each pair. Do not open the images yourself (see `docs/agents/game-testing.md`). Any pair that differs beyond a small threshold is listed for the owner to check by eye before landing.
+- [x] `bun test` and `make check` pass.
 
 **Out of scope:**
 

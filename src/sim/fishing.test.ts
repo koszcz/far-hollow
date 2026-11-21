@@ -57,6 +57,20 @@ describe("fishing at the river", () => {
     expect(game.client.getView().action?.kind).toBe("fish");
   });
 
+  it("casts only on reaching the bank, so a walk there that the player gives up counts no cast", () => {
+    const game = createGame({ seed: 42 });
+    giveRod(game);
+    const player = onlyPlayer(game);
+    send(game, { type: "fish", ...riverSpotNearPlayer(game) });
+    expect(player.fishCasts).toBeUndefined();
+
+    send(game, { type: "walkTo", x: player.position.x - 10, z: player.position.z });
+    stepUntil(game, () => player.walkPath === undefined);
+
+    expect(player.fishCasts).toBeUndefined();
+    expect(player.fishTask).toBeUndefined();
+  });
+
   it("stops when the player walks away", () => {
     const game = createGame({ seed: 42 });
     startFishing(game);

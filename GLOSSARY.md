@@ -220,7 +220,7 @@ One level of a building. A building can have up to two storeys, with stairs betw
 _Avoid_: Floor, level
 
 **Floor**:
-The building piece the player walks on inside a building.
+A building piece of 2 planks that covers one finished foundation square. The player walks on it as on the bare deck. Furniture, a campfire, or a fireplace can stand on it. A square holds one floor.
 _Avoid_: Floorboards, deck
 
 **Lean-to**:
@@ -234,6 +234,10 @@ _Avoid_: Truss, rafters (for the whole frame)
 **Roof section**:
 The planks laid on one roof frame, in overlapping rows. Only a finished roof section keeps the rain off.
 _Avoid_: Roof tile, shingle
+
+**Door**:
+A building piece of 3 planks that hangs in a finished door frame. It opens by itself when the player walks through, and closes behind them. It never changes where the player can walk. A door frame with a door cannot come down.
+_Avoid_: Gate, hatch
 
 **Ridge**:
 The top line of a roof, where two slopes that face away from each other meet.

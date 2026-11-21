@@ -24,7 +24,7 @@ describe("the timed work the player is doing", () => {
   });
 
   it("does not count walking to the work", () => {
-    const { entities, player } = storeWithPlayer({ chopTask: { treeId: 7, secondsDone: 0 }, walkPath: [{ x: 1, z: 1 }] });
+    const { entities, player } = storeWithPlayer({ approach: { command: { type: "chopTree", treeId: 7 } }, walkPath: [{ x: 1, z: 1 }] });
     expect(playerActivity(entities, player)).toBeUndefined();
   });
 

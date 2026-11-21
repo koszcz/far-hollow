@@ -203,10 +203,12 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
     placement: "onGround",
   },
   { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
+  { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot" },
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame" },
+  { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame" },
   { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   ...FURNITURE_BUILD_MENU,
@@ -526,11 +528,13 @@ const STATES_BY_ASSET = {
   "furniture-icons": BUILD_ICON_STATES,
   // So does the fireplace's icon.
   "fireplace-icon": BUILD_ICON_STATES,
+  // And the floor's and door's icons.
+  "floor-and-door-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -540,7 +544,7 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
-    if (asset === "build-icons" || asset === "sled-icon" || asset === "furniture-icons" || asset === "fireplace-icon") {
+    if (asset === "build-icons" || asset === "sled-icon" || asset === "furniture-icons" || asset === "fireplace-icon" || asset === "floor-and-door-icons") {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {

@@ -24,7 +24,7 @@ import { createWoodpileMeshes } from "./woodpile-meshes";
 
 /** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
 export type StructureHit = {
-  kind: "blueprint" | "campfire" | "woodpile" | FurnitureKind | "workStation" | "sled";
+  kind: "blueprint" | "campfire" | "fireplace" | "woodpile" | FurnitureKind | "workStation" | "sled";
   entity: Entity;
 };
 
@@ -150,7 +150,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       },
     },
     fireplace: {
-      outlineBlueprint: (entity) => fireplaces.outlineOf({ kind: "blueprint", entity }),
+      outlineBlueprint: (entity) => fireplaces.outlineOf({ entity }),
       showPlacing: (placing) => {
         fireplaces.showPlacingBlueprint(placing);
       },
@@ -205,7 +205,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       // The roof above the player, and the frames under it, hide.
       roofFrames.update(player !== undefined ? { player } : undefined);
       roofs.update(player !== undefined ? { player } : undefined);
-      fireplaces.update();
+      fireplaces.update(nowSeconds);
       woodpiles.update();
       for (const meshes of Object.values(furniture)) meshes.update();
       sawhorses.update();
@@ -235,6 +235,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
           return entity.blueprint === undefined ? [] : drawings[entity.blueprint.structure].outlineBlueprint(entity);
         case "campfire":
           return campfires.outlineOf({ kind, entity });
+        case "fireplace":
+          return fireplaces.outlineOf({ entity });
         case "woodpile":
           return woodpiles.outlineOf({ kind, entity });
         case "sled":

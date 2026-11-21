@@ -1,10 +1,81 @@
 // Builds the code-built "fire-effect" listed in asset-manifest.json (approved): the flames, embers, sparks, and smoke of a lit
-// campfire. campfire-meshes.ts adds one to each campfire and owns its lights.
+// fire, and its lights. campfire-meshes.ts adds one to each campfire, and fireplace-meshes.ts adds one to each fireplace.
 // - Flame tongues are thin, flat-shaded cones. Each one sways, stretches, and twists on its own beat.
 // - An ember bed glows on the ground under the flames and pulses slowly.
 // - Sparks rise from the flames, drift sideways, and shrink away.
 // - Smoke puffs rise above the flames, swell, and thin out.
+// - A wide glow lights the ground far around, and a brighter pool of light ends where the fire stops warming the player.
 import * as THREE from "three";
+import { CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
+
+const GLOW_COLOUR = 0xff9a4a;
+/** Flames on a fire with almost no fuel left shrink to this share of their full size. Fuller fires burn bigger. */
+const FLAME_SMALLEST_SCALE = 0.35;
+/** How bright the glow is at full size. It lights the ground out to GLOW_REACH_METRES. */
+const GLOW_STRENGTH = 6;
+const GLOW_REACH_METRES = 14;
+/** How far the light falls off with distance. 1 is a gentle, game-like fall-off. */
+const GLOW_FALL_OFF = 1;
+const GLOW_HEIGHT_METRES = 0.8;
+/**
+ * A second, brighter light lights a pool of ground that ends where the fire stops warming the player, at CAMPFIRE_WARMTH_RADIUS_METRES.
+ * It does not fall off with distance, so it stays bright across the pool and fades only near its edge.
+ * It does not shrink as the fuel runs low, because the warmth range does not either.
+ */
+const WARMTH_POOL_STRENGTH = 3;
+const WARMTH_POOL_HEIGHT_METRES = 2;
+/** A light's reach is measured from the light itself, so this makes it end on the ground exactly at the warmth range. */
+const WARMTH_POOL_REACH_METRES = Math.hypot(CAMPFIRE_WARMTH_RADIUS_METRES, WARMTH_POOL_HEIGHT_METRES);
+/** How fast and how much the glow flickers. */
+const FLICKER_PER_SECOND = 9;
+const FLICKER_AMOUNT = 0.12;
+
+/** A fire's two lights: the wide glow, and the pool of light out to the warmth range. */
+export interface FireLights {
+  readonly glow: THREE.PointLight;
+  readonly warmthPool: THREE.PointLight;
+}
+
+/**
+ * Adds a fire's two lights to `root`, above its middle. They stay in the scene while the fire is out, at zero strength,
+ * so lighting a fire does not rebuild every material.
+ */
+export function addFireLights(root: THREE.Object3D): FireLights {
+  const glow = new THREE.PointLight(GLOW_COLOUR, 0, GLOW_REACH_METRES, GLOW_FALL_OFF);
+  glow.position.set(0, GLOW_HEIGHT_METRES, 0);
+  root.add(glow);
+  const warmthPool = new THREE.PointLight(GLOW_COLOUR, 0, WARMTH_POOL_REACH_METRES, 0);
+  warmthPool.position.set(0, WARMTH_POOL_HEIGHT_METRES, 0);
+  root.add(warmthPool);
+  return { glow, warmthPool };
+}
+
+/**
+ * Shows a lit fire's flames, glow, and warmth pool, flickering, or hides them while it is out. The flames burn smaller as the
+ * fuel runs low, so the player can see roughly how much fuel is left. A fire holding `fullSizeFuelMinutes` or more burns at full size.
+ */
+export function showLitFire(
+  fire: Fire,
+  lights: FireLights,
+  state: { readonly lit: boolean; readonly fuelMinutes: number },
+  fullSizeFuelMinutes: number,
+  nowSeconds: number,
+  seed: number,
+): void {
+  fire.group.visible = state.lit;
+  if (!state.lit) {
+    lights.glow.intensity = 0;
+    lights.warmthPool.intensity = 0;
+    return;
+  }
+  const fullness = Math.min(1, state.fuelMinutes / fullSizeFuelMinutes);
+  const size = FLAME_SMALLEST_SCALE + (1 - FLAME_SMALLEST_SCALE) * fullness;
+  const t = nowSeconds * FLICKER_PER_SECOND + seed;
+  const flicker = 1 + FLICKER_AMOUNT * (Math.sin(t) * 0.6 + Math.sin(t * 2.3 + 1.7) * 0.4);
+  fire.animate(nowSeconds, size, seed);
+  lights.glow.intensity = GLOW_STRENGTH * size * flicker;
+  lights.warmthPool.intensity = WARMTH_POOL_STRENGTH * flicker;
+}
 
 /** One flame tongue: where its foot stands, how big it is, and how far it leans out, in metres and radians. */
 interface Tongue {

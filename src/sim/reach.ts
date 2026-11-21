@@ -46,6 +46,7 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   // A bush growing back has nothing to forage yet.
   if (entity.forageSpot !== undefined) return entity.regrowing === undefined ? { kind: "forage", id } : undefined;
   if (entity.campfire !== undefined) return { kind: "campfire", id };
+  if (entity.fireplace !== undefined) return { kind: "fireplace", id };
   if (entity.woodpile !== undefined) return { kind: "woodpile", id };
   if (entity.furniture !== undefined) return { kind: entity.furniture, id };
   if (entity.sled !== undefined) return { kind: "sled", id };

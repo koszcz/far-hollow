@@ -56,6 +56,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   growStumpsBack,
   addStone,
   addFireplaces,
+  lightFireplaces,
 ];
 
 /** The version of the save format this code writes. */
@@ -119,6 +120,8 @@ export const REGROWTH_SAVE_VERSION = SAVE_UPGRADES.indexOf(growStumpsBack) + 2;
 export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
 /** The first save version that can hold fireplaces. */
 export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
+/** The first save version in which each fireplace holds a fire, with its fuel and whether it is lit. */
+export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplaces) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -613,4 +616,18 @@ function addStone(save: Readonly<Record<string, unknown>>): Record<string, unkno
 /** Version 35 to 36: the player can build fireplaces from stone. A save from before then has none, so it carries over unchanged. */
 function addFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 36 to 37: a fireplace holds a fire, with its fuel and whether it is lit. A fireplace in an older save could not
+ * be fuelled, so it gets an empty fire that is out.
+ */
+function lightFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components?.fireplace !== true) return entity;
+    return { ...(entity as object), components: { ...components, fireplace: { lit: false, fuelMinutes: 0 } } };
+  });
+  return { ...save, entities };
 }

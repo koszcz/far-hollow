@@ -226,7 +226,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stoneGathering = createStoneGathering(entities, walking, valley);
   const pot = createPot(entities, walking, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
-  const torches = createTorches(entities);
+  const torches = createTorches(entities, walking, valley, handReach);
   const piles = createPiles(entities, walking, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities);
@@ -242,6 +242,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     building,
     takingDown,
     bedrolls,
+    torches,
     beds,
     stools,
     drinking,
@@ -298,6 +299,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       carrying: player.carrying ?? null,
       dragging: sleds.dragged() ?? null,
       litTorch: litTorchView(),
+      plantedTorches: deepFreeze(torches.planted()),
       nearby: nearbyThings(),
       needs: Object.freeze({
         hunger: player.needs.hunger.level,
@@ -553,6 +555,24 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "alongside",
       run: () => {
         torches.putOut();
+      },
+    },
+    // Planting the torch reaches down to stand it at the player's feet, as laying the bedroll does.
+    plantTorch: {
+      start: "alongside",
+      refusal: () => torches.plantRefusal(),
+      run: () => {
+        if (player.litTorch !== undefined && torches.plantRefusal() === undefined)
+          putDown(() => {
+            torches.plant();
+          });
+      },
+    },
+    pickUpTorch: {
+      start: "fresh",
+      refusal: () => torches.pickUpRefusal(),
+      run: (command) => {
+        torches.pickUp(command.torchId);
       },
     },
     pickUpStick: {
@@ -873,7 +893,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   /**
-   * Moves the valley on by this many game minutes: fires and the torch in the player's hand burn, food and trees grow back,
+   * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
    * sticks fall, and pots and fish heat.
    */
   function passWorldTime(minutes: number): void {

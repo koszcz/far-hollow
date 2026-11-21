@@ -59,6 +59,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addFireplaces,
   lightFireplaces,
   addTorches,
+  plantTorches,
 ];
 
 /** The version of the save format this code writes. */
@@ -126,6 +127,8 @@ export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
 export const FIREPLACE_FIRES_SAVE_VERSION = SAVE_UPGRADES.indexOf(lightFireplaces) + 2;
 /** The first save version that can hold torches, unlit in the backpack or lit in the player's hand. */
 export const TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addTorches) + 2;
+/** The first save version that can hold torches planted in the ground. */
+export const PLANTED_TORCHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantTorches) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -641,5 +644,13 @@ function lightFireplaces(save: Readonly<Record<string, unknown>>): Record<string
  * so it carries over unchanged.
  */
 function addTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 38 to 39: the player can plant a lit torch in the ground. A save from before then has no planted torches,
+ * so it carries over unchanged.
+ */
+function plantTorches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

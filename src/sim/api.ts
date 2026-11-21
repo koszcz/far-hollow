@@ -213,6 +213,17 @@ export type Command =
   | { type: "lightTorch" }
   /** Put out the lit torch in the player's hand. It is thrown away, since a torch is never lit twice. */
   | { type: "putOutTorch" }
+  /**
+   * Plant the lit torch in the player's hand in the ground at their feet, or on the foundation they stand on. It keeps the time
+   * it had left, and the hand is then empty. It is refused within PLANTED_TORCH_SPACING_METRES of another planted torch.
+   * Nothing happens if the player holds no lit torch.
+   */
+  | { type: "plantTorch" }
+  /**
+   * Walk the player to a planted torch, given by its entity id, and take it in their hand with the time it has left.
+   * It is refused while the player already holds a lit torch.
+   */
+  | { type: "pickUpTorch"; torchId: number }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
@@ -274,6 +285,8 @@ export interface GameView {
    * within TORCH_LIGHT_METRES of the player.
    */
   readonly litTorch: LitTorchView | null;
+  /** Every torch planted in the ground, in no set order. Each burns down as the one in the hand does, sleep included. */
+  readonly plantedTorches: readonly PlantedTorchView[];
   /**
    * The things within the player's reach that the HUD shows a panel for, at most one of each kind, in the order the HUD shows them.
    * `nearbyOf` finds one kind.
@@ -318,6 +331,12 @@ export interface GameView {
 export interface LitTorchView {
   readonly minutesLeft: number;
   readonly burnLeft: number;
+}
+
+/** A torch planted in the ground, given by its entity id: where it stands and how long it still burns. See `GameView.plantedTorches`. */
+export interface PlantedTorchView extends LitTorchView {
+  readonly id: number;
+  readonly position: Readonly<Vec3>;
 }
 
 /** How far a lit torch lights the ground around it, in metres. Drawing uses it for the torch's light. */
@@ -496,6 +515,7 @@ export type Refusal =
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
  * - `torchAlreadyLit`: the player already holds a lit torch, and holds only one at a time.
+ * - `torchTooClose`: another planted torch stands too close to plant one here.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -518,7 +538,8 @@ export type PlainRefusal =
   | "holdsUpPiece"
   | "tooYoungToChop"
   | "backpackFull"
-  | "torchAlreadyLit";
+  | "torchAlreadyLit"
+  | "torchTooClose";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -634,7 +655,8 @@ export type ThingInReach =
         | FurnitureKind
         | "bedroll"
         | "pile"
-        | "sled";
+        | "sled"
+        | "plantedTorch";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };

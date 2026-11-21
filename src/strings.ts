@@ -378,6 +378,8 @@ export const strings = {
     layOut: "Lay it out",
     /** Throwing away the lit torch in the player's hand. */
     putOut: "Put out",
+    /** Standing the lit torch in the player's hand in the ground at their feet. */
+    plant: "Plant",
     /** Laying the bedroll from the backpack in a lean-to, across its open front. */
     layBedrollHere: "Lay the bedroll here",
     fillPot: "Fill it at the river",
@@ -421,6 +423,7 @@ export const strings = {
     tooYoungToChop: "the tree is too young to chop",
     backpackFull: "the backpack is full",
     torchAlreadyLit: "you already hold a lit torch",
+    torchTooClose: "another torch stands too close",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

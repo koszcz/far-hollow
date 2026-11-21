@@ -23,6 +23,7 @@ import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 import { createStructureMeshes } from "./structure-meshes";
 import { createTorchLights } from "./torch-lights";
+import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { SHOWCASES } from "./showcases";
 import { NOON, STAGE_FROM_RIVER_METRES, type Shot, type Stage } from "./showcases/types";
 
@@ -159,12 +160,13 @@ export function showAsset(
   const bedrolls = createBedrollMeshes(store, groundAt);
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
+  const plantedTorches = createPlantedTorchMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, rain.group);
+  scene.add(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, plantedTorches.group, rain.group);
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, player.group, props);
-  // The player's lit torch lights the ground as in the game. The lights stay dark while the player holds no torch.
+  // Lit torches light the ground as in the game: the one in the player's hand, then the planted torches nearest the camera.
   const torchLights = createTorchLights();
   scene.add(torchLights.group);
   const torchFlame = { position: new THREE.Vector3(), seed: 0 };
@@ -180,7 +182,7 @@ export function showAsset(
     bedrolls.update();
     piles.update();
     bark.update();
-    torchLights.update(player.torchFlame(torchFlame.position) ? [torchFlame] : [], seconds);
+    plantedTorches.update(seconds);
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
@@ -199,6 +201,7 @@ export function showAsset(
     camera.aspect = view.width / view.height;
     camera.updateProjectionMatrix();
     camera.lookAt(focus);
+    torchLights.update(player.torchFlame(torchFlame.position) ? torchFlame : undefined, plantedTorches.flames(), camera.position, seconds);
     renderer.setViewport(view.left, view.bottom, view.width, view.height);
     renderer.setScissor(view.left, view.bottom, view.width, view.height);
     renderer.render(scene, camera);
@@ -242,6 +245,7 @@ export function showAsset(
       forage.dispose();
       bedrolls.dispose();
       piles.dispose();
+      plantedTorches.dispose();
       bark.dispose();
       rain.dispose();
       player.dispose();

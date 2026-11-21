@@ -125,6 +125,10 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { content: "torch" }, name: actions.light };
     case "putOutTorch":
       return { icon: { content: "torch" }, name: actions.putOut };
+    case "plantTorch":
+      return { icon: { content: "torch" }, name: actions.plant };
+    case "pickUpTorch":
+      return { icon: { content: "torch" }, name: actions.pickUp };
     case "layBedroll":
       return { icon: { content: "bedroll" }, name: actions.layOut };
     case "layBedrollInLeanTo":

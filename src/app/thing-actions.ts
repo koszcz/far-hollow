@@ -69,9 +69,15 @@ function letGoActions({ offer }: Context): readonly ThingAction[] {
   return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
 }
 
-/** Putting out the lit torch in the player's hand, as the only and main action. */
+/** Planting the lit torch in the player's hand, as the main action, then putting it out. */
 function litTorchActions({ offer }: Context): readonly ThingAction[] {
-  return withMain([offer("putOut", strings.actions.putOut, { content: "torch" }, { type: "putOutTorch" })], "putOut");
+  return withMain(
+    [
+      offer("plant", strings.actions.plant, { content: "torch" }, { type: "plantTorch" }),
+      offer("putOut", strings.actions.putOut, { content: "torch" }, { type: "putOutTorch" }),
+    ],
+    "plant",
+  );
 }
 
 /** Puts the main action first and marks it. `main` is its id. Without one, no action is marked main. */
@@ -137,6 +143,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "bark" }, { type: "pickUpBark", barkId: pick.id })], "pickUp");
     case "pile":
       return withMain([offer("pickUp", strings.actions.pickUp, { hud: "backpack" }, { type: "pickUpPile", pileId: pick.id })], "pickUp");
+    case "plantedTorch":
+      return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "forage":
       return withMain([offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId: pick.id })], "forage");
     case "campfire":

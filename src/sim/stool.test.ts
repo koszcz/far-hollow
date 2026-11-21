@@ -133,7 +133,7 @@ describe("a finished stool", () => {
     const game = createGame({ seed: 42 });
     const stool = finishedStoolNearPlayer(game);
 
-    expect(game.client.nearestInReach()).toEqual({ kind: "stool", id: idOf(game, stool) });
+    expect(game.client.nearestInReach()).toEqual({ kind: "furniture", id: idOf(game, stool), furniture: "stool" });
   });
 });
 

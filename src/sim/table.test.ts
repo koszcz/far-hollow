@@ -153,7 +153,7 @@ describe("a finished table", () => {
     const game = createGame({ seed: 42 });
     const table = finishedTableNearPlayer(game);
 
-    expect(game.client.nearestInReach()).toEqual({ kind: "table", id: idOf(game, table) });
+    expect(game.client.nearestInReach()).toEqual({ kind: "furniture", id: idOf(game, table), furniture: "table" });
   });
 });
 

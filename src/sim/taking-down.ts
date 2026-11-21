@@ -52,6 +52,7 @@ import type { Valley } from "./valley";
 import type { GroundPoint } from "./ground-point";
 import { cellCentre, reachableCells } from "./walk-map";
 import type { Walking } from "./walking";
+import type { CommandRules } from "./command-rule";
 
 /** Taking a finished structure down takes this share of the time building it took. */
 const TAKE_DOWN_SHARE_OF_BUILD = 0.5;
@@ -317,4 +318,21 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
     if (kind === "campfire" || kind === "fireplace" || kind === "floor") return isOnGridSquare(square, other.position);
     return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
   });
+}
+
+/** The rule for taking down a built piece. */
+export function takingDownRules(takingDown: TakingDown): CommandRules<"takeDown"> {
+  return {
+    takeDown: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => takingDown.refusal(command.pieceId),
+      approach: {
+        reach: (command) => takingDown.reach(command.pieceId),
+        act: (command) => {
+          takingDown.start(command.pieceId);
+        },
+      },
+    },
+  };
 }

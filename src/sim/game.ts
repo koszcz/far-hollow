@@ -24,7 +24,7 @@ import { createApproach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding } from "./building";
-import { createTakingDown } from "./taking-down";
+import { createTakingDown, takingDownRules } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { createCampfires, isWarmedByCampfire } from "./campfires";
@@ -698,17 +698,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         },
       },
     },
-    takeDown: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => takingDown.refusal(command.pieceId),
-      approach: {
-        reach: (command) => takingDown.reach(command.pieceId),
-        act: (command) => {
-          takingDown.start(command.pieceId);
-        },
-      },
-    },
+    ...takingDownRules(takingDown),
     stopBuilding: {
       start: "alongside",
       queue: "apart",

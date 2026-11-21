@@ -51,7 +51,7 @@ import { copyToward } from "./ground-point";
 import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
-import { createDrinking } from "./drinking";
+import { createDrinking, drinkingRules } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
 import type { ApproachRule, CommandRule, CommandRules } from "./command-rule";
 import { createStoneGathering, stoneRules } from "./stone";
@@ -864,15 +864,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         },
       },
     },
-    drinkFromRiver: {
-      start: "fresh",
-      approach: {
-        reach: (command) => drinking.reach(command),
-        act: (command) => {
-          drinking.drinkFromRiver(command);
-        },
-      },
-    },
+    ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...stoneRules(stoneGathering),
     drinkFromPot: {

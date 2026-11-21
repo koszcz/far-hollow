@@ -25,6 +25,7 @@ import {
   type EntityStore,
   type Vec3,
 } from "./entities";
+import { doorFrameOn, hasDoor, nearestDoorFrame } from "./doors";
 import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
 import { unlitFire } from "./fire";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
@@ -85,7 +86,19 @@ export interface PlacementSite {
 
 /** The components that mark a finished structure. */
 export type FinishedMarker =
-  "campfire" | "leanTo" | "foundation" | "floor" | "edgePiece" | "roofFrame" | "cabinRoof" | "fireplace" | "woodpile" | "furniture" | "workStation" | "sled";
+  | "campfire"
+  | "leanTo"
+  | "foundation"
+  | "floor"
+  | "edgePiece"
+  | "door"
+  | "roofFrame"
+  | "cabinRoof"
+  | "fireplace"
+  | "woodpile"
+  | "furniture"
+  | "workStation"
+  | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -434,6 +447,35 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   finish: (spot, turns) => ({ cabinRoof: true, roof: roof.footprint(spot, turns) }),
 };
 
+/** How many planks a door costs. Construction spends one at the start of each stage. */
+export const DOOR_PLANK_COST = 3;
+/** How long the player holds the build action to build a door, in seconds. */
+export const DOOR_BUILD_SECONDS = 6;
+/** A door blueprint snaps to the finished door frame whose middle is within this many metres of the mouse. */
+const DOOR_SNAP_METRES = 1;
+
+/**
+ * A door: planks hung in a finished door frame. It takes the frame's edge and facing, so R does not turn it.
+ * It is not an edge piece. The frame keeps holding the edge, and a frame with a door, or a door blueprint, cannot come down.
+ * A door never blocks walking, open or shut. Its ground is the frame's line, like the frame's own.
+ */
+const door: StructureDefinition & { readonly kind: "door" } = {
+  kind: "door",
+  placement: "inDoorFrame",
+  finishedAs: "door",
+  cost: [{ material: "plank", count: DOOR_PLANK_COST }],
+  buildSeconds: DOOR_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, BUILD_GRID_METRES / 2, 0, turns),
+  snap({ entities }, at, turns) {
+    const frame = nearestDoorFrame(entities, at, DOOR_SNAP_METRES);
+    return frame === undefined ? edgeMiddle(snapToGridSquare(at), turns) : { x: frame.position.x, z: frame.position.z };
+  },
+  facingAt: ({ entities }, spot, turns) => doorFrameOn(entities, spot)?.facing?.turns ?? turns,
+  heightAt: ({ entities, valley }, spot) => doorFrameOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace: ({ entities }, spot) => doorFrameOn(entities, spot) !== undefined && !hasDoor(entities, spot),
+  finish: () => ({ door: true }),
+};
+
 /** How many stones a fireplace costs. Construction spends one at the start of each stage. */
 export const FIREPLACE_STONE_COST = 12;
 /** How long the player holds the build action to build a fireplace, in seconds. */
@@ -670,6 +712,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   doorFrame,
   roofFrame,
   roof,
+  door,
   fireplace,
   woodpile,
   ...FURNITURE_STRUCTURES,

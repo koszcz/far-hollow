@@ -58,7 +58,7 @@ import { createStoneGathering } from "./stone";
 import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
-import { findRooms, isRoomHeated } from "./rooms";
+import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot } from "./pot";
 import { createCooking } from "./cooking";
@@ -180,6 +180,8 @@ export interface GameProgress {
   clockMinutes: number;
   stepCount: number;
   firstNightOver: boolean;
+  /** Whether the banner saying a snug room keeps out the cold has shown. It shows once in each game. */
+  snugRoomNoticeShown: boolean;
   /** The notice showing now, with the game minute it stops showing at, or null if none shows. */
   notice: (Notice & { untilMinutes: number }) | null;
   /** Every entity, with the id that tasks and commands know it by. */
@@ -280,6 +282,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const firstMorning = nextMorning(gameStartMinutes);
   /** Whether the first night has ended, by morning coming or by a collapse. */
   let firstNightOver = progress?.firstNightOver ?? false;
+  let snugRoomNoticeShown = progress?.snugRoomNoticeShown ?? false;
   let notice: (Notice & { untilMinutes: number }) | null = progress?.notice ? structuredClone(progress.notice) : null;
   let paused = false;
   /** The player's last sleep since the game was loaded. It is not saved. */
@@ -1009,6 +1012,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         sick: player.sickness !== undefined,
         inRain: rain.falling && !underRoof,
         underRoof,
+        inSnugRoom: isInSnugRoom(entities, player.position),
       });
       if (player.sickness !== undefined && passSicknessTime(player.sickness, minutes, { resting: isResting() })) {
         entities.removeComponent(player, "sickness");
@@ -1023,6 +1027,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       }
     }
     return true;
+  }
+
+  /** Shows the banner that a snug room keeps out the cold, the first time in this game the player stands in one. */
+  function noticeSnugRoom(): void {
+    if (snugRoomNoticeShown || !isInSnugRoom(entities, player.position)) return;
+    snugRoomNoticeShown = true;
+    showNotice("snugRoomKeepsOutCold");
   }
 
   /**
@@ -1183,6 +1194,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       sleds.follow();
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
+      noticeSnugRoom();
       actionQueue.moveOn();
       stepCount += 1;
     }
@@ -1204,7 +1216,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     describeRooms: () =>
       Object.freeze(
         findRooms(entities).map((room) =>
-          Object.freeze({ squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))), heated: isRoomHeated(entities, room) }),
+          Object.freeze({
+            squares: Object.freeze(room.map((square) => Object.freeze({ ...square }))),
+            heated: isRoomHeated(entities, room),
+            snug: isRoomSnug(entities, room),
+          }),
         ),
       ),
     send: (command) => {
@@ -1221,6 +1237,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       clockMinutes: clock.minutes,
       stepCount,
       firstNightOver,
+      snugRoomNoticeShown,
       notice,
       entities: saveEntities(entities),
     });

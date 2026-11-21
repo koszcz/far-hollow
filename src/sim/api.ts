@@ -378,6 +378,7 @@ export interface SleepView {
  * Something that just happened that the player should be told about.
  * `collapsed`: the player had a collapse from a neglected need and woke at their respawn point.
  * `survivedFirstNight`: the player reached the first morning without a collapse.
+ * `snugRoomKeepsOutCold`: the player stood in a snug room for the first time in this game.
  * `backpackFull`: the backpack had no room for what the player tried to put in it.
  * `chestFull`: the open chest had no room for what the player tried to put in it.
  * `shelfFull`: the open shelf had no room for what the player tried to put in it.
@@ -410,6 +411,7 @@ export type GameNotice = Notice["kind"];
 export type PlainNotice =
   | "collapsed"
   | "survivedFirstNight"
+  | "snugRoomKeepsOutCold"
   | "backpackFull"
   | "chestFull"
   | "shelfFull"
@@ -569,6 +571,8 @@ export interface RoomView {
   readonly squares: readonly GroundPoint[];
   /** Whether a lit campfire in the room warms all of it. */
   readonly heated: boolean;
+  /** Whether the room is snug: a finished floor on every square and a finished door in every door frame. */
+  readonly snug: boolean;
 }
 
 /** A woodpile, with how much of each kind of wood is stacked on it. */

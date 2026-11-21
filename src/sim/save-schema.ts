@@ -126,6 +126,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   foundation: exactly(true),
   floor: exactly(true),
   edgePiece: exactly(...EDGE_PIECE_KINDS),
+  door: exactly(true),
   roofFrame: exactly(true),
   cabinRoof: exactly(true),
   fireplace: shape({ lit: boolean, fuelMinutes: finite }),
@@ -226,6 +227,7 @@ const refusal: Check = (value) =>
 const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   collapsed: {},
   survivedFirstNight: {},
+  snugRoomKeepsOutCold: {},
   backpackFull: {},
   chestFull: {},
   shelfFull: {},
@@ -260,6 +262,7 @@ const saveShape = shape({
   clockMinutes: (value) => finite(value) && (value as number) >= 0,
   stepCount: count,
   firstNightOver: boolean,
+  snugRoomNoticeShown: boolean,
   notice: (value) => value === null || notice(value),
   entities: list(shape({ id: count, components })),
 });

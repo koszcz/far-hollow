@@ -391,7 +391,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
     pose({ player }, shot) {
       player.setWalking(shot.label.startsWith("walking") ? 0.6 : undefined);
-      player.setLitTorch(shot.seconds ?? 0);
+      player.setMotion("torch", shot.seconds ?? 0);
     },
   },
   // src/ui/hud-showcase.tsx draws the sled and log icons large, among every build icon, over the first view,

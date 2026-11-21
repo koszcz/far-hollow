@@ -64,6 +64,9 @@ export const strings = {
     replace: "Replace saved game",
     cancel: "Cancel",
     cannotSave: "This browser cannot save games, so your progress will be lost when you close the page.",
+    exportGame: "Export",
+    exportFileName: (slot: number, day: number) => `far-hollow-slot-${slot}-day-${day}.json`,
+    brokenExportFileName: (slot: number) => `far-hollow-slot-${slot}-broken.json`,
   },
   pause: "Pause",
   resume: "Resume",
@@ -129,6 +132,7 @@ export const strings = {
       doorFrame: "Door frame",
       roofFrame: "Roof frame",
       roof: "Roof section",
+      door: "Door",
       fireplace: "Fireplace",
       woodpile: "Woodpile",
       chest: "Chest",
@@ -161,6 +165,7 @@ export const strings = {
       overWalls: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
       onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
+      inDoorFrame: (structure: string) => `Placing: ${structure}. Point at a finished door frame with no door, and click to hang it there.`,
     },
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */
@@ -237,6 +242,7 @@ export const strings = {
   fatigue: "Rest",
   notices: {
     survivedFirstNight: "You survived the night.",
+    snugRoomKeepsOutCold: "This room now keeps out the cold. At night, you lose warmth here at half the rate.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",
@@ -459,5 +465,6 @@ export const strings = {
   debugRainDry: "Dry",
   debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
   debugRooms: "Rooms",
-  debugRoom: (squares: number, heated: boolean) => `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}`,
+  debugRoom: (squares: number, heated: boolean, snug: boolean) =>
+    `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}, ${snug ? "snug" : "not snug"}`,
 } as const;

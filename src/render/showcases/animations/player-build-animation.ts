@@ -23,16 +23,16 @@ export const PLAYER_BUILD_ANIMATION_SHOWCASE: Showcase = {
   },
   pose({ player }, shot) {
     // Start a fresh build at time 0 for each view, so the view shows the cycle `shot.seconds` in.
-    player.setBuilding(undefined);
-    player.setBuilding(0);
-    player.setBuilding(shot.seconds);
+    player.setMotion("player-build-animation", undefined);
+    player.setMotion("player-build-animation", 0);
+    player.setMotion("player-build-animation", shot.seconds);
   },
   // The player builds for two and a half cycles, stops mid-press and stands up, rests, then builds again.
   play: {
     shot: { label: "building, stopping mid-press, then a rest", yaw: 70, pitch: 12 },
     pose({ player }, seconds) {
       const cycle = seconds % (BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS + BUILD_PLAY_REST_SECONDS);
-      player.setBuilding(cycle < BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS ? cycle : undefined);
+      player.setMotion("player-build-animation", cycle < BUILD_PLAY_CYCLES * CROUCH_CYCLE_SECONDS ? cycle : undefined);
       return undefined;
     },
   },

@@ -64,6 +64,8 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   startApproaches,
   approachTimedTasks,
   addFloors,
+  addDoors,
+  recordSnugRoomNotice,
   addSaplings,
 ];
 
@@ -144,6 +146,10 @@ export const FLOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFloors) + 2;
 
 /** The first save version in which the player's walk to timed work, such as chopping, is a pending approach too. */
 export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimedTasks) + 2;
+/** The first save version that can hold doors and their blueprints. */
+export const DOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDoors) + 2;
+/** The first save version that records whether the snug-room banner has shown. */
+export const SNUG_ROOM_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(recordSnugRoomNotice) + 2;
 /** The first save version in which the backpack can hold saplings. */
 export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 
@@ -201,9 +207,12 @@ export function describeSave(stored: unknown): SaveSlotSummary {
 export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_UPGRADES): ReadSaveResult {
   const save = upgradeSave(data, upgrades);
   if (!isValidSave(save)) return { ok: false };
-  const { seed, clockMinutes, stepCount, firstNightOver, notice, entities } = save as unknown as SaveFile;
+  const { seed, clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } = save as unknown as SaveFile;
   try {
-    return { ok: true, game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, notice, entities } }) };
+    return {
+      ok: true,
+      game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } }),
+    };
   } catch {
     // The save had the right shape but still could not be loaded.
     return { ok: false };
@@ -770,7 +779,17 @@ function addFloors(save: Readonly<Record<string, unknown>>): Record<string, unkn
   return nothingToUpgrade(save);
 }
 
-/** Version 43 to 44: the player can dig up saplings into the backpack. A save from before then holds none, so it carries over unchanged. */
+/** Version 43 to 44: the player can hang doors in door frames. A save from before then has none, so it carries over unchanged. */
+function addDoors(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 44 to 45: the game saves whether the snug-room banner has shown. A save from before then has not shown it. */
+function recordSnugRoomNotice(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return { ...save, snugRoomNoticeShown: false };
+}
+
+/** Version 45 to 46: the player can dig up saplings into the backpack. A save from before then holds none, so it carries over unchanged. */
 function addSaplings(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

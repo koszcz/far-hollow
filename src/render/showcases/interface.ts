@@ -44,7 +44,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft floor icon shows among the build icons too, so this showcase draws the same views as "build-icons".
+  // The draft floor and door icons show among the build icons too, so this showcase draws the same views as "build-icons".
   "floor-and-door-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },

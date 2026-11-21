@@ -235,6 +235,10 @@ _Avoid_: Truss, rafters (for the whole frame)
 The planks laid on one roof frame, in overlapping rows. Only a finished roof section keeps the rain off.
 _Avoid_: Roof tile, shingle
 
+**Door**:
+A building piece of 3 planks that hangs in a finished door frame. It opens by itself when the player walks through, and closes behind them. It never changes where the player can walk. A door frame with a door cannot come down.
+_Avoid_: Gate, hatch
+
 **Ridge**:
 The top line of a roof, where two slopes that face away from each other meet.
 _Avoid_: Peak, apex
@@ -250,6 +254,10 @@ _Avoid_: Gutter, inside corner
 **Room**:
 A set of foundation squares closed in on every side by log walls or door frames, with a roof over every square. A lit campfire in a room warms the whole room.
 _Avoid_: Interior, enclosure
+
+**Snug**:
+Said of a room with a finished floor on every square and a finished door in every door frame. A room with no door frame is snug once every square has a floor. At night, the player loses warmth in a snug room at half the usual rate.
+_Avoid_: Sealed, insulated, finished room
 
 **Build menu**:
 The menu, opened with B, of every structure the player can build and what it costs. It shows as a wheel in the middle of the screen.
@@ -368,6 +376,28 @@ The only weather in the valley. Being out in the rain without a roof overhead dr
 
 **Day**:
 One full cycle of daylight and night in the valley.
+
+## Saved games
+
+**Saved game**:
+The whole state of one game, kept in a save slot so the player can continue it later.
+_Avoid_: Save file, savegame, backup
+
+**Save slot**:
+One of the few places a saved game is kept. Each slot holds at most one saved game.
+_Avoid_: Profile, save
+
+**Continue**:
+To go on playing the saved game in a save slot.
+_Avoid_: Load, resume
+
+**Export**:
+To copy the saved game in a save slot into a file on the player's computer. The slot keeps its saved game.
+_Avoid_: Download, backup, save as
+
+**Import**:
+To put the saved game from a file into a save slot, replacing whatever the slot held. Importing does not start the game. The player continues it afterwards.
+_Avoid_: Load, upload, restore
 
 ## Assets
 

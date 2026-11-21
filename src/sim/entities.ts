@@ -147,6 +147,12 @@ export interface Entity {
    */
   edgePiece?: EdgePieceKind;
   /**
+   * Marks a finished door: planks hung in a finished door frame. It is not an edge piece, so the frame still holds the edge.
+   * Its position and `facing` are the frame's. It never blocks walking. Whether it stands open is not part of game state:
+   * `isDoorOpen` in doors.ts works it out from where the player is.
+   */
+  door?: true;
+  /**
    * Marks a finished roof frame: the timber skeleton of one foundation square, level beams on the wall tops and sloped rafters on them.
    * It rests on the log walls and door frames on its square's edges. A cabin roof section is laid on it.
    * Its position is the middle of that square, at the height of the foundation's deck. Its `facing` says which way it slopes down.
@@ -409,6 +415,11 @@ export function floorEntities(store: EntityStore) {
 /** Finished log walls and door frames. */
 export function edgePieceEntities(store: EntityStore) {
   return store.with("edgePiece", "position");
+}
+
+/** Finished doors. */
+export function doorEntities(store: EntityStore) {
+  return store.with("door", "position");
 }
 
 /** Finished roof frames. */

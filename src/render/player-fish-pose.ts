@@ -6,7 +6,7 @@
 // the water, swings it in on the line, and catches it in the left hand. Then they cast again.
 // It is posed in code on top of the idle clip with the build pose's bones, so it has no clip of its own.
 // The rod is the approved "fishing-rod", built by fishing-rod-model.ts. fishing-tackle.ts bends the rod and draws the
-// line and the float. player-mesh.ts places them all from this pose.
+// line and the float. player-motions/fishing-animation.ts places them all from this pose.
 import { scaleBuildPose, type BuildPose, type HandSpot } from "./player-build-pose";
 import { easeInOut, lerp, smoothstep } from "./easing";
 

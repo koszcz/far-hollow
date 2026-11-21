@@ -23,7 +23,11 @@ The owner may run several make-asset sessions at once, each in its own worktree.
 
 The session runs in an isolated worktree. Its guard refuses commands it cannot check, such as `$(git …)` inside another command, `&&` chains with git, heredocs, and loops. Send one plain command per Bash call. To run a multi-line script, save it with the Write tool, then run the file.
 
-Record your step with `step` each time you start a new step. Other sessions see only the board, not your chat.
+Record your step with `step` each time you start a new step. Other sessions see only the board, not your chat. The pipeline panel in Herdr also reads the board. It draws your session as one card, with a stepper that follows these step names. Use them exactly:
+
+`1 pick`, `2 branch`, `3 learn`, `4 options`, `5 build`, `6 show`, `7 decision`, `8 finish`
+
+When you go back to an earlier step, record that step again. At steps 4, 6, and 7 the card tells the owner it is their move while you wait.
 
 All worktrees share one local `main` branch. To get another session's finished asset, merge local `main`. You do not need to fetch from `origin`.
 

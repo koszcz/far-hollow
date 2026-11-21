@@ -11,10 +11,12 @@ export interface StartScreenProps {
   onContinue: (slot: number) => void;
   /** Called when the player starts a new game in a slot. The seed is undefined if the player wants a random one. */
   onNewGame: (slot: number, seed: number | undefined) => void;
+  /** Called when the player exports the saved game in a filled or broken slot to a file. */
+  onExport: (slot: number) => void;
 }
 
 /** Lists the save slots. The player continues a saved game or starts a new one with a random or typed seed. */
-export function StartScreen({ slots, canSave, onContinue, onNewGame }: StartScreenProps) {
+export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport }: StartScreenProps) {
   /** The slot the player is starting a new game in, or null while they are still choosing. */
   const [newGameSlot, setNewGameSlot] = useState<number | null>(null);
   const [seedText, setSeedText] = useState("");
@@ -84,6 +86,20 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame }: StartScre
                 >
                   {strings.startScreen.newGame}
                 </button>
+                {canSave && slot.state !== "empty" && (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      class="hud-button"
+                      onClick={() => {
+                        onExport(index);
+                      }}
+                    >
+                      {strings.startScreen.exportGame}
+                    </button>
+                  </>
+                )}
               </p>
             )}
           </li>

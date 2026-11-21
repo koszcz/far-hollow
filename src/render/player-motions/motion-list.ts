@@ -2,11 +2,13 @@
 // them in this order, and the first body motion playing wins. To add a motion, add its module to this folder, then one
 // import line and one entry line here. Git merges this file by union (see .gitattributes), so two branches that each add
 // a motion merge without a conflict. A line kept twice fails the typecheck. See docs/adr/0012-each-player-motion-is-its-own-module.md.
+import { createDebarkingMotion } from "./debarking-animation";
 import { createGatherStoneMotion } from "./gather-stone-animation";
 import type { PlayerMotion, PlayerRig } from "./player-motion";
 
 /** Each motion's asset id, with the function that makes it. */
 export const PLAYER_MOTIONS = {
+  "debarking-animation": createDebarkingMotion,
   "gather-stone-animation": createGatherStoneMotion,
 } as const;
 

@@ -3,8 +3,6 @@
 // Its moves are KayKit clips from the same file: "walk-animation" is Running_A, "chop-animation" is 2H_Melee_Attack_Slice,
 // and "split-animation" is 2H_Melee_Attack_Chop. The owner approved all three.
 // While building, "player-build-animation", posed in code by player-build-pose.ts, crouches the player over the clip. The owner approved it.
-// While debarking, "debarking-animation", posed in code by player-debark-pose.ts, bends the player over the log
-// pulling a drawknife, and the axe goes on the back. The owner approved it.
 // While sleeping, "sleep-animation", timed by sleep-animation.ts, plays the Lie_Down and Lie_Idle clips, rolls onto the back into Death_A_Pose and
 // breathes slowly, then rolls back and plays Lie_StandUp. The owner approved it.
 // While sitting on a stool, the approved "sit-animation", timed by sit-animation.ts, plays the Sit_Chair_Down, Sit_Chair_Idle, and Sit_Chair_StandUp clips.
@@ -35,8 +33,6 @@ import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
-import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
-import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
 import { sledDragPoseAt } from "./player-sled-drag-pose";
 import type { RopeHold } from "./sled-rope";
@@ -156,8 +152,6 @@ export interface PlayerMesh {
   setChopping(nowSeconds: number | undefined): void;
   /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setSplitting(nowSeconds: number | undefined): void;
-  /** Bends the player over a log, pulling a drawknife along it. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setDebarking(nowSeconds: number | undefined): void;
   /**
    * Saws the log on the sawhorse in front of the player, the saw `progress` of the way through it, from 0 to 1.
    * Pass undefined to stand upright. `nowSeconds` is a steady real-time clock.
@@ -396,8 +390,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const logThickness = logShapeBox.max.y - logShapeBox.min.y;
   /** Building, moved on by the steady clock time. */
   const building = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => buildPoseAt(now - since), leaveSeconds: BUILD_LEAVE_SECONDS });
-  /** Debarking, moved on by the steady clock time. */
-  const debarking = createWorkMotion<number>({ startOf: (now) => now, poseAt: (now, since) => debarkPoseAt(now - since), leaveSeconds: DEBARK_ENTER_SECONDS });
   /** Sawing, moved on by the steady clock time and how far through the log the saw is. */
   const sawing = createWorkMotion<{ nowSeconds: number; progress: number }>({
     startOf: (at) => at.nowSeconds,
@@ -413,7 +405,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     leaveSeconds: FISH_ENTER_SECONDS,
   });
   /** The work motions, in the order they win when more than one plays. */
-  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, debarking, sawing, handCrafting, fishing];
+  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, sawing, handCrafting, fishing];
   /** While standing up after building, debarking, sawing, or fishing stops. */
   let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
@@ -421,11 +413,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Whether the player drags a sled. */
   let dragging = false;
 
-  // The drawknife rides between the hands while debarking, placed from the wrists each frame.
-  const drawknife = createDrawknife();
-  drawknife.group.visible = false;
-  drawknife.group.scale.setScalar(DRAWKNIFE_IN_HAND_SCALE);
-  group.add(drawknife.group);
   // The saw rides in the right hand while sawing, placed from the wrist each frame.
   const saw = createSaw();
   saw.group.visible = false;
@@ -625,7 +612,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     poseEatingOrDrinking(eatDrinkPose);
     poseReaching();
     blendFromReach();
-    placeDrawknife();
     placeSaw();
     placeHandCraftWork();
     placeFishingRod();
@@ -765,31 +751,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
 
   const leftWrist = new THREE.Vector3();
   const rightWrist = new THREE.Vector3();
-  const knifeAcross = new THREE.Vector3();
-  const knifeUp = new THREE.Vector3();
-  const knifeForward = new THREE.Vector3();
-  const knifeTurn = new THREE.Matrix4();
-  /** Shows the drawknife while debarking, its handles in the two hands. */
-  function placeDrawknife(): void {
-    drawknife.group.visible = debarking.since !== undefined;
-    if (!drawknife.group.visible) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
-    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
-    // The blade runs level across the hands, beyond them, with the handles pointing back towards the player.
-    knifeAcross.subVectors(rightWrist, leftWrist).normalize();
-    knifeUp.set(0, 1, 0);
-    knifeForward.crossVectors(knifeAcross, knifeUp).normalize();
-    knifeUp.crossVectors(knifeForward, knifeAcross);
-    knifeTurn.makeBasis(knifeAcross, knifeUp, knifeForward);
-    drawknife.group.quaternion.setFromRotationMatrix(knifeTurn);
-    // The grips sit at the wrists, so the middle of the blade lies out beyond them.
-    drawknife.group.position
-      .addVectors(leftWrist, rightWrist)
-      .multiplyScalar(0.5)
-      .addScaledVector(knifeForward, -DRAWKNIFE_GRIP.forward * DRAWKNIFE_IN_HAND_SCALE);
-  }
-
   /** Shows the saw while sawing, its grip in the right hand and its blade pointing the way the player faces. */
   function placeSaw(): void {
     saw.group.visible = sawing.since !== undefined;
@@ -989,9 +950,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       updateAxe();
       pose();
     },
-    setDebarking(nowSeconds) {
-      updateWork(debarking, nowSeconds);
-    },
     setMotion(id, moment) {
       const motion: PlayerMotion<unknown> = motions[id];
       updateWork(motion, moment);
@@ -1068,7 +1026,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       for (const made of materials) made.dispose();
       backpack.dispose();
       potMaker.dispose();
-      drawknife.dispose();
       saw.dispose();
       handCraftWork.dispose();
       rod.dispose();

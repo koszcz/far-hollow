@@ -467,7 +467,7 @@
       "kind": "code",
       "code": [
         "src/render/player-debark-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/debarking-animation.ts",
         "src/render/pile-meshes.ts",
         "src/render/scene-renderer.ts",
         "src/sim/debarking.ts"

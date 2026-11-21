@@ -332,7 +332,7 @@ export function createSceneRenderer(
     // Splitting has its own overhead strike, aimed where the player already faces.
     playerMesh.setSplitting(activity?.kind === "split" ? nowSeconds : undefined);
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
-    playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
+    playerMesh.setMotion("debarking-animation", activity?.kind === "debark" ? nowSeconds : undefined);
     // Gathering stone crouches at the water's edge and lifts a stone, facing the spot clicked, unless the player stands on it.
     const stoneTask = activity?.kind === "gatherStone" ? player.stoneTask : undefined;
     playerMesh.setMotion("gather-stone-animation", stoneTask === undefined ? undefined : nowSeconds);

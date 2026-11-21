@@ -464,16 +464,16 @@ export const ANIMATIONS_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
     pose({ player }, shot) {
       // Start debarking afresh at time 0 for each view, so the view shows the stroke `shot.seconds` in.
-      player.setDebarking(undefined);
-      player.setDebarking(0);
-      player.setDebarking(shot.seconds);
+      player.setMotion("debarking-animation", undefined);
+      player.setMotion("debarking-animation", 0);
+      player.setMotion("debarking-animation", shot.seconds);
     },
     // The player debarks for as long as the game takes, stands up, rests, then starts again.
     play: {
       shot: { label: "debarking, then standing up", yaw: 30, pitch: 20, radius: 1.6 },
       pose({ player }, seconds) {
         const cycle = seconds % (DEBARK_SECONDS + DEBARK_PLAY_REST_SECONDS);
-        player.setDebarking(cycle < DEBARK_SECONDS ? cycle : undefined);
+        player.setMotion("debarking-animation", cycle < DEBARK_SECONDS ? cycle : undefined);
         return undefined;
       },
     },

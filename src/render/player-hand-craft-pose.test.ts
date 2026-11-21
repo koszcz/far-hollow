@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { craftMotionOf, createHandCraftMotion, HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS, handCraftPoseAt } from "./player-hand-craft-pose";
+import {
+  craftMotionOf,
+  createHandCraftMotion,
+  HAND_CRAFT_CYCLE_SECONDS,
+  HAND_CRAFT_ENTER_SECONDS,
+  HAND_CRAFT_TUGGED_SHARE,
+  handCraftPoseAt,
+  handCraftWorkTurnAt,
+} from "./player-hand-craft-pose";
 
 describe("the hand-craft animation", () => {
   it("saws at the sawhorse and works by hand for every other recipe", () => {
@@ -8,16 +16,16 @@ describe("the hand-craft animation", () => {
     expect(craftMotionOf("fishingRod")).toBe("hand");
   });
 
-  it("keeps both hands at waist height, in front of the body, close together", () => {
+  it("keeps both hands at waist height, in front of the body, within a shoulder width", () => {
     for (let seconds = HAND_CRAFT_ENTER_SECONDS; seconds < 10; seconds += 0.05) {
       const { hands, rightHand, reach } = handCraftPoseAt(seconds);
       expect(reach).toBe(1);
       for (const hand of [hands, rightHand ?? hands]) {
         expect(hand.height).toBeGreaterThan(0.6);
-        expect(hand.height).toBeLessThan(0.9);
+        expect(hand.height).toBeLessThan(0.95);
         expect(hand.forward).toBeGreaterThan(0.2);
-        expect(hand.forward).toBeLessThan(0.5);
-        expect(hand.spread).toBeLessThan(0.15);
+        expect(hand.forward).toBeLessThan(0.65);
+        expect(hand.spread).toBeLessThan(0.35);
       }
     }
   });
@@ -40,6 +48,19 @@ describe("the hand-craft animation", () => {
         expect(Math.abs(value - (before[index] ?? value))).toBeLessThan(0.02);
       });
     }
+  });
+
+  it("turns the bundle without a jump, back where it started at the end of each cycle", () => {
+    const step = 0.01;
+    for (let seconds = step; seconds < 10; seconds += step) {
+      expect(Math.abs(handCraftWorkTurnAt(seconds) - handCraftWorkTurnAt(seconds - step))).toBeLessThan(0.05);
+    }
+    expect(handCraftWorkTurnAt(HAND_CRAFT_CYCLE_SECONDS)).toBeCloseTo(handCraftWorkTurnAt(0));
+  });
+
+  it("tugs the right hand out to the side once each cycle", () => {
+    const outAt = (share: number): number => handCraftPoseAt(HAND_CRAFT_CYCLE_SECONDS * (1 + share)).rightHand?.spread ?? 0;
+    expect(outAt(HAND_CRAFT_TUGGED_SHARE)).toBeGreaterThan(outAt(0) + 0.08);
   });
 
   it("lifts the hands from standing when crafting starts", () => {

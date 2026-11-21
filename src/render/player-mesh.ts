@@ -8,8 +8,6 @@
 // Reaching to pick something up or put it down, "pick-up-animation", plays KayKit's PickUp clip for a reach to the
 // ground and its Interact clip for a reach at waist height, timed so the hand gets to the thing when game logic hands it over.
 // player-reach-pose.ts steers one hand to the thing and blends into and out of the reach. The owner approved it.
-// While the player holds a lit torch, the draft "torch", built by torch-shape.ts, rides upright in the left hand through
-// every motion, with a small "fire-effect" flame on its head. scene-renderer.ts lights the ground from torchFlame().
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
 // The carried log is the approved "logs" asset, loaded by log-shape.ts. A carried debarked log is the approved "debarked-log" asset, built by debarked-log-shape.ts.
 import * as THREE from "three";
@@ -27,18 +25,8 @@ import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
-import { createFireMaker } from "./fire-effect";
-import { createTorchFlame, createTorchShape, TORCH_FLAME_HEIGHT_METRES } from "./torch-shape";
 import { createPlayerMotions, type MotionId, type MotionMoment } from "./player-motions/motion-list";
 import { freeArms, type PlayerMotion, type PlayerRig } from "./player-motions/player-motion";
-
-/**
- * The lit torch rides in the left hand, gripped this far up from its butt, in metres. It leans this far forward and this far
- * out from the body, in radians, so the flame stays clear of the head. Part of the draft "torch" asset.
- */
-const TORCH_GRIP_METRES = 0.14;
-const TORCH_LEAN_FORWARD = 0.25;
-const TORCH_LEAN_OUT = 0.2;
 
 /** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
 const MODEL_SCALE = 0.78;
@@ -141,13 +129,8 @@ export interface PlayerMesh {
   /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. See sled-drag-animation.ts. */
   ropeHold(): RopeHold | undefined;
   /**
-   * Shows a lit torch in the player's left hand, its flame burning at `nowSeconds`, a steady real-time clock.
-   * Pass undefined to hide it. The player keeps it through every motion.
-   */
-  setLitTorch(nowSeconds: number | undefined): void;
-  /**
    * Copies where the lit torch's flame is, as a world point, into `target.position`, and how high it is above the player's feet
-   * into `target.aboveGroundMetres`. Returns false, and copies nothing, while no torch shows.
+   * into `target.aboveGroundMetres`. Returns false, and copies nothing, while no torch shows. See player-motions/torch.ts.
    */
   torchFlame(target: { readonly position: THREE.Vector3; aboveGroundMetres: number }): boolean;
   dispose(): void;
@@ -312,20 +295,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** While standing up after a work motion stops. */
   let leavingBuild: Leaving | undefined;
 
-  // The lit torch rides in the left hand, upright, placed from the wrist each time the player is posed.
-  const torchShape = createTorchShape();
-  const torchFireMaker = createFireMaker();
-  const torchInHand = new THREE.Group();
-  /** Where the player's feet are in the world, worked out again each time torchFlame runs. */
-  const feet = new THREE.Vector3();
-  for (const part of torchShape.parts) torchInHand.add(new THREE.Mesh(part.geometry, part.material));
-  const torchFire = createTorchFlame(torchFireMaker);
-  torchInHand.add(torchFire.group);
-  torchInHand.visible = false;
-  group.add(torchInHand);
-  /** When the lit torch shows, the steady clock time its flame burns at. Undefined while the player holds no lit torch. */
-  let torchAt: number | undefined;
-
   /** What the player mesh lends each motion in the motion list. */
   const rig: PlayerRig = {
     group,
@@ -455,23 +424,8 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     for (const motion of upperBodyMotions) motion.pose?.();
     poseReaching();
     blendFromReach();
-    placeTorch();
+    // Props go on last, once every pose is applied, so they follow the hands.
     for (const motion of motionList) motion.placeProps();
-  }
-
-  const torchHand = new THREE.Vector3();
-  const TORCH_TILT = new THREE.Quaternion().setFromEuler(new THREE.Euler(TORCH_LEAN_FORWARD, 0, -TORCH_LEAN_OUT));
-  const torchUp = new THREE.Vector3();
-  /** Shows the lit torch in the left hand, gripped near its butt and leaning a little forward and out, with its flame burning. */
-  function placeTorch(): void {
-    torchInHand.visible = torchAt !== undefined;
-    if (torchAt === undefined) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(torchHand));
-    torchInHand.quaternion.copy(TORCH_TILT);
-    torchUp.set(0, 1, 0).applyQuaternion(TORCH_TILT);
-    torchInHand.position.copy(torchHand).addScaledVector(torchUp, -TORCH_GRIP_METRES);
-    torchFire.animate(torchAt, 1, 0.7);
   }
 
   /** Every bone of the model, for blending whole poses. */
@@ -678,21 +632,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (changed) updateAxe();
       pose();
     },
-    setLitTorch(nowSeconds) {
-      torchAt = nowSeconds;
-      placeTorch();
-    },
     torchFlame(target) {
-      if (torchAt === undefined) return false;
-      torchInHand.updateWorldMatrix(true, false);
-      target.position.set(0, TORCH_FLAME_HEIGHT_METRES, 0);
-      torchInHand.localToWorld(target.position);
-      target.aboveGroundMetres = target.position.y - feet.setFromMatrixPosition(group.matrixWorld).y;
-      return true;
+      return motions.torch.torchFlame(target);
     },
     dispose() {
-      torchShape.dispose();
-      torchFireMaker.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(model);
       for (const motion of motionList) motion.dispose();

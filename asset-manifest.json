@@ -1311,7 +1311,7 @@
         "src/render/torch-shape.ts",
         "src/render/torch-lights.ts",
         "src/render/planted-torch-meshes.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/torch.ts",
         "src/render/pile-meshes.ts",
         "src/render/scene-renderer.ts"
       ],

@@ -13,6 +13,7 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
   "gather-stone-animation": 1,
   "forage-eat-drink-animation": { kind: "drinkFromPot", seconds: 0.5 },
   "sled-drag-animation": true,
+  torch: 1,
 };
 
 describe("the player motions", () => {
@@ -26,10 +27,11 @@ describe("the player motions", () => {
       "gather-stone-animation",
       "forage-eat-drink-animation",
       "sled-drag-animation",
+      "torch",
     ]);
   });
 
-  it("puts the axe on the back for every motion but sled dragging", () => {
+  it("puts the axe on the back for every motion but sled dragging and the lit torch", () => {
     const motions = createPlayerMotions(createTestRig());
     const onBack = Object.fromEntries(Object.entries(motions).map(([id, motion]) => [id, motion.axeOnBack]));
     expect(onBack).toEqual({
@@ -41,6 +43,7 @@ describe("the player motions", () => {
       "gather-stone-animation": true,
       "forage-eat-drink-animation": true,
       "sled-drag-animation": false,
+      torch: false,
     });
   });
 

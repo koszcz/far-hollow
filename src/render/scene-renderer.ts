@@ -290,7 +290,7 @@ export function createSceneRenderer(
     if (player === undefined) return;
     playerMesh.setCarryingLog(player.carrying);
     // The lit torch stays in the left hand through every motion. Game logic puts it out before the player sleeps.
-    playerMesh.setLitTorch(player.litTorch === undefined || sleeping !== undefined ? undefined : nowSeconds);
+    playerMesh.setMotion("torch", player.litTorch === undefined || sleeping !== undefined ? undefined : nowSeconds);
     // Dragging a sled leans the player into the rope, walking or standing. Letting go stands them up at once.
     playerMesh.setMotion("sled-drag-animation", player.dragging !== undefined && sleeping === undefined ? true : undefined);
     if (sleeping !== undefined) {

@@ -10,6 +10,7 @@ import { createHandCraftMotion } from "./hand-craft-animation";
 import { createBuildingMotion } from "./player-build-animation";
 import { createSawingMotion } from "./sawing-animation";
 import { createSledDragMotion } from "./sled-drag-animation";
+import { createTorchMotion } from "./torch";
 import type { PlayerMotion, PlayerRig } from "./player-motion";
 
 /** Each motion's asset id, with the function that makes it. */
@@ -22,6 +23,7 @@ export const PLAYER_MOTIONS = {
   "gather-stone-animation": createGatherStoneMotion,
   "forage-eat-drink-animation": createEatDrinkMotion,
   "sled-drag-animation": createSledDragMotion,
+  torch: createTorchMotion,
 } as const;
 
 export type MotionId = keyof typeof PLAYER_MOTIONS;

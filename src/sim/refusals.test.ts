@@ -62,6 +62,29 @@ describe("refusals", () => {
     expect(game.client.refusal({ type: "eat", food: "berries" })).toBeNull();
   });
 
+  it("refuses a recipe the player lacks things for, or cannot follow with a log on the shoulder", () => {
+    const lacking = gameWithBackpack({ stick: 2 });
+    expect(lacking.client.refusal({ type: "craft", recipe: "fishingRod" })).toEqual({
+      kind: "cannotCraftYet",
+      lacks: [{ kind: "tool", tool: "knife" }, { kind: "materials" }],
+    });
+
+    const carrying = gameWithBackpack({ knife: 1, fishingLine: 1, stick: 2 });
+    expect(carrying.client.refusal({ type: "craft", recipe: "fishingRod" })).toBeNull();
+    carrying.entities.addComponent(player(carrying), "carrying", "log");
+    expect(carrying.client.refusal({ type: "craft", recipe: "fishingRod" })).toEqual({ kind: "putLogDownFirst" });
+  });
+
+  it("refuses taking from a chest what it does not hold, or what does not fit in the backpack", () => {
+    const game = gameWithBackpack({ stone: 10 });
+    const chestId = add(game, { furniture: "chest", storage: { contents: { stone: 1, stick: 1 } } });
+
+    expect(game.client.refusal({ type: "takeFromChest", chestId, content: "berries", all: false })).toEqual({ kind: "nothingToTake" });
+    expect(game.client.refusal({ type: "takeFromChest", chestId, content: "stone", all: true })).toEqual({ kind: "backpackFull" });
+    player(game).backpack = { contents: { stone: 9 } };
+    expect(game.client.refusal({ type: "takeFromChest", chestId, content: "stone", all: false })).toBeNull();
+  });
+
   it("turns away a command the same way when the player sends it", () => {
     const game = gameWithBackpack({});
 

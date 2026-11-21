@@ -15,4 +15,5 @@ export const STOOL: FurnitureDefinition<"stool"> = {
   buildSeconds: STOOL_BUILD_SECONDS,
   size: { x: STOOL_SIZE_METRES, z: STOOL_SIZE_METRES },
   blocks: { radius: 0.71 },
+  use: { name: "sit", command: (id) => ({ type: "sitOnStool", stoolId: id }) },
 };

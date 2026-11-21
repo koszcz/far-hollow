@@ -22,7 +22,8 @@ import type { GroundPoint } from "./ground-point";
 
 export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
 
-import { FURNITURE } from "./furniture";
+import { FURNITURE, type FurnitureUse } from "./furniture";
+export type { FurnitureUse } from "./furniture";
 import { FURNITURE_KINDS } from "./structure-kind";
 
 /** The HUD uses these to tell the player when a low need slows them, and which needs there are. */
@@ -263,6 +264,8 @@ export interface GameView {
   readonly playerPosition: Readonly<Vec3>;
   /** The valley's clock: which day it is and the time of day. */
   readonly time: TimeOfDay;
+  /** Whether it is night now, by the game's own hours. The HUD shows the moon instead of the sun. */
+  readonly night: boolean;
   /** How many of each tool and material the player's backpack holds. */
   readonly backpack: Readonly<BackpackContents>;
   /** How much the backpack's contents weigh, in kilograms. */
@@ -461,6 +464,11 @@ export const FURNITURE_BUILD_MENU: readonly BuildMenuEntry[] = FURNITURE_KINDS.m
   return { structure: kind, cost, ...(tool === undefined ? {} : { tool }), placement: "anywhere" };
 });
 
+/** How the player uses a finished piece of furniture, from its definition, or undefined if it has no use, as for a table. */
+export function furnitureUse(kind: FurnitureKind): FurnitureUse | undefined {
+  return FURNITURE[kind].use;
+}
+
 /** One recipe in the craft menu: the recipe, with everything the player lacks to follow it now. */
 export type CraftMenuEntry = Recipe & {
   /** Everything the player lacks to follow it now, such as its tool or work station. Empty when they can follow it. */
@@ -652,14 +660,31 @@ export type ThingInReach =
         | "campfire"
         | "fireplace"
         | "woodpile"
-        | FurnitureKind
         | "bedroll"
         | "pile"
         | "sled"
         | "plantedTorch";
       readonly id: number;
     }
-  | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind };
+  | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind }
+  /** A finished piece of furniture. `furniture` names the piece. */
+  | { readonly kind: "furniture"; readonly id: number; readonly furniture: FurnitureKind };
+
+/**
+ * What is under a point on the screen, as the scene reports it. Everything but the ground and the river is given by its entity id.
+ * A finished lean-to, foundation, log wall, door frame, roof frame, or roof section is a `structure`.
+ * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
+ * Every other thing is a ThingInReach, so the app treats a click and the E key the same way.
+ */
+export type ScenePick =
+  | { kind: "structure"; id: number; structure: StructureKind; under: GroundOrThingPick | undefined }
+  /** Open ground. `riverBank` is true on river bank ground, where the player can gather stone. */
+  | { kind: "ground"; spot: GroundPoint; riverBank?: true }
+  | { kind: "river"; spot: GroundPoint }
+  | ThingInReach;
+
+/** A pick that landed on anything but a finished structure. */
+export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
 
 /**
  * What a thing in the world is, given by its entity id. The action queue shows it as the icon of an action on it.
@@ -688,6 +713,11 @@ export interface PlacementCheck {
   /** The turn it takes there. This is the turn asked for, except for a roof, which takes the turn of the frame under it. */
   readonly turns: QuarterTurns;
   readonly allowed: boolean;
+}
+
+/** A blueprint under the mouse that the player has not placed yet, as the placement check gives it. The scene shows it. */
+export interface PlacingBlueprint extends PlacementCheck {
+  readonly structure: StructureKind;
 }
 
 export interface GameClient {

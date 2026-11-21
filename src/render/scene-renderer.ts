@@ -1,10 +1,9 @@
 import * as THREE from "three";
-import type { EatOrDrinkView, SleepView, StructureKind, ThingInReach } from "../sim/api";
+import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, ScenePick, SleepView } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
-import { byFurnitureKind } from "../sim/structure-kind";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/stone";
@@ -28,7 +27,7 @@ import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
-import { createStructureMeshes, type PlacingBlueprint } from "./structure-meshes";
+import { createStructureMeshes } from "./structure-meshes";
 import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
@@ -53,24 +52,6 @@ const FISHING_DRIFT_SECONDS = 0.5;
 const TURN_MIN_TRAVEL_METRES = 0.001;
 /** A player gathering stone this close to the spot clicked stands on it, so they keep facing the way they walked. In metres. */
 const STAND_ON_SPOT_METRES = 0.3;
-
-/**
- * What is under a point on the screen. Everything but the ground and the river is given by its entity id.
- * A finished lean-to, foundation, log wall, door frame, roof frame, or roof section is a `structure`.
- * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
- * Every other thing has the same kinds as a thing E can reach, so the app treats both the same way.
- */
-export type ScenePick =
-  | { kind: "structure"; id: number; structure: StructureKind; under: GroundOrThingPick | undefined }
-  /** Open ground. `riverBank` is true on river bank ground, where the player can gather stone. */
-  | { kind: "ground"; spot: GroundPoint; riverBank?: true }
-  | { kind: "river"; spot: GroundPoint }
-  | ThingInReach;
-
-export type { PlacingBlueprint } from "./structure-meshes";
-
-/** A pick that landed on anything but a finished structure. */
-export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
 
 /** A pick that landed on an entity, other than a finished structure. Those are never outlined. */
 type EntityPick = Extract<GroundOrThingPick, { id: number }>;
@@ -161,7 +142,7 @@ export function createSceneRenderer(
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     fireplace: (entity) => structureMeshes.outlineOf({ kind: "fireplace", entity }),
     woodpile: (entity) => structureMeshes.outlineOf({ kind: "woodpile", entity }),
-    ...byFurnitureKind((kind) => (entity: Entity) => structureMeshes.outlineOf({ kind, entity })),
+    furniture: (entity) => structureMeshes.outlineOf({ kind: "furniture", entity }),
     sled: (entity) => structureMeshes.outlineOf({ kind: "sled", entity }),
     workStation: (entity) => structureMeshes.outlineOf({ kind: "workStation", entity }),
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
@@ -509,8 +490,11 @@ export function createSceneRenderer(
       const { kind, entity } = nearest.hit;
       const id = entities.id(entity);
       if (id !== undefined) {
-        if (kind !== "workStation") return { pick: { kind, id }, distance: nearest.distance };
-        if (entity.workStation !== undefined) return { pick: { kind, id, station: entity.workStation }, distance: nearest.distance };
+        if (kind === "workStation") {
+          if (entity.workStation !== undefined) return { pick: { kind, id, station: entity.workStation }, distance: nearest.distance };
+        } else if (kind === "furniture") {
+          if (entity.furniture !== undefined) return { pick: { kind, id, furniture: entity.furniture }, distance: nearest.distance };
+        } else return { pick: { kind, id }, distance: nearest.distance };
       }
     }
     if (ground === undefined) return undefined;

@@ -2,8 +2,7 @@
 // It is the one place that knows which meshes draw which structure kind, so the scene renderer and the asset showcase
 // add, update, pick, outline, and dispose every structure through it alone.
 import * as THREE from "three";
-import type { StructureKind } from "../sim/api";
-import type { QuarterTurns } from "../sim/quarter-turns";
+import type { PlacingBlueprint, StructureKind } from "../sim/api";
 import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
 import { createCampfireMeshes } from "./campfire-meshes";
@@ -22,21 +21,14 @@ import { createSledMeshes } from "./sled-meshes";
 import type { RopeHold } from "./sled-rope";
 import { createWoodpileMeshes } from "./woodpile-meshes";
 
-/** What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on. */
+/**
+ * What a click on a structure landed on: a blueprint of any structure, or a finished structure the player can act on.
+ * A finished piece of furniture is a `furniture` hit. Its entity names the piece.
+ */
 export type StructureHit = {
-  kind: "blueprint" | "campfire" | "fireplace" | "woodpile" | FurnitureKind | "workStation" | "sled";
+  kind: "blueprint" | "campfire" | "fireplace" | "woodpile" | "furniture" | "workStation" | "sled";
   entity: Entity;
 };
-
-/** A blueprint under the mouse that the player has not placed yet, as the build menu's placement check gives it. */
-export interface PlacingBlueprint {
-  readonly structure: StructureKind;
-  /** The building-grid spot it snaps to, on the ground, in metres. */
-  readonly spot: Readonly<Vec3>;
-  readonly turns: QuarterTurns;
-  /** False where its placement rule refuses the spot, so it shows as not allowed. */
-  readonly allowed: boolean;
-}
 
 /** What one frame of drawing needs to know. Without `camera` and `player`, no wall fades and no roof hides. */
 export interface StructureFrame {
@@ -184,7 +176,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   /** What a ray hits first among one kind of furniture and its blueprints, as a structure hit. */
   function furnitureHit(kind: FurnitureKind, raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined {
     const found = furniture[kind].pick(raycaster);
-    return found && { hit: { kind: found.hit.kind === "finished" ? kind : "blueprint", entity: found.hit.entity }, distance: found.distance };
+    return found && { hit: { kind: found.hit.kind === "finished" ? "furniture" : "blueprint", entity: found.hit.entity }, distance: found.distance };
   }
 
   /** Keeps whichever candidate is nearest. */
@@ -244,8 +236,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         case "workStation":
           // The sawhorse is the only work station so far. A later kind of station adds its meshes here.
           return sawhorses.outlineOf({ kind, entity });
-        default:
-          return furniture[kind].outlineOf(entity);
+        case "furniture":
+          return entity.furniture === undefined ? [] : furniture[entity.furniture].outlineOf(entity);
       }
     },
     showPlacingBlueprint(placing) {

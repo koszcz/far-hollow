@@ -949,6 +949,11 @@ body {
 .hud-content-move:focus-visible {
   background: #5a3f2a;
 }
+/* A chest cell the game would refuse to take from, such as when the backpack is full. Its title says why. */
+.hud-content-move-dimmed {
+  opacity: 0.55;
+  cursor: default;
+}
 .hud-content-move:focus-visible {
   outline: 2px solid var(--hud-amber);
   outline-offset: -2px;

@@ -16,6 +16,7 @@ import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../tree-fall";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../player-saw-pose";
 import { HAND_CRAFT_CYCLE_SECONDS, HAND_CRAFT_ENTER_SECONDS } from "../player-hand-craft-pose";
+import { SLED_HEAVE_PEAK_SHARE } from "../player-sled-drag-pose";
 import { FISH_MIN_WAIT_MINUTES } from "../../sim/fishing";
 import { REAL_MS_PER_GAME_MINUTE } from "../../sim/clock";
 import {
@@ -190,10 +191,10 @@ const SLED_DRAG_SHOWCASE: Showcase = {
   radius: 1.9,
   focus: { x: -0.8, y: 0.7, z: 0 },
   shots: [
-    { label: "walking, left leg passes, rope hand side", yaw: 180, pitch: 5, share: 0.75, radius: 0.9, focus: { x: 0, y: 0.7 } },
+    { label: "push-off heave, rope hand side", yaw: 180, pitch: 5, share: SLED_HEAVE_PEAK_SHARE / 2, radius: 1.2, focus: { x: -0.2, y: 0.7 } },
     { label: "walking with the loaded sled, right foot lands", yaw: 40, pitch: 15, share: 0.5 },
-    { label: "standing, leaning into the rope", yaw: 120, pitch: 15, radius: 0.9, focus: { x: 0, y: 0.7 } },
-    { label: "rope down the back, from behind", yaw: 250, pitch: 40, radius: 1, focus: { x: 0, y: 0.7 } },
+    { label: "standing, leaning into the rope", yaw: 230, pitch: 15, radius: 1.2, focus: { x: -0.2, y: 0.7 } },
+    { label: "carrying a log while dragging", yaw: 150, pitch: 15, share: 0.25, radius: 1.6, focus: { x: -0.4, y: 0.8 } },
   ].map(({ share, ...shot }) => (share === undefined ? shot : { ...shot, seconds: (share * STRIDE_METRES) / DRAG_WALK_METRES_PER_SECOND })),
   build(stage) {
     const sled = stage.place(-DRAG_ROPE_METRES, 0, { sled: { log: 4, debarkedLog: 2, plank: 0 }, facing: { turns: 0 }, dragHeading: 0 });
@@ -205,6 +206,7 @@ const SLED_DRAG_SHOWCASE: Showcase = {
   },
   pose({ player }, shot) {
     player.setWalking(shot.seconds === undefined ? undefined : shot.seconds * DRAG_WALK_METRES_PER_SECOND);
+    player.setCarryingLog(shot.label.startsWith("carrying") ? "log" : undefined);
   },
   // The player drags the sled forward at dragging speed, then stands leaning into the rope, then walks on. The camera keeps pace.
   play: {

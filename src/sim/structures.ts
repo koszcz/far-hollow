@@ -9,6 +9,7 @@ import {
   cabinRoofEntities,
   campfireEntities,
   edgePieceEntities,
+  fireplaceEntities,
   foundationEntities,
   lyingThings,
   roofEntities,
@@ -42,18 +43,30 @@ import {
   type KeptMaterial,
   type Placement,
   type StructureKind,
+  TAKEN_MATERIALS,
+  type TakenMaterial,
 } from "./structure-kind";
 import { turnOffset, turnQuarters, type QuarterTurns } from "./quarter-turns";
 import { cellIndexAt, isWalkable, type WalkMap } from "./walk-map";
 
-export type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, Placement, StructureKind, WorkStationKind } from "./structure-kind";
+export type {
+  DeliveredMaterial,
+  EdgePieceKind,
+  FurnitureKind,
+  GroundRect,
+  KeptMaterial,
+  Placement,
+  StructureKind,
+  TakenMaterial,
+  WorkStationKind,
+} from "./structure-kind";
 
 /**
  * A material a structure costs. Construction takes a backpack material, such as a stick, out of the backpack.
  * It spends a delivered material, such as a debarked log, from what the player carried to the blueprint.
  * It spends planks from the ones the blueprint keeps. Building takes them from the backpack, as many as the blueprint still needs.
  */
-export type BuildMaterial = Extract<BackpackContent, "stick" | "bark" | "plank"> | DeliveredMaterial;
+export type BuildMaterial = Extract<BackpackContent, "stick" | "bark" | "plank" | "stone"> | DeliveredMaterial;
 
 /** How many of one material a structure costs. */
 export interface MaterialCost {
@@ -69,7 +82,8 @@ export interface PlacementSite {
 }
 
 /** The components that mark a finished structure. */
-export type FinishedMarker = "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "woodpile" | "furniture" | "workStation" | "sled";
+export type FinishedMarker =
+  "campfire" | "leanTo" | "foundation" | "edgePiece" | "roofFrame" | "cabinRoof" | "fireplace" | "woodpile" | "furniture" | "workStation" | "sled";
 
 export interface StructureDefinition {
   readonly kind: StructureKind;
@@ -106,6 +120,8 @@ export interface StructureDefinition {
   heightAt?(site: PlacementSite, spot: GroundPoint): number;
   /** Clears the ground for a blueprint just placed at `spot`, if the structure needs it. */
   clearSite?(entities: EntityStore, spot: GroundPoint): void;
+  /** The spots whose walk-map squares a blueprint at `spot` blocks, for a structure whose blueprint blocks walking. Without this, a blueprint blocks nothing. */
+  blueprintBlocksWalkingSpots?(spot: GroundPoint): GroundPoint[];
 }
 
 /**
@@ -157,6 +173,8 @@ const campfire: StructureDefinition & { readonly kind: "campfire" } = {
       // On a foundation, a campfire goes only inside a room.
       return false;
     }
+    // A fireplace's square holds no campfire.
+    if (fireplaceEntities(entities).entities.some((fireplace) => isOnGridSquare(fireplace.position, spot))) return false;
     const plans = blueprintEntities(entities).entities.filter(({ blueprint }) => !isPlacedFreely(blueprint.structure));
     for (const other of [...campfireEntities(entities), ...plans, ...woodpileEntities(entities), ...workStationEntities(entities)]) {
       if (groundDistance(other.position, spot) < CAMPFIRE_MIN_SPACING_METRES) return false;
@@ -348,7 +366,7 @@ const roofFrame: StructureDefinition & { readonly kind: "roofFrame" } = {
     // Logs, sticks, bark, and bedrolls on the deck are in the way, as is a frame or roof already over the square, finished or as a blueprint.
     // Furniture and sleds under it are not.
     const rect = roofFrame.footprint(spot, turns);
-    return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreFreelyPlaced: true });
+    return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreFreelyPlaced: true, ignoreFireplaces: true });
   },
   finish: () => ({ roofFrame: true }),
 };
@@ -375,10 +393,43 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities }, spot, turns) {
     if (roofFrameOn(entities, spot) === undefined) return false;
-    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it, furniture, and sleds are not.
-    return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFreelyPlaced: true, ignoreRoofFrames: true });
+    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it, a fireplace, furniture, and sleds are not.
+    return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFreelyPlaced: true, ignoreRoofFrames: true, ignoreFireplaces: true });
   },
   finish: (spot, turns) => ({ cabinRoof: true, roof: roof.footprint(spot, turns) }),
+};
+
+/** How many stones a fireplace costs. Construction spends one at the start of each stage. */
+export const FIREPLACE_STONE_COST = 12;
+/** How long the player holds the build action to build a fireplace, in seconds. */
+export const FIREPLACE_BUILD_SECONDS = 24;
+
+/**
+ * A fireplace: a stone hearth with a short chimney, on one finished foundation square. R turns it to face any side of the square.
+ * It needs no room around it, so the player can build it before the walls and roof.
+ * The square must hold no campfire and no furniture. A fireplace and its blueprint block walking on the square.
+ */
+const fireplace: StructureDefinition & { readonly kind: "fireplace" } = {
+  kind: "fireplace",
+  placement: "onFoundation",
+  finishedAs: "fireplace",
+  cost: [{ material: "stone", count: FIREPLACE_STONE_COST }],
+  buildSeconds: FIREPLACE_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
+  snap: (_site, at) => snapToGridSquare(at),
+  heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace({ entities }, spot, turns) {
+    if (foundationUnderCampfire(entities, spot) === undefined) return false;
+    const rect = fireplace.footprint(spot, turns);
+    // A campfire on the square, finished or as a blueprint, is in the way.
+    const fires = [...campfireEntities(entities), ...blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "campfire")];
+    if (fires.some((fire) => isOnGridSquare(spot, fire.position))) return false;
+    // Things lying on the deck would end up under it. The player moves them first.
+    // Walls on the square's edges and a roof frame or roof over it are not in the way. Furniture and any other structure are.
+    return !hasThingsLyingOn(entities, rect) && isClearOfTreesAndStructures(entities, rect, { ignoreCabinRoofs: true });
+  },
+  finish: (spot) => ({ fireplace: true, blocksWalkingSpots: [{ x: spot.x, z: spot.z }] }),
+  blueprintBlocksWalkingSpots: (spot) => [{ x: spot.x, z: spot.z }],
 };
 
 /** How long the player holds the build action to build a woodpile, in seconds. It costs nothing, so it goes up quickly. */
@@ -583,6 +634,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   doorFrame,
   roofFrame,
   roof,
+  fireplace,
   woodpile,
   ...FURNITURE_STRUCTURES,
   sawhorse,
@@ -654,6 +706,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
  * `ignoreFreelyPlaced` lets it go over furniture and sleds, and their blueprints, as a roof does.
  * `ignoreCabinRoofs` lets it go under a finished cabin roof or roof frame, or a blueprint of either, as furniture does. A lean-to is still in the way.
  * `ignoreRoofFrames` lets it go over a finished roof frame, as a roof does.
+ * `ignoreFireplaces` lets it go over a fireplace or its blueprint, as a roof frame and a roof do.
  */
 function isClearOfTreesAndStructures(
   entities: EntityStore,
@@ -662,7 +715,8 @@ function isClearOfTreesAndStructures(
     ignoreFreelyPlaced = false,
     ignoreCabinRoofs = false,
     ignoreRoofFrames = false,
-  }: { ignoreFreelyPlaced?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean } = {},
+    ignoreFireplaces = false,
+  }: { ignoreFreelyPlaced?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean; ignoreFireplaces?: boolean } = {},
 ): boolean {
   const nearTrees = {
     min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
@@ -673,6 +727,7 @@ function isClearOfTreesAndStructures(
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
     if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
+    if (ignoreFireplaces && structure === "fireplace") continue;
     if (rectsOverlap(rect, footprintOfEntity(blueprint))) return false;
   }
   for (const roofed of roofEntities(entities)) {
@@ -686,7 +741,7 @@ function isClearOfTreesAndStructures(
   if (!ignoreFreelyPlaced && !isClearOfFreelyPlaced(entities, rect)) return false;
   // Every other finished structure is in the way, so a new kind of structure is in the way unless it says otherwise.
   for (const { entity, kind } of finishedStructures(entities)) {
-    if (CHECKED_APART.has(kind) || isPlacedFreely(kind)) continue;
+    if (CHECKED_APART.has(kind) || isPlacedFreely(kind) || (ignoreFireplaces && kind === "fireplace")) continue;
     if (rectsOverlap(rect, footprintOfEntity(entity))) return false;
   }
   return true;
@@ -713,9 +768,14 @@ export function isDelivered(material: BuildMaterial): material is DeliveredMater
   return material === "log" || material === "debarkedLog";
 }
 
-/** Whether a blueprint keeps a material once it has it: one carried to it on the shoulder, or planks. See KeptMaterial. */
+/** Whether a blueprint keeps a material once it has it: one carried to it on the shoulder, planks, or stone. See KeptMaterial. */
 export function isKept(material: BuildMaterial): material is KeptMaterial {
-  return isDelivered(material) || material === "plank";
+  return isDelivered(material) || isTaken(material);
+}
+
+/** Whether a blueprint takes a material from the backpack and from piles near it: planks or stone. See TakenMaterial. */
+export function isTaken(material: BuildMaterial): material is TakenMaterial {
+  return (TAKEN_MATERIALS as readonly BuildMaterial[]).includes(material);
 }
 
 /**
@@ -728,7 +788,7 @@ export function costOf(entity: Entity, kind: StructureKind): readonly MaterialCo
 
 /**
  * What kind of structure an entity is: a blueprint of any structure, or a finished campfire, lean-to, foundation,
- * log wall, door frame, roof frame, roof section, woodpile, piece of furniture, work station, or sled. Undefined for anything else.
+ * log wall, door frame, roof frame, roof section, fireplace, woodpile, piece of furniture, work station, or sled. Undefined for anything else.
  */
 export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.blueprint !== undefined) return entity.blueprint.structure;

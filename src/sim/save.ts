@@ -55,6 +55,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   putFurnitureInOnePart,
   growStumpsBack,
   addStone,
+  addFireplaces,
 ];
 
 /** The version of the save format this code writes. */
@@ -116,6 +117,8 @@ export const FURNITURE_PART_SAVE_VERSION = SAVE_UPGRADES.indexOf(putFurnitureInO
 export const REGROWTH_SAVE_VERSION = SAVE_UPGRADES.indexOf(growStumpsBack) + 2;
 /** The first save version that can hold stone. */
 export const STONE_SAVE_VERSION = SAVE_UPGRADES.indexOf(addStone) + 2;
+/** The first save version that can hold fireplaces. */
+export const FIREPLACES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFireplaces) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -604,5 +607,10 @@ function growStumpsBack(save: Readonly<Record<string, unknown>>): Record<string,
 
 /** Version 34 to 35: the player can gather stone. A save from before then has none, so it carries over unchanged. */
 function addStone(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 35 to 36: the player can build fireplaces from stone. A save from before then has none, so it carries over unchanged. */
+function addFireplaces(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

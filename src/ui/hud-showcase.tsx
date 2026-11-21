@@ -197,6 +197,7 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame" },
+  { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   ...FURNITURE_BUILD_MENU,
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
@@ -475,16 +476,18 @@ const STATES_BY_ASSET = {
   "sled-icon": BUILD_ICON_STATES,
   // The furniture icons show in the build menu too, so the "furniture-icons" showcase is the build menu's as well.
   "furniture-icons": BUILD_ICON_STATES,
+  // So does the fireplace's icon.
+  "fireplace-icon": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", or "action-queue-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", or "action-queue-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   STATES_BY_ASSET[asset].forEach(({ view, buildMenuOpen, placing, craftMenuOpen = false }, index) => {
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
-    if (asset === "build-icons" || asset === "sled-icon" || asset === "furniture-icons") {
+    if (asset === "build-icons" || asset === "sled-icon" || asset === "furniture-icons" || asset === "fireplace-icon") {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {

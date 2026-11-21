@@ -124,6 +124,7 @@ export const strings = {
       doorFrame: "Door frame",
       roofFrame: "Roof frame",
       roof: "Roof section",
+      fireplace: "Fireplace",
       woodpile: "Woodpile",
       chest: "Chest",
       shelf: "Shelf",
@@ -137,6 +138,7 @@ export const strings = {
       stick: (count: number) => (count === 1 ? "1 stick" : `${count} sticks`),
       bark: (count: number) => `${count} bark`,
       plank: (count: number) => (count === 1 ? "1 plank" : `${count} planks`),
+      stone: (count: number) => (count === 1 ? "1 stone" : `${count} stones`),
       log: (count: number) => (count === 1 ? "1 log" : `${count} logs`),
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
@@ -147,6 +149,7 @@ export const strings = {
     placing: {
       anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere.`,
       onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it.`,
+      onFoundation: (structure: string) => `Placing: ${structure}. Point at a finished foundation and click to place it. R turns it.`,
       onEdge: (structure: string) => `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. R picks another edge.`,
       overWalls: (structure: string) =>
         `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
@@ -172,12 +175,14 @@ export const strings = {
       log: (has: number, needs: number) => `Logs: ${has} of ${needs}`,
       debarkedLog: (has: number, needs: number) => `Debarked logs: ${has} of ${needs}`,
       plank: (has: number, needs: number) => `Planks: ${has} of ${needs}`,
+      stone: (has: number, needs: number) => `Stone: ${has} of ${needs}`,
     },
     /** How to add the material the blueprint still waits for. */
     deliverHint: {
       log: `Lay logs within ${NEARBY_MATERIALS_METRES} m of the blueprint, or carry one here and click the blueprint to add it.`,
       debarkedLog: `Lay debarked logs within ${NEARBY_MATERIALS_METRES} m of the blueprint, or carry one here and click the blueprint to add it.`,
       plank: "Bring planks in your backpack and click the blueprint to build with them.",
+      stone: `Bring stone in your backpack, or lay it within ${NEARBY_MATERIALS_METRES} m of the blueprint, and click the blueprint to build with it.`,
     },
     buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",
   },
@@ -375,6 +380,8 @@ export const strings = {
     needsTool: (tool: string) => `needs the ${tool.toLowerCase()}`,
     /** A fuel or wood the backpack does not hold. */
     noContent: { firewood: "no firewood", stick: "no sticks", bark: "no bark", plank: "no planks" },
+    /** What a blueprint lacks when it has no stone to build its next stage. */
+    noStone: "no stone",
     fireEmpty: "no fuel",
     fireFull: "the fire is full",
     lightFirst: "light the fire first",

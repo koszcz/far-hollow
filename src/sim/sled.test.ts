@@ -583,7 +583,7 @@ function buildFully(game: Game, blueprint: Entity): void {
   const deliveries = game.client.describeBlueprint(idOf(game, blueprint))?.deliveries ?? [];
   const contents = onlyPlayer(game).backpack.contents;
   for (const { material, needs } of deliveries) {
-    if (material === "plank") contents.plank = (contents.plank ?? 0) + needs;
+    if (material === "plank" || material === "stone") contents[material] = (contents[material] ?? 0) + needs;
     else deliverLogs(game, blueprint, needs, material);
   }
   contents.stick = (contents.stick ?? 0) + SLED_STICK_COST;

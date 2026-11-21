@@ -5,6 +5,7 @@ import { BUILD_FADE_SHARE } from "../structure-look";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
 import {
   DOOR_FRAME_LOG_COST,
+  FIREPLACE_STONE_COST,
   FOUNDATION_LOG_COST,
   LOG_WALL_LOG_COST,
   ROOF_PLANK_COST,
@@ -155,6 +156,33 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   ...FURNITURE_SHOWCASES,
+  fireplace: {
+    radius: 2.2,
+    focus: { x: 0, y: 0.8, z: 0 },
+    // On a foundation with a log wall behind it: a blueprint with 4 of 12 stones, the 5th stone being set down,
+    // the chimney going up, then the finished fireplace from the front and from behind, with the player beside it for size.
+    shots: [
+      { label: `blueprint, 4 of ${FIREPLACE_STONE_COST} stones`, yaw: 30, pitch: 25, seconds: 0 },
+      { label: "5th stone above its place", yaw: 30, pitch: 25, seconds: (4 + BUILD_FADE_SHARE) / FIREPLACE_STONE_COST },
+      { label: "chimney going up", yaw: 30, pitch: 25, seconds: (10 + BUILD_FADE_SHARE) / FIREPLACE_STONE_COST },
+      { label: "built, front", yaw: 0, pitch: 12, seconds: 1 },
+      { label: "built, back three-quarter", yaw: 215, pitch: 25, seconds: 1 },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      onDeck(0, -0.5, { edgePiece: "logWall", facing: { turns: 2 } });
+      onDeck(0, 0, { blueprint: { structure: "fireplace", progress: 0, materialsSpent: 0, delivered: { stone: 4 } }, facing: { turns: 0 } });
+      stage.movePlayer(1.2, 0.6, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      const progress = shot.seconds ?? 0;
+      for (const entity of store.with("blueprint")) {
+        entity.blueprint.progress = progress;
+        entity.blueprint.delivered.stone = Math.max(4, Math.ceil(progress * FIREPLACE_STONE_COST));
+      }
+    },
+  },
   sawhorse: {
     radius: 1.6,
     focus: { x: 0, y: 0.35, z: 0 },

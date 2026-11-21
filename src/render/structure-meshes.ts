@@ -8,6 +8,7 @@ import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
+import { createFireplaceMeshes } from "./fireplace-meshes";
 import { createFishOnFireMeshes } from "./fish-on-fire-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import type { OutlinePart } from "./hover-outline";
@@ -55,7 +56,7 @@ export interface StructureMeshes {
   update(frame: StructureFrame): void;
   /** What a ray from the camera hits first among blueprints and finished structures the player can act on, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined;
-  /** The finished lean-to, foundation, wall, door frame, roof frame, or roof section a ray meets first. The action menu uses it. */
+  /** The finished lean-to, foundation, wall, door frame, roof frame, roof section, or fireplace a ray meets first. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of what a click landed on, placed in the world. Empty once it is gone. */
   outlineOf(hit: StructureHit): OutlinePart[];
@@ -78,14 +79,28 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const edgePieces = createEdgePieceMeshes(entities);
   const roofFrames = createRoofFrameMeshes(entities);
   const roofs = createRoofMeshes(entities);
+  const fireplaces = createFireplaceMeshes(entities);
   const woodpiles = createWoodpileMeshes(entities, logShape);
   const furniture = byFurnitureKind((kind) => FURNITURE_MESHES[kind](entities));
   const sawhorses = createSawhorseMeshes(entities);
   const sleds = createSledMeshes(entities, logShape);
   // The fish on each campfire are an asset of their own, so they draw apart from the campfire.
   const fishOnFire = createFishOnFireMeshes(entities, groundAt);
-  const all = [campfires, fishOnFire, leanTos, foundations, edgePieces, roofFrames, roofs, woodpiles, ...Object.values(furniture), sawhorses, sleds];
-  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs];
+  const all = [
+    campfires,
+    fishOnFire,
+    leanTos,
+    foundations,
+    edgePieces,
+    roofFrames,
+    roofs,
+    fireplaces,
+    woodpiles,
+    ...Object.values(furniture),
+    sawhorses,
+    sleds,
+  ];
+  const withFinishedPicks = [leanTos, foundations, edgePieces, roofFrames, roofs, fireplaces];
 
   const group = new THREE.Group();
   group.add(...all.map((meshes) => meshes.group));
@@ -132,6 +147,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       outlineBlueprint: (entity) => roofs.outlineOf({ kind: "blueprint", entity }),
       showPlacing: (placing) => {
         roofs.showPlacingBlueprint(placing);
+      },
+    },
+    fireplace: {
+      outlineBlueprint: (entity) => fireplaces.outlineOf({ kind: "blueprint", entity }),
+      showPlacing: (placing) => {
+        fireplaces.showPlacingBlueprint(placing);
       },
     },
     woodpile: {
@@ -184,10 +205,11 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       // The roof above the player, and the frames under it, hide.
       roofFrames.update(player !== undefined ? { player } : undefined);
       roofs.update(player !== undefined ? { player } : undefined);
+      fireplaces.update();
       woodpiles.update();
       for (const meshes of Object.values(furniture)) meshes.update();
       sawhorses.update();
-      sleds.update(player, ropeHold);
+      sleds.update(nowSeconds, player, ropeHold);
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([
@@ -197,6 +219,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         edgePieces.pick(raycaster),
         roofFrames.pick(raycaster),
         roofs.pick(raycaster),
+        fireplaces.pick(raycaster),
         woodpiles.pick(raycaster),
         ...FURNITURE_KINDS.map((kind) => furnitureHit(kind, raycaster)),
         sawhorses.pick(raycaster),

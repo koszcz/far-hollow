@@ -11,6 +11,7 @@ import {
   blueprintEntities,
   cabinRoofEntities,
   campfireEntities,
+  fireplaceEntities,
   furnitureEntities,
   leanToEntities,
   lyingThings,
@@ -23,7 +24,7 @@ import {
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { isSled, layLoadBeside } from "./sleds";
-import { rectsOverlap, SIDES } from "./structure-kind";
+import { rectsOverlap, SIDES, TAKEN_MATERIALS } from "./structure-kind";
 import {
   costOf,
   footprintOfEntity,
@@ -31,6 +32,7 @@ import {
   isKept,
   isPlacedFreely,
   isPlacedStructure,
+  isTaken,
   roofFrameOn,
   stageMaterials,
   structureKindOf,
@@ -40,6 +42,7 @@ import {
   type KeptMaterial,
   type PlacedStructure,
   type StructureKind,
+  type TakenMaterial,
 } from "./structures";
 import type { Valley } from "./valley";
 import type { GroundPoint } from "./ground-point";
@@ -88,9 +91,9 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
   const workers = entities.with("takeDownTask", "position", "backpack");
 
   /**
-   * Removes a structure and gives back its materials. Bark goes in the backpack first, then sticks and planks.
+   * Removes a structure and gives back its materials. Bark goes in the backpack first, then sticks, planks, and stone.
    * Bark and sticks that do not fit, and every debarked log, go on the ground near the worker, on their side of any wall.
-   * Planks that do not fit go on the ground there as one pile.
+   * Planks that do not fit go on the ground there as one pile, and so does stone.
    * Anything lying on a foundation's deck drops to the ground under it.
    */
   function takeDown(worker: Worker, structure: PlacedStructure, kind: StructureKind): void {
@@ -100,14 +103,17 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
     if (kind === "foundation") dropOffDeck(structure.position);
     const onGround: Entity[] = [];
     const barkFirst = [...backpack].sort((a, b) => Number(b === "bark") - Number(a === "bark"));
-    let planksLeft = 0;
+    const left: Partial<Record<TakenMaterial, number>> = {};
     for (const material of barkFirst) {
       if (addToBackpack(worker.backpack, material, 1)) continue;
-      // Planks have no form of their own on the ground, so the ones that do not fit lie there as one pile.
-      if (material === "plank") planksLeft += 1;
+      // Planks and stone have no form of their own on the ground, so the ones that do not fit lie there as one pile of each.
+      if (isTaken(material)) left[material] = (left[material] ?? 0) + 1;
       else onGround.push({ [material]: true });
     }
-    if (planksLeft > 0) onGround.push({ pile: { content: "plank", count: planksLeft } });
+    for (const content of TAKEN_MATERIALS) {
+      const count = left[content] ?? 0;
+      if (count > 0) onGround.push({ pile: { content, count } });
+    }
     for (const material of delivered) onGround.push({ [material]: { heading: 0 } });
     const spots = laySpots(worker.position, onGround.length);
     onGround.forEach((components, i) => {
@@ -234,7 +240,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
 /**
  * Whether another structure stands on this one, so it cannot come down yet.
- * A log wall, door frame, campfire, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
+ * A log wall, door frame, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
@@ -280,7 +286,7 @@ export function holdsSomething(structure: Entity): boolean {
 
 /**
  * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
- * a log wall or door frame on one of its edges, a campfire whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
+ * a log wall or door frame on one of its edges, a campfire or fireplace whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
  * over any of it. A structure placed freely, such as a piece of furniture, stands on every foundation its base reaches over.
  */
 function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
@@ -288,6 +294,7 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   const rect = structureOf("foundation").footprint(square, 0);
   const others = [
     ...campfireEntities(entities),
+    ...fireplaceEntities(entities),
     ...leanToEntities(entities),
     ...roofFrameEntities(entities),
     ...cabinRoofEntities(entities),
@@ -297,7 +304,7 @@ function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
   return others.some((other) => {
     const kind = structureKindOf(other);
     if (kind === undefined) return false;
-    if (kind === "campfire") return isOnGridSquare(square, other.position);
+    if (kind === "campfire" || kind === "fireplace") return isOnGridSquare(square, other.position);
     return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
   });
 }

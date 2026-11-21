@@ -103,6 +103,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   edgePiece: exactly(...EDGE_PIECE_KINDS),
   roofFrame: exactly(true),
   cabinRoof: exactly(true),
+  fireplace: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
   furniture: exactly(...FURNITURE_KINDS),

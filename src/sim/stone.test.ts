@@ -173,7 +173,7 @@ describe("dropping and storing stone", () => {
 describe("saving stone", () => {
   it("raises the save version for stone, and loads a save from before then", () => {
     const game = createGame({ seed: 42 });
-    expect(STONE_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(STONE_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     expect(STONE_SAVE_VERSION).toBeGreaterThan(REGROWTH_SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = STONE_SAVE_VERSION - 1;

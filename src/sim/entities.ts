@@ -168,6 +168,11 @@ export interface Entity {
    */
   cabinRoof?: true;
   /**
+   * Marks a finished fireplace: a stone hearth with a short chimney on one foundation square.
+   * Its position is the middle of that square, at the height of the foundation's deck. Its `facing` says which side its opening faces.
+   */
+  fireplace?: true;
+  /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
@@ -417,6 +422,11 @@ export function roofFrameEntities(store: EntityStore) {
 /** Finished cabin roof sections. */
 export function cabinRoofEntities(store: EntityStore) {
   return store.with("cabinRoof", "position", "roof");
+}
+
+/** Finished fireplaces. */
+export function fireplaceEntities(store: EntityStore) {
+  return store.with("fireplace", "position");
 }
 
 /** Finished campfires. */

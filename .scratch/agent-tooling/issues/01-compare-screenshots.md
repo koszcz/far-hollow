@@ -2,7 +2,7 @@
 
 **What to build:** `scripts/shot.ts` gets a `--compare <commit>` option. It takes the screenshot on the current code and on the given commit, then prints how many pixels differ and where. An agent can then check that a refactor left a page looking the same, without reading either image.
 
-**Status:** claimed
+**Status:** resolved
 
 **Assets:** None. This ticket changes no asset.
 
@@ -29,11 +29,11 @@ The fallbacks were worse:
 
 ## Acceptance criteria
 
-- [ ] `bun scripts/shot.ts "/?asset=fire-effect" /tmp/fire.png --compare HEAD` reports no difference.
-- [ ] A commit that moves a mesh reports a difference, with its box.
-- [ ] Small run-to-run noise stays under the default tolerance. A test or a repeated run shows this.
-- [ ] The temporary worktree is gone after the run, including when the run fails.
-- [ ] No Python and no system image tools are needed.
+- [x] `bun scripts/shot.ts "/?asset=fire-effect" /tmp/fire.png --compare HEAD` reports no difference.
+- [x] A commit that moves a mesh reports a difference, with its box.
+- [x] Small run-to-run noise stays under the default tolerance. A test or a repeated run shows this.
+- [x] The temporary worktree is gone after the run, including when the run fails.
+- [x] No Python and no system image tools are needed.
 
 ## Comments
 
@@ -67,14 +67,14 @@ Triage confirmed that the repo has no screenshot comparison yet and that PIL is 
 
 **Acceptance criteria:**
 
-- [ ] `bun scripts/shot.ts "/?asset=fire-effect" /tmp/fire.png --compare HEAD` on a clean tree reports no difference over the tolerance and exits with 0.
-- [ ] A local change that moves a mesh in a showcase is reported as a difference, with a box around the moved part. The script exits with a non-zero code.
-- [ ] Running the same compare several times on unchanged code stays under the default tolerance every time.
-- [ ] `--compare` with `--at 0,0.5` reports one result per time.
-- [ ] No temporary worktree is left in `git worktree list` after a successful run, a failed run (for example, a bad path), or an interrupted run.
-- [ ] A diff image is saved next to each output file.
-- [ ] A commit that doesn't exist gives a clear error message and leaves no worktree behind.
-- [ ] Without `--compare`, the script behaves exactly as before.
+- [x] `bun scripts/shot.ts "/?asset=fire-effect" /tmp/fire.png --compare HEAD` on a clean tree reports no difference over the tolerance and exits with 0.
+- [x] A local change that moves a mesh in a showcase is reported as a difference, with a box around the moved part. The script exits with a non-zero code.
+- [x] Running the same compare several times on unchanged code stays under the default tolerance every time.
+- [x] `--compare` with `--at 0,0.5` reports one result per time.
+- [x] No temporary worktree is left in `git worktree list` after a successful run, a failed run (for example, a bad path), or an interrupted run.
+- [x] A diff image is saved next to each output file.
+- [x] A commit that doesn't exist gives a clear error message and leaves no worktree behind.
+- [x] Without `--compare`, the script behaves exactly as before.
 
 **Out of scope:**
 

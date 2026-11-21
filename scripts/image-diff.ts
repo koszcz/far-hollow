@@ -33,27 +33,26 @@ const PIXEL_THRESHOLD = 16;
 /** The colour of a differing pixel in the diff image. */
 const DIFF_COLOUR = [255, 0, 0, 255];
 
-/** Compares two images. Images of different sizes count as wholly different. */
-export function diffImages(a: Pixels, b: Pixels): ImageDiff {
-  if (a.width !== b.width || a.height !== b.height) {
-    const image = { width: a.width, height: a.height, data: new Uint8ClampedArray(a.data.length) };
+/** Compares the image from before a change with the one after it. Images of different sizes count as wholly different. */
+export function diffImages(before: Pixels, after: Pixels): ImageDiff {
+  const image = { width: before.width, height: before.height, data: new Uint8ClampedArray(before.data.length) };
+  if (before.width !== after.width || before.height !== after.height) {
     for (let i = 0; i < image.data.length; i += 4) image.data.set(DIFF_COLOUR, i);
-    return { share: 1, box: { x: 0, y: 0, width: a.width, height: a.height }, image };
+    return { share: 1, box: { x: 0, y: 0, width: before.width, height: before.height }, image };
   }
-  const image = { width: a.width, height: a.height, data: new Uint8ClampedArray(a.data.length) };
   let differing = 0;
   let left = Infinity;
   let top = Infinity;
   let right = -Infinity;
   let bottom = -Infinity;
-  for (let y = 0; y < a.height; y++) {
-    for (let x = 0; x < a.width; x++) {
-      const i = (y * a.width + x) * 4;
-      const [ar = 0, ag = 0, ab = 0] = a.data.subarray(i, i + 3);
-      const [br = 0, bg = 0, bb = 0] = b.data.subarray(i, i + 3);
-      const gap = Math.max(Math.abs(ar - br), Math.abs(ag - bg), Math.abs(ab - bb));
+  for (let y = 0; y < before.height; y++) {
+    for (let x = 0; x < before.width; x++) {
+      const i = (y * before.width + x) * 4;
+      const [beforeRed = 0, beforeGreen = 0, beforeBlue = 0] = before.data.subarray(i, i + 3);
+      const [afterRed = 0, afterGreen = 0, afterBlue = 0] = after.data.subarray(i, i + 3);
+      const gap = Math.max(Math.abs(beforeRed - afterRed), Math.abs(beforeGreen - afterGreen), Math.abs(beforeBlue - afterBlue));
       if (gap <= PIXEL_THRESHOLD) {
-        const grey = (ar + ag + ab) / 3;
+        const grey = (beforeRed + beforeGreen + beforeBlue) / 3;
         image.data.fill(255 - (255 - grey) / 4, i, i + 3);
         image.data[i + 3] = 255;
         continue;
@@ -67,5 +66,5 @@ export function diffImages(a: Pixels, b: Pixels): ImageDiff {
     }
   }
   const box = differing === 0 ? null : { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
-  return { share: differing / (a.width * a.height), box, image };
+  return { share: differing / (before.width * before.height), box, image };
 }

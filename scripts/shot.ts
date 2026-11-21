@@ -12,8 +12,9 @@
 //   --at <s,s,...>     Take one shot at each time, in seconds after the page is ready, to show an animation.
 //   --size <WxH>       The window size. The default is 1280x800, the same as the browser tests.
 //   --compare <commit> Also take the same shots on an older commit, such as HEAD or main, and compare each pair.
-//                      It prints the share of pixels that changed and the box that holds them, so you need not open either image.
+//                      It prints the share of pixels that changed and the box that holds them, so you do not need to open either image.
 //                      It saves the old shot as out-old.png and a diff image as out-diff.png, with changed pixels in red.
+//                      With --at, it compares the shots for each time, such as out-0.5s.png with out-0.5s-old.png.
 //                      The current shots include uncommitted changes. The old code runs in a temporary worktree that is removed afterwards.
 //   --tolerance <share> With --compare, exit with code 1 when more than this share of pixels changed. The default is 0.001 (0.1%).
 //
@@ -74,6 +75,9 @@ const SHOTS: readonly Shot[] =
 
 /** Where the old shot of a pair goes with --compare. */
 const oldFileOf = (file: string): string => file.replace(/\.png$/, "-old.png");
+
+/** Where the diff image of a pair goes with --compare. */
+const diffFileOf = (file: string): string => file.replace(/\.png$/, "-diff.png");
 
 /** The root of the checkout this script lives in. */
 const ROOT = resolve(import.meta.dir, "..");
@@ -163,8 +167,14 @@ async function takeShots(browser: Browser, root: string, fileOf: (shot: Shot) =>
   }
 }
 
+/** A temporary worktree at an older commit, and a way to remove it that is safe to call more than once. */
+interface Worktree {
+  readonly folder: string;
+  readonly remove: () => void;
+}
+
 /** Checks out `commit` in a new temporary worktree that reuses this checkout's node_modules. */
-function addOldWorktree(commit: string): { folder: string; remove: () => void } {
+function addOldWorktree(commit: string): Worktree {
   const sha = Bun.spawnSync(["git", "-C", ROOT, "rev-parse", "--verify", "--quiet", `${commit}^{commit}`], { stdout: "pipe" });
   if (sha.exitCode !== 0) throw new Error(`--compare: "${commit}" is not a commit in this repository.`);
   const folder = mkdtempSync(join(tmpdir(), "far-hollow-shot-"));
@@ -230,14 +240,20 @@ async function compareShots(browser: Browser): Promise<boolean> {
   try {
     let withinTolerance = true;
     for (const { file } of SHOTS) {
-      const diff = diffImages(await readPng(page, oldFileOf(file)), await readPng(page, file));
-      const diffFile = file.replace(/\.png$/, "-diff.png");
+      const [before, after] = [await readPng(page, oldFileOf(file)), await readPng(page, file)];
+      const diff = diffImages(before, after);
+      const diffFile = diffFileOf(file);
       await writePng(page, diffFile, diff.image);
       const percent = `${(diff.share * 100).toFixed(3)}%`;
-      const box = diff.box === null ? "" : `, in the box x=${diff.box.x} y=${diff.box.y} width=${diff.box.width} height=${diff.box.height}`;
-      const verdict = diff.share > tolerance ? "DIFFERENT" : "same";
-      console.log(`${verdict}: ${file} has ${percent} of its pixels changed${box}. Diff image: ${diffFile}`);
-      if (diff.share > tolerance) withinTolerance = false;
+      const box =
+        before.width !== after.width || before.height !== after.height
+          ? `, because its size changed from ${before.width}x${before.height} to ${after.width}x${after.height}`
+          : diff.box === null
+            ? ""
+            : `, in the box x=${diff.box.x} y=${diff.box.y} width=${diff.box.width} height=${diff.box.height}`;
+      const overTolerance = diff.share > tolerance;
+      console.log(`${overTolerance ? "DIFFERENT" : "same"}: ${file} has ${percent} of its pixels changed${box}. Diff image: ${diffFile}`);
+      if (overTolerance) withinTolerance = false;
     }
     return withinTolerance;
   } finally {
@@ -245,8 +261,16 @@ async function compareShots(browser: Browser): Promise<boolean> {
   }
 }
 
-const browser = await chromium.launch({ channel: "chrome" });
-let worktree: { folder: string; remove: () => void } | undefined;
+let worktree: Worktree | undefined;
+if (values.compare !== undefined) {
+  try {
+    worktree = addOldWorktree(values.compare);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}
+// Playwright closes the browser itself on these signals. The script stops the dev servers and removes the worktree.
 const stopOnSignal = (): void => {
   for (const server of runningServers) server.kill();
   worktree?.remove();
@@ -254,24 +278,21 @@ const stopOnSignal = (): void => {
 };
 process.on("SIGINT", stopOnSignal);
 process.on("SIGTERM", stopOnSignal);
+const browser = await chromium.launch({ channel: "chrome" });
 try {
-  if (values.compare === undefined) {
+  if (worktree === undefined) {
     await takeShots(browser, ROOT, (shot) => shot.file);
   } else {
-    worktree = addOldWorktree(values.compare);
     console.log("new shots, from the current code:");
     await takeShots(browser, ROOT, (shot) => shot.file);
     console.log(`old shots, from ${values.compare}:`);
     await takeShots(browser, worktree.folder, (shot) => oldFileOf(shot.file));
     worktree.remove();
     if (!(await compareShots(browser))) {
-      console.log(`More than ${tolerance * 100}% of the pixels changed. Set the limit with --tolerance.`);
+      console.log(`More than ${values.tolerance} of the pixels changed. Set the limit with --tolerance.`);
       process.exitCode = 1;
     }
   }
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
 } finally {
   worktree?.remove();
   await browser.close();

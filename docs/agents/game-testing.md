@@ -52,7 +52,7 @@ After a refactor, compare the page with an older commit instead of reading two s
 - The script takes the shot on your current code, including uncommitted changes, and again on the commit you name.
 - It prints the share of pixels that changed and the box around them. You do not need to open either image.
 - It exits with code 1 when more than 0.1% of the pixels changed. Set another limit with `--tolerance 0.01`.
-- It saves the old shot as `fire-old.png` and a diff image as `fire-diff.png`, with changed pixels in red. They are for the owner. You do not need to open them.
+- It saves the old shot as `fire-old.png` and a diff image as `fire-diff.png`, next to the output file. The diff image shows changed pixels in red. Both are for the owner. You do not need to open them.
 - All other options work the same way. With `--at`, it compares each time on its own.
 - It builds the old shot in a temporary worktree and removes it afterwards, even when the run fails. Do not set up a worktree or write a compare script by hand.
 

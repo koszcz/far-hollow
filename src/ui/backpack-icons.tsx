@@ -8,6 +8,7 @@ import { CRAFTING_DRAWINGS, isCraftingContent } from "./crafting-icons";
 import { FISHING_DRAWINGS, isFishingContent } from "./fishing-icons";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
 import { STONE_DRAWING } from "./stone-icon";
+import { TORCH_DRAWING } from "./torch-icons";
 
 /** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` and `.hud-build-entry` in style.css. */
 const CHIP_BACKGROUND = "#3d2b1e";
@@ -42,9 +43,9 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset.
+ * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, and the torch in the draft "torch-icons" asset.
  */
-const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent | FishingContent | Fish | "stone">, BackpackIconDrawing>> = {
+const DRAWINGS: Readonly<Record<Exclude<BackpackContent, CraftingContent | FishingContent | Fish | "stone" | "torch">, BackpackIconDrawing>> = {
   /** A steel axe head on a red-painted handle. */
   axe: {
     colour: STEEL,
@@ -221,6 +222,7 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
 /** The drawing of one kind of backpack content's icon. */
 export function backpackDrawing(content: BackpackContent): BackpackIconDrawing {
   if (content === "stone") return STONE_DRAWING;
+  if (content === "torch") return TORCH_DRAWING;
   return isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : isFishingContent(content) ? FISHING_DRAWINGS[content] : DRAWINGS[content];
 }
 

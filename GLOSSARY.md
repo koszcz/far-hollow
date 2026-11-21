@@ -348,7 +348,8 @@ A stone building piece built from stone on one foundation square. It does everyt
 _Avoid_: Hearth, stove
 
 **Torch**:
-A carried or mounted light that lights a small area around it.
+A light the player makes by hand from a stick and bark. The player carries unlit torches in the backpack. Lighting one with the steel and flint puts it in the player's hand, where it lights the ground around them for 3 game hours, then is gone. The player holds one lit torch at a time. A torch gives no warmth, and rain does not put it out. Putting it out throws it away, so a torch is never lit twice.
+_Avoid_: Lantern, brand
 
 ## Guidance
 

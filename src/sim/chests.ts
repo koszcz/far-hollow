@@ -1,7 +1,7 @@
 // Opening a piece of furniture that stores things, and moving small materials, tools, and food between it and the backpack.
 // Every such piece works the same way and opens in the chest panel. Its definition in src/sim/furniture/ says how much it holds.
 import type { ChestView, ChestOrShelf, PlainNotice, Refusal } from "./api";
-import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
+import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, fitsInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
 import { playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
@@ -50,6 +50,8 @@ export interface Chests {
   put(chestId: number, content: BackpackContent, all: boolean): PlainNotice | undefined;
   /** Moves one of `content` from the open chest or shelf into the backpack, or with `all` as many as fit. Returns `backpackFull` if none of it fits. */
   take(chestId: number, content: BackpackContent, all: boolean): "backpackFull" | undefined;
+  /** Why taking `content` from a chest or shelf would be turned away, wherever the player stands: it holds none, or not one fits in the backpack. */
+  takeRefusal(chestId: number, content: BackpackContent): "nothingToTake" | "backpackFull" | undefined;
 }
 
 /** How much everything in a chest or backpack weighs, in kilograms. */
@@ -143,6 +145,13 @@ export function createChests(entities: EntityStore, walking: Walking): Chests {
       // Kinds the chest no longer holds drop out of its contents, so an emptied chest holds nothing at all.
       chest.holding.contents = withoutEmptyKinds(takeCount(chest.holding.contents, content, moved));
       return undefined;
+    },
+    takeRefusal(chestId, content) {
+      const chest = chestById(chestId);
+      const backpack = players.first?.backpack;
+      if (chest === undefined || backpack === undefined) return undefined;
+      if (countOf(chest.holding.contents, content) <= 0) return "nothingToTake";
+      return fitsInBackpack(backpack, content, 1) ? undefined : "backpackFull";
     },
   };
 }

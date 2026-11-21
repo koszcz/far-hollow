@@ -30,6 +30,7 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   firewood: (count) => (count === 1 ? "1 piece of firewood" : `${count} pieces of firewood`),
   bark: (count) => (count === 1 ? "1 piece of bark" : `${count} pieces of bark`),
   stone: (count) => (count === 1 ? "1 stone" : `${count} stones`),
+  torch: (count) => (count === 1 ? "1 torch" : `${count} torches`),
   berries: (count) => (count === 1 ? "1 handful of berries" : `${count} handfuls of berries`),
   mushroom: (count) => (count === 1 ? "1 mushroom" : `${count} mushrooms`),
   pot: () => "An empty pot",
@@ -83,6 +84,7 @@ export const strings = {
       saw: "Saw",
       planks: "Cut planks",
       fishingRod: "Fishing rod",
+      torch: "Torch",
     },
     /** What a station recipe uses from the ground beside its station, such as "1 debarked log by the sawhorse". */
     besideStation: (materials: string, station: string) => `${materials} by the ${station.toLowerCase()}`,
@@ -263,6 +265,7 @@ export const strings = {
     firewood: "Firewood",
     bark: "Bark",
     stone: "Stone",
+    torch: "Torch",
     pot: "Pot (empty)",
     potOfRiverWater: "Pot of river water",
     potOfBoiledWater: "Pot of boiled water",
@@ -318,6 +321,18 @@ export const strings = {
     nameWithWeight: (what: string, kilograms: number) => `${what} · ${kilogramsText(kilograms)} kg`,
     /** The name of the sled cell for screen readers, such as "Dragging: Sled 4/6". */
     dragging: (name: string) => `Dragging: ${name}`,
+    /** The name of the cell for the lit torch in the player's hand. */
+    litTorch: "Lit torch",
+    /** The name of the lit torch cell for screen readers, such as "In your hand: Lit torch · 2 h 10 min left". */
+    inHand: (what: string) => `In your hand: ${what}`,
+    /** The label above the lit torch cell, with how long it still burns, such as "Lit torch · 2 h 10 min left". */
+    burnsFor: (name: string, minutes: number) => {
+      const whole = Math.max(0, Math.ceil(minutes));
+      const hours = Math.floor(whole / 60);
+      const left = whole % 60;
+      const time = hours === 0 ? `${left} min` : left === 0 ? `${hours} h` : `${hours} h ${left} min`;
+      return `${name} · ${time} left`;
+    },
   },
   /** The action queue: the row of icons beside the clock, one per lined-up action. */
   actionQueue: {
@@ -363,6 +378,8 @@ export const strings = {
     takeDown: "Take down",
     eat: "Eat",
     layOut: "Lay it out",
+    /** Throwing away the lit torch in the player's hand. */
+    putOut: "Put out",
     /** Laying the bedroll from the backpack in a lean-to, across its open front. */
     layBedrollHere: "Lay the bedroll here",
     fillPot: "Fill it at the river",
@@ -405,6 +422,7 @@ export const strings = {
     holdsUpPiece: "take down what stands on it first",
     tooYoungToChop: "the tree is too young to chop",
     backpackFull: "the backpack is full",
+    torchAlreadyLit: "you already hold a lit torch",
     gone: "it is no longer there",
     openFirst: "open it first",
     /** A delivered material the blueprint needs before the next stage can be built. */

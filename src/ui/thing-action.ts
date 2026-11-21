@@ -47,7 +47,8 @@ export type ActionId =
   | "drop"
   | "dropHere"
   | "split"
-  | "fillPot";
+  | "fillPot"
+  | "putOut";
 
 export interface ThingAction {
   /** Stable id for code and tests, such as "chop", "addFuel:firewood", or "stack:firewood:all". */

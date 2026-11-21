@@ -300,7 +300,7 @@ describe("reaching a shelf", () => {
     const shelf = buildShelf(game);
     open(game, shelf);
 
-    expect(game.client.nearestInReach()).toEqual({ kind: "shelf", id: idOf(game, shelf) });
+    expect(game.client.nearestInReach()).toEqual({ kind: "furniture", id: idOf(game, shelf), furniture: "shelf" });
   });
 });
 

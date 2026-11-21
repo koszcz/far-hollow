@@ -406,7 +406,7 @@ export const FIREPLACE_STONE_COST = 12;
 export const FIREPLACE_BUILD_SECONDS = 24;
 
 /**
- * A fireplace: a stone hearth with a short chimney, on one finished foundation square. R turns it to face any side of the square.
+ * A fireplace: a low stone fire box with a short chimney, on one finished foundation square. R turns it to face any side of the square.
  * It needs no room around it, so the player can build it before the walls and roof.
  * The square must hold no campfire and no furniture. A fireplace and its blueprint block walking on the square.
  */

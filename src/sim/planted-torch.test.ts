@@ -44,10 +44,11 @@ describe("planting a torch", () => {
     expect(planted?.position.y).toBeCloseTo(deckTop, 5);
   });
 
-  it("does nothing while the player holds no lit torch", () => {
+  it("is refused while the player holds no lit torch, and plants nothing", () => {
     const game = createGame({ seed: 42 });
     give(game, { torch: 1 });
 
+    expect(game.client.refusal({ type: "plantTorch" })).toEqual({ kind: "noLitTorch" });
     send(game, { type: "plantTorch" });
 
     expect(game.client.getView().plantedTorches).toEqual([]);

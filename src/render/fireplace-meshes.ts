@@ -1,5 +1,5 @@
 // Draws fireplaces and fireplace blueprints: the draft "fireplace" asset in asset-manifest.json, built in code.
-// Added by fireplace ticket 02. A fireplace is a squat stone hearth on one foundation square: a back wall and two side walls
+// Added by fireplace ticket 02. A fireplace is a squat stone fire box on one foundation square: a back wall and two side walls
 // round a stone floor, a stone slab across their tops, and a short chimney rising from the back.
 // Its opening faces +z when it faces the default way.
 // Construction has one stage per stone. Each stone fades in above its place and is set down, like the logs of a sawhorse.

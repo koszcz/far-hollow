@@ -524,6 +524,7 @@ export type Refusal =
  * - `gone`: the thing the command acts on is no longer there, such as a stick already picked up.
  * - `openFirst`: the chest or shelf is not the one the player has open.
  * - `torchTooClose`: another planted torch stands too close to plant one here.
+ * - `noLitTorch`: the player holds no lit torch to plant.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -549,7 +550,8 @@ export type PlainRefusal =
   | "torchAlreadyLit"
   | "gone"
   | "openFirst"
-  | "torchTooClose";
+  | "torchTooClose"
+  | "noLitTorch";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {

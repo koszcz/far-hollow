@@ -28,7 +28,7 @@ import { createTakingDown } from "./taking-down";
 import { STRUCTURES } from "./structures";
 import { createCarrying } from "./carrying";
 import { createCampfires, isWarmedByCampfire } from "./campfires";
-import { createChopping } from "./chopping";
+import { createChopping, choppingRules } from "./chopping";
 import { createDebarking } from "./debarking";
 import { createCrafting, RECIPES } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
@@ -496,17 +496,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         walking.walkTo({ x: command.x, z: command.z });
       },
     },
-    chopTree: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => chopping.refusal(command.treeId),
-      approach: {
-        reach: (command) => chopping.reach(command.treeId),
-        act: (command) => {
-          chopping.start(command.treeId);
-        },
-      },
-    },
+    ...choppingRules(chopping),
     pickUpLog: {
       start: "fresh",
       needsFreeHands: true,

@@ -24,8 +24,6 @@
 // approved "sled-rope" starts.
 // While crafting a hand recipe, the approved "hand-craft-animation", posed in code by player-hand-craft-pose.ts, lashes a
 // small bundle of sticks at waist height, drawn by hand-craft-work.ts. The axe goes on the back.
-// While gathering stone, the draft "gather-stone-animation", posed in code by player-gather-stone-pose.ts, crouches at the
-// water's edge and lifts a stone, drawn by stone-shape.ts, in both hands. The axe goes on the back.
 // While the player holds a lit torch, the draft "torch", built by torch-shape.ts, rides upright in the left hand through
 // every motion, with a small "fire-effect" flame on its head. scene-renderer.ts lights the ground from torchFlame().
 // The backpack on the back is the approved "backpack" asset, built by backpack-shape.ts.
@@ -38,8 +36,6 @@ import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape"
 import { applyBuildPose, buildPoseAt, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { createDrawknife, DRAWKNIFE_GRIP } from "./pile-meshes";
-import { GATHER_STONE_LEAVE_SECONDS, gatherStonePoseAt, holdsStoneAt } from "./player-gather-stone-pose";
-import { createStoneGeometry } from "./stone-shape";
 import { DEBARK_ENTER_SECONDS, debarkPoseAt, DRAWKNIFE_IN_HAND_SCALE } from "./player-debark-pose";
 import { SAW_ENTER_SECONDS, SAW_IN_HAND_SCALE, sawPoseAt } from "./player-saw-pose";
 import { sledDragPoseAt } from "./player-sled-drag-pose";
@@ -62,6 +58,8 @@ import { eatDrinkPoseAt, upperBodyOf, type EatDrinkMotion, type EatDrinkPose } f
 import { createPotMaker, POT_HEIGHT_METRES } from "./pot-shape";
 import { createFireMaker } from "./fire-effect";
 import { createTorchFlame, createTorchShape, TORCH_FLAME_HEIGHT_METRES } from "./torch-shape";
+import { createPlayerMotions, type MotionId, type MotionMoment } from "./player-motions/motion-list";
+import { freeArms, type PlayerMotion, type PlayerRig } from "./player-motions/player-motion";
 
 /**
  * The lit torch rides in the left hand, gripped this far up from its butt, in metres. It leans this far forward and this far
@@ -77,11 +75,6 @@ const MODEL_SCALE = 0.78;
 const HIDDEN_PARTS = ["1H_Axe_Offhand", "Barbarian_Round_Shield", "2H_Axe", "Mug", "Barbarian_Hat", "Barbarian_Cape"];
 const AXE_PART = "1H_Axe";
 const BEANIE_COLOUR = 0xb08a5e;
-/** How much bigger the stone is in the hands than in a pile. The player's head and beard are big for the body, so a true-size stone hides under them. */
-const STONE_IN_HANDS_SCALE = 2;
-/** How far below and ahead of the middle of the wrists the stone sits while the player lifts it, in metres, so the hands hold it rather than hide it. */
-const STONE_BELOW_WRISTS_METRES = 0.06;
-const STONE_AHEAD_OF_WRISTS_METRES = 0.08;
 const BEANIE_CUFF_COLOUR = 0x96714a;
 
 const IDLE_CLIP = "Idle";
@@ -165,8 +158,6 @@ export interface PlayerMesh {
   setSplitting(nowSeconds: number | undefined): void;
   /** Bends the player over a log, pulling a drawknife along it. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
   setDebarking(nowSeconds: number | undefined): void;
-  /** Crouches at the water's edge and lifts a stone. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setGatheringStone(nowSeconds: number | undefined): void;
   /**
    * Saws the log on the sawhorse in front of the player, the saw `progress` of the way through it, from 0 to 1.
    * Pass undefined to stand upright. `nowSeconds` is a steady real-time clock.
@@ -201,6 +192,11 @@ export interface PlayerMesh {
   setEatingOrDrinking(motion: EatDrinkMotion | undefined): void;
   /** Leans the player forward to drag a sled by a rope in the left hand, or stands them upright at once. */
   setDragging(dragging: boolean): void;
+  /**
+   * Moves the motion `id`, from the list in player-motions/motion-list.ts, on to `moment`, or stops it when `moment` is
+   * undefined. Each motion's module says what its moment is.
+   */
+  setMotion<Id extends MotionId>(id: Id, moment: MotionMoment<Id> | undefined): void;
   /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. */
   ropeHold(): RopeHold | undefined;
   /**
@@ -417,13 +413,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     leaveSeconds: FISH_ENTER_SECONDS,
   });
   /** The work motions, in the order they win when more than one plays. */
-  /** Gathering stone, moved on by the steady clock time. */
-  const gatheringStone = createWorkMotion<number>({
-    startOf: (now) => now,
-    poseAt: (now, since) => gatherStonePoseAt(now - since),
-    leaveSeconds: GATHER_STONE_LEAVE_SECONDS,
-  });
-  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, debarking, sawing, handCrafting, fishing, gatheringStone];
+  const workMotions: readonly Pick<WorkMotion<unknown>, "pose" | "since">[] = [building, debarking, sawing, handCrafting, fishing];
   /** While standing up after building, debarking, sawing, or fishing stops. */
   let leavingBuild: Leaving | undefined;
   /** Which forage, eat, or drink motion plays, and how far into it, while one plays. */
@@ -436,15 +426,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   drawknife.group.visible = false;
   drawknife.group.scale.setScalar(DRAWKNIFE_IN_HAND_SCALE);
   group.add(drawknife.group);
-  // The stone rides between the hands while the player lifts it, placed from the wrists each frame.
-  const stoneGeometry = createStoneGeometry();
-  geometries.push(stoneGeometry);
-  // The stone's faces carry their own colours and normals, the same as stone in a pile.
-  const stoneInHands = new THREE.Mesh(stoneGeometry, material(0xffffff, { vertexColors: true, flatShading: false }));
-  stoneInHands.castShadow = true;
-  stoneInHands.scale.setScalar(STONE_IN_HANDS_SCALE);
-  stoneInHands.visible = false;
-  group.add(stoneInHands);
   // The saw rides in the right hand while sawing, placed from the wrist each frame.
   const saw = createSaw();
   saw.group.visible = false;
@@ -507,6 +488,40 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   group.add(torchInHand);
   /** When the lit torch shows, the steady clock time its flame burns at. Undefined while the player holds no lit torch. */
   let torchAt: number | undefined;
+
+  /** What the player mesh lends each motion in the motion list. */
+  const rig: PlayerRig = {
+    group,
+    bones: buildBones,
+    leftArm,
+    rightArm,
+    logShape,
+    material,
+    applyPose(pose, arms) {
+      rememberClipPose(...buildPosedBones);
+      applyBuildPose(group, buildBones, pose, arms);
+    },
+    get carrying() {
+      return carrying;
+    },
+    get walkedMetres() {
+      return walkedMetres;
+    },
+    get bodyMoves() {
+      return (
+        walkedMetres !== undefined ||
+        choppingAt !== undefined ||
+        splittingAt !== undefined ||
+        dragging ||
+        workMotions.some((motion) => motion.since !== undefined) ||
+        bodyMotions.some((motion) => motion.playing)
+      );
+    },
+  };
+  const motions = createPlayerMotions(rig);
+  /** Every motion in the list, in its order. */
+  const motionList: readonly PlayerMotion<unknown>[] = Object.values(motions);
+  const bodyMotions = motionList.filter((motion) => motion.layer === "body");
 
   function material(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}): THREE.MeshStandardMaterial {
     const made = new THREE.MeshStandardMaterial({ color, roughness: 1, ...extra });
@@ -585,6 +600,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       carrying ||
       reaching !== undefined ||
       workMotions.some((motion) => motion.since !== undefined) ||
+      motionList.some((motion) => motion.playing && motion.axeOnBack) ||
       sleepingAt !== undefined ||
       sittingBody !== undefined ||
       eatingOrDrinking !== undefined;
@@ -610,12 +626,12 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     poseReaching();
     blendFromReach();
     placeDrawknife();
-    placeStone();
     placeSaw();
     placeHandCraftWork();
     placeFishingRod();
     placePot(eatDrinkPose?.pot);
     placeTorch();
+    for (const motion of motionList) motion.placeProps();
   }
 
   const torchHand = new THREE.Vector3();
@@ -640,15 +656,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   function poseEatingOrDrinking(eatDrinkPose: EatDrinkPose | undefined): void {
     if (eatDrinkPose === undefined) return;
     const { body, arms } = eatDrinkPose;
-    const underneath =
-      walkedMetres !== undefined ||
-      choppingAt !== undefined ||
-      splittingAt !== undefined ||
-      dragging ||
-      workMotions.some((motion) => motion.since !== undefined);
     rememberClipPose(...buildPosedBones);
     // A hand steadying a log on the shoulder stays there, so only the left hand moves.
-    applyBuildPose(group, buildBones, underneath ? upperBodyOf(body) : body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
+    applyBuildPose(group, buildBones, rig.bodyMoves ? upperBodyOf(body) : body, carrying ? [leftArm] : arms === "right" ? [rightArm] : buildBones.arms);
   }
 
   const potLeft = new THREE.Vector3();
@@ -709,7 +719,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
    * Moves a work motion on to `at`, or stops it when `at` is undefined. Starting one ends any standing back up.
    * Stopping one stands the player back up the way that motion does.
    */
-  function updateWork<At>(motion: WorkMotion<At>, at: At | undefined): void {
+  function updateWork<At>(motion: Pick<PlayerMotion<At>, "update">, at: At | undefined): void {
     const change = motion.update(at, performance.now() / 1000);
     if (change?.kind === "started") leavingBuild = undefined;
     if (change?.kind === "stopped") leavingBuild = change.leaving;
@@ -720,6 +730,11 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   /** Crouches over the clip while building, or stands back up for a moment after building stops. */
   function poseBuilding(): void {
     const working = workMotions.find((motion) => motion.since !== undefined)?.pose();
+    const listed = working === undefined ? bodyMotions.find((motion) => motion.playing) : undefined;
+    if (listed !== undefined) {
+      listed.pose?.();
+      return;
+    }
     if (working === undefined && dragging) {
       // Only the left hand takes the rope. The right arm keeps the clip's swing, or steadies a log on the shoulder.
       // The walk clip takes two steps to each stride, and each step heaves into the pull.
@@ -732,7 +747,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     if (pose === undefined) return;
     rememberClipPose(...buildPosedBones);
     // A hand steadying a log on the shoulder stays there, so only the left hand reaches.
-    applyBuildPose(group, buildBones, pose, carrying ? [leftArm] : buildBones.arms);
+    applyBuildPose(group, buildBones, pose, freeArms(rig));
   }
 
   /** The pose while standing back up after a work motion stops, or undefined once the player stands. */
@@ -754,21 +769,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const knifeUp = new THREE.Vector3();
   const knifeForward = new THREE.Vector3();
   const knifeTurn = new THREE.Matrix4();
-  /** Shows the stone between the hands while the player lifts it. */
-  function placeStone(): void {
-    const since = gatheringStone.since;
-    const now = gatheringStone.at;
-    stoneInHands.visible = since !== undefined && now !== undefined && holdsStoneAt(now - since);
-    if (!stoneInHands.visible) return;
-    group.updateWorldMatrix(true, true);
-    group.worldToLocal(leftArm.end.getWorldPosition(leftWrist));
-    group.worldToLocal(rightArm.end.getWorldPosition(rightWrist));
-    // The stone sits just below the middle of the wrists, held from either side.
-    stoneInHands.position.addVectors(leftWrist, rightWrist).multiplyScalar(0.5);
-    stoneInHands.position.y -= STONE_BELOW_WRISTS_METRES;
-    stoneInHands.position.z += STONE_AHEAD_OF_WRISTS_METRES;
-  }
-
   /** Shows the drawknife while debarking, its handles in the two hands. */
   function placeDrawknife(): void {
     drawknife.group.visible = debarking.since !== undefined;
@@ -992,8 +992,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     setDebarking(nowSeconds) {
       updateWork(debarking, nowSeconds);
     },
-    setGatheringStone(nowSeconds) {
-      updateWork(gatheringStone, nowSeconds);
+    setMotion(id, moment) {
+      const motion: PlayerMotion<unknown> = motions[id];
+      updateWork(motion, moment);
     },
     setSawing(sawingNow) {
       updateWork(sawing, sawingNow === undefined ? undefined : { ...sawingNow });
@@ -1062,6 +1063,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       torchFireMaker.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(model);
+      for (const motion of motionList) motion.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const made of materials) made.dispose();
       backpack.dispose();

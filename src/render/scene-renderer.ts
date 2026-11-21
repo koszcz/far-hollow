@@ -335,7 +335,7 @@ export function createSceneRenderer(
     playerMesh.setDebarking(activity?.kind === "debark" ? nowSeconds : undefined);
     // Gathering stone crouches at the water's edge and lifts a stone, facing the spot clicked, unless the player stands on it.
     const stoneTask = activity?.kind === "gatherStone" ? player.stoneTask : undefined;
-    playerMesh.setGatheringStone(stoneTask === undefined ? undefined : nowSeconds);
+    playerMesh.setMotion("gather-stone-animation", stoneTask === undefined ? undefined : nowSeconds);
     if (stoneTask !== undefined && groundDistance(playerDrawn, stoneTask) > STAND_ON_SPOT_METRES) playerMesh.setHeading(headingToward(playerDrawn, stoneTask));
     // Fishing casts the line out over the water, waits, and reels a fish in, facing the spot on the river.
     const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;

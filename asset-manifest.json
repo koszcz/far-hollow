@@ -1263,7 +1263,7 @@
       "kind": "code",
       "code": [
         "src/render/player-gather-stone-pose.ts",
-        "src/render/player-mesh.ts",
+        "src/render/player-motions/gather-stone-animation.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The player gathers one stone at the water's edge: they crouch, reach both hands low in front, feel about for a stone, then rise halfway and lift it to the chest in both hands. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip; the axe goes on the back.",

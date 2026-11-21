@@ -86,17 +86,20 @@
     },
     {
       "id": "saplings",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/saplings/saplings.glb",
       "code": [
         "src/render/sapling-shape.ts",
+        "src/render/tree-model.ts",
         "src/render/forest-meshes.ts"
       ],
-      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, each the type's own trunk and crown shrunk in the trees' colours. The sapling is about a metre tall, 0.15 of the full height and 0.12 of its width, and stands on the cut face of the stump it grows from. The young tree is half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, drawn in that type's colours. The sapling is one of Kenney's small trees: a small pine for pine types and a small leafy tree for the others. It is about a metre tall, 0.15 of the full height, and stands on the cut face of the stump it grows from. The young tree is the type's own trunk and crown, half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way.",
+      "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. tree_pineSmallA and tree_small, GLTF-format models packed into one file, unchanged. The young tree is built in code in this project",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/regrowth/issues/01-stumps-grow-back.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

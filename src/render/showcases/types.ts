@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { type Entity, type EntityStore, type Vec3 } from "../../sim/entities";
 import { type PotMesh } from "../pot-shape";
+import type { SaplingModels } from "../sapling-shape";
 import type { TreeShape } from "../tree-model";
 import { type PlayerMesh } from "../player-mesh";
 import type { UndergrowthShape } from "../undergrowth-models";
@@ -53,6 +54,8 @@ export interface Stage {
   readonly undergrowthShapes: readonly UndergrowthShape[];
   /** Every loaded tree type, from loadTreeShapes. */
   readonly treeShapes: readonly TreeShape[];
+  /** The sapling models, from loadSaplingModels. */
+  readonly saplingModels: SaplingModels;
 }
 
 export interface Showcase {

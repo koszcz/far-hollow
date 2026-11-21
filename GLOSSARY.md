@@ -340,7 +340,7 @@ An open fire built on the ground. It gives warmth and light, and the player cook
 _Avoid_: Bonfire, fire pit
 
 **Fireplace**:
-A stone building piece built into a cabin. It heats the room it is in.
+A stone building piece built from stone on one foundation square. It does everything a campfire does, and its fuel lasts longer. A lit fireplace heats the room it is in. The player can build it before the walls and roof.
 _Avoid_: Hearth, stove
 
 **Torch**:

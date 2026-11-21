@@ -3,7 +3,8 @@ import { turnOffset, type QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./ground-point";
 
 /** Every structure the build menu can list. Each later shelter structure adds its name here and its entry to STRUCTURES. */
-export type StructureKind = "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "woodpile" | FurnitureKind | WorkStationKind | "sled";
+export type StructureKind =
+  "campfire" | "leanTo" | "foundation" | EdgePieceKind | "roofFrame" | "roof" | "fireplace" | "woodpile" | FurnitureKind | WorkStationKind | "sled";
 
 /** The work stations the build menu can list. A work station is a built object where the player does one kind of processing. */
 export const WORK_STATION_KINDS = ["sawhorse"] as const;
@@ -27,10 +28,10 @@ export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];
 
 /**
  * How a blueprint follows the mouse while the player places it:
- * on the ground at a grid point or square, on the edge of a foundation square, over a square with walls, on a finished roof frame,
+ * on the ground at a grid point or square, on a finished foundation square, on the edge of a foundation square, over a square with walls, on a finished roof frame,
  * or anywhere, off the grid. Furniture and the sled are placed anywhere.
  */
-export type Placement = "onGround" | "onEdge" | "overWalls" | "onFrame" | "anywhere";
+export type Placement = "onGround" | "onFoundation" | "onEdge" | "overWalls" | "onFrame" | "anywhere";
 
 /** The four sides of a grid square, as `edgeMiddle` in edge-pieces.ts numbers them. */
 export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
@@ -43,11 +44,15 @@ export const SIDES: readonly QuarterTurns[] = [0, 1, 2, 3];
 export type DeliveredMaterial = "log" | "debarkedLog";
 
 /**
- * The materials a blueprint keeps once it has them, until construction spends them: everything carried to it on the shoulder, and planks.
- * Building a blueprint that costs planks takes as many planks from the backpack as it still needs, or as many as there are.
+ * The materials a blueprint keeps once it has them, until construction spends them: everything carried to it on the shoulder, planks, and stone.
+ * Building a blueprint that costs planks or stone takes as many from the backpack as it still needs, or as many as there are.
  * The player can bring the rest on later trips.
  */
-export type KeptMaterial = DeliveredMaterial | "plank";
+export type KeptMaterial = DeliveredMaterial | TakenMaterial;
+
+/** The materials a blueprint takes from the backpack and from piles near it, and keeps until construction spends them. */
+export const TAKEN_MATERIALS = ["plank", "stone"] as const;
+export type TakenMaterial = (typeof TAKEN_MATERIALS)[number];
 
 /** A rectangle of ground with sides along x and z, from its `min` corner to its `max` corner, in metres. */
 export interface GroundRect {

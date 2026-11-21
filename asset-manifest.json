@@ -1265,6 +1265,36 @@
         "status": "draft",
         "ticket": ".scratch/fireplace/issues/01-gather-stone.md"
       }
+    },
+    {
+      "id": "fireplace",
+      "kind": "code",
+      "code": [
+        "src/render/fireplace-meshes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. The stones are plain boxes in three greys. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one stone per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fireplace/issues/02-build-a-fireplace.md"
+      }
+    },
+    {
+      "id": "fireplace-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/fireplace-icon.tsx",
+        "src/ui/structure-icon.tsx"
+      ],
+      "description": "The build menu icon for the fireplace, drawn in the build icons' shaded style on the same 24 by 24 grid: a squat grey stone hearth seen from the front, with cut lines between the stones, a pale stone mantel across its top, a sooty arched opening with a small orange flame in it, and a short darker chimney rising behind.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fireplace/issues/02-build-a-fireplace.md"
+      }
     }
   ]
 }

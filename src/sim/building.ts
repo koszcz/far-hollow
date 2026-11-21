@@ -28,7 +28,9 @@ import {
   type KeptMaterial,
   type MaterialCost,
   type StructureKind,
+  type TakenMaterial,
 } from "./structures";
+import { TAKEN_MATERIALS } from "./structure-kind";
 import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
@@ -41,7 +43,7 @@ export const BUILD_STAND_METRES = 0.7;
 export const BUILD_REACH_METRES = 1.7;
 /**
  * A blueprint takes the planks, logs, and debarked logs it costs from parked sleds whose edge is within this many metres of its edge.
- * It also takes planks from plank piles, and logs and debarked logs lying on the ground, whose middle is within this many metres of its edge.
+ * It also takes planks and stone from piles, and logs and debarked logs lying on the ground, whose middle is within this many metres of its edge.
  */
 export const NEARBY_MATERIALS_METRES = 2;
 
@@ -62,7 +64,7 @@ type MaterialsNearby = Readonly<Record<KeptMaterial, MaterialNearby>>;
 const NOTHING_NEARBY: MaterialNearby = { count: 0, take: () => 0 };
 
 /** Nothing nearby, as with free building. */
-const NO_MATERIALS_NEARBY: MaterialsNearby = { log: NOTHING_NEARBY, debarkedLog: NOTHING_NEARBY, plank: NOTHING_NEARBY };
+const NO_MATERIALS_NEARBY: MaterialsNearby = { log: NOTHING_NEARBY, debarkedLog: NOTHING_NEARBY, plank: NOTHING_NEARBY, stone: NOTHING_NEARBY };
 
 export interface Building {
   /** Where a blueprint of `structure` facing `turns` would go if placed near `at`, and whether it is allowed there. Changes nothing. */
@@ -140,7 +142,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
 
   /**
    * The materials lying near a blueprint, within NEARBY_MATERIALS_METRES of it.
-   * Planks come from parked sleds, nearest first, then from plank piles, nearest first.
+   * Planks come from parked sleds, nearest first, then from plank piles, nearest first. Stone comes from stone piles, nearest first.
    * Logs and debarked logs come from the ground, nearest first, then from parked sleds, nearest first.
    */
   function materialsNearby(target: Entity): MaterialsNearby {
@@ -160,25 +162,30 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         .sort((a, b) => a.distance - b.distance)
         .map(({ entity }) => entity);
 
-    const piles = near(pileEntities(entities).entities.filter((pile) => pile.pile.content === "plank"));
-    const plank: MaterialNearby = {
-      count: sleds.reduce((total, sled) => total + sled.sled.plank, 0) + piles.reduce((total, pile) => total + pile.pile.count, 0),
-      take(wanted) {
-        let taken = 0;
-        for (const sled of sleds) {
-          const fromSled = Math.min(wanted - taken, sled.sled.plank);
-          sled.sled = takeCount(sled.sled, "plank", fromSled);
-          taken += fromSled;
-        }
-        for (const pile of piles) {
-          const fromPile = Math.min(wanted - taken, pile.pile.count);
-          pile.pile.count -= fromPile;
-          taken += fromPile;
-          if (pile.pile.count === 0) entities.remove(pile);
-        }
-        return taken;
-      },
-    };
+    /** The things of one kind in piles near the blueprint, and, for planks, on parked sleds near it. */
+    function takenNearby(material: TakenMaterial): MaterialNearby {
+      const piles = near(pileEntities(entities).entities.filter((pile) => pile.pile.content === material));
+      // A sled carries planks but never stone.
+      const loaded = material === "plank" ? sleds : [];
+      return {
+        count: loaded.reduce((total, sled) => total + sled.sled.plank, 0) + piles.reduce((total, pile) => total + pile.pile.count, 0),
+        take(wanted) {
+          let taken = 0;
+          for (const sled of loaded) {
+            const fromSled = Math.min(wanted - taken, sled.sled.plank);
+            sled.sled = takeCount(sled.sled, "plank", fromSled);
+            taken += fromSled;
+          }
+          for (const pile of piles) {
+            const fromPile = Math.min(wanted - taken, pile.pile.count);
+            pile.pile.count -= fromPile;
+            taken += fromPile;
+            if (pile.pile.count === 0) entities.remove(pile);
+          }
+          return taken;
+        },
+      };
+    }
 
     /** The logs of one kind lying near the blueprint, on the ground in `onGround` or on a parked sled. */
     function logsNearby(material: DeliveredMaterial, onGround: readonly (Entity & { position: GroundPoint })[]): MaterialNearby {
@@ -204,7 +211,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     }
 
     return {
-      plank,
+      plank: takenNearby("plank"),
+      stone: takenNearby("stone"),
       log: logsNearby("log", logEntities(entities).entities),
       debarkedLog: logsNearby("debarkedLog", debarkedLogEntities(entities).entities),
     };
@@ -239,11 +247,14 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     place(structure, at, turns) {
       const { spot, turns: facing, allowed } = checkPlacement(structure, at, turns);
       if (!allowed) return undefined;
-      structureOf(structure).clearSite?.(entities, spot);
+      const definition = structureOf(structure);
+      definition.clearSite?.(entities, spot);
+      const blocks = definition.blueprintBlocksWalkingSpots?.(spot);
       const added = entities.add({
         blueprint: { structure, progress: 0, materialsSpent: 0, delivered: {} },
         facing: { turns: facing },
         position: { ...spot },
+        ...(blocks === undefined ? {} : { blocksWalkingSpots: blocks }),
       });
       return entities.id(added);
     },
@@ -340,23 +351,25 @@ function stillNeeded(blueprint: Blueprint, cost: readonly MaterialCost[], materi
 }
 
 /**
- * Moves planks to a blueprint costing `cost`, as many as it still needs: from the backpack first, then from `nearby`.
+ * Moves planks and stone to a blueprint costing `cost`, as many of each as it still needs: from the backpack first, then from `nearby`.
  * The blueprint keeps them, so the player can bring the rest on later trips.
  */
-function takePlanks(blueprint: Blueprint, cost: readonly MaterialCost[], backpack: Backpack, nearby: MaterialNearby): void {
-  const needed = stillNeeded(blueprint, cost, "plank");
-  if (needed <= 0) return;
-  const fromBackpack = Math.min(needed, countInBackpack(backpack, "plank"));
-  if (fromBackpack > 0) removeFromBackpack(backpack, "plank", fromBackpack);
-  const fromNearby = fromBackpack < needed && nearby.count > 0 ? nearby.take(needed - fromBackpack) : 0;
-  if (fromBackpack + fromNearby > 0) blueprint.delivered = addCount(blueprint.delivered, "plank", fromBackpack + fromNearby);
+function takeMaterials(blueprint: Blueprint, cost: readonly MaterialCost[], backpack: Backpack, nearby: MaterialsNearby): void {
+  for (const material of TAKEN_MATERIALS) {
+    const needed = stillNeeded(blueprint, cost, material);
+    if (needed <= 0) continue;
+    const fromBackpack = Math.min(needed, countInBackpack(backpack, material));
+    if (fromBackpack > 0) removeFromBackpack(backpack, material, fromBackpack);
+    const fromNearby = fromBackpack < needed && nearby[material].count > 0 ? nearby[material].take(needed - fromBackpack) : 0;
+    if (fromBackpack + fromNearby > 0) blueprint.delivered = addCount(blueprint.delivered, material, fromBackpack + fromNearby);
+  }
 }
 
 /**
- * Works on a blueprint costing `cost` for one step. First the blueprint takes the planks it still needs,
+ * Works on a blueprint costing `cost` for one step. First the blueprint takes the planks and stone it still needs,
  * from the backpack, then from `nearby`.
  * Each stage spends its material before work on it starts: a stick or bark comes out of the backpack,
- * and a kept material, such as a debarked log or a plank, from what the blueprint keeps.
+ * and a kept material, such as a debarked log, a plank, or a stone, from what the blueprint keeps.
  * A stage that needs a log or debarked log the blueprint does not have yet takes one from `nearby`.
  * Returns false when the next stage's material has run out or the player lacks the tool the structure needs.
  * With `free`, every stage's material counts as spent without taking anything, and no tool is needed.
@@ -377,7 +390,7 @@ function buildOn(
     blueprint.progress = Math.min(1, blueprint.progress + stepSeconds / structure.buildSeconds);
     return true;
   }
-  if (!free) takePlanks(blueprint, cost, backpack, nearby.plank);
+  if (!free) takeMaterials(blueprint, cost, backpack, nearby);
   if (blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
     const material = stages[blueprint.materialsSpent];
     if (material === undefined) return false;
@@ -413,7 +426,7 @@ function nextStageLack(blueprint: Blueprint, cost: readonly MaterialCost[], back
   if (material === undefined) return undefined;
   if (!isKept(material)) return hasInBackpack(backpack, material) ? undefined : { kind: "material", material };
   if (keptLeft(blueprint, stages, material) > 0 || nearby[material].count > 0) return undefined;
-  // Building takes planks from the backpack too. A log or debarked log never goes in the backpack.
+  // Building takes planks and stone from the backpack too. A log or debarked log never goes in the backpack.
   return !isDelivered(material) && hasInBackpack(backpack, material) ? undefined : { kind: "material", material };
 }
 

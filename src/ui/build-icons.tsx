@@ -72,10 +72,11 @@ function barkRow(yTop: number, yBottom: number, colour: string): IconPart {
 }
 
 /**
- * The icon of each structure but the sled and the furniture. structure-icon.tsx picks the icon for each structure.
+ * The icon of each structure but the sled, the fireplace, and the furniture. structure-icon.tsx picks the icon for each structure.
  * The sled's icon is the approved "sled-icon" asset, drawn in sled-icons.tsx. furniture-icons.tsx lists each piece of furniture's icon.
+ * The fireplace's icon is the draft "fireplace-icon" asset, drawn in fireplace-icon.tsx.
  */
-export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | FurnitureKind>, IconDrawing>> = {
+export const STRUCTURE_DRAWINGS: Readonly<Record<Exclude<StructureKind, "sled" | "fireplace" | FurnitureKind>, IconDrawing>> = {
   /** A flame over a cone of sticks, inside a ring of grey stones. */
   campfire: {
     colour: "#ff8a3c",
@@ -209,7 +210,7 @@ export const CHEST_DRAWING: IconDrawing = {
 };
 
 /** Build materials that are not backpack contents, so they have no backpack icon. The log's icon is in sled-icons.tsx. */
-type DeliveredOnlyMaterial = Exclude<BuildMaterial, "stick" | "bark" | "plank" | "log">;
+type DeliveredOnlyMaterial = Exclude<BuildMaterial, "stick" | "bark" | "plank" | "stone" | "log">;
 
 const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = {
   /** A pale, peeled log on its side, with grain lines and growth rings on its cut end. */
@@ -229,9 +230,9 @@ export function carriedLogDrawing(log: CarriedLog): IconDrawing {
   return log === "log" ? LOG_DRAWING : MATERIAL_DRAWINGS.debarkedLog;
 }
 
-/** Draws the icon for one build material. Sticks, bark, and planks reuse their backpack icons. */
+/** Draws the icon for one build material. Sticks, bark, planks, and stone reuse their backpack icons. */
 export function MaterialIcon({ material }: { material: BuildMaterial }) {
-  if (material === "stick" || material === "bark" || material === "plank") return <BackpackIcon content={material} />;
+  if (material === "stick" || material === "bark" || material === "plank" || material === "stone") return <BackpackIcon content={material} />;
   if (material === "log") return <ShadedIcon drawing={LOG_DRAWING} className="backpack-icon" />;
   return <ShadedIcon drawing={MATERIAL_DRAWINGS[material]} className="backpack-icon" />;
 }

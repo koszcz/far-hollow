@@ -26,27 +26,19 @@ The copies have drifted apart:
 - There are about 15 separate reach constants.
 - `src/sim/entities.ts:76-264` declares 21 task components. Each is mirrored in `src/sim/save-schema.ts:73-140` and in `TASK_PARTS` in `src/sim/activity.ts`.
 
-So a fix to walking lands in some modules and not others. Pathfinding ticket 02 made sleds, woodpiles, campfires, chests, stools, and stations walk beside things the short way. Beds, piles, and bedrolls still walk to the thing's centre. Pathfinding ticket 03 fixes those one call at a time. This ticket makes the next fix land everywhere at once.
+So a fix to walking lands in some modules and not others. Pathfinding ticket 02 made sleds, woodpiles, campfires, chests, stools, and stations walk beside things the short way. Pathfinding ticket 03 then fixed beds, piles, bedrolls, and loose things one call at a time. This ticket makes the next fix land everywhere at once.
 
 ## What to do
 
-1. Start from pathfinding ticket 03's result, so every walk to a thing already takes the short way.
-2. Design the module's interface with the owner before you write it. Settle these questions:
-   - Does one generic task component replace the per-kind ones, or does each kind keep its own data inside it?
-   - How does the module measure reach: to a point, a footprint's edge, or a reach height?
-   - How does an activity say what happens on arrival, given that saves must hold the pending task as plain data?
-   - How does an older save with per-kind task components load?
-3. Move the activity modules onto it one at a time. Start with beds and stools, the two closest copies.
-4. Delete each module's own task component, reach check, and `cancel` once it no longer needs them.
-5. Add the term for the new module to `GLOSSARY.md` if it names a new idea. **Reach** is already defined there.
+The agent brief under Comments is the contract. It settles the design questions this ticket used to list. ADR 0010 and ADR 0011 record the two decisions that are hard to reverse.
+
+1. Build the approach module, and move beds and stools onto it in the same commit. They are the two closest copies.
+2. Move each other act-once activity module onto it, one module per commit. Ticket 07 moves the timed ones.
+3. In each commit, delete that module's own task component, reach check, and `cancel`.
 
 ## Acceptance criteria
 
-- [ ] One module decides how the player walks within reach of a thing. No activity module calls `walkTo`, `walkBeside`, `walkWithin`, or `walkWithinReach` to reach a thing.
-- [ ] Beds, piles, and bedrolls walk the short way, as sleds do.
-- [ ] Tests for walking within reach, cancelling, and arriving out of reach live with the new module. They run once, not once per kind.
-- [ ] Older saves load, with a save upgrade if the task components change.
-- [ ] Existing behaviour tests pass, such as `src/sim/bed.test.ts` and `src/sim/stool.test.ts`.
+See the agent brief under Comments.
 
 ## Comments
 
@@ -55,59 +47,63 @@ So a fix to walking lands in some modules and not others. Pathfinding ticket 02 
 ## Agent Brief
 
 **Category:** enhancement
-**Summary:** Add an approach module that walks the player within reach of a thing, then runs their command. Move every act-once task onto it.
 
-This brief replaces "What to do" and "Acceptance criteria" above. The owner settled the design questions in triage on 2026-11-21. Read ADR 0010 and the glossary entry **Approach** first.
+**Summary:** One sim module, the approach, walks the player within reach of a thing or a spot, then acts there. The approach stores the command that started it. Activity modules stop keeping their own walk, reach check, and walk-only task component.
 
-**Scope change:** This ticket covers the approach module and the act-once tasks. Ticket 07 moves the timed tasks onto it afterwards.
+**Scope:** This ticket covers the approach module and the act-once tasks. The owner split the timed tasks into ticket 07 during triage on 2026-11-21, to keep each session shorter.
 
-- An **act-once task** ends when the player arrives. Examples: sleep in a bed, sit on a stool, forage, pick up a stick, bark, or log, drop a log, pick up or lay a bedroll, deliver to a blueprint, and tend.
+- An **act-once task** ends when the player arrives. Examples: sleep in a bed, sit on a stool, forage, pick up a stick, bark, or log, drop a log, pick up or lay a bedroll, open or put in a chest, deliver to a blueprint, and tend.
 - A **timed task** keeps working after the player arrives. Examples: chop, debark, split, craft, take down, gather stone, fish, build, drink, and fill a pot.
-- If a task does not fit either kind cleanly, put it in ticket 07 and note why in the commit.
+- If a task does not fit either kind cleanly, leave it for ticket 07 and say why in the commit message.
 
 **Current behavior:**
-Each activity module keeps its own task component, reach check, walk call, `cancel`, and `step` that waits for the walk to end. There are 22 task components. Each one is mirrored in the save schema and in `TASK_PARTS`. Hand reach has its own `startOnArrival` for commands that only walk to a thing.
+
+- About 20 activity modules each repeat one pattern. They look up the thing by id, check reach, and act at once if the player is in reach. Otherwise they set a task component, start a walk, and on a later step act if the player arrived in reach. Each also has a `cancel` that removes its task component.
+- They walk in several ways: `Walking.walkTo`, `Walking.walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, and the building module's `walkWithinReach`. They also use about 21 separate reach constants.
+- The player entity has 22 task components, each mirrored in the save schema and in the activity module's list of task parts. Some only mark a walk in progress, such as `bedTask` and `stickPickUpTask`. Others also hold timed work, such as `chopTask` and `debarkTask` with `secondsDone`.
+- Pathfinding ticket 03 is done. Every walk to a thing already takes the short way, and every walk stops 0.2 m inside the reach.
 
 **Desired behavior:**
 
-1. A new approach module owns one approach per player. An approach is a target plus the original `Command`.
-2. A target has one of two kinds:
-   - a thing, by id, plus a reach in metres, measured to the thing's point or to its footprint's edge;
-   - an exact spot, as a ground point.
-3. For a thing, the module looks up the thing's position on each check, because some things move, such as a sled. If the thing no longer exists, the approach ends and nothing happens.
-4. The module walks the player the shortest way, using the existing walk functions and `WALK_REACH_MARGIN_METRES`. Activity modules stop calling the walk functions for a thing they act on.
-5. Callers compute river spots with `nearestWalkableSpot` and pass them as exact spots. The bedroll's spot inside the lean-to and building's stand spot are also exact spots.
-6. When the player stops walking, the module checks reach. In reach, the game runs the stored command's rule again. Ticket 02's refusal check runs first. Out of reach, nothing happens and no notice shows. This matches beds and stools today.
-7. A new command cancels the approach, as it cancels any task today.
-8. The approach module knows nothing about hand reach. An activity that reaches on arrival calls `handReach.start` itself. Delete `startOnArrival`.
-9. Reach constants stay in their activity modules. Each activity passes its reach to the approach.
-10. The `approach` component joins `TASK_PARTS`, so the action queue still sees a walking player as busy. Ticket 04 replaces this with a better test.
+- One module owns the approach. **Approach** is now in the glossary: the walk the player makes to get within reach of a thing or a spot, so they can act on it there.
+- The approach covers walks to things and walks to ground spots, such as the river for drinking, fishing, and filling the pot. It does not cover the free walk command, because nothing waits at the end of that walk.
+- The player has one pending approach component. It stores the `Command` that started it, as plain data, and it saves as it is (ADR 0010).
+- When the walk ends, the game checks the command's refusal again (ADR 0008, ticket 02). If the game refuses it, the player sees the reason and nothing happens. If not, the game carries out the command's act step directly. It does not send the command again, so the action queue is not touched.
+- If the walk ends out of reach, the approach ends without a notice, as today. Nothing retries it.
+- Each command still has its own target and reach distance. The target is a point or a footprint's edge, measured as today. Do not merge the reach constants in this ticket. Merging them would change how the game plays, for example for stools.
+- The approach module chooses how the player walks. It may offer the walk styles that exist today, such as standing beside a thing or walking onto an open spot. Activity modules only name the target, the reach, and the style.
+- Timed work keeps its own component, such as `chopTask` with `secondsDone`. The act step starts it on arrival. Walk-only task components are deleted, together with their save schema entries and task parts.
+- Follow-ups that a task component held, such as `thenSplit` on a log pick-up and the bedroll's `then`, become part of the command itself.
+- The action queue still sees the player as busy during an approach.
+- The approach module knows nothing about the hand reach. An act step that reaches on arrival calls `HandReach.start` itself. Delete `HandReach.startOnArrival`, because it is a second copy of "wait for the walk to end, then act".
+- Older saves load and play on (ADR 0011, a hard rule). A save upgrade turns each walk-only task component into an approach that holds the matching command. Timed task components stay as they are in this ticket. Ticket 07 upgrades them. The upgrade writes command shapes as literals, never by calling the game's current code.
 
 **Key interfaces:**
 
-- An `approach` entity component holds `{ target, command }`. `target` is plain data, and `command` is an `ActionCommand`. The save schema checks it once, using the existing command shapes.
-- A function such as `approach.start(target, command)` starts an approach, or returns at once if the player already stands in reach. Name it to fit the module.
-- A command's rule must be safe to run twice: once to start the approach and once on arrival.
-
-**Save upgrade:**
-
-- Add one save upgrade. It turns each old act-once task component into an `approach` that holds the matching command and target.
-- Each saved task's fields map to a command. For example, `bedTask: { bedId }` becomes a sleep-in-bed command for that bed.
-- Leave timed task components alone in this ticket. Ticket 07 upgrades them.
+- The command rules in `commandRules`: each rule that walks first gives the approach its target, reach, and walk style, and gives an act step that runs on arrival. After ticket 02, the refusal check before the act step is the same one that runs before `run`.
+- A new player component for the pending approach, such as `approach: { command: Command }`. Add it to the save schema and to the task parts used by `playerIsBusy`.
+- The approach module is an `Activity`, with `cancel` and `step` like the others. Its `cancel` ends the pending approach.
+- `SAVE_UPGRADES`: one new upgrade at the end of the list.
+- `GLOSSARY.md`: **Approach** is defined. Use that word in names and comments.
 
 **Acceptance criteria:**
 
-- [ ] No act-once activity module calls `walkTo`, `walkWithin`, `walkBeside`, or `walkOntoOrWithinReach` to reach a thing. It starts an approach instead.
-- [ ] The act-once task components are gone from the entity type, the save schema, and `TASK_PARTS`. `approach` replaces them.
-- [ ] `startOnArrival` is gone from hand reach.
-- [ ] One test file for the approach module covers: walking within reach of a point, walking within reach of a footprint edge, walking onto an exact spot, already standing in reach, a cancelled approach, arriving out of reach, a thing that moves during the walk, and a thing removed during the walk.
-- [ ] A test loads a save made at the previous version with a `bedTask` set and a walk under way. The player arrives and sleeps in the bed.
-- [ ] Existing behaviour tests pass, such as the bed, stool, bedroll, foraging, carrying, and action queue tests.
-- [ ] `make check` passes.
+- [ ] No act-once activity module calls `walkTo`, `walkWithin`, `walkBeside`, `walkOntoOrWithinReach`, or the building module's `walkWithinReach`. It starts an approach instead. Ticket 07 does the same for timed tasks.
+- [ ] `HandReach.startOnArrival` is gone.
+- [ ] No walk-only task component remains on the player entity, in the save schema, or in the task parts list.
+- [ ] A save made mid-approach loads, and the player carries on and acts on arrival.
+- [ ] A save from the current version, with an old walk-only task component mid-walk, upgrades and loads. The player acts on arrival, as before. A test covers at least the bed and a stick pick-up.
+- [ ] Tests for walking within reach, cancelling, arriving out of reach, and being refused on arrival live with the approach module. They run once, not once per kind.
+- [ ] A thing that is gone, or that the game would refuse, by the time the player arrives shows its refusal reason. A test covers this.
+- [ ] Sending a queued command during an approach leaves the approach and the queue as they would be today.
+- [ ] Existing behaviour tests pass unchanged, except for edits that only rename task components. Examples are the bed, stool, chop, and action queue tests.
+- [ ] The first commit moves beds and stools. Each later commit moves one module. The tests pass after each commit.
 
 **Out of scope:**
 
-- Timed tasks. Ticket 07 covers them.
-- Moving command rules into activity modules. That is ticket 03.
-- Changing how the action queue decides an action is done. That is ticket 04.
-- Changing any reach distance or how the game plays.
+- Timed tasks, such as chopping, crafting, and fishing. Ticket 07 covers them.
+- Merging the reach constants, or changing any reach distance.
+- Changing where the player stands on arrival, beyond what pathfinding ticket 03 already did.
+- Saving the hand reach, crafting in progress, or sitting.
+- Moving command rules into their activity modules (ticket 03), or changing how the action queue decides an action is done (ticket 04).
+- Making saves from the 1 km valley loadable.

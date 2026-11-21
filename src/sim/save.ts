@@ -15,6 +15,7 @@ export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<st
 /**
  * Every upgrade, in order. The first turns a version 1 save into version 2, the next turns version 2 into 3, and so on.
  * When a change to the game state would break older saves, add an upgrade to the end of this list.
+ * No change may make an older save unplayable (ADR 0011).
  * A new kind of structure, notice, or component does not break older saves, so it needs no upgrade: the save check is built
  * from the structure catalogue and the notice table, and older code turns away a save that holds something it does not know.
  * Never remove or reorder an upgrade. Stored saves count on each version number keeping its place.

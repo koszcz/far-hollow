@@ -158,8 +158,8 @@ How close the player must stand to act on a thing. If the player is out of reach
 _Avoid_: Range, interaction distance
 
 **Approach**:
-The player's walk to within reach of a thing, before they act on it. An approach ends when the player arrives or when a new command cancels it. If the player arrives out of reach, because the thing moved or the way was blocked, they do not act.
-_Avoid_: Walk-to, errand, path to target
+The walk the player makes to get within reach of a thing or a spot, so they can act on it there.
+_Avoid_: Go-to, walk-to-act, errand
 
 **Tend**:
 To add fuel to a campfire, to stack things on or take things off a woodpile, or to load, take from, or tip out a sled.

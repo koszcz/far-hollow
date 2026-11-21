@@ -2,7 +2,8 @@
 // A sled is two log runners with their bark on, lying side by side, and four crooked sticks laid across them.
 // Each runner is the approved Kenney log from log-shape.ts, the "logs" asset, stretched to the sled's length.
 // The front of each runner curves up and narrows, like a skid. The front is the end that leads when the sled is dragged.
-// Dark rope lashes each stick to each runner, and a rope runs in a V from the runner tips to a loop at the front.
+// Dark rope lashes each stick to each runner. A rope of light hemp, the same as the "sled-rope", runs in a V from the
+// runner tips to a loop at the front.
 // Its runners run along x when it faces the default way, with the front towards +x.
 // Construction has one stage per material: a runner for each log, then a cross piece for each stick.
 // The last cross piece brings the tow rope with it.
@@ -15,7 +16,7 @@
 // The planks on a sled are the "sled-planks" asset, drawn by sled-plank-meshes.ts on top of the logs.
 // A sled the player has dragged points the way it was last dragged, and a dragged sled
 // moves smoothly between logic steps with the player.
-// While the player drags a sled, its flat tow rope hides. The draft "sled-rope", drawn by sled-rope.ts, takes its place:
+// While the player drags a sled, its flat tow rope hides. The approved "sled-rope", drawn by sled-rope.ts, takes its place:
 // a V from the runner tips to a knot, lifted toward the player's hand, and a rope from the knot to the hand.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -26,7 +27,7 @@ import { SLED_LENGTH_METRES, SLED_LOG_COST, SLED_STICK_COST, SLED_WIDTH_METRES }
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { LOG_COLOUR, LOG_CUT_COLOUR, LOG_LENGTH_METRES, type LogShape } from "./log-shape";
 import { createSledPlankShapes } from "./sled-plank-meshes";
-import { createSledRope, type RopeHold, type RunnerTips } from "./sled-rope";
+import { createSledRope, SLED_ROPE_COLOUR, type RopeHold, type RunnerTips } from "./sled-rope";
 import { createStickSegment } from "./stick-shape";
 import type { OutlinePart } from "./hover-outline";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
@@ -85,10 +86,11 @@ export interface SledMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every sled and sled blueprint up to date with game state.
+   * `nowSeconds` is the time the frame shows, so the dragged rope eases taut or slack.
    * `player` is where the player is drawn this frame. The sled they drag is drawn moved as far as they are, so it keeps up smoothly.
    * `ropeHold` is where the player holds the rope while dragging. The dragged sled's tow rope lifts from its runner tips toward it.
    */
-  update(player?: Vec3, ropeHold?: RopeHold): void;
+  update(nowSeconds: number, player?: Vec3, ropeHold?: RopeHold): void;
   /** What a ray from the camera hits first among sleds and sled blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: SledHit; distance: number } | undefined;
   /** The parts of a sled or sled blueprint, placed in the world. Empty once it is gone. */
@@ -250,7 +252,7 @@ function ropeBetween(from: THREE.Vector3, to: THREE.Vector3): THREE.BufferGeomet
   rope.translate(0, direction.length() / 2, 0);
   rope.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize()));
   rope.translate(from.x, from.y, from.z);
-  return paint(rope, tintOverStick(ROPE_COLOUR));
+  return paint(rope, tintOverStick(SLED_ROPE_COLOUR));
 }
 
 /** Two wraps of rope in an X around a runner and the cross piece on it, centred where they cross, at height 0. */
@@ -282,7 +284,7 @@ function towRope(runnerZ: number): THREE.BufferGeometry[] {
   return [
     ropeBetween(new THREE.Vector3(tipX, tipY, -runnerZ), knot),
     ropeBetween(new THREE.Vector3(tipX, tipY, runnerZ), knot),
-    paint(loop, tintOverStick(ROPE_COLOUR)),
+    paint(loop, tintOverStick(SLED_ROPE_COLOUR)),
   ];
 }
 
@@ -511,7 +513,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
 
   return {
     group,
-    update(player, ropeHold) {
+    update(nowSeconds, player, ropeHold) {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "sled") continue;
@@ -546,7 +548,7 @@ export function createSledMeshes(entities: EntityStore, logShape: LogShape): Sle
         if (last !== undefined && geometry !== undefined && last.mesh.geometry !== geometry) last.mesh.geometry = geometry;
       }
       dragged.clear();
-      rope.show(ropeHold, tips);
+      rope.show(ropeHold, tips, nowSeconds);
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },
     pick(raycaster) {

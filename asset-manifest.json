@@ -1210,12 +1210,13 @@
         "src/render/sled-rope.ts",
         "src/render/sled-meshes.ts"
       ],
-      "description": "The short rope the player drags a sled by. While the sled is dragged it takes the place of the sled's own flat tow rope. It runs taut in a V from the two runner tips to a knot 34 cm in front of them, lifted toward the hand, and from the knot to the player's left hand, held low behind the left hip. Between the knot and the hand it sags 6 cm in the middle. It is the same dark brown and thickness as the sled's own rope, 2.2 cm across, and follows the player and the sled as they move. It shows only while the player drags a sled and hides at once when they let go.",
+      "description": "The short rope the player drags a sled by. While the sled is dragged it takes the place of the sled's own tow rope. It runs in a V from the two runner tips to a knot 34 cm in front of them, lifted toward the hand, and from the knot to the player's left hand, held low behind the left hip. A turn of rope wraps the hand, and an 11 cm tail hangs from it. It is light hemp, laid from three twisted strands, 2.2 cm across, the same colour as the parked sled's tow rope. While the player walks it pulls taut and sags 2 cm. When they stand still it goes slack: it sags 15 cm, the knot drops 8 cm, and the V sags 3 cm. It eases between the two in about 0.15 s. It follows the player and the sled as they move, shows only while the player drags a sled, and hides at once when they let go.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/player-motions/issues/01-pull-a-sled.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {

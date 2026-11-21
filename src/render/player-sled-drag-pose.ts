@@ -2,7 +2,7 @@
 // pull it by a short rope held in the left hand, low behind the left hip, the arm trailing straight back. Each step's
 // push-off heaves the body a little further into the pull. The right arm and the legs keep whatever the clip does: the
 // walk's swing and stride while moving, or steadying a log on the right shoulder. It is posed in code with the build
-// pose's bones, so it has no clip of its own. The owner approved it. The rope is the draft "sled-rope", drawn by sled-rope.ts.
+// pose's bones, so it has no clip of its own. The owner approved it. The rope is the approved "sled-rope", drawn by sled-rope.ts.
 import { blendBuildPoses, type BuildPose } from "./player-build-pose";
 
 /**

@@ -21,7 +21,7 @@
 // built by pot-shape.ts. The axe goes on the back.
 // While dragging a sled, the approved "sled-drag-animation", posed in code by player-sled-drag-pose.ts, leans the player
 // forward over the walk or idle clip, with the left hand holding the rope low behind the hip. ropeHold() says where the
-// draft "sled-rope" starts.
+// approved "sled-rope" starts.
 // While crafting a hand recipe, the draft "hand-craft-animation", posed in code by player-hand-craft-pose.ts, works at
 // something small held at waist height with both hands. The axe goes on the back.
 // While gathering stone, the draft "gather-stone-animation", posed in code by player-gather-stone-pose.ts, crouches at the
@@ -969,7 +969,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       if (!dragging) return undefined;
       group.updateWorldMatrix(true, true);
       const hand = leftArm.end.getWorldPosition(new THREE.Vector3());
-      return { hand: { x: hand.x, y: hand.y, z: hand.z } };
+      return { hand: { x: hand.x, y: hand.y, z: hand.z }, walking: walkedMetres !== undefined };
     },
     setSitting(body) {
       const changed = (body === undefined) !== (sittingBody === undefined);

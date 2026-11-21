@@ -187,7 +187,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       woodpiles.update();
       for (const meshes of Object.values(furniture)) meshes.update();
       sawhorses.update();
-      sleds.update(player, ropeHold);
+      sleds.update(nowSeconds, player, ropeHold);
     },
     pick(raycaster) {
       return nearest<{ hit: StructureHit; distance: number }>([

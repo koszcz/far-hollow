@@ -1,4 +1,5 @@
 // Every asset showcase, keyed by asset id. Each file holds one family of assets. Add a new asset to the file for its family.
+// An animation gets its own file in ./animations and one line in ./animations/registry.ts.
 import { NATURE_SHOWCASES } from "./nature";
 import { BUILDING_SHOWCASES } from "./building";
 import { CAMP_SHOWCASES } from "./camp";

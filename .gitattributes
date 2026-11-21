@@ -1,0 +1,2 @@
+# Git keeps both sides of a merge in these lists, so two branches that each add a line do not conflict. See docs/adr/0012.
+src/render/showcases/animations/registry.ts merge=union

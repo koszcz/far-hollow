@@ -109,12 +109,8 @@ export interface Entity {
   dragging?: { sledId: number };
   /** Marks a stick lying on the forest floor. Its position is the middle of the stick. */
   stick?: true;
-  /** The stick on the ground the player is walking to pick up, given by its entity id. */
-  stickPickUpTask?: { stickId: number };
   /** Marks a piece of bark lying on the ground. Its position is the middle of the bark. Bark in the backpack is not an entity. */
   bark?: true;
-  /** The piece of bark on the ground the player is walking to pick up, given by its entity id. */
-  barkPickUpTask?: { barkId: number };
   /** The player is splitting the log on their shoulder into firewood. `secondsDone` counts the time spent so far. */
   splitTask?: { secondsDone: number };
   /**

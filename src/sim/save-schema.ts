@@ -58,7 +58,10 @@ const tendCommand: Check = (value) =>
 
 /** A command the player is on their way to carry out, which a pending approach holds. Only commands that walk first appear. */
 const approachCommand: Check = (value) =>
-  shape({ type: exactly("sleepInBed"), bedId: count })(value) || shape({ type: exactly("sitOnStool"), stoolId: count })(value);
+  shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
+  shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
+  shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
+  shape({ type: exactly("pickUpBark"), barkId: count })(value);
 
 /**
  * How each entity component must look in a save.
@@ -88,9 +91,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   carrying: exactly(...CARRIED_LOGS),
   dragging: shape({ sledId: count }),
   stick: exactly(true),
-  stickPickUpTask: shape({ stickId: count }),
   bark: exactly(true),
-  barkPickUpTask: shape({ barkId: count }),
   splitTask: shape({ secondsDone: finite }),
   // Crafting in progress is never saved, so no save holds it.
   craftTask: () => false,

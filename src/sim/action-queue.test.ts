@@ -13,7 +13,7 @@ describe("adding actions to the action queue", () => {
     send(game, queued(pickUp(game, stick)));
 
     expect(game.client.getView().actionQueue).toEqual([pickUp(game, stick)]);
-    expect(onlyPlayer(game).stickPickUpTask).toBeDefined();
+    expect(onlyPlayer(game).approach).toBeDefined();
   });
 
   it("adds a queued action to the end, behind the one under way, without stopping it", () => {
@@ -24,7 +24,7 @@ describe("adding actions to the action queue", () => {
     send(game, queued(pickUp(game, second)));
 
     expect(game.client.getView().actionQueue).toEqual([pickUp(game, first), pickUp(game, second)]);
-    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, first));
+    expect(onlyPlayer(game).approach?.command).toEqual({ type: "pickUpStick", stickId: idOf(game, first) });
   });
 
   it(`holds at most ${ACTION_QUEUE_LIMIT} actions, counting the one under way, and says why it turns more away`, () => {
@@ -143,7 +143,7 @@ describe("running the action queue", () => {
     const player = onlyPlayer(game);
     stepUntil(game, () => (player.backpack.contents.rawFish ?? 0) === 1);
     expect(game.client.getView().actionQueue).toEqual([fish, pickUp(game, stick)]);
-    stepUntil(game, () => player.stickPickUpTask !== undefined);
+    stepUntil(game, () => player.approach !== undefined);
 
     expect(player.backpack.contents.rawFish).toBe(2);
     expect(player.fishTask).toBeUndefined();
@@ -197,7 +197,7 @@ describe("emptying the action queue", () => {
     send(game, plain);
 
     expect(game.client.getView().actionQueue).toEqual([plain]);
-    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, sticks[3]));
+    expect(onlyPlayer(game).approach?.command).toEqual({ type: "pickUpStick", stickId: idOf(game, sticks[3]) });
   });
 
   it("empties it when the player clicks the ground to walk there", () => {
@@ -221,7 +221,7 @@ describe("emptying the action queue", () => {
     send(game, { type: "eat", food: "berries" });
 
     expect(game.client.getView().actionQueue).toEqual([pickUp(game, first)]);
-    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, first));
+    expect(onlyPlayer(game).approach?.command).toEqual({ type: "pickUpStick", stickId: idOf(game, first) });
   });
 
   it("empties it when the player collapses", () => {
@@ -254,7 +254,7 @@ describe("cancelling a queued action", () => {
     send(game, { type: "cancelQueuedAction", index: 0 });
 
     expect(game.client.getView().actionQueue).toEqual([pickUp(game, sticks[1]), pickUp(game, sticks[2])]);
-    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, sticks[1]));
+    expect(onlyPlayer(game).approach?.command).toEqual({ type: "pickUpStick", stickId: idOf(game, sticks[1]) });
     stepUntil(game, () => game.client.getView().actionQueue.length === 0);
     expect(game.entities.has(sticks[0] as Entity)).toBe(true);
   });
@@ -267,7 +267,7 @@ describe("cancelling a queued action", () => {
     send(game, { type: "cancelQueuedAction", index: 1 });
 
     expect(game.client.getView().actionQueue).toEqual([pickUp(game, sticks[0]), pickUp(game, sticks[2])]);
-    expect(onlyPlayer(game).stickPickUpTask?.stickId).toBe(idOf(game, sticks[0]));
+    expect(onlyPlayer(game).approach?.command).toEqual({ type: "pickUpStick", stickId: idOf(game, sticks[0]) });
     stepUntil(game, () => game.client.getView().actionQueue.length === 0);
     expect(game.entities.has(sticks[1] as Entity)).toBe(true);
     expect(game.entities.has(sticks[2] as Entity)).toBe(false);
@@ -293,7 +293,7 @@ describe("cancelling a queued action", () => {
     send(game, { type: "cancelQueuedAction", index: 0 });
 
     expect(game.client.getView().actionQueue).toEqual([]);
-    expect(onlyPlayer(game).stickPickUpTask).toBeUndefined();
+    expect(onlyPlayer(game).approach).toBeUndefined();
     expect(onlyPlayer(game).walkPath).toBeUndefined();
   });
 

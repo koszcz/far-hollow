@@ -666,6 +666,8 @@ function plantTorches(save: Readonly<Record<string, unknown>>): Record<string, u
 const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) => Record<string, unknown>>> = {
   bedTask: (task) => ({ type: "sleepInBed", bedId: task.bedId }),
   stoolTask: (task) => ({ type: "sitOnStool", stoolId: task.stoolId }),
+  stickPickUpTask: (task) => ({ type: "pickUpStick", stickId: task.stickId }),
+  barkPickUpTask: (task) => ({ type: "pickUpBark", barkId: task.barkId }),
 };
 
 /**

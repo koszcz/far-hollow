@@ -55,8 +55,6 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   logPickUpTask: true,
   logDropTask: true,
   debarkTask: true,
-  stickPickUpTask: true,
-  barkPickUpTask: true,
   splitTask: true,
   craftTask: true,
   buildTask: true,

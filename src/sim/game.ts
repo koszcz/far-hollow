@@ -221,7 +221,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const carrying = createCarrying(entities, walking, valley, handReach);
   const debarking = createDebarking(entities, walking);
   const crafting = createCrafting(entities, walking, valley.terrain);
-  const gathering = createGathering(entities, walking, handReach);
+  const gathering = createGathering(entities, handReach);
   const foraging = createForaging(entities, walking, handReach);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
@@ -603,16 +603,22 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => goneRefusal(entities, command.stickId),
-      run: (command) => {
-        gathering.pickUpStick(command.stickId);
+      approach: {
+        reach: (command) => gathering.reach(command.stickId, "stick"),
+        act: (command) => {
+          gathering.pickUp(command.stickId, "stick");
+        },
       },
     },
     pickUpBark: {
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => goneRefusal(entities, command.barkId),
-      run: (command) => {
-        gathering.pickUpBark(command.barkId);
+      approach: {
+        reach: (command) => gathering.reach(command.barkId, "bark"),
+        act: (command) => {
+          gathering.pickUp(command.barkId, "bark");
+        },
       },
     },
     forage: {

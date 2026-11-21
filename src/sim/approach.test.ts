@@ -112,7 +112,30 @@ describe("saving during an approach", () => {
     stepUntil(loaded, () => onlyPlayer(loaded).approach === undefined);
     expect(loaded.client.getView().sittingOn).toBe(stoolId);
   });
+
+  it("upgrades a save from before approaches, with the player walking to pick up a stick", () => {
+    const game = createGame({ seed: 42 });
+    const stick = nearestStick(game);
+    const stickId = idOf(game, stick);
+    const sticksBefore = game.client.getView().backpack.stick ?? 0;
+    send(game, { type: "pickUpStick", stickId });
+
+    const loaded = load(olderSave(game, { stickPickUpTask: { stickId } }));
+    expect(onlyPlayer(loaded).approach).toEqual({ command: { type: "pickUpStick", stickId } });
+    stepUntil(loaded, () => loaded.entities.entity(stickId) === undefined);
+    expect(loaded.client.getView().backpack.stick).toBe(sticksBefore + 1);
+  });
 });
+
+/** The stick lying nearest the player. */
+function nearestStick(game: Game): Entity {
+  const { position } = onlyPlayer(game);
+  const sticks = [...game.entities.with("stick", "position")];
+  sticks.sort((a, b) => groundDistance(a.position, position) - groundDistance(b.position, position));
+  const stick = sticks[0];
+  if (stick === undefined) throw new Error("No stick");
+  return stick;
+}
 
 /**
  * A save of the game as the version before approaches would have written it: the player's approach is replaced by the

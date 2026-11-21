@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Craft and carry a torch)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `torch` and `fire-effect`.
 

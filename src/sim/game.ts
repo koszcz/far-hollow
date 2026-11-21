@@ -235,7 +235,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     carrying.drop();
     sleds.letGo();
   });
-  const drinking = createDrinking(entities, walking, valley, (river) => {
+  const drinking = createDrinking(entities, walking.walkMap, valley, (river) => {
     reportEatOrDrink("drinkFromRiver", river);
   });
   const fishing = createFishing(entities, walking, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
@@ -263,7 +263,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     building,
     takingDown,
     stools,
-    drinking,
     fishing,
     stoneGathering,
     pot,
@@ -496,7 +495,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
-    return player.walkPath === undefined && player.drinkTask === undefined && player.fillPotTask === undefined && currentAction() === null;
+    return player.walkPath === undefined && player.approach === undefined && player.fillPotTask === undefined && currentAction() === null;
   }
 
   /** Whether the player's hands are busy dragging a sled, and the command needs them free. */
@@ -895,8 +894,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     drinkFromRiver: {
       start: "fresh",
-      run: (command) => {
-        drinking.drinkFromRiver({ x: command.x, z: command.z });
+      approach: {
+        reach: (command) => drinking.reach(command),
+        act: (command) => {
+          drinking.drinkFromRiver(command);
+        },
       },
     },
     fish: {

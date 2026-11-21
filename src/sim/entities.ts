@@ -240,8 +240,6 @@ export interface Entity {
   fishCasts?: number;
   /** The player is gathering one stone at this spot on the river bank or in the river, or walking there to gather it. */
   stoneTask?: { x: number; z: number; secondsDone: number };
-  /** The player is walking to the riverbank to drink. The spot is where they clicked on the river. */
-  drinkTask?: GroundPoint;
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
   /**

@@ -5,6 +5,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { readSave, TIMED_APPROACHES_SAVE_VERSION, writeSave } from "./save";
 import { CAMPFIRE_STICK_COST } from "./structures";
+import { distanceToRiver } from "./valley";
 import { isWalkable } from "./walk-map";
 
 // Saves made before timed tasks walked through the approach. Back then, a timed task component, such as `chopTask`, marked
@@ -62,6 +63,21 @@ describe("a save from before timed tasks walked through the approach", () => {
     stepUntil(loaded, () => loaded.client.getView().action?.kind === "build");
     expect(onlyPlayer(loaded).buildTask).toEqual({ blueprintId });
   });
+
+  it("turns a drink saved on the way to the river into an approach, and the player drinks on arrival", () => {
+    const game = createGame({ seed: 42 });
+    const spot = riverSpotNearPlayer(game);
+    sendAndStep(game, { type: "drinkFromRiver", ...spot }, 3);
+    expect(onlyPlayer(game).walkPath).toBeDefined();
+
+    const loaded = load(olderSave(game, { drinkTask: { x: spot.x, z: spot.z } }));
+    expect(onlyPlayer(loaded).approach).toEqual({ command: { type: "drinkFromRiver", x: spot.x, z: spot.z } });
+    expect(onlyPlayer(loaded)).not.toHaveProperty("drinkTask");
+
+    stepUntil(loaded, () => loaded.client.getView().lastEatOrDrink !== null);
+    expect(loaded.client.getView().lastEatOrDrink).toEqual({ count: 1, kind: "drinkFromRiver", toward: { x: spot.x, z: spot.z } });
+    expect(loaded.client.getView().sick).toBe(true);
+  });
 });
 
 /** A standing tree at least `metres` from the player, the nearest such. */
@@ -74,6 +90,16 @@ function treeAway(game: Game, metres: number): Entity & { position: { x: number;
   const tree = trees[0]?.tree;
   if (tree === undefined) throw new Error("No tree far enough away");
   return tree;
+}
+
+/** A spot in the river, east of the player, at least 1 m from the water's edge. */
+function riverSpotNearPlayer(game: Game): GroundPoint {
+  const { position } = onlyPlayer(game);
+  for (let x = position.x; x < position.x + 100; x += 0.25) {
+    const spot = { x, z: position.z };
+    if (distanceToRiver(game.valley.river, spot) - game.valley.river.width / 2 < -1) return spot;
+  }
+  throw new Error("No river near the player");
 }
 
 /** An open spot about `distance` metres from the player. */

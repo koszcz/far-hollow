@@ -77,10 +77,7 @@ export interface Entity {
   blocksWalkingEdges?: { from: GroundPoint; to: GroundPoint }[];
   /** The tools and small materials the entity carries. Only the player has one. */
   backpack?: Backpack;
-  /**
-   * The tree the player is walking to or chopping, given by its entity id.
-   * `secondsDone` counts only the time spent chopping, not walking.
-   */
+  /** The chop in progress: the tree the player is chopping, given by its entity id, and how long they have chopped it. */
   chopTask?: { treeId: number; secondsDone: number };
   /** Marks what is left of a felled tree. Its position is the middle of the stump. A sapling may grow from it. */
   stump?: true;

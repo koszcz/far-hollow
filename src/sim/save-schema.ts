@@ -72,6 +72,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value) ||
   shape({ type: exactly("tendCampfire"), campfireId: count })(value) ||
   shape({ type: exactly("tendWoodpile"), woodpileId: count })(value) ||
+  shape({ type: exactly("chopTree"), treeId: count })(value) ||
   tendCommand(value);
 
 /**

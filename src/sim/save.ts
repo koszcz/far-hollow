@@ -62,6 +62,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   plantTorches,
   cookOnFireplaces,
   startApproaches,
+  approachTimedTasks,
 ];
 
 /** The version of the save format this code writes. */
@@ -136,6 +137,9 @@ export const FIREPLACE_COOKING_SAVE_VERSION = SAVE_UPGRADES.indexOf(cookOnFirepl
 
 /** The first save version in which the player's walk to act on a thing is one pending approach, holding the command that started it. */
 export const APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(startApproaches) + 2;
+
+/** The first save version in which the player's walk to timed work, such as chopping, is a pending approach too. */
+export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimedTasks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -706,6 +710,36 @@ function startApproaches(save: Readonly<Record<string, unknown>>): Record<string
     if (first === undefined) return entity;
     const command = APPROACH_OF_TASK[first]?.(components[first] as Record<string, unknown>);
     // The player walked to one thing at a time, so a second walk-only task, which no save should hold, is dropped.
+    const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
+    return { ...(entity as object), components: { ...others, approach: { command } } };
+  });
+  return { ...save, entities };
+}
+
+/**
+ * For each timed task component an older save can hold, the command a pending approach holds in its place, if the player
+ * was still walking to the work. The commands are written out here, so later changes to a command do not change what the upgrade does.
+ */
+const APPROACH_OF_TIMED_TASK: Readonly<Record<string, (task: Record<string, unknown>) => Record<string, unknown>>> = {
+  chopTask: (task) => ({ type: "chopTree", treeId: task.treeId }),
+};
+
+/**
+ * Version 41 to 42: the player walking to timed work, such as chopping, has a pending approach too, and the timed task component
+ * means the work in progress only. A timed task component on a player who still has a `walkPath` becomes the approach for its
+ * command, so they carry on and start the work when they arrive. A timed task component without a `walkPath` is work already
+ * under way, so it stays as it is.
+ */
+function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (components === undefined || components === null || components.walkPath === undefined) return entity;
+    const tasks = Object.keys(APPROACH_OF_TIMED_TASK).filter((name) => components[name] !== undefined);
+    const first = tasks[0];
+    if (first === undefined) return entity;
+    const command = APPROACH_OF_TIMED_TASK[first]?.(components[first] as Record<string, unknown>);
+    // The player walked to one thing at a time, so a second task, which no save should hold, is dropped.
     const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
     return { ...(entity as object), components: { ...others, approach: { command } } };
   });

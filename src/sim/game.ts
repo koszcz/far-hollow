@@ -530,8 +530,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => chopping.refusal(command.treeId),
-      run: (command) => {
-        chopping.start(command.treeId);
+      approach: {
+        reach: (command) => chopping.reach(command.treeId),
+        act: (command) => {
+          chopping.start(command.treeId);
+        },
       },
     },
     pickUpLog: {

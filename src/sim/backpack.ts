@@ -17,6 +17,7 @@ export type BackpackContent =
   | "bark"
   | "stone"
   | "torch"
+  | "sapling"
   | Food
   | PotContent
   | CraftingContent
@@ -65,6 +66,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   bark: 0.3,
   stone: 2,
   torch: 0.8,
+  sapling: 1,
   berries: 0.1,
   mushroom: 0.1,
   pot: 1,

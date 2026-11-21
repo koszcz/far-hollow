@@ -191,6 +191,23 @@ const STONE_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
+/** The draft "sapling-icon" asset, over the last view only: saplings in the backpack while digging one up, beside a pile of them. */
+const SAPLING_ICON_STATES: readonly (ShowcaseState | null)[] = [
+  null,
+  null,
+  null,
+  {
+    view: {
+      ...BASE_VIEW,
+      backpack: { sapling: 2, axe: 1, knife: 1 },
+      action: { kind: "digUp", progress: 0.6 },
+      nearby: [{ kind: "pile", view: { id: 1, content: "sapling", count: 3 } }],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
 /** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
 const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
@@ -517,6 +534,7 @@ const STATES_BY_ASSET = {
   hud: STATES,
   bark: BARK_STATES,
   stone: STONE_STATES,
+  "sapling-icon": SAPLING_ICON_STATES,
   "backpack-icons": BACKPACK_ICON_STATES,
   "crafting-icons": CRAFTING_ICON_STATES,
   "fishing-icons": FISHING_ICON_STATES,
@@ -533,7 +551,7 @@ const STATES_BY_ASSET = {
   "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "sapling-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {

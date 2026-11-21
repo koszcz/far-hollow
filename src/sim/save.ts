@@ -64,6 +64,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   startApproaches,
   approachTimedTasks,
   addFloors,
+  addSaplings,
 ];
 
 /** The version of the save format this code writes. */
@@ -143,6 +144,8 @@ export const FLOORS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFloors) + 2;
 
 /** The first save version in which the player's walk to timed work, such as chopping, is a pending approach too. */
 export const TIMED_APPROACHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(approachTimedTasks) + 2;
+/** The first save version in which the backpack can hold saplings. */
+export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -764,5 +767,10 @@ function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<str
 
 /** Version 42 to 43: the player can lay floors on foundations. A save from before then has none, so it carries over unchanged. */
 function addFloors(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 43 to 44: the player can dig up saplings into the backpack. A save from before then holds none, so it carries over unchanged. */
+function addSaplings(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

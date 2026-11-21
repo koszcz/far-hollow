@@ -133,6 +133,9 @@ export function createSceneRenderer(
   /** The shapes to outline for each kind of thing the player can click. */
   const outlines: { readonly [Kind in EntityPick["kind"]]: (entity: Entity) => OutlinePart[] } = {
     tree: (entity) => forestMeshes.outlineOf({ kind: "tree", entity }),
+    youngTree: (entity) => forestMeshes.outlineOf({ kind: "youngTree", entity }),
+    sapling: (entity) => forestMeshes.outlineOf({ kind: "sapling", entity }),
+    stump: (entity) => forestMeshes.outlineOf({ kind: "stump", entity }),
     log: (entity) => forestMeshes.outlineOf({ kind: "log", entity }),
     debarkedLog: (entity) => forestMeshes.outlineOf({ kind: "debarkedLog", entity }),
     stick: (entity) => forestMeshes.outlineOf({ kind: "stick", entity }),

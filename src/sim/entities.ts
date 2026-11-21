@@ -245,6 +245,8 @@ export interface Entity {
   fishCasts?: number;
   /** The stone gathering in progress: the player is gathering one stone at this spot on the river bank or in the river. */
   stoneTask?: { x: number; z: number; secondsDone: number };
+  /** The player is digging up the sapling with this entity id, and has worked at it this long. */
+  digUpTask?: { saplingId: number; secondsDone: number };
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
   /**

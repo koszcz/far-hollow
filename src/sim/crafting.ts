@@ -25,6 +25,7 @@ import {
   type EntityStore,
 } from "./entities";
 import type { Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import type { RecipeKind } from "./recipe-kind";
 import { addToPileAt } from "./piles";
 import { putPlanksOnSled, takeOffSled, type SledEntity } from "./sleds";
@@ -32,7 +33,6 @@ import type { WorkStationKind } from "./structure-kind";
 import { footprintOfEntity } from "./structures";
 import { type Terrain } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { walkBeside, type Walking } from "./walking";
 
 export type { RecipeKind } from "./recipe-kind";
 
@@ -154,10 +154,10 @@ export function recipeOf(kind: RecipeKind): Recipe {
 
 /**
  * How far the player is through crafting, from 0 to 1, and the work station they craft at, if any.
- * Undefined if they are not crafting now. Walking to the station does not count.
+ * Undefined if they are not crafting now.
  */
 export function craftingNow(player: Entity): { progress: number; targetId?: number } | undefined {
-  if (player.craftTask === undefined || player.walkPath !== undefined) return undefined;
+  if (player.craftTask === undefined) return undefined;
   const { recipe, secondsDone, stationId } = player.craftTask;
   return { progress: Math.min(1, secondsDone / recipeOf(recipe).seconds), ...(stationId === undefined ? {} : { targetId: stationId }) };
 }
@@ -216,22 +216,33 @@ export interface DroppedBesideStation {
 
 export interface Crafting {
   /**
+   * The work station the player follows a station recipe at: the finished one given by `stationId`, or else the nearest
+   * finished one of the right kind. Undefined for a hand recipe, or if no such station stands.
+   */
+  stationFor(kind: RecipeKind, stationId?: number): number | undefined;
+  /** Where the approach takes the player to follow a station recipe: beside the station. Undefined for a hand recipe, or a station that is gone. */
+  reach(kind: RecipeKind, stationId: number | undefined): ApproachReach | undefined;
+  /**
+   * Why the player could not start crafting now, at the station given by `stationId` for a station recipe:
+   * they carry a log, the result would not fit, or the logs a station recipe uses do not lie beside the station.
+   */
+  startRefusal(kind: RecipeKind, stationId?: number): CraftRefusal | undefined;
+  /**
    * Starts the player crafting. A hand recipe is crafted where the player stands.
-   * For a station recipe, the player walks to the finished station given by `stationId`, or to the nearest finished one
-   * of the right kind, then works there.
+   * A station recipe is followed at the station given by `stationId`, or else the nearest finished one of the right kind.
+   * The approach runs it once the player stands beside the station.
    * The game calls it only once `refusal` passes, so the player has the recipe's tool, station, and materials.
-   * Refuses if they carry a log, the result would not fit, or the logs a station recipe uses do not lie beside the station.
-   * Does nothing if the station given by `stationId` is not a finished one of the right kind.
+   * Refuses as `startRefusal` does. Does nothing if the station given by `stationId` is not a finished one of the right kind.
    */
   start(kind: RecipeKind, stationId?: number): CraftRefusal | undefined;
   /** Stops the player crafting. Nothing is used up, and the work starts again from the beginning next time. */
   cancel(): void;
   /**
-   * Moves crafting on by one logic step. Run it after walking has moved the player.
+   * Moves crafting on by one logic step.
    * When the work finishes, the materials are used up and the result goes in the backpack.
    * For a recipe that drops what does not fit, the rest of the result goes on a sled parked beside the station, if planks,
    * and what is left after that drops in a pile at the player's feet.
-   * Returns why crafting stopped, if the player reached the station and the logs it uses no longer lie beside it.
+   * Returns why crafting stopped, if the logs a station recipe uses no longer lie beside the station.
    * Returns what dropped, if some of the result did not fit.
    */
   step(stepSeconds: number): CraftRefusal | DroppedBesideStation | undefined;
@@ -262,11 +273,11 @@ function groundLogsBeside(logs: readonly PlacedEntity[], station: PlacedEntity):
 /**
  * The log or debarked log lying on the ground that the player works on now at a work station, with the station.
  * It is the one the recipe uses up first when the work finishes.
- * Undefined if the player is not working at a station now, or the recipe takes its log from a sled. Walking there does not count.
+ * Undefined if the player is not working at a station now, or the recipe takes its log from a sled.
  */
 export function logWorkedNow(entities: EntityStore, player: Entity): { log: PlacedEntity; station: PlacedEntity } | undefined {
   const task = player.craftTask;
-  if (task === undefined || player.walkPath !== undefined || task.stationId === undefined) return undefined;
+  if (task === undefined || task.stationId === undefined) return undefined;
   const recipe = recipeOf(task.recipe);
   const station = entities.entity(task.stationId);
   const material = recipe.besideStation?.[0]?.material;
@@ -277,7 +288,7 @@ export function logWorkedNow(entities: EntityStore, player: Entity): { log: Plac
 }
 
 /** Lets the player craft: turn materials into something new that goes in the backpack, by timed work. */
-export function createCrafting(entities: EntityStore, walking: Walking, terrain: Terrain): Crafting {
+export function createCrafting(entities: EntityStore, terrain: Terrain): Crafting {
   const players = playerEntities(entities);
   const crafters = entities.with("craftTask", "backpack", "position");
   const groundLogs: { readonly [Material in CarriedLog]: { readonly entities: readonly PlacedEntity[] } } = {
@@ -344,38 +355,54 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
     return player?.backpack === undefined ? [] : recipeLacks(recipeOf(kind), player.backpack, hasStation);
   }
 
+  /** The station a player at `from` follows a recipe at: the one given by `stationId`, or else the nearest. Undefined for a hand recipe. */
+  function stationAt(recipe: Recipe, stationId: number | undefined, from: GroundPoint): PlacedEntity | undefined {
+    if (recipe.station === undefined) return undefined;
+    return stationId === undefined ? nearestStation(recipe.station, from) : stationOf(recipe, stationId);
+  }
+
+  /** Why this player could not start following a recipe at `station` now. */
+  function startRefusalFor(player: Entity, backpack: Backpack, recipe: Recipe, station: PlacedEntity | undefined): CraftRefusal | undefined {
+    if (player.carrying !== undefined) return { kind: "putLogDownFirst" };
+    if (recipe.station !== undefined && station !== undefined && logsBeside(recipe, station) === undefined) {
+      return { kind: "noLogBesideStation", station: recipe.station };
+    }
+    return resultFits(recipe, backpack) ? undefined : { kind: "backpackFull" };
+  }
+
   return {
+    stationFor(kind, stationId) {
+      const player = players.first;
+      const station = player === undefined ? undefined : stationAt(recipeOf(kind), stationId, player.position);
+      return station === undefined ? undefined : entities.id(station);
+    },
+    reach(kind, stationId) {
+      const recipe = recipeOf(kind);
+      const station = stationOf(recipe, stationId);
+      if (station === undefined) return undefined;
+      return { target: station.position, metres: STATION_REACH_METRES, walk: { style: "beside", standMetres: STATION_STAND_METRES } };
+    },
+    startRefusal(kind, stationId) {
+      const player = players.first;
+      if (player?.backpack === undefined) return undefined;
+      const recipe = recipeOf(kind);
+      return startRefusalFor(player, player.backpack, recipe, stationAt(recipe, stationId, player.position));
+    },
     start(kind, stationId) {
       const recipe = recipeOf(kind);
       let refusal: CraftRefusal | undefined;
       for (const player of players) {
         if (player.backpack === undefined) continue;
-        let station: PlacedEntity | undefined;
-        if (recipe.station !== undefined) {
-          station = stationId === undefined ? nearestStation(recipe.station, player.position) : stationOf(recipe, stationId);
-          if (station === undefined) continue;
-        }
-        if (player.carrying !== undefined) {
-          refusal = { kind: "putLogDownFirst" };
-          continue;
-        }
-        if (recipe.station !== undefined && station !== undefined && logsBeside(recipe, station) === undefined) {
-          refusal = { kind: "noLogBesideStation", station: recipe.station };
-          continue;
-        }
-        if (!resultFits(recipe, player.backpack)) {
-          refusal = { kind: "backpackFull" };
+        const station = stationAt(recipe, stationId, player.position);
+        if (recipe.station !== undefined && station === undefined) continue;
+        const why = startRefusalFor(player, player.backpack, recipe, station);
+        if (why !== undefined) {
+          refusal = why;
           continue;
         }
         entities.removeComponent(player, "walkPath");
-        if (station === undefined) {
-          setComponent(entities, player, "craftTask", { recipe: kind, secondsDone: 0 });
-          continue;
-        }
-        const id = entities.id(station);
-        if (id === undefined) continue;
-        walkBeside(walking, player.position, station.position, STATION_REACH_METRES, STATION_STAND_METRES);
-        setComponent(entities, player, "craftTask", { recipe: kind, secondsDone: 0, stationId: id });
+        const id = station === undefined ? undefined : entities.id(station);
+        setComponent(entities, player, "craftTask", { recipe: kind, secondsDone: 0, ...(id === undefined ? {} : { stationId: id }) });
       }
       return refusal;
     },
@@ -386,21 +413,20 @@ export function createCrafting(entities: EntityStore, walking: Walking, terrain:
       let refusal: CraftRefusal | DroppedBesideStation | undefined;
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const crafter of [...crafters]) {
-        if (crafter.walkPath) continue;
         const recipe = recipeOf(crafter.craftTask.recipe);
         const station = stationOf(recipe, crafter.craftTask.stationId);
-        const atStation = recipe.station === undefined || (station !== undefined && groundDistance(station.position, crafter.position) <= STATION_REACH_METRES);
+        const stationStands = recipe.station === undefined || station !== undefined;
         const logs = station === undefined ? [] : logsBeside(recipe, station);
         if (
-          !atStation ||
+          !stationStands ||
           logs === undefined ||
           crafter.carrying !== undefined ||
           recipeLacks(recipe, crafter.backpack, hasStation).length > 0 ||
           !resultFits(recipe, crafter.backpack)
         ) {
           entities.removeComponent(crafter, "craftTask");
-          // The player reached the station, but the logs it uses no longer lie beside it.
-          if (atStation && logs === undefined && recipe.station !== undefined) refusal = { kind: "noLogBesideStation", station: recipe.station };
+          // The logs the station uses no longer lie beside it.
+          if (logs === undefined && recipe.station !== undefined) refusal = { kind: "noLogBesideStation", station: recipe.station };
           continue;
         }
         crafter.craftTask.secondsDone += stepSeconds;

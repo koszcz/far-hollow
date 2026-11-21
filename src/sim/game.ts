@@ -215,8 +215,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const handReach = createHandReach(entities);
   const chopping = createChopping(entities, walking, valley);
   const carrying = createCarrying(entities, valley, handReach);
-  const debarking = createDebarking(entities, walking);
-  const crafting = createCrafting(entities, walking, valley.terrain);
+  const debarking = createDebarking(entities);
+  const crafting = createCrafting(entities, valley.terrain);
   const gathering = createGathering(entities, handReach);
   const foraging = createForaging(entities, handReach);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
@@ -232,12 +232,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     carrying.drop();
     sleds.letGo();
   });
-  const drinking = createDrinking(entities, walking, valley, (river) => {
+  const drinking = createDrinking(entities, walking.walkMap, valley, (river) => {
     reportEatOrDrink("drinkFromRiver", river);
   });
-  const fishing = createFishing(entities, walking, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
-  const stoneGathering = createStoneGathering(entities, walking, valley);
-  const pot = createPot(entities, walking, valley, campfires, handReach);
+  const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
+  const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
+  const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, valley, handReach);
@@ -251,6 +251,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   });
   /** Everything the player does over time, in the order each logic step runs them. Reaching a bedroll or bed to sleep on puts the player to sleep. */
   const activities: readonly Activity[] = [
+    // First, so timed work that an approach starts on arrival, such as chopping, moves on in that same step.
+    approach,
     chopping,
     debarking,
     crafting,
@@ -258,12 +260,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     building,
     takingDown,
     stools,
-    drinking,
     fishing,
     stoneGathering,
-    pot,
     chests,
-    approach,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
   ];
@@ -502,7 +501,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /** Whether the player is resting: standing still and doing no work. Resting helps sickness wear off. */
   function isResting(): boolean {
-    return player.walkPath === undefined && player.drinkTask === undefined && player.fillPotTask === undefined && currentAction() === null;
+    return player.walkPath === undefined && player.approach === undefined && currentAction() === null;
   }
 
   /** Whether the player's hands are busy dragging a sled, and the command needs them free. */
@@ -537,8 +536,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => chopping.refusal(command.treeId),
-      run: (command) => {
-        chopping.start(command.treeId);
+      approach: {
+        reach: (command) => chopping.reach(command.treeId),
+        act: (command) => {
+          chopping.start(command.treeId);
+        },
       },
     },
     pickUpLog: {
@@ -556,13 +558,28 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: () => debarking.refusal(),
-      run: (command) => debarking.start(command.logId),
+      // A full backpack turns the player away before they set off.
+      run: (command) => debarking.roomRefusal() ?? approach.start(command),
+      approach: {
+        reach: (command) => debarking.reach(command.logId),
+        act: (command) => debarking.start(command.logId),
+      },
     },
     craft: {
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => crafting.refusal(command.recipe),
-      run: (command) => crafting.start(command.recipe, command.stationId),
+      // A hand recipe is crafted where the player stands. A station recipe is followed beside the station, so the player
+      // walks there first, unless they could not start it anyway. The approach holds the station the player walks to.
+      run: (command) => {
+        const stationId = crafting.stationFor(command.recipe, command.stationId);
+        if (stationId === undefined) return crafting.start(command.recipe, command.stationId);
+        return crafting.startRefusal(command.recipe, stationId) ?? approach.start({ type: "craft", recipe: command.recipe, stationId });
+      },
+      approach: {
+        reach: (command) => crafting.reach(command.recipe, command.stationId),
+        act: (command) => crafting.start(command.recipe, command.stationId),
+      },
     },
     // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
     lightTorch: {
@@ -701,24 +718,27 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {
         const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
-        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return;
+        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return undefined;
         cancelTasks();
-        building.build(id);
+        return approach.start({ type: "build", blueprintId: id });
       },
     },
     build: {
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => building.refusal(command.blueprintId),
-      run: (command) => {
-        building.build(command.blueprintId);
+      approach: {
+        reach: (command) => building.reach(command.blueprintId),
+        act: (command) => {
+          building.build(command.blueprintId);
+        },
       },
     },
     deliverToBlueprint: {
       start: "fresh",
       needsFreeHands: true,
       approach: {
-        reach: (command) => building.deliverReach(command.blueprintId),
+        reach: (command) => building.reach(command.blueprintId),
         act: (command) => {
           building.deliver(command.blueprintId);
         },
@@ -728,8 +748,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: (command) => takingDown.refusal(command.pieceId),
-      run: (command) => {
-        takingDown.start(command.pieceId);
+      approach: {
+        reach: (command) => takingDown.reach(command.pieceId),
+        act: (command) => {
+          takingDown.start(command.pieceId);
+        },
       },
     },
     stopBuilding: {
@@ -879,16 +902,22 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     drinkFromRiver: {
       start: "fresh",
-      run: (command) => {
-        drinking.drinkFromRiver({ x: command.x, z: command.z });
+      approach: {
+        reach: (command) => drinking.reach(command),
+        act: (command) => {
+          drinking.drinkFromRiver(command);
+        },
       },
     },
     fish: {
       start: "fresh",
       needsFreeHands: true,
       refusal: () => fishing.refusal(),
-      run: (command) => {
-        fishing.fish({ x: command.x, z: command.z });
+      approach: {
+        reach: (command) => fishing.reach(command),
+        act: (command) => {
+          fishing.fish({ x: command.x, z: command.z });
+        },
       },
       // Fishing has no end. A queued fishing trip catches one fish when another action waits.
       canStopForNext: () => fishing.hasFishBitten(),
@@ -897,8 +926,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       start: "fresh",
       needsFreeHands: true,
       refusal: () => stoneGathering.refusal(),
-      run: (command) => {
-        stoneGathering.gather({ x: command.x, z: command.z });
+      approach: {
+        reach: (command) => stoneGathering.reach(command),
+        act: (command) => {
+          stoneGathering.gather({ x: command.x, z: command.z });
+        },
       },
     },
     drinkFromPot: {
@@ -909,8 +941,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     fillPot: {
       start: "fresh",
-      run: () => {
-        pot.fill();
+      approach: {
+        reach: () => pot.fillReach(),
+        act: () => {
+          pot.fill();
+        },
       },
     },
     skipTime: {

@@ -1,4 +1,5 @@
 import type { Refusal } from "./api";
+import type { ApproachReach } from "./approach";
 import { shoulderLog } from "./carrying";
 import { toolRefusal } from "./refusals";
 import { growingTreeEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
@@ -7,13 +8,13 @@ import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size
 import { terrainHeightAt, type Valley } from "./valley";
 import { groundDistance, headingToward, type GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";
-import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
+import type { Walking } from "./walking";
 
 export { CHOP_SECONDS, MOST_LOGS_PER_TREE } from "./tree-size";
 
-/** How far the player is through chopping, from 0 to 1, and the tree they chop, or undefined if they are not chopping now. Walking there does not count. */
+/** How far the player is through chopping, from 0 to 1, and the tree they chop, or undefined if they are not chopping now. */
 export function choppingNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
-  if (player.chopTask === undefined || player.walkPath !== undefined) return undefined;
+  if (player.chopTask === undefined) return undefined;
   const { treeId, secondsDone } = player.chopTask;
   return { progress: Math.min(1, secondsDone / chopSecondsFor(entities.entity(treeId))), targetId: treeId };
 }
@@ -49,11 +50,16 @@ function chopReach(tree: Entity): number {
 }
 
 export interface Chopping {
-  /** Sets the player walking to a standing tree to chop it. Does nothing if the entity is not a standing tree. The game calls it only once `refusal` passes. */
+  /** Where the approach takes the player to chop a tree: within reach of its trunk. Undefined if the entity is not a standing tree. */
+  reach(treeId: number): ApproachReach | undefined;
+  /**
+   * Starts the player chopping a standing tree within reach. The approach runs it once they arrive.
+   * Does nothing if the entity is not a standing tree. The game calls it only once `refusal` passes.
+   */
   start(treeId: number): void;
   /** Why the player could not chop this tree, given by its entity id: it is a young tree, or the player has no axe. */
   refusal(treeId: number): Refusal | undefined;
-  /** Stops the player chopping, or walking to chop. The tree keeps standing. */
+  /** Stops the player chopping. The tree keeps standing. */
   cancel(): void;
   /** Moves every chop on by one logic step. Run it after walking has moved the player. */
   step(stepSeconds: number): undefined;
@@ -67,14 +73,15 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
   const growing = growingTreeEntities(entities);
 
   return {
+    reach(treeId) {
+      const tree = entities.entity(treeId);
+      if (tree?.tree !== true || tree.position === undefined) return undefined;
+      return { target: tree.position, metres: chopReach(tree), walk: { style: "beside" } };
+    },
     start(treeId) {
       const tree = entities.entity(treeId);
       if (tree?.tree !== true || tree.position === undefined) return;
-      for (const player of players) {
-        walking.walkWithin(tree.position, chopReach(tree) - WALK_REACH_MARGIN_METRES);
-        const task = { treeId, secondsDone: 0 };
-        setComponent(entities, player, "chopTask", task);
-      }
+      for (const player of players) setComponent(entities, player, "chopTask", { treeId, secondsDone: 0 });
     },
     refusal(treeId) {
       if (isYoungTree(entities.entity(treeId)?.growth)) return { kind: "tooYoungToChop" };
@@ -86,14 +93,8 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     step(stepSeconds) {
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const chopper of [...choppers]) {
-        if (chopper.walkPath) continue;
         const tree = entities.entity(chopper.chopTask.treeId);
         if (tree?.tree !== true || tree.position === undefined) {
-          entities.removeComponent(chopper, "chopTask");
-          continue;
-        }
-        if (groundDistance(tree.position, chopper.position) > chopReach(tree)) {
-          // The player walked as close as they could but the tree is out of reach.
           entities.removeComponent(chopper, "chopTask");
           continue;
         }

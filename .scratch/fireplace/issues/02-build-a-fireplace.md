@@ -4,24 +4,24 @@
 
 **Blocked by:** 01 (Gather stone)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `stone`. Add the drafts `fireplace` and `fireplace-icon`.
 
-- [ ] The build menu lists the fireplace with its cost of 12 stone, and shows its icon.
-- [ ] The blueprint snaps to a grid square. R turns it to face any of the four sides. A click places it. Esc cancels.
-- [ ] The blueprint needs a finished foundation under it. The square must hold no campfire and no furniture.
-- [ ] A fireplace can be placed with or without walls and a roof around it.
-- [ ] The blueprint takes stone from the backpack and from stone piles within 2 m. It keeps what it has been given, over several trips.
-- [ ] The player holds the build action for 24 seconds in all to build it. Building needs no tool.
-- [ ] The fireplace shows its build stages.
-- [ ] A fireplace and its blueprint block walking.
-- [ ] Furniture and campfires cannot be placed on a square that holds a fireplace or its blueprint.
-- [ ] If floors exist when this ticket starts, a fireplace can stand on a square with a floor or floor blueprint, and a floor can go under a fireplace. See `.scratch/floors-and-doors/issues/01-lay-a-floor.md`.
-- [ ] The player can take down a fireplace or its blueprint and get back every stone given so far.
-- [ ] Fireplaces and their blueprints are saved. The save version goes up, and older saves are upgraded when loaded.
-- [ ] In the playground, a fireplace spends no stone.
-- [ ] `GLOSSARY.md` describes the fireplace as the spec does.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover placement, stone delivered over several trips and from piles, building, and taking down.
+- [x] The build menu lists the fireplace with its cost of 12 stone, and shows its icon.
+- [x] The blueprint snaps to a grid square. R turns it to face any of the four sides. A click places it. Esc cancels.
+- [x] The blueprint needs a finished foundation under it. The square must hold no campfire and no furniture.
+- [x] A fireplace can be placed with or without walls and a roof around it.
+- [x] The blueprint takes stone from the backpack and from stone piles within 2 m. It keeps what it has been given, over several trips.
+- [x] The player holds the build action for 24 seconds in all to build it. Building needs no tool.
+- [x] The fireplace shows its build stages.
+- [x] A fireplace and its blueprint block walking.
+- [x] Furniture and campfires cannot be placed on a square that holds a fireplace or its blueprint.
+- [x] If floors exist when this ticket starts, a fireplace can stand on a square with a floor or floor blueprint, and a floor can go under a fireplace. See `.scratch/floors-and-doors/issues/01-lay-a-floor.md`. Floors did not exist when this ticket started, so nothing was needed.
+- [x] The player can take down a fireplace or its blueprint and get back every stone given so far.
+- [x] Fireplaces and their blueprints are saved. The save version goes up, and older saves are upgraded when loaded.
+- [x] In the playground, a fireplace spends no stone.
+- [x] `GLOSSARY.md` describes the fireplace as the spec does.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover placement, stone delivered over several trips and from piles, building, and taking down.

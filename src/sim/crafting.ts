@@ -33,6 +33,7 @@ import type { WorkStationKind } from "./structure-kind";
 import { footprintOfEntity } from "./structures";
 import { type Terrain } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import type { CommandRules, RuleGame } from "./command-rule";
 
 export type { RecipeKind } from "./recipe-kind";
 
@@ -456,6 +457,28 @@ export function createCrafting(entities: EntityStore, terrain: Terrain): Craftin
       if (player?.carrying !== undefined) return { kind: "putLogDownFirst" };
       if (player?.backpack !== undefined && !resultFits(recipeOf(kind), player.backpack)) return { kind: "backpackFull" };
       return undefined;
+    },
+  };
+}
+
+/** The rule for crafting a recipe. */
+export function craftingRules(crafting: Crafting, { startApproach }: RuleGame): CommandRules<"craft"> {
+  return {
+    craft: {
+      start: "fresh",
+      needsFreeHands: true,
+      refusal: (command) => crafting.refusal(command.recipe),
+      // A hand recipe is crafted where the player stands. A station recipe is followed beside the station, so the player
+      // walks there first, unless they could not start it anyway. The approach holds the station the player walks to.
+      run: (command) => {
+        const stationId = crafting.stationFor(command.recipe, command.stationId);
+        if (stationId === undefined) return crafting.start(command.recipe, command.stationId);
+        return crafting.startRefusal(command.recipe, stationId) ?? startApproach({ type: "craft", recipe: command.recipe, stationId });
+      },
+      approach: {
+        reach: (command) => crafting.reach(command.recipe, command.stationId),
+        act: (command) => crafting.start(command.recipe, command.stationId),
+      },
     },
   };
 }

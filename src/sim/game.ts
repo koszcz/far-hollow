@@ -30,7 +30,7 @@ import { createCarrying, carryingRules } from "./carrying";
 import { createCampfires, isWarmedByCampfire } from "./campfires";
 import { createChopping, choppingRules } from "./chopping";
 import { createDebarking, debarkingRules } from "./debarking";
-import { createCrafting, RECIPES } from "./crafting";
+import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import { clockStartMinutes, createClock, isNight, MINUTES_PER_HOUR, nextMorning, readClock, REAL_MS_PER_GAME_MINUTE, type ClockStart } from "./clock";
 import { createForaging, valleyForageSpots } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
@@ -494,22 +494,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...choppingRules(chopping),
     ...carryingRules(carrying, ruleGame),
     ...debarkingRules(debarking, ruleGame),
-    craft: {
-      start: "fresh",
-      needsFreeHands: true,
-      refusal: (command) => crafting.refusal(command.recipe),
-      // A hand recipe is crafted where the player stands. A station recipe is followed beside the station, so the player
-      // walks there first, unless they could not start it anyway. The approach holds the station the player walks to.
-      run: (command) => {
-        const stationId = crafting.stationFor(command.recipe, command.stationId);
-        if (stationId === undefined) return crafting.start(command.recipe, command.stationId);
-        return crafting.startRefusal(command.recipe, stationId) ?? approach.start({ type: "craft", recipe: command.recipe, stationId });
-      },
-      approach: {
-        reach: (command) => crafting.reach(command.recipe, command.stationId),
-        act: (command) => crafting.start(command.recipe, command.stationId),
-      },
-    },
+    ...craftingRules(crafting, ruleGame),
     ...torchRules(torches, ruleGame),
     ...gatheringRules(gathering, carrying, ruleGame),
     forage: {

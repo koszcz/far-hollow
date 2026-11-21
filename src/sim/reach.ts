@@ -32,13 +32,16 @@ export function nearestInReach(entities: EntityStore, at: GroundPoint): ThingInR
   return nearest;
 }
 
-/** What E would act on in this entity, or undefined if E acts on nothing in it, as for the player, a stump, a sapling, or a finished wall. */
+/** What E would act on in this entity, or undefined if E acts on nothing in it, as for the player, a bare stump, or a finished wall. */
 function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   // A blueprint of a campfire or a piece of furniture is a blueprint, not yet the thing it will be.
   if (entity.blueprint !== undefined) return { kind: "blueprint", id };
   if (entity.workStation !== undefined) return { kind: "workStation", id, station: entity.workStation };
-  // A young tree is offered like a tree, so E says why it cannot be chopped yet.
-  if (entity.tree === true || isYoungTree(entity.growth)) return { kind: "tree", id };
+  if (entity.tree === true) return { kind: "tree", id };
+  // A young tree is offered, so its menu says why it cannot be chopped or dug up yet.
+  if (isYoungTree(entity.growth)) return { kind: "youngTree", id };
+  // A bare stump is not: it would hide the logs lying beside it. A click on it still says why it offers nothing yet.
+  if (entity.growth?.stage === "sapling") return { kind: "sapling", id };
   if (entity.log !== undefined) return { kind: "log", id };
   if (entity.debarkedLog !== undefined) return { kind: "debarkedLog", id };
   if (entity.stick === true) return { kind: "stick", id };

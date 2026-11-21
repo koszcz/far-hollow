@@ -63,6 +63,26 @@ export function stonePileShapes(material: MakeMaterial, track: Track): readonly 
 export function createStoneGeometry(shape = 0): THREE.BufferGeometry {
   const recipe = RECIPES[shape % RECIPES.length];
   if (recipe === undefined) throw new Error(`No stone shape ${shape}`);
+  return createLumpyStoneGeometry(recipe);
+}
+
+/** A lumpy stone made to order, such as a stone set in a wall. The fields beyond a pile stone's change how it is cut and lit. */
+export interface LumpyStoneRecipe extends StoneRecipe {
+  /** The share of the stone's height cut off flat at the top, so stones stack. 0 leaves the top round. */
+  readonly flatTop?: number;
+  /** How far each face's normal is bent towards straight up. Less than a pile stone's lets the sides of a wall stone show shade. */
+  readonly normalUpBend?: number;
+  /** How far the stone is pushed from a ball towards a block, from 0 (a ball) to 1 (a cube), so it fills a wall's course. */
+  readonly boxiness?: number;
+  /** Stretches the stone so it fills `size` exactly, with its middle over x = 0, z = 0, instead of only roughly. */
+  readonly fitSize?: boolean;
+}
+
+/**
+ * A lumpy stone, resting on y = 0, with a colour on each face. Draw it with a white material that uses vertex colours.
+ * The same every time for the same recipe. Pile stones and the stones of the fireplace are both made here.
+ */
+export function createLumpyStoneGeometry(recipe: LumpyStoneRecipe): THREE.BufferGeometry {
   const random = createRandom(recipe.seed);
   const ball = new THREE.IcosahedronGeometry(1, 1);
   const positions = ball.getAttribute("position");
@@ -80,30 +100,43 @@ export function createStoneGeometry(shape = 0): THREE.BufferGeometry {
     let out = moved.get(key);
     if (out === undefined) {
       const direction = corner.clone().normalize();
+      if (recipe.boxiness !== undefined && recipe.boxiness > 0) {
+        const onCube = direction.clone().divideScalar(Math.max(Math.abs(direction.x), Math.abs(direction.y), Math.abs(direction.z)));
+        direction.lerp(onCube, recipe.boxiness);
+      }
       let radius = 1 - recipe.lumpiness * 0.5;
       for (const lump of lumps) radius += lump.height * Math.max(0, direction.dot(lump.towards)) ** 2;
       out = direction.multiplyScalar(radius);
       // Squash to the stone's size, then cut the foot flat.
       out.set((out.x * width) / 2, ((out.y + 1) / 2) * height, (out.z * length) / 2);
       out.y = Math.max(out.y, height * FLAT_FOOT);
+      if (recipe.flatTop !== undefined && recipe.flatTop > 0) out.y = Math.min(out.y, height * (1 - recipe.flatTop));
       moved.set(key, out);
     }
     positions.setXYZ(i, out.x, out.y, out.z);
   }
 
-  const loose = ball.toNonIndexed();
-  ball.dispose();
+  // An icosahedron is built without an index, so it already has its own corners for each face.
+  const loose = ball.index === null ? ball : ball.toNonIndexed();
+  if (loose !== ball) ball.dispose();
   loose.computeBoundingBox();
-  const bottom = loose.boundingBox?.min.y ?? 0;
-  loose.translate(0, -bottom, 0);
-  paintFaces(loose, recipe.colour, random);
+  const box = loose.boundingBox ?? new THREE.Box3();
+  if (recipe.fitSize === true) {
+    const centre = box.getCenter(new THREE.Vector3());
+    const extent = box.getSize(new THREE.Vector3());
+    loose.translate(-centre.x, -box.min.y, -centre.z);
+    loose.scale(width / extent.x, height / extent.y, length / extent.z);
+  } else {
+    loose.translate(0, -box.min.y, 0);
+  }
+  paintFaces(loose, recipe.colour, random, recipe.normalUpBend ?? NORMAL_UP_BEND);
   loose.computeBoundingBox();
   loose.computeBoundingSphere();
   return loose;
 }
 
 /** Gives each face one colour, lighter higher up, and one normal bent towards straight up. */
-function paintFaces(geometry: THREE.BufferGeometry, stoneColour: number, random: Random): void {
+function paintFaces(geometry: THREE.BufferGeometry, stoneColour: number, random: Random, normalUpBend: number): void {
   const positions = geometry.getAttribute("position");
   const top = geometry.boundingBox?.max.y ?? 1;
   const count = positions.count;
@@ -125,7 +158,7 @@ function paintFaces(geometry: THREE.BufferGeometry, stoneColour: number, random:
     const rise = THREE.MathUtils.clamp((a.y + b.y + c.y) / 3 / top, 0, 1);
     const shade = FOOT_SHADE + (1 - FOOT_SHADE) * rise + (random() * 2 - 1) * FACE_SHADE_SPREAD;
     colour.copy(base).multiplyScalar(shade);
-    normal.y += NORMAL_UP_BEND;
+    normal.y += normalUpBend;
     normal.normalize();
     for (let corner = i; corner < i + 3; corner += 1) {
       colour.toArray(colours, corner * 3);

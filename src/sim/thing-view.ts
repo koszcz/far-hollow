@@ -13,6 +13,8 @@ export function describeThing(entities: EntityStore, id: number): ThingView | un
   if (entity.forageSpot !== undefined) return { kind: "forage", food: entity.forageSpot.food };
   if (entity.pile !== undefined) return { kind: "pile", content: entity.pile.content };
   if (entity.tree === true || isYoungTree(entity.growth)) return { kind: "tree" };
+  if (entity.growth?.stage === "sapling") return { kind: "sapling" };
+  if (entity.stump === true) return { kind: "stump" };
   if (entity.log !== undefined) return { kind: "log" };
   if (entity.debarkedLog !== undefined) return { kind: "debarkedLog" };
   if (entity.stick === true) return { kind: "stick" };

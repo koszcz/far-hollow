@@ -941,7 +941,11 @@
     {
       "id": "action-queue-icons",
       "kind": "code",
-      "code": ["src/ui/action-queue-icons.tsx", "src/ui/action-queue-row.tsx", "src/ui/queued-actions.ts"],
+      "code": [
+        "src/ui/action-queue-icons.tsx",
+        "src/ui/action-queue-row.tsx",
+        "src/ui/queued-actions.ts"
+      ],
       "description": "The action queue beside the clock, and the icons for queued actions on things that have no icon elsewhere. The row is a smoked walnut glass pill right of the clock pill, holding one round chip per queued action, up to 4. The action under way comes first, in a larger chip with a faint amber ring. Pointing at a chip tints it amber and shows the action's name in a pill label below it, as a hotbar cell does. With an empty queue, the row is gone. Each chip shows what its action works on. Backpack contents, structures, furniture, the sled, logs, and debarked logs reuse their approved icons. Three icons, drawn in the build icons' shaded style on the same 24 by 24 grid, cover the rest: a standing tree, a conifer of three green tiers on a short brown trunk, standing on a grassy patch; the river, a blue stream with pale ripples winding across a round grassy patch; and a spot on the ground to walk to, an amber pin on a patch of earth. The tree and the pin share one ground patch, each with a soft shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
@@ -1279,14 +1283,17 @@
       "kind": "code",
       "code": [
         "src/render/fireplace-meshes.ts",
+        "src/render/fireplace-shape.ts",
+        "src/render/stone-shape.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. The stones are plain boxes in three greys. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one stone per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down. A lit fireplace shows the approved fire-effect on its hearth floor, shrunk to 55%, with the campfire's glow and pool of light hung at its opening. A pot on its fire shows the approved pot sitting on the flames under the slab, steaming while lit. Fish on its fire show the approved fish-on-fire skewers standing upright in a row of 3 just in front of the opening, with their flat sides to the fire.",
+      "description": "The fireplace: a squat stone hearth on one foundation square, about 1.7 m tall. A back wall and two side walls of grey river stone, two courses high, stand round a stone hearth floor, with the opening at the front. A stone slab lies across their tops, and a short chimney of two stone blocks under a cap rises from the back. It is hand-stacked rubble: lumpy, blocky river stones in the warm greys of the approved stone, laid in rough courses with dark mortar showing between them. The hearth floor is four flagstones, the slab is one rough stone, and the chimney narrows as it rises, under a cap stone held up on two small stones over a black flue. Soot blackens the inside of the fire box, the hearth, the underside of the slab, and the slab's front above the opening. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one part per stage, 12 in all: the hearth floor, the walls, the slab, then the chimney. Each stone fades in above its place and is set down. A lit fireplace shows the approved fire-effect on its hearth floor, shrunk to 55%, with the campfire's glow and pool of light hung at its opening. A pot on its fire shows the approved pot sitting on the flames under the slab, steaming while lit. Fish on its fire show the approved fish-on-fire skewers standing upright in a row of 3 just in front of the opening, with their flat sides to the fire.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fireplace/issues/02-build-a-fireplace.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-21"
       }
     },
     {
@@ -1398,6 +1405,23 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+      }
+    },
+    {
+      "id": "sapling-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/sapling-icon.tsx",
+        "src/ui/backpack-icons.tsx",
+        "src/render/sapling-pile-shape.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "A dug-up sapling: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small young pine with two tiers of green over a thin brown stem, its roots in a ball of brown earth. In a pile, each sapling lies on its side, about 70 cm long: a lumpy ball of earth at one end, a thin brown stem, and two cones of green needles toward the tip, spread around the middle like other things in a pile.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/regrowth/issues/02-dig-up-a-sapling.md"
       }
     }
   ]

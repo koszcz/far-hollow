@@ -148,14 +148,14 @@ describe("chopping a growing tree", () => {
     expect(tree.growth?.stage).toBe("youngTree");
   });
 
-  it("offers a young tree in reach of E, so E can say why it cannot be chopped", () => {
+  it("offers a young tree in reach of E, so its menu can say why it cannot be chopped", () => {
     const { game, tree } = felledTree();
     send(game, { type: "dropLog" });
     // Clear away the logs, so the young tree is the nearest thing.
     for (const log of [...game.entities.with("log")]) game.entities.remove(log);
     passHours(game, 3 * 24);
 
-    expect(game.client.nearestInReach()).toEqual({ kind: "tree", id: idOf(game, tree) });
+    expect(game.client.nearestInReach()).toEqual({ kind: "youngTree", id: idOf(game, tree) });
   });
 });
 

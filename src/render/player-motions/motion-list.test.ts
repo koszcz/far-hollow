@@ -9,6 +9,7 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
   "debarking-animation": 1,
   "sawing-animation": { nowSeconds: 1, progress: 0.2 },
   "hand-craft-animation": 1,
+  "fishing-animation": { nowSeconds: 3, sinceCast: 3, toBite: 1, floatForward: 4, floatHeight: -0.5 },
   "gather-stone-animation": 1,
 };
 
@@ -19,6 +20,7 @@ describe("the player motions", () => {
       "debarking-animation",
       "sawing-animation",
       "hand-craft-animation",
+      "fishing-animation",
       "gather-stone-animation",
     ]);
   });
@@ -31,6 +33,7 @@ describe("the player motions", () => {
       "debarking-animation": true,
       "sawing-animation": true,
       "hand-craft-animation": true,
+      "fishing-animation": true,
       "gather-stone-animation": true,
     });
   });

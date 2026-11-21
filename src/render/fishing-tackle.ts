@@ -1,6 +1,6 @@
 // Part of the approved "fishing-animation" asset in asset-manifest.json. It moves the tackle while the player fishes:
 // it bends the approved "fishing-rod" as it whips and as a fish pulls on it, draws the line as a thin curve from the
-// tip, and builds the float that bobs on the water. player-mesh.ts places them from the pose in player-fish-pose.ts.
+// tip, and builds the float that bobs on the water. player-motions/fishing-animation.ts places them from the pose in player-fish-pose.ts.
 import * as THREE from "three";
 import { FISHING_ROD_LENGTH_METRES, type FishingRod } from "./fishing-rod-model";
 

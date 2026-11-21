@@ -17,7 +17,8 @@ import { createForageMeshes } from "./forage-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
-import { createPlayerMesh, type Fishing } from "./player-mesh";
+import { createPlayerMesh } from "./player-mesh";
+import type { Fishing } from "./player-motions/fishing-animation";
 import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
@@ -340,7 +341,7 @@ export function createSceneRenderer(
     // Fishing casts the line out over the water, waits, and reels a fish in, facing the spot on the river.
     const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;
     if (fishTask === undefined) castDrawn = undefined;
-    playerMesh.setFishing(fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
+    playerMesh.setMotion("fishing-animation", fishTask === undefined ? undefined : fishingDrawn(nowSeconds, fishTask, playerDrawn));
     if (fishTask !== undefined) playerMesh.setHeading(headingToward(playerDrawn, fishTask));
     // A recipe made at the sawhorse saws. The player steps up beside the beam to saw, and back when sawing stops.
     // A hand recipe, such as crafting the saw, works at it with both hands where the player stands.

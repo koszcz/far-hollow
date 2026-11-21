@@ -55,7 +55,7 @@ import { createDrinking, drinkingRules } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
 import type { ApproachRule, CommandRule, CommandRules, RuleGame } from "./command-rule";
 import { createStoneGathering, stoneRules } from "./stone";
-import { createTorches } from "./torches";
+import { createTorches, torchRules } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isRoomHeated } from "./rooms";
@@ -531,41 +531,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
         act: (command) => crafting.start(command.recipe, command.stationId),
       },
     },
-    // Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
-    lightTorch: {
-      start: "alongside",
-      refusal: () => torches.lightRefusal(),
-      run: () => {
-        torches.light();
-      },
-    },
-    putOutTorch: {
-      start: "alongside",
-      run: () => {
-        torches.putOut();
-      },
-    },
-    // Planting the torch reaches down to stand it at the player's feet, as laying the bedroll does.
-    plantTorch: {
-      start: "alongside",
-      refusal: () => torches.plantRefusal(),
-      run: () => {
-        if (torches.plantRefusal() === undefined)
-          putDown(handReach, () => {
-            torches.plant();
-          });
-      },
-    },
-    pickUpTorch: {
-      start: "fresh",
-      refusal: () => torches.pickUpRefusal(),
-      approach: {
-        reach: (command) => torches.pickUpReach(command.torchId),
-        act: (command) => {
-          torches.pickUp(command.torchId);
-        },
-      },
-    },
+    ...torchRules(torches, ruleGame),
     pickUpStick: {
       start: "fresh",
       needsFreeHands: true,

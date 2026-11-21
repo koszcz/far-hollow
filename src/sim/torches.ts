@@ -13,6 +13,8 @@ import { groundDistance, type GroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
 import { toolRefusal } from "./refusals";
 import type { Valley } from "./valley";
+import type { CommandRules, RuleGame } from "./command-rule";
+import { putDown } from "./hand-reach";
 
 /** The player cannot plant a torch this close to another planted torch, in metres. */
 export const PLANTED_TORCH_SPACING_METRES = 1;
@@ -161,6 +163,48 @@ export function createTorches(entities: EntityStore, valley: Valley, hand: Pick<
         if (id === undefined) return [];
         return [{ ...torch.plantedTorch, id, position: { ...torch.position } }];
       });
+    },
+  };
+}
+
+/**
+ * The rules for the torch. Lighting a torch and putting it out take no time, and the player keeps doing what they were doing.
+ * Planting the torch reaches down to stand it at the player's feet, as laying the bedroll does.
+ */
+export function torchRules(torches: Torches, { hand }: RuleGame): CommandRules<"lightTorch" | "putOutTorch" | "plantTorch" | "pickUpTorch"> {
+  return {
+    lightTorch: {
+      start: "alongside",
+      refusal: () => torches.lightRefusal(),
+      run: () => {
+        torches.light();
+      },
+    },
+    putOutTorch: {
+      start: "alongside",
+      run: () => {
+        torches.putOut();
+      },
+    },
+    plantTorch: {
+      start: "alongside",
+      refusal: () => torches.plantRefusal(),
+      run: () => {
+        if (torches.plantRefusal() === undefined)
+          putDown(hand, () => {
+            torches.plant();
+          });
+      },
+    },
+    pickUpTorch: {
+      start: "fresh",
+      refusal: () => torches.pickUpRefusal(),
+      approach: {
+        reach: (command) => torches.pickUpReach(command.torchId),
+        act: (command) => {
+          torches.pickUp(command.torchId);
+        },
+      },
     },
   };
 }

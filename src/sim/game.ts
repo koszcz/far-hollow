@@ -1,5 +1,5 @@
 import { createRegrowth } from "./regrowth";
-import { ACTION_QUEUE_LIMIT } from "./api";
+import { createActionQueue, type QueueRule } from "./action-queue";
 import type {
   ActionCommand,
   BedrollView,
@@ -52,7 +52,7 @@ import { isWalkable, nearestWalkableSpot, type WalkMap } from "./walk-map";
 import { createWalking, playerStartSpot, type Walking } from "./walking";
 import { createNeeds, hasCollapsed, minutesToRestFully, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
 import { createDrinking } from "./drinking";
-import { createFishing, fishingNow } from "./fishing";
+import { createFishing } from "./fishing";
 import { createStoneGathering } from "./stone";
 import { createTorches } from "./torches";
 import { createRain, passRainTime } from "./rain";
@@ -109,9 +109,7 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
  *   approach and no `run` starts the approach when it runs. See approach.ts.
  * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
  * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
- * - `queue`: how the command meets the action queue. Without it, the command can be queued, and sent on its own it empties the queue.
- *   "plainOnly": it is never queued. Sent to the queue, it runs as if sent on its own. "apart": as "plainOnly", and sent on its own
- *   it leaves the queue as it is, unless it stops what the player was doing.
+ * - `queue` and `canStopForNext`: how the command meets the action queue. See QueueRule in action-queue.ts.
  */
 type CommandRule<C extends ActionCommand> = CommandRuleParts<C> &
   (
@@ -125,12 +123,11 @@ interface ApproachRule<C extends ActionCommand> {
   readonly act: (command: C) => Notice | PlainNotice | undefined;
 }
 
-interface CommandRuleParts<C extends ActionCommand> {
+interface CommandRuleParts<C extends ActionCommand> extends QueueRule {
   readonly start: "fresh" | "alongside";
   readonly refusal?: (command: C) => Refusal | undefined;
   readonly needsFreeHands?: true | ((command: C) => boolean);
   readonly keepsPlayerSitting?: true;
-  readonly queue?: "plainOnly" | "apart";
 }
 
 /** The rule for each kind of command. Queueing an action is handled before any rule. */
@@ -288,12 +285,22 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** The player's last bite or drink since the game was loaded. It is not saved. */
   let lastEatOrDrink: EatOrDrinkView | null = null;
   let stepCount = progress?.stepCount ?? 0;
+  /** Whether cancelTasks has run since the command being carried out began, so applyCommand can report that it stopped what the player was doing. */
+  let stoppedWork = false;
   /** The action queue: the action under way first, then those waiting their turn. It is not saved. */
-  const actionQueue: ActionCommand[] = [];
-  /** How many times cancelTasks has run, so sending a command can tell whether it stopped what the player was doing. */
-  let cancelCount = 0;
-  /** How many casts the player had made when they were first seen fishing since the latest command, or undefined if not yet seen. */
-  let castsWhenFishingBegan: number | undefined;
+  const actionQueue = createActionQueue({
+    rule: ruleOf,
+    refusal: refusalOf,
+    carryOut: applyCommand,
+    playerIsBusy: () => playerIsBusy(player),
+    stopUnderWay: () => {
+      cancelTasks();
+      stools.standUp();
+      handReach.cancel();
+      entities.removeComponent(player, "walkPath");
+    },
+    showNotice,
+  });
   if (startNotice !== undefined) showNotice(startNotice);
   let view = snapshot();
 
@@ -331,7 +338,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       lastEatOrDrink,
       sittingOn: player.sitting?.stoolId ?? null,
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
-      actionQueue: deepFreeze(structuredClone(actionQueue)),
+      actionQueue: deepFreeze(structuredClone(actionQueue.actions())),
     });
   }
 
@@ -392,7 +399,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /** Stops whatever the player was walking to do, before they start something else. */
   function cancelTasks(): void {
-    cancelCount += 1;
+    stoppedWork = true;
     for (const activity of activities) activity.cancel();
   }
 
@@ -860,6 +867,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     },
     sitOnStool: {
       start: "fresh",
+      // Once seated, the player sits on with nothing to end it, so they stand up at once for a queued action.
+      canStopForNext: () => player.sitting !== undefined,
       refusal: (command) => goneRefusal(entities, command.stoolId),
       approach: {
         reach: (command) => stools.reach(command.stoolId),
@@ -881,6 +890,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       run: (command) => {
         fishing.fish({ x: command.x, z: command.z });
       },
+      // Fishing has no end. A queued fishing trip catches one fish when another action waits.
+      canStopForNext: () => fishing.hasFishBitten(),
     },
     gatherStone: {
       start: "fresh",
@@ -988,7 +999,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     // A collapse before the first morning means the player did not survive the first night.
     firstNightOver = true;
     cancelTasks();
-    actionQueue.length = 0;
+    actionQueue.empty();
     stools.standUp();
     torches.putOut();
     carrying.drop();
@@ -1079,126 +1090,25 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 
-  /** Carries out a command, once its refusal passes. A refused command does nothing, and a notice says why. */
-  function applyCommand(command: ActionCommand): void {
+  /**
+   * Carries out a command, once its refusal passes. A refused command does nothing, and a notice says why.
+   * Returns whether it stopped what the player was doing.
+   */
+  function applyCommand(command: ActionCommand): boolean {
     const refusal = refusalOf(command);
     if (refusal !== null) {
       showNotice(refusedNotice(refusal));
-      return;
+      return false;
     }
+    stoppedWork = false;
     const rule = ruleOf(command);
     // The player stands up from a stool as soon as they walk or act. Pausing or skipping time is not acting.
     if (rule.keepsPlayerSitting !== true) stools.standUp();
     // Any new command cancels a reach in progress. If the hand has not got to the thing yet, its command is never carried out.
     if (command.type !== "setPaused") handReach.cancel();
     if (rule.start === "fresh") cancelTasks();
-    castsWhenFishingBegan = undefined;
     refuseWith(rule.run === undefined ? approach.start(command) : rule.run(command));
-  }
-
-  /** Carries out a command the UI sent: it adds an action to the action queue, or it runs on its own. */
-  function receive(command: Command): void {
-    if (command.type === "queueAction") queueAction(command.action);
-    else if (command.type === "cancelQueuedAction") cancelQueuedAction(command.index);
-    else sendOnItsOwn(command);
-  }
-
-  /**
-   * Carries out a command sent on its own, as a plain click does. An action empties the actions waiting in the queue.
-   * If it stops what the player was doing, or starts something while the queue is empty, it becomes the action under way.
-   * A command apart from the queue, such as pausing, leaves the queue as it is, unless it stops what the player was doing.
-   */
-  function sendOnItsOwn(command: ActionCommand): void {
-    const apart = ruleOf(command).queue === "apart";
-    if (!apart) actionQueue.splice(1);
-    const cancelsBefore = cancelCount;
-    applyCommand(command);
-    if (cancelCount !== cancelsBefore || (!apart && actionQueue.length === 0 && playerIsBusy(player))) actionQueue.splice(0, actionQueue.length, command);
-  }
-
-  /**
-   * Adds an action to the end of the action queue, as a Shift-click does. With an empty queue, it starts at once.
-   * It is turned away, with a notice saying why, when the queue is full or the game refuses the action now.
-   */
-  function queueAction(command: ActionCommand): void {
-    if (ruleOf(command).queue !== undefined) {
-      sendOnItsOwn(command);
-      return;
-    }
-    if (actionQueue.length >= ACTION_QUEUE_LIMIT) {
-      showNotice("queueFull");
-      return;
-    }
-    const refusal = refusalOf(command);
-    if (refusal !== null) {
-      showNotice({ kind: "cannotQueue", refusal });
-      return;
-    }
-    actionQueue.push(command);
-    if (actionQueue.length === 1) applyCommand(command);
-  }
-
-  /**
-   * Takes the action at `index` out of the action queue, as a click on its icon does. Cancelling the action under way
-   * stops what the player is doing for it, as if they had stopped of their own accord, and the next action starts.
-   */
-  function cancelQueuedAction(index: number): void {
-    if (!Number.isInteger(index) || index < 0 || index >= actionQueue.length) return;
-    if (index > 0) {
-      actionQueue.splice(index, 1);
-      return;
-    }
-    cancelTasks();
-    stools.standUp();
-    handReach.cancel();
-    entities.removeComponent(player, "walkPath");
-    actionQueue.shift();
-    startNextQueued();
-  }
-
-  /**
-   * Moves the action queue on, once a logic step has run. When the player has nothing left to do for the action under way,
-   * it leaves the queue and the next one starts. An action with no end goes on while nothing waits behind it. With another
-   * action waiting, sitting ends at once, and fishing ends once a fish has bitten. An action the game refuses when its turn
-   * comes is dropped, with a notice saying why.
-   */
-  function moveQueueOn(): void {
-    const underWay = actionQueue[0];
-    if (underWay === undefined) return;
-    if (playerIsBusy(player)) {
-      const done = endlessActionDone();
-      if (!done || actionQueue.length === 1) return;
-      cancelTasks();
-      stools.standUp();
-    }
-    actionQueue.shift();
-    startNextQueued();
-  }
-
-  /** Starts the first action in the queue. An action the game refuses now is dropped, with a notice saying why, and the one after is tried. */
-  function startNextQueued(): void {
-    for (let next = actionQueue[0]; next !== undefined; next = actionQueue[0]) {
-      const refusal = refusalOf(next);
-      if (refusal === null) {
-        applyCommand(next);
-        return;
-      }
-      showNotice({ kind: "actionSkipped", refusal });
-      actionQueue.shift();
-    }
-  }
-
-  /**
-   * Whether the player has done enough of an action with no end to move on when another action waits: they sit,
-   * or they fish and a fish has bitten since they began. A queued fishing trip catches one fish.
-   */
-  function endlessActionDone(): boolean {
-    if (player.sitting !== undefined) return true;
-    if (fishingNow(player) === undefined) return false;
-    const casts = player.fishCasts ?? 0;
-    // The player casts when they start fishing, and again each time a fish bites.
-    castsWhenFishingBegan ??= casts;
-    return casts > castsWhenFishingBegan;
+    return stoppedWork;
   }
 
   /** Why the game would turn a command away now: the player's hands being busy with a sled first, then the command's own rule. */
@@ -1211,7 +1121,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   }
 
   function step(): void {
-    for (const command of pendingCommands.splice(0)) receive(command);
+    for (const command of pendingCommands.splice(0)) actionQueue.receive(command);
 
     if (!paused) {
       for (const entity of moving) {
@@ -1224,7 +1134,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       sleds.follow();
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
-      moveQueueOn();
+      actionQueue.moveOn();
       stepCount += 1;
     }
 

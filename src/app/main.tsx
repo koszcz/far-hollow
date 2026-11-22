@@ -14,6 +14,7 @@ import { Hud } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
+import { createDevHooks } from "./dev-hooks";
 import { pressCraftKey } from "./craft-menu";
 import { hotbarKeyStartsPlanting, pressHotbarKey } from "./hotbar";
 import { downloadFile, saveExportFile, unreadableSlotExportFile } from "./save-export";
@@ -209,17 +210,21 @@ const walkInput = attachWalkInput({
     renderUi();
   },
 });
+/** Runs one logic step. Returns false if the game held its logic instead. */
+function runStep(): boolean {
+  // Game logic waits while the player lies down, sleeps, and gets up, so they cannot act mid-sleep.
+  if (sceneRenderer.isPlayingSleep()) return false;
+  game.step();
+  return true;
+}
 if (import.meta.env.DEV) {
-  // Lets the on-demand browser test read the game's view. Development builds only.
-  Object.assign(window, { farHollow: { client: game.client } });
+  // Lets browser tests and agents read and drive the game, and run play time at once. Development builds only.
+  Object.assign(window, { farHollow: createDevHooks(game.client, runStep) });
 }
 const loop = createFixedStepLoop({
   stepMs: STEP_MS,
   maxStepsPerAdvance: MAX_STEPS_PER_FRAME,
-  step: () => {
-    // Game logic waits while the player lies down, sleeps, and gets up, so they cannot act mid-sleep.
-    if (!sceneRenderer.isPlayingSleep()) game.step();
-  },
+  step: runStep,
 });
 
 /**

@@ -153,6 +153,10 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: "bed" }, name: actions.sleep };
     case "sitOnStool":
       return { icon: { structure: "stool" }, name: actions.sit };
+    case "drinkFromRainBarrel":
+      return { icon: { structure: "rainBarrel" }, name: actions.drink };
+    case "fillPotFromRainBarrel":
+      return { icon: { structure: "rainBarrel" }, name: actions.fillPotHere };
     case "drinkFromRiver":
       return { icon: { thing: "river" }, name: actions.drink };
     case "fish":

@@ -24,6 +24,7 @@ import type { Entity, ReachHeight } from "./entities";
 import { BED } from "./furniture/bed";
 import { CHEST } from "./furniture/chest";
 import { SHELF } from "./furniture/shelf";
+import { RAIN_BARREL } from "./furniture/rain-barrel";
 import { STOOL } from "./furniture/stool";
 import { TABLE } from "./furniture/table";
 import type { FurnitureKind } from "./structure-kind";
@@ -42,7 +43,7 @@ export interface FurnitureStorage {
  * The action menu turns the name into its label and icon.
  */
 export interface FurnitureUse {
-  readonly name: "open" | "sleep" | "sit";
+  readonly name: "open" | "sleep" | "sit" | "drink" | "fillPot";
   readonly command: (id: number) => Command;
 }
 
@@ -70,8 +71,12 @@ export interface FurnitureDefinition<Kind extends FurnitureKind = FurnitureKind>
   readonly storage?: FurnitureStorage;
   /** How high the player reaches to put things in it or take them out, if they do. */
   readonly reachHeight?: ReachHeight;
-  /** How the player uses a finished piece, if they can. Every finished piece can also be taken down. */
+  /** How the player uses a finished piece, if they can. It is the piece's main action. Every finished piece can also be taken down. */
   readonly use?: FurnitureUse;
+  /** Other ways the player uses a finished piece, after its main use, in the order the action menu lists them. */
+  readonly moreUses?: readonly FurnitureUse[];
+  /** The parts a finished piece starts with, besides `furniture`, `storage`, and how it blocks walking, such as a rain barrel's water. */
+  readonly finishedParts?: () => Pick<Entity, "rainBarrel">;
 }
 
 /** Each piece of furniture by its kind. */
@@ -81,6 +86,7 @@ export const FURNITURE: { readonly [Kind in FurnitureKind]: FurnitureDefinition<
   bed: BED,
   table: TABLE,
   stool: STOOL,
+  rainBarrel: RAIN_BARREL,
 };
 
 /** The definition of the finished piece of furniture an entity is, if it is one. */

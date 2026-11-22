@@ -38,7 +38,7 @@ The first garden ticket held the questions for the whole feature. The answers ar
 
 - A planted bush is a forage spot that starts out growing its berries back, with 2 days left. Once it bears them, nothing tells it apart from a wild bush.
 - "Dig up" is the main action of a bush that is growing its berries back. E never reaches such a bush, so E cannot dig one up by mistake.
-- Digging up under way now records `thingId` in place of `saplingId`, and planting under way records what it plants. The save upgrade to version 49 converts both in older saves.
+- Digging up under way now records `thingId` in place of `saplingId`, and planting under way records what it plants. The save upgrade to version 50 converts both in older saves.
 - A blueprint that would cover a berry bush turns red, and the placing hint says "Cannot place a Campfire here: a berry bush is in the way." for a campfire, and likewise for other structures. Most other refused spots still give no reason.
 - A berry bush also keeps 1 m from a mushroom log, which says "too close to a mushroom log".
 - The refusal text for unplantable ground now reads "it grows only on forest floor or in a clearing", so saplings and berry bushes share it.

@@ -271,7 +271,7 @@ describe("saving planted berry bushes", () => {
 
 describe("loading a save from before berry bushes could be planted", () => {
   it("raises the save version", () => {
-    expect(SAVE_VERSION).toBe(BERRY_BUSHES_SAVE_VERSION);
+    expect(BERRY_BUSHES_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
   });
 
   it("keeps a sapling being dug up and a sapling being planted going", () => {

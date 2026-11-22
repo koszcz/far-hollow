@@ -7,6 +7,7 @@ import type { Needs } from "./needs";
 import type { Fire, FireKind } from "./fire";
 import type { FishOnFire } from "./fish-on-fire";
 import type { PotOnFire } from "./pot-state";
+import type { FillLevel } from "./fill-level";
 import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
@@ -204,6 +205,11 @@ export interface Entity {
    * kind like the backpack. `contents` says how many of each kind it holds, up to the piece's weight limit in all. Logs never go in.
    */
   storage?: { contents: BackpackContents };
+  /**
+   * The clean water in a finished rain barrel: how many drinks it holds, up to RAIN_BARREL_DRINK_LIMIT, and how far it is
+   * toward the next drink. It fills while rain falls on it. See rain-barrels.ts.
+   */
+  rainBarrel?: FillLevel;
   /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.

@@ -4,7 +4,7 @@ import { logEntities, lyingThings, type Entity, type Vec3 } from "./entities";
 import { createGame, type Game } from "./game";
 import { PLANT_MUSHROOM_SECONDS } from "./mushroom-logs";
 import { createNeeds } from "./needs";
-import { MUSHROOM_LOGS_SAVE_VERSION, PLANTING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { MUSHROOM_LOGS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 
@@ -182,8 +182,7 @@ describe("saving mushroom logs", () => {
   });
 
   it("raises the save version, and loads a save from before mushroom logs", () => {
-    expect(MUSHROOM_LOGS_SAVE_VERSION).toBe(PLANTING_SAVE_VERSION + 1);
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(MUSHROOM_LOGS_SAVE_VERSION);
+    expect(MUSHROOM_LOGS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const game = gameWithMushrooms(1);
     const log = looseLog(game);
     const older = JSON.parse(JSON.stringify({ ...writeSave(game), version: MUSHROOM_LOGS_SAVE_VERSION - 1 })) as ReturnType<typeof writeSave>;

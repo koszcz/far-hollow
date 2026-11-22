@@ -65,6 +65,7 @@ import { isUnderRoof } from "./roofs";
 import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot, potRules } from "./pot";
+import { createRainBarrels, rainBarrelRules } from "./rain-barrels";
 import { createCooking, cookingRules } from "./cooking";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
@@ -183,6 +184,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const planting = createPlanting(entities, walking.walkMap, valley);
   const mushroomLogs = createMushroomLogs(entities);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
+  const rainBarrels = createRainBarrels(entities);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, valley, handReach);
@@ -308,6 +310,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     add("pile", nearbyPile());
     add("blueprint", building.nearby());
     add("openChest", chests.opened());
+    add("rainBarrel", rainBarrels.nearby());
     return Object.freeze(things);
   }
 
@@ -430,6 +433,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...bedrollRules(bedrolls, ruleGame),
     ...bedRules(beds, ruleGame),
     ...stoolRules(stools, ruleGame),
+    ...rainBarrelRules(rainBarrels, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...stoneRules(stoneGathering),
@@ -502,9 +506,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
-   * sticks fall, and pots and fish heat.
+   * sticks fall, pots and fish heat, and rain barrels catch the rain falling now.
    */
   function passWorldTime(minutes: number): void {
+    rainBarrels.catchRain(minutes, rain.falling);
     campfires.burn(minutes);
     torches.burn(minutes);
     foraging.grow(minutes);

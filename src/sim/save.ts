@@ -69,6 +69,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addSaplings,
   addPlanting,
   addMushroomLogs,
+  addRainBarrels,
   plantBerryBushes,
 ];
 
@@ -159,6 +160,8 @@ export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 export const PLANTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanting) + 2;
 /** The first save version that can hold mushroom logs. */
 export const MUSHROOM_LOGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addMushroomLogs) + 2;
+/** The first save version that can hold rain barrels. */
+export const RAIN_BARRELS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRainBarrels) + 2;
 /** The first save version in which the player can dig up and plant berry bushes. */
 export const BERRY_BUSHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantBerryBushes) + 2;
 
@@ -851,8 +854,13 @@ function addMushroomLogs(save: Readonly<Record<string, unknown>>): Record<string
   return nothingToUpgrade(save);
 }
 
+/** Version 48 to 49: the player can build rain barrels. A save from before then holds none, so it carries over unchanged. */
+function addRainBarrels(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
 /**
- * Version 48 to 49: the player can dig up and plant berry bushes as well as saplings. Digging up under way names what it digs up
+ * Version 49 to 50: the player can dig up and plant berry bushes as well as saplings. Digging up under way names what it digs up
  * as `thingId`, not `saplingId`, and planting under way says what it plants. In an older save, both can only be a sapling.
  */
 function plantBerryBushes(save: Readonly<Record<string, unknown>>): Record<string, unknown> {

@@ -609,6 +609,7 @@ export function freelyPlaced<Kind extends FurnitureKind>(piece: FurnitureDefinit
     finish: (spot, turns) => ({
       furniture: piece.kind,
       ...(storage === undefined ? {} : { storage: { contents: {} } }),
+      ...piece.finishedParts?.(),
       // A piece that blocks the cells under it blocks every walk-map cell it reaches over. The spots are at most half a cell
       // apart, so each of those cells holds one. They stay a little inside its edges, so a cell that only touches an edge stays open.
       ...(blocks === "cellsUnder"

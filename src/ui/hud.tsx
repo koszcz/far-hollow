@@ -16,6 +16,7 @@ import type {
   NearbyThing,
   Notice,
   PileView,
+  RainBarrelView,
   RecipeKind,
   Plantable,
   Refusal,
@@ -554,6 +555,22 @@ function WoodpilePanel({ woodpile }: { woodpile: WoodpileView }) {
   );
 }
 
+/** Shows how many drinks of clean water the rain barrel beside the player holds, and whether a roof keeps the rain off it. */
+function RainBarrelPanel({ barrel }: { barrel: RainBarrelView }) {
+  const text = strings.rainBarrel;
+  return (
+    <section class="hud-section hud-rain-barrel" aria-label={text.title}>
+      <h2>
+        <HudIcon name="droplet" />
+        {text.title}
+        <span class="hud-tag">{text.count(barrel.drinks, barrel.limit)}</span>
+      </h2>
+      <Meter icon="droplet" label={text.fill} value={barrel.drinks / barrel.limit} colour={THIRST_COLOUR} />
+      {barrel.underRoof && <p class="hud-hint">{text.underRoof}</p>}
+    </section>
+  );
+}
+
 /** Shows what the pile beside the player holds and how many. A click on the pile picks it up. */
 function PilePanel({ pile }: { pile: PileView }) {
   return (
@@ -672,6 +689,8 @@ function NearbyPanel({ thing }: { thing: PanelThing }) {
       return <PilePanel pile={thing.view} />;
     case "blueprint":
       return <BlueprintPanel blueprint={thing.view} />;
+    case "rainBarrel":
+      return <RainBarrelPanel barrel={thing.view} />;
   }
 }
 

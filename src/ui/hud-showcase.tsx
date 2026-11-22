@@ -543,13 +543,15 @@ const STATES_BY_ASSET = {
   "furniture-icons": BUILD_ICON_STATES,
   // So does the fireplace's icon.
   "fireplace-icon": BUILD_ICON_STATES,
+  // And the rain barrel's.
+  "rain-barrel-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "sapling-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "sapling-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -559,7 +561,14 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
-    if (asset === "build-icons" || asset === "sled-icon" || asset === "furniture-icons" || asset === "fireplace-icon" || asset === "floor-and-door-icons") {
+    if (
+      asset === "build-icons" ||
+      asset === "sled-icon" ||
+      asset === "furniture-icons" ||
+      asset === "fireplace-icon" ||
+      asset === "rain-barrel-icon" ||
+      asset === "floor-and-door-icons"
+    ) {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {

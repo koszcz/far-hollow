@@ -3,7 +3,7 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureUse, WOODPILE_WOODS } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, WOODPILE_WOODS } from "../sim/api";
 import type {
   BackpackContent,
   CampfireView,
@@ -222,17 +222,23 @@ const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: { readon
   open: { id: "open", label: strings.actions.open, icon: { hud: "backpack" } },
   sleep: { id: "sleep", label: strings.actions.sleep, icon: { hud: "moon" } },
   sit: { id: "sit", label: strings.actions.sit, icon: { hud: "moon" } },
+  drink: { id: "drink", label: strings.actions.drink, icon: { hud: "droplet" } },
+  fillPot: { id: "fillPot", label: strings.actions.fillPotHere, icon: { content: "potOfBoiledWater" } },
 };
 
 /**
- * Use the piece, if its definition gives it a use, then take it down. Using it is the main action.
+ * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action.
  * A piece with no use, such as a table, offers only taking it down. The player eats at a table as they eat anywhere.
+ * A rain barrel offers drinking, then filling the pot. Each shows greyed, with the reason, when the game would refuse it.
  */
 function furnitureActions(kind: FurnitureKind, id: number, context: Context): readonly ThingAction[] {
   const use = furnitureUse(kind);
   if (use === undefined) return withMain([takeDown(context, id)], undefined);
-  const action = FURNITURE_USE_ACTIONS[use.name];
-  return withMain([context.offer(action.id, action.label, action.icon, use.command(id)), takeDown(context, id)], action.id);
+  const offerUse = ({ name, command }: FurnitureUse): Offer => {
+    const action = FURNITURE_USE_ACTIONS[name];
+    return context.offer(action.id, action.label, action.icon, command(id));
+  };
+  return withMain([offerUse(use), ...furnitureMoreUses(kind).map(offerUse), takeDown(context, id)], FURNITURE_USE_ACTIONS[use.name].id);
 }
 
 /** Gathering one stone at a spot on the river bank or in the river. */

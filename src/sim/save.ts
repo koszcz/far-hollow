@@ -68,6 +68,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   recordSnugRoomNotice,
   addSaplings,
   addPlanting,
+  addRainBarrels,
 ];
 
 /** The version of the save format this code writes. */
@@ -155,6 +156,8 @@ export const SNUG_ROOM_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(recordSnugRoo
 export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 /** The first save version in which the player can plant saplings. */
 export const PLANTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanting) + 2;
+/** The first save version that can hold rain barrels. */
+export const RAIN_BARRELS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRainBarrels) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -834,5 +837,10 @@ function addSaplings(save: Readonly<Record<string, unknown>>): Record<string, un
 
 /** Version 46 to 47: the player can plant saplings. A save from before then holds no planted sapling and no planting under way, so it carries over unchanged. */
 function addPlanting(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 47 to 48: the player can build rain barrels. A save from before then holds none, so it carries over unchanged. */
+function addRainBarrels(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

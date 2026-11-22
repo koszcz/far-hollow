@@ -5,6 +5,7 @@ import type { FurnitureKind } from "../sim/structure-kind";
 import { createBedMeshes } from "./bed-meshes";
 import { createChestMeshes } from "./chest-meshes";
 import type { FurnitureMeshes } from "./plank-furniture-meshes";
+import { createRainBarrelMeshes } from "./rain-barrel-meshes";
 import { createShelfMeshes } from "./shelf-meshes";
 import { createStoolMeshes } from "./stool-meshes";
 import { createTableMeshes } from "./table-meshes";
@@ -16,6 +17,7 @@ export const FURNITURE_MESHES: { readonly [Kind in FurnitureKind]: (entities: En
   bed: createBedMeshes,
   table: createTableMeshes,
   stool: createStoolMeshes,
+  rainBarrel: createRainBarrelMeshes,
 };
 
 /** The chest's own approved meshes, in chest-meshes.ts, as FurnitureMeshes. */

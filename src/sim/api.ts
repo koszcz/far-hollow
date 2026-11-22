@@ -197,8 +197,18 @@ export type Command =
   | ({ type: "gatherStone" } & GroundPoint)
   /** Walk the player to the riverbank nearest them and fill the empty pot with river water. */
   | { type: "fillPot" }
-  /** Drink the water in the full pot. Boiled water fills thirst safely. Unboiled river water makes the player sick. */
+  /** Drink the water in the full pot. Clean water fills thirst safely. Unboiled river water makes the player sick. */
   | { type: "drinkFromPot" }
+  /**
+   * Walk the player within reach of a finished rain barrel, given by its entity id, and drink from it. It takes out 1 drink and
+   * fills thirst completely. Its water is clean, so it never makes the player sick. It is refused while the barrel is empty.
+   */
+  | { type: "drinkFromRainBarrel"; barrelId: number }
+  /**
+   * Walk the player within reach of a finished rain barrel, given by its entity id, and fill the empty pot from it with clean water.
+   * It takes out 1 drink. It is refused while the barrel is empty or the backpack holds no empty pot.
+   */
+  | { type: "fillPotFromRainBarrel"; barrelId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
@@ -497,6 +507,11 @@ export function furnitureUse(kind: FurnitureKind): FurnitureUse | undefined {
   return FURNITURE[kind].use;
 }
 
+/** The other ways the player uses a finished piece of furniture, after its main use, from its definition. Empty for most pieces. */
+export function furnitureMoreUses(kind: FurnitureKind): readonly FurnitureUse[] {
+  return FURNITURE[kind].moreUses ?? [];
+}
+
 /** One recipe in the craft menu. What the player lacks to follow it now comes from `GameClient.refusal`. */
 export type CraftMenuEntry = Recipe;
 
@@ -558,6 +573,8 @@ export type Refusal =
  * - `openFirst`: the chest or shelf is not the one the player has open.
  * - `torchTooClose`: another planted torch stands too close to plant one here.
  * - `noLitTorch`: the player holds no lit torch to plant.
+ * - `barrelEmpty`: the rain barrel holds no drink.
+ * - `noEmptyPot`: the backpack holds no empty pot to fill.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -590,7 +607,9 @@ export type PlainRefusal =
   | "gone"
   | "openFirst"
   | "torchTooClose"
-  | "noLitTorch";
+  | "noLitTorch"
+  | "barrelEmpty"
+  | "noEmptyPot";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -655,6 +674,18 @@ export interface SledView {
   readonly planksThatFit: number;
 }
 
+/** A finished rain barrel, with the clean water it holds. */
+export interface RainBarrelView {
+  /** The barrel's entity id. */
+  readonly id: number;
+  /** How many drinks of clean water it holds. */
+  readonly drinks: number;
+  /** The most drinks it holds. */
+  readonly limit: number;
+  /** Whether it stands under a roof, so it catches no rain. */
+  readonly underRoof: boolean;
+}
+
 /** A pile of things the player dropped on the ground. */
 export interface PileView {
   /** The pile's entity id. */
@@ -667,7 +698,8 @@ export interface PileView {
 
 /**
  * What the HUD shows for each kind of thing within the player's reach:
- * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, and the nearest blueprint.
+ * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, the nearest blueprint,
+ * and the nearest rain barrel.
  * A chest closes when the player walks away.
  */
 export interface NearbyViews {
@@ -677,6 +709,7 @@ export interface NearbyViews {
   readonly woodpile: WoodpileView;
   readonly openChest: ChestView;
   readonly blueprint: BlueprintView;
+  readonly rainBarrel: RainBarrelView;
 }
 
 /** One thing within the player's reach, with its kind. */

@@ -61,6 +61,7 @@ const tendCommand: Check = (value) =>
 const approachCommand: Check = (value) =>
   shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
+  shape({ type: exactly("drinkFromRainBarrel", "fillPotFromRainBarrel"), barrelId: count })(value) ||
   shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
   shape({ type: exactly("pickUpBark"), barkId: count })(value) ||
   shape({ type: exactly("forage"), spotId: count })(value) ||
@@ -135,6 +136,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   onFoundation: point,
   furniture: exactly(...FURNITURE_KINDS),
   storage: shape({ contents: backpackContents }),
+  rainBarrel: shape({ held: count, progress: (value) => finite(value) && (value as number) >= 0 && (value as number) < 1 }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,
@@ -211,6 +213,8 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   openFirst: true,
   torchTooClose: true,
   noLitTorch: true,
+  barrelEmpty: true,
+  noEmptyPot: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

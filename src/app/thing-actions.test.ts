@@ -524,6 +524,29 @@ describe("other things' actions", () => {
     expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: stool });
   });
 
+  it("drinks from a rain barrel as its main action, fills the pot from it, or takes it down", () => {
+    const world = worldWith({ backpack: { pot: 1 } });
+    const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 2, progress: 0 }, facing: { turns: 0 } });
+    const actions = actionsFor(furniture("rainBarrel", barrel), world.reader);
+    expect(summary(actions)).toEqual(["drink main", "fillPot", "takeDown"]);
+    expect(find(actions, "drink")?.command).toEqual({ type: "drinkFromRainBarrel", barrelId: barrel });
+    expect(find(actions, "fillPot")?.command).toEqual({ type: "fillPotFromRainBarrel", barrelId: barrel });
+  });
+
+  it("greys drinking and filling the pot at an empty rain barrel, and filling the pot without an empty pot", () => {
+    const world = worldWith({ backpack: { pot: 1 } });
+    const empty = world.add({ furniture: "rainBarrel", rainBarrel: { held: 0, progress: 0.5 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", empty), world.reader))).toEqual([
+      "drink main off: the barrel is empty",
+      "fillPot off: the barrel is empty",
+      "takeDown",
+    ]);
+
+    const noPot = worldWith({ backpack: { potOfRiverWater: 1 } });
+    const full = noPot.add({ furniture: "rainBarrel", rainBarrel: { held: 3, progress: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", full), noPot.reader))).toEqual(["drink main", "fillPot off: no empty pot in the backpack", "takeDown"]);
+  });
+
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(furniture("chest", 6), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
     expect(summary(actionsFor(furniture("shelf", 7), worldWith({}).reader))).toEqual(["open main", "takeDown"]);

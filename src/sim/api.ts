@@ -497,11 +497,8 @@ export function furnitureUse(kind: FurnitureKind): FurnitureUse | undefined {
   return FURNITURE[kind].use;
 }
 
-/** One recipe in the craft menu: the recipe, with everything the player lacks to follow it now. */
-export type CraftMenuEntry = Recipe & {
-  /** Everything the player lacks to follow it now, such as its tool or work station. Empty when they can follow it. */
-  readonly lacks: readonly RecipeLack[];
-};
+/** One recipe in the craft menu. What the player lacks to follow it now comes from `GameClient.refusal`. */
+export type CraftMenuEntry = Recipe;
 
 /** A blueprint, with how far it has been built and the materials carried to it. */
 export interface BlueprintView {

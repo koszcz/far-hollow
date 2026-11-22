@@ -326,9 +326,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return Object.freeze({ id, content: pile.pile.content, count: pile.pile.count });
   }
 
-  /** Every recipe, with what the player lacks to follow each one now. */
+  /** Every recipe. The HUD asks `refusal` what the player lacks to follow one now. */
   function craftMenu(): GameView["craftMenu"] {
-    return deepFreeze(RECIPES.map((recipe) => ({ ...structuredClone(recipe), lacks: structuredClone(crafting.lacks(recipe.kind)) })));
+    return deepFreeze(RECIPES.map((recipe) => structuredClone(recipe)));
   }
 
   /** The notice as the view shows it: without the minute it stops showing at. */

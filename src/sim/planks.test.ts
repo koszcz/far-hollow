@@ -217,7 +217,7 @@ describe("cutting planks when the backpack is too full for them", () => {
     give(game, { saw: 1, firewood: 9 });
     game.step();
 
-    expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([]);
+    expect(game.client.refusal({ type: "craft", recipe: "planks" })).toBeNull();
   });
 
   it("keeps the notice about dropped planks in a save", () => {
@@ -286,7 +286,7 @@ describe("cutting planks with a debarked log on a sled", () => {
     give(game, { saw: 1 });
     game.step();
 
-    expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([]);
+    expect(game.client.refusal({ type: "craft", recipe: "planks" })).toBeNull();
   });
 
   it("does not count a sled the player is dragging", () => {
@@ -371,6 +371,7 @@ describe("cutting planks in the craft menu", () => {
   it("lists cutting planks with the debarked log it uses, and shows the saw and the sawhorse as missing until the player has both", () => {
     const game = createGame({ seed: 42 });
     const entry = () => game.client.getView().craftMenu.find(({ kind }) => kind === "planks");
+    const refusal = () => game.client.refusal({ type: "craft", recipe: "planks" });
     expect(entry()).toMatchObject({
       materials: [],
       besideStation: [{ material: "debarkedLog", count: 1 }],
@@ -378,6 +379,9 @@ describe("cutting planks in the craft menu", () => {
       seconds: 8,
       tool: "saw",
       station: "sawhorse",
+    });
+    expect(refusal()).toEqual({
+      kind: "cannotCraftYet",
       lacks: [
         { kind: "tool", tool: "saw" },
         { kind: "station", station: "sawhorse" },
@@ -386,10 +390,10 @@ describe("cutting planks in the craft menu", () => {
 
     give(game, { saw: 1 });
     game.step();
-    expect(entry()?.lacks).toEqual([{ kind: "station", station: "sawhorse" }]);
+    expect(refusal()).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "station", station: "sawhorse" }] });
 
     finishedSawhorseNearPlayer(game);
-    expect(entry()?.lacks).toEqual([]);
+    expect(refusal()).toBeNull();
   });
 });
 
@@ -400,7 +404,7 @@ describe("a sawhorse blueprint", () => {
     const log = debarkedLogBeside(game, blueprint, 1);
     give(game, { saw: 1 });
     game.step();
-    expect(game.client.getView().craftMenu.find(({ kind }) => kind === "planks")?.lacks).toEqual([{ kind: "station", station: "sawhorse" }]);
+    expect(game.client.refusal({ type: "craft", recipe: "planks" })).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "station", station: "sawhorse" }] });
 
     send(game, { type: "craft", recipe: "planks" });
     send(game, { type: "craft", recipe: "planks", stationId: idOf(game, blueprint) });

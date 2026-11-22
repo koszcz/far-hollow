@@ -29,7 +29,6 @@ const BASE_VIEW: GameView = {
       ],
       result: { content: "saw", count: 1 },
       seconds: 5,
-      lacks: [],
     },
   ],
   action: null,
@@ -267,7 +266,6 @@ const TORCH_RECIPE: GameView["craftMenu"][number] = {
   ],
   result: { content: "torch", count: 1 },
   seconds: 4,
-  lacks: [],
 };
 
 /**
@@ -304,7 +302,6 @@ const FISHING_ROD_RECIPE: GameView["craftMenu"][number] = {
   result: { content: "fishingRod", count: 1 },
   seconds: 5,
   tool: "knife",
-  lacks: [],
 };
 
 /**

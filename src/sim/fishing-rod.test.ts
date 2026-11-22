@@ -112,8 +112,7 @@ describe("the craft menu", () => {
     give(game, { stick: 2 });
     delete onlyPlayer(game).backpack.contents.knife;
     game.step();
-    const rod = game.client.getView().craftMenu.find((entry) => entry.kind === "fishingRod");
-    expect(rod?.lacks).toEqual([{ kind: "tool", tool: "knife" }]);
+    expect(game.client.refusal({ type: "craft", recipe: "fishingRod" })).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "tool", tool: "knife" }] });
   });
 });
 

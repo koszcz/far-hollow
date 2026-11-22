@@ -10,6 +10,9 @@ import {
   campfireEntities,
   edgePieceEntities,
   fireplaceEntities,
+  floorEntities,
+  furnitureEntities,
+  leanToEntities,
   foundationEntities,
   lyingThings,
   roofEntities,
@@ -25,7 +28,7 @@ import {
   type Vec3,
 } from "./entities";
 import { doorFrameOn, hasDoor, nearestDoorFrame } from "./doors";
-import { floorDeckTop, foundationDeckTop, foundationOn, standingHeightAt } from "./foundations";
+import { floorJoin, foundationDeckTop, foundationOn, raiseFloors, standingHeightAt, type FloorJoin } from "./foundations";
 import { floorOn } from "./floors";
 import { unlitFire } from "./fire";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
@@ -139,8 +142,8 @@ export interface StructureDefinition {
   facingAt?(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): QuarterTurns;
   /** How high its position sits at a snapped spot, in metres. Without this, it sits on the ground. */
   heightAt?(site: PlacementSite, spot: GroundPoint): number;
-  /** Clears the ground for a blueprint just placed at `spot`, if the structure needs it. */
-  clearSite?(entities: EntityStore, spot: GroundPoint): void;
+  /** Clears the ground for a blueprint just placed at `spot`, if the structure needs it. A foundation also raises the floors it joins, if they must rise. */
+  clearSite?(site: PlacementSite, spot: GroundPoint): void;
   /** The spots whose walk-map squares a blueprint at `spot` blocks, for a structure whose blueprint blocks walking. Without this, a blueprint blocks nothing. */
   blueprintBlocksWalkingSpots?(spot: GroundPoint): GroundPoint[];
 }
@@ -280,7 +283,7 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
   buildSeconds: FOUNDATION_BUILD_SECONDS,
   footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
   snap: (_site, at) => snapToGridSquare(at),
-  heightAt: ({ entities, valley }, spot) => floorDeckTop(entities, valley.terrain, spot) ?? foundationDeckTop(valley.terrain, spot),
+  heightAt: (site, spot) => foundationJoin(site, spot)?.deckTop ?? foundationDeckTop(site.valley.terrain, spot),
   canPlace({ entities, walkMap, valley }, spot, turns) {
     const rect = foundation.footprint(spot, turns);
     // Stumps block walking, but a foundation goes over them, so this checks the map's edge and the river instead.
@@ -290,21 +293,56 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
       if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
     }
     if (!isClearOfTreesAndStructures(entities, rect)) return false;
-    // Foundations side by side make one flat floor, so the deck must be able to sit at the height of those beside it.
-    if (floorDeckTop(entities, valley.terrain, spot) === undefined) return false;
+    // Foundations side by side make one flat floor, so the floors beside it must be able to rise to its deck, if they need to.
+    if (foundationJoin({ entities, walkMap, valley }, spot) === undefined) return false;
     // Foundations can sit side by side, but not overlap a finished foundation or campfire.
     for (const other of foundationEntities(entities)) if (rectsOverlap(rect, foundation.footprint(other.position, 0))) return false;
     for (const fire of campfireEntities(entities)) if (rectsOverlap(rect, campfire.footprint(fire.position, 0))) return false;
     // Logs, sticks, bark, and bedrolls would end up under the deck. The player moves them first.
     return !hasThingsLyingOn(entities, rect);
   },
-  clearSite(entities, spot) {
+  clearSite(site, spot) {
+    const { entities } = site;
     // The stump is removed for good, so it never regrows into a tree.
     const under = turnedRect(spot, FOUNDATION_HALF_METRES + STUMP_MARGIN_METRES, FOUNDATION_HALF_METRES + STUMP_MARGIN_METRES, 0);
     for (const stump of [...stumpEntities(entities)]) if (isInRect(under, stump.position)) entities.remove(stump);
+    const join = foundationJoin(site, spot);
+    if (join !== undefined) raiseFloors(entities, join);
   },
   finish: () => ({ foundation: true }),
 };
+
+/** How a new foundation at `spot` joins the floors beside it. A floor rises only where nothing but a floor of planks stands on it. */
+function foundationJoin({ entities, valley }: PlacementSite, spot: GroundPoint): FloorJoin | undefined {
+  return floorJoin(entities, valley.terrain, spot, (square) => !standsOnFoundation(entities, square, { ignoreFloors: true }));
+}
+
+/**
+ * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
+ * a log wall or door frame on one of its edges, a campfire, fireplace, or floor whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
+ * over any of it. A structure placed freely, such as a piece of furniture, stands on every foundation its base reaches over.
+ * `ignoreFloors` leaves out a floor of planks, finished or as a blueprint.
+ */
+export function standsOnFoundation(entities: EntityStore, square: GroundPoint, { ignoreFloors = false }: { ignoreFloors?: boolean } = {}): boolean {
+  if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(square, side)))) return true;
+  const rect = foundation.footprint(square, 0);
+  const others = [
+    ...campfireEntities(entities),
+    ...fireplaceEntities(entities),
+    ...floorEntities(entities),
+    ...leanToEntities(entities),
+    ...roofFrameEntities(entities),
+    ...cabinRoofEntities(entities),
+    ...furnitureEntities(entities),
+    ...blueprintEntities(entities),
+  ];
+  return others.some((other) => {
+    const kind = structureKindOf(other);
+    if (kind === undefined || (ignoreFloors && kind === "floor")) return false;
+    if (kind === "campfire" || kind === "fireplace" || liesUnderfoot(kind)) return isOnGridSquare(square, other.position);
+    return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
+  });
+}
 
 /** How many planks a floor costs. Construction spends one at the start of each stage. */
 export const FLOOR_PLANK_COST = 2;

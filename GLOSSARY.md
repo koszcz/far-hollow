@@ -35,6 +35,14 @@ _Avoid_: Shore, riverside, bank
 The small plants and stones that grow or lie on the valley's ground, such as grass, ferns, flowers, and pebbles. The player cannot pick up undergrowth, and it does not block the way. The same seed always grows the same undergrowth.
 _Avoid_: Foliage, ground cover, props, decoration
 
+**Bird**:
+A small brown songbird that flies over the trees and lands in clearings by day. It is only there to look at. The player cannot catch or hunt it, and it flies off when the player comes close.
+_Avoid_: Songbird, critter, wildlife
+
+**Firefly**:
+A small glowing insect that drifts and blinks over clearings and the river bank at night. It is only there to look at. The player cannot catch it.
+_Avoid_: Glow bug, lightning bug, critter, wildlife
+
 ## The player
 
 **Player**:
@@ -448,7 +456,7 @@ One full cycle of daylight and night in the valley.
 ## Sound
 
 **Ambience**:
-A sound of the valley itself, such as the river, the forest, a fire, rain, birds, or crickets. It plays whether or not the player is working.
+A sound of the valley itself, such as the river, the forest, a fire, rain, birdsong, or crickets. It plays whether or not the player is working. Birdsong does not come from any bird the player can see.
 _Avoid_: Background sound, environment sound
 
 **Action sound**:

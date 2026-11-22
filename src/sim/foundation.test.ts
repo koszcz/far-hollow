@@ -64,21 +64,51 @@ describe("placing a foundation", () => {
     expect(foundationDeckTop(game.valley.terrain, low)).toBeLessThan(second?.position.y ?? 0);
   });
 
-  it("refuses a square beside a floor when the ground under it rises too high for the deck", () => {
+  it("raises the floor beside a square when the ground under that square rises too high for the deck", () => {
     const game = createGame({ seed: 42 });
     const { high, low } = slopedPairNearPlayer(game, FOUNDATION_DECK_LIFT_METRES);
-
     send(game, placeFoundation(low.x, low.z));
+    const before = onlyBlueprint(game).position.y;
 
-    expect(game.client.checkPlacement("foundation", high, 0).allowed).toBe(false);
+    const check = game.client.checkPlacement("foundation", high, 0);
+    expect(check.allowed).toBe(true);
     send(game, placeFoundation(high.x, high.z));
-    expect(game.entities.with("blueprint").size).toBe(1);
+
+    const decks = game.entities.with("blueprint", "position").entities.map(({ position }) => position.y);
+    expect(decks).toEqual([check.spot.y, check.spot.y]);
+    expect(check.spot.y).toBeGreaterThan(before);
+    // The whole deck of the new square fits above its ground.
+    for (const leg of foundationLegs(check.spot, (x, z) => terrainHeightAt(game.valley.terrain, x, z))) {
+      expect(leg.top).toBeGreaterThanOrEqual(leg.bottom);
+    }
   });
 
-  it("refuses a square between two floors at different heights", () => {
+  it("raises a finished floor with the player, a planked floor, and the things lying on it", () => {
+    const game = createGame({ seed: 42 });
+    const { high, low } = slopedPairNearPlayer(game, FOUNDATION_DECK_LIFT_METRES);
+    const foundation = finishedFoundationAt(game, low);
+    const player = onlyPlayer(game);
+    send(game, { type: "walkTo", x: low.x, z: low.z });
+    stepUntil(game, () => player.walkPath === undefined);
+    send(game, { type: "placeBlueprint", structure: "floor", turns: 0, x: low.x, z: low.z });
+    const floor = onlyBlueprint(game);
+    const log = game.entities.add({ debarkedLog: { heading: 0 }, position: { x: low.x + 0.3, y: foundation.position.y, z: low.z } });
+    const before = foundation.position.y;
+    expect(player.position.y).toBeCloseTo(before, 6);
+
+    send(game, placeFoundation(high.x, high.z));
+
+    const raised = foundation.position.y;
+    expect(raised).toBeGreaterThan(before);
+    expect(floor.position.y).toBe(raised);
+    expect(log.position.y).toBe(raised);
+    expect(player.position.y).toBe(raised);
+  });
+
+  it("levels two floors at different heights when a square joins them", () => {
     const game = createGame({ seed: 42 });
     const { high, low } = slopedPairNearPlayer(game, 0.05);
-    // Two separate floors, two squares apart, then a square that would join them.
+    // Two separate floors, two squares apart, then a square that joins them.
     const far = { x: low.x + (low.x - high.x), z: low.z + (low.z - high.z) };
     send(game, placeFoundation(high.x, high.z));
     send(game, placeFoundation(far.x, far.z));
@@ -86,7 +116,25 @@ describe("placing a foundation", () => {
     expect(heights).toHaveLength(2);
     expect(heights[0]).not.toBeCloseTo(heights[1] ?? 0, 6);
 
-    expect(game.client.checkPlacement("foundation", low, 0).allowed).toBe(false);
+    expect(game.client.checkPlacement("foundation", low, 0).allowed).toBe(true);
+    send(game, placeFoundation(low.x, low.z));
+
+    const decks = game.entities.with("blueprint", "position").entities.map(({ position }) => position.y);
+    expect(decks).toHaveLength(3);
+    expect(new Set(decks).size).toBe(1);
+    expect(decks[0]).toBeGreaterThanOrEqual(Math.max(...heights));
+  });
+
+  it("refuses a square when the floor beside it would have to rise under a wall", () => {
+    const game = createGame({ seed: 42 });
+    const { high, low } = slopedPairNearPlayer(game, FOUNDATION_DECK_LIFT_METRES);
+    finishedFoundationAt(game, low);
+    const far = { x: low.x + (low.x - high.x), z: low.z + (low.z - high.z) };
+    const turns = low.x === high.x ? 0 : 1;
+    send(game, { type: "placeBlueprint", structure: "logWall", turns, x: (low.x + far.x) / 2, z: (low.z + far.z) / 2 });
+    expect(game.entities.with("blueprint").size).toBe(1);
+
+    expect(game.client.checkPlacement("foundation", high, 0).allowed).toBe(false);
   });
 
   it("refuses a square with a standing tree on it", () => {
@@ -414,6 +462,12 @@ function slopedPairNearPlayer(game: Game, rise: number): { high: { x: number; z:
     }
   }
   throw new Error("No sloped pair of squares");
+}
+
+/** Puts a finished foundation on a square, as if the player had built it. */
+function finishedFoundationAt(game: Game, square: { x: number; z: number }): Entity & { position: NonNullable<Entity["position"]> } {
+  const position = { x: square.x, y: foundationDeckTop(game.valley.terrain, square), z: square.z };
+  return Object.assign(game.entities.add({ foundation: true, facing: { turns: 0 }, position }), { position });
 }
 
 function placeFoundation(x: number, z: number): Command {

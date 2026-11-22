@@ -1178,12 +1178,13 @@
         "src/render/rain-barrel-meshes.ts",
         "src/render/plank-furniture-meshes.ts"
       ],
-      "description": "The rain barrel: a barrel 0.6 m across and 0.8 m high, open on top. Twelve pale plank staves stand round a plank bottom, held by two dark wooden hoops. Inside, a dark blue, slightly see-through water surface rises with the drinks the barrel holds, from just above the bottom with 1 drink to just below the rim with all 6. An empty barrel shows no water. As a blueprint it shows see-through, a stage whose planks it has waits pale and half solid, and construction builds it in two stages: the bottom with its staves, then the hoops.",
+      "description": "The rain barrel: a barrel 0.6 m across at its bulging middle and 0.8 m high, open on top. Twelve pale plank staves, each in two halves that lean out to the bulge, stand round a bottom of five boards. A band of darker wood runs round the rim, and two dark iron hoops hold the staves. Inside, a dark blue, slightly see-through water surface rises with the drinks the barrel holds, from just above the bottom with 1 drink to just below the rim with all 6. An empty barrel shows no water. As a blueprint it shows see-through, a stage whose planks it has waits pale and half solid, and construction builds it in two stages: the bottom with its staves, then the hoops.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/rain-barrel/issues/01-rain-barrel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {

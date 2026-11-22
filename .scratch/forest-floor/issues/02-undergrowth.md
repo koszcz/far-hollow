@@ -16,7 +16,7 @@
 - [x] The player cannot click or pick up undergrowth. It does not block walking or pathfinding.
 - [x] Undergrowth is not saved. The game logic never sees it.
 - [ ] Undergrowth is drawn in batches. The game still runs at 60 fps on an Apple M1 laptop in Chrome.
-  Not measured: nobody has checked the frame rate on an Apple M1 laptop yet.
+  Not measured on an M1 yet. On an M3 Pro the mean frame time is about 4 ms. See ticket 09.
 - [x] `asset-manifest.json` lists `grass`, `ferns`, `flowers`, and `pebbles` as drafts, with source and license.
 - [x] The asset showcase has a view for each of the four, at `/?asset=<id>`.
 - [x] Unit tests cover the choice of undergrowth by ground type and the same seed giving the same spots.

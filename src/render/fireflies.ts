@@ -5,9 +5,11 @@
 // - Each firefly blinks: it glows briefly, then stays dark for a few seconds.
 // - When the player walks away, a firefly left too far behind finds a new home near the player while it is dark.
 // - Fireflies fade in at dusk and out at dawn, following daylight. They fade out when rain starts and back in after.
+import { addGroundPoints, groundDistance, randomPointAround, type GroundPoint } from "../sim/ground-point";
 import { groundTypeAt, type GroundMap } from "../sim/ground-types";
-import type { Random } from "../sim/random";
-import { distanceToRiver } from "../sim/valley";
+import { randomBetween, type Random } from "../sim/random";
+import { isRiverWater } from "../sim/valley";
+import { createEasedShare } from "./eased-share";
 
 export const FIREFLY_COUNT = 40;
 /** Fireflies make their homes within this distance of the player, in metres. */
@@ -28,11 +30,13 @@ const GLOW_SHARE = 0.4;
 const HOME_TRIES_PER_FRAME = 4;
 /** How long the fireflies take to fade out when rain starts, and back in when it stops, in seconds. */
 const RAIN_FADE_SECONDS = 4;
+/** The four corners of a firefly's drift, as steps from its home. Its whole drift stays inside them. */
+const DRIFT_CORNERS: readonly GroundPoint[] = [-1, 1].flatMap((x) => [-1, 1].map((z) => ({ x: x * FIREFLY_DRIFT_METRES, z: z * FIREFLY_DRIFT_METRES })));
 
 /** The ground fireflies fly over. */
 export interface FireflyGround {
   /** Whether a firefly may fly over this spot: a clearing or the river bank, but not the water. */
-  isOpen(x: number, z: number): boolean;
+  isOpen(spot: GroundPoint): boolean;
   heightAt(x: number, z: number): number;
 }
 
@@ -50,11 +54,17 @@ export interface FireflySwarm {
    * Moves every firefly to where it is at `nowSeconds`, near `player`, and returns the fireflies that have a home.
    * `daylight` runs from 0 (night) to 1 (full day).
    */
-  update(nowSeconds: number, player: { readonly x: number; readonly z: number }, daylight: number, raining: boolean): readonly FireflyGlow[];
+  update(nowSeconds: number, player: GroundPoint, daylight: number, raining: boolean): readonly FireflyGlow[];
+}
+
+/** Where a firefly drifts around: a spot on the ground, and how high above it the firefly flies, in metres. */
+interface FireflyHome {
+  readonly spot: GroundPoint;
+  readonly height: number;
 }
 
 interface Firefly {
-  home: { x: number; z: number; height: number } | undefined;
+  home: FireflyHome | undefined;
   readonly driftSeconds: number;
   readonly driftPhase: number;
   readonly blinkSeconds: number;
@@ -62,11 +72,11 @@ interface Firefly {
 }
 
 /** Whether fireflies may fly over a spot of this valley: a clearing or the river bank, but not over the water. */
-export function fireflyOpenGround(map: GroundMap): (x: number, z: number) => boolean {
-  return (x, z) => {
-    const type = groundTypeAt(map, { x, z });
+export function fireflyOpenGround(map: GroundMap): (spot: GroundPoint) => boolean {
+  return (spot) => {
+    const type = groundTypeAt(map, spot);
     if (type === "forestFloor") return false;
-    return type === "clearing" || distanceToRiver(map.river, { x, z }) >= map.river.width / 2;
+    return type === "clearing" || !isRiverWater(map.river, spot);
   };
 }
 
@@ -74,56 +84,51 @@ export function fireflyOpenGround(map: GroundMap): (x: number, z: number) => boo
 export function createFireflySwarm(ground: FireflyGround, random: Random = Math.random): FireflySwarm {
   const fireflies: Firefly[] = Array.from({ length: FIREFLY_COUNT }, () => ({
     home: undefined,
-    driftSeconds: between(DRIFT_SECONDS, random()),
+    driftSeconds: randomBetween(random, DRIFT_SECONDS),
     driftPhase: random() * Math.PI * 2,
-    blinkSeconds: between(BLINK_SECONDS, random()),
+    blinkSeconds: randomBetween(random, BLINK_SECONDS),
     blinkPhase: random(),
   }));
   // How much the rain lets the fireflies show, from 0 (raining) to 1 (dry). It eases towards the weather.
-  let dryness: number | undefined;
+  const dryWeather = createEasedShare({ riseSeconds: RAIN_FADE_SECONDS, fallSeconds: RAIN_FADE_SECONDS });
   let lastSeconds = 0;
 
   /** A home over open ground near the player, so the whole drift stays over open ground, or undefined if none was found. */
-  function findHome(player: { readonly x: number; readonly z: number }): Firefly["home"] {
+  function findHome(player: GroundPoint): FireflyHome | undefined {
     for (let attempt = 0; attempt < HOME_TRIES_PER_FRAME; attempt += 1) {
-      const angle = random() * Math.PI * 2;
-      const distance = Math.sqrt(random()) * FIREFLY_RADIUS_METRES;
-      const x = player.x + Math.cos(angle) * distance;
-      const z = player.z + Math.sin(angle) * distance;
-      const height = between(HOME_HEIGHT_METRES, random());
-      if (driftStaysOpen(x, z)) return { x, z, height };
+      const spot = randomPointAround(player, { max: FIREFLY_RADIUS_METRES }, random);
+      const height = randomBetween(random, HOME_HEIGHT_METRES);
+      if (driftStaysOpen(spot)) return { spot, height };
     }
     return undefined;
   }
 
-  function driftStaysOpen(x: number, z: number): boolean {
-    const d = FIREFLY_DRIFT_METRES;
-    return ground.isOpen(x, z) && ground.isOpen(x - d, z - d) && ground.isOpen(x + d, z - d) && ground.isOpen(x - d, z + d) && ground.isOpen(x + d, z + d);
+  function driftStaysOpen(home: GroundPoint): boolean {
+    return ground.isOpen(home) && DRIFT_CORNERS.every((corner) => ground.isOpen(addGroundPoints(home, corner)));
   }
 
   return {
     update(nowSeconds, player, daylight, raining) {
-      const target = raining ? 0 : 1;
       // The first frame shows the weather as it is, so a game loaded in the rain does not fade.
-      const step = dryness === undefined ? 1 : Math.abs(nowSeconds - lastSeconds) / RAIN_FADE_SECONDS;
-      dryness = moveTowards(dryness ?? target, target, step);
+      const dry = dryWeather.toward(raining ? 0 : 1, Math.abs(nowSeconds - lastSeconds));
       lastSeconds = nowSeconds;
-      const shown = (1 - daylight) * dryness;
-      if (shown <= 0) return [];
+      // How strongly the fireflies show, from 0 (none) to 1 (full): the dark of night, dimmed by the rain.
+      const strength = (1 - daylight) * dry;
+      if (strength <= 0) return [];
 
       const glows: FireflyGlow[] = [];
       for (const firefly of fireflies) {
         const blink = blinkAt(firefly, nowSeconds);
-        const far = firefly.home !== undefined && Math.hypot(firefly.home.x - player.x, firefly.home.z - player.z) > FIREFLY_RADIUS_METRES;
+        const far = firefly.home !== undefined && groundDistance(firefly.home.spot, player) > FIREFLY_RADIUS_METRES;
         // A firefly moves home only while it is dark, so it never jumps while glowing.
         if (firefly.home === undefined || (far && blink === 0)) firefly.home = findHome(player);
         const home = firefly.home;
         if (home === undefined) continue;
         const turn = (nowSeconds / firefly.driftSeconds) * Math.PI * 2 + firefly.driftPhase;
-        const x = home.x + Math.sin(turn) * FIREFLY_DRIFT_METRES;
-        const z = home.z + Math.sin(turn * 0.7 + 1.3) * FIREFLY_DRIFT_METRES;
+        const x = home.spot.x + Math.sin(turn) * FIREFLY_DRIFT_METRES;
+        const z = home.spot.z + Math.sin(turn * 0.7 + 1.3) * FIREFLY_DRIFT_METRES;
         const y = ground.heightAt(x, z) + home.height + Math.sin(turn * 1.9) * BOB_METRES;
-        glows.push({ x, y, z, glow: blink * shown });
+        glows.push({ x, y, z, glow: blink * strength });
       }
       return glows;
     },
@@ -134,12 +139,4 @@ export function createFireflySwarm(ground: FireflyGround, random: Random = Math.
 function blinkAt(firefly: Firefly, nowSeconds: number): number {
   const cycle = (nowSeconds / firefly.blinkSeconds + firefly.blinkPhase) % 1;
   return cycle < GLOW_SHARE ? Math.sin((cycle / GLOW_SHARE) * Math.PI) : 0;
-}
-
-function between(range: { min: number; max: number }, share: number): number {
-  return range.min + (range.max - range.min) * share;
-}
-
-function moveTowards(value: number, target: number, step: number): number {
-  return value < target ? Math.min(value + step, target) : Math.max(value - step, target);
 }

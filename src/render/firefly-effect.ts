@@ -4,7 +4,8 @@
 // - A firefly lights nothing around it. It is only a dot, so the ground under it stays dark.
 // - The fog does not dim them, so a firefly across a clearing still glows at night.
 import * as THREE from "three";
-import { rainEntities, type EntityStore } from "../sim/entities";
+import { isRaining, type EntityStore } from "../sim/entities";
+import type { GroundPoint } from "../sim/ground-point";
 import type { Random } from "../sim/random";
 import { createFireflySwarm, FIREFLY_COUNT, type FireflyGround } from "./fireflies";
 
@@ -17,7 +18,7 @@ const SPRITE_TEXELS = 32;
 export interface FireflyEffect {
   readonly group: THREE.Group;
   /** Moves the fireflies to where they are at `nowSeconds`, near `player`. `daylight` runs from 0 (night) to 1 (full day). */
-  update(nowSeconds: number, player: { readonly x: number; readonly z: number }, daylight: number): void;
+  update(nowSeconds: number, player: GroundPoint, daylight: number): void;
   dispose(): void;
 }
 
@@ -26,7 +27,6 @@ export interface FireflyEffect {
  * The game leaves `random` unset, so fireflies start in new places each time it loads. The showcase fixes it.
  */
 export function createFireflyEffect(entities: EntityStore, ground: FireflyGround, random: Random = Math.random): FireflyEffect {
-  const weather = rainEntities(entities);
   const swarm = createFireflySwarm(ground, random);
   const group = new THREE.Group();
   group.name = "fireflies";
@@ -59,7 +59,7 @@ export function createFireflyEffect(entities: EntityStore, ground: FireflyGround
   return {
     group,
     update(nowSeconds, player, daylight) {
-      const fireflies = swarm.update(nowSeconds, player, daylight, weather.first?.rain.falling === true);
+      const fireflies = swarm.update(nowSeconds, player, daylight, isRaining(entities));
       group.visible = fireflies.length > 0;
       geometry.setDrawRange(0, fireflies.length);
       fireflies.forEach((firefly, index) => {

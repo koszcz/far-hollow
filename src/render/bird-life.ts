@@ -4,10 +4,13 @@
 //   within 6 m or the spot stops being a place a bird may land, such as when a fire is lit nearby.
 // - A bird that flies off lands in another clearing or flies away over the trees.
 // - Birds show only by day. In rain they leave within a few seconds, and they come back gradually after it stops.
+//   Once they have faded out, in rain or at night, every bird is gone, so none flies on unseen.
+// - A bird flying in to land checks its spot until it touches down. If the spot is refused, it goes elsewhere.
 // Birds are only for looks. Game logic never sees them, they are never saved, and they start in new random places on
 // every load, because the renderer passes in Math.random.
-import { groundDistance, stepAlongHeading, headingToward, type GroundPoint } from "../sim/ground-point";
-import type { Random } from "../sim/random";
+import { groundDistance, stepAlongHeading, headingToward, randomPointAround, type GroundPoint } from "../sim/ground-point";
+import { randomBetween, type Random } from "../sim/random";
+import { createEasedShare } from "./eased-share";
 
 /** The most flocks in the sky at once. */
 export const MOST_FLOCKS = 3;
@@ -40,6 +43,8 @@ const LANDING_FROM = { metres: 18, height: 9 };
 const FLY_AWAY_METRES = 45;
 /** A bird that flies off lands in another clearing this often. Otherwise it flies away over the trees. */
 const LAND_AGAIN_SHARE = 0.5;
+/** Below this much daylight, from 0 (night) to 1 (full day), no new birds come: it is too dark for them. */
+const LEAST_DAYLIGHT = 0.15;
 /** A new flock or a new bird on the ground arrives after a pause picked between these, in seconds. */
 const ARRIVAL_PAUSE_SECONDS = { min: 1, max: 6 };
 /** In rain, birds leave over this many seconds. After rain, they come back over this many. */
@@ -145,10 +150,13 @@ interface GroundBird {
 
 /** Starts the birds. They take their places on the first step. `random` should differ on every load. */
 export function createBirdLife(random: Random): BirdLife {
-  const between = (range: { min: number; max: number }): number => range.min + (range.max - range.min) * random();
+  const between = (range: { readonly min: number; readonly max: number }): number => randomBetween(random, range);
   let flocks: Flock[] = [];
   let groundBirds: GroundBird[] = [];
-  let presence: number | undefined;
+  // How much the weather lets birds show, from 0 (raining) to 1 (dry). It eases towards the weather.
+  const dryWeather = createEasedShare({ riseSeconds: RETURN_SECONDS, fallSeconds: RAIN_LEAVE_SECONDS });
+  let presence = 0;
+  let started = false;
   let daylight = 0;
   let clock = 0;
   let nextFlockAt = 0;
@@ -185,7 +193,7 @@ export function createBirdLife(random: Random): BirdLife {
   /** A spot near the player where a bird may land, away from `awayFrom`, or undefined when none was found. */
   function landingSpot(surroundings: BirdSurroundings, player: GroundPoint, awayFrom?: GroundPoint): GroundPoint | undefined {
     for (let i = 0; i < LANDING_TRIES; i += 1) {
-      const spot = stepAlongHeading(player, random() * Math.PI * 2, between(GROUND_RADIUS_METRES));
+      const spot = randomPointAround(player, GROUND_RADIUS_METRES, random);
       if (awayFrom !== undefined && groundDistance(spot, awayFrom) < GROUND_RADIUS_METRES.min) continue;
       if (surroundings.canLandAt(spot)) return spot;
     }
@@ -201,16 +209,34 @@ export function createBirdLife(random: Random): BirdLife {
     return { kind: "flight", from, to, seconds: Math.max(metres / GROUND_BIRD_METRES_PER_SECOND, 0.5), elapsed: 0, landsAt, leaving };
   }
 
+  /** Where a bird on this flight is now: along the line from start to end, raised by a gentle arc. */
+  function flightPoint(state: Flight): Point3 {
+    const t = Math.min(state.elapsed / state.seconds, 1);
+    const arc = Math.sin(t * Math.PI) * 1.5;
+    return {
+      x: state.from.x + (state.to.x - state.from.x) * t,
+      y: state.from.y + (state.to.y - state.from.y) * t + arc,
+      z: state.from.z + (state.to.z - state.from.z) * t,
+    };
+  }
+
   /** Sends a bird on the ground off: to another clearing, or away over the trees. */
   function flyOff(bird: GroundBird, surroundings: BirdSurroundings, player: GroundPoint, mayLandAgain: boolean): void {
     if (bird.state.kind !== "pecking") return;
-    const from = onGround(bird.state.spot);
-    const again = mayLandAgain && random() < LAND_AGAIN_SHARE ? landingSpot(surroundings, player, bird.state.spot) : undefined;
+    sendOff(bird, onGround(bird.state.spot), bird.state.spot, surroundings, player, mayLandAgain ? LAND_AGAIN_SHARE : 0);
+  }
+
+  /**
+   * Sends a bird from `from` to another clearing, away from `leftSpot`, this share of the time, or away over the trees.
+   * It flies away over the trees too when no other clearing is found.
+   */
+  function sendOff(bird: GroundBird, from: Point3, leftSpot: GroundPoint, surroundings: BirdSurroundings, player: GroundPoint, landAgainShare: number): void {
+    const again = random() < landAgainShare ? landingSpot(surroundings, player, leftSpot) : undefined;
     if (again !== undefined) {
       bird.state = flight(from, onGround(again), again, false);
       return;
     }
-    const away = stepAlongHeading(bird.state.spot, headingToward(player, bird.state.spot) + (random() - 0.5), FLY_AWAY_METRES);
+    const away = stepAlongHeading(leftSpot, headingToward(player, leftSpot) + (random() - 0.5), FLY_AWAY_METRES);
     bird.state = flight(from, { x: away.x, y: groundHeightAt(away.x, away.z) + TREETOP_METRES + random() * TREETOP_SPREAD_METRES, z: away.z }, undefined, true);
   }
 
@@ -232,6 +258,11 @@ export function createBirdLife(random: Random): BirdLife {
       const state = bird.state;
       if (state.kind === "flight") {
         state.elapsed += seconds;
+        // A spot can be refused while the bird flies to it, such as when a fire is lit nearby. It goes elsewhere.
+        if (state.landsAt !== undefined && !surroundings.canLandAt(state.landsAt)) {
+          sendOff(bird, flightPoint(state), state.landsAt, surroundings, player ?? centre, 1);
+          continue;
+        }
         if (state.elapsed >= state.seconds && state.landsAt !== undefined) {
           bird.state = { kind: "pecking", spot: state.landsAt, heading: headingToward(state.from, state.to), elapsed: 0 };
         }
@@ -288,39 +319,30 @@ export function createBirdLife(random: Random): BirdLife {
       const peck = into < PECK_SECONDS ? Math.sin((into / PECK_SECONDS) * Math.PI) : 0;
       return { ...onGround(state.spot), heading: state.heading, flying: false, flap: 0, peck };
     }
-    const t = Math.min(state.elapsed / state.seconds, 1);
-    const arc = Math.sin(t * Math.PI) * 1.5;
-    return {
-      x: state.from.x + (state.to.x - state.from.x) * t,
-      y: state.from.y + (state.to.y - state.from.y) * t + arc,
-      z: state.from.z + (state.to.z - state.from.z) * t,
-      heading: headingToward(state.from, state.to),
-      flying: true,
-      flap: flapAt(bird),
-      peck: 0,
-    };
+    return { ...flightPoint(state), heading: headingToward(state.from, state.to), flying: true, flap: flapAt(bird), peck: 0 };
   }
 
   return {
     step(seconds, surroundings) {
-      const first = presence === undefined;
+      const first = !started;
+      started = true;
       clock += seconds;
       daylight = surroundings.daylight;
       groundHeightAt = surroundings.groundHeightAt;
       if (surroundings.player !== undefined) centre = surroundings.player;
       // The first step shows the weather as it is, so a game loaded in clear weather starts with every bird in place.
-      const target = surroundings.raining ? 0 : 1;
-      presence = first
-        ? target
-        : surroundings.raining
-          ? Math.max((presence ?? 0) - seconds / RAIN_LEAVE_SECONDS, 0)
-          : Math.min((presence ?? 0) + seconds / RETURN_SECONDS, 1);
-      // At night no birds are wanted. Those still there fly off, unseen, so the next morning starts afresh.
-      const share = daylight > 0 ? presence : 0;
+      presence = dryWeather.toward(surroundings.raining ? 0 : 1, seconds);
+      // Birds that have faded out are gone, so none flies on unseen and the next morning starts afresh.
+      if (daylight * presence <= 0) {
+        flocks = [];
+        groundBirds = [];
+      }
+      // In the faint light at dusk no birds are wanted. Those still there fly off.
+      const share = daylight >= LEAST_DAYLIGHT ? presence : 0;
       stepFlocks(seconds, Math.round(MOST_FLOCKS * share), first);
       stepGroundBirds(seconds, surroundings, Math.round(MOST_GROUND_BIRDS * share), first);
     },
-    visibility: () => daylight * (presence ?? 0),
+    visibility: () => daylight * presence,
     flocks: () => flocks.map(drawnFlock),
     groundBirds: () => groundBirds.map(drawnGroundBird),
   };

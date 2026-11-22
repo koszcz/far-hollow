@@ -13,6 +13,10 @@ import { DebugOverlay } from "../ui/debug-overlay";
 import { ActionMenu } from "../ui/action-menu";
 import { Hud, type PlantingHintState } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
+import { SoundButton } from "../ui/sound-button";
+import { createSoundEngine } from "../sound/sound-engine";
+import { createValleySound } from "../sound/valley-sound";
+import { createVolumeControl, type VolumeStorage } from "../sound/volume-control";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { createDevHooks } from "./dev-hooks";
@@ -34,6 +38,46 @@ function requireElement<T extends Element>(selector: string, type: new () => T):
 }
 
 document.title = strings.gameTitle;
+
+/** The browser's local storage, or a stand-in that forgets everything when the page closes if the browser refuses it. */
+function browserStorage(): VolumeStorage {
+  try {
+    return window.localStorage;
+  } catch {
+    const items = new Map<string, string>();
+    return {
+      getItem: (key) => items.get(key) ?? null,
+      setItem: (key, value) => {
+        items.set(key, value);
+      },
+    };
+  }
+}
+
+/** Whether a key press goes to a field the player types in, so it should not act as a game key. */
+function isTyping(event: KeyboardEvent): boolean {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  const field = target?.closest("input, textarea, select");
+  // A slider takes arrow keys, not letters, so M still mutes while the Volume slider has focus.
+  return field != null && !(field instanceof HTMLInputElement && field.type === "range");
+}
+
+const volumeControl = createVolumeControl(browserStorage());
+const soundEngine = createSoundEngine(volumeControl);
+// Browsers let a page play sound only after the player clicks or presses a key, such as Continue on the start screen.
+for (const type of ["pointerdown", "keydown"] as const) {
+  window.addEventListener(type, () => {
+    soundEngine.start();
+  });
+}
+// All sound stops while the tab is hidden, and fades back in when it is shown.
+document.addEventListener("visibilitychange", () => {
+  soundEngine.setHidden(document.visibilityState === "hidden");
+});
+soundEngine.setHidden(document.visibilityState === "hidden");
+window.addEventListener("keydown", (event) => {
+  if (event.code === "KeyM" && !event.repeat && !isTyping(event) && !event.metaKey && !event.ctrlKey && !event.altKey) volumeControl.toggleMute();
+});
 
 /**
  * The seed given as `?seed=123` in the address, if any.
@@ -126,6 +170,7 @@ async function chooseGame(storage: SaveStorage | undefined): Promise<ChosenGame>
             showStartScreen();
             return undefined;
           }}
+          volume={volumeControl}
         />,
         ui,
       );
@@ -226,8 +271,9 @@ function runStep(): boolean {
 }
 if (import.meta.env.DEV) {
   // Lets browser tests and agents read and drive the game, and run play time at once. Development builds only.
-  Object.assign(window, { farHollow: createDevHooks(game.client, runStep) });
+  Object.assign(window, { farHollow: createDevHooks(game.client, runStep, () => soundEngine.state()) });
 }
+const valleySound = createValleySound(soundEngine, game.valley, game.entities);
 const loop = createFixedStepLoop({
   stepMs: STEP_MS,
   maxStepsPerAdvance: MAX_STEPS_PER_FRAME,
@@ -351,6 +397,7 @@ function renderUi(): void {
           renderUi();
         }}
       />
+      <SoundButton control={volumeControl} />
       <DebugOverlay client={game.client} />
     </>,
     requireElement("#ui", HTMLDivElement),
@@ -382,6 +429,7 @@ function frame(nowMs: number): void {
   lastFrameMs = nowMs;
   cameraInput.update(elapsedMs / 1000);
   sceneRenderer.render(alpha);
+  valleySound.update(nowMs / 1000, sceneRenderer.cameraRig.view(), sceneRenderer.sleepDarkness());
   if (menuCameraView !== null && cameraViewKey() !== menuCameraView) closeMenu();
   if (isFirstFrame) hideLoadingScreen();
   requestAnimationFrame(frame);

@@ -13,7 +13,6 @@
 import * as THREE from "three";
 import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { FIREPLACE_STONE_COST } from "../sim/structures";
-import { FUEL_LIMIT_MINUTES } from "../sim/fire";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
 import { createFireplaceStageShapes } from "./fireplace-shape";
 import { createPotMaker, type PotMesh } from "./pot-shape";
@@ -42,8 +41,6 @@ const LIGHTS_FORWARD_METRES = 0.45;
  * the slab. It sits over the fire, FIRE_FORWARD_METRES toward the opening.
  */
 const POT_HEIGHT_METRES = 0.28;
-/** A fireplace holding this much fuel, in game minutes, or more, burns at full size. */
-const FLAME_FULL_SIZE_FUEL_MINUTES = FUEL_LIMIT_MINUTES.fireplace / 4;
 
 /** What a click on a fireplace blueprint landed on. A finished fireplace is found with `pickFinished`. */
 export type FireplaceHit = { kind: "blueprint"; entity: Entity };
@@ -210,7 +207,7 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
         const item = draw(entity);
         showProgress(item, entity, 1, FIREPLACE_STONE_COST);
         const { fire, lights } = fireOf(item);
-        showLitFire(fire, lights, entity.fireplace, FLAME_FULL_SIZE_FUEL_MINUTES, nowSeconds, entity.position.x * 3.1 + entity.position.z * 1.7);
+        showLitFire(fire, lights, entity.fireplace, "fireplace", nowSeconds, entity.position.x * 3.1 + entity.position.z * 1.7);
         showPot(item, entity, nowSeconds);
         seen.add(entity);
       }

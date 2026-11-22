@@ -1,5 +1,6 @@
 import type { GameClient } from "../sim/api";
 import { STEPS_PER_SECOND } from "../sim/game";
+import type { SoundState } from "../sound/sound-engine";
 
 /**
  * What the dev build puts on `window.farHollow`, so browser tests and agents can read and drive the game without screenshots.
@@ -14,12 +15,14 @@ export interface DevHooks {
    * It runs fewer when the game holds its logic, such as while the sleep animation plays.
    */
   advance(seconds: number): number;
+  /** Which sounds play now and how loud each one is, so tests check sound by reading state instead of listening. */
+  sound(): SoundState;
 }
 
 /** Runs one logic step. Returns false if the game held its logic this step, so no time passed. */
 export type DevStep = () => boolean;
 
-export function createDevHooks(client: GameClient, step: DevStep): DevHooks {
+export function createDevHooks(client: GameClient, step: DevStep, readSound: () => SoundState): DevHooks {
   return {
     client,
     advance(seconds) {
@@ -29,5 +32,6 @@ export function createDevHooks(client: GameClient, step: DevStep): DevHooks {
       for (let count = 0; count < steps; count += 1) if (step()) ran += 1;
       return ran / STEPS_PER_SECOND;
     },
+    sound: readSound,
   };
 }

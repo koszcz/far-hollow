@@ -36,6 +36,17 @@ describe("bird life", () => {
     }
   });
 
+  it("flies flocks above the treetops, over hills as well as flat ground", () => {
+    /** Trees grow up to about 14 m tall. */
+    const TALLEST_TREE_METRES = 14;
+    const hills = (x: number, z: number): number => 10 + 8 * Math.sin(x / 15) * Math.cos(z / 20);
+    const life = newLife();
+    for (let second = 0; second < 120; second += 1) {
+      run(life, 1, { ...NOON, groundHeightAt: hills });
+      for (const bird of life.flocks().flat()) expect(bird.y - hills(bird.x, bird.z)).toBeGreaterThan(TALLEST_TREE_METRES);
+    }
+  });
+
   it("keeps up to 6 birds pecking on the ground near the player", () => {
     const life = newLife();
     for (let second = 0; second < 120; second += 1) {
@@ -98,6 +109,26 @@ describe("bird life", () => {
     expect(life.groundBirds().filter((bird) => !bird.flying).length).toBe(6);
   });
 
+  it("removes every bird, flocks too, as soon as they have faded out in the rain", () => {
+    const life = newLife();
+    run(life, 10);
+    expect(life.flocks().length).toBeGreaterThan(0);
+    // Birds fade out in 3 s. A flock's whole path takes about 24 s.
+    run(life, 3.5, { ...NOON, raining: true });
+    expect(life.visibility()).toBe(0);
+    expect(life.flocks()).toEqual([]);
+    expect(life.groundBirds()).toEqual([]);
+  });
+
+  it("lands no new birds in the faint light just before dark", () => {
+    const dusk = { ...NOON, daylight: 0.05 };
+    const life = newLife();
+    for (let second = 0; second < 60; second += 1) {
+      run(life, 1, dusk);
+      expect(life.groundBirds().filter((bird) => !bird.flying)).toEqual([]);
+    }
+  });
+
   it("starts with no birds when the game loads in the rain", () => {
     const life = newLife();
     run(life, 1, { ...NOON, raining: true });
@@ -132,6 +163,19 @@ describe("where a bird may land", () => {
     expect(birdMayLandAt(nearFire, { x: 7.9, z: 0 })).toBe(false);
     expect(birdMayLandAt(nearFire, { x: 0, z: 8 })).toBe(false);
     expect(birdMayLandAt(nearFire, { x: 8.1, z: 0 })).toBe(true);
+  });
+
+  it("never touches down on a spot that was refused while the bird flew to it", () => {
+    const life = newLife();
+    // Nowhere to land at first, so every ground bird has to fly in.
+    run(life, 0.1, { ...NOON, canLandAt: () => false });
+    for (let t = 0; t < 30 && !life.groundBirds().some((bird) => bird.flying); t += 0.1) run(life, 0.1);
+    expect(life.groundBirds().some((bird) => bird.flying)).toBe(true);
+    // A fire is lit, and no spot may be landed on any more.
+    for (let t = 0; t < 30; t += 0.1) {
+      run(life, 0.1, { ...NOON, canLandAt: () => false });
+      expect(life.groundBirds().filter((bird) => !bird.flying)).toEqual([]);
+    }
   });
 
   it("flies off a spot when a fire is lit within 8 m of it", () => {

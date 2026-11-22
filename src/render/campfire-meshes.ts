@@ -14,7 +14,6 @@ import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import { CAMPFIRE_STICK_COST } from "../sim/structures";
-import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../sim/campfires";
 import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";
@@ -64,8 +63,6 @@ const BUILD_STONE_DROP_METRES = 0.08;
 const BUILD_STONE_DROP_SHARE = 0.3;
 /** The ash spreads out from the centre, settling, between this share of the whole build and the end. */
 const BUILD_ASH_SPREAD_FROM = 0.9;
-/** A campfire holding this much fuel, in game minutes, or more, burns at full size. */
-const FLAME_FULL_SIZE_FUEL_MINUTES = CAMPFIRE_FUEL_LIMIT_MINUTES / 4;
 
 /** A pot on the fire nests over the tips of the sticks, this high above the ground. The tips hide inside it, below the water. */
 const POT_HEIGHT_METRES = 0.67;
@@ -263,7 +260,7 @@ export function createCampfireMeshes(entities: EntityStore, groundAt: (x: number
       mesh.material = stickMaterial;
       mesh.geometry = campfire.lit ? charredStickGeometry : stickGeometry;
     }
-    showLitFire(item.fire, item.lights, campfire, FLAME_FULL_SIZE_FUEL_MINUTES, nowSeconds, seed);
+    showLitFire(item.fire, item.lights, campfire, "campfire", nowSeconds, seed);
   }
 
   function forget(entity: Entity): void {

@@ -434,6 +434,7 @@
       "kind": "code",
       "code": [
         "src/render/fire-effect.ts",
+        "src/render/flame-size.ts",
         "src/render/campfire-meshes.ts",
         "src/render/fireplace-meshes.ts"
       ],
@@ -1614,6 +1615,80 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/valley-life/issues/01-birds.md"
+      }
+    },
+    {
+      "id": "sound-river",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "The river's ambience: a flowing water loop made from shaped noise, a low steady rush with a soft babble on top that swells and falls slowly. It plays from the nearest bit of water, fades with distance, and is silent 30 m from the water.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/01-sound.md"
+      }
+    },
+    {
+      "id": "sound-forest",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/wind.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "The forest's ambience: a leaf rustle loop made from shaped noise, a high airy rustle in waves as gusts pass. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/01-sound.md"
+      }
+    },
+    {
+      "id": "sound-fire",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/flame-size.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "The fire's ambience: a fire crackle loop made from shaped noise, a low soft roar under quick uneven crackles and pops. Each lit campfire and fireplace plays it from where it stands. A bigger flame crackles louder. Unlit fires and planted torches are silent.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/01-sound.md"
+      }
+    },
+    {
+      "id": "sound-button",
+      "kind": "code",
+      "code": [
+        "src/ui/sound-button.tsx",
+        "src/ui/start-screen.tsx",
+        "src/app/style.css",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "The Volume slider and the sound button. The start screen shows a Volume slider under the title. On the HUD, a round sound button sits left of the pause button, in the same glass style. Its icon is a speaker with two sound waves, or the speaker crossed out in amber while muted. A click opens a glass box below it with the Volume slider, in amber, and a Mute button that names its key, M.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/01-sound.md"
       }
     }
   ]

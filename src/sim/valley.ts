@@ -129,6 +129,11 @@ export function startSpotBeside(river: River): GroundPoint {
   return { x: middle.x - river.width / 2 - START_FROM_WATER_METRES, z: middle.z };
 }
 
+/** Whether a spot lies in the river's water, banks excluded. */
+export function isRiverWater(river: River, point: GroundPoint): boolean {
+  return distanceToRiver(river, point) <= river.width / 2;
+}
+
 /** Shortest distance from a spot to the middle of the river. */
 export function distanceToRiver(river: River, point: GroundPoint): number {
   let best = Infinity;

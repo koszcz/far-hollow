@@ -593,3 +593,8 @@ export function groundChangeEntities(store: EntityStore) {
 export function rainEntities(store: EntityStore) {
   return store.with("rain");
 }
+
+/** Whether rain falls in the valley now. False before the weather exists. */
+export function isRaining(store: EntityStore): boolean {
+  return rainEntities(store).first?.rain.falling === true;
+}

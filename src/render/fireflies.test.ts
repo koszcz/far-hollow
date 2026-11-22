@@ -55,7 +55,7 @@ describe("fireflies", () => {
 
   it("fly only over open ground", () => {
     // Open ground is everything east of x = 0.
-    const eastOnly: FireflyGround = { isOpen: (x) => x > 0, heightAt: () => 0 };
+    const eastOnly: FireflyGround = { isOpen: (spot) => spot.x > 0, heightAt: () => 0 };
     const swarm = createFireflySwarm(eastOnly, createRandom(5));
     for (let frame = 0; frame < 30 * 60; frame += 1) for (const firefly of swarm.update(frame / 30, PLAYER, NIGHT, false)) expect(firefly.x).toBeGreaterThan(0);
   });
@@ -89,7 +89,7 @@ describe("fireflyOpenGround", () => {
   for (let x = -valley.size / 2; x < valley.size / 2; x += 4) for (let z = -valley.size / 2; z < valley.size / 2; z += 4) spots.push({ x, z });
 
   it("is open over clearings and the river bank, out of the water", () => {
-    const open = spots.filter((spot) => isOpen(spot.x, spot.z));
+    const open = spots.filter((spot) => isOpen(spot));
     expect(open.some((spot) => groundTypeAt(map, spot) === "clearing")).toBe(true);
     expect(open.some((spot) => groundTypeAt(map, spot) === "riverBank")).toBe(true);
     for (const spot of open) {
@@ -101,6 +101,6 @@ describe("fireflyOpenGround", () => {
   it("is closed over the forest floor", () => {
     const forest = spots.filter((spot) => groundTypeAt(map, spot) === "forestFloor");
     expect(forest.length).toBeGreaterThan(0);
-    for (const spot of forest) expect(isOpen(spot.x, spot.z)).toBe(false);
+    for (const spot of forest) expect(isOpen(spot)).toBe(false);
   });
 });

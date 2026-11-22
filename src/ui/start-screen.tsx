@@ -1,6 +1,8 @@
 import { useRef, useState } from "preact/hooks";
 import { seedFromText, type ImportRefusal, type SaveSlotSummary } from "../sim/api";
+import type { VolumeControl } from "../sound/volume-control";
 import { strings } from "../strings";
+import { VolumeSlider } from "./sound-button";
 
 export interface StartScreenProps {
   /** What each save slot holds, in slot order. */
@@ -19,10 +21,12 @@ export interface StartScreenProps {
    * Resolves to undefined once the slot holds the imported game.
    */
   onImport: (slot: number, file: File) => Promise<ImportRefusal | undefined>;
+  /** The player's Volume, which the start screen's slider sets. */
+  volume: VolumeControl;
 }
 
 /** Lists the save slots. The player continues a saved game, starts a new one with a random or typed seed, or imports one from a file. */
-export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, onImport }: StartScreenProps) {
+export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, onImport, volume }: StartScreenProps) {
   /** The slot the player is starting a new game in, or null while they are still choosing. */
   const [newGameSlot, setNewGameSlot] = useState<number | null>(null);
   const [seedText, setSeedText] = useState("");
@@ -47,6 +51,9 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
   return (
     <main class="start-screen" onClickCapture={clearRefusal} onInputCapture={clearRefusal} onSubmitCapture={clearRefusal}>
       <h1>{strings.gameTitle}</h1>
+      <div class="start-screen-volume">
+        <VolumeSlider control={volume} />
+      </div>
       {!canSave && <p class="start-screen-warning">{strings.startScreen.cannotSave}</p>}
       {canSave && (
         <input

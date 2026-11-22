@@ -2,10 +2,11 @@
 // bird-life.ts decides where every bird is. This file tells it about the valley and draws what it says.
 // Birds are only for looks. They are never picked, so they never block walking or the action menu, and they cast no shadows.
 import * as THREE from "three";
-import { heldFires, rainEntities, type EntityStore } from "../sim/entities";
-import { createGroundMap, groundTypeAt } from "../sim/ground-types";
+import { heldFires, isRaining, type EntityStore } from "../sim/entities";
+import { groundTypeAt, type GroundMap } from "../sim/ground-types";
 import type { GroundPoint } from "../sim/ground-point";
-import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
+import type { Random } from "../sim/random";
+import { isRiverWater } from "../sim/valley";
 import { birdMayLandAt, createBirdLife, FLOCK_SIZE, MOST_FLOCKS, MOST_GROUND_BIRDS, type DrawnBird } from "./bird-life";
 import { BIRD_PARTS, birdPartMatrix, createBirdMaterial, createBirdShape, type BirdPart } from "./bird-shape";
 import { campFootprints, isUnderCamp } from "./camp-footprints";
@@ -26,7 +27,17 @@ export interface BirdMeshes {
   dispose(): void;
 }
 
-export function createBirdMeshes(entities: EntityStore, valley: Valley): BirdMeshes {
+/** The valley the birds live in: where its clearings and river are, and how high its ground is. */
+export interface BirdGround {
+  readonly map: GroundMap;
+  readonly heightAt: (x: number, z: number) => number;
+}
+
+/**
+ * Draws the birds. Rendering only reads the camp, its fires, and the rain. It never changes them.
+ * The game leaves `random` unset, so birds start in new places each time it loads.
+ */
+export function createBirdMeshes(entities: EntityStore, ground: BirdGround, random: Random = Math.random): BirdMeshes {
   const group = new THREE.Group();
   group.name = "birds";
   const shape = createBirdShape();
@@ -47,24 +58,21 @@ export function createBirdMeshes(entities: EntityStore, valley: Valley): BirdMes
     rightWing: partMesh("rightWing"),
   };
 
-  // New random places on every load: the birds do not follow the valley's seed.
-  const life = createBirdLife(Math.random);
-  const groundMap = createGroundMap(valley);
-  const weather = rainEntities(entities);
-  const groundHeightAt = (x: number, z: number): number => terrainHeightAt(valley.terrain, x, z);
+  const life = createBirdLife(random);
   let lastSeconds: number | undefined;
 
-  const place = new THREE.Matrix4();
+  // Scratch values reused for every bird, every frame.
+  const birdMatrix = new THREE.Matrix4();
   const partMatrix = new THREE.Matrix4();
-  const spot = new THREE.Vector3();
+  const birdPosition = new THREE.Vector3();
   const facing = new THREE.Quaternion();
   const upright = new THREE.Vector3(0, 1, 0);
   const drawnScale = new THREE.Vector3(DRAWN_SCALE, DRAWN_SCALE, DRAWN_SCALE);
 
   function draw(birds: readonly DrawnBird[]): void {
     birds.forEach((bird, index) => {
-      place.compose(spot.set(bird.x, bird.y, bird.z), facing.setFromAxisAngle(upright, bird.heading), drawnScale);
-      for (const part of BIRD_PARTS) parts[part].setMatrixAt(index, partMatrix.multiplyMatrices(place, birdPartMatrix(part, bird, partMatrix)));
+      birdMatrix.compose(birdPosition.set(bird.x, bird.y, bird.z), facing.setFromAxisAngle(upright, bird.heading), drawnScale);
+      for (const part of BIRD_PARTS) parts[part].setMatrixAt(index, partMatrix.multiplyMatrices(birdMatrix, birdPartMatrix(part, bird, partMatrix)));
     });
     for (const part of BIRD_PARTS) {
       parts[part].count = birds.length;
@@ -82,18 +90,18 @@ export function createBirdMeshes(entities: EntityStore, valley: Valley): BirdMes
       const litFires = heldFires(entities)
         .filter((held) => held.fire.lit)
         .map((held) => held.entity.position);
-      const ground = {
-        isClearing: (at: GroundPoint) => groundTypeAt(groundMap, at) === "clearing",
-        isRiver: (at: GroundPoint) => distanceToRiver(valley.river, at) <= valley.river.width / 2,
+      const landing = {
+        isClearing: (at: GroundPoint) => groundTypeAt(ground.map, at) === "clearing",
+        isRiver: (at: GroundPoint) => isRiverWater(ground.map.river, at),
         isUnderCamp: (at: GroundPoint) => isUnderCamp(footprints, at.x, at.z),
         litFires,
       };
       life.step(seconds, {
         daylight,
-        raining: weather.first?.rain.falling === true,
+        raining: isRaining(entities),
         player,
-        canLandAt: (at) => birdMayLandAt(ground, at),
-        groundHeightAt,
+        canLandAt: (at) => birdMayLandAt(landing, at),
+        groundHeightAt: ground.heightAt,
       });
       const visibility = life.visibility();
       group.visible = visibility > 0;

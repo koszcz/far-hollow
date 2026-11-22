@@ -200,6 +200,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   fireFullOfFish: true,
   noUnfiredJug: true,
   noPotOfCleanWater: true,
+  noJug: true,
   noJugWithRoom: true,
   noWaterInJug: true,
   fireHoldsJug: true,

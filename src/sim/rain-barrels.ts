@@ -3,13 +3,13 @@
 // Taking a barrel down spills its water, so taking-down.ts needs nothing from here.
 import type { PlainNotice, RainBarrelView, Refusal } from "./api";
 import type { ApproachReach } from "./approach";
-import { addToBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
+import { hasInBackpack, swapInBackpack, type Backpack, type BackpackContent } from "./backpack";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { entityWith, playerEntities, type Entity, type EntityStore } from "./entities";
 import { fillBy, isEmptyFill, takeOne } from "./fill-level";
 import { RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_REACH_METRES, RAIN_BARREL_STAND_METRES } from "./furniture/rain-barrel";
 import { nearestWithin } from "./ground-point";
-import { jugToPourInto, withOneMoreDrink } from "./jug";
+import { jugToPourInto, pourIntoJugRefusal, withOneMoreDrink } from "./jug";
 import { quenchThirst } from "./needs";
 import { goneRefusal } from "./refusals";
 import { isUnderRoof } from "./roofs";
@@ -26,7 +26,7 @@ export interface RainBarrels {
   drinkRefusal(barrelId: number): Refusal | undefined;
   /** Why the player could not fill the pot from the barrel, wherever they stand: it is gone or empty, or no empty pot is in the backpack. */
   fillPotRefusal(barrelId: number): Refusal | undefined;
-  /** Why the player could not fill a jug from the barrel, wherever they stand: it is gone or empty, or no jug in the backpack has room. */
+  /** Why the player could not fill a jug from the barrel, wherever they stand: it is gone or empty, or the backpack holds no jug with room. */
   fillJugRefusal(barrelId: number): Refusal | undefined;
   /** Drinks 1 drink from the barrel, which fills thirst completely. Does nothing if the refusal does not pass. */
   drink(barrelId: number): void;
@@ -54,25 +54,42 @@ export function createRainBarrels(entities: EntityStore): RainBarrels {
     return pieces.entities.filter((piece) => piece.furniture === "rainBarrel");
   }
 
-  function drinkRefusal(barrelId: number): Refusal | undefined {
+  /** Why the player could not use the barrel at all: it is gone or holds no drink. */
+  function barrelUsableRefusal(barrelId: number): Refusal | undefined {
     const gone = goneRefusal(entities, barrelId);
     if (gone !== undefined) return gone;
     const barrel = barrelById(barrelId);
     return barrel !== undefined && isEmptyFill(barrel.rainBarrel) ? { kind: "barrelEmpty" } : undefined;
   }
 
-  function fillPotRefusal(barrelId: number): Refusal | undefined {
-    const refusal = drinkRefusal(barrelId);
-    if (refusal !== undefined) return refusal;
-    const player = players.first;
-    return player?.backpack !== undefined && hasInBackpack(player.backpack, "pot") ? undefined : { kind: "noEmptyPot" };
+  /** Why the player could not fill something in their backpack from the barrel: the barrel is unusable, or `backpackRefusal` says why. */
+  function fillRefusal(barrelId: number, backpackRefusal: (backpack: Backpack) => Refusal | undefined): Refusal | undefined {
+    // A player with no backpack is refused as one whose backpack holds nothing.
+    return barrelUsableRefusal(barrelId) ?? backpackRefusal(players.first?.backpack ?? { contents: {} });
   }
 
-  function fillJugRefusal(barrelId: number): Refusal | undefined {
-    const refusal = drinkRefusal(barrelId);
-    if (refusal !== undefined) return refusal;
+  const fillPotRefusal = (barrelId: number): Refusal | undefined =>
+    fillRefusal(barrelId, (backpack) => (hasInBackpack(backpack, "pot") ? undefined : { kind: "noEmptyPot" }));
+
+  const fillJugRefusal = (barrelId: number): Refusal | undefined => fillRefusal(barrelId, (backpack) => pourIntoJugRefusal(backpack.contents));
+
+  /**
+   * Takes 1 drink out of the barrel into the backpack by swapping one `from` for one `to`, if `refusal` passes.
+   * Returns a notice if `to` does not fit in the backpack, and then changes nothing.
+   */
+  function fill(
+    barrelId: number,
+    refusal: (barrelId: number) => Refusal | undefined,
+    swap: (backpack: Backpack) => readonly [from: BackpackContent, to: BackpackContent] | undefined,
+  ): PlainNotice | undefined {
+    const barrel = barrelById(barrelId);
     const backpack = players.first?.backpack;
-    return backpack !== undefined && jugToPourInto(backpack.contents) !== undefined ? undefined : { kind: "noJugWithRoom" };
+    if (barrel === undefined || backpack === undefined || refusal(barrelId) !== undefined) return undefined;
+    const fromTo = swap(backpack);
+    if (fromTo === undefined) return undefined;
+    if (!swapInBackpack(backpack, ...fromTo)) return "backpackFull";
+    barrel.rainBarrel = takeOne(barrel.rainBarrel);
+    return undefined;
   }
 
   return {
@@ -88,12 +105,12 @@ export function createRainBarrels(entities: EntityStore): RainBarrels {
       if (barrel === undefined) return undefined;
       return { target: barrel.position, metres: RAIN_BARREL_REACH_METRES, walk: { style: "beside", standMetres: RAIN_BARREL_STAND_METRES } };
     },
-    drinkRefusal,
+    drinkRefusal: barrelUsableRefusal,
     fillPotRefusal,
     fillJugRefusal,
     drink(barrelId) {
       const barrel = barrelById(barrelId);
-      if (barrel === undefined || drinkRefusal(barrelId) !== undefined) return;
+      if (barrel === undefined || barrelUsableRefusal(barrelId) !== undefined) return;
       for (const player of players) {
         if (player.needs === undefined) continue;
         quenchThirst(player.needs);
@@ -102,35 +119,15 @@ export function createRainBarrels(entities: EntityStore): RainBarrels {
       }
     },
     fillPot(barrelId) {
-      const barrel = barrelById(barrelId);
-      if (barrel === undefined || fillPotRefusal(barrelId) !== undefined) return undefined;
-      for (const { backpack } of players) {
-        if (backpack === undefined || !removeFromBackpack(backpack, "pot", 1)) continue;
-        // Rain caught in a barrel is clean water, the same as boiled water.
-        if (!addToBackpack(backpack, "potOfBoiledWater", 1)) {
-          addToBackpack(backpack, "pot", 1);
-          return "backpackFull";
-        }
-        barrel.rainBarrel = takeOne(barrel.rainBarrel);
-        return undefined;
-      }
-      return undefined;
+      // Rain caught in a barrel is clean water, the same as boiled water.
+      return fill(barrelId, fillPotRefusal, () => ["pot", "potOfBoiledWater"]);
     },
     fillJug(barrelId) {
-      const barrel = barrelById(barrelId);
-      if (barrel === undefined || fillJugRefusal(barrelId) !== undefined) return undefined;
-      for (const { backpack } of players) {
-        const jug = backpack === undefined ? undefined : jugToPourInto(backpack.contents);
-        if (backpack === undefined || jug === undefined || !removeFromBackpack(backpack, jug, 1)) continue;
-        // The jug gains a drink, so it weighs more and may not fit.
-        if (!addToBackpack(backpack, withOneMoreDrink(jug), 1)) {
-          addToBackpack(backpack, jug, 1);
-          return "backpackFull";
-        }
-        barrel.rainBarrel = takeOne(barrel.rainBarrel);
-        return undefined;
-      }
-      return undefined;
+      // The jug gains a drink, so it weighs more and may not fit.
+      return fill(barrelId, fillJugRefusal, (backpack) => {
+        const jug = jugToPourInto(backpack.contents);
+        return jug === undefined ? undefined : [jug, withOneMoreDrink(jug)];
+      });
     },
     nearby() {
       const player = players.first;

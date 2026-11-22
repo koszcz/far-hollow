@@ -491,6 +491,7 @@ export const strings = {
     fireFullOfFish: "the fire holds 3 fish",
     noUnfiredJug: "no unfired jug",
     noPotOfCleanWater: "no pot of clean water",
+    noJug: "no jug",
     noJugWithRoom: "every jug is full",
     noWaterInJug: "no jug holds water",
     fireHoldsJug: "the fire holds a jug",

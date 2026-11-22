@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { nearbyOf, type Command, type StructureKind } from "./api";
 import { rainEntities, type Entity } from "./entities";
-import { RAIN_BARREL_BUILD_SECONDS, RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_PLANK_COST } from "./furniture/rain-barrel";
 import { addToBackpack } from "./backpack";
+import { RAIN_BARREL_BUILD_SECONDS, RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_PLANK_COST } from "./furniture/rain-barrel";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { FULL_NEED } from "./needs";
 import { RAIN_BARRELS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
@@ -337,7 +337,7 @@ describe("filling a jug from a rain barrel", () => {
 
     barrel.rainBarrel = { held: 2, progress: 0 };
     delete onlyPlayer(game).backpack.contents.jug;
-    expect(game.client.refusal(command)).toEqual({ kind: "noJugWithRoom" });
+    expect(game.client.refusal(command)).toEqual({ kind: "noJug" });
   });
 
   it("leaves the jug and the barrel as they were when the heavier jug does not fit in the backpack", () => {

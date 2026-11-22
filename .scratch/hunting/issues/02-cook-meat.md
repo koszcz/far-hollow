@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Cord and snare)
 
-**Status:** needs-triage
+**Status:** deferred
 
 **Assets:** Reuse `campfire`. Add the drafts `meat-on-fire`, `hunting-icons` (cooked meat icon), and `hunting-piles` (cooked meat).
 

@@ -30,6 +30,9 @@ test("the game loads and the player walks where the ground is clicked", async ({
   const box = await canvas.boundingBox();
   if (box === null) throw new Error("The canvas has no size");
   await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.75);
+  // A click on a spot where the player can also do something, such as gather stone, opens the action menu. Choose to walk there.
+  const walkHere = page.getByRole("navigation", { name: "Actions" }).getByRole("button", { name: "Walk here" });
+  if ((await walkHere.count()) > 0) await walkHere.click();
 
   await expect
     .poll(

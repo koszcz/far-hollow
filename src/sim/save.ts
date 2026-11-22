@@ -746,16 +746,31 @@ const APPROACH_OF_TASK: Readonly<Record<string, (task: Record<string, unknown>) 
  * so a player saved on the way carries on and acts when they arrive. Timed work keeps its own task component.
  */
 function startApproaches(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return tasksToApproaches(save, APPROACH_OF_TASK, () => true);
+}
+
+/**
+ * Turns one task component on each entity of `save` into a pending approach that holds its command, from `approachOf`.
+ * `turns` says which of the entity's task components to turn. The first of them in `approachOf` gives the command.
+ * The player walked to one thing at a time, so any other task it names, which no save should hold, is dropped.
+ * `adjust` may change the entity's other components for the task that was turned.
+ */
+function tasksToApproaches(
+  save: Readonly<Record<string, unknown>>,
+  approachOf: Readonly<Record<string, (task: Record<string, unknown>) => Record<string, unknown>>>,
+  turns: (task: string, components: Readonly<Record<string, unknown>>) => boolean,
+  adjust?: (task: string, others: Record<string, unknown>) => void,
+): Record<string, unknown> {
   if (!Array.isArray(save.entities)) return { ...save };
   const entities: unknown[] = save.entities.map((entity: unknown) => {
     const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
     if (components === undefined || components === null) return entity;
-    const tasks = Object.keys(APPROACH_OF_TASK).filter((name) => components[name] !== undefined);
+    const tasks = Object.keys(approachOf).filter((name) => components[name] !== undefined && turns(name, components));
     const first = tasks[0];
     if (first === undefined) return entity;
-    const command = APPROACH_OF_TASK[first]?.(components[first] as Record<string, unknown>);
-    // The player walked to one thing at a time, so a second walk-only task, which no save should hold, is dropped.
+    const command = approachOf[first]?.(components[first] as Record<string, unknown>);
     const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
+    adjust?.(first, others);
     return { ...(entity as object), components: { ...others, approach: { command } } };
   });
   return { ...save, entities };
@@ -787,21 +802,14 @@ const WALK_ONLY_TIMED_TASKS: ReadonlySet<string> = new Set(["drinkTask", "fillPo
  * on the way takes that cast back off the count. The cast on arrival then waits as long as the saved one would have. Drinking from the river and filling the pot take no time once there, so their task components always become approaches.
  */
 function approachTimedTasks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  if (!Array.isArray(save.entities)) return { ...save };
-  const entities: unknown[] = save.entities.map((entity: unknown) => {
-    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
-    if (components === undefined || components === null) return entity;
-    const walking = components.walkPath !== undefined;
-    const tasks = Object.keys(APPROACH_OF_TIMED_TASK).filter((name) => components[name] !== undefined && (walking || WALK_ONLY_TIMED_TASKS.has(name)));
-    const first = tasks[0];
-    if (first === undefined) return entity;
-    const command = APPROACH_OF_TIMED_TASK[first]?.(components[first] as Record<string, unknown>);
-    // The player walked to one thing at a time, so a second task, which no save should hold, is dropped.
-    const others = Object.fromEntries(Object.entries(components).filter(([name]) => !tasks.includes(name)));
-    if (first === "fishTask" && typeof others.fishCasts === "number" && others.fishCasts > 0) others.fishCasts -= 1;
-    return { ...(entity as object), components: { ...others, approach: { command } } };
-  });
-  return { ...save, entities };
+  return tasksToApproaches(
+    save,
+    APPROACH_OF_TIMED_TASK,
+    (task, components) => components.walkPath !== undefined || WALK_ONLY_TIMED_TASKS.has(task),
+    (task, others) => {
+      if (task === "fishTask" && typeof others.fishCasts === "number" && others.fishCasts > 0) others.fishCasts -= 1;
+    },
+  );
 }
 
 /** Version 42 to 43: the player can lay floors on foundations. A save from before then has none, so it carries over unchanged. */

@@ -37,7 +37,7 @@ import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import {
   clockStartMinutes,
   createClock,
-  isNight,
+  isNightAt,
   MINUTES_PER_HOUR,
   nextMorning,
   readClock,
@@ -257,7 +257,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       entityCount: entities.entities.length,
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
-      night: isNight(readClock(clock.minutes).hourOfDay),
+      night: isNightAt(clock.minutes),
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
@@ -326,9 +326,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     return Object.freeze({ id, content: pile.pile.content, count: pile.pile.count });
   }
 
-  /** Every recipe, with what the player lacks to follow each one now. */
+  /** Every recipe. The HUD asks `refusal` what the player lacks to follow one now. */
   function craftMenu(): GameView["craftMenu"] {
-    return deepFreeze(RECIPES.map((recipe) => ({ ...structuredClone(recipe), lacks: structuredClone(crafting.lacks(recipe.kind)) })));
+    return deepFreeze(RECIPES.map((recipe) => structuredClone(recipe)));
   }
 
   /** The notice as the view shows it: without the minute it stops showing at. */
@@ -446,7 +446,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       passWorldTime(minutes);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
-        night: isNight(readClock(clock.minutes).hourOfDay),
+        night: isNightAt(clock.minutes),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
         working: currentAction() !== null,
         asleep: asleepIn !== undefined,
@@ -606,7 +606,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   function sleep(asleepIn: SleepPlace): boolean {
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const toRestFully = minutesToRestFully(player.needs, isUnderRoof(entities, player.position), asleepIn === "bed");
-    const wakesAtNight = isNight(readClock(clock.minutes + toRestFully).hourOfDay);
+    const wakesAtNight = isNightAt(clock.minutes + toRestFully);
     return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 

@@ -27,11 +27,16 @@ The action queue uses refusals to skip actions (`moveQueueOn`, `src/sim/game.ts:
 
 ## Acceptance criteria
 
-- [ ] `run` is never called for a command whose refusal returns a reason. A unit test sends a refused command and checks that nothing changed and the reason was shown.
+- [x] `run` is never called for a command whose refusal returns a reason. A unit test sends a refused command and checks that nothing changed and the reason was shown.
 - [ ] Each rule that refused quietly now has a `refusal`. A unit test in `src/sim/refusals.test.ts` covers each.
-- [ ] Fishing without a rod shows the "needs a tool" reason.
-- [ ] A queued action that is refused when its turn comes is skipped with a notice, not counted as done. A test in `src/sim/action-queue.test.ts` covers one of the formerly quiet rules.
-- [ ] No activity module's action repeats a check that its rule's `refusal` makes.
-- [ ] Existing tests pass, including `src/app/thing-actions.test.ts`.
+- [x] Fishing without a rod shows the "needs a tool" reason.
+- [x] A queued action that is refused when its turn comes is skipped with a notice, not counted as done. A test in `src/sim/action-queue.test.ts` covers one of the formerly quiet rules.
+- [x] No activity module's action repeats a check that its rule's `refusal` makes.
+- [x] Existing tests pass, including `src/app/thing-actions.test.ts`.
 
 ## Comments
+
+The code review of 2026-11-22 ticked the boxes the code meets. One box stays open:
+
+- "Each rule that refused quietly now has a `refusal`": drinking from the river has no `refusal`. Its only quiet skip was for a player without needs. No player can lack needs, because a new game gives them needs and the save check turns away a saved player without them. So the review fix removed that skip instead of adding a refusal.
+- The activity modules' actions no longer repeat their refusal. The step in `src/sim/debarking.ts` still checks for the drawknife by hand during the work, not through `refusal`.

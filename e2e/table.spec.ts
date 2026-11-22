@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 interface Client {
   getView(): { playerPosition: { x: number; z: number }; action: unknown; needs: { hunger: number } };
   checkPlacement(structure: string, at: { x: number; z: number }, turns: number): { allowed: boolean };
-  nearestInReach(): { kind: string; id: number } | null;
+  nearestInReach(): { kind: string; id: number; furniture?: string } | null;
   send(command: Record<string, unknown>): void;
 }
 
@@ -45,7 +45,8 @@ test("the player builds a table in the playground and it stands beside them", as
   await expect.poll(() => withClient(page, (client) => client.getView().action === null), { timeout: 30_000 }).toBe(true);
 
   const table = await withClient(page, (client) => client.nearestInReach());
-  expect(table?.kind).toBe("table");
+  expect(table?.kind).toBe("furniture");
+  expect(table?.furniture).toBe("table");
   expect(errors).toEqual([]);
 });
 

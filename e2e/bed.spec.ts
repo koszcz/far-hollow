@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 interface Client {
   getView(): { playerPosition: { x: number; z: number }; stepCount: number; action: unknown; lastSleep: { count: number } | null };
   checkPlacement(structure: string, at: { x: number; z: number }, turns: number): { allowed: boolean };
-  nearestInReach(): { kind: string; id: number } | null;
+  nearestInReach(): { kind: string; id: number; furniture?: string } | null;
   send(command: Record<string, unknown>): void;
 }
 
@@ -45,7 +45,8 @@ test("the player builds a bed in the playground, sleeps in it, and gets up again
   await expect.poll(() => withClient(page, (client) => client.getView().action === null), { timeout: 30_000 }).toBe(true);
 
   const bed = await withClient(page, (client) => client.nearestInReach());
-  expect(bed?.kind).toBe("bed");
+  expect(bed?.kind).toBe("furniture");
+  expect(bed?.furniture).toBe("bed");
   await withClient(page, (client) => {
     const found = client.nearestInReach();
     if (found !== null) client.send({ type: "sleepInBed", bedId: found.id });

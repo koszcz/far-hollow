@@ -119,7 +119,7 @@ describe("crafting the saw", () => {
     expect(game.client.getView().notice).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "materials" }] });
     runSeconds(game, 6);
     expect(game.client.getView().backpack.saw).toBeUndefined();
-    expect(game.client.getView().craftMenu[0]?.lacks).toEqual([{ kind: "materials" }]);
+    expect(game.client.refusal({ type: "craft", recipe: "saw" })).toEqual({ kind: "cannotCraftYet", lacks: [{ kind: "materials" }] });
   });
 
   it("does not start while the player carries a log, and says to put it down first", () => {

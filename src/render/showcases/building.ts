@@ -3,7 +3,7 @@
 import { setComponent, type Entity, type EntityStore } from "../../sim/entities";
 import { BUILD_FADE_SHARE } from "../structure-look";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
-import { DOOR_SWING_SECONDS } from "../door-swing";
+import { DOOR_FIRST_BOUNCE_SHARE, DOOR_REBOUND_SECONDS, DOOR_SWING_SECONDS, RING_SHOVE_TAP_SECONDS } from "../door-swing";
 import {
   DOOR_FRAME_LOG_COST,
   DOOR_PLANK_COST,
@@ -353,11 +353,17 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 1.8,
     focus: { x: 0, y: 1, z: 0.5 },
     // A finished door in its frame. Each view hangs a new door, so it starts to swing as the view's clock starts:
-    // swinging open as the player steps up to it, standing open with the player in the doorway, swinging shut behind them, then shut.
+    // shoved open as the player steps up to it, with the latch ring flung off the face, standing open with the player in the
+    // doorway, bouncing off the frame after it slams shut behind them, then shut.
     shots: [
-      { label: "swinging open", yaw: 35, pitch: 20, seconds: DOOR_SWING_SECONDS * 0.4 },
+      { label: "swinging open, ring flung off the face", yaw: 35, pitch: 20, seconds: RING_SHOVE_TAP_SECONDS / 2 },
       { label: "open, player in the doorway", yaw: 35, pitch: 20, seconds: 1 },
-      { label: "swinging shut behind the player", yaw: 35, pitch: 20, seconds: DOOR_SWING_SECONDS * 0.5 },
+      {
+        label: "slammed shut, bouncing off the frame",
+        yaw: 35,
+        pitch: 20,
+        seconds: DOOR_SWING_SECONDS + (DOOR_REBOUND_SECONDS * DOOR_FIRST_BOUNCE_SHARE) / 2,
+      },
       { label: "shut", yaw: 35, pitch: 20, seconds: 1 },
     ],
     build(stage) {

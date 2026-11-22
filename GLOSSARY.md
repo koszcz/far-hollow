@@ -73,6 +73,10 @@ A log with its bark stripped off with a drawknife. Log walls are built from deba
 **Bark**:
 The material left over from debarking a log.
 
+**Cord**:
+A length of bark twisted by hand into a strong string. It ties things together, such as the sticks of a fish trap.
+_Avoid_: Rope, string, twine
+
 **Plank**:
 A flat board cut from a debarked log at a sawhorse.
 _Avoid_: Board, lumber
@@ -192,7 +196,7 @@ To gather wild food, such as berries and mushrooms, by hand.
 _Avoid_: Harvest, pick
 
 **Raw fish**:
-A fish the player catches at the river with the fishing rod. It is food the player carries in the backpack. Eating it raw makes the player sick.
+A fish the player catches at the river with the fishing rod or takes from a fish trap. It is food the player carries in the backpack. Eating it raw makes the player sick.
 _Avoid_: Trout, catch
 
 **Cook**:
@@ -205,6 +209,10 @@ _Avoid_: Roast fish, grilled fish
 
 **Snare**:
 A trap the player sets to catch rabbits.
+
+**Fish trap**:
+A basket of sticks tied with cord that the player sets in the river's water. It catches one fish every several hours while the player does other things, and holds that fish until the player takes it.
+_Avoid_: Weir, creel, fish pot, basket
 
 **Bow**:
 The tool the player uses to hunt deer.

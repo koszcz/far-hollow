@@ -46,6 +46,8 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   if (entity.debarkedLog !== undefined) return { kind: "debarkedLog", id };
   if (entity.stick === true) return { kind: "stick", id };
   if (entity.bark === true) return { kind: "bark", id };
+  // A mushroom log growing its mushrooms back can still be taken down, so it is offered either way.
+  if (entity.mushroomLog !== undefined) return { kind: "mushroomLog", id };
   // A bush growing back has nothing to forage yet.
   if (entity.forageSpot !== undefined) return entity.regrowing === undefined ? { kind: "forage", id } : undefined;
   if (entity.campfire !== undefined) return { kind: "campfire", id };

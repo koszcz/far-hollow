@@ -16,7 +16,7 @@
 - [x] One function answers "which ground type is here?" for any spot. Ticket 02 reuses it to decide what grows where.
 - [x] The same seed always gives the same ground.
 - [ ] The game still runs at 60 fps on an Apple M1 laptop in Chrome.
-  Not measured: nobody has checked the frame rate on an Apple M1 laptop yet.
+  Not measured on an M1 yet. On an M3 Pro the mean frame time is about 4 ms. See ticket 09.
 - [x] The `terrain` entry in `asset-manifest.json` is a draft, and its description names the three ground types.
 - [x] The asset showcase (`/?asset=terrain`) shows all three ground types.
 - [x] Unit tests cover the ground-type function: near trees, in the open, and beside the river.

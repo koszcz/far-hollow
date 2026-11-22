@@ -75,13 +75,12 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
 
   return {
     reach(treeId) {
-      const tree = entities.entity(treeId);
-      if (tree?.tree !== true || tree.position === undefined) return undefined;
+      const tree = standingTree(treeId);
+      if (tree === undefined) return undefined;
       return { target: tree.position, metres: chopReach(tree), walk: { style: "beside" } };
     },
     start(treeId) {
-      const tree = entities.entity(treeId);
-      if (tree?.tree !== true || tree.position === undefined) return;
+      if (standingTree(treeId) === undefined) return;
       for (const player of players) setComponent(entities, player, "chopTask", { treeId, secondsDone: 0 });
     },
     refusal(treeId) {
@@ -94,8 +93,8 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     step(stepSeconds) {
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const chopper of [...choppers]) {
-        const tree = entities.entity(chopper.chopTask.treeId);
-        if (tree?.tree !== true || tree.position === undefined) {
+        const tree = standingTree(chopper.chopTask.treeId);
+        if (tree === undefined) {
           entities.removeComponent(chopper, "chopTask");
           continue;
         }
@@ -109,6 +108,13 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
       }
     },
   };
+
+  /** The standing tree with this entity id, or undefined if the entity is gone, is not a tree, or has no place. */
+  function standingTree(treeId: number): (Entity & { position: NonNullable<Entity["position"]> }) | undefined {
+    const tree = entities.entity(treeId);
+    if (tree?.tree !== true || tree.position === undefined) return undefined;
+    return tree as Entity & { position: NonNullable<Entity["position"]> };
+  }
 
   /** Turns a standing tree at `at` into a stump that starts growing back, and lays its logs, more for a bigger tree, on clear ground, falling away from `from` if it can. Returns the logs. */
   function fell(tree: Entity, at: GroundPoint, from: GroundPoint): Entity[] {

@@ -492,6 +492,16 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(scene("debarkedLog", world.add({ debarkedLog: { heading: 0 } })), world.reader))).toEqual(["pickUp main"]);
   });
 
+  it("offers no mushroom planting on a log on a sled, on a woodpile, or on the player's shoulder", () => {
+    const backpack = { mushroom: 1 };
+    const onSled = worldWith({ backpack, sled: { log: 2 } });
+    expect(summary(actionsFor(scene("sled", onSled.sled), onSled.reader))).not.toContain("plantMushroom");
+    const onWoodpile = worldWith({ backpack, woodpile: { log: 2 } });
+    expect(summary(actionsFor(scene("woodpile", onWoodpile.woodpile), onWoodpile.reader))).not.toContain("plantMushroom");
+    const onShoulder = worldWith({ backpack, carrying: "log" });
+    expect(summary(actionsFor({ kind: "shoulder", log: "log" }, onShoulder.reader))).not.toContain("plantMushroom");
+  });
+
   it("forages a mushroom log, and takes it down", () => {
     const world = worldWith({});
     const mushroomLog = world.add({ mushroomLog: { heading: 0 }, forageSpot: { food: "mushroom" } });

@@ -225,7 +225,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noLitTorch: true,
   noMushroom: true,
   needsPlainLog: true,
-  coversMushroomLog: true,
+  mushroomLogInTheWay: true,
   barrelEmpty: true,
   noEmptyPot: true,
 };

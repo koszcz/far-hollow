@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
-import { logEntities, lyingThings, type Entity, type Vec3 } from "./entities";
+import { createEntityStore, logEntities, lyingThings, type Entity, type Vec3 } from "./entities";
 import { createGame, type Game } from "./game";
+import { gardenThingInTheWay } from "./garden-things";
 import { PLANT_MUSHROOM_SECONDS } from "./mushroom-logs";
 import { createNeeds } from "./needs";
-import { MUSHROOM_LOGS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION, MUSHROOM_LOGS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 
@@ -141,15 +142,25 @@ describe("building near a mushroom log", () => {
     const mushroomLog = plantedLog(game);
     const check = game.client.checkPlacement("foundation", mushroomLog.position, 0);
     expect(check.allowed).toBe(false);
-    expect(check.refusal).toEqual({ kind: "coversMushroomLog" });
+    expect(check.refusal).toEqual({ kind: "mushroomLogInTheWay" });
 
     const place: Command = { type: "placeBlueprint", structure: "campfire", turns: 0, x: mushroomLog.position.x, z: mushroomLog.position.z };
-    expect(game.client.refusal(place)).toEqual({ kind: "coversMushroomLog" });
+    expect(game.client.refusal(place)).toEqual({ kind: "mushroomLogInTheWay" });
     const blueprints = game.entities.with("blueprint").entities.length;
     game.client.send(place);
     game.step();
     expect(game.entities.with("blueprint").entities.length).toBe(blueprints);
-    expect(game.client.getView().notice).toEqual({ kind: "refused", refusal: { kind: "coversMushroomLog" } });
+    expect(game.client.getView().notice).toEqual({ kind: "refused", refusal: { kind: "mushroomLogInTheWay" } });
+  });
+
+  it("refuses ground that crosses the log between its middle and its ends", () => {
+    const entities = createEntityStore();
+    // The log lies along x from x = 9.5 to x = 10.5. The strip crosses it at x = 10.25, away from its middle and its ends.
+    entities.add({ mushroomLog: { heading: Math.PI / 2 }, forageSpot: { food: "mushroom" }, position: { x: 10, y: 0, z: 20 } });
+    const strip = (x: number) => ({ min: { x: x - 0.1, z: 19 }, max: { x: x + 0.1, z: 21 } });
+
+    expect(gardenThingInTheWay(entities, strip(10.25))).toEqual({ kind: "mushroomLogInTheWay" });
+    expect(gardenThingInTheWay(entities, strip(10.7))).toBeUndefined();
   });
 });
 
@@ -179,6 +190,16 @@ describe("saving mushroom logs", () => {
     expect(loaded.client.getView().action?.kind).toBe("plantMushroom");
     stepUntil(loaded, () => loaded.client.getView().action === null);
     expect(loaded.entities.entity(id)?.mushroomLog).toBeDefined();
+  });
+
+  it("loads a refusal notice from before the refusal was named mushroomLogInTheWay", () => {
+    const game = gameWithMushrooms(1);
+    const older = JSON.parse(JSON.stringify({ ...writeSave(game), version: MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION - 1 })) as Record<string, unknown>;
+    older.notice = { kind: "refused", refusal: { kind: "coversMushroomLog" }, untilMinutes: 1_000_000 };
+
+    const loaded = readSave(older);
+    if (!loaded.ok) throw new Error("The older save was rejected");
+    expect(loaded.game.client.getView().notice).toEqual({ kind: "refused", refusal: { kind: "mushroomLogInTheWay" } });
   });
 
   it("raises the save version, and loads a save from before mushroom logs", () => {

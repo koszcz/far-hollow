@@ -1583,6 +1583,22 @@
         "status": "draft",
         "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
       }
+    },
+    {
+      "id": "fireflies",
+      "kind": "code",
+      "code": [
+        "src/render/fireflies.ts",
+        "src/render/firefly-effect.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "Fireflies: up to 40 small yellow-green glowing dots, each a bright core in a soft halo, that drift slowly and blink over clearings and the river bank near the player at night. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/valley-life/issues/02-fireflies.md"
+      }
     }
   ]
 }

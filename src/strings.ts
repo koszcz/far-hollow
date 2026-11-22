@@ -92,6 +92,7 @@ export const strings = {
   gatheringStone: "Gathering stone",
   diggingUp: "Digging up",
   planting: "Planting",
+  plantingMushroom: "Planting a mushroom",
   /** The hint while a see-through sapling follows the mouse. */
   plantingSapling: {
     what: "Planting: Sapling. Click the ground to plant it.",
@@ -171,6 +172,8 @@ export const strings = {
     /** The full name of a build menu tile, for screen readers, such as "Campfire: 5 sticks". A structure that costs nothing has only its name. */
     entryLabel: (structure: string, cost: string) => (cost === "" ? structure : `${structure}: ${cost}`),
     /** What to click while placing each kind of structure, given its name. The keys show after it, from `hudLabels.placingKeys`. */
+    /** The placing hint when the game refuses the spot under the mouse and says why. */
+    refusedHere: (structure: string, reason: string) => `Cannot place a ${structure} here: ${reason}.`,
     placing: {
       anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere.`,
       onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it.`,
@@ -420,6 +423,8 @@ export const strings = {
     putOut: "Put out",
     /** Standing the lit torch in the player's hand in the ground at their feet. */
     plant: "Plant",
+    /** Planting a mushroom from the backpack on a plain log on the ground. */
+    plantMushroom: "Plant mushroom",
     /** Laying the bedroll from the backpack in a lean-to, across its open front. */
     layBedrollHere: "Lay the bedroll here",
     fillPot: "Fill it at the river",
@@ -473,6 +478,9 @@ export const strings = {
     openFirst: "open it first",
     torchTooClose: "another torch stands too close",
     noLitTorch: "you hold no lit torch",
+    noMushroom: "no mushroom in the backpack",
+    needsPlainLog: "a mushroom grows only on a log with its bark on",
+    coversMushroomLog: "a mushroom log lies here",
     barrelEmpty: "the barrel is empty",
     noEmptyPot: "no empty pot in the backpack",
     /** A delivered material the blueprint needs before the next stage can be built. */

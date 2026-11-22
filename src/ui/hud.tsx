@@ -208,6 +208,8 @@ export interface HudProps {
   buildMenuOpen: boolean;
   /** The structure whose blueprint follows the mouse, or null while not placing one. */
   placing: StructureKind | null;
+  /** While placing, why the game refuses the spot under the mouse, when it says why. Optional, so showcases need not pass it. */
+  placingRefusal?: Refusal | undefined;
   /**
    * While the player plants a sapling, why the game refuses the spot under the mouse, or null if it allows it.
    * Undefined while the player is not planting. Optional, so showcases need not pass it.
@@ -613,6 +615,7 @@ const actionLabels = {
   gatherStone: strings.gatheringStone,
   digUp: strings.diggingUp,
   plant: strings.planting,
+  plantMushroom: strings.plantingMushroom,
 } as const;
 
 const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
@@ -629,14 +632,16 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
   digUp: "backpack",
   // A planted sapling comes out of the backpack.
   plant: "backpack",
+  // The mushroom comes out of the backpack.
+  plantMushroom: "backpack",
 };
 
 /** The colour of the bar for timed work, such as chopping. */
 const WORK_BAR_COLOUR = "#d9c48a";
 
 /** The hint shown while placing a structure: what to click, then the keys on a line of their own. */
-function PlacingHintText({ entries, placing }: { entries: readonly BuildMenuEntry[]; placing: StructureKind }) {
-  const { what, keys } = placingHint(entries, placing);
+function PlacingHintText({ entries, placing, refusal }: { entries: readonly BuildMenuEntry[]; placing: StructureKind; refusal: Refusal | undefined }) {
+  const { what, keys } = placingHint(entries, placing, refusal);
   return (
     <p class="hud-hint hud-placing-hint">
       {what}
@@ -686,6 +691,7 @@ export function Hud({
   client,
   buildMenuOpen,
   placing,
+  placingRefusal,
   planting,
   onToggleBuildMenu,
   onPickBuildEntry,
@@ -752,7 +758,7 @@ export function Hud({
             {view.action !== null && (
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
             )}
-            {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} />}
+            {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} refusal={placingRefusal} />}
             {planting !== undefined && <PlantingHintText refusal={planting} />}
             {nearbyPanels.map((thing) => (
               <NearbyPanel key={thing.kind} thing={thing} />

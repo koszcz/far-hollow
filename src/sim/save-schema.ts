@@ -77,7 +77,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("chopTree"), treeId: count })(value) ||
   shape({ type: exactly("digUpSapling"), saplingId: count })(value) ||
   shape({ type: exactly("plantSapling"), x: finite, z: finite })(value) ||
-  shape({ type: exactly("debarkLog"), logId: count })(value) ||
+  shape({ type: exactly("debarkLog", "plantMushroom"), logId: count })(value) ||
+  shape({ type: exactly("takeDownMushroomLog"), mushroomLogId: count })(value) ||
   shape({ type: exactly("build"), blueprintId: count })(value) ||
   shape({ type: exactly("takeDown"), pieceId: count })(value) ||
   shape({ type: exactly("drinkFromRiver"), x: finite, z: finite })(value) ||
@@ -108,6 +109,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   growth: shape({ stage: exactly(...GROWTH_STAGES), minutesLeft: finite }),
   log: shape({ heading: finite }),
   debarkedLog: shape({ heading: finite }),
+  mushroomLog: shape({ heading: finite }),
+  plantMushroomTask: shape({ logId: count, secondsDone: finite }),
   debarkTask: shape({ logId: count, secondsDone: finite }),
   carrying: exactly(...CARRIED_LOGS),
   dragging: shape({ sledId: count }),
@@ -213,6 +216,9 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   openFirst: true,
   torchTooClose: true,
   noLitTorch: true,
+  noMushroom: true,
+  needsPlainLog: true,
+  coversMushroomLog: true,
   barrelEmpty: true,
   noEmptyPot: true,
 };

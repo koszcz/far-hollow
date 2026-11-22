@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `mushrooms`, the log model, and `backpack-icons`. Add the draft `mushroom-log`.
 

@@ -10,15 +10,17 @@ export interface PlacingHint {
 
 /**
  * The hint for placing `placing`. Pieces on an edge, over walls, or placed anywhere snap differently, so they say so.
+ * When the game refuses the spot under the mouse and says why, in `refusal`, the hint says that instead.
  * It names R only for a structure that turns. Placing a structure placed in rows, such as a floor, goes on until Esc stops it.
  */
-export function placingHint(entries: readonly BuildMenuEntry[], placing: StructureKind): PlacingHint {
+export function placingHint(entries: readonly BuildMenuEntry[], placing: StructureKind, refusal?: Refusal): PlacingHint {
   const entry = entries.find(({ structure }) => structure === placing);
   const placement = entry?.placement ?? "onGround";
   const { rotate, cancel, stop, join } = strings.hudLabels.placingKeys;
   const end = isPlacedInRows(placement) ? stop : cancel;
+  const name = strings.buildMenu.structures[placing];
   return {
-    what: strings.buildMenu.placing[placement](strings.buildMenu.structures[placing]),
+    what: refusal === undefined ? strings.buildMenu.placing[placement](name) : strings.buildMenu.refusedHere(name, refusalText(refusal)),
     keys: join(entry?.fixedFacing === true ? [end] : [rotate, end]),
   };
 }

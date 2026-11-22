@@ -68,6 +68,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   recordSnugRoomNotice,
   addSaplings,
   addPlanting,
+  addMushroomLogs,
   addRainBarrels,
 ];
 
@@ -156,6 +157,8 @@ export const SNUG_ROOM_NOTICE_SAVE_VERSION = SAVE_UPGRADES.indexOf(recordSnugRoo
 export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 /** The first save version in which the player can plant saplings. */
 export const PLANTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanting) + 2;
+/** The first save version that can hold mushroom logs. */
+export const MUSHROOM_LOGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addMushroomLogs) + 2;
 /** The first save version that can hold rain barrels. */
 export const RAIN_BARRELS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRainBarrels) + 2;
 
@@ -840,7 +843,15 @@ function addPlanting(save: Readonly<Record<string, unknown>>): Record<string, un
   return nothingToUpgrade(save);
 }
 
-/** Version 47 to 48: the player can build rain barrels. A save from before then holds none, so it carries over unchanged. */
+/**
+ * Version 47 to 48: the player can plant a mushroom on a log. A save from before then holds no mushroom log and no planting
+ * of one under way, so it carries over unchanged.
+ */
+function addMushroomLogs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 48 to 49: the player can build rain barrels. A save from before then holds none, so it carries over unchanged. */
 function addRainBarrels(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

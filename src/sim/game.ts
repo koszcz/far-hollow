@@ -32,6 +32,7 @@ import { createCampfires, isWarmedByCampfire, campfireRules } from "./campfires"
 import { createChopping, choppingRules } from "./chopping";
 import { createDiggingUp, diggingUpRules } from "./digging-up";
 import { createPlanting, plantingRules } from "./planting";
+import { createMushroomLogs, mushroomLogRules } from "./mushroom-logs";
 import { createDebarking, debarkingRules } from "./debarking";
 import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import {
@@ -181,6 +182,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const diggingUp = createDiggingUp(entities);
   const planting = createPlanting(entities, walking.walkMap, valley);
+  const mushroomLogs = createMushroomLogs(entities);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const rainBarrels = createRainBarrels(entities);
   const cooking = createCooking(entities, campfires);
@@ -209,6 +211,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stoneGathering,
     diggingUp,
     planting,
+    mushroomLogs,
     chests,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
@@ -407,6 +410,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...choppingRules(chopping),
     ...diggingUpRules(diggingUp),
     ...plantingRules(planting),
+    ...mushroomLogRules(mushroomLogs),
     ...carryingRules(carrying, ruleGame),
     ...debarkingRules(debarking, ruleGame),
     ...craftingRules(crafting, ruleGame),

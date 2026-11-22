@@ -727,6 +727,21 @@
       }
     },
     {
+      "id": "mushroom-log",
+      "kind": "code",
+      "code": [
+        "src/render/mushroom-log-meshes.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "A log the player planted a mushroom on. It reuses the approved logs model, lying on the ground as a loose log does, with two patches from the approved mushrooms model on top of it, one larger than the other, set near each end. While its mushrooms grow back, it shows bare, as a plain log.",
+      "source": "Built in code in this project, from the logs and mushrooms assets",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/garden/issues/02-plant-mushroom-logs.md"
+      }
+    },
+    {
       "id": "rain",
       "kind": "code",
       "code": [
@@ -1300,12 +1315,13 @@
         "src/render/player-motions/gather-stone-animation.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player gathers one stone at the water's edge: they crouch, reach both hands low in front, feel about for a stone, then rise halfway and lift it to the chest in both hands. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip; the axe goes on the back.",
+      "description": "The player gathers one stone at the water's edge the way people lift a heavy stone. They squat with the back fairly upright, grip the stone from either side, and rock it free with two short tugs. They drive up with the legs and hug it at the belly, leaning back against its weight. Then they dip at the knees, heave it up beside the right shoulder, and push it back over the shoulder into the backpack with the right hand, before standing easy. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip. The axe goes on the back.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fireplace/issues/01-gather-stone.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {
@@ -1417,12 +1433,13 @@
         "src/render/door-swing.ts",
         "src/render/door-meshes.ts"
       ],
-      "description": "A door swinging open and shut on its hinges at the left post. When the player comes within 1 m of the middle of the door frame, the door swings open, away from the side the player stands on, to 100 degrees from shut. Once the player is more than 1 m away, it swings back shut. A full swing takes 0.45 seconds, easing in and out. A door that turns back part way through a swing returns at the same pace, so it takes less time.",
+      "description": "A plank door swinging open and shut on its hinges at the left post. A real door is pushed open with one quick shove, coasts, drifts a little past where it stops, and settles back. Shutting, it gathers speed into the frame, hits the stop, and bounces back. When the player comes within 1 m of the middle of the door frame, the door is shoved open, away from the side the player stands on. It coasts 5 degrees past 100 degrees from shut, then settles back to 100 degrees. Once the player is more than 1 m away, it speeds up shut, then bounces 4 degrees off the frame and once more, smaller. A full swing travels in 0.45 seconds. A door that turns back part way through a swing returns at the same pace, so it takes less time, and bounces less. The iron ring on the latch hangs loose: the shove flings it off the door's face and it taps back, and the slam rattles it.",
       "source": "Timed in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/floors-and-doors/issues/02-hang-a-door.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {

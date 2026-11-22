@@ -80,6 +80,8 @@ export interface SceneRenderer {
   showPlanting(planting: { readonly plant: Plantable; readonly spot: GroundPoint; readonly allowed: boolean } | undefined): void;
   /** Whether the sleep animation is playing. Game logic waits while it plays, so the player cannot act mid-sleep. */
   isPlayingSleep(): boolean;
+  /** How dark the sleep animation has made the view in the last frame, from 0 (not at all) to 1 (black). Sound fades with it. */
+  sleepDarkness(): number;
   dispose(): void;
 }
 
@@ -575,9 +577,13 @@ export function createSceneRenderer(
     eatOrDrinkDrawn = { since: nowSeconds, kind, ...copyToward(last.toward) };
   }
 
+  /** How dark the sleep animation made the view in the last frame. */
+  let darkness = 0;
+
   return {
     cameraRig,
     isPlayingSleep: () => sleeping !== undefined,
+    sleepDarkness: () => darkness,
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
@@ -587,7 +593,8 @@ export function createSceneRenderer(
       // The sky keeps the bedtime hour until the view is dark, then shows the morning game logic has already reached.
       const hourOfDay = sleeping !== undefined && sleepSeconds !== undefined && sleepSeconds < SLEEP_MORNING_AT ? sleeping.hour : readHourOfDay();
       drawnHour = hourOfDay;
-      darkenView(canvas, sleepSeconds === undefined ? 0 : sleepDarknessAt(sleepSeconds));
+      darkness = sleepSeconds === undefined ? 0 : sleepDarknessAt(sleepSeconds);
+      darkenView(canvas, darkness);
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       forageMeshes.update();

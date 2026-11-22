@@ -196,6 +196,58 @@ body {
 .hud-pause .hud-icon-button:hover:not(:disabled) {
   background: var(--hud-fill);
 }
+/* The round sound button sits left of the pause button. Its Volume slider opens below it. */
+.hud-sound {
+  top: 12px;
+  right: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.hud-sound > .hud-panel:first-child {
+  padding: 0;
+  border-radius: 50%;
+}
+.hud-sound .hud-icon-button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 50%;
+}
+.hud-sound .hud-icon-button:hover:not(:disabled) {
+  background: var(--hud-fill);
+}
+/* A muted sound button shows its crossed-out speaker in amber, so the player sees at a glance that sound is off. */
+.hud-sound .hud-icon-button[data-muted="true"] {
+  color: var(--hud-amber);
+}
+.hud-sound .hud-icon-button[data-tip]:hover::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.hud-sound-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.volume-slider {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.volume-slider input {
+  width: 10em;
+  accent-color: var(--hud-amber);
+}
+.start-screen-volume {
+  display: flex;
+  justify-content: center;
+  margin: -12px 0 20px;
+}
 .hud-dock {
   right: 12px;
   bottom: 12px;
@@ -1254,6 +1306,21 @@ body {
 .showcase-big-icon svg {
   width: 100%;
   height: 100%;
+}
+/* The sound showcases' player sits at the bottom centre, over the views. */
+.showcase-sound-player {
+  bottom: 12px;
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  transform: translateX(-50%);
+}
+.showcase-start-volume {
+  margin: 16px 0 0;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
 }
 .showcase-missing {
   margin: 16px;

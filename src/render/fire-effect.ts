@@ -7,10 +7,10 @@
 // - A wide glow lights the ground far around, and a brighter pool of light ends where the fire stops warming the player.
 import * as THREE from "three";
 import { CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
+import type { FireKind } from "../sim/fire";
+import { flameSize } from "./flame-size";
 
 const GLOW_COLOUR = 0xff9a4a;
-/** Flames on a fire with almost no fuel left shrink to this share of their full size. Fuller fires burn bigger. */
-const FLAME_SMALLEST_SCALE = 0.35;
 /** How bright the glow is at full size. It lights the ground out to GLOW_REACH_METRES. */
 const GLOW_STRENGTH = 6;
 const GLOW_REACH_METRES = 14;
@@ -52,13 +52,13 @@ export function addFireLights(root: THREE.Object3D): FireLights {
 
 /**
  * Shows a lit fire's flames, glow, and warmth pool, flickering, or hides them while it is out. The flames burn smaller as the
- * fuel runs low, so the player can see roughly how much fuel is left. A fire holding `fullSizeFuelMinutes` or more burns at full size.
+ * fuel runs low, so the player can see roughly how much fuel is left. See flame-size.ts.
  */
 export function showLitFire(
   fire: Fire,
   lights: FireLights,
   state: { readonly lit: boolean; readonly fuelMinutes: number },
-  fullSizeFuelMinutes: number,
+  kind: FireKind,
   nowSeconds: number,
   seed: number,
 ): void {
@@ -68,8 +68,7 @@ export function showLitFire(
     lights.warmthPool.intensity = 0;
     return;
   }
-  const fullness = Math.min(1, state.fuelMinutes / fullSizeFuelMinutes);
-  const size = FLAME_SMALLEST_SCALE + (1 - FLAME_SMALLEST_SCALE) * fullness;
+  const size = flameSize(kind, state);
   const t = nowSeconds * FLICKER_PER_SECOND + seed;
   const flicker = 1 + FLICKER_AMOUNT * (Math.sin(t) * 0.6 + Math.sin(t * 2.3 + 1.7) * 0.4);
   fire.animate(nowSeconds, size, seed);

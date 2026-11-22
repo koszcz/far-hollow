@@ -44,6 +44,29 @@ Open the game with these address options:
 - `?seed=42` starts a new, unsaved game in a fixed valley, so every run is the same.
 - `?playground` starts a game where building costs nothing.
 
+## Check sound by reading it
+
+Do not try to listen. Call `window.farHollow.sound()` instead. It returns what the sound engine plays now:
+
+- `started` is false until the page gets its first click or key press, because browsers block sound until then. A Playwright click on the canvas starts it.
+- `volume` and `muted` are the player's Volume and mute. The M key toggles `muted`.
+- `hidden` is true while the tab is hidden. All sound stops then.
+- `overall` is how loud all sound plays, from 0 to 1, after the Volume, mute, and the sleep fade. It is 0 while the sleep animation shows black.
+- `playing` lists every sound that plays, loudest first, at most 16. Each one has a `key`, such as `river`, `forest`, or `fire-12` (the campfire or fireplace with entity id 12), its asset in `sound`, its `loudness` from 0 to 1 before the Volume, and its `pan` from -1 (left) to 1 (right).
+- `frameMs` is how long the last frame's sound work took, in milliseconds. It should stay under 0.5.
+
+The list fills even before `started` is true, so you can check which sounds would play without a click. The sounds follow the next drawn frame, so after `advance`, wait for one animation frame before you read `sound()`.
+
+For example, check that a lit campfire crackles:
+
+```js
+const { client, advance, sound } = window.farHollow;
+client.send({ type: "lightCampfire", campfireId: 12 });
+advance(10);
+await new Promise(requestAnimationFrame);
+sound().playing.find((playing) => playing.key === "fire-12");
+```
+
 ## How to check a bug
 
 1. Reproduce it in state: send the commands, then read `getView()` and confirm the result is wrong.

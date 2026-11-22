@@ -279,6 +279,14 @@ _Avoid_: Roof tile, shingle
 A building piece of 3 planks that hangs in a finished door frame. It opens by itself when the player walks through, and closes behind them. It never changes where the player can walk. A door frame with a door cannot come down.
 _Avoid_: Gate, hatch
 
+**Window**:
+A building piece of 3 debarked logs on one edge of a foundation square: a log wall with an opening in it, and no glass. It blocks walking like a log wall. Shutters hang in a finished window. A window with shutters cannot come down.
+_Avoid_: Window frame, opening, hole
+
+**Shutters**:
+A building piece of 2 planks that hangs in a finished window. The player opens and closes them by hand, and they stay that way until the player changes them. Finished shutters start closed. Open shutters let daylight into the room.
+_Avoid_: Window panes, curtains, blinds
+
 **Ridge**:
 The top line of a roof, where two slopes that face away from each other meet.
 _Avoid_: Peak, apex
@@ -292,11 +300,11 @@ The gutter where two roof slopes meet at an inside corner, as where the roofs of
 _Avoid_: Gutter, inside corner
 
 **Room**:
-A set of foundation squares closed in on every side by log walls or door frames, with a roof over every square. A lit campfire in a room warms the whole room.
+A set of foundation squares closed in on every side by log walls, door frames, or windows, with a roof over every square. A lit campfire in a room warms the whole room.
 _Avoid_: Interior, enclosure
 
 **Snug**:
-Said of a room with a finished floor on every square and a finished door in every door frame. A room with no door frame is snug once every square has a floor. At night, the player loses warmth in a snug room at half the usual rate.
+Said of a room with a finished floor on every square, a finished door in every door frame, and closed shutters in every window. A room with no door frame or window is snug once every square has a floor. At night, the player loses warmth in a snug room at half the usual rate.
 _Avoid_: Sealed, insulated, finished room
 
 **Build menu**:

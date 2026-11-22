@@ -53,6 +53,8 @@ Do not try to listen. Call `window.farHollow.sound()` instead. It returns what t
 - `hidden` is true while the tab is hidden. All sound stops then.
 - `overall` is how loud all sound plays, from 0 to 1, after the Volume, mute, and the sleep fade. It is 0 while the sleep animation shows black.
 - `playing` lists every sound that plays, loudest first, at most 16. Each one has a `key`, such as `river`, `forest`, or `fire-12` (the campfire or fireplace with entity id 12), its asset in `sound`, its `loudness` from 0 to 1 before the Volume, and its `pan` from -1 (left) to 1 (right).
+- The ambience keys are `river`, `forest`, `fire-<id>`, `rain` (rain in the open), `rain-roof` (rain drumming on a roof, where rain would not fall on the player), `birds`, and `crickets`. A silent sound is left out of `playing`. For example, `crickets` is missing at noon, and both rain keys are missing while dry.
+- Rain eases in and out over about 4 seconds. Walking under a roof or out from under it crossfades `rain` and `rain-roof` in under a second. Birds and crickets follow the daylight and crossfade within 1.5 seconds after sleep or skipped time.
 - `frameMs` is how long the last frame's sound work took, in milliseconds. It should stay under 0.5.
 
 The list fills even before `started` is true, so you can check which sounds would play without a click. The sounds follow the next drawn frame, so after `advance`, wait for one animation frame before you read `sound()`.

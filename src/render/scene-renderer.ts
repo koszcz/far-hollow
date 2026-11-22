@@ -82,6 +82,8 @@ export interface SceneRenderer {
   isPlayingSleep(): boolean;
   /** How dark the sleep animation has made the view in the last frame, from 0 (not at all) to 1 (black). Sound fades with it. */
   sleepDarkness(): number;
+  /** The hour of the day the sky showed in the last frame, with its fraction. It holds bedtime while the sleep animation darkens the view. Sound follows it. */
+  drawnHourOfDay(): number;
   dispose(): void;
 }
 
@@ -583,6 +585,7 @@ export function createSceneRenderer(
     cameraRig,
     isPlayingSleep: () => sleeping !== undefined,
     sleepDarkness: () => darkness,
+    drawnHourOfDay: () => drawnHour,
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();

@@ -2,19 +2,30 @@
 // player hears, and hands it to the sound engine. It never changes game state (ADR 0001).
 import { campfireEntities, fireplaceEntities, playerEntities, rainEntities, type EntityStore } from "../sim/entities";
 import type { GroundPoint } from "../sim/ground-point";
+import { isUnderRoof } from "../sim/roofs";
 import type { Valley } from "../sim/valley";
+import { daylightAt } from "../render/daylight";
 import { flameSize } from "../render/flame-size";
-import { easeRainShare, windStrength } from "../render/wind";
+import { windStrength } from "../render/wind";
 import { ambienceWishes, type FireSound } from "./ambience";
+import { easeHeardDaylight } from "./day-night";
 import { listenerFrom } from "./listener";
+import { easeRainHearing, rainHearingNow, type RainHearing } from "./rain-hearing";
 import type { SoundEngine } from "./sound-engine";
 
+/** What the player hears now, as drawing shows it. */
+export interface SoundFrame {
+  /** Where the camera is and where it looks. */
+  readonly camera: { readonly eye: GroundPoint; readonly focus: GroundPoint };
+  /** The hour of the day the sky shows, with its fraction. Birds and crickets follow its daylight. */
+  readonly hourOfDay: number;
+  /** Silences all sound, from 0 to 1, such as while the sleep animation fades to black. */
+  readonly silence: number;
+}
+
 export interface ValleySound {
-  /**
-   * Plays what the player hears now. `camera` is where the camera is and where it looks. `silence` runs from 0 to 1, and
-   * silences all sound, such as while the sleep animation fades to black.
-   */
-  update(nowSeconds: number, camera: { readonly eye: GroundPoint; readonly focus: GroundPoint }, silence: number): void;
+  /** Plays what the player hears at `nowSeconds`. */
+  update(nowSeconds: number, frame: SoundFrame): void;
 }
 
 export function createValleySound(engine: SoundEngine, valley: Valley, entities: EntityStore): ValleySound {
@@ -22,8 +33,9 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
   const weather = rainEntities(entities);
   const campfires = campfireEntities(entities);
   const fireplaces = fireplaceEntities(entities);
-  /** How far rain has eased in, from 0 (dry) to 1, for the wind. Undefined until the first frame. */
-  let rainShare: number | undefined;
+  /** The rain as the player hears it, and the heard daylight. Undefined until the first frame. */
+  let rain: RainHearing | undefined;
+  let daylight: number | undefined;
   let lastSeconds: number | undefined;
 
   function* fires(): Generator<FireSound> {
@@ -32,14 +44,25 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
   }
 
   return {
-    update(nowSeconds, camera, silence) {
+    update(nowSeconds, { camera, hourOfDay, silence }) {
       const began = performance.now();
       const raining = weather.first?.rain.falling === true;
-      // The first frame takes the weather as it is, so a game loaded in the rain does not ease in.
-      rainShare = rainShare === undefined ? (raining ? 1 : 0) : easeRainShare(rainShare, raining, nowSeconds - (lastSeconds ?? nowSeconds));
+      const player = players.first?.position ?? camera.focus;
+      // The same rule as the player's shelter from rain.
+      const underRoof = isUnderRoof(entities, player);
+      const elapsed = nowSeconds - (lastSeconds ?? nowSeconds);
+      // The first frame takes the weather and the time of day as they are, so a loaded game does not fade them in.
+      rain = rain === undefined ? rainHearingNow(raining, underRoof) : easeRainHearing(rain, raining, underRoof, elapsed);
+      daylight = daylight === undefined ? daylightAt(hourOfDay) : easeHeardDaylight(daylight, daylightAt(hourOfDay), elapsed);
       lastSeconds = nowSeconds;
-      const listener = listenerFrom(players.first?.position ?? camera.focus, camera);
-      const wishes = ambienceWishes(listener, { river: valley.river, wind: windStrength(nowSeconds, rainShare), fires: fires() });
+      const listener = listenerFrom(player, camera);
+      const wishes = ambienceWishes(listener, {
+        river: valley.river,
+        wind: windStrength(nowSeconds, rain.falling),
+        fires: fires(),
+        rain,
+        daylight,
+      });
       engine.play(wishes, silence);
       engine.recordFrameMs(performance.now() - began);
     },

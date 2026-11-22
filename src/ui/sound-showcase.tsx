@@ -1,5 +1,5 @@
-// Draws the sound assets' review tools over the asset showcase at /?asset=sound-river, sound-forest, sound-fire, or
-// sound-button. Development builds only. A loop showcase gets buttons that play each loop, so the owner can listen to it.
+// Draws the sound assets' review tools over the asset showcase at /?asset=sound-river, or any other sound showcase in
+// SOUND_SHOWCASE_IDS. Development builds only. A loop showcase gets buttons that play each loop, so the owner can listen to it.
 // The sound-button showcase draws the Volume slider and the sound button in each of its four views.
 import { render } from "preact";
 import { useState } from "preact/hooks";
@@ -9,7 +9,16 @@ import { createVolumeControl, type VolumeStorage } from "../sound/volume-control
 import { SoundButton, VolumeSlider } from "./sound-button";
 
 /** The sound showcases. */
-export const SOUND_SHOWCASE_IDS = ["sound-river", "sound-forest", "sound-fire", "sound-button"] as const;
+export const SOUND_SHOWCASE_IDS = [
+  "sound-river",
+  "sound-forest",
+  "sound-fire",
+  "sound-rain",
+  "sound-rain-roof",
+  "sound-birds",
+  "sound-crickets",
+  "sound-button",
+] as const;
 
 /** Storage that forgets everything when the page closes, so the showcase never changes the player's stored Volume. */
 function forgetfulStorage(muted = false): VolumeStorage {
@@ -26,6 +35,10 @@ const LOOPS: readonly { sound: SoundId; name: string }[] = [
   { sound: "sound-river", name: "River" },
   { sound: "sound-forest", name: "Forest" },
   { sound: "sound-fire", name: "Fire" },
+  { sound: "sound-rain", name: "Rain" },
+  { sound: "sound-rain-roof", name: "Rain on a roof" },
+  { sound: "sound-birds", name: "Birds" },
+  { sound: "sound-crickets", name: "Crickets" },
 ];
 
 /** Buttons that play one loop at a time at full loudness, and a Volume slider. The shown asset's button comes first. */

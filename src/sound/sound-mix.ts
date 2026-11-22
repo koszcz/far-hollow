@@ -3,8 +3,11 @@
 /** The most sounds that play at once. */
 export const MAX_SOUNDS = 16;
 
+/** Every sound asset from asset-manifest.json. */
+export const SOUND_IDS = ["sound-river", "sound-forest", "sound-fire", "sound-rain", "sound-rain-roof", "sound-birds", "sound-crickets"] as const;
+
 /** A sound asset from asset-manifest.json. */
-export type SoundId = "sound-river" | "sound-forest" | "sound-fire";
+export type SoundId = (typeof SOUND_IDS)[number];
 
 /** One sound that wants to play this frame. */
 export interface SoundWish {

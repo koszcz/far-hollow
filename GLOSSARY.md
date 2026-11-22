@@ -326,6 +326,10 @@ _Avoid_: Box, crate, container, storage
 Furniture that stores small materials, tools, and food, like a chest, but holds less. It stands on the ground.
 _Avoid_: Rack, cupboard, bookcase
 
+**Bedroll**:
+A rolled mat the player starts the game with and carries in the backpack. The player lays it on the ground or inside a lean-to and sleeps on it. It restores fatigue more slowly than a bed.
+_Avoid_: Sleeping bag, mat
+
 **Bed**:
 Furniture built from planks that the player sleeps in. It restores fatigue faster than a bedroll and becomes the respawn point when slept in.
 _Avoid_: Cot, bunk
@@ -366,8 +370,12 @@ _Avoid_: Torch post, standing torch
 ## Guidance
 
 **Journal**:
-The player's list of suggested goals, such as a first fire, a first shelter, and a first cabin. Following it is optional.
+The player's list of suggested goals, in a fixed order, from a first campfire to a first snug room. Following it is optional, and the player can hide it.
 _Avoid_: Quest log, objectives, achievements
+
+**Goal**:
+One thing the journal suggests the player do, such as lighting a campfire or building a lean-to. A goal is done the first time the player does it, and it stays done even if the player later takes the thing down.
+_Avoid_: Quest, objective, task, achievement
 
 ## Weather and time
 

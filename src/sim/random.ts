@@ -27,3 +27,11 @@ export function scramble(value: number): number {
   mixed = Math.imul(mixed ^ (mixed >>> 13), 0xc2b2ae35);
   return (mixed ^ (mixed >>> 16)) >>> 0;
 }
+
+/**
+ * A seed for a spot on the ground, mixed into a base seed, so things at different spots get unrelated random numbers.
+ * The spot counts to the nearest centimetre. The two large primes spread the x and z parts apart before they are mixed.
+ */
+export function seedFromSpot(seed: number, spot: { readonly x: number; readonly z: number }): number {
+  return scramble(seed ^ Math.imul(Math.round(spot.x * 100), 73_856_093) ^ Math.imul(Math.round(spot.z * 100), 19_349_663));
+}

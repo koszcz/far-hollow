@@ -51,8 +51,3 @@ export function passCatchTime(trapCatch: TrapCatch, minutes: number, range: Catc
 export function takeCatch(trapCatch: TrapCatch): TrapCatch {
   return { ...trapCatch, holding: false };
 }
-
-/** Whether the trap holds a catch now. */
-export function isHolding(trapCatch: TrapCatch): boolean {
-  return trapCatch.holding;
-}

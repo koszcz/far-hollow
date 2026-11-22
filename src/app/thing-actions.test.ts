@@ -466,6 +466,8 @@ describe("other things' actions", () => {
     expect(find(actions, "setFishTrap")).toMatchObject({ label: "Set fish trap", icon: { content: "fishTrap" }, command: { type: "setFishTrap", x: 1, z: 2 } });
     const carrying = actionsFor(river(), worldWith({ backpack: { fishTrap: 1 }, carrying: "log" }).reader);
     expect(summary(carrying)).toContain("setFishTrap off: put the log down first");
+    const dragging = actionsFor(river(), worldWith({ backpack: { fishTrap: 1 }, dragging: "anotherSled" }).reader);
+    expect(summary(dragging)).toContain("setFishTrap off: let go of the sled first");
   });
 
   it("takes the fish from a set trap that holds one as its main action, or picks up an empty one", () => {

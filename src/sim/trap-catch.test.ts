@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { catchWaitMinutes, firstCatch, isHolding, passCatchTime, takeCatch, type CatchRange } from "./trap-catch";
+import { catchWaitMinutes, firstCatch, passCatchTime, takeCatch, type CatchRange } from "./trap-catch";
 
 const RANGE: CatchRange = { minMinutes: 360, maxMinutes: 720 };
 
@@ -25,18 +25,18 @@ describe("the wait for a catch", () => {
 describe("a trap's catch", () => {
   it("starts empty, waiting the first drawn time", () => {
     const start = firstCatch(RANGE, 7);
-    expect(isHolding(start)).toBe(false);
+    expect(start.holding).toBe(false);
     expect(start.minutesToNext).toBe(catchWaitMinutes(RANGE, 7, 0));
   });
 
   it("holds one catch once its wait has passed, and draws the next wait", () => {
     const start = firstCatch(RANGE, 7);
     const almost = passCatchTime(start, start.minutesToNext - 1, RANGE, 7);
-    expect(isHolding(almost)).toBe(false);
+    expect(almost.holding).toBe(false);
     expect(almost.minutesToNext).toBe(1);
 
     const caught = passCatchTime(almost, 1, RANGE, 7);
-    expect(isHolding(caught)).toBe(true);
+    expect(caught.holding).toBe(true);
     expect(caught.minutesToNext).toBe(catchWaitMinutes(RANGE, 7, 1));
   });
 
@@ -49,8 +49,8 @@ describe("a trap's catch", () => {
   it("waits again once the catch is taken", () => {
     const caught = passCatchTime(firstCatch(RANGE, 7), 10_000, RANGE, 7);
     const emptied = takeCatch(caught);
-    expect(isHolding(emptied)).toBe(false);
+    expect(emptied.holding).toBe(false);
     expect(emptied.minutesToNext).toBe(caught.minutesToNext);
-    expect(isHolding(passCatchTime(emptied, emptied.minutesToNext, RANGE, 7))).toBe(true);
+    expect(passCatchTime(emptied, emptied.minutesToNext, RANGE, 7).holding).toBe(true);
   });
 });

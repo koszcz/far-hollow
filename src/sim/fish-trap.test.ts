@@ -7,7 +7,7 @@ import { groundDistance, type GroundPoint } from "./ground-point";
 import { CLAY_SAVE_VERSION, FISH_TRAPS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
-import { distanceToRiver } from "./valley";
+import { distanceToRiver, nearestRiverPoint } from "./valley";
 
 describe("cord and the fish trap in the backpack", () => {
   it("weigh 0.1 kg and 1 kg", () => {
@@ -132,6 +132,24 @@ describe("setting a fish trap", () => {
     expect(groundDistance(trap.position, start)).toBeLessThan(groundDistance(spot, start));
     expect(game.client.getView().backpack.fishTrap ?? 0).toBe(0);
     expect(trap.fishTrap.holding).toBe(false);
+  });
+
+  it("keeps the trap on the bank the player started from, when the clicked spot is far along the river", () => {
+    const game = createGame({ seed: 42 });
+    giveTrap(game);
+    const start = { ...onlyPlayer(game).position };
+    const level = riverMiddleNearPlayer(game);
+    const spot = { x: level.x, z: level.z + 25 };
+    const middle = nearestRiverPoint(game.valley.river, spot);
+
+    setTrap(game, spot);
+
+    const trap = onlyTrap(game);
+    // The player starts on the west bank, and the river runs north to south, so the trap sits west of the middle line.
+    expect(start.x).toBeLessThan(middle.x);
+    expect(trap.position.x).toBeLessThan(middle.x);
+    expect(groundDistance(trap.position, middle)).toBeLessThan(game.valley.river.width / 2);
+    expect(groundDistance(trap.position, middle)).toBeGreaterThan(game.valley.river.width / 2 - 0.6);
   });
 
   it("is a quick action, not timed work", () => {

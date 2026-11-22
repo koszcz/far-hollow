@@ -4,8 +4,8 @@
 // Trees, stumps, and logs are drawn in forest-meshes.ts.
 import * as THREE from "three";
 import type { Valley } from "../sim/valley";
-import { createGroundMap } from "../sim/ground-types";
-import { bakeGroundTypeWeights, createGroundTypeTextures, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
+import { bakeGroundTypeWeights, createGroundTypeTextures, GROUND_TEXTURE_TILE_METRES, rebakeGroundTypeWeights, texelsCovering } from "./ground-texture";
+import type { GroundArea, GroundNow } from "./ground-now";
 
 /** Spots across each side of the baked ground-type map. About 1 m apart in a 1 km valley, close enough to ring each tree. */
 const GROUND_TYPE_MAP_TEXELS = 1024;
@@ -19,10 +19,13 @@ export interface ValleyMeshes {
   readonly group: THREE.Group;
   /** The terrain mesh, so clicks can find the spot on the ground under the pointer. */
   readonly ground: THREE.Mesh;
+  /** Bakes the ground types again in these areas, after the ground changed there. */
+  redrawGround(areas: readonly GroundArea[]): void;
   dispose(): void;
 }
 
-export function createValleyMeshes(valley: Valley): ValleyMeshes {
+/** The ground's types come from `groundNow`, so they follow the trees that stand for good. */
+export function createValleyMeshes(valley: Valley, groundNow: GroundNow): ValleyMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -40,13 +43,35 @@ export function createValleyMeshes(valley: Valley): ValleyMeshes {
     groundPositions.setY(index, height);
   });
   groundGeometry.computeVertexNormals();
-  const groundMaterial = track(createGroundMaterial(valley, track));
+  const { material: groundMaterial, weights } = createGroundMaterial(valley, groundNow, track);
+  track(groundMaterial);
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   group.add(ground);
+  /** Whether the baked map has gone to the graphics card once. Until then, the whole map goes, not only the rows that changed. */
+  let uploaded = false;
+  weights.onUpdate = () => {
+    uploaded = true;
+  };
 
   return {
     group,
     ground,
+    redrawGround(areas) {
+      if (areas.length === 0) return;
+      const data = weights.image.data as Uint8Array;
+      const texels = GROUND_TYPE_MAP_TEXELS;
+      for (const area of areas) {
+        const block = texelsCovering(valley.size, texels, area);
+        rebakeGroundTypeWeights(data, groundNow.map(), texels, block);
+        // Send only the changed rows, so a change costs little to draw.
+        if (uploaded) {
+          for (let row = block.minRow; row <= block.maxRow; row += 1) {
+            weights.addUpdateRange((row * texels + block.minColumn) * 4, (block.maxColumn - block.minColumn + 1) * 4);
+          }
+        }
+      }
+      weights.needsUpdate = true;
+    },
     dispose() {
       for (const item of disposables) item.dispose();
     },
@@ -56,9 +81,13 @@ export function createValleyMeshes(valley: Valley): ValleyMeshes {
 /**
  * A material that blends the three ground-type textures. The baked map says how much of each shows at every spot,
  * and adds large light and dark patches so the repeating textures do not show a pattern.
- * Ground types come from the valley's starting trees, so felling a tree never changes the ground.
+ * Ground types come from `groundNow`. Returns the baked map too, so it can be baked again where the ground changes.
  */
-function createGroundMaterial(valley: Valley, track: <T extends { dispose(): void }>(item: T) => T): THREE.MeshStandardMaterial {
+function createGroundMaterial(
+  valley: Valley,
+  groundNow: GroundNow,
+  track: <T extends { dispose(): void }>(item: T) => T,
+): { material: THREE.MeshStandardMaterial; weights: THREE.DataTexture } {
   const textures = createGroundTypeTextures();
   const repeat = valley.size / GROUND_TEXTURE_TILE_METRES;
   for (const texture of Object.values(textures)) {
@@ -66,7 +95,7 @@ function createGroundMaterial(valley: Valley, track: <T extends { dispose(): voi
     texture.repeat.set(repeat, repeat);
   }
   const texels = GROUND_TYPE_MAP_TEXELS;
-  const weights = track(new THREE.DataTexture(bakeGroundTypeWeights(createGroundMap(valley), texels), texels, texels));
+  const weights = track(new THREE.DataTexture(bakeGroundTypeWeights(groundNow.map(), texels), texels, texels));
   weights.magFilter = THREE.LinearFilter;
   weights.minFilter = THREE.LinearFilter;
   weights.needsUpdate = true;
@@ -109,5 +138,5 @@ function createGroundMaterial(valley: Valley, track: <T extends { dispose(): voi
         ].join("\n"),
       );
   };
-  return material;
+  return { material, weights };
 }

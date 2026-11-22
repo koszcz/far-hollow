@@ -15,7 +15,8 @@ export interface Regrowth {
   grow(gameMinutes: number): void;
 }
 
-export function createRegrowth(entities: EntityStore, walkMap: WalkMap): Regrowth {
+/** `onGrown` hears of each tree that becomes a full tree, at its spot. */
+export function createRegrowth(entities: EntityStore, walkMap: WalkMap, onGrown: (spot: GroundPoint) => void = () => undefined): Regrowth {
   const growing = growingTreeEntities(entities);
   const players = playerEntities(entities);
 
@@ -53,6 +54,7 @@ export function createRegrowth(entities: EntityStore, walkMap: WalkMap): Regrowt
         if (next === "grown") {
           entities.removeComponent(tree, "growth");
           entities.addComponent(tree, "tree", true);
+          onGrown(tree.position);
         }
       }
     },

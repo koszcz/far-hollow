@@ -15,6 +15,7 @@ import type { Sickness } from "./sickness";
 import type { BurnTime } from "./burn-time";
 import type { TrapCatch } from "./trap-catch";
 import type { TreeGrowth } from "./tree-growth";
+import type { GroundChange } from "./ground-change";
 import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, StructureKind, WorkStationKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./ground-point";
@@ -300,6 +301,11 @@ export interface Entity {
   /** When the next sticks fall from the trees. Only one entity, the valley's stick fall, has it. */
   stickFall?: StickFallState;
   /**
+   * The latest change of ground type around one tree spot: forest floor turning into clearing where a tree went for good,
+   * or clearing turning into forest floor round a new full tree. One entity holds each spot's change. See ground-changes.ts.
+   */
+  groundChange?: GroundChange;
+  /**
    * Marks a pile: things of one kind the player dropped from the backpack, lying on the ground. Its position is the middle of the pile.
    * `count` is how many it holds, always at least 1. A pile with nothing left is removed.
    */
@@ -576,6 +582,11 @@ export function pileEntities(store: EntityStore) {
 /** The valley's stick fall. There is only ever one. */
 export function stickFallEntities(store: EntityStore) {
   return store.with("stickFall");
+}
+
+/** The changes of ground type, one for each tree spot that has had one. */
+export function groundChangeEntities(store: EntityStore) {
+  return store.with("groundChange");
 }
 
 /** The valley's weather. There is only ever one. */

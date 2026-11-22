@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuses `terrain`, `grass`, `ferns`, `flowers`, and `pebbles`. Adds none.
 

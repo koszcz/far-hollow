@@ -6,14 +6,15 @@
 // - Of the grown patches, only those inside the camera's view and within EYE_DRAW_METRES of the camera are drawn.
 //   Plants shrink into the ground as they near that distance too.
 // - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
+// - Where the ground changes, the patches there grow again from the ground as it is now, so the undergrowth follows it.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
 import type { EntityStore, Vec3 } from "../sim/entities";
-import { createGroundMap, type GroundMap } from "../sim/ground-types";
 import { terrainHeightAt, type Valley } from "../sim/valley";
 import { campFootprints, isUnderCamp, sameFootprints, type CampFootprint } from "./camp-footprints";
 import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, type UndergrowthItem } from "./undergrowth-layout";
 import type { UndergrowthShape } from "./undergrowth-models";
+import type { GroundArea, GroundNow } from "./ground-now";
 
 /** Undergrowth is drawn out to this distance from where the camera looks, in metres. */
 export const UNDERGROWTH_DRAW_METRES = 80;
@@ -52,6 +53,8 @@ export interface UndergrowthMeshes {
    * Call it once the camera has moved for this frame.
    */
   cull(view: THREE.Frustum, eye: THREE.Vector3): void;
+  /** Grows the patches in these areas again from the ground as it is now, after the ground changed there. */
+  regrow(areas: readonly GroundArea[]): void;
   dispose(): void;
 }
 
@@ -63,10 +66,10 @@ export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNorm
   return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: shape.ownNormals !== true });
 }
 
-export function createUndergrowthMeshes(valley: Valley, shapes: readonly UndergrowthShape[], entities: EntityStore): UndergrowthMeshes {
+/** What grows comes from `groundNow`, so the undergrowth follows the ground as it changes. */
+export function createUndergrowthMeshes(valley: Valley, shapes: readonly UndergrowthShape[], entities: EntityStore, groundNow: GroundNow): UndergrowthMeshes {
   const group = new THREE.Group();
   group.name = "undergrowth";
-  const groundMap: GroundMap = createGroundMap(valley);
   const patchesPerSide = Math.ceil(valley.size / UNDERGROWTH_PATCH_METRES);
 
   const focusUniform = { value: new THREE.Vector2() };
@@ -149,7 +152,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   /** Grows one patch and places its plants. Null if no plant in it is drawn. */
   function growAndPlace(column: number, row: number): PlacedPatch | null {
     const patch: PlacedPatch = { box: new THREE.Box3(), matrices: batches.map(() => []) };
-    for (const plant of growUndergrowthPatch(valley.seed, groundMap, column, row)) placePlant(plant, patch);
+    for (const plant of growUndergrowthPatch(valley.seed, groundNow.map(), column, row)) placePlant(plant, patch);
     if (patch.box.isEmpty()) return null;
     const half = valley.size / 2;
     patch.box.min.x = Math.min(patch.box.min.x, column * UNDERGROWTH_PATCH_METRES - half - PLANT_REACH_METRES);
@@ -230,6 +233,24 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
     cull(view, eye) {
       lastView = { view, eye };
       drawPatches(visiblePatches(view, eye));
+    },
+    regrow(areas) {
+      if (drawnPatch === undefined || areas.length === 0) return;
+      const half = valley.size / 2;
+      let changed = false;
+      for (const key of [...grown.keys()]) {
+        const column = key % patchesPerSide;
+        const row = Math.floor(key / patchesPerSide);
+        const left = column * UNDERGROWTH_PATCH_METRES - half;
+        const top = row * UNDERGROWTH_PATCH_METRES - half;
+        const touched = areas.some(
+          (area) => area.maxX >= left && area.minX <= left + UNDERGROWTH_PATCH_METRES && area.maxZ >= top && area.minZ <= top + UNDERGROWTH_PATCH_METRES,
+        );
+        if (!touched) continue;
+        grown.delete(key);
+        changed = true;
+      }
+      if (changed) drawAround(drawnPatch % patchesPerSide, Math.floor(drawnPatch / patchesPerSide));
     },
     dispose() {
       for (const batch of batches) batch.mesh.dispose();

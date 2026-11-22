@@ -37,6 +37,7 @@ import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
 import { addTreeSeeThrough } from "./tree-see-through";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
+import { BLUEPRINT_COLOUR, BLUEPRINT_OPACITY, NOT_ALLOWED_COLOUR, seeThrough as seeThroughMaterial } from "./structure-look";
 
 /** The colour of each tree part in each tone. Trees are drawn in these, whatever colours the model file holds. */
 export const TREE_COLOURS: Readonly<Record<"trunk" | "crown", Readonly<Record<TreeTone, number>>>> = {
@@ -51,6 +52,11 @@ const TREE_TYPE_WEIGHTS: Readonly<Record<string, number>> = {
   tree_pineRoundA: 2,
 };
 const STUMP_TOP_COLOUR = 0xc9a46a;
+/**
+ * Each tree type's batches keep room for this many trees beyond the valley's own, for saplings the player plants.
+ * A planted tree also takes the place of a tree whose entity is gone, such as a dug-up sapling.
+ */
+const PLANTED_ROOM_PER_TYPE = 64;
 
 /** A stump never stands taller than this above the ground, before the tree's own size, so wide oaks leave low stumps. */
 const STUMP_MAX_HEIGHT_METRES = 0.6;
@@ -85,6 +91,11 @@ export interface ForestMeshes {
   pick(raycaster: THREE.Raycaster): { hit: ForestHit; distance: number } | undefined;
   /** The shapes that draw a tree, young tree, sapling, stump, log, or stick, placed in the world. Empty once it is gone. */
   outlineOf(hit: ForestHit): OutlinePart[];
+  /**
+   * Shows a see-through sapling where the player would plant one, in the type and size a tree at that spot has.
+   * It is red where planting is not allowed. Undefined hides it.
+   */
+  showPlantingSapling(planting: { readonly spot: Vec3; readonly allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -156,6 +167,7 @@ export function createForestMeshes(
   const treesOfMesh = new Map<THREE.Object3D, { batch: CulledBatch; trees: Tree[] }>();
   const treeBatches = treeShapes.map((shape, type) => {
     const ofType = treesOfType[type] ?? [];
+    const capacity = ofType.length + PLANTED_ROOM_PER_TYPE;
     const trunk = {
       geometry: shape.trunk,
       material: trunkMaterials[shape.trunkTone],
@@ -168,7 +180,7 @@ export function createForestMeshes(
     track(farShape.trunk);
     track(farShape.crown);
     const near = track(
-      createCulledBatch([trunk, crown], ofType.length, true, {
+      createCulledBatch([trunk, crown], capacity, true, {
         to: FAR_TREE_METRES,
       }),
     );
@@ -178,7 +190,7 @@ export function createForestMeshes(
           { geometry: farShape.trunk, material: trunk.material },
           { geometry: farShape.crown, material: crown.material },
         ],
-        ofType.length,
+        capacity,
         false,
         { from: FAR_TREE_METRES },
       ),
@@ -197,14 +209,14 @@ export function createForestMeshes(
       trunk: { geometry: growing.youngTree.trunk, material: trunk.material },
       crown: { geometry: growing.youngTree.crown, material: crown.material },
     };
-    const youngNear = track(createCulledBatch([young.trunk, young.crown], ofType.length, true, { to: FAR_TREE_METRES }));
+    const youngNear = track(createCulledBatch([young.trunk, young.crown], capacity, true, { to: FAR_TREE_METRES }));
     const youngFar = track(
       createCulledBatch(
         [
           { geometry: youngFarShape.trunk, material: trunk.material },
           { geometry: youngFarShape.crown, material: crown.material },
         ],
-        ofType.length,
+        capacity,
         false,
         { from: FAR_TREE_METRES },
       ),
@@ -216,7 +228,7 @@ export function createForestMeshes(
           { geometry: growing.sapling.trunk, material: trunk.material },
           { geometry: growing.sapling.crown, material: crown.material },
         ],
-        ofType.length,
+        capacity,
         false,
         { to: FAR_TREE_METRES },
       ),
@@ -236,7 +248,20 @@ export function createForestMeshes(
       group.add(...batch.meshes);
     }
     const sapling = { trunk: growing.sapling.trunk, crown: growing.sapling.crown };
-    return { near, batches, trunk, crown, youngNear, youngFar, young, saplings, sapling, stageBatches, growingBatches: [youngNear, youngFar, saplings] };
+    return {
+      near,
+      batches,
+      trunk,
+      crown,
+      youngNear,
+      youngFar,
+      young,
+      saplings,
+      sapling,
+      stageBatches,
+      growingBatches: [youngNear, youngFar, saplings],
+      capacity,
+    };
   });
   const allTreeBatches = treeBatches.flatMap(({ batches, growingBatches }) => [...batches, ...growingBatches]);
   const treePickTargets = treeBatches.flatMap(({ batches, youngNear, youngFar, saplings }) =>
@@ -253,8 +278,12 @@ export function createForestMeshes(
   );
   const stumpFits = treeShapes.map((shape) => stumpFit(shape.trunk, stumpShape));
   const stumpBatches: Record<TreeTone, THREE.InstancedMesh> = {
-    dark: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], Math.max(1, trees.length))),
-    light: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.light, cutMaterial], Math.max(1, trees.length))),
+    dark: track(
+      new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], Math.max(1, trees.length + PLANTED_ROOM_PER_TYPE * treeShapes.length)),
+    ),
+    light: track(
+      new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.light, cutMaterial], Math.max(1, trees.length + PLANTED_ROOM_PER_TYPE * treeShapes.length)),
+    ),
   };
   /** The stump drawn at each instance of each tone's batch, so a click on one finds its entity. */
   const stumpsDrawn: Record<TreeTone, Entity[]> = { dark: [], light: [] };
@@ -294,6 +323,52 @@ export function createForestMeshes(
       drawStage(tree, tree.growth.stage);
     }
   }
+  /**
+   * Gives a sapling the player planted a place in its type's batches. The type comes from its spot, as for the valley's own trees.
+   * It takes the place of a tree whose entity is gone, or else a free place. Without room, it is not drawn.
+   */
+  function placePlanted(tree: Tree): void {
+    const type = treeTypeFor(tree.position.x, tree.position.z, treeShapes);
+    const ofType = treesOfType[type];
+    const batch = treeBatches[type];
+    if (ofType === undefined || batch === undefined) return;
+    let index = ofType.findIndex((other) => entities.id(other) === undefined);
+    if (index === -1 && ofType.length < batch.capacity) index = ofType.length;
+    if (index === -1) return;
+    const old = ofType[index];
+    if (old !== undefined) {
+      instanceOf.delete(old);
+      typeOf.delete(old);
+    }
+    ofType[index] = tree;
+    instanceOf.set(tree, index);
+    typeOf.set(tree, type);
+  }
+  // The see-through sapling that shows where the player would plant one. It takes the sapling shape of the type at its spot.
+  const plantingAllowed = track(seeThroughMaterial(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY));
+  const plantingRefused = track(seeThroughMaterial(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY));
+  const plantingTrunk = new THREE.Mesh(undefined, plantingAllowed);
+  const plantingCrown = new THREE.Mesh(undefined, plantingAllowed);
+  const plantingSapling = new THREE.Group();
+  plantingSapling.add(plantingTrunk, plantingCrown);
+  plantingSapling.visible = false;
+  plantingSapling.matrixAutoUpdate = false;
+  group.add(plantingSapling);
+  function showPlantingSapling(planting: { readonly spot: Vec3; readonly allowed: boolean } | undefined): void {
+    const batch = planting === undefined ? undefined : treeBatches[treeTypeFor(planting.spot.x, planting.spot.z, treeShapes)];
+    plantingSapling.visible = planting !== undefined && batch !== undefined;
+    if (planting === undefined || batch === undefined) return;
+    plantingTrunk.geometry = batch.sapling.trunk;
+    plantingCrown.geometry = batch.sapling.crown;
+    const material = planting.allowed ? plantingAllowed : plantingRefused;
+    plantingTrunk.material = material;
+    plantingCrown.material = material;
+    treeMatrix(planting.spot, plantingSapling.matrix);
+    plantingSapling.matrixWorldNeedsUpdate = true;
+  }
+  growingQuery.onEntityAdded.subscribe((tree) => {
+    if (!instanceOf.has(tree)) placePlanted(tree);
+  });
   // A tree stops growing when it is full grown, or when a foundation goes over its stump.
   growingQuery.onEntityRemoved.subscribe((tree) => {
     drawnStages.delete(tree);
@@ -661,6 +736,7 @@ export function createForestMeshes(
       }
       return undefined;
     },
+    showPlantingSapling,
     outlineOf(hit) {
       group.updateMatrixWorld();
       const placed = (batch: THREE.InstancedMesh, index: number): THREE.Matrix4 => {

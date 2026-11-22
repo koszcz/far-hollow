@@ -16,9 +16,11 @@ export interface ActionMenuProps {
   above?: boolean;
   /**
    * Reads every action the thing offers now, the most likely first, or undefined once it offers none. The first tops the list.
-   * Actions that send no command are left out. The menu reads again after each logic step, so it stays current while it is open.
+   * Actions that send no command are left out, except planting a sapling. The menu reads again after each logic step, so it stays current while it is open.
    */
   readActions: () => readonly ThingAction[] | undefined;
+  /** Called when the player picks planting a sapling, which puts a see-through sapling under the mouse instead of sending a command. */
+  onStartPlanting: () => void;
   /** Called when the player picks an action, after its command is sent, presses anywhere outside the menu, or the thing offers no actions any more, so the menu can close. */
   onClose: () => void;
 }
@@ -27,7 +29,7 @@ export interface ActionMenuProps {
  * A list of actions beside the spot the player clicked. Each row is an icon with the action's name. Picking one sends its command.
  * The main action tops the list in bold. An action the player cannot do yet is greyed, says why under its name, and does nothing.
  */
-export function ActionMenu({ client, x, y, above = false, readActions, onClose }: ActionMenuProps) {
+export function ActionMenu({ client, x, y, above = false, readActions, onStartPlanting, onClose }: ActionMenuProps) {
   // Actions change as the game runs, such as "pick up" turning on once the player has put a log down.
   const [actions, setActions] = useState(readActions);
   useEffect(
@@ -51,7 +53,7 @@ export function ActionMenu({ client, x, y, above = false, readActions, onClose }
     };
   }, [onClose]);
 
-  const shown = (actions ?? []).filter(({ command }) => command !== undefined);
+  const shown = (actions ?? []).filter(({ command, startsPlanting }) => command !== undefined || startsPlanting === true);
   // Greying an action adds its reason under its name, which can change the list's size.
   const sizeKey = shown.map(({ label, enabled, reason }) => `${label}|${enabled ? "" : (reason ?? "")}`).join("\n");
 
@@ -76,7 +78,7 @@ export function ActionMenu({ client, x, y, above = false, readActions, onClose }
         {strings.actionMenu}
       </h3>
       <ul>
-        {shown.map(({ id, label, icon, enabled, reason, command, isMain }) => {
+        {shown.map(({ id, label, icon, enabled, reason, command, isMain, startsPlanting }) => {
           const name = enabled || reason === undefined ? label : strings.actions.withReason(label, reason);
           return (
             <li key={id}>
@@ -88,6 +90,7 @@ export function ActionMenu({ client, x, y, above = false, readActions, onClose }
                 onClick={(event) => {
                   // A Shift-click adds the action to the end of the action queue.
                   if (command !== undefined) client.send(event.shiftKey ? queued(command) : command);
+                  if (startsPlanting === true) onStartPlanting();
                   onClose();
                 }}
               >

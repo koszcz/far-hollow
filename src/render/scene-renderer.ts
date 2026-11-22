@@ -68,6 +68,8 @@ export interface SceneRenderer {
   setHovered(pick: ScenePick | undefined): void;
   /** Shows the blueprint under the mouse while the player places one. Undefined hides it. */
   showPlacingBlueprint(placing: PlacingBlueprint | undefined): void;
+  /** Shows the see-through sapling under the mouse while the player plants one, red where it is not allowed. Undefined hides it. */
+  showPlantingSapling(planting: { readonly spot: GroundPoint; readonly allowed: boolean } | undefined): void;
   /** Whether the sleep animation is playing. Game logic waits while it plays, so the player cannot act mid-sleep. */
   isPlayingSleep(): boolean;
   dispose(): void;
@@ -603,6 +605,14 @@ export function createSceneRenderer(
       const entityPick = pick !== undefined && "id" in pick && pick.kind !== "structure" ? pick : undefined;
       const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
+    },
+    showPlantingSapling(planting) {
+      forestMeshes.showPlantingSapling(
+        planting && {
+          spot: { x: planting.spot.x, y: terrainHeightAt(valley.terrain, planting.spot.x, planting.spot.z), z: planting.spot.z },
+          allowed: planting.allowed,
+        },
+      );
     },
     showPlacingBlueprint(placing) {
       structureMeshes.showPlacingBlueprint(placing);

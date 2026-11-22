@@ -52,6 +52,11 @@ export type Command =
    * and when the sapling does not fit in the backpack.
    */
   | { type: "digUpSapling"; saplingId: number }
+  /**
+   * Walk the player to a spot and plant a sapling from the backpack there. It takes a few seconds. It is refused when the backpack
+   * holds no sapling, off forest floor and clearing, near a tree, stump, or sapling, and near a structure or blueprint.
+   */
+  | ({ type: "plantSapling" } & GroundPoint)
   /** Walk the player to a log or debarked log on the ground and shoulder it. The player carries one at a time. */
   | { type: "pickUpLog"; logId: number }
   /**
@@ -546,6 +551,10 @@ export type Refusal =
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
  * - `noSaplingYet`: the stump has no sapling growing from it yet, so there is nothing to dig up.
  * - `tooBigToDigUp`: the tree is a young or full tree, too big to dig up.
+ * - `noSapling`: the backpack holds no sapling to plant.
+ * - `notPlantableGround`: a sapling grows only on forest floor or in a clearing, not on the river bank or in the river.
+ * - `tooCloseToTree`: a tree, stump, or sapling stands too close to plant one here.
+ * - `tooCloseToStructure`: a structure, blueprint, or foundation square is too close to plant one here.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
  * - `torchAlreadyLit`: the player already holds a lit torch, and holds only one at a time.
  * - `gone`: the thing the command acts on is no longer there, such as a stick already picked up.
@@ -575,6 +584,10 @@ export type PlainRefusal =
   | "tooYoungToChop"
   | "noSaplingYet"
   | "tooBigToDigUp"
+  | "noSapling"
+  | "notPlantableGround"
+  | "tooCloseToTree"
+  | "tooCloseToStructure"
   | "backpackFull"
   | "torchAlreadyLit"
   | "gone"
@@ -739,9 +752,9 @@ export type ThingView =
 export interface PlayerAction {
   /**
    * Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting,
-   * fishing, gathering stone, or digging up a sapling.
+   * fishing, gathering stone, digging up a sapling, or planting one.
    */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digUp";
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digUp" | "plant";
   /** How far along the work is, from 0 to 1. While fishing, how far through the wait for the next fish. */
   readonly progress: number;
 }

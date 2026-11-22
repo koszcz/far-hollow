@@ -39,6 +39,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { thing: "tree" }, name: actions.chop };
     case "digUpSapling":
       return { icon: { content: "sapling" }, name: actions.digUp };
+    case "plantSapling":
+      return { icon: { content: "sapling" }, name: actions.plant };
     case "pickUpLog":
       return { icon: logIcon(thing(command.logId)?.kind === "debarkedLog" ? "debarkedLog" : "log"), name: actions.pickUp };
     case "debarkLog":

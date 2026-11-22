@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { BuildMenuEntry } from "../sim/api";
-import { placingHint } from "./placing-hint";
+import { placingHint, plantingHint } from "./placing-hint";
 
 const MENU: readonly BuildMenuEntry[] = [
   { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
@@ -25,5 +25,15 @@ describe("the placing hint", () => {
       what: "Placing: Floor. Point at a finished foundation and click to place it. Hold Shift and drag to place one on each square.",
       keys: "Esc to stop",
     });
+  });
+});
+
+describe("the planting hint", () => {
+  it("says what to click, and names the cancel key", () => {
+    expect(plantingHint(null)).toEqual({ what: "Planting: Sapling. Click the ground to plant it.", keys: "Esc to cancel" });
+  });
+
+  it("says why the spot under the mouse is not allowed", () => {
+    expect(plantingHint({ kind: "tooCloseToTree" }).what).toBe("Cannot plant here: too close to a tree, stump, or sapling.");
   });
 });

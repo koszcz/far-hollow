@@ -1,5 +1,6 @@
-import { isPlacedInRows, type BuildMenuEntry, type StructureKind } from "../sim/api";
+import { isPlacedInRows, type BuildMenuEntry, type Refusal, type StructureKind } from "../sim/api";
 import { strings } from "../strings";
+import { refusalText } from "./refusal-text";
 
 /** The hint shown while placing a structure: what to click, and the keys that work. */
 export interface PlacingHint {
@@ -20,4 +21,10 @@ export function placingHint(entries: readonly BuildMenuEntry[], placing: Structu
     what: strings.buildMenu.placing[placement](strings.buildMenu.structures[placing]),
     keys: join(entry?.fixedFacing === true ? [end] : [rotate, end]),
   };
+}
+
+/** The hint shown while planting a sapling: what to click, or why the spot under the mouse is not allowed, and the cancel key. */
+export function plantingHint(refusal: Refusal | null): PlacingHint {
+  const { what, refused } = strings.plantingSapling;
+  return { what: refusal === null ? what : refused(refusalText(refusal)), keys: strings.hudLabels.placingKeys.cancel };
 }

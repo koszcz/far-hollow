@@ -91,6 +91,12 @@ export const strings = {
   fishing: "Fishing",
   gatheringStone: "Gathering stone",
   diggingUp: "Digging up",
+  planting: "Planting",
+  /** The hint while a see-through sapling follows the mouse. */
+  plantingSapling: {
+    what: "Planting: Sapling. Click the ground to plant it.",
+    refused: (reason: string) => `Cannot plant here: ${reason}.`,
+  },
   craftMenu: {
     open: "Craft",
     title: "Craft",
@@ -449,6 +455,10 @@ export const strings = {
     tooYoungToChop: "the tree is too young to chop",
     noSaplingYet: "no sapling grows on the stump yet",
     tooBigToDigUp: "the tree is too big to dig up",
+    noSapling: "no sapling in the backpack",
+    notPlantableGround: "a sapling grows only on forest floor or in a clearing",
+    tooCloseToTree: "too close to a tree, stump, or sapling",
+    tooCloseToStructure: "too close to something built here",
     backpackFull: "the backpack is full",
     torchAlreadyLit: "you already hold a lit torch",
     gone: "it is no longer there",

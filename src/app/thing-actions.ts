@@ -71,10 +71,16 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
 
 /**
  * The actions the action menu lists for a target, in list order: the main action first, at the top, then the rest.
- * Actions that send no command, such as a work station's "open menu", are left out. Empty when the target offers none.
+ * Actions that send no command, such as a work station's "open menu", are left out. Planting a sapling stays, since picking it
+ * starts placing the sapling. Empty when the target offers none.
  */
 export function menuActions(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
-  return actionsFor(target, reader).filter(({ command }) => command !== undefined);
+  return actionsFor(target, reader).filter(isListed);
+}
+
+/** Whether the action menu lists an action: it sends a command, or it starts planting a sapling. */
+export function isListed({ command, startsPlanting }: ThingAction): boolean {
+  return command !== undefined || startsPlanting === true;
 }
 
 /** Letting go of the dragged sled, as the only and main action. */
@@ -379,10 +385,21 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
   }
 }
 
-/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. */
+/** Planting a sapling: it puts a see-through sapling under the mouse, so it sends no command until the player clicks the ground. */
+const PLANT_SAPLING: Offer = {
+  id: "plant",
+  label: strings.actions.plant,
+  icon: { content: "sapling" },
+  enabled: true,
+  command: undefined,
+  startsPlanting: true,
+};
+
+/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling is planted. */
 function backpackContentActions(content: BackpackContent, { view, offer }: Context): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
+  const plant = content === "sapling" ? [PLANT_SAPLING] : [];
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
   const intoChest =
     chest === undefined
@@ -399,9 +416,10 @@ function backpackContentActions(content: BackpackContent, { view, offer }: Conte
   const offers = [
     ...intoChest,
     ...(use === undefined ? [] : [offer("use", use.label, icon, use.command)]),
+    ...plant,
     offer("drop", strings.actions.drop, icon, { type: "dropFromBackpack", content }),
   ];
-  return withMain(offers, chest !== undefined ? "putInChest" : use === undefined ? undefined : "use");
+  return withMain(offers, chest !== undefined ? "putInChest" : use !== undefined ? "use" : plant.length > 0 ? "plant" : undefined);
 }
 
 /** Drop it, then split it into firewood if it is a log. */

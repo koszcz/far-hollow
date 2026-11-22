@@ -3,6 +3,7 @@ import { attachCameraInput } from "../render/camera-input";
 import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/scene-renderer";
 import { loadModelShapes } from "../render/model-shapes";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
+import type { Refusal } from "../sim/api";
 import { createGame, STEP_MS, type Game } from "../sim/game";
 import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";
@@ -14,7 +15,7 @@ import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { pressCraftKey } from "./craft-menu";
-import { pressHotbarKey } from "./hotbar";
+import { hotbarKeyStartsPlanting, pressHotbarKey } from "./hotbar";
 import { downloadFile, saveExportFile, unreadableSlotExportFile } from "./save-export";
 import { importIntoSlot } from "./save-import";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
@@ -194,6 +195,14 @@ const walkInput = attachWalkInput({
   onPlacingBlueprintChange: (placing) => {
     sceneRenderer.showPlacingBlueprint(placing);
   },
+  onPlantingChange: (planting, sapling) => {
+    sceneRenderer.showPlantingSapling(sapling && { spot: sapling.spot, allowed: sapling.refusal === null });
+    // The HUD hint changes only when the reason does, so the HUD is not drawn again on every mouse move.
+    const shown = planting ? (sapling?.refusal ?? null) : undefined;
+    if (JSON.stringify(shown) === JSON.stringify(uiState.planting)) return;
+    uiState.planting = shown;
+    renderUi();
+  },
   onMenuChange: (menu) => {
     setMenu(menu);
     menuCameraView = menu === undefined ? null : cameraViewKey();
@@ -254,8 +263,9 @@ document.addEventListener("click", (event) => {
 });
 
 /** Input state the UI shows: the build menu and placing, the craft menu, and the action menu, if one is open. */
-const uiState: { buildMode: BuildMode; craftMenuOpen: boolean; menu: MenuRequest | undefined } = {
+const uiState: { buildMode: BuildMode; planting: Refusal | null | undefined; craftMenuOpen: boolean; menu: MenuRequest | undefined } = {
   buildMode: NOT_BUILDING,
+  planting: undefined,
   craftMenuOpen: false,
   menu: undefined,
 };
@@ -271,6 +281,7 @@ window.addEventListener("keydown", (event) => {
   // Let typing keep working in form fields.
   const target = event.target instanceof HTMLElement ? event.target : null;
   const typing = target?.closest("input, textarea, select") != null;
+  if (hotbarKeyStartsPlanting(event.code, game.client, { typing })) walkInput.startPlanting();
   const hotbarCommand = pressHotbarKey(event.code, game.client, { typing, shift: event.shiftKey });
   if (hotbarCommand !== undefined) game.client.send(hotbarCommand);
   if (event.code !== "Escape" && typing) return;
@@ -284,12 +295,24 @@ function renderUi(): void {
   render(
     <>
       {menu !== undefined && (
-        <ActionMenu key={menuCount} client={game.client} x={menu.x} y={menu.y} above={menu.above ?? false} readActions={readMenuActions} onClose={closeMenu} />
+        <ActionMenu
+          key={menuCount}
+          client={game.client}
+          x={menu.x}
+          y={menu.y}
+          above={menu.above ?? false}
+          readActions={readMenuActions}
+          onStartPlanting={() => {
+            walkInput.startPlanting();
+          }}
+          onClose={closeMenu}
+        />
       )}
       <Hud
         client={game.client}
         buildMenuOpen={buildMode.menuOpen}
         placing={buildMode.placing?.structure ?? null}
+        planting={uiState.planting}
         onToggleBuildMenu={() => {
           walkInput.toggleBuildMenu();
         }}

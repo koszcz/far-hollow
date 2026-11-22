@@ -67,7 +67,7 @@ export const RIVER_BANK_WIDTH_METRES = 8;
 /** The valley holds this many trees, packed into groves. Gives trees about 4 to 5 m apart inside a grove. */
 const TREE_COUNT = 2600;
 /** Trees stand at least this far from each other. */
-const TREE_MIN_SPACING_METRES = 3;
+export const TREE_MIN_SPACING_METRES = 3;
 /** Groves and clearings change over about this distance, in metres. */
 const GROVE_SPACING_METRES = 45;
 /**

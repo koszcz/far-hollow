@@ -65,4 +65,9 @@ export interface ThingAction {
   readonly isMain: boolean;
   /** What to send. The sim walks the player there first when needed. Undefined only for UI-only actions such as "open menu" on a work station. */
   readonly command: Command | undefined;
+  /**
+   * True for planting a sapling from the backpack. It sends no command itself. It puts a see-through sapling under the mouse instead,
+   * and a click on the ground sends the command that plants it there.
+   */
+  readonly startsPlanting?: true;
 }

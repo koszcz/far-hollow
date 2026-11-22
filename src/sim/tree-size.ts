@@ -11,6 +11,12 @@ export const FEWEST_LOGS_PER_TREE = 3;
 /** The most logs any tree gives. */
 export const MOST_LOGS_PER_TREE = FEWEST_LOGS_PER_TREE + LOG_COUNT_SIZE_LIMITS.length;
 
+/**
+ * The walk map blocks every 1 m cell whose centre lies within this distance of a tree's centre. A larger radius closes diagonal gaps between trees about 3 m apart, which look wide enough on screen.
+ * The cost is that a path can, in rare cases, graze the edge of the widest trunk (about 0.4 m across).
+ */
+export const TREE_WALK_BLOCK_RADIUS_METRES = 0.9;
+
 /** How long the player chops at a tree of size 1 before it falls, in seconds. */
 export const CHOP_SECONDS = 4;
 

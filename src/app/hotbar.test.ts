@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent, GameView } from "../sim/api";
 import { createGame } from "../sim/game";
-import { mainHotbarCommand, pressHotbarKey } from "./hotbar";
-import type { ActionReader } from "./thing-actions";
+import { hotbarKeyStartsPlanting, mainHotbarCommand, pressHotbarKey } from "./hotbar";
+import { menuActions, type ActionReader } from "./thing-actions";
 
 describe("a hotbar cell's main action", () => {
   it("uses the backpack content", () => {
@@ -38,6 +38,24 @@ describe("a hotbar cell's main action", () => {
 
   it("lets go of the sled the player drags", () => {
     expect(mainHotbarCommand({ kind: "sled", sledId: 9 }, readerWith({ draggingSledId: 9 }))).toEqual({ type: "letGoOfSled" });
+  });
+});
+
+describe("a sapling's hotbar cell", () => {
+  it("offers planting it as the main action, which sends no command but starts placing a see-through sapling, then dropping it", () => {
+    const actions = menuActions({ kind: "backpackContent", content: "sapling" }, readerWith({ backpack: { sapling: 2 } }));
+
+    expect(actions.map(({ id }) => id)).toEqual(["plant", "drop"]);
+    expect(actions[0]).toMatchObject({ isMain: true, enabled: true, label: "Plant", command: undefined, startsPlanting: true });
+  });
+
+  it("starts planting from its number key", () => {
+    const reader = readerWith({ backpack: { sapling: 2, berries: 1 } });
+
+    expect(hotbarKeyStartsPlanting("Digit1", reader, NOT_TYPING)).toBe(true);
+    expect(pressHotbarKey("Digit1", reader, NOT_TYPING)).toBeUndefined();
+    expect(hotbarKeyStartsPlanting("Digit2", reader, NOT_TYPING)).toBe(false);
+    expect(hotbarKeyStartsPlanting("Digit1", reader, { typing: true })).toBe(false);
   });
 });
 

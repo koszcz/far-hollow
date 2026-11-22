@@ -1,7 +1,7 @@
 // What a number key sends. A click on a hotbar cell opens the action menu instead. The cells and their order come from src/ui/hotbar-cells.ts.
 import { queued, type Command } from "../sim/api";
 import { hotbarCells, type HotbarTarget } from "../ui/hotbar-cells";
-import { actionsFor, mainAction, type ActionReader } from "./thing-actions";
+import { actionsFor, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
 
 /**
  * The command a hotbar cell's main action sends, such as eating berries or dropping the log on the shoulder.
@@ -25,10 +25,19 @@ export function pressHotbarKey(
   reader: ActionReader,
   { typing, shift = false }: { readonly typing: boolean; readonly shift?: boolean },
 ): Command | undefined {
-  if (typing) return undefined;
+  const command = typing ? undefined : numberKeyAction(code, reader)?.command;
+  return command === undefined || !shift ? command : queued(command);
+}
+
+/** Whether a key press starts planting a sapling: 1 to 9 on the cell of the saplings in the backpack, while the player is not typing. */
+export function hotbarKeyStartsPlanting(code: string, reader: ActionReader, { typing }: { readonly typing: boolean }): boolean {
+  return !typing && numberKeyAction(code, reader)?.startsPlanting === true;
+}
+
+/** The main action of the backpack cell a number key names, if the key is one and the cell has a main action. */
+function numberKeyAction(code: string, reader: ActionReader): ThingAction | undefined {
   const number = NUMBER_KEY.exec(code)?.[1];
   if (number === undefined) return undefined;
   const cell = hotbarCells(reader.getView()).find(({ target, key }) => target.kind === "backpackContent" && key === number);
-  const command = cell === undefined ? undefined : mainHotbarCommand(cell.target, reader);
-  return command === undefined || !shift ? command : queued(command);
+  return cell === undefined ? undefined : mainAction(actionsFor(cell.target, reader));
 }

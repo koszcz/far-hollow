@@ -1,6 +1,7 @@
 import type { CameraRig, CameraView } from "../render/camera-rig";
 import { queued, type GameClient, type PlacingBlueprint, type ScenePick, type StructureKind, type ThingInReach } from "../sim/api";
 import { modeAfterPlacing, NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, startSweep, type BuildMode, type Sweep } from "./build-mode";
+import { plantCommandFor, pressPlantKey, saplingUnderMouse, type SaplingUnderMouse } from "./plant-mode";
 import { actionsFor, mainAction, menuActions, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";
 
 /**
@@ -103,6 +104,11 @@ export interface WalkInputOptions {
   readonly onBuildModeChange?: (mode: BuildMode) => void;
   /** Called with the blueprint that should follow the mouse while placing, or undefined to hide it. */
   readonly onPlacingBlueprintChange?: (placing: PlacingBlueprint | undefined) => void;
+  /**
+   * Called when planting a sapling starts, ends, or the see-through sapling moves. `planting` is false while not planting.
+   * `sapling` is the see-through sapling under the mouse, or undefined while the mouse is not over the ground.
+   */
+  readonly onPlantingChange?: (planting: boolean, sapling: SaplingUnderMouse | undefined) => void;
   /** Called with the menu a click on a thing opens, or undefined when it should close. */
   readonly onMenuChange?: (menu: MenuRequest | undefined) => void;
 }
@@ -112,6 +118,8 @@ export interface WalkInput {
   toggleBuildMenu(): void;
   /** Puts a structure's blueprint under the mouse. A click on the ground places it. R turns it. Escape cancels. */
   pickBuildEntry(structure: StructureKind): void;
+  /** Puts a see-through sapling under the mouse. A click on the ground where planting is allowed plants it there. Escape cancels. */
+  startPlanting(): void;
   /** Whether a Shift-drag is placing floors now. The camera does not pan while it does. */
   isSweeping(): boolean;
   /** Removes the listeners. */
@@ -127,6 +135,8 @@ export interface WalkInput {
  * R turns it, a click on the ground places it, and Escape cancels. Placing a floor keeps build mode open on the floor.
  * While placing a floor, Shift and a left-drag place a floor blueprint on each foundation square the pointer crosses.
  * Any other left-drag pans the camera instead, so it never counts as a click. A right-drag turns the camera. A right-click does nothing.
+ * While planting a sapling, a see-through sapling follows the mouse, red where planting is not allowed. A click on the ground where it is allowed
+ * plants it there, and Escape cancels.
  * Space snaps the camera back to the player.
  * E does the main action on the thing nearest the player within reach.
  */
@@ -138,10 +148,13 @@ export function attachWalkInput({
   onHoverChange,
   onBuildModeChange,
   onPlacingBlueprintChange,
+  onPlantingChange,
   onMenuChange,
 }: WalkInputOptions): WalkInput {
   let press: { x: number; y: number } | null = null;
   let mode: BuildMode = NOT_BUILDING;
+  /** Whether a see-through sapling follows the mouse, for the player to plant. */
+  let planting = false;
   /** The Shift-drag placing floors now, if one is. */
   let sweep: Sweep | undefined;
   /** Where the pointer last was over the canvas, or null if it has left. */
@@ -162,11 +175,21 @@ export function attachWalkInput({
     const seen = hover === null ? undefined : pickAt(hover.x, hover.y);
     // The cursor and outline show what is under a finished structure.
     const pick = seen?.kind === "structure" ? seen.under : seen;
-    const placing = mode.placing !== null;
+    const placing = mode.placing !== null || planting;
     const blueprint = placingBlueprintFor(pick);
-    canvas.style.cursor = blueprint?.allowed === false ? "not-allowed" : cursorFor(pick, placing);
+    const sapling = planting ? saplingUnderMouse(seen, client) : undefined;
+    const refused = blueprint?.allowed === false || (sapling !== undefined && sapling.refusal !== null);
+    canvas.style.cursor = refused ? "not-allowed" : cursorFor(pick, placing);
     onHoverChange?.(outlineFor(pick, placing));
     onPlacingBlueprintChange?.(blueprint);
+    if (planting) onPlantingChange?.(true, sapling);
+  }
+
+  function setPlanting(value: boolean): void {
+    if (value === planting) return;
+    planting = value;
+    queueCursorUpdate();
+    onPlantingChange?.(value, undefined);
   }
 
   /** The blueprint to show under the mouse while placing, snapped to the building grid. */
@@ -216,6 +239,7 @@ export function attachWalkInput({
   }
 
   function setMode(value: BuildMode): void {
+    if (value.menuOpen || value.placing !== null) setPlanting(false);
     mode = value;
     queueCursorUpdate();
     onBuildModeChange?.(value);
@@ -252,6 +276,14 @@ export function attachWalkInput({
     press = null;
     if (travelled > CLICK_MAX_TRAVEL_PIXELS) return;
     const seen = pickAt(event.clientX, event.clientY);
+    if (planting) {
+      // A click where planting is not allowed does nothing, so the player can try another spot.
+      const plant = plantCommandFor(saplingUnderMouse(seen, client));
+      if (plant === undefined) return;
+      client.send(plant);
+      setPlanting(false);
+      return;
+    }
     if (seen === undefined) return;
     if (mode.placing !== null) {
       // A blueprint is placed on what is under a finished structure, such as the ground under a foundation.
@@ -282,12 +314,17 @@ export function attachWalkInput({
     // Let typing keep working in form fields, and Space keep pressing buttons.
     const target = event.target instanceof HTMLElement ? event.target : null;
     const typing = target?.closest("input, textarea, select") != null;
+    if (planting && (event.code === "Escape" || !typing) && pressPlantKey(event.code)) {
+      setPlanting(false);
+      // B goes on to open the build menu.
+      if (event.code === "Escape") return;
+    }
     const next = event.code === "Escape" || !typing ? pressBuildKey(mode, event.code) : undefined;
     if (next !== undefined) {
       setMode(next);
       return;
     }
-    if (event.code === "KeyE" && !typing && mode.placing === null) {
+    if (event.code === "KeyE" && !typing && mode.placing === null && !planting) {
       const use = useKeyFor(client);
       // Shift+E adds the main action to the end of the action queue.
       if (use?.action.command !== undefined) client.send(event.shiftKey ? queued(use.action.command) : use.action.command);
@@ -317,6 +354,10 @@ export function attachWalkInput({
     },
     pickBuildEntry(structure) {
       setMode(pickBuildEntry(structure));
+    },
+    startPlanting() {
+      setMode(NOT_BUILDING);
+      setPlanting(true);
     },
     isSweeping() {
       return sweep !== undefined;

@@ -253,6 +253,8 @@ export interface Entity {
   stoneTask?: { x: number; z: number; secondsDone: number };
   /** The player is digging up the sapling with this entity id, and has worked at it this long. */
   digUpTask?: { saplingId: number; secondsDone: number };
+  /** The player is planting a sapling at this spot, and has worked at it this long. */
+  plantTask?: { x: number; z: number; secondsDone: number };
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
   /**

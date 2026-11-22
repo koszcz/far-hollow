@@ -1,4 +1,5 @@
 import { createRegrowth } from "./regrowth";
+import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 import { createActionQueue } from "./action-queue";
 import type {
   ActionCommand,
@@ -30,6 +31,7 @@ import { createCarrying, carryingRules } from "./carrying";
 import { createCampfires, isWarmedByCampfire, campfireRules } from "./campfires";
 import { createChopping, choppingRules } from "./chopping";
 import { createDiggingUp, diggingUpRules } from "./digging-up";
+import { createPlanting, plantingRules } from "./planting";
 import { createDebarking, debarkingRules } from "./debarking";
 import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import {
@@ -91,11 +93,7 @@ const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
 export const STEPS_PER_SECOND = 30;
 export const STEP_MS = 1000 / STEPS_PER_SECOND;
 
-/**
- * The walk map blocks every 1 m cell whose centre lies within this distance of a tree's centre. A larger radius closes diagonal gaps between trees about 3 m apart, which look wide enough on screen.
- * The cost is that a path can, in rare cases, graze the edge of the widest trunk (about 0.4 m across).
- */
-export const TREE_WALK_BLOCK_RADIUS_METRES = 0.9;
+export { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 /** Skipped time runs in slices this many game minutes long. */
 const PASS_TIME_SLICE_MINUTES = 1;
 /** A new game starts on the morning of day 1. */
@@ -182,12 +180,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const diggingUp = createDiggingUp(entities);
+  const planting = createPlanting(entities, walking.walkMap, valley);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const cooking = createCooking(entities, campfires);
   const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
-  const regrowth = createRegrowth(entities);
+  const regrowth = createRegrowth(entities, walking.walkMap);
   const approach = createApproach(entities, walking, {
     reach: (command) => ruleOf(command).approach?.reach(command),
     refusal: refusalOf,
@@ -208,6 +207,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     fishing,
     stoneGathering,
     diggingUp,
+    planting,
     chests,
     // Last, so a reach started by a step above moves on in that same step.
     handReach,
@@ -404,6 +404,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...walkingRules(walking),
     ...choppingRules(chopping),
     ...diggingUpRules(diggingUp),
+    ...plantingRules(planting),
     ...carryingRules(carrying, ruleGame),
     ...debarkingRules(debarking, ruleGame),
     ...craftingRules(crafting, ruleGame),

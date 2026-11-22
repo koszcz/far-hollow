@@ -804,7 +804,8 @@ function isClearOfTreesAndStructures(
     max: { x: rect.max.x + TREE_CLEARANCE_METRES, z: rect.max.z + TREE_CLEARANCE_METRES },
   };
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
-  for (const tree of growingTreeEntities(entities)) if (isYoungTree(tree.growth) && isInRect(nearTrees, tree.position)) return false;
+  // A planted sapling is in the way too, since it grows into a tree where it stands. A sapling on a stump goes with its stump.
+  for (const tree of growingTreeEntities(entities)) if ((isYoungTree(tree.growth) || tree.stump !== true) && isInRect(nearTrees, tree.position)) return false;
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
     if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;

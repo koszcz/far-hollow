@@ -6,6 +6,7 @@ import { QUEUE_THING_DRAWINGS, type QueueThing } from "./action-queue-icons";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
+import { LIT_TORCH_DRAWING, TORCH_DRAWING } from "./torch-icons";
 import { Hud } from "./hud";
 
 const BASE_VIEW: GameView = {
@@ -269,8 +270,8 @@ const TORCH_RECIPE: GameView["craftMenu"][number] = {
 };
 
 /**
- * The draft "torch-icons" asset: the torch recipe in the craft menu, unlit torches in the backpack, and the lit torch in the
- * hand with its gauge full and nearly burnt out. The lit torch cell shows its label, as when the player points at it.
+ * The approved "torch-icons" asset: the torch recipe in the craft menu, both icons drawn large, and the lit torch in the
+ * hand with its gauge full and nearly burnt out. Unlit torches show in the backpack in the last two views. The lit torch cell shows its label, as when the player points at it.
  */
 const TORCH_ICON_STATES: readonly ShowcaseState[] = [
   {
@@ -279,7 +280,8 @@ const TORCH_ICON_STATES: readonly ShowcaseState[] = [
     placing: null,
     craftMenuOpen: true,
   },
-  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 3 } }, buildMenuOpen: false, placing: null },
+  // TorchIconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
   {
     view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, torch: 2 }, litTorch: { minutesLeft: 178 } },
     buildMenuOpen: false,
@@ -504,6 +506,42 @@ function IconSheet({ contents }: { contents: readonly BackpackContent[] }) {
   );
 }
 
+/** The second view of "torch-icons": the unlit and lit torch drawn large and at hotbar size, so the owner can judge the drawings. */
+function TorchIconSheet() {
+  const drawings = [
+    ["torch", TORCH_DRAWING],
+    ["lit torch", LIT_TORCH_DRAWING],
+  ] as const;
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
+      {drawings.map(([name, drawing]) => (
+        <div
+          key={name}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+            padding: "6px",
+            background: "#3d2b1e",
+            borderRadius: "6px",
+            color: "#cdb898",
+            fontSize: "11px",
+          }}
+        >
+          <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
+            <ShadedIcon drawing={drawing} className="backpack-icon" />
+          </span>
+          <span style={{ width: "32px", height: "32px", display: "grid" }} class="showcase-big-icon">
+            <ShadedIcon drawing={drawing} className="backpack-icon" />
+          </span>
+          {name}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** The icons each icon sheet draws large. */
 const ICON_SHEETS = {
   "crafting-icons": { states: CRAFTING_ICON_STATES, contents: ["sawBlade", "saw", "plank"] },
@@ -575,6 +613,10 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         render(<BuildIconSheet />, quarter);
         return;
       }
+    }
+    if (asset === "torch-icons" && index === 1) {
+      render(<TorchIconSheet />, quarter);
+      return;
     }
     if (asset === "action-queue-icons" && index === 0) {
       render(<QueueIconSheet />, quarter);

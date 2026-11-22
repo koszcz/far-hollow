@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
+import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
 import { type Entity } from "../../sim/entities";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../../sim/structures";
 import { type PotLook, type PotMesh } from "../pot-shape";
@@ -369,6 +370,35 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(-0.95, 0.15, { pile: { content: "knife", count: 1 } });
       place(0, 0, { pile: { content: "clay", count: 4 } });
       place(1.3, 0, { pile: { content: "clay", count: 12 } });
+      movePlayer(0, -1.5, 0);
+    },
+  },
+  // The draft "jug": an unfired jug and an empty jug beside a knife for size, piles of 3 of each, and jugs on campfires.
+  // The middle campfire holds a half-fired jug beside the pot and fish. The right one holds a fired jug on a fire that is out.
+  // src/render/showcases/building.ts shows a jug on a fireplace, in the fireplace's cooking shot.
+  // src/ui/hud-showcase.tsx draws the HUD over the last view only, with the campfire panel showing how far the jug has fired.
+  jug: {
+    radius: 2.2,
+    focus: { x: 0, y: 0.2, z: 0 },
+    shots: [
+      { label: "an unfired jug and an empty jug beside a knife", yaw: 20, pitch: 25, radius: 0.8, focus: { x: -1.6, y: 0.1, z: 1.5 } },
+      { label: "piles of 3 unfired jugs and 3 empty jugs", yaw: -20, pitch: 30, radius: 1.4, focus: { x: 0.2, y: 0.1, z: 1.5 } },
+      { label: "a half-fired jug beside the pot and fish, and a fired jug", yaw: 15, pitch: 22, radius: 2.4, focus: { x: 1.1, y: 0.3, z: 0 } },
+      { label: "HUD: beside a campfire, firing a jug", yaw: 15, pitch: 30, radius: 1.4, focus: { x: 0, y: 0.3, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-1.8, 1.5, { pile: { content: "unfiredJug", count: 1 } });
+      place(-1.4, 1.5, { pile: { content: "jug", count: 1 } });
+      place(-1.6, 1.75, { pile: { content: "knife", count: 1 } });
+      place(-0.2, 1.5, { pile: { content: "unfiredJug", count: 3 } });
+      place(0.6, 1.5, { pile: { content: "jug", count: 3 } });
+      place(0, 0, {
+        campfire: { lit: true, fuelMinutes: CAMPFIRE_FUEL_LIMIT_MINUTES },
+        potOnFire: { water: "river", minutesBoiling: 0 },
+        fishOnFire: [{ minutesCooked: 0 }, { minutesCooked: COOK_MINUTES / 2 }, { minutesCooked: COOK_MINUTES }],
+        jugOnFire: { minutesFired: FIRE_JUG_MINUTES / 2 },
+      });
+      place(2.2, 0, { campfire: { lit: false, fuelMinutes: 0 }, jugOnFire: { minutesFired: FIRE_JUG_MINUTES } });
       movePlayer(0, -1.5, 0);
     },
   },

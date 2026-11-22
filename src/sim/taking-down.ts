@@ -54,7 +54,7 @@ type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
 /**
  * Why the player could not take a structure down.
- * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a piece of furniture or woodpile that still holds something, or a campfire with a pot or fish on it.
+ * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a piece of furniture or woodpile that still holds something, or a campfire with a pot, fish, or jug on it.
  */
 export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
 
@@ -262,6 +262,7 @@ function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind
   if (holdsUpAnother(entities, structure, kind)) return { kind: "holdsUpPiece" };
   if (structure.potOnFire !== undefined) return { kind: "potOnFire" };
   if (structure.fishOnFire !== undefined) return { kind: "fishOnFire" };
+  if (structure.jugOnFire !== undefined) return { kind: "jugOnFire" };
   // A fireplace keeps its fire, so it comes down only once the fire is out and its fuel is gone. A campfire just goes out.
   if (structure.fireplace !== undefined && !isColdAndEmpty(structure.fireplace)) return { kind: "fireNotOut" };
   return holdsSomething(structure) ? { kind: "emptyFirst" } : undefined;
@@ -278,7 +279,7 @@ function noticeOf(refusal: Refusal): TakeDownRefusal {
  * A loaded sled can come down: its logs are laid on the ground beside it first.
  */
 export function holdsSomething(structure: Entity): boolean {
-  if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined) return true;
+  if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined || structure.jugOnFire !== undefined) return true;
   return !holdsNone(structure.storage?.contents ?? {}) || !holdsNone(structure.woodpile ?? {});
 }
 

@@ -10,6 +10,7 @@ import { createDoorMeshes } from "./door-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
 import { createFireplaceMeshes } from "./fireplace-meshes";
 import { createFishOnFireMeshes } from "./fish-on-fire-meshes";
+import { createJugOnFireMeshes } from "./jug-on-fire-meshes";
 import { createFloorMeshes } from "./floor-meshes";
 import { createFoundationMeshes } from "./foundation-meshes";
 import type { OutlinePart } from "./hover-outline";
@@ -82,9 +83,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const sleds = createSledMeshes(entities, logShape);
   // The fish on each campfire are an asset of their own, so they draw apart from the campfire.
   const fishOnFire = createFishOnFireMeshes(entities, groundAt);
+  // So is the jug on each fire, part of the draft "jug" asset.
+  const jugOnFire = createJugOnFireMeshes(entities, groundAt);
   const all = [
     campfires,
     fishOnFire,
+    jugOnFire,
     leanTos,
     foundations,
     floors,
@@ -209,6 +213,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     update({ nowSeconds, camera, player, ropeHold }) {
       campfires.update(nowSeconds);
       fishOnFire.update();
+      jugOnFire.update();
       leanTos.update();
       foundations.update();
       floors.update();

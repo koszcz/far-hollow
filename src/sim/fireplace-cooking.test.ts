@@ -5,6 +5,7 @@ import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { COOK_MINUTES } from "./fish-on-fire";
+import { FIRE_JUG_MINUTES } from "./jug-on-fire";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { BOIL_MINUTES } from "./pot-state";
 import { FIREPLACE_COOKING_SAVE_VERSION, FIREPLACE_FIRES_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
@@ -39,6 +40,28 @@ describe("cooking fish on a fireplace", () => {
 
     expect(fireplace.fishOnFire).toEqual([{ minutesCooked: 3 }]);
     expect(game.client.refusal({ type: "cookFish", campfireId })).toEqual({ kind: "lightFirst" });
+  });
+});
+
+describe("firing a jug on a fireplace", () => {
+  it("fires an unfired jug in 20 game minutes, keeps its progress while the fire is out, and takes it off as a jug", () => {
+    const { game, fireplace, campfireId } = gameWithLitFireplace();
+    give(game, "unfiredJug", 1);
+
+    send(game, { type: "fireJug", campfireId });
+    skipMinutes(game, FIRE_JUG_MINUTES / 2);
+    fireplace.fireplace = { lit: false, fuelMinutes: 0 };
+    const progressWhenOut = nearbyOf(game.client.getView(), "campfire")?.jug?.fireProgress ?? 0;
+    skipMinutes(game, 60);
+    expect(nearbyOf(game.client.getView(), "campfire")?.jug).toEqual({ fired: false, fireProgress: progressWhenOut });
+
+    fireplace.fireplace = { lit: true, fuelMinutes: 120 };
+    skipMinutes(game, FIRE_JUG_MINUTES / 2 + 0.5);
+    expect(nearbyOf(game.client.getView(), "campfire")?.jug).toEqual({ fired: true, fireProgress: 1 });
+    resume(game);
+    send(game, { type: "takeJugOff", campfireId });
+    expect(game.client.getView().backpack.jug).toBe(1);
+    expect(fireplace.jugOnFire).toBeUndefined();
   });
 });
 

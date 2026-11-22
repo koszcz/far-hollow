@@ -5,6 +5,7 @@ import { snapToGridSquare } from "./build-grid";
 import { heldFireOf, heldFires, playerEntities, type EntityStore, type HeldFire } from "./entities";
 import { burnt, fuelFits, fuelShare, FUEL_LIMIT_MINUTES, withFuel, type Fire } from "./fire";
 import { cookProgress, isCooked } from "./fish-on-fire";
+import { fireProgress, isFired } from "./jug-on-fire";
 import { boilProgress } from "./pot-state";
 import { isRoomHeated, roomAround } from "./rooms";
 import { groundDistance, type GroundPoint } from "./ground-point";
@@ -128,7 +129,7 @@ export function createCampfires(entities: EntityStore): Campfires {
       const held = fireById(campfireId);
       if (held === undefined) return undefined;
       const { lit, fuelMinutes } = held.fire;
-      const { potOnFire, fishOnFire = [] } = held.entity;
+      const { potOnFire, fishOnFire = [], jugOnFire } = held.entity;
       return Object.freeze({
         id: campfireId,
         kind: held.kind,
@@ -137,6 +138,7 @@ export function createCampfires(entities: EntityStore): Campfires {
         fuelMinutes,
         pot: potOnFire === undefined ? null : Object.freeze({ water: potOnFire.water, boilProgress: boilProgress(potOnFire) }),
         fish: Object.freeze(fishOnFire.map((fish) => Object.freeze({ cooked: isCooked(fish), cookProgress: cookProgress(fish) }))),
+        jug: jugOnFire === undefined ? null : Object.freeze({ fired: isFired(jugOnFire), fireProgress: fireProgress(jugOnFire) }),
       });
     },
     light(campfireId) {

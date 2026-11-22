@@ -19,6 +19,7 @@ import { barkParts } from "./bark-meshes";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
 import { clayPileParts } from "./clay-shape";
+import { jugPileParts, unfiredJugPileParts } from "./jug-shape";
 import { cordPileParts, fishTrapPileParts } from "./fish-trap-shape";
 import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
@@ -327,6 +328,10 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     stone: stoneShapes[0] ?? [],
     // Clay is the draft "clay" asset, drawn by clay-shape.ts.
     clay: clayPileParts(material, track),
+    // Unfired jugs stand upright. The jug is the draft "jug" asset, drawn by jug-shape.ts.
+    unfiredJug: unfiredJugPileParts(material, track),
+    // Empty jugs stand upright too, in the fired look of the same draft "jug" asset.
+    jug: jugPileParts(material, track),
     // Cord and fish traps are the draft "fish-trap-piles" asset, drawn by fish-trap-shape.ts.
     cord: cordPileParts((colour) => material(colour), track),
     fishTrap: fishTrapPileParts((colour) => material(colour), track),
@@ -350,6 +355,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     plank: spread(0.12),
     stone: spread(0.13),
     clay: spread(0.13),
+    unfiredJug: spread(0.2),
+    jug: spread(0.2),
     cord: spread(0.1),
     fishTrap: spread(0.4),
     torch: spread(0.1),

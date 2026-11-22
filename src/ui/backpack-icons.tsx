@@ -11,6 +11,7 @@ import { BERRY_BUSH_DRAWING } from "./berry-bush-icon";
 import { SAPLING_DRAWING } from "./sapling-icon";
 import { STONE_DRAWING } from "./stone-icon";
 import { CLAY_DRAWING } from "./clay-icon";
+import { JUG_DRAWING, UNFIRED_JUG_DRAWING } from "./jug-icons";
 import { TORCH_DRAWING } from "./torch-icons";
 import { CORD_DRAWING, FISH_TRAP_DRAWING } from "./fish-trap-icons";
 
@@ -47,11 +48,14 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the draft "clay" asset, the torch in the approved "torch-icons" asset, and cord and the fish trap in the draft "fish-trap-icons" asset. A sapling is drawn in the draft "sapling-icon" asset, and a berry bush in the draft "berry-bush-icon" asset.
+ * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the draft "clay" asset, the unfired jug and the empty jug in the draft "jug-icons" asset, the torch in the approved "torch-icons" asset, and cord and the fish trap in the draft "fish-trap-icons" asset. A sapling is drawn in the draft "sapling-icon" asset, and a berry bush in the draft "berry-bush-icon" asset.
  */
 const DRAWINGS: Readonly<
   Record<
-    Exclude<BackpackContent, CraftingContent | FishingContent | Fish | "stone" | "clay" | "torch" | "cord" | "fishTrap" | "sapling" | "berryBush">,
+    Exclude<
+      BackpackContent,
+      CraftingContent | FishingContent | Fish | "stone" | "clay" | "unfiredJug" | "jug" | "torch" | "cord" | "fishTrap" | "sapling" | "berryBush"
+    >,
     BackpackIconDrawing
   >
 > = {
@@ -232,6 +236,8 @@ export function ShadedIcon({ drawing, className }: { drawing: BackpackIconDrawin
 export function backpackDrawing(content: BackpackContent): BackpackIconDrawing {
   if (content === "stone") return STONE_DRAWING;
   if (content === "clay") return CLAY_DRAWING;
+  if (content === "unfiredJug") return UNFIRED_JUG_DRAWING;
+  if (content === "jug") return JUG_DRAWING;
   if (content === "torch") return TORCH_DRAWING;
   if (content === "cord") return CORD_DRAWING;
   if (content === "fishTrap") return FISH_TRAP_DRAWING;

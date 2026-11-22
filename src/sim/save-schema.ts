@@ -52,7 +52,7 @@ const wood = exactly(...WOODPILE_WOODS);
 /** A campfire, woodpile, or sled command the player is walking to carry out. */
 const tendCommand: Check = (value) =>
   shape({ type: exactly("addFuel"), campfireId: count, fuel })(value) ||
-  shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire", "cookFish", "takeFishOff"), campfireId: count })(value) ||
+  shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire", "cookFish", "takeFishOff", "fireJug", "takeJugOff"), campfireId: count })(value) ||
   shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value) ||
   shape({ type: exactly("loadSled", "tipOutSled", "dragSled", "loadPlanksOnSled", "takePlanksFromSled"), sledId: count })(value) ||
@@ -167,6 +167,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   fishTrap: shape({ holding: boolean, minutesToNext: finite, draws: count }),
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
+  jugOnFire: shape({ minutesFired: finite }),
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
   // Saves from before falls were owed have no `owed`.
   stickFall: shape({ minutesToNext: finite, falls: count, owed: count }, ["owed"]),
@@ -197,6 +198,8 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noPotOfWater: true,
   noRawFish: true,
   fireFullOfFish: true,
+  noUnfiredJug: true,
+  fireHoldsJug: true,
   woodpileFull: true,
   sledFull: true,
   letGoFirst: true,
@@ -207,6 +210,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   emptyFirst: true,
   potOnFire: true,
   fishOnFire: true,
+  jugOnFire: true,
   fireNotOut: true,
   holdsUpPiece: true,
   tooYoungToChop: true,

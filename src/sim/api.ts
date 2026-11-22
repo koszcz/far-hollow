@@ -265,6 +265,16 @@ export type Command =
    */
   | { type: "takeFishOff"; campfireId: number }
   /**
+   * Put one unfired jug from the backpack on a lit campfire or fireplace. It becomes a jug after 20 game minutes on the lit fire.
+   * Nothing happens if the fire is out or already holds a jug. The player walks beside it first if needed.
+   */
+  | { type: "fireJug"; campfireId: number }
+  /**
+   * Take the jug off a campfire or fireplace and put it in the backpack: an empty jug once it has fired, or else an unfired jug,
+   * whose firing starts again from zero. It stays on the fire if it does not fit. The player walks beside it first if needed.
+   */
+  | { type: "takeJugOff"; campfireId: number }
+  /**
    * Start crafting a recipe, given by its name. A hand recipe is crafted where the player stands, as timed work.
    * For a station recipe, the player walks to the finished work station given by `stationId`, or without one to the nearest
    * finished station of the right kind, and works there. A blueprint is not a station.
@@ -522,6 +532,11 @@ export interface CampfireView {
    * At 1 it is `cooked`, and it never burns.
    */
   readonly fish: readonly { readonly cooked: boolean; readonly cookProgress: number }[];
+  /**
+   * The jug on the campfire, or null if there is none. `fireProgress` runs from 0 to 1 while it fires on the lit fire.
+   * At 1 it is `fired`, and it never breaks.
+   */
+  readonly jug: { readonly fired: boolean; readonly fireProgress: number } | null;
 }
 
 /** One structure in the build menu. */
@@ -592,13 +607,15 @@ export type Refusal =
  * - `lightFirst`: the campfire is out.
  * - `noPotOfWater`, `noRawFish`: the backpack holds none.
  * - `fireFullOfFish`: the campfire holds as many fish as it can.
+ * - `noUnfiredJug`: the backpack holds no unfired jug.
+ * - `fireHoldsJug`: the campfire already holds a jug, and fires one at a time.
  * - `woodpileFull`, `sledFull`: it has no room left.
  * - `letGoFirst`: the player drags a sled, so their hands are busy.
  * - `shoulderFull`: the player already carries a log.
  * - `putLogDownFirst`: the player carries a log, and fishing needs both hands.
  * - `noLogCarried`: the player carries no log to put there.
  * - `nothingToTake`: it holds none of what the command takes.
- * - `emptyFirst`, `potOnFire`, `fishOnFire`: it still holds something, so it cannot come down.
+ * - `emptyFirst`, `potOnFire`, `fishOnFire`, `jugOnFire`: it still holds something, so it cannot come down.
  * - `fireNotOut`: the fireplace burns or still holds fuel, so it cannot come down.
  * - `holdsUpPiece`: another structure stands on it, so it cannot come down.
  * - `tooYoungToChop`: the tree is a young tree, still growing back.
@@ -634,6 +651,8 @@ export type PlainRefusal =
   | "noPotOfWater"
   | "noRawFish"
   | "fireFullOfFish"
+  | "noUnfiredJug"
+  | "fireHoldsJug"
   | "woodpileFull"
   | "sledFull"
   | "letGoFirst"
@@ -644,6 +663,7 @@ export type PlainRefusal =
   | "emptyFirst"
   | "potOnFire"
   | "fishOnFire"
+  | "jugOnFire"
   | "fireNotOut"
   | "holdsUpPiece"
   | "tooYoungToChop"

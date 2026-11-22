@@ -73,6 +73,8 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   plantBerryBushes,
   renameMushroomLogRefusal,
   addClay,
+  addUnfiredJugs,
+  fireJugs,
   addFishTraps,
 ];
 
@@ -171,6 +173,10 @@ export const BERRY_BUSHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantBerryBushes)
 export const MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameMushroomLogRefusal) + 2;
 /** The first save version that can hold clay. */
 export const CLAY_SAVE_VERSION = SAVE_UPGRADES.indexOf(addClay) + 2;
+/** The first save version that can hold unfired jugs. */
+export const UNFIRED_JUGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addUnfiredJugs) + 2;
+/** The first save version that can hold a jug on a campfire or fireplace, and empty jugs. */
+export const JUG_FIRING_SAVE_VERSION = SAVE_UPGRADES.indexOf(fireJugs) + 2;
 /** The first save version that can hold cord and fish traps, in the backpack and set in the river. */
 export const FISH_TRAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFishTraps) + 2;
 
@@ -905,7 +911,20 @@ function addClay(save: Readonly<Record<string, unknown>>): Record<string, unknow
   return nothingToUpgrade(save);
 }
 
-/** Version 52 to 53: the player can twist cord and set fish traps. A save from before then holds none, so it carries over unchanged. */
+/** Version 52 to 53: the player can shape unfired jugs from clay. A save from before then holds none, so it carries over unchanged. */
+function addUnfiredJugs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 53 to 54: the player can fire an unfired jug on a campfire or fireplace into a jug. A save from before then holds no
+ * jug on a fire and no jugs, so it carries over unchanged.
+ */
+function fireJugs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 54 to 55: the player can twist cord and set fish traps. A save from before then holds none, so it carries over unchanged. */
 function addFishTraps(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

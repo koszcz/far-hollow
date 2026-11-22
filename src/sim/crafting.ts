@@ -87,6 +87,8 @@ export const SAW_CRAFT_SECONDS = 5;
 export const FISHING_ROD_CRAFT_SECONDS = 5;
 /** How long crafting a torch takes, in seconds. */
 export const TORCH_CRAFT_SECONDS = 4;
+/** How long shaping an unfired jug from clay takes, in seconds. */
+export const UNFIRED_JUG_CRAFT_SECONDS = 6;
 /** How long twisting bark into cord takes, in seconds. */
 export const CORD_CRAFT_SECONDS = 4;
 /** How long making a fish trap takes, in seconds. */
@@ -146,6 +148,13 @@ const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind:
     ],
     result: { content: "torch", count: 1 },
     seconds: TORCH_CRAFT_SECONDS,
+  },
+  // The unfired jug: a hand recipe that shapes 2 clay into a jug. It needs no tool. It holds no water until it is fired.
+  unfiredJug: {
+    kind: "unfiredJug",
+    materials: [{ material: "clay", count: 2 }],
+    result: { content: "unfiredJug", count: 1 },
+    seconds: UNFIRED_JUG_CRAFT_SECONDS,
   },
   // Cord: a hand recipe that twists strips of bark into a strong string. It needs no tool.
   cord: {

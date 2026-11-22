@@ -733,12 +733,13 @@
         "src/render/mushroom-log-meshes.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "A log the player planted a mushroom on. It reuses the approved logs model, lying on the ground as a loose log does, with two patches from the approved mushrooms model on top of it, one larger than the other, set near each end. While its mushrooms grow back, it shows bare, as a plain log.",
+      "description": "A log the player planted a mushroom on. It reuses the approved logs model, lying on the ground as a loose log does. Pale spawn plugs, grey patches of mould on the bark, and a patch of moss on top mark it as planted at all times. When it bears mushrooms, a patch from the approved mushrooms model stands on top near one end, and shelves of light-brown bracket fungi with cream undersides stick out of both sides. While its mushrooms grow back, it shows only the plugs, mould, and moss.",
       "source": "Built in code in this project, from the logs and mushrooms assets",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/garden/issues/02-plant-mushroom-logs.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {

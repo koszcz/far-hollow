@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Cord and snare), 03 (Deer in the valley)
 
-**Status:** needs-triage
+**Status:** deferred
 
 **Assets:** Reuse `player`, `deer`, and `deer-animations`. Add the drafts `bow`, `bow-animation`, `butcher-animation`, `deer-animations` (fall), `hunting-icons` (bow and arrow icons), and `hunting-piles` (bow and arrows).
 

@@ -2,7 +2,7 @@
 
 **What to build:** The player can twist cord from bark, craft a snare, and set it on the ground. After some hours the snare holds a rabbit, and the player takes 2 raw meat from it. The player can eat raw meat, which makes them sick. Cooking comes in ticket 02.
 
-**Status:** needs-triage
+**Status:** deferred
 
 **Assets:** Add the drafts `hunting-icons` (cord, raw meat, and snare icons), `hunting-piles` (cord, raw meat, and snare), and `snare`.
 

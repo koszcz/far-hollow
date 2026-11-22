@@ -2,11 +2,11 @@
 
 **What to build:** The player can hide the hotbar and every panel, move the camera freely, and take a picture of their camp. The picture saves as an image file on their computer.
 
-**Status:** needs-triage
+**Status:** idea
 
-**Assets:** None yet. Decide during triage.
+**Assets:** None yet. Decide during grilling.
 
-Questions for triage:
+Questions for grilling:
 
 - Which key opens and closes photo mode?
 - Does the game pause in photo mode?

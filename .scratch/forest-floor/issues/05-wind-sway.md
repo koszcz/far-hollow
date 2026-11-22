@@ -4,11 +4,11 @@
 
 **Blocked by:** 02 (Undergrowth)
 
-**Status:** needs-triage
+**Status:** idea
 
 **Assets:** None yet. Changing the approved `trees` asset needs the owner's approval.
 
-Questions for triage:
+Questions for grilling:
 
 - Does the wind change over the day, or with rain?
 - Does wind affect anything in the game, such as the campfire's smoke, or is it only for looks?

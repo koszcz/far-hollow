@@ -2,11 +2,11 @@
 
 **What to build:** Small animals the player cannot hunt make the valley feel lived in. Birds fly over the trees and land in clearings by day. Fireflies glow near the river and in clearings at night.
 
-**Status:** needs-triage
+**Status:** idea
 
-**Assets:** None yet. Decide during triage.
+**Assets:** None yet. Decide during grilling.
 
-Questions for triage:
+Questions for grilling:
 
 - Which animals come first, and how many show at once?
 - Do birds fly off when the player walks close, or are they only for looks?

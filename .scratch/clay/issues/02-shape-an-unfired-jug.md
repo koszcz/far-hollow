@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Assets:** Reuse `clay` and `pile`. Add the drafts `jug` (the unfired look) and `jug-icons` (the unfired jug's backpack icon and the craft menu icon).
 

@@ -1,19 +1,38 @@
-# Triage Labels
+# Ticket statuses
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+This repo has no triage step. An open ticket is in one of two states:
 
-| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
-| -------------------------- | -------------------- | ---------------------------------------- |
-| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
-| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
-| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
-| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
-| `wontfix`                  | `wontfix`            | Will not be actioned                     |
-| (none)                     | `deferred`           | Wanted, but not now. Skip it until the owner brings it back to `needs-triage` |
-| (none)                     | `resolved`           | Work is done and committed               |
+- `idea`: the owner wrote it down. It needs a grilling session before anyone builds it.
+- `ready-for-agent`: a grilling session settled it. An agent can build it without asking anything.
 
-When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
+Each issue file records its state on a `Status:` line.
 
-The skills have no role for finished work. When you finish an issue, set its `Status:` line to `resolved`. The wayfinding operations in `issue-tracker.md` use the same word.
+## All statuses
 
-Edit the "Label in our tracker" column to match whatever vocabulary you actually use.
+| Status            | Meaning                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `idea`            | Needs grilling. List the open questions under "Questions for grilling". |
+| `ready-for-agent` | Grilled and fully specified. An agent builds it.                     |
+| `deferred`        | Wanted, but not now. Skip it until the owner sets it back to `idea`. |
+| `wontfix`         | Will not be built.                                                   |
+| `resolved`        | Built and landed on `main`.                                          |
+
+## How the skills' labels map to these statuses
+
+The mattpocock skills speak of five triage labels. Use this table when a skill names one.
+
+| Label in the skills | Status in this repo |
+| ------------------- | ------------------- |
+| `needs-triage`      | `idea`              |
+| `needs-info`        | `idea`              |
+| `ready-for-agent`   | `ready-for-agent`   |
+| `ready-for-human`   | `ready-for-agent`. Every grilled ticket goes to an agent. |
+| `wontfix`           | `wontfix`           |
+
+## Rules
+
+- Never ask the owner to triage a ticket. Never set a status other than the ones above.
+- A new ticket the owner adds as a bare idea gets `idea`.
+- A grilling session ends with each ticket it settled set to `ready-for-agent`. When grilling turns one idea into a spec with several tickets, every new ticket gets `ready-for-agent`.
+- A ticket that still has open questions stays `idea`. Do not invent the answers.
+- When you finish building a ticket, set it to `resolved`. The wayfinding operations in `issue-tracker.md` use the same word.

@@ -7,7 +7,7 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - One feature per directory: `.scratch/<feature-slug>/`
 - The spec is `.scratch/<feature-slug>/spec.md`
 - Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`, never a single combined tickets file
-- Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
+- Each issue file records its state as a `Status:` line near the top: `idea` or `ready-for-agent` while open (see `triage-labels.md`)
 - Every gameplay ticket has an `**Assets:**` line after its `Status:` line. It names the catalogue assets the ticket reuses and the draft assets it adds (see ADR 0006)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 

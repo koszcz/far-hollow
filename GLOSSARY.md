@@ -445,6 +445,20 @@ _Avoid_: Breeze, gust
 **Day**:
 One full cycle of daylight and night in the valley.
 
+## Sound
+
+**Ambience**:
+A sound of the valley itself, such as the river, the forest, a fire, rain, birds, or crickets. It plays whether or not the player is working.
+_Avoid_: Background sound, environment sound
+
+**Action sound**:
+A sound the player's work or movement makes, such as chopping, sawing, building, or footsteps.
+_Avoid_: Sound effect, SFX
+
+**Volume**:
+The player's single sound setting. It sets how loud every sound plays, and the player can mute it.
+_Avoid_: Master volume, sound level
+
 ## Saved games
 
 **Saved game**:

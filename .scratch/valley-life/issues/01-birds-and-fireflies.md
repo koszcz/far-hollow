@@ -14,4 +14,4 @@ Questions for grilling:
 - Does this ticket include the wind sway in `.scratch/forest-floor/issues/05-wind-sway.md`? No. Wind sway stays its own ticket (owner, 2026-11-22).
 - Does anything about the animals need saving, or are they drawn fresh each time the game loads?
 - How much frame rate can the animals cost?
-- Does this belong with the sound ticket in `.scratch/sound/`, such as birdsong at dawn?
+- Does this belong with the sound ticket in `.scratch/sound/`, such as birdsong at dawn? No. Birdsong is ambience in `.scratch/sound/issues/03-rain-birds-and-crickets.md` and does not depend on the visible birds (owner, 2026-11-22).

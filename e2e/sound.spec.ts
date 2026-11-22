@@ -133,3 +133,26 @@ test("M mutes, the sound button shows it, and the Volume and mute survive a relo
   await page.keyboard.press("m");
   expect((await readSound(page)).muted).toBe(false);
 });
+
+test("birds sing by day and crickets chirp at night, following the clock", async ({ page }) => {
+  await openGame(page);
+  const keysPlaying = async (): Promise<string[]> => (await readSound(page)).playing.map((playing) => playing.key);
+  const hourOfDay = (): Promise<number> =>
+    page.evaluate(
+      () => (window as unknown as { farHollow: { client: { getView(): { time: { hourOfDay: number } } } } }).farHollow.client.getView().time.hourOfDay,
+    );
+  /** Runs play time on to this hour, then lets the heard daylight catch up over a few real seconds. */
+  async function runTo(hour: number): Promise<void> {
+    const hoursAhead = (hour - (await hourOfDay()) + 24) % 24;
+    await page.evaluate((seconds) => (window as unknown as { farHollow: { advance(seconds: number): number } }).farHollow.advance(seconds), hoursAhead * 60);
+    await page.waitForTimeout(2000);
+  }
+
+  await runTo(13);
+  expect(await keysPlaying()).toContain("birds");
+  expect(await keysPlaying()).not.toContain("crickets");
+
+  await runTo(23);
+  expect(await keysPlaying()).toContain("crickets");
+  expect(await keysPlaying()).not.toContain("birds");
+});

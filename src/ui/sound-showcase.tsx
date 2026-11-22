@@ -1,6 +1,6 @@
-// Draws the sound assets' review tools over the asset showcase at /?asset=sound-river, sound-forest, sound-fire, each
-// action sound such as sound-chop, or sound-button. Development builds only. A sound showcase gets buttons that play each
-// sound of its group, ambience or action sounds, so the owner can listen to it. A footstep or click repeats while it plays.
+// Draws the sound assets' review tools over the asset showcase at /?asset=sound-river, or any other sound showcase in
+// SOUND_SHOWCASE_IDS. Development builds only. A sound showcase gets buttons that play each sound of its group, ambience
+// or action sounds, so the owner can listen to it. A footstep or click repeats while it plays.
 // The sound-button showcase draws the Volume slider and the sound button in each of its four views.
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
@@ -14,6 +14,10 @@ export const SOUND_SHOWCASE_IDS = [
   "sound-river",
   "sound-forest",
   "sound-fire",
+  "sound-rain",
+  "sound-rain-roof",
+  "sound-birds",
+  "sound-crickets",
   "sound-chop",
   "sound-saw",
   "sound-debark",
@@ -53,6 +57,10 @@ const AMBIENCE: readonly ShowcaseSound[] = [
   { sound: "sound-river", name: "River" },
   { sound: "sound-forest", name: "Forest" },
   { sound: "sound-fire", name: "Fire" },
+  { sound: "sound-rain", name: "Rain" },
+  { sound: "sound-rain-roof", name: "Rain on a roof" },
+  { sound: "sound-birds", name: "Birds" },
+  { sound: "sound-crickets", name: "Crickets" },
 ];
 
 const ACTIONS: readonly ShowcaseSound[] = [

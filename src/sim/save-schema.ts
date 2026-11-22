@@ -171,6 +171,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   rain: shape({ falling: boolean, changeAtMinutes: finite, changes: count }),
   // Saves from before falls were owed have no `owed`.
   stickFall: shape({ minutesToNext: finite, falls: count, owed: count }, ["owed"]),
+  groundChange: shape({ x: finite, z: finite, toward: exactly("clearing", "forestFloor"), startedAtMinutes: finite }),
   // Dropped sticks lie on the ground one by one, so a pile never holds sticks.
   pile: shape({
     content: exactly(...Object.keys(CONTENT_WEIGHT_KG).filter((content) => content !== "stick")),

@@ -3,8 +3,11 @@
 /** The most sounds that play at once. */
 export const MAX_SOUNDS = 16;
 
-/** An ambience sound asset from asset-manifest.json. Each is a loop that plays as long as it is wished for. */
-export type AmbienceSoundId = "sound-river" | "sound-forest" | "sound-fire";
+/** Every ambience sound asset from asset-manifest.json. Each is a loop that plays as long as it is wished for. */
+export const AMBIENCE_SOUND_IDS = ["sound-river", "sound-forest", "sound-fire", "sound-rain", "sound-rain-roof", "sound-birds", "sound-crickets"] as const;
+
+/** An ambience sound asset from asset-manifest.json. */
+export type AmbienceSoundId = (typeof AMBIENCE_SOUND_IDS)[number];
 
 /** An action sound asset from asset-manifest.json. Each plays from the start of its rhythm, in time with what the player does. */
 export type ActionSoundId = "sound-chop" | "sound-saw" | "sound-debark" | "sound-dig" | "sound-build" | "sound-place" | "sound-footstep";
@@ -12,11 +15,9 @@ export type ActionSoundId = "sound-chop" | "sound-saw" | "sound-debark" | "sound
 /** A sound asset from asset-manifest.json. */
 export type SoundId = AmbienceSoundId | ActionSoundId;
 
-const AMBIENCE_SOUNDS: Readonly<Record<AmbienceSoundId, true>> = { "sound-river": true, "sound-forest": true, "sound-fire": true };
-
 /** Whether a sound is ambience, rather than an action sound. */
 export function isAmbienceSound(sound: SoundId): sound is AmbienceSoundId {
-  return sound in AMBIENCE_SOUNDS;
+  return (AMBIENCE_SOUND_IDS as readonly SoundId[]).includes(sound);
 }
 
 /** One sound that wants to play this frame. */

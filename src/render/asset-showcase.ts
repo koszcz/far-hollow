@@ -24,6 +24,7 @@ import { darkenView } from "./sleep-animation";
 import type { ModelShapes } from "./model-shapes";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
+import { createGroundNow } from "./ground-now";
 import { createStructureMeshes } from "./structure-meshes";
 import { createTorchLights } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
@@ -78,7 +79,13 @@ export function showAsset(
   renderer.setScissorTest(true);
   const scene = new THREE.Scene();
   const sky = createSkyLighting(scene, renderer);
-  const ground = onValley ? createValleyMeshes(valley) : createFlatGround();
+  // The showcase's valley has its starting ground: no tree has gone or come for good.
+  const ground = onValley
+    ? createValleyMeshes(
+        valley,
+        createGroundNow(valley, createEntityStore(), () => 0),
+      )
+    : createFlatGround();
   scene.add(ground.group);
   const river: RiverMeshes | undefined = onValley ? createRiverMeshes(valley) : undefined;
   if (river !== undefined) scene.add(river.group);

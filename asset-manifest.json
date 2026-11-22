@@ -750,7 +750,7 @@
         "src/render/rain-effect.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "Falling rain: pale, slanting streaks of varied length and speed around where the camera looks, with small splash rings on the ground nearby. It eases in and out as rain starts and stops, and dims at night. It has no sound.",
+      "description": "Falling rain: pale, slanting streaks of varied length and speed around where the camera looks, with small splash rings on the ground nearby. It eases in and out as rain starts and stops, and dims at night.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1810,6 +1810,86 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-rain",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/sound/rain-hearing.ts",
+        "src/sound/valley-sound.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "The rain's ambience: a rain loop made from shaped noise, a bright steady hiss with fine drops ticking through it. It plays all around the player while rain falls in the open, and eases in and out as rain starts and stops.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/03-rain-birds-and-crickets.md"
+      }
+    },
+    {
+      "id": "sound-rain-roof",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/sound/rain-hearing.ts",
+        "src/sound/valley-sound.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "Rain on a roof: a loop made from shaped noise, a dull muffled rush with soft quick thuds of drops drumming overhead. It replaces the rain wherever rain would not fall on the player, such as under a lean-to or in a cabin, and crossfades with the rain as the player walks in or out.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/03-rain-birds-and-crickets.md"
+      }
+    },
+    {
+      "id": "sound-birds",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/sound/day-night.ts",
+        "src/render/daylight.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "Daytime birdsong: a 12-second loop of short phrases of quick rising and falling whistles, made from simple tones, some near and some far. It plays all around the player by day and crossfades with the crickets at dawn and dusk. It does not depend on the visible birds.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/03-rain-birds-and-crickets.md"
+      }
+    },
+    {
+      "id": "sound-crickets",
+      "kind": "code",
+      "code": [
+        "src/sound/ambience-loops.ts",
+        "src/sound/ambience.ts",
+        "src/sound/sound-engine.ts",
+        "src/sound/day-night.ts",
+        "src/render/daylight.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "Night crickets: a loop of a few crickets chirping high short trills, made from simple tones, each at its own pitch and pace. It plays all around the player at night and crossfades with the birdsong at dawn and dusk.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/03-rain-birds-and-crickets.md"
       }
     },
     {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { createGroundMap } from "../sim/ground-types";
+import { createGroundMap, groundMapNow } from "../sim/ground-types";
+import { GROUND_CHANGE_MINUTES, type GroundChange } from "../sim/ground-change";
 import type { River } from "../sim/valley";
 import type { GroundPoint } from "../sim/ground-point";
 import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthItem } from "./undergrowth-layout";
@@ -85,5 +86,55 @@ describe("growUndergrowthPatch", () => {
     const map = mapWith([]);
     const spot = { x: 200, z: 100 };
     expect(growAround(1, map, spot).map((plant) => plant.x)).not.toEqual(growAround(2, map, spot).map((plant) => plant.x));
+  });
+});
+
+describe("undergrowth while the ground changes", () => {
+  const tree = { x: 200, z: 100 };
+  const gone: GroundChange = { x: tree.x, z: tree.z, toward: "clearing", startedAtMinutes: 0 };
+  const near = (plants: readonly UndergrowthItem[]) => plants.filter((plant) => Math.hypot(plant.x - tree.x, plant.z - tree.z) < 4);
+  const count = (plants: readonly UndergrowthItem[], kinds: readonly string[]) => plants.filter((plant) => kinds.includes(plant.kind)).length;
+
+  it("thins out the ferns as grass and flowers move in, a few at a time", () => {
+    const start = mapWith([tree]);
+    const at = (minutes: number) => near(growAround(7, groundMapNow(start, [gone], minutes), tree));
+    const ferns: number[] = [];
+    const grass: number[] = [];
+    for (let step = 0; step <= 12; step += 1) {
+      const plants = at((step / 12) * GROUND_CHANGE_MINUTES);
+      ferns.push(count(plants, ["fern"]));
+      grass.push(count(plants, ["grassTuft", "flower"]));
+    }
+    expect(ferns[0]).toBeGreaterThan(5);
+    expect(grass[0]).toBe(0);
+    expect(ferns.at(-1)).toBe(0);
+    expect(grass.at(-1)).toBeGreaterThan(5);
+    // No step swaps more than about half of them at once.
+    for (let step = 1; step < ferns.length; step += 1) {
+      expect(Math.abs((ferns[step] ?? 0) - (ferns[step - 1] ?? 0))).toBeLessThanOrEqual(Math.ceil((ferns[0] ?? 0) / 2));
+    }
+    // Part way, both grow side by side.
+    expect(ferns.some((ferns, step) => ferns > 0 && (grass[step] ?? 0) > 0)).toBe(true);
+  });
+
+  it("shrinks a plant into the ground before another kind grows in its place, so nothing pops", () => {
+    const start = mapWith([tree]);
+    const sizeAt = (minutes: number) => {
+      const plants = near(growAround(7, groundMapNow(start, [gone], minutes), tree));
+      return new Map(plants.map((plant) => [`${plant.x},${plant.z}`, plant]));
+    };
+    let previous = sizeAt(0);
+    for (let minutes = 10; minutes <= GROUND_CHANGE_MINUTES; minutes += 10) {
+      const now = sizeAt(minutes);
+      for (const [spot, plant] of now) {
+        const before = previous.get(spot);
+        if (before === undefined || before.kind !== plant.kind) expect(plant.size).toBeLessThan(0.35);
+      }
+      for (const [spot, plant] of previous) {
+        const after = now.get(spot);
+        if (after === undefined || after.kind !== plant.kind) expect(plant.size).toBeLessThan(0.35);
+      }
+      previous = now;
+    }
   });
 });

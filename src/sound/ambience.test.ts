@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { River } from "../sim/valley";
 import { ambienceWishes, type AmbienceScene, type FireSound } from "./ambience";
 import { listenerFrom } from "./listener";
+import { rainHearingNow } from "./rain-hearing";
 import type { SoundWish } from "./sound-mix";
 
 /** A straight river 4 m wide, running along z with its middle on x = 0. Its edges are at x = -2 and x = 2. */
@@ -19,7 +20,7 @@ function listenerAt(x: number, z: number) {
 }
 
 function scene(changes: Partial<AmbienceScene> = {}): AmbienceScene {
-  return { river: RIVER, wind: 0.3, fires: [], ...changes };
+  return { river: RIVER, wind: 0.3, fires: [], rain: rainHearingNow(false, false), daylight: 1, ...changes };
 }
 
 function wishOf(wishes: readonly SoundWish[], key: string): SoundWish | undefined {
@@ -93,5 +94,54 @@ describe("fires", () => {
   it("each play as their own sound", () => {
     const wishes = ambienceWishes(listenerAt(50, 0), scene({ fires: [fireAt(1, 1), fireAt(1, 2)] }));
     expect(wishes.filter((wish) => wish.sound === "sound-fire").map((wish) => wish.key)).toEqual(["fire-1", "fire-2"]);
+  });
+});
+
+describe("rain", () => {
+  it("is silent while dry", () => {
+    const wishes = ambienceWishes(listenerAt(50, 0), scene());
+    expect(loudnessOf(wishes, "rain")).toBe(0);
+    expect(loudnessOf(wishes, "rain-roof")).toBe(0);
+  });
+
+  it("plays all around the player while rain falls in the open", () => {
+    const rain = wishOf(ambienceWishes(listenerAt(50, 0), scene({ rain: rainHearingNow(true, false) })), "rain");
+    expect(rain?.sound).toBe("sound-rain");
+    expect(rain?.loudness ?? 0).toBeGreaterThan(0);
+    expect(rain?.pan).toBe(0);
+    expect(loudnessOf(ambienceWishes(listenerAt(50, 0), scene({ rain: rainHearingNow(true, false) })), "rain-roof")).toBe(0);
+  });
+
+  it("switches to the drumming on the roof under a roof", () => {
+    const wishes = ambienceWishes(listenerAt(50, 0), scene({ rain: rainHearingNow(true, true) }));
+    expect(loudnessOf(wishes, "rain")).toBe(0);
+    expect(wishOf(wishes, "rain-roof")?.sound).toBe("sound-rain-roof");
+    expect(loudnessOf(wishes, "rain-roof")).toBeGreaterThan(0);
+  });
+});
+
+describe("birds and crickets", () => {
+  it("are birds by day and crickets at night, all around the player", () => {
+    const day = ambienceWishes(listenerAt(50, 0), scene({ daylight: 1 }));
+    expect(wishOf(day, "birds")?.sound).toBe("sound-birds");
+    expect(loudnessOf(day, "birds")).toBeGreaterThan(0);
+    expect(loudnessOf(day, "crickets")).toBe(0);
+    const night = ambienceWishes(listenerAt(50, 0), scene({ daylight: 0 }));
+    expect(wishOf(night, "crickets")?.sound).toBe("sound-crickets");
+    expect(wishOf(night, "crickets")?.pan).toBe(0);
+    expect(loudnessOf(night, "crickets")).toBeGreaterThan(0);
+    expect(loudnessOf(night, "birds")).toBe(0);
+  });
+});
+
+describe("a room", () => {
+  it("changes only the rain", () => {
+    const withoutRain = (wishes: readonly SoundWish[]) => wishes.filter((wish) => !wish.key.startsWith("rain"));
+    for (const daylight of [0, 0.5, 1]) {
+      const outside = ambienceWishes(listenerAt(10, 0), scene({ daylight, wind: 0.8, rain: rainHearingNow(true, false) }));
+      const inside = ambienceWishes(listenerAt(10, 0), scene({ daylight, wind: 0.8, rain: rainHearingNow(true, true) }));
+      expect(withoutRain(inside)).toEqual(withoutRain(outside));
+      expect(loudnessOf(inside, "rain")).not.toBe(loudnessOf(outside, "rain"));
+    }
   });
 });

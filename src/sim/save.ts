@@ -77,6 +77,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   fireJugs,
   addFishTraps,
   fillJugs,
+  matchGroundToTrees,
 ];
 
 /** The version of the save format this code writes. */
@@ -182,6 +183,8 @@ export const JUG_FIRING_SAVE_VERSION = SAVE_UPGRADES.indexOf(fireJugs) + 2;
 export const FISH_TRAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFishTraps) + 2;
 /** The first save version that can hold jugs with water in them. */
 export const JUG_WATER_SAVE_VERSION = SAVE_UPGRADES.indexOf(fillJugs) + 2;
+/** The first save version in which the ground follows the trees that stand for good, and saves when each change started. */
+export const GROUND_CHANGES_SAVE_VERSION = SAVE_UPGRADES.indexOf(matchGroundToTrees) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -938,4 +941,44 @@ function addFishTraps(save: Readonly<Record<string, unknown>>): Record<string, u
  */
 function fillJugs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 56 to 57: the ground follows the trees that stand for good, and each change of ground type is saved.
+ * An older save gets the ground that matches the trees it holds now, with every change already over:
+ * - clearing where a starting tree's spot holds no tree, stump, or sapling any more,
+ * - forest floor round a full tree that did not stand when the valley was made, and round the stump such a tree left.
+ */
+function matchGroundToTrees(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const CHANGE_MINUTES = 3 * 24 * 60;
+  const SAME_SPOT_METRES = 0.01;
+  const { seed, clockMinutes, entities } = save;
+  if (!Number.isSafeInteger(seed) || typeof clockMinutes !== "number" || !Array.isArray(entities)) return { ...save };
+  const saved = entities as unknown[];
+  const componentsOf = (entity: unknown) => (entity as { components?: Entity | null } | null)?.components ?? undefined;
+  const spotOf = (components: Entity | undefined) => {
+    const position = components?.position;
+    return typeof position?.x === "number" && typeof position.z === "number" ? { x: position.x, z: position.z } : undefined;
+  };
+  const sameSpot = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z) < SAME_SPOT_METRES;
+  const treeSpots: { x: number; z: number }[] = [];
+  const grownSpots: { x: number; z: number }[] = [];
+  for (const entity of saved) {
+    const components = componentsOf(entity);
+    const spot = spotOf(components);
+    if (spot === undefined || components === undefined) continue;
+    if (components.tree === true || components.growth !== undefined) treeSpots.push(spot);
+    if (components.tree === true || components.stump === true) grownSpots.push(spot);
+  }
+  const starting = generateValley(seed as number).trees;
+  const startedAtMinutes = clockMinutes - CHANGE_MINUTES;
+  const gone = starting.filter((tree) => !treeSpots.some((spot) => sameSpot(spot, tree)));
+  const added = grownSpots.filter((spot) => !starting.some((tree) => sameSpot(spot, tree)));
+  const ids = saved.map((entity) => (entity as { id?: unknown } | null)?.id).filter((id): id is number => typeof id === "number");
+  let nextId = Math.max(-1, ...ids) + 1;
+  const changes = [
+    ...gone.map((tree) => ({ x: tree.x, z: tree.z, toward: "clearing", startedAtMinutes })),
+    ...added.map((spot) => ({ x: spot.x, z: spot.z, toward: "forestFloor", startedAtMinutes })),
+  ].map((groundChange) => ({ id: nextId++, components: { groundChange } }));
+  return { ...save, entities: [...saved, ...changes] };
 }

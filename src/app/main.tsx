@@ -7,6 +7,7 @@ import type { Refusal } from "../sim/api";
 import { createGame, STEP_MS, type Game } from "../sim/game";
 import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";
+import { clockMinutesOf } from "../sim/clock";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { ActionMenu } from "../ui/action-menu";
@@ -215,6 +216,7 @@ const sceneRenderer = createSceneRenderer(
   game.valley,
   game.entities,
   () => game.client.getView().time.hourOfDay,
+  () => clockMinutesOf(game.client.getView().time),
   () => game.client.getView().lastSleep,
   () => game.client.getView().lastEatOrDrink,
   await loadModelShapes(),
@@ -427,8 +429,11 @@ function frame(nowMs: number): void {
   lastFrameMs = nowMs;
   cameraInput.update(elapsedMs / 1000);
   sceneRenderer.render(alpha);
-  valleySound.update(nowMs / 1000, sceneRenderer.cameraRig.view(), sceneRenderer.sleepDarkness(), {
-    drawn: sceneRenderer.drawnPlayer(),
+  valleySound.update(nowMs / 1000, {
+    camera: sceneRenderer.cameraRig.view(),
+    hourOfDay: sceneRenderer.drawnHourOfDay(),
+    silence: sceneRenderer.sleepDarkness(),
+    drawnPlayer: sceneRenderer.drawnPlayer(),
     asleep: sceneRenderer.isPlayingSleep(),
   });
   if (menuCameraView !== null && cameraViewKey() !== menuCameraView) closeMenu();

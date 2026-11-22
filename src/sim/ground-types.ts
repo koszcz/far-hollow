@@ -1,9 +1,11 @@
 // Answers "which ground type is here?" for any spot in the valley: forest floor, clearing, or river bank.
 // Ground types come from where trees stand when the valley is made and from where the river runs.
-// Felling a tree does not change them, because the map is built once from the valley's starting trees.
+// After that, the ground follows the trees that stand for good. groundMapNow applies each ground change (ground-change.ts)
+// to the starting map. Felling a tree alone changes nothing, because a growing stump still counts as a tree.
 // The terrain drawing blends ground types with groundTypeWeightsAt. Undergrowth picks what grows with groundTypeAt.
 import { distanceToSegment, RIVER_BANK_WIDTH_METRES, type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import { isSameTreeSpot, treeCover, type GroundChange } from "./ground-change";
 
 export type GroundType = "forestFloor" | "clearing" | "riverBank";
 
@@ -18,11 +20,22 @@ export interface GroundTypeWeights {
 export interface GroundMap {
   readonly river: Valley["river"];
   readonly size: number;
-  /** Starting trees, grouped into square cells row by row, so a lookup only checks the trees nearby. */
-  readonly treesByCell: readonly (readonly GroundPoint[] | undefined)[];
+  /** Tree spots, grouped into square cells row by row, so a lookup only checks the trees nearby. */
+  readonly treesByCell: readonly (readonly TreeSpot[] | undefined)[];
   readonly cellsPerSide: number;
   /** Each river segment with the box around it where the river bank can reach, so far segments are skipped quickly. */
   readonly riverSegments: readonly RiverSegment[];
+}
+
+/** A spot whose tree spreads forest floor around it. */
+interface TreeSpot extends GroundPoint {
+  /** Whether a tree stood here when the valley was made. The river bank's edge is worked out from these alone, so it never changes. */
+  readonly starting: boolean;
+  /**
+   * How many metres nearer the trunk the forest floor's edge has drawn in, from 0 for a tree's whole forest floor
+   * to CELL_METRES for none at all. It is 0 for a starting tree with no change at its spot.
+   */
+  readonly drawnIn: number;
 }
 
 interface RiverSegment {
@@ -57,12 +70,13 @@ const CELL_METRES = FOREST_FLOOR_EDGE_METRES + EDGE_WOBBLE_METRES;
 /** Builds the ground map from the valley as it is made. Pass the valley's starting trees, never the trees still standing. */
 export function createGroundMap(valley: Pick<Valley, "size" | "river" | "trees">): GroundMap {
   const cellsPerSide = Math.ceil(valley.size / CELL_METRES);
-  const treesByCell: (GroundPoint[] | undefined)[] = Array.from({ length: cellsPerSide * cellsPerSide }, () => undefined);
+  const treesByCell: (TreeSpot[] | undefined)[] = Array.from({ length: cellsPerSide * cellsPerSide }, () => undefined);
   for (const tree of valley.trees) {
     const key = cellKey(valley.size, cellsPerSide, tree);
+    const spot: TreeSpot = { x: tree.x, z: tree.z, starting: true, drawnIn: 0 };
     const cell = treesByCell[key];
-    if (cell) cell.push(tree);
-    else treesByCell[key] = [tree];
+    if (cell) cell.push(spot);
+    else treesByCell[key] = [spot];
   }
   const reach = valley.river.width / 2 + RIVER_BANK_EDGE_METRES + EDGE_WOBBLE_METRES;
   const riverSegments: RiverSegment[] = [];
@@ -82,42 +96,84 @@ export function createGroundMap(valley: Pick<Valley, "size" | "river" | "trees">
   return { river: valley.river, size: valley.size, treesByCell, cellsPerSide, riverSegments };
 }
 
-/** The ground type that shows most at a spot. */
+/** A change of ground type reaches at most this far from its tree spot, in metres. Drawing redraws this much ground round a change. */
+export const GROUND_CHANGE_REACH_METRES = CELL_METRES;
+
+/**
+ * The ground map at `nowMinutes`: the starting map with every ground change applied, as far as each has got.
+ * Pass the latest change at each spot, at most one per spot. The starting map is left as it was.
+ */
+export function groundMapNow(start: GroundMap, changes: readonly GroundChange[], nowMinutes: number): GroundMap {
+  if (changes.length === 0) return start;
+  const treesByCell = [...start.treesByCell];
+  for (const change of changes) {
+    const key = cellKey(start.size, start.cellsPerSide, change);
+    const cell = treesByCell[key] ?? [];
+    const starting = cell.some((tree) => tree.starting && isSameTreeSpot(change, tree));
+    const drawnIn = (1 - treeCover(change, nowMinutes)) * CELL_METRES;
+    treesByCell[key] = [...cell.filter((tree) => !isSameTreeSpot(change, tree)), { x: change.x, z: change.z, starting, drawnIn }];
+  }
+  return { ...start, treesByCell };
+}
+
+/** The ground type that shows most at a spot. Where river bank shows most is worked out from the starting trees, so it never changes. */
 export function groundTypeAt(map: GroundMap, spot: GroundPoint): GroundType {
-  const weights = groundTypeWeightsAt(map, spot);
-  if (weights.riverBank >= weights.forestFloor && weights.riverBank >= weights.clearing) return "riverBank";
+  const { weights, startingForest } = weighGround(map, spot);
+  const startingForestFloor = (1 - weights.riverBank) * startingForest;
+  const startingClearing = 1 - weights.riverBank - startingForestFloor;
+  if (weights.riverBank >= startingForestFloor && weights.riverBank >= startingClearing) return "riverBank";
   return weights.forestFloor > weights.clearing ? "forestFloor" : "clearing";
 }
 
 /** How much of each ground type shows at a spot. Weights change smoothly from spot to spot, so ground types blend softly. */
 export function groundTypeWeightsAt(map: GroundMap, spot: GroundPoint): GroundTypeWeights {
+  return weighGround(map, spot).weights;
+}
+
+/** The weights at a spot, and how much forest floor the starting trees alone would give it, from 0 to 1, leaving the river bank aside. */
+function weighGround(map: GroundMap, spot: GroundPoint): { weights: GroundTypeWeights; startingForest: number } {
   const wobble = (offset: number) => EDGE_WOBBLE_METRES * smoothNoise(spot.x / EDGE_WOBBLE_SPACING_METRES + offset, spot.z / EDGE_WOBBLE_SPACING_METRES);
   const fromWater = distanceToRiverNear(map, spot) - map.river.width / 2 + wobble(0);
   const riverBank = 1 - smoothstep((fromWater - RIVER_BANK_FULL_METRES) / (RIVER_BANK_EDGE_METRES - RIVER_BANK_FULL_METRES));
-  const fromTree = distanceToNearestTree(map, spot) + wobble(57.3);
-  const forest = 1 - smoothstep((fromTree - FOREST_FLOOR_FULL_METRES) / (FOREST_FLOOR_EDGE_METRES - FOREST_FLOOR_FULL_METRES));
+  const treeWobble = wobble(57.3);
+  const { now, starting } = distancesToNearestTree(map, spot);
+  const forest = forestFloorAt(now + treeWobble);
   return {
-    riverBank,
-    forestFloor: (1 - riverBank) * forest,
-    clearing: (1 - riverBank) * (1 - forest),
+    weights: {
+      riverBank,
+      forestFloor: (1 - riverBank) * forest,
+      clearing: (1 - riverBank) * (1 - forest),
+    },
+    startingForest: forestFloorAt(starting + treeWobble),
   };
 }
 
-/** Distance to the nearest starting tree, or Infinity when none stands within the forest floor's reach. */
-function distanceToNearestTree(map: GroundMap, spot: GroundPoint): number {
+/** How much forest floor shows this far from a trunk, from 0 to 1, leaving the river bank aside. */
+function forestFloorAt(fromTree: number): number {
+  return 1 - smoothstep((fromTree - FOREST_FLOOR_FULL_METRES) / (FOREST_FLOOR_EDGE_METRES - FOREST_FLOOR_FULL_METRES));
+}
+
+/**
+ * Distance to the nearest tree spot, counting how far each one's forest floor has drawn in, and distance to the nearest
+ * starting tree spot as the valley was made. Each is Infinity when no such spot lies within the forest floor's reach.
+ */
+function distancesToNearestTree(map: GroundMap, spot: GroundPoint): { now: number; starting: number } {
   const half = map.size / 2;
   const column = Math.floor((spot.x + half) / CELL_METRES);
   const row = Math.floor((spot.z + half) / CELL_METRES);
-  let best = Infinity;
+  let now = Infinity;
+  let starting = Infinity;
   for (let r = row - 1; r <= row + 1; r += 1) {
     for (let c = column - 1; c <= column + 1; c += 1) {
       if (r < 0 || c < 0 || r >= map.cellsPerSide || c >= map.cellsPerSide) continue;
       for (const tree of map.treesByCell[r * map.cellsPerSide + c] ?? []) {
-        best = Math.min(best, groundDistance(tree, spot));
+        const distance = groundDistance(tree, spot);
+        now = Math.min(now, distance + tree.drawnIn);
+        if (tree.starting) starting = Math.min(starting, distance);
       }
     }
   }
-  return best;
+  return { now, starting };
 }
 
 /**

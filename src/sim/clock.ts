@@ -60,6 +60,11 @@ export function createClock(start: ClockStart | number): Clock {
   };
 }
 
+/** Game minutes since midnight at the start of day 1, at this moment on the clock. */
+export function clockMinutesOf(time: TimeOfDay): number {
+  return (time.day - 1) * MINUTES_PER_DAY + time.hourOfDay * MINUTES_PER_HOUR;
+}
+
 /** Splits game minutes since the start of day 1 into day, hour, and minute. */
 export function readClock(rawMinutes: number): TimeOfDay {
   // Logic steps add fractions that do not divide evenly, such as 1/30 of a second.

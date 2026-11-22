@@ -16,6 +16,29 @@ The dev build puts the game client on `window.farHollow.client`. Its interface i
 - `send({ type: ... })` runs a command, such as `walkTo`, `chopTree`, `debarkLog`, or `placeBlueprint`. The `Command` type in `src/sim/api.ts` lists them all.
 - `subscribe(listener)` calls the listener after each logic step.
 
+## Skip the waiting with `advance`
+
+The game runs in real time, so a walk, a chop, or a growing tree takes as long to test as it takes to play. Do not wait for it. Call `window.farHollow.advance(seconds)` instead:
+
+- It runs that many seconds of play at once. The player walks, work goes on, and the clock moves.
+- One real second of play is one game minute. `advance(60)` runs one game hour, and `advance(1440)` runs one game day.
+- It returns the seconds of play that ran. That is fewer while the sleep animation plays, because the game holds its logic then.
+- One game day takes about a second. Advance a few days at a time, so each call stays short.
+- The interface is `DevHooks` in `src/app/dev-hooks.ts`.
+
+For example, send a command, then advance, then read the result:
+
+```js
+const { client, advance } = window.farHollow;
+client.send({ type: "walkTo", x: 10, z: 4 });
+advance(30);
+client.getView().playerPosition;
+```
+
+`e2e/advance.spec.ts` does the same from Playwright, after a real click.
+
+For logic with no input or HUD part, write a `bun test` instead. `createGame({ seed: 42 })` and `game.step()` run the game with no browser. See `src/sim/bed.test.ts`.
+
 Open the game with these address options:
 
 - `?seed=42` starts a new, unsaved game in a fixed valley, so every run is the same.
@@ -26,7 +49,7 @@ Open the game with these address options:
 1. Reproduce it in state: send the commands, then read `getView()` and confirm the result is wrong.
 2. If the bug is in input or the HUD, click the real control once. Then read state again to see whether the click reached the game.
 3. Take one screenshot only when the bug is visual.
-4. Write the reproduction as a Playwright test in `e2e/`, following `e2e/walk.spec.ts`, so the bug stays fixed. Run it with `bun run test:e2e`.
+4. Write the reproduction as a Playwright test in `e2e/`, following `e2e/advance.spec.ts`, so the bug stays fixed. Use `advance` instead of polling while time passes. Run it with `bun run test:e2e`.
 
 ## Take a screenshot
 

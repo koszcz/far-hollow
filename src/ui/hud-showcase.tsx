@@ -191,6 +191,23 @@ const STONE_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
+/** The draft "clay" asset, over the last view only: clay in the backpack while digging one, beside a pile of clay. */
+const CLAY_STATES: readonly (ShowcaseState | null)[] = [
+  null,
+  null,
+  null,
+  {
+    view: {
+      ...BASE_VIEW,
+      backpack: { clay: 3, stone: 2, axe: 1, knife: 1 },
+      action: { kind: "digClay", progress: 0.6 },
+      nearby: [{ kind: "pile", view: { id: 1, content: "clay", count: 12 } }],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
 /** The draft "sapling-icon" asset, over the last view only: saplings in the backpack while digging one up, beside a pile of them. */
 const SAPLING_ICON_STATES: readonly (ShowcaseState | null)[] = [
   null,
@@ -587,6 +604,7 @@ const STATES_BY_ASSET = {
   hud: STATES,
   bark: BARK_STATES,
   stone: STONE_STATES,
+  clay: CLAY_STATES,
   "sapling-icon": SAPLING_ICON_STATES,
   "berry-bush-icon": BERRY_BUSH_ICON_STATES,
   "backpack-icons": BACKPACK_ICON_STATES,
@@ -607,7 +625,7 @@ const STATES_BY_ASSET = {
   "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {

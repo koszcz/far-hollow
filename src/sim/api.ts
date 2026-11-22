@@ -213,6 +213,12 @@ export type Command =
    * It is refused when one more stone does not fit in the backpack.
    */
   | ({ type: "gatherStone" } & GroundPoint)
+  /**
+   * Walk the player into reach of a spot on the river bank or in the river, given in metres, and dig one clay there by hand.
+   * It takes 6 seconds of work and needs no tool. Clay never runs out. Nothing happens for a spot off the river bank.
+   * It is refused when one more clay does not fit in the backpack.
+   */
+  | ({ type: "digClay" } & GroundPoint)
   /** Walk the player to the riverbank nearest them and fill the empty pot with river water. */
   | { type: "fillPot" }
   /** Drink the water in the full pot. Clean water fills thirst safely. Unboiled river water makes the player sick. */
@@ -795,7 +801,7 @@ export type ThingInReach =
  */
 export type ScenePick =
   | { kind: "structure"; id: number; structure: StructureKind; under: GroundOrThingPick | undefined }
-  /** Open ground. `riverBank` is true on river bank ground, where the player can gather stone. */
+  /** Open ground. `riverBank` is true on river bank ground, where the player can gather stone and dig clay. */
   | { kind: "ground"; spot: GroundPoint; riverBank?: true }
   | { kind: "river"; spot: GroundPoint }
   | ThingInReach;
@@ -816,9 +822,9 @@ export type ThingView =
 export interface PlayerAction {
   /**
    * Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting,
-   * fishing, gathering stone, digging up a sapling, planting one, or planting a mushroom on a log.
+   * fishing, gathering stone, digging clay, digging up a sapling, planting one, or planting a mushroom on a log.
    */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digUp" | "plant" | "plantMushroom";
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digClay" | "digUp" | "plant" | "plantMushroom";
   /** How far along the work is, from 0 to 1. While fishing, how far through the wait for the next fish. */
   readonly progress: number;
 }

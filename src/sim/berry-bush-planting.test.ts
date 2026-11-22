@@ -6,7 +6,7 @@ import type { GroundPoint } from "./ground-point";
 import { createNeeds } from "./needs";
 import { DIG_UP_SECONDS } from "./digging-up";
 import { BERRY_BUSHES_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { isRiverBank } from "./stone";
+import { isRiverBank } from "./river-bank-work";
 import { finishReach } from "./test-steps";
 
 describe("digging up a berry bush", () => {

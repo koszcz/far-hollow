@@ -6,7 +6,7 @@ import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
-import { isRiverBank } from "../sim/stone";
+import { isRiverBank } from "../sim/river-bank-work";
 import { copyToward, groundDistance, headingToward, type GroundPoint } from "../sim/ground-point";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
@@ -352,9 +352,11 @@ export function createSceneRenderer(
     // Debarking pulls a drawknife along the log. The player stands off its end, so facing its middle faces along it.
     playerMesh.setMotion("debarking-animation", activity?.kind === "debark" ? nowSeconds : undefined);
     // Gathering stone crouches at the water's edge and lifts a stone, facing the spot clicked, unless the player stands on it.
-    const stoneTask = activity?.kind === "gatherStone" ? player.stoneTask : undefined;
-    playerMesh.setMotion("gather-stone-animation", stoneTask === undefined ? undefined : nowSeconds);
-    if (stoneTask !== undefined && groundDistance(playerDrawn, stoneTask) > STAND_ON_SPOT_METRES) playerMesh.setHeading(headingToward(playerDrawn, stoneTask));
+    // Digging clay plays the same motion with a lump of clay.
+    const bankTask = activity?.kind === "gatherStone" ? player.stoneTask : activity?.kind === "digClay" ? player.clayTask : undefined;
+    const lifts = activity?.kind === "digClay" ? "clay" : "stone";
+    playerMesh.setMotion("gather-stone-animation", bankTask === undefined ? undefined : { seconds: nowSeconds, lifts });
+    if (bankTask !== undefined && groundDistance(playerDrawn, bankTask) > STAND_ON_SPOT_METRES) playerMesh.setHeading(headingToward(playerDrawn, bankTask));
     // Fishing casts the line out over the water, waits, and reels a fish in, facing the spot on the river.
     const fishTask = activity?.kind === "fish" ? player.fishTask : undefined;
     if (fishTask === undefined) castDrawn = undefined;

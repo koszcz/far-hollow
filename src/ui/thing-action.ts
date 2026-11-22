@@ -12,6 +12,7 @@ export type ActionId =
   | "drink"
   | "fish"
   | "gatherStone"
+  | "digClay"
   | "digUp"
   | "chop"
   | "pickUp"

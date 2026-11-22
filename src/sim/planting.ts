@@ -19,7 +19,7 @@ import {
 } from "./entities";
 import { isBerryBush } from "./foraging";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { isRiverBank } from "./stone";
+import { isRiverBank } from "./river-bank-work";
 import { isInRect, widenRect } from "./structure-kind";
 import { footprintOfEntity, placedStructures } from "./structures";
 import { startOfStage } from "./tree-growth";

@@ -614,6 +614,7 @@ const actionLabels = {
   craft: strings.crafting,
   fish: strings.fishing,
   gatherStone: strings.gatheringStone,
+  digClay: strings.diggingClay,
   digUp: strings.diggingUp,
   plant: strings.planting,
   plantMushroom: strings.plantingMushroom,
@@ -629,6 +630,8 @@ const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
   fish: "droplet",
   // Stone comes from the river bank, so its meter shows the river's droplet, as fishing does.
   gatherStone: "droplet",
+  // Clay comes from the river bank too.
+  digClay: "droplet",
   // A dug-up sapling goes in the backpack.
   digUp: "backpack",
   // A planted sapling comes out of the backpack.

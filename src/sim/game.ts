@@ -59,6 +59,7 @@ import { createDrinking, drinkingRules } from "./drinking";
 import { createFishing, fishingRules } from "./fishing";
 import type { CommandRule, CommandRules, RuleGame } from "./command-rule";
 import { createStoneGathering, stoneRules } from "./stone";
+import { clayRules, createClayDigging } from "./clay";
 import { createTorches, torchRules } from "./torches";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
@@ -180,6 +181,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   });
   const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
+  const clayDigging = createClayDigging(entities, walking.walkMap, valley);
   const diggingUp = createDiggingUp(entities);
   const planting = createPlanting(entities, walking.walkMap, valley);
   const mushroomLogs = createMushroomLogs(entities);
@@ -209,6 +211,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     stools,
     fishing,
     stoneGathering,
+    clayDigging,
     diggingUp,
     planting,
     mushroomLogs,
@@ -437,6 +440,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...stoneRules(stoneGathering),
+    ...clayRules(clayDigging),
   };
 
   /**

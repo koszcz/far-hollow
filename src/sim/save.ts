@@ -71,6 +71,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addMushroomLogs,
   addRainBarrels,
   plantBerryBushes,
+  addClay,
 ];
 
 /** The version of the save format this code writes. */
@@ -164,6 +165,8 @@ export const MUSHROOM_LOGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addMushroomLogs)
 export const RAIN_BARRELS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRainBarrels) + 2;
 /** The first save version in which the player can dig up and plant berry bushes. */
 export const BERRY_BUSHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantBerryBushes) + 2;
+/** The first save version that can hold clay. */
+export const CLAY_SAVE_VERSION = SAVE_UPGRADES.indexOf(addClay) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -879,4 +882,9 @@ function plantBerryBushes(save: Readonly<Record<string, unknown>>): Record<strin
     return { ...(entity as object), components: upgraded };
   });
   return { ...save, entities };
+}
+
+/** Version 50 to 51: the player can dig clay. A save from before then holds none, so it carries over unchanged. */
+function addClay(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

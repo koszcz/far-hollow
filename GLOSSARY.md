@@ -199,6 +199,22 @@ _Avoid_: Context panel, window, popup
 To gather wild food, such as berries and mushrooms, by hand.
 _Avoid_: Harvest, pick
 
+**Plant**:
+To put a sapling or berry bush in the ground, or a mushroom on a log, so that it grows.
+_Avoid_: Sow, seed, inoculate
+
+**Berry bush**:
+A bush that bears berries. The player forages its berries, and it bears again 3 days later. Wild berry bushes grow near trees. The player can dig one up into the backpack and plant it elsewhere. A planted bush bears its first berries 2 days later. A berry bush does not block walking.
+_Avoid_: Shrub, berry plant
+
+**Mushroom patch**:
+A small group of wild mushrooms growing near a tree's trunk. The player forages its mushrooms, and it grows back 3 days later. The player cannot dig it up.
+_Avoid_: Mushroom spot, fungus
+
+**Mushroom log**:
+A log on the ground that the player has planted a mushroom on. It bears its first mushrooms 2 days later and grows them back 3 days after each forage. It stays where it lies for good. The player cannot pick it up or build with it.
+_Avoid_: Mushroom bed, fungus log
+
 **Raw fish**:
 A fish the player catches at the river with the fishing rod or takes from a fish trap. It is food the player carries in the backpack. Eating it raw makes the player sick.
 _Avoid_: Trout, catch

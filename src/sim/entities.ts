@@ -12,6 +12,7 @@ import type { Rain } from "./rain";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
 import type { BurnTime } from "./burn-time";
+import type { TrapCatch } from "./trap-catch";
 import type { TreeGrowth } from "./tree-growth";
 import type { DeliveredMaterial, EdgePieceKind, FurnitureKind, GroundRect, KeptMaterial, StructureKind, WorkStationKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
@@ -282,6 +283,11 @@ export interface Entity {
    * on the ground or on a foundation. It does not block walking.
    */
   plantedTorch?: BurnTime;
+  /**
+   * Marks a fish trap set in the river's water, with whether it holds a fish and how long until it catches the next one.
+   * Its position is the spot in the water just inside the edge, where it sits. It does not block walking. See fish-traps.ts.
+   */
+  fishTrap?: TrapCatch;
   /** The full pot sitting on this campfire. Only campfires have one. */
   potOnFire?: PotOnFire;
   /** The fish on this campfire, raw or cooked, in the order they went on. Only campfires have them. Missing when it holds none. */
@@ -491,6 +497,11 @@ export function campfireEntities(store: EntityStore) {
 /** Lit torches planted in the ground or on a foundation. */
 export function plantedTorchEntities(store: EntityStore) {
   return store.with("plantedTorch", "position");
+}
+
+/** Fish traps set in the river's water. */
+export function fishTrapEntities(store: EntityStore) {
+  return store.with("fishTrap", "position");
 }
 
 /** Bedrolls laid out on the ground. */

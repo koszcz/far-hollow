@@ -87,6 +87,10 @@ export const SAW_CRAFT_SECONDS = 5;
 export const FISHING_ROD_CRAFT_SECONDS = 5;
 /** How long crafting a torch takes, in seconds. */
 export const TORCH_CRAFT_SECONDS = 4;
+/** How long twisting bark into cord takes, in seconds. */
+export const CORD_CRAFT_SECONDS = 4;
+/** How long making a fish trap takes, in seconds. */
+export const FISH_TRAP_CRAFT_SECONDS = 8;
 /** How long cutting a debarked log into planks takes, in seconds. */
 export const PLANKS_CRAFT_SECONDS = 8;
 /** How many planks one debarked log makes. */
@@ -142,6 +146,24 @@ const RECIPE_BY_KIND: { readonly [Kind in RecipeKind]: Recipe & { readonly kind:
     ],
     result: { content: "torch", count: 1 },
     seconds: TORCH_CRAFT_SECONDS,
+  },
+  // Cord: a hand recipe that twists strips of bark into a strong string. It needs no tool.
+  cord: {
+    kind: "cord",
+    materials: [{ material: "bark", count: 3 }],
+    result: { content: "cord", count: 1 },
+    seconds: CORD_CRAFT_SECONDS,
+  },
+  // The fish trap: a hand recipe that ties sticks with cord into a cone basket. The knife cuts and trims the sticks.
+  fishTrap: {
+    kind: "fishTrap",
+    materials: [
+      { material: "cord", count: 2 },
+      { material: "stick", count: 6 },
+    ],
+    result: { content: "fishTrap", count: 1 },
+    seconds: FISH_TRAP_CRAFT_SECONDS,
+    tool: "knife",
   },
 };
 

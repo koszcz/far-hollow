@@ -157,6 +157,21 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The draft "fish-trap-icons". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with cord and a fish trap in the
+  // backpack, and their recipes in the craft menu.
+  "fish-trap-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: cord and fish trap in the craft menu", yaw: 20, pitch: 35 },
+      { label: "HUD: cord and a fish trap in the backpack", yaw: -20, pitch: 35 },
+      { label: "HUD: in the backpack, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "Icons, large", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.
   hud: {
     radius: 6,

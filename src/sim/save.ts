@@ -73,6 +73,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   plantBerryBushes,
   renameMushroomLogRefusal,
   addClay,
+  addFishTraps,
 ];
 
 /** The version of the save format this code writes. */
@@ -170,6 +171,8 @@ export const BERRY_BUSHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantBerryBushes)
 export const MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameMushroomLogRefusal) + 2;
 /** The first save version that can hold clay. */
 export const CLAY_SAVE_VERSION = SAVE_UPGRADES.indexOf(addClay) + 2;
+/** The first save version that can hold cord and fish traps, in the backpack and set in the river. */
+export const FISH_TRAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFishTraps) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -899,5 +902,10 @@ function renameMushroomLogRefusal(save: Readonly<Record<string, unknown>>): Reco
 
 /** Version 51 to 52: the player can dig clay. A save from before then holds none, so it carries over unchanged. */
 function addClay(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 52 to 53: the player can twist cord and set fish traps. A save from before then holds none, so it carries over unchanged. */
+function addFishTraps(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

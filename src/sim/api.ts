@@ -208,6 +208,23 @@ export type Command =
    */
   | ({ type: "fish" } & GroundPoint)
   /**
+   * Walk the player to the river bank nearest a spot on the river, given in metres, and set a fish trap from the backpack in the
+   * water at the edge on their side, at the point nearest the spot. It is a quick reach, not timed work. A set trap catches one
+   * fish 6 to 12 game hours later and holds it until the player takes it. It is refused without a fish trap in the backpack,
+   * while the player carries a log, or less than FISH_TRAP_SPACING_METRES from another set trap.
+   */
+  | ({ type: "setFishTrap" } & GroundPoint)
+  /**
+   * Walk the player to the bank beside a set fish trap, given by its entity id, and put the fish it holds in the backpack.
+   * It needs no tool, and the trap stays set. It is refused while the trap holds no fish, or when the fish does not fit.
+   */
+  | { type: "takeFishFromTrap"; trapId: number }
+  /**
+   * Walk the player to the bank beside a set fish trap, given by its entity id, and put the trap back in the backpack.
+   * It is refused while the trap holds a fish, or when the trap does not fit in the backpack.
+   */
+  | { type: "pickUpFishTrap"; trapId: number }
+  /**
    * Walk the player into reach of a spot on the river bank or in the river, given in metres, and gather one stone there.
    * It takes 4 seconds of work and needs no tool. Stone never runs out. Nothing happens for a spot off the river bank.
    * It is refused when one more stone does not fit in the backpack.
@@ -606,6 +623,9 @@ export type Refusal =
  * - `mushroomLogInTheWay`: a blueprint would cover a mushroom log.
  * - `barrelEmpty`: the rain barrel holds no drink.
  * - `noEmptyPot`: the backpack holds no empty pot to fill.
+ * - `noFishTrap`: the backpack holds no fish trap to set.
+ * - `fishTrapTooClose`: another set fish trap is too close to set one here.
+ * - `takeFishFirst`: the fish trap holds a fish, so it cannot be picked up.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -647,7 +667,10 @@ export type PlainRefusal =
   | "needsPlainLog"
   | "mushroomLogInTheWay"
   | "barrelEmpty"
-  | "noEmptyPot";
+  | "noEmptyPot"
+  | "noFishTrap"
+  | "fishTrapTooClose"
+  | "takeFishFirst";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -786,7 +809,8 @@ export type ThingInReach =
         | "bedroll"
         | "pile"
         | "sled"
-        | "plantedTorch";
+        | "plantedTorch"
+        | "fishTrap";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind }
@@ -817,6 +841,8 @@ export type ThingView =
   | { readonly kind: "structure"; readonly structure: StructureKind }
   | { readonly kind: "forage"; readonly food: WildFood }
   | { readonly kind: "pile"; readonly content: BackpackContent }
+  /** A set fish trap, with whether it holds a fish. */
+  | { readonly kind: "fishTrap"; readonly holdsFish: boolean }
   | { readonly kind: "tree" | "sapling" | "stump" | "log" | "debarkedLog" | "stick" | "bark" | "bedroll" };
 
 export interface PlayerAction {

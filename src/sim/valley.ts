@@ -355,6 +355,33 @@ export function nearestRiverPoint(river: River, point: GroundPoint): GroundPoint
   return best;
 }
 
+/**
+ * The spot in the water `inset` metres inside the river's edge, on the same side of the river as `side`, across from the
+ * spot on the river's middle line nearest `spot`.
+ */
+export function riverEdgeSpot(river: River, spot: GroundPoint, side: GroundPoint, inset: number): GroundPoint {
+  let middle = river.path[0] ?? spot;
+  let across = { x: 1, z: 0 };
+  let bestDistance = Infinity;
+  for (let i = 1; i < river.path.length; i += 1) {
+    const a = river.path[i - 1];
+    const b = river.path[i];
+    if (a === undefined || b === undefined) continue;
+    const nearest = nearestOnSegment(spot, a, b);
+    const distance = groundDistance(spot, nearest);
+    if (distance >= bestDistance) continue;
+    bestDistance = distance;
+    middle = nearest;
+    const length = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    // A line square to the river's flow at this stretch.
+    across = { x: -(b.z - a.z) / length, z: (b.x - a.x) / length };
+  }
+  const towardSide = (side.x - middle.x) * across.x + (side.z - middle.z) * across.z;
+  const sign = towardSide < 0 ? -1 : 1;
+  const out = river.width / 2 - inset;
+  return { x: middle.x + across.x * out * sign, z: middle.z + across.z * out * sign };
+}
+
 /** Shortest distance from a spot to the straight line between a and b. */
 export function distanceToSegment(point: GroundPoint, a: GroundPoint, b: GroundPoint): number {
   return groundDistance(point, nearestOnSegment(point, a, b));

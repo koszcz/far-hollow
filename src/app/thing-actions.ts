@@ -181,6 +181,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([offer("pickUp", strings.actions.pickUp, { hud: "backpack" }, { type: "pickUpPile", pileId: pick.id })], "pickUp");
     case "plantedTorch":
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
+    case "fishTrap":
+      return fishTrapActions(pick.id, context);
     case "forage":
       return forageActions(pick.id, context);
     case "mushroomLog":
@@ -279,7 +281,19 @@ function riverBankOffers({ x, z }: { readonly x: number; readonly z: number }, {
 }
 
 /**
- * Drink, fill the empty pot, fish, gather stone, then dig clay. Drinking is the main action.
+ * Take fish, then pick the trap up. Taking the fish is the main action while the trap holds one, and picking it up while it does not.
+ * Take fish shows only while the trap holds a fish.
+ */
+function fishTrapActions(trapId: number, { reader, offer }: Context): readonly ThingAction[] {
+  const pickUp = offer("pickUp", strings.actions.pickUp, { content: "fishTrap" }, { type: "pickUpFishTrap", trapId });
+  const thing = reader.describeThing(trapId);
+  if (thing?.kind !== "fishTrap" || !thing.holdsFish) return withMain([pickUp], "pickUp");
+  const takeFish = offer("takeFish", strings.actions.takeFish, { content: "rawFish" }, { type: "takeFishFromTrap", trapId });
+  return withMain([takeFish, pickUp], "takeFish");
+}
+
+/**
+ * Drink, fill the empty pot, fish, set a fish trap, gather stone, then dig clay. Drinking is the main action.
  * Filling the pot shows only when the backpack holds the empty pot.
  */
 function riverActions({ x, z }: { readonly x: number; readonly z: number }, context: Context): readonly ThingAction[] {
@@ -290,6 +304,7 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, cont
       offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
       ...fillPot,
       offer("fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
+      offer("setFishTrap", strings.actions.setFishTrap, { content: "fishTrap" }, { type: "setFishTrap", x, z }),
       ...riverBankOffers({ x, z }, context),
     ],
     "drink",

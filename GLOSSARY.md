@@ -408,7 +408,11 @@ _Avoid_: Quest, objective, task, achievement
 ## Weather and time
 
 **Rain**:
-The only weather in the valley. Being out in the rain without a roof overhead drains the player's warmth.
+The only weather that affects the player. Being out in the rain without a roof overhead drains the player's warmth.
+
+**Wind**:
+The breeze that sways plants and treetops. It blows harder in the rain. It never affects the player or the camp.
+_Avoid_: Breeze, gust
 
 **Day**:
 One full cycle of daylight and night in the valley.

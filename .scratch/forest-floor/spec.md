@@ -11,7 +11,13 @@ Terms in **bold** are defined in `GLOSSARY.md`. The `game design spec` in `.scra
 - A clearing is open ground away from trees. It is brighter grass.
 - A river bank is the sloped strip beside the river's water. It is mud and pebbles.
 - Each ground type blends softly into the next. No hard edges.
-- Ground types are fixed when the valley is made. They come from where trees stand at the start and where the river runs. Felling trees does not change them.
+- When the valley is made, ground types come from where trees stand and where the river runs.
+- After that, the ground follows the trees that stand for good:
+  - Where no tree, stump, or sapling is left, forest floor slowly turns into clearing. This happens where the player digs up a sapling.
+  - A stump that is growing back still counts as a tree. Felling a tree alone does not change the ground.
+  - Around a planted tree that has become a full tree, clearing slowly turns into forest floor. Saplings and young trees do not change the ground.
+  - Each change takes 3 game days.
+- The river bank never changes.
 
 ## Undergrowth
 
@@ -28,6 +34,14 @@ Terms in **bold** are defined in `GLOSSARY.md`. The `game design spec` in `.scra
 
 - Undergrowth draws only within about 80 m of where the camera looks. It fades out at that edge, so it never pops in.
 - Undergrowth hides under anything the player places: campfires, bedrolls, building pieces, and blueprints.
+- When the ground type changes, the undergrowth changes with it. Ferns thin out as grass and flowers move in, or the reverse.
+
+## Wind
+
+- **Wind** sways grass, ferns, flowers, saplings, young trees, and treetops. Tree trunks, pebbles, stumps, sticks, and berry bushes stay still.
+- The wind is a gentle breeze with slow gusts. It blows harder in the rain. It does not follow the time of day.
+- The wind blows the same way across the whole valley. Its direction drifts slowly over game hours. The same seed always gives the same wind.
+- Wind is only for looks. It is not saved. It does not affect the player, the camp, or the campfire's smoke.
 
 ## Assets
 
@@ -43,9 +57,9 @@ All new assets go in as drafts. The owner approves or changes them later with th
 
 The owner approved copying these Kenney files into `public/assets/<id>/` as drafts on 2026-11-11.
 
-## Later
+The owner approved adding sway to the approved `trees` asset in chat on 2026-11-22.
 
-These ideas are in the backlog. They are not part of this feature.
+## Not part of this feature
 
-- Felled ground slowly turns into a clearing. See ticket 04.
-- Undergrowth and trees sway in the wind. See ticket 05.
+- Birds, fireflies, and other animals. See `.scratch/valley-life/issues/01-birds-and-fireflies.md`.
+- Berry bushes swaying in the wind.

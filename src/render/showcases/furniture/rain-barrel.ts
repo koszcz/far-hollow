@@ -1,4 +1,4 @@
-// The showcase of the draft "rain-barrel" asset: a blueprint being built, then three finished barrels side by side,
+// The showcase of the approved "rain-barrel" asset: a blueprint being built, then three finished barrels side by side,
 // empty, holding 3 of its 6 drinks, and full.
 import { BUILD_FADE_SHARE } from "../../structure-look";
 import { RAIN_BARREL_MODEL_STAGES } from "../../rain-barrel-meshes";

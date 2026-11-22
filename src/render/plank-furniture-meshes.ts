@@ -25,14 +25,18 @@ const PLANK_SHADES = [1, 0.9, 1.05, 0.94, 0.86, 1.02, 0.97, 0.91];
 /**
  * One box-shaped part: its size, the middle of it, both in metres in the piece's own space, and its colour if it is not plank wood.
  * `tilt` turns the part about the front-to-back axis, in radians, for a slanted part such as a brace.
+ * `lean` turns the part about its own left-to-right axis, in radians, before `turn`. A positive lean tips its top toward its front.
  * `turn` turns the part about the vertical axis, in radians, for a part set round a circle such as a barrel stave.
+ * `shade` sets how dark or light a plank part is, as a share of the wood colour. Without it, each plank takes the next shade in turn.
  */
 export interface FurniturePart {
   readonly size: [number, number, number];
   readonly at: [number, number, number];
   readonly colour?: number;
   readonly tilt?: number;
+  readonly lean?: number;
   readonly turn?: number;
+  readonly shade?: number;
 }
 
 /** What a piece of furniture looks like. */
@@ -81,10 +85,10 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
   const stageCount = model.stages.length;
   let shadeIndex = 0;
   const geometries = model.stages.map((parts) =>
-    parts.map(({ size, colour }) => {
+    parts.map(({ size, colour, shade: ownShade }) => {
       const geometry = new THREE.BoxGeometry(...size);
       // Plank wood varies a little from plank to plank, so the planks read apart. Other parts keep their own colour.
-      const shade = colour === undefined ? (PLANK_SHADES[shadeIndex++ % PLANK_SHADES.length] ?? 1) : 1;
+      const shade = ownShade ?? (colour === undefined ? (PLANK_SHADES[shadeIndex++ % PLANK_SHADES.length] ?? 1) : 1);
       const count = geometry.getAttribute("position").count;
       geometry.setAttribute("color", new THREE.Float32BufferAttribute(new Array<number>(count * 3).fill(shade), 3));
       return geometry;
@@ -120,11 +124,12 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
         copy.transparent = true;
         return copy;
       });
-      const meshes = parts.map(({ at, tilt, turn }, i) => {
+      const meshes = parts.map(({ at, tilt, lean, turn }, i) => {
         const mesh = new THREE.Mesh(geometries[stageIndex]?.[i], blueprintMaterial);
         mesh.position.set(...at);
-        mesh.rotation.y = turn ?? 0;
-        mesh.rotation.z = tilt ?? 0;
+        // Turn last, so a lean tips the part toward its own front wherever it is turned.
+        mesh.rotation.order = "YXZ";
+        mesh.rotation.set(lean ?? 0, turn ?? 0, tilt ?? 0);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         stageRoot.add(mesh);

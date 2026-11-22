@@ -424,11 +424,11 @@ A jug the player has shaped by hand from 2 clay but not yet fired. Shaping it ne
 _Avoid_: Raw jug, green jug
 
 **Fire** (verb):
-To harden an unfired jug on a lit campfire or fireplace until it becomes a jug. Firing takes 20 game minutes. If the fire goes out, the jug keeps its progress, and firing carries on when the fire is lit again. A campfire or fireplace fires one jug at a time.
+To harden an unfired jug on a lit campfire or fireplace until it becomes a jug. Firing takes 20 game minutes. If the fire goes out, the jug keeps its progress, and firing carries on when the fire is lit again. A campfire or fireplace fires one jug at a time, beside the pot and the fish. Taking an unfired jug off early sets its progress back to zero. A fired jug can stay on the fire for as long as the player likes, and the player takes it off by hand into the backpack.
 _Avoid_: Bake, kiln
 
 **Jug**:
-A fired clay vessel that holds up to 3 drinks of clean water. The player fills it by pouring in a pot of clean water, one drink per pour, so a jug never holds unsafe water. Each drink fills thirst completely. A jug never breaks, and a dropped jug keeps its water.
+A fired clay vessel that holds up to 3 drinks of clean water. The player fills it by pouring in a pot of clean water, one drink per pour, so a jug never holds unsafe water. Each drink fills thirst completely. An empty jug weighs 1 kg. A jug never breaks, and a dropped jug keeps its water.
 _Avoid_: Pot, crock, bottle, flask
 
 **Torch**:

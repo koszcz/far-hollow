@@ -24,6 +24,8 @@ export type ActionId =
   | "takePotOff"
   | "cookFish"
   | "takeFishOff"
+  | "fireJug"
+  | "takeJugOff"
   | `stack:${WoodpileWood}`
   | "stack:firewood:all"
   | `take:${WoodpileWood}`

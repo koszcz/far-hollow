@@ -117,6 +117,40 @@ describe("a campfire's actions", () => {
     });
   });
 
+  it("offers to fire a jug only while the backpack holds an unfired jug, greyed with the reason on an unlit fire", () => {
+    const lit = { lit: true, fuelMinutes: 60 };
+    const fireJug = (setup: Setup) => {
+      const world = worldWith(setup);
+      return { world, action: find(actionsFor(scene("campfire", world.campfire), world.reader), "fireJug") };
+    };
+
+    const { world, action } = fireJug({ backpack: { unfiredJug: 1 }, campfire: lit });
+    expect(action).toMatchObject({
+      enabled: true,
+      label: "Fire jug",
+      icon: { content: "unfiredJug" },
+      command: { type: "fireJug", campfireId: world.campfire },
+    });
+    expect(fireJug({ backpack: { unfiredJug: 1 }, campfire: {} }).action?.reason).toBe("light the fire first");
+    expect(fireJug({ backpack: { jug: 1 }, campfire: lit }).action).toBeUndefined();
+    expect(fireJug({ backpack: { unfiredJug: 1 }, campfire: { ...lit, jug: false } }).action).toBeUndefined();
+  });
+
+  it("takes a jug off only when one is on the fire, after the fish", () => {
+    const lit = { lit: true, fuelMinutes: 60 };
+    const jugOn = worldWith({ backpack: { unfiredJug: 1 }, campfire: { ...lit, jug: true } });
+    const actions = actionsFor(scene("campfire", jugOn.campfire), jugOn.reader);
+
+    expect(summary(actions).slice(-3)).toEqual(["cookFish off: no raw fish", "takeJugOff", "takeDown off: take the jug off first"]);
+    expect(find(actions, "takeJugOff")).toMatchObject({
+      label: "Take jug off",
+      icon: { content: "jug" },
+      command: { type: "takeJugOff", campfireId: jugOn.campfire },
+    });
+    const unfiredOn = worldWith({ campfire: { ...lit, jug: false } });
+    expect(find(actionsFor(scene("campfire", unfiredOn.campfire), unfiredOn.reader), "takeJugOff")?.icon).toEqual({ content: "unfiredJug" });
+  });
+
   it("offers a fireplace's fire the same way, clicked or reached with E, and greys taking it down while it holds fuel", () => {
     const world = worldWith({ backpack: { steelAndFlint: 1, stick: 2 } });
     const fireplace = world.add({ fireplace: { lit: false, fuelMinutes: 40 }, facing: { turns: 0 } });

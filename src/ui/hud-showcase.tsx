@@ -7,7 +7,7 @@ import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
 import { LIT_TORCH_DRAWING, TORCH_DRAWING } from "./torch-icons";
-import { UNFIRED_JUG_DRAWING } from "./jug-icons";
+import { JUG_DRAWING, UNFIRED_JUG_DRAWING } from "./jug-icons";
 import { Hud } from "./hud";
 
 const BASE_VIEW: GameView = {
@@ -101,6 +101,7 @@ const STATES: readonly ShowcaseState[] = [
             fuelLeft: 0.6,
             fuelMinutes: 90,
             pot: null,
+            jug: null,
             fish: [],
           },
         },
@@ -149,6 +150,7 @@ const BARK_STATES: readonly ShowcaseState[] = [
             fuelLeft: 0.3,
             fuelMinutes: 40,
             pot: null,
+            jug: null,
             fish: [],
           },
         },
@@ -209,7 +211,7 @@ const CLAY_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
-/** The draft "jug" asset, over the last view only: unfired jugs in the backpack, beside a pile of them. */
+/** The draft "jug" asset, over the last view only: jugs in the backpack, beside a campfire firing a jug. */
 const JUG_STATES: readonly (ShowcaseState | null)[] = [
   null,
   null,
@@ -217,8 +219,22 @@ const JUG_STATES: readonly (ShowcaseState | null)[] = [
   {
     view: {
       ...BASE_VIEW,
-      backpack: { unfiredJug: 2, clay: 1, axe: 1, knife: 1 },
-      nearby: [{ kind: "pile", view: { id: 1, content: "unfiredJug", count: 12 } }],
+      backpack: { unfiredJug: 2, jug: 1, clay: 1, axe: 1, knife: 1 },
+      nearby: [
+        {
+          kind: "campfire",
+          view: {
+            id: 1,
+            kind: "campfire",
+            lit: true,
+            fuelLeft: 0.8,
+            fuelMinutes: 380,
+            pot: { water: "river", boilProgress: 0.4 },
+            fish: [{ cooked: false, cookProgress: 0.5 }],
+            jug: { fired: false, fireProgress: 0.5 },
+          },
+        },
+      ],
     },
     buildMenuOpen: false,
     placing: null,
@@ -234,8 +250,8 @@ const UNFIRED_JUG_RECIPE: GameView["craftMenu"][number] = {
 };
 
 /**
- * The draft "jug-icons" asset: the unfired jug recipe in the craft menu, the icon drawn large, shaping a jug under way,
- * and unfired jugs in the backpack. Clay ticket 03 adds the jug's icons.
+ * The draft "jug-icons" asset: the unfired jug recipe in the craft menu, the icons drawn large, shaping a jug under way,
+ * and unfired and empty jugs in the backpack. Clay ticket 04 adds the icons for a jug with water in it.
  */
 const JUG_ICON_STATES: readonly ShowcaseState[] = [
   {
@@ -252,7 +268,7 @@ const JUG_ICON_STATES: readonly ShowcaseState[] = [
     placing: null,
   },
   {
-    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, unfiredJug: 3, clay: 1 } },
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, unfiredJug: 3, jug: 2, clay: 1 } },
     buildMenuOpen: false,
     placing: null,
   },
@@ -420,6 +436,7 @@ const FISHING_ICON_STATES: readonly ShowcaseState[] = [
             fuelLeft: 0.5,
             fuelMinutes: 240,
             pot: null,
+            jug: null,
             fish: [
               { cooked: true, cookProgress: 1 },
               { cooked: false, cookProgress: 0.6 },
@@ -626,31 +643,40 @@ function TorchIconSheet() {
   );
 }
 
-/** The second view of "jug-icons": the unfired jug drawn large and at hotbar size, so the owner can judge the drawing. */
+/** The jug icons that the "jug-icons" icon sheet draws, with their names. */
+const JUG_SHEET_ICONS = [
+  { drawing: UNFIRED_JUG_DRAWING, name: "unfired jug" },
+  { drawing: JUG_DRAWING, name: "empty jug" },
+] as const;
+
+/** The second view of "jug-icons": each jug icon drawn large and at hotbar size, so the owner can judge the drawing. */
 function JugIconSheet() {
   return (
     <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "4px",
-          padding: "6px",
-          background: "#3d2b1e",
-          borderRadius: "6px",
-          color: "#cdb898",
-          fontSize: "11px",
-        }}
-      >
-        <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
-          <ShadedIcon drawing={UNFIRED_JUG_DRAWING} className="backpack-icon" />
-        </span>
-        <span style={{ width: "32px", height: "32px", display: "grid" }} class="showcase-big-icon">
-          <ShadedIcon drawing={UNFIRED_JUG_DRAWING} className="backpack-icon" />
-        </span>
-        unfired jug
-      </div>
+      {JUG_SHEET_ICONS.map(({ drawing, name }) => (
+        <div
+          key={name}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+            padding: "6px",
+            background: "#3d2b1e",
+            borderRadius: "6px",
+            color: "#cdb898",
+            fontSize: "11px",
+          }}
+        >
+          <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
+            <ShadedIcon drawing={drawing} className="backpack-icon" />
+          </span>
+          <span style={{ width: "32px", height: "32px", display: "grid" }} class="showcase-big-icon">
+            <ShadedIcon drawing={drawing} className="backpack-icon" />
+          </span>
+          {name}
+        </div>
+      ))}
     </div>
   );
 }

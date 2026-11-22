@@ -6,6 +6,7 @@ import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { Fire, FireKind } from "./fire";
 import type { FishOnFire } from "./fish-on-fire";
+import type { JugOnFire } from "./jug-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { FillLevel } from "./fill-level";
 import type { Rain } from "./rain";
@@ -37,7 +38,7 @@ export type ReachingFor = WildFood | "riverWater";
 
 export type TendTask =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
-  | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff"; campfireId: number }
+  | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff" | "fireJug" | "takeJugOff"; campfireId: number }
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
   | { type: "loadSled" | "tipOutSled" | "dragSled" | "loadPlanksOnSled" | "takePlanksFromSled"; sledId: number }
@@ -286,6 +287,8 @@ export interface Entity {
   potOnFire?: PotOnFire;
   /** The fish on this campfire, raw or cooked, in the order they went on. Only campfires have them. Missing when it holds none. */
   fishOnFire?: FishOnFire[];
+  /** The jug firing on this campfire or fireplace, unfired or fired. A fire holds one at a time. Missing when it holds none. */
+  jugOnFire?: JugOnFire;
   /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
   rain?: Rain;
   /** When the next sticks fall from the trees. Only one entity, the valley's stick fall, has it. */

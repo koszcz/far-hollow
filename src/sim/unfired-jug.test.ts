@@ -68,22 +68,25 @@ describe("dropping and storing unfired jugs", () => {
     expect(nearbyOf(game.client.getView(), "pile")).toBeNull();
   });
 
-  it("goes in a chest and on a shelf, and comes out again", () => {
-    for (const furniture of ["chest", "shelf"] as const) {
-      const game = createGame({ seed: 42, freeBuilding: true });
-      const pieceId = buildStoringPiece(game, furniture);
-      onlyPlayer(game).backpack.contents = { unfiredJug: 2 };
-      send(game, { type: "openChest", chestId: pieceId });
-      stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
+  // Clay ticket 03 added the empty jug, which a chest and a shelf take the same way.
+  it("goes in a chest and on a shelf, and comes out again, unfired or fired", () => {
+    for (const content of ["unfiredJug", "jug"] as const) {
+      for (const furniture of ["chest", "shelf"] as const) {
+        const game = createGame({ seed: 42, freeBuilding: true });
+        const pieceId = buildStoringPiece(game, furniture);
+        onlyPlayer(game).backpack.contents = { [content]: 2 };
+        send(game, { type: "openChest", chestId: pieceId });
+        stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
 
-      send(game, { type: "putInChest", chestId: pieceId, content: "unfiredJug", all: true });
-      finishReach(game);
-      expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ unfiredJug: 2 });
+        send(game, { type: "putInChest", chestId: pieceId, content, all: true });
+        finishReach(game);
+        expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ [content]: 2 });
 
-      send(game, { type: "takeFromChest", chestId: pieceId, content: "unfiredJug", all: false });
-      finishReach(game);
-      expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ unfiredJug: 1 });
-      expect(game.client.getView().backpack.unfiredJug).toBe(1);
+        send(game, { type: "takeFromChest", chestId: pieceId, content, all: false });
+        finishReach(game);
+        expect(nearbyOf(game.client.getView(), "openChest")?.contents).toEqual({ [content]: 1 });
+        expect(game.client.getView().backpack[content]).toBe(1);
+      }
     }
   });
 });

@@ -17,6 +17,8 @@ const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = 
   takePotOffFire: "low",
   cookFish: "low",
   takeFishOff: "low",
+  fireJug: "low",
+  takeJugOff: "low",
   stackOnWoodpile: "waist",
   takeFromWoodpile: "waist",
   loadSled: "waist",

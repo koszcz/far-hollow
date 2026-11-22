@@ -18,7 +18,7 @@ import { barkParts } from "./bark-meshes";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
 import { clayPileParts } from "./clay-shape";
-import { unfiredJugPileParts } from "./jug-shape";
+import { jugPileParts, unfiredJugPileParts } from "./jug-shape";
 import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
 import { createTorchShape } from "./torch-shape";
@@ -328,6 +328,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     clay: clayPileParts(material, track),
     // Unfired jugs stand upright. The jug is the draft "jug" asset, drawn by jug-shape.ts.
     unfiredJug: unfiredJugPileParts(material, track),
+    // Empty jugs stand upright too, in the fired look of the same draft "jug" asset.
+    jug: jugPileParts(material, track),
     // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,
     // Saplings lie on their sides, root ball and all. The shape is part of the draft "sapling-icon" asset, drawn by sapling-pile-shape.ts.
@@ -349,6 +351,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     stone: spread(0.13),
     clay: spread(0.13),
     unfiredJug: spread(0.2),
+    jug: spread(0.2),
     torch: spread(0.1),
     sapling: spread(0.2),
     berryBush: spread(0.35),

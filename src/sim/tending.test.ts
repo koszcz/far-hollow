@@ -109,6 +109,7 @@ describe("describing a campfire or woodpile by its id", () => {
       fuelMinutes: 460,
       pot: null,
       fish: [],
+      jug: null,
     });
   });
 

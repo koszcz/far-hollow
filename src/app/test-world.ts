@@ -3,6 +3,7 @@
 import type { BackpackContent, CarriedLog, StructureKind, WoodpileWood } from "../sim/api";
 import type { Entity, SledLoad } from "../sim/entities";
 import { COOK_MINUTES } from "../sim/fish-on-fire";
+import { FIRE_JUG_MINUTES } from "../sim/jug-on-fire";
 import { createGame, type Game } from "../sim/game";
 import type { PotWater } from "../sim/pot-state";
 import type { ActionReader } from "./thing-actions";
@@ -12,8 +13,17 @@ export interface Setup {
   /** Everything in the backpack. It holds nothing else, not even the starting tools. */
   readonly backpack?: Partial<Record<BackpackContent, number>>;
   readonly carrying?: CarriedLog;
-  /** A finished campfire. `pot` puts a pot of that water on it. `fish` puts a fish on it for each entry, cooked if true. */
-  readonly campfire?: { readonly lit?: boolean; readonly fuelMinutes?: number; readonly pot?: PotWater; readonly fish?: readonly boolean[] };
+  /**
+   * A finished campfire. `pot` puts a pot of that water on it. `fish` puts a fish on it for each entry, cooked if true.
+   * `jug` puts a jug on it, fired if true.
+   */
+  readonly campfire?: {
+    readonly lit?: boolean;
+    readonly fuelMinutes?: number;
+    readonly pot?: PotWater;
+    readonly fish?: readonly boolean[];
+    readonly jug?: boolean;
+  };
   /** A finished woodpile, with this much of each wood on it. */
   readonly woodpile?: Partial<Record<WoodpileWood, number>>;
   /** A finished, parked sled, with this load. */
@@ -61,6 +71,7 @@ export function worldWith(setup: Setup): World {
           campfire: { lit: campfire.lit ?? false, fuelMinutes: campfire.fuelMinutes ?? 0 },
           ...(campfire.pot === undefined ? {} : { potOnFire: { water: campfire.pot, minutesBoiling: 0 } }),
           ...(campfire.fish === undefined ? {} : { fishOnFire: campfire.fish.map((cooked) => ({ minutesCooked: cooked ? COOK_MINUTES : 0 })) }),
+          ...(campfire.jug === undefined ? {} : { jugOnFire: { minutesFired: campfire.jug ? FIRE_JUG_MINUTES : 0 } }),
         });
   const woodpileId = woodpile === undefined ? -1 : addAway({ woodpile: { log: 0, debarkedLog: 0, firewood: 0, ...woodpile } });
   const sledId = sled === undefined ? -1 : addAway({ sled: { log: 0, debarkedLog: 0, plank: 0, ...sled }, facing: { turns: 0 } });

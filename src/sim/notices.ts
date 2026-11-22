@@ -35,6 +35,7 @@ const PLAIN_NOTICE_OF: Partial<Readonly<Record<PlainRefusal, PlainNotice>>> = {
   emptyFirst: "stillHoldsSomething",
   potOnFire: "stillHoldsSomething",
   fishOnFire: "stillHoldsSomething",
+  jugOnFire: "stillHoldsSomething",
   fireNotOut: "stillHoldsSomething",
 };
 

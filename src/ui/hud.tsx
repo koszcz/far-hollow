@@ -506,9 +506,23 @@ function FishOnFireMeter({ fish }: { fish: CampfireView["fish"][number] }) {
   );
 }
 
+/** The colour of the bar that shows how far the jug on the fire has fired: the orange-brown of fired clay. */
+const FIRING_COLOUR = "#b0603c";
+
+/** The jug on a campfire: its icon, unfired or fired, and a bar for how far it has fired. */
+function JugOnFireMeter({ jug }: { jug: NonNullable<CampfireView["jug"]> }) {
+  return (
+    <label class="hud-meter" style={{ "--hud-bar": FIRING_COLOUR }}>
+      <BackpackIcon content={jug.fired ? "jug" : "unfiredJug"} />
+      <span class="hud-meter-label">{jug.fired ? strings.jugFired : strings.jugFiring}</span>
+      <progress max={1} value={jug.fireProgress} />
+    </label>
+  );
+}
+
 /**
  * Shows whether the campfire or fireplace beside the player burns, how much fuel it has, how far the pot on it has boiled,
- * and how far each fish on it has cooked. Its actions are on the campfire or fireplace itself.
+ * how far each fish on it has cooked, and how far the jug on it has fired. Its actions are on the campfire or fireplace itself.
  */
 function CampfirePanel({ campfire }: { campfire: CampfireView }) {
   const title = campfire.kind === "fireplace" ? strings.fireplace : strings.campfire;
@@ -529,6 +543,7 @@ function CampfirePanel({ campfire }: { campfire: CampfireView }) {
       {campfire.fish.map((fish, index) => (
         <FishOnFireMeter key={index} fish={fish} />
       ))}
+      {campfire.jug !== null && <JugOnFireMeter jug={campfire.jug} />}
     </section>
   );
 }

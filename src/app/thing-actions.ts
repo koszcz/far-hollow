@@ -297,12 +297,13 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, cont
 }
 
 /**
- * Light, each fuel, the pot, the fish, then Take down. Lighting shows only while the fire is out.
+ * Light, each fuel, the pot, the fish, the jug, then Take down. Lighting shows only while the fire is out.
+ * Firing a jug shows only while the backpack holds an unfired jug and no jug is on the fire. Taking the jug off shows only while one is.
  * A campfire and a fireplace offer the same actions.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
 function campfireActions(campfire: CampfireView, context: Context): readonly ThingAction[] {
-  const { offer } = context;
+  const { offer, view } = context;
   const campfireId = campfire.id;
   // The menu lists the fuels in the order a lit fire takes them.
   const fuels = CAMPFIRE_FUELS.map((fuel) => offer(`addFuel:${fuel}`, strings.actions.addFuel[fuel], { content: fuel }, { type: "addFuel", campfireId, fuel }));
@@ -314,7 +315,13 @@ function campfireActions(campfire: CampfireView, context: Context): readonly Thi
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
   const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
   const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, takeDown(context, campfireId)];
+  const jug =
+    campfire.jug !== null
+      ? [offer("takeJugOff", strings.actions.takeJugOff, { content: campfire.jug.fired ? "jug" : "unfiredJug" }, { type: "takeJugOff", campfireId })]
+      : has(view, "unfiredJug")
+        ? [offer("fireJug", strings.actions.fireJug, { content: "unfiredJug" }, { type: "fireJug", campfireId })]
+        : [];
+  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, ...jug, takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);

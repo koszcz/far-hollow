@@ -20,6 +20,7 @@ import {
 import { turnOffset, type QuarterTurns } from "../../sim/quarter-turns";
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
+import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
 import { type Stage, type Showcase } from "./types";
 import { FURNITURE_SHOWCASES } from "./furniture";
 
@@ -226,12 +227,15 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const entity of [...store.with("blueprint"), ...store.with("fireplace")]) {
         store.removeComponent(entity, "potOnFire");
         store.removeComponent(entity, "fishOnFire");
+        store.removeComponent(entity, "jugOnFire");
         if (lit) {
           store.removeComponent(entity, "blueprint");
           setComponent(store, entity, "fireplace", { lit: true, fuelMinutes: FUEL_LIMIT_MINUTES.fireplace });
           if (cooking) {
             setComponent(store, entity, "potOnFire", { water: "river", minutesBoiling: 0 });
             setComponent(store, entity, "fishOnFire", [{ minutesCooked: 0 }, { minutesCooked: COOK_MINUTES / 2 }, { minutesCooked: COOK_MINUTES }]);
+            // The draft "jug", half fired, stands beside the fish.
+            setComponent(store, entity, "jugOnFire", { minutesFired: FIRE_JUG_MINUTES / 2 });
           }
           continue;
         }

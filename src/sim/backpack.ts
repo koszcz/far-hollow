@@ -18,6 +18,7 @@ export type BackpackContent =
   | "stone"
   | "clay"
   | "unfiredJug"
+  | "jug"
   | "torch"
   | "sapling"
   | "berryBush"
@@ -74,6 +75,8 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   clay: 2,
   // An unfired jug weighs the same as the jug it becomes once fired.
   unfiredJug: 1,
+  // An empty jug. Clay ticket 04 adds the jug with water in it.
+  jug: 1,
   torch: 0.8,
   sapling: 1,
   berryBush: 1,

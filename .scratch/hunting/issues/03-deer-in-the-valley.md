@@ -2,7 +2,7 @@
 
 **What to build:** Up to 6 deer graze in the valley's clearings and wander between them. A deer that notices the player runs away. The player cannot hunt them yet. That comes in ticket 04.
 
-**Status:** needs-triage
+**Status:** deferred
 
 **Assets:** Add the drafts `deer` and `deer-animations` (graze, walk, and run).
 

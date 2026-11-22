@@ -7,6 +7,7 @@ import { addToBackpack, fitsInBackpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { goneRefusal } from "./refusals";
 import type { CommandRules } from "./command-rule";
+import { isBareStump, isSapling, isYoungTree } from "./tree-growth";
 
 /** How long the player works to dig up one sapling, in seconds. */
 export const DIG_UP_SECONDS = 4;
@@ -21,7 +22,7 @@ export function diggingUpNow(player: Entity): { progress: number; targetId: numb
 }
 
 export interface DiggingUp {
-  /** Where the approach takes the player to dig up a sapling: within reach of it. Undefined if the entity is not a growing tree. */
+  /** Where the approach takes the player to dig up a sapling: within reach of it. Undefined if the entity is not a sapling. */
   reach(saplingId: number): ApproachReach | undefined;
   /** Starts the player digging up a sapling within reach. The approach runs it once they arrive. The game calls it only once `refusal` passes. */
   start(saplingId: number): void;
@@ -46,15 +47,15 @@ export function createDiggingUp(entities: EntityStore): DiggingUp {
     const gone = goneRefusal(entities, saplingId);
     if (gone !== undefined) return gone;
     const entity = entities.entity(saplingId);
-    if (entity?.tree === true || entity?.growth?.stage === "youngTree") return { kind: "tooBigToDigUp" };
-    if (entity?.growth?.stage === "stump") return { kind: "noSaplingYet" };
+    if (entity?.tree === true || isYoungTree(entity?.growth)) return { kind: "tooBigToDigUp" };
+    if (isBareStump(entity?.growth)) return { kind: "noSaplingYet" };
     return undefined;
   }
 
   /** The sapling with this id, if it is one the player can dig up. */
   function saplingOf(saplingId: number): (Entity & { position: NonNullable<Entity["position"]> }) | undefined {
     const entity = entities.entity(saplingId);
-    if (entity?.growth?.stage !== "sapling" || entity.position === undefined) return undefined;
+    if (entity === undefined || !isSapling(entity.growth) || entity.position === undefined) return undefined;
     return entity as Entity & { position: NonNullable<Entity["position"]> };
   }
 

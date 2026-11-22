@@ -47,9 +47,9 @@ describe("a click while planting", () => {
 });
 
 describe("keys while planting", () => {
-  it("stops planting on Escape, and on B, which opens the build menu instead", () => {
+  it("stops planting on Escape", () => {
     expect(pressPlantKey("Escape")).toBe(true);
-    expect(pressPlantKey("KeyB")).toBe(true);
+    expect(pressPlantKey("KeyB")).toBe(false);
     expect(pressPlantKey("KeyE")).toBe(false);
   });
 });

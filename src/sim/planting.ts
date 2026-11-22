@@ -8,7 +8,7 @@ import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { growingTreeEntities, playerEntities, setComponent, stumpEntities, treeEntities, type Entity, type EntityStore } from "./entities";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { isRiverBank } from "./stone";
-import { isInRect } from "./structure-kind";
+import { isInRect, widenRect } from "./structure-kind";
 import { footprintOfEntity, placedStructures } from "./structures";
 import { startOfStage } from "./tree-growth";
 import { terrainHeightAt, TREE_MIN_SPACING_METRES, type Valley } from "./valley";
@@ -20,7 +20,10 @@ export const PLANT_SECONDS = 4;
 /** The player plants a sapling from this far away from its spot, in metres. */
 const PLANT_REACH_METRES = 1.5;
 
-/** A sapling keeps at least this far outside the ground any structure or blueprint covers, in metres. */
+/**
+ * A sapling keeps at least this far outside the ground any structure or blueprint covers, in metres.
+ * It is more than TREE_WALK_BLOCK_RADIUS_METRES, so the young tree it becomes never blocks walking inside a building or in its doorway.
+ */
 export const SAPLING_STRUCTURE_CLEARANCE_METRES = 1;
 
 /** How far the player is through planting a sapling, from 0 to 1, or undefined if they are not planting now. */
@@ -55,11 +58,8 @@ export function createPlanting(entities: EntityStore, walkMap: WalkMap, valley: 
     if (cellIndexAt(walkMap, spot) === undefined || isRiverBank(valley, spot)) return { kind: "notPlantableGround" };
     const trees = [...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)];
     if (trees.some((tree) => groundDistance(tree.position, spot) < TREE_MIN_SPACING_METRES)) return { kind: "tooCloseToTree" };
-    const clearance = SAPLING_STRUCTURE_CLEARANCE_METRES;
     for (const { entity } of placedStructures(entities)) {
-      const { min, max } = footprintOfEntity(entity);
-      const around = { min: { x: min.x - clearance, z: min.z - clearance }, max: { x: max.x + clearance, z: max.z + clearance } };
-      if (isInRect(around, spot)) return { kind: "tooCloseToStructure" };
+      if (isInRect(widenRect(footprintOfEntity(entity), SAPLING_STRUCTURE_CLEARANCE_METRES), spot)) return { kind: "tooCloseToStructure" };
     }
     return undefined;
   }
@@ -105,7 +105,6 @@ export function plantingRules(planting: Planting): CommandRules<"plantSapling"> 
   return {
     plantSapling: {
       start: "fresh",
-      needsFreeHands: true,
       refusal: (command) => planting.refusal(command),
       approach: {
         reach: (command) => planting.reach(command),

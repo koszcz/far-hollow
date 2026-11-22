@@ -2,7 +2,7 @@
 import type { ThingView } from "./api";
 import type { EntityStore } from "./entities";
 import { structureKindOf } from "./structures";
-import { isYoungTree } from "./tree-growth";
+import { isSapling, isYoungTree } from "./tree-growth";
 
 /** What the entity with this id is, or undefined if it is gone or is none of the kinds ThingView names. */
 export function describeThing(entities: EntityStore, id: number): ThingView | undefined {
@@ -13,7 +13,7 @@ export function describeThing(entities: EntityStore, id: number): ThingView | un
   if (entity.forageSpot !== undefined) return { kind: "forage", food: entity.forageSpot.food };
   if (entity.pile !== undefined) return { kind: "pile", content: entity.pile.content };
   if (entity.tree === true || isYoungTree(entity.growth)) return { kind: "tree" };
-  if (entity.growth?.stage === "sapling") return { kind: "sapling" };
+  if (isSapling(entity.growth)) return { kind: "sapling" };
   if (entity.stump === true) return { kind: "stump" };
   if (entity.log !== undefined) return { kind: "log" };
   if (entity.debarkedLog !== undefined) return { kind: "debarkedLog" };

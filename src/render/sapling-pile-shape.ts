@@ -2,7 +2,7 @@
 // Added by regrowth ticket 02. The pile meshes in pile-meshes.ts lay it out like other things in a pile.
 import * as THREE from "three";
 
-/** The sapling's needles, its thin stem, and the ball of earth round its roots. */
+/** The sapling's needles, its thin stem, and the ball of earth around its roots. */
 const NEEDLE_COLOUR = 0x4f8a3c;
 const STEM_COLOUR = 0x7a5434;
 const EARTH_COLOUR = 0x5e4130;

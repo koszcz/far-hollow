@@ -50,6 +50,16 @@ export function hasStump(growth: TreeGrowth): boolean {
   return growth.stage === "stump" || growth.stage === "sapling";
 }
 
+/** Whether this is a bare stump: no sapling grows from it yet. */
+export function isBareStump(growth: TreeGrowth | undefined): boolean {
+  return growth?.stage === "stump";
+}
+
+/** Whether this is a sapling, on a stump or planted. The player can dig it up. */
+export function isSapling(growth: TreeGrowth | undefined): boolean {
+  return growth?.stage === "sapling";
+}
+
 /** Whether this is a young tree: it stands like a tree, but is too young to chop. */
 export function isYoungTree(growth: TreeGrowth | undefined): boolean {
   return growth?.stage === "youngTree";

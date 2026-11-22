@@ -93,7 +93,6 @@ const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
 export const STEPS_PER_SECOND = 30;
 export const STEP_MS = 1000 / STEPS_PER_SECOND;
 
-export { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 /** Skipped time runs in slices this many game minutes long. */
 const PASS_TIME_SLICE_MINUTES = 1;
 /** A new game starts on the morning of day 1. */

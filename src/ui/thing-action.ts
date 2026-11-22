@@ -63,11 +63,19 @@ export interface ThingAction {
   readonly reason?: string;
   /** True for the main action, which tops the action menu and which E and the number keys do. At most one per list, and always first. */
   readonly isMain: boolean;
-  /** What to send. The sim walks the player there first when needed. Undefined only for UI-only actions such as "open menu" on a work station. */
+  /**
+   * What to send. The sim walks the player there first when needed. Undefined for actions the UI carries out itself:
+   * "open menu" on a work station, and planting a sapling, which sends its command only once the player clicks the ground.
+   */
   readonly command: Command | undefined;
   /**
    * True for planting a sapling from the backpack. It sends no command itself. It puts a see-through sapling under the mouse instead,
    * and a click on the ground sends the command that plants it there.
    */
   readonly startsPlanting?: true;
+}
+
+/** Whether the action menu lists an action: it sends a command, or it starts planting a sapling. */
+export function isListed({ command, startsPlanting }: ThingAction): boolean {
+  return command !== undefined || startsPlanting === true;
 }

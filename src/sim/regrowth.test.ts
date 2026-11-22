@@ -6,7 +6,7 @@ import { createGame, type Game } from "./game";
 import { createNeeds } from "./needs";
 import { readSave, REGROWTH_SAVE_VERSION, SAVE_VERSION, writeSave } from "./save";
 import { finishReach } from "./test-steps";
-import { grow, justFelled, STAGE_MINUTES, startOfStage } from "./tree-growth";
+import { grow, isBareStump, isSapling, isYoungTree, justFelled, STAGE_MINUTES, startOfStage } from "./tree-growth";
 import { logsForTreeSize, treeSizeAt } from "./tree-size";
 import { isWalkable } from "./walk-map";
 
@@ -32,6 +32,13 @@ describe("a tree's growth", () => {
     expect(grow(justFelled(), 3 * MINUTES_PER_DAY)).toEqual(startOfStage("youngTree"));
     expect(grow(justFelled(), 6 * MINUTES_PER_DAY - 1)).toEqual({ stage: "youngTree", minutesLeft: 1 });
     expect(grow(justFelled(), 6 * MINUTES_PER_DAY)).toBe("grown");
+  });
+
+  it("names each stage, and a full tree, which has no growth, as none of them", () => {
+    expect([isBareStump, isSapling, isYoungTree].map((is) => is(justFelled()))).toEqual([true, false, false]);
+    expect([isBareStump, isSapling, isYoungTree].map((is) => is(startOfStage("sapling")))).toEqual([false, true, false]);
+    expect([isBareStump, isSapling, isYoungTree].map((is) => is(startOfStage("youngTree")))).toEqual([false, false, true]);
+    expect([isBareStump, isSapling, isYoungTree].map((is) => is(undefined))).toEqual([false, false, false]);
   });
 });
 

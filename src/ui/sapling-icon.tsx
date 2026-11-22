@@ -5,7 +5,7 @@ import type { BackpackIconDrawing } from "./icon-drawing";
 /** The sapling's needles or leaves: a fresh mid green, with a darker green for the lower tier. */
 const LEAF = "#5f9a45";
 const LEAF_DARK = "#4a7d37";
-/** The thin stem and the ball of earth round the roots. */
+/** The thin stem and the ball of earth around the roots. */
 const STEM = "#7a5434";
 const EARTH = "#6b4a32";
 

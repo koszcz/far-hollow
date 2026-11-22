@@ -35,6 +35,7 @@ import { distanceToRiver, terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, groundDistance, type GroundPoint } from "./ground-point";
 import {
   isInRect,
+  widenRect,
   rectsOverlap,
   SIDES,
   turnedRect,
@@ -799,10 +800,7 @@ function isClearOfTreesAndStructures(
     ignoreFireplaces = false,
   }: { ignoreFreelyPlaced?: boolean; ignoreCabinRoofs?: boolean; ignoreRoofFrames?: boolean; ignoreFireplaces?: boolean } = {},
 ): boolean {
-  const nearTrees = {
-    min: { x: rect.min.x - TREE_CLEARANCE_METRES, z: rect.min.z - TREE_CLEARANCE_METRES },
-    max: { x: rect.max.x + TREE_CLEARANCE_METRES, z: rect.max.z + TREE_CLEARANCE_METRES },
-  };
+  const nearTrees = widenRect(rect, TREE_CLEARANCE_METRES);
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
   // A planted sapling is in the way too, since it grows into a tree where it stands. A sapling on a stump goes with its stump.
   for (const tree of growingTreeEntities(entities)) if ((isYoungTree(tree.growth) || tree.stump !== true) && isInRect(nearTrees, tree.position)) return false;

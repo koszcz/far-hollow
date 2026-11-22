@@ -22,7 +22,7 @@ import type {
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import { refusalText } from "../ui/refusal-text";
-import type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
+import { isListed, type ActionIcon, type ActionId, type ThingAction } from "../ui/thing-action";
 
 export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 
@@ -76,11 +76,6 @@ export function mainAction(actions: readonly ThingAction[]): ThingAction | undef
  */
 export function menuActions(target: ActionTarget, reader: ActionReader): readonly ThingAction[] {
   return actionsFor(target, reader).filter(isListed);
-}
-
-/** Whether the action menu lists an action: it sends a command, or it starts planting a sapling. */
-export function isListed({ command, startsPlanting }: ThingAction): boolean {
-  return command !== undefined || startsPlanting === true;
 }
 
 /** Letting go of the dragged sled, as the only and main action. */

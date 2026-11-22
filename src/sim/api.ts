@@ -694,7 +694,7 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 /**
  * A thing in the world the player can act on with E, given by its entity id, with its kind.
  * What the scene reports under the cursor is built from this type, so the app can treat both the same way.
- * A `youngTree` is a tree growing back, too young to chop. A `sapling` grows on a stump. A `stump` is a bare stump:
+ * A `youngTree` is a tree growing back, too young to chop. A `sapling` grows on a stump, or where the player planted it. A `stump` is a bare stump:
  * the player can click it, but E never reaches it, so it does not hide the logs lying beside it.
  */
 export type ThingInReach =

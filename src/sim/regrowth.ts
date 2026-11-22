@@ -3,7 +3,7 @@
 // A planted sapling starts at the sapling stage and blocks no walking until it becomes a young tree.
 import { growingTreeEntities, playerEntities, type Entity, type EntityStore } from "./entities";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { grow, hasStump, type TreeGrowth } from "./tree-growth";
+import { grow, hasStump, isSapling, type TreeGrowth } from "./tree-growth";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 import { cellCentre, cellIndexAt, type WalkMap } from "./walk-map";
 
@@ -28,22 +28,22 @@ export function createRegrowth(entities: EntityStore, walkMap: WalkMap): Regrowt
     });
   }
 
-  /**
-   * The growth a tree reaches next. A tree that blocks no walking yet, a planted sapling, starts to block it as a young tree.
-   * While the player is in the way, it holds at the very end of the sapling stage instead.
-   */
-  function heldBack(tree: Entity & { position: GroundPoint }, next: TreeGrowth | "grown"): TreeGrowth | "grown" {
-    if (tree.blocksWalking !== undefined || (next !== "grown" && next.stage === "sapling")) return next;
-    if (playerInTheWay(tree.position)) return { stage: "sapling", minutesLeft: 0 };
-    entities.addComponent(tree, "blocksWalking", { radius: TREE_WALK_BLOCK_RADIUS_METRES });
-    return next;
+  /** Whether a tree that blocks no walking yet, a planted sapling, would start to block it on reaching `next`, as a young tree. */
+  function startsBlocking(tree: Entity, next: TreeGrowth | "grown"): boolean {
+    return tree.blocksWalking === undefined && (next === "grown" || !isSapling(next));
+  }
+
+  /** The growth a tree reaches next, or the very end of the sapling stage if it would start to block walking where the player is in the way. */
+  function waitForPlayer(tree: Entity & { position: GroundPoint }, next: TreeGrowth | "grown"): TreeGrowth | "grown" {
+    return startsBlocking(tree, next) && playerInTheWay(tree.position) ? { stage: "sapling", minutesLeft: 0 } : next;
   }
 
   return {
     grow(gameMinutes) {
       // Copy the list first, because trees that are full grown leave the query while it is being walked.
       for (const tree of [...growing]) {
-        const next = heldBack(tree, grow(tree.growth, gameMinutes));
+        const next = waitForPlayer(tree, grow(tree.growth, gameMinutes));
+        if (startsBlocking(tree, next)) entities.addComponent(tree, "blocksWalking", { radius: TREE_WALK_BLOCK_RADIUS_METRES });
         if (next !== "grown") tree.growth = next;
         if ((next === "grown" || !hasStump(next)) && tree.stump === true) {
           entities.removeComponent(tree, "stump");

@@ -4,8 +4,10 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import { createNeeds } from "./needs";
-import { PLANT_SECONDS } from "./planting";
-import { readSave, writeSave } from "./save";
+import { PLANT_SECONDS, SAPLING_STRUCTURE_CLEARANCE_METRES } from "./planting";
+import { widenRect } from "./structure-kind";
+import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
+import { readSave, SAPLINGS_SAVE_VERSION, writeSave } from "./save";
 import { isRiverBank } from "./stone";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
@@ -114,6 +116,22 @@ describe("where a sapling can be planted", () => {
     expect(game.client.refusal(plant({ x: check.spot.x + 1.2, z: check.spot.z }))).toEqual({ kind: "tooCloseToStructure" });
   });
 
+  it("keeps a sapling far enough from a structure that the young tree it becomes never blocks walking inside it", () => {
+    expect(SAPLING_STRUCTURE_CLEARANCE_METRES).toBeGreaterThan(TREE_WALK_BLOCK_RADIUS_METRES);
+  });
+
+  it("measures the clearance from every side of a structure's footprint", () => {
+    expect(widenRect({ min: { x: 1, z: 2 }, max: { x: 3, z: 5 } }, 1)).toEqual({ min: { x: 0, z: 1 }, max: { x: 4, z: 6 } });
+  });
+
+  it("is allowed while the player drags a sled", () => {
+    const game = gameWithSaplings(1);
+    const spot = plantableSpot(game);
+    game.entities.addComponent(onlyPlayer(game), "dragging", { sledId: 9999 });
+
+    expect(game.client.refusal(plant(spot))).toBeNull();
+  });
+
   it("keeps blueprints off a planted sapling", () => {
     const game = gameWithSaplings(1);
     const spot = plantableSpot(game);
@@ -211,6 +229,17 @@ describe("saving planted saplings", () => {
     expect(loaded.client.getView().action?.kind).toBe("plant");
     stepUntil(loaded, () => loaded.client.getView().action === null);
     expect(plantedAt(loaded, spot)).toBeDefined();
+  });
+
+  it("loads a save from before saplings with none in the backpack, and keeps saplings dug up after loading", () => {
+    const game = gameWithSaplings(0);
+    const older = JSON.parse(JSON.stringify({ ...writeSave(game), version: SAPLINGS_SAVE_VERSION - 1 })) as ReturnType<typeof writeSave>;
+    const loaded = readSave(older);
+    if (!loaded.ok) throw new Error("The older save was rejected");
+    expect(loaded.game.client.getView().backpack.sapling ?? 0).toBe(0);
+
+    give(loaded.game, 2);
+    expect(reload(loaded.game).client.getView().backpack.sapling).toBe(2);
   });
 });
 

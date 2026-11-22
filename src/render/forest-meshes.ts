@@ -11,7 +11,7 @@ import * as THREE from "three";
 import { MOST_LOGS_PER_TREE, treeLookAt, treeSizeAt } from "../sim/tree-size";
 import type { GroundPoint } from "../sim/ground-point";
 import { logWorkedNow } from "../sim/crafting";
-import { isYoungTree, type GrowthStage } from "../sim/tree-growth";
+import { isSapling, isYoungTree, type GrowthStage } from "../sim/tree-growth";
 import {
   debarkedLogEntities,
   growingTreeEntities,
@@ -277,13 +277,11 @@ export function createForestMeshes(
     }),
   );
   const stumpFits = treeShapes.map((shape) => stumpFit(shape.trunk, stumpShape));
+  // Either tone's batch has room for every tree, planted ones included, as a stump.
+  const stumpCapacity = Math.max(1, trees.length + PLANTED_ROOM_PER_TYPE * treeShapes.length);
   const stumpBatches: Record<TreeTone, THREE.InstancedMesh> = {
-    dark: track(
-      new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], Math.max(1, trees.length + PLANTED_ROOM_PER_TYPE * treeShapes.length)),
-    ),
-    light: track(
-      new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.light, cutMaterial], Math.max(1, trees.length + PLANTED_ROOM_PER_TYPE * treeShapes.length)),
-    ),
+    dark: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.dark, cutMaterial], stumpCapacity)),
+    light: track(new THREE.InstancedMesh(stumpGeometry, [trunkMaterials.light, cutMaterial], stumpCapacity)),
   };
   /** The stump drawn at each instance of each tone's batch, so a click on one finds its entity. */
   const stumpsDrawn: Record<TreeTone, Entity[]> = { dark: [], light: [] };
@@ -724,7 +722,7 @@ export function createForestMeshes(
         }
         if (hit.object === stumpBatches.dark || hit.object === stumpBatches.light) {
           const stump = stumpsDrawn[hit.object === stumpBatches.dark ? "dark" : "light"][hit.instanceId];
-          if (stump?.stump === true) return { hit: { kind: stump.growth?.stage === "sapling" ? "sapling" : "stump", entity: stump }, distance: hit.distance };
+          if (stump?.stump === true) return { hit: { kind: isSapling(stump.growth) ? "sapling" : "stump", entity: stump }, distance: hit.distance };
           continue;
         }
         const drawn = treesOfMesh.get(hit.object);
@@ -815,7 +813,7 @@ const IDENTITY = new THREE.Matrix4();
 function standingKindOf(tree: Entity): "tree" | "youngTree" | "sapling" | undefined {
   if (tree.tree === true) return "tree";
   if (isYoungTree(tree.growth)) return "youngTree";
-  return tree.growth?.stage === "sapling" ? "sapling" : undefined;
+  return isSapling(tree.growth) ? "sapling" : undefined;
 }
 const treeRotation = new THREE.Quaternion();
 const treeScale = new THREE.Vector3();

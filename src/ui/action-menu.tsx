@@ -6,7 +6,7 @@ import { strings } from "../strings";
 import { placeActionMenu } from "./action-menu-place";
 import { BackpackIcon } from "./backpack-icons";
 import { HudIcon } from "./hud-icons";
-import type { ActionIcon, ThingAction } from "./thing-action";
+import { isListed, type ActionIcon, type ThingAction } from "./thing-action";
 
 export interface ActionMenuProps {
   client: GameClient;
@@ -53,7 +53,7 @@ export function ActionMenu({ client, x, y, above = false, readActions, onStartPl
     };
   }, [onClose]);
 
-  const shown = (actions ?? []).filter(({ command, startsPlanting }) => command !== undefined || startsPlanting === true);
+  const shown = (actions ?? []).filter(isListed);
   // Greying an action adds its reason under its name, which can change the list's size.
   const sizeKey = shown.map(({ label, enabled, reason }) => `${label}|${enabled ? "" : (reason ?? "")}`).join("\n");
 

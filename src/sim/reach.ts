@@ -3,7 +3,7 @@ import type { ThingInReach } from "./api";
 import { distanceOutside } from "./building";
 import type { Entity, EntityStore } from "./entities";
 import { footprintOfEntity, isPlacedStructure } from "./structures";
-import { isYoungTree } from "./tree-growth";
+import { isSapling, isYoungTree } from "./tree-growth";
 import { groundDistance, type GroundPoint } from "./ground-point";
 
 /** E reaches things this far from the player, in metres. It is measured to a structure's edge and to a tree's trunk. */
@@ -41,7 +41,7 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   // A young tree is offered, so its menu says why it cannot be chopped or dug up yet.
   if (isYoungTree(entity.growth)) return { kind: "youngTree", id };
   // A bare stump is not: it would hide the logs lying beside it. A click on it still says why it offers nothing yet.
-  if (entity.growth?.stage === "sapling") return { kind: "sapling", id };
+  if (isSapling(entity.growth)) return { kind: "sapling", id };
   if (entity.log !== undefined) return { kind: "log", id };
   if (entity.debarkedLog !== undefined) return { kind: "debarkedLog", id };
   if (entity.stick === true) return { kind: "stick", id };

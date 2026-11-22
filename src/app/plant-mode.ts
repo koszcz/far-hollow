@@ -29,7 +29,10 @@ function plantCommand(spot: GroundPoint): Command {
   return { type: "plantSapling", x: spot.x, z: spot.z };
 }
 
-/** Whether a key press stops planting, given the key's `KeyboardEvent.code`: Escape cancels it, and B leaves it for the build menu. */
+/**
+ * Whether a key press stops planting, given the key's `KeyboardEvent.code`: Escape cancels it.
+ * B opens the build menu as always, and opening it stops planting too.
+ */
 export function pressPlantKey(code: string): boolean {
-  return code === "Escape" || code === "KeyB";
+  return code === "Escape";
 }

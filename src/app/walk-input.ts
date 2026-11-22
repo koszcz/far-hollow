@@ -314,10 +314,9 @@ export function attachWalkInput({
     // Let typing keep working in form fields, and Space keep pressing buttons.
     const target = event.target instanceof HTMLElement ? event.target : null;
     const typing = target?.closest("input, textarea, select") != null;
-    if (planting && (event.code === "Escape" || !typing) && pressPlantKey(event.code)) {
+    if (planting && pressPlantKey(event.code)) {
       setPlanting(false);
-      // B goes on to open the build menu.
-      if (event.code === "Escape") return;
+      return;
     }
     const next = event.code === "Escape" || !typing ? pressBuildKey(mode, event.code) : undefined;
     if (next !== undefined) {

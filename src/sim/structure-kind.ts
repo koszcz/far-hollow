@@ -86,6 +86,11 @@ export function turnedRect(centre: GroundPoint, halfX: number, halfZ: number, tu
   return { min: { x: centre.x - reachX, z: centre.z - reachZ }, max: { x: centre.x + reachX, z: centre.z + reachZ } };
 }
 
+/** The rectangle `metres` wider on every side. */
+export function widenRect(rect: GroundRect, metres: number): GroundRect {
+  return { min: { x: rect.min.x - metres, z: rect.min.z - metres }, max: { x: rect.max.x + metres, z: rect.max.z + metres } };
+}
+
 /** Whether a spot lies in a rectangle, edges included. */
 export function isInRect(rect: GroundRect, spot: GroundPoint): boolean {
   return spot.x >= rect.min.x && spot.x <= rect.max.x && spot.z >= rect.min.z && spot.z <= rect.max.z;

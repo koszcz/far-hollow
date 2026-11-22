@@ -18,6 +18,7 @@ export type BackpackContent =
   | "stone"
   | "torch"
   | "sapling"
+  | "berryBush"
   | Food
   | PotContent
   | CraftingContent
@@ -28,6 +29,9 @@ export type CraftingContent = "sawBlade" | "saw" | "plank";
 
 /** Fishing gear: the fishing line, from the starting kit, and the fishing rod, a tool crafted from it. */
 export type FishingContent = "fishingLine" | "fishingRod";
+
+/** What the player digs up into the backpack and plants again: a sapling, which grows into a tree, or a berry bush. */
+export type Plantable = "sapling" | "berryBush";
 
 /** Wild food the player forages. One "berries" is a handful of berries. */
 export type WildFood = "berries" | "mushroom";
@@ -67,6 +71,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   stone: 2,
   torch: 0.8,
   sapling: 1,
+  berryBush: 1,
   berries: 0.1,
   mushroom: 0.1,
   pot: 1,
@@ -105,6 +110,22 @@ export function backpackWeight(backpack: Backpack): number {
 export function fitsInBackpack(backpack: Backpack, content: BackpackContent, count: number): boolean {
   // The small allowance stops rounding errors in the weights from refusing the last thing that fits.
   return backpackWeight(backpack) + count * CONTENT_WEIGHT_KG[content] <= BACKPACK_WEIGHT_LIMIT_KG + 1e-9;
+}
+
+/** True if all of `contents` would fit within the weight limit together. */
+export function allFitInBackpack(backpack: Backpack, contents: BackpackContents): boolean {
+  // The small allowance stops rounding errors in the weights from refusing the last thing that fits.
+  return backpackWeight(backpack) + weightedTotal(contents, CONTENT_WEIGHT_KG) <= BACKPACK_WEIGHT_LIMIT_KG + 1e-9;
+}
+
+/**
+ * Puts all of `contents` in the backpack if they fit together within the weight limit.
+ * Returns false, and changes nothing, if they do not.
+ */
+export function addAllToBackpack(backpack: Backpack, contents: BackpackContents): boolean {
+  if (!allFitInBackpack(backpack, contents)) return false;
+  for (const [content, count] of Object.entries(contents) as [BackpackContent, number][]) backpack.contents = addCount(backpack.contents, content, count);
+  return true;
 }
 
 /** How many of `content`, up to `count`, fit in the backpack within its weight limit. */

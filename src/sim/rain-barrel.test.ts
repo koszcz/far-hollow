@@ -280,7 +280,7 @@ describe("filling the pot from a rain barrel", () => {
 describe("saving rain barrels", () => {
   it("raises the save version for rain barrels, and loads a save from before then", () => {
     const game = createGame({ seed: 42 });
-    expect(RAIN_BARRELS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(RAIN_BARRELS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = RAIN_BARRELS_SAVE_VERSION - 1;
 

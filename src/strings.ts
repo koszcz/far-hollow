@@ -32,6 +32,7 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   stone: (count) => (count === 1 ? "1 stone" : `${count} stones`),
   torch: (count) => (count === 1 ? "1 torch" : `${count} torches`),
   sapling: (count) => (count === 1 ? "1 sapling" : `${count} saplings`),
+  berryBush: (count) => (count === 1 ? "1 berry bush" : `${count} berry bushes`),
   berries: (count) => (count === 1 ? "1 handful of berries" : `${count} handfuls of berries`),
   mushroom: (count) => (count === 1 ? "1 mushroom" : `${count} mushrooms`),
   pot: () => "An empty pot",
@@ -93,9 +94,9 @@ export const strings = {
   diggingUp: "Digging up",
   planting: "Planting",
   plantingMushroom: "Planting a mushroom",
-  /** The hint while a see-through sapling follows the mouse. */
-  plantingSapling: {
-    what: "Planting: Sapling. Click the ground to plant it.",
+  /** The hint while a see-through sapling or berry bush follows the mouse. */
+  plantingHint: {
+    what: { sapling: "Planting: Sapling. Click the ground to plant it.", berryBush: "Planting: Berry bush. Click the ground to plant it." },
     refused: (reason: string) => `Cannot plant here: ${reason}.`,
   },
   craftMenu: {
@@ -306,6 +307,7 @@ export const strings = {
     stone: "Stone",
     torch: "Torch",
     sapling: "Sapling",
+    berryBush: "Berry bush",
     pot: "Pot (empty)",
     potOfRiverWater: "Pot of river water",
     potOfBoiledWater: "Pot of clean water",
@@ -469,8 +471,12 @@ export const strings = {
     noSaplingYet: "no sapling grows on the stump yet",
     tooBigToDigUp: "the tree is too big to dig up",
     noSapling: "no sapling in the backpack",
-    notPlantableGround: "a sapling grows only on forest floor or in a clearing",
+    noBerryBush: "no berry bush in the backpack",
+    notPlantableGround: "it grows only on forest floor or in a clearing",
     tooCloseToTree: "too close to a tree, stump, or sapling",
+    tooCloseToBerryBush: "too close to another berry bush",
+    tooCloseToMushroomLog: "too close to a mushroom log",
+    berryBushInTheWay: "a berry bush is in the way",
     tooCloseToStructure: "too close to something built here",
     backpackFull: "the backpack is full",
     torchAlreadyLit: "you already hold a lit torch",

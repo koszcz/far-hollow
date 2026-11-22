@@ -22,6 +22,11 @@ export const HUNGER_FILLED_BY: Readonly<Record<Food, number>> = { berries: 0.1, 
 /** Whether eating each food makes the player sick, as unboiled river water does. */
 export const MAKES_SICK: Readonly<Record<Food, boolean>> = { berries: false, mushroom: false, rawFish: true, cookedFish: false };
 
+/** Whether an entity is a berry bush, wild or planted, with berries or growing them back. */
+export function isBerryBush(entity: Entity): boolean {
+  return entity.forageSpot?.food === "berries";
+}
+
 /** Why the player could not start foraging. */
 export type ForageRefusal = "backpackFull";
 

@@ -1,7 +1,7 @@
 // The list of actions a click on a thing opens. It sits beside the click, with the main action on top.
 // Its look lives in the .action-menu rules of src/app/style.css. src/ui/action-menu-place.ts decides where it goes.
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { queued, type GameClient } from "../sim/api";
+import { queued, type GameClient, type Plantable } from "../sim/api";
 import { strings } from "../strings";
 import { placeActionMenu } from "./action-menu-place";
 import { BackpackIcon } from "./backpack-icons";
@@ -19,8 +19,8 @@ export interface ActionMenuProps {
    * Actions that send no command are left out, except planting a sapling. The menu reads again after each logic step, so it stays current while it is open.
    */
   readActions: () => readonly ThingAction[] | undefined;
-  /** Called when the player picks planting a sapling, which puts a see-through sapling under the mouse instead of sending a command. */
-  onStartPlanting: () => void;
+  /** Called when the player picks planting a sapling or berry bush, which puts a see-through one under the mouse instead of sending a command. */
+  onStartPlanting: (plant: Plantable) => void;
   /** Called when the player picks an action, after its command is sent, presses anywhere outside the menu, or the thing offers no actions any more, so the menu can close. */
   onClose: () => void;
 }
@@ -90,7 +90,7 @@ export function ActionMenu({ client, x, y, above = false, readActions, onStartPl
                 onClick={(event) => {
                   // A Shift-click adds the action to the end of the action queue.
                   if (command !== undefined) client.send(event.shiftKey ? queued(command) : command);
-                  if (startsPlanting === true) onStartPlanting();
+                  if (startsPlanting !== undefined) onStartPlanting(startsPlanting);
                   onClose();
                 }}
               >

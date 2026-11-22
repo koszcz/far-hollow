@@ -443,6 +443,29 @@ describe("other things' actions", () => {
     ]);
   });
 
+  it("forages a berry bush with berries, and offers to dig it up", () => {
+    const world = worldWith({});
+    const bush = world.add({ forageSpot: { food: "berries" } });
+
+    const actions = actionsFor(scene("forage", bush), world.reader);
+    expect(summary(actions)).toEqual(["forage main", "digUp"]);
+    expect(find(actions, "digUp")).toMatchObject({ label: "Dig up", command: { type: "digUpBerryBush", bushId: bush } });
+  });
+
+  it("digs up a berry bush growing its berries back as the main action", () => {
+    const world = worldWith({});
+    const bush = world.add({ forageSpot: { food: "berries" }, regrowing: { minutesLeft: 60 } });
+
+    expect(summary(actionsFor(scene("forage", bush), world.reader))).toEqual(["digUp main", "forage off: nothing to take"]);
+  });
+
+  it("offers no digging up for a mushroom patch", () => {
+    const world = worldWith({});
+    const patch = world.add({ forageSpot: { food: "mushroom" } });
+
+    expect(summary(actionsFor(scene("forage", patch), world.reader))).toEqual(["forage main"]);
+  });
+
   it("digs up a sapling growing from a stump, with no tool", () => {
     const world = worldWith({});
     const sapling = world.add({ stump: true, growth: { stage: "sapling", minutesLeft: 60 }, blocksWalking: { radius: 0.9 } });
@@ -787,6 +810,7 @@ type ThingKind =
   | "bedroll"
   | "blueprint"
   | "plantedTorch"
+  | "forage"
   | "mushroomLog";
 
 /** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */

@@ -18,6 +18,7 @@ import type {
   PileView,
   RainBarrelView,
   RecipeKind,
+  Plantable,
   Refusal,
   StructureKind,
   WoodpileView,
@@ -211,10 +212,10 @@ export interface HudProps {
   /** While placing, why the game refuses the spot under the mouse, when it says why. Optional, so showcases need not pass it. */
   placingRefusal?: Refusal | undefined;
   /**
-   * While the player plants a sapling, why the game refuses the spot under the mouse, or null if it allows it.
+   * While the player plants a sapling or berry bush, what they plant and why the game refuses the spot under the mouse, or null if it allows it.
    * Undefined while the player is not planting. Optional, so showcases need not pass it.
    */
-  planting?: Refusal | null | undefined;
+  planting?: PlantingHintState | undefined;
   /** Called when the player opens or closes the build menu. The menu is input state, not game state, so this is not a command. */
   onToggleBuildMenu: () => void;
   /** Called when the player picks a structure from the build menu. Its blueprint then follows the mouse. */
@@ -650,9 +651,15 @@ function PlacingHintText({ entries, placing, refusal }: { entries: readonly Buil
   );
 }
 
-/** The hint shown while planting a sapling: what to click, or why the spot is not allowed, then the cancel key on a line of its own. */
-function PlantingHintText({ refusal }: { refusal: Refusal | null }) {
-  const { what, keys } = plantingHint(refusal);
+/** What the planting hint shows: what the player plants, and why the game refuses the spot under the mouse, or null if it allows it. */
+export interface PlantingHintState {
+  readonly plant: Plantable;
+  readonly refusal: Refusal | null;
+}
+
+/** The hint shown while planting a sapling or berry bush: what to click, or why the spot is not allowed, then the cancel key on a line of its own. */
+function PlantingHintText({ plant, refusal }: PlantingHintState) {
+  const { what, keys } = plantingHint(plant, refusal);
   return (
     <p class="hud-hint hud-placing-hint">
       {what}
@@ -759,7 +766,7 @@ export function Hud({
               <Meter icon={actionIcons[view.action.kind]} label={actionLabels[view.action.kind]} value={view.action.progress} colour={WORK_BAR_COLOUR} />
             )}
             {placing !== null && <PlacingHintText entries={view.buildMenu} placing={placing} refusal={placingRefusal} />}
-            {planting !== undefined && <PlantingHintText refusal={planting} />}
+            {planting !== undefined && <PlantingHintText plant={planting.plant} refusal={planting.refusal} />}
             {nearbyPanels.map((thing) => (
               <NearbyPanel key={thing.kind} thing={thing} />
             ))}

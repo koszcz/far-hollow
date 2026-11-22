@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, ScenePick, SleepView } from "../sim/api";
+import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, Plantable, ScenePick, SleepView } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
@@ -69,8 +69,8 @@ export interface SceneRenderer {
   setHovered(pick: ScenePick | undefined): void;
   /** Shows the blueprint under the mouse while the player places one. Undefined hides it. */
   showPlacingBlueprint(placing: PlacingBlueprint | undefined): void;
-  /** Shows the see-through sapling under the mouse while the player plants one, red where it is not allowed. Undefined hides it. */
-  showPlantingSapling(planting: { readonly spot: GroundPoint; readonly allowed: boolean } | undefined): void;
+  /** Shows the see-through sapling or berry bush under the mouse while the player plants one, red where it is not allowed. Undefined hides it. */
+  showPlanting(planting: { readonly plant: Plantable; readonly spot: GroundPoint; readonly allowed: boolean } | undefined): void;
   /** Whether the sleep animation is playing. Game logic waits while it plays, so the player cannot act mid-sleep. */
   isPlayingSleep(): boolean;
   dispose(): void;
@@ -620,13 +620,13 @@ export function createSceneRenderer(
       const entity = entityPick === undefined ? undefined : entities.entity(entityPick.id);
       hovered = entityPick !== undefined && entity !== undefined ? { kind: entityPick.kind, entity } : undefined;
     },
-    showPlantingSapling(planting) {
-      forestMeshes.showPlantingSapling(
-        planting && {
-          spot: { x: planting.spot.x, y: terrainHeightAt(valley.terrain, planting.spot.x, planting.spot.z), z: planting.spot.z },
-          allowed: planting.allowed,
-        },
-      );
+    showPlanting(planting) {
+      const shown = planting && {
+        spot: { x: planting.spot.x, y: terrainHeightAt(valley.terrain, planting.spot.x, planting.spot.z), z: planting.spot.z },
+        allowed: planting.allowed,
+      };
+      forestMeshes.showPlantingSapling(planting?.plant === "sapling" ? shown : undefined);
+      forageMeshes.showPlantingBush(planting?.plant === "berryBush" ? shown : undefined);
     },
     showPlacingBlueprint(placing) {
       structureMeshes.showPlacingBlueprint(placing);

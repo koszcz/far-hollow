@@ -19,6 +19,7 @@ import {
   costOf,
   footprintOfEntity,
   isDelivered,
+  coversBerryBush,
   isKept,
   isPlacedStructure,
   stageMaterials,
@@ -122,9 +123,12 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const { x, z } = definition.snap?.(site, at, turns) ?? snapToGridPoint(at);
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
     const facing = definition.facingAt?.(site, { x, z }, turns) ?? turns;
+    const footprint = definition.footprint({ x, z }, facing);
     // A mushroom log stays where it lies for good, so the game says why nothing can cover it.
-    const refusal: Refusal | undefined = coversMushroomLog(entities, definition.footprint({ x, z }, facing)) ? { kind: "coversMushroomLog" } : undefined;
-    const allowed = refusal === undefined && definition.canPlace(site, { x, z }, turns);
+    const logRefusal: Refusal | undefined = coversMushroomLog(entities, footprint) ? { kind: "coversMushroomLog" } : undefined;
+    const allowed = logRefusal === undefined && definition.canPlace(site, { x, z }, turns);
+    // Nothing else shows the player that a berry bush is in the way, so the game says that too.
+    const refusal: Refusal | undefined = logRefusal ?? (!allowed && coversBerryBush(entities, footprint) ? { kind: "berryBushInTheWay" } : undefined);
     return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed, ...(refusal === undefined ? {} : { refusal: Object.freeze(refusal) }) });
   }
 

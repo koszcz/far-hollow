@@ -10,13 +10,13 @@ import { randomSeed } from "../sim/seed";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { ActionMenu } from "../ui/action-menu";
-import { Hud } from "../ui/hud";
+import { Hud, type PlantingHintState } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { createDevHooks } from "./dev-hooks";
 import { pressCraftKey } from "./craft-menu";
-import { hotbarKeyStartsPlanting, pressHotbarKey } from "./hotbar";
+import { hotbarKeyPlanting, pressHotbarKey } from "./hotbar";
 import { downloadFile, saveExportFile, unreadableSlotExportFile } from "./save-export";
 import { importIntoSlot } from "./save-import";
 import { openSaveStorage, SAVE_SLOT_COUNT, type SaveStorage } from "./save-storage";
@@ -201,10 +201,10 @@ const walkInput = attachWalkInput({
     uiState.placingRefusal = refusal;
     renderUi();
   },
-  onPlantingChange: (planting, sapling) => {
-    sceneRenderer.showPlantingSapling(sapling && { spot: sapling.spot, allowed: sapling.refusal === null });
+  onPlantingChange: (planting, under) => {
+    sceneRenderer.showPlanting(under && { plant: under.plant, spot: under.spot, allowed: under.refusal === null });
     // The HUD hint changes only when the reason does, so the HUD is not drawn again on every mouse move.
-    const shown = planting ? (sapling?.refusal ?? null) : undefined;
+    const shown = planting === undefined ? undefined : { plant: planting, refusal: under?.refusal ?? null };
     if (JSON.stringify(shown) === JSON.stringify(uiState.planting)) return;
     uiState.planting = shown;
     renderUi();
@@ -276,7 +276,7 @@ document.addEventListener("click", (event) => {
 const uiState: {
   buildMode: BuildMode;
   placingRefusal: Refusal | undefined;
-  planting: Refusal | null | undefined;
+  planting: PlantingHintState | undefined;
   craftMenuOpen: boolean;
   menu: MenuRequest | undefined;
 } = {
@@ -298,7 +298,8 @@ window.addEventListener("keydown", (event) => {
   // Let typing keep working in form fields.
   const target = event.target instanceof HTMLElement ? event.target : null;
   const typing = target?.closest("input, textarea, select") != null;
-  if (hotbarKeyStartsPlanting(event.code, game.client, { typing })) walkInput.startPlanting();
+  const planting = hotbarKeyPlanting(event.code, game.client, { typing });
+  if (planting !== undefined) walkInput.startPlanting(planting);
   const hotbarCommand = pressHotbarKey(event.code, game.client, { typing, shift: event.shiftKey });
   if (hotbarCommand !== undefined) game.client.send(hotbarCommand);
   if (event.code !== "Escape" && typing) return;
@@ -319,8 +320,8 @@ function renderUi(): void {
           y={menu.y}
           above={menu.above ?? false}
           readActions={readMenuActions}
-          onStartPlanting={() => {
-            walkInput.startPlanting();
+          onStartPlanting={(plant) => {
+            walkInput.startPlanting(plant);
           }}
           onClose={closeMenu}
         />

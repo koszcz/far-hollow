@@ -41,6 +41,9 @@ export interface Drinking {
  */
 export function createDrinking(entities: EntityStore, walkMap: WalkMap, valley: Valley, onDrink: (river: GroundPoint) => void): Drinking {
   const players = playerEntities(entities);
+  // Every player has needs: a new game gives them needs, and the save check turns away a saved player without them.
+  // So drinking needs no refusal for a player without needs.
+  const drinkers = entities.with("player", "needs");
 
   return {
     reach(spot) {
@@ -48,8 +51,7 @@ export function createDrinking(entities: EntityStore, walkMap: WalkMap, valley: 
       return player === undefined ? undefined : riverReach(valley, walkMap, player.position, spot);
     },
     drinkFromRiver(spot) {
-      for (const player of players) {
-        if (player.needs === undefined) continue;
+      for (const player of drinkers) {
         player.needs.thirst.level = FULL_NEED;
         player.needs.thirst.minutesWithout = 0;
         setComponent(entities, player, "sickness", catchSickness());

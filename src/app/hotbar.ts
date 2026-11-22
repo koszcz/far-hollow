@@ -1,5 +1,5 @@
 // What a number key sends. A click on a hotbar cell opens the action menu instead. The cells and their order come from src/ui/hotbar-cells.ts.
-import { queued, type Command } from "../sim/api";
+import { queued, type Command, type Plantable } from "../sim/api";
 import { hotbarCells, type HotbarTarget } from "../ui/hotbar-cells";
 import { actionsFor, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
 
@@ -29,9 +29,12 @@ export function pressHotbarKey(
   return command === undefined || !shift ? command : queued(command);
 }
 
-/** Whether a key press starts planting a sapling: 1 to 9 on the cell of the saplings in the backpack, while the player is not typing. */
-export function hotbarKeyStartsPlanting(code: string, reader: ActionReader, { typing }: { readonly typing: boolean }): boolean {
-  return !typing && numberKeyAction(code, reader)?.startsPlanting === true;
+/**
+ * What a key press starts planting: a sapling or berry bush, for 1 to 9 on the cell of the saplings or berry bushes in the backpack,
+ * while the player is not typing. Undefined for any other key press.
+ */
+export function hotbarKeyPlanting(code: string, reader: ActionReader, { typing }: { readonly typing: boolean }): Plantable | undefined {
+  return typing ? undefined : numberKeyAction(code, reader)?.startsPlanting;
 }
 
 /** The main action of the backpack cell a number key names, if the key is one and the cell has a main action. */

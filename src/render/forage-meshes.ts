@@ -1,8 +1,10 @@
 // Draws berry bushes and mushroom patches: "berry-bush" (approved) and "mushrooms" (approved) in asset-manifest.json.
 // A bush is Kenney's bush, loaded in berry-bush-model.ts, with red berries while it has food.
 // A mushroom patch is Kenney's group of three mushrooms, loaded in mushrooms-model.ts. It shows nothing while it grows back.
+// While the player plants a berry bush, a see-through bush shows where it will go, red where planting is not allowed.
 import * as THREE from "three";
-import { forageSpotEntities, type Entity, type EntityStore } from "../sim/entities";
+import { forageSpotEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { BLUEPRINT_COLOUR, BLUEPRINT_OPACITY, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import type { BerryBushShape } from "./berry-bush-model";
 import { createCulledBatch, type CullViews } from "./culled-batch";
 import type { MushroomsShape } from "./mushrooms-model";
@@ -16,6 +18,11 @@ const PLANT_MIN_SCALE = 0.8;
 const PLANT_MAX_SCALE = 1.2;
 /** Plants further than this from the camera, in metres, are not drawn. */
 const FORAGE_DRAW_METRES = 300;
+/**
+ * Room for this many more plants than the valley holds when drawing starts. The player plants the berry bushes they dig up,
+ * and a loaded game may hold fewer bushes than it had, with the rest in the backpack.
+ */
+const PLANTED_ROOM = 64;
 /** Clicks hit an invisible box this wide and tall around each plant, in metres. */
 const BUSH_PICK_SIZE_METRES = { width: 1.4, height: 1 };
 const MUSHROOM_PICK_SIZE_METRES = { width: 0.6, height: 0.4 };
@@ -36,6 +43,8 @@ export interface ForageMeshes {
   pick(raycaster: THREE.Raycaster): { hit: ForageHit; distance: number } | undefined;
   /** The shapes that draw a bush or mushroom patch, placed in the world. Empty when nothing is drawn there. */
   outlineOf(hit: ForageHit): OutlinePart[];
+  /** Shows a see-through berry bush where the player would plant one, red where it is not allowed. Undefined hides it. */
+  showPlantingBush(planting: { readonly spot: Vec3; readonly allowed: boolean } | undefined): void;
   dispose(): void;
 }
 
@@ -46,7 +55,7 @@ export interface ForageMeshes {
 export function createForageMeshes(entities: EntityStore, bushShape: BerryBushShape, mushroomsShape: MushroomsShape): ForageMeshes {
   const group = new THREE.Group();
   const spots = forageSpotEntities(entities);
-  const capacity = Math.max(1, spots.size);
+  const capacity = spots.size + PLANTED_ROOM;
 
   const bushGeometry = bushShape.bush;
   const berriesGeometry = bushShape.berries;
@@ -136,6 +145,13 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
     mushroomPickers.computeBoundingSphere();
   }
 
+  // The see-through bush that shows where the player would plant one, at its middle size and with no turn.
+  const plantingAllowed = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
+  const plantingRefused = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
+  const plantingBush = new THREE.Mesh(bushGeometry, plantingAllowed);
+  plantingBush.visible = false;
+  group.add(plantingBush);
+
   const hits: THREE.Intersection[] = [];
 
   return {
@@ -170,6 +186,12 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
       outline(mushrooms, mushroomsDrawn.indexOf(hit.entity), mushroomsGeometry);
       return parts;
     },
+    showPlantingBush(planting) {
+      plantingBush.visible = planting !== undefined;
+      if (planting === undefined) return;
+      plantingBush.material = planting.allowed ? plantingAllowed : plantingRefused;
+      plantingBush.position.set(planting.spot.x, planting.spot.y, planting.spot.z);
+    },
     dispose() {
       connected.disconnect();
       regrowing.disconnect();
@@ -180,6 +202,8 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
         berryMaterial,
         mushroomMaterial,
         pickMaterial,
+        plantingAllowed,
+        plantingRefused,
         bushes,
         berries,
         mushrooms,

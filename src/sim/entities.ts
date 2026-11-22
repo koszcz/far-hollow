@@ -1,7 +1,7 @@
 import { World } from "miniplex";
 import type { ActionCommand } from "./api";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
-import type { Backpack, BackpackContent, BackpackContents, WildFood } from "./backpack";
+import type { Backpack, BackpackContent, BackpackContents, Plantable, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { Fire, FireKind } from "./fire";
@@ -251,10 +251,10 @@ export interface Entity {
   fishCasts?: number;
   /** The stone gathering in progress: the player is gathering one stone at this spot on the river bank or in the river. */
   stoneTask?: { x: number; z: number; secondsDone: number };
-  /** The player is digging up the sapling with this entity id, and has worked at it this long. */
-  digUpTask?: { saplingId: number; secondsDone: number };
-  /** The player is planting a sapling at this spot, and has worked at it this long. */
-  plantTask?: { x: number; z: number; secondsDone: number };
+  /** The player is digging up the sapling or berry bush with this entity id, and has worked at it this long. */
+  digUpTask?: { thingId: number; secondsDone: number };
+  /** The player is planting a sapling or berry bush, as `plant` says, at this spot, and has worked at it this long. */
+  plantTask?: { x: number; z: number; secondsDone: number; plant: Plantable };
   /** The player is sick, so their needs drain faster. Missing when they are well. */
   sickness?: Sickness;
   /**

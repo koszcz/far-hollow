@@ -76,6 +76,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("chopTree"), treeId: count })(value) ||
   shape({ type: exactly("digUpSapling"), saplingId: count })(value) ||
   shape({ type: exactly("plantSapling"), x: finite, z: finite })(value) ||
+  shape({ type: exactly("digUpBerryBush"), bushId: count })(value) ||
+  shape({ type: exactly("plantBerryBush"), x: finite, z: finite })(value) ||
   shape({ type: exactly("debarkLog"), logId: count })(value) ||
   shape({ type: exactly("build"), blueprintId: count })(value) ||
   shape({ type: exactly("takeDown"), pieceId: count })(value) ||
@@ -149,8 +151,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   fishTask: shape({ x: finite, z: finite, minutesWaited: finite, biteAfterMinutes: finite }),
   fishCasts: count,
   stoneTask: shape({ x: finite, z: finite, secondsDone: finite }),
-  digUpTask: shape({ saplingId: count, secondsDone: finite }),
-  plantTask: shape({ x: finite, z: finite, secondsDone: finite }),
+  digUpTask: shape({ thingId: count, secondsDone: finite }),
+  plantTask: shape({ x: finite, z: finite, secondsDone: finite, plant: exactly("sapling", "berryBush") }),
   sickness: shape({ minutesLeft: finite }),
   litTorch: shape({ minutesLeft: finite }),
   plantedTorch: shape({ minutesLeft: finite }),
@@ -202,6 +204,9 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noSaplingYet: true,
   tooBigToDigUp: true,
   noSapling: true,
+  noBerryBush: true,
+  tooCloseToBerryBush: true,
+  berryBushInTheWay: true,
   notPlantableGround: true,
   tooCloseToTree: true,
   tooCloseToStructure: true,

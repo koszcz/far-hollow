@@ -19,6 +19,7 @@ import {
   costOf,
   footprintOfEntity,
   isDelivered,
+  coversBerryBush,
   isKept,
   isPlacedStructure,
   stageMaterials,
@@ -122,7 +123,10 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const allowed = definition.canPlace(site, { x, z }, turns);
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
     const facing = definition.facingAt?.(site, { x, z }, turns) ?? turns;
-    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed });
+    // The game says why only when a berry bush is in the way, since nothing else shows the player that it is.
+    const refusal: Refusal | undefined =
+      !allowed && coversBerryBush(entities, definition.footprint({ x, z }, facing)) ? { kind: "berryBushInTheWay" } : undefined;
+    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed, ...(refusal === undefined ? {} : { refusal }) });
   }
 
   /** The placed blueprint with this id, if it still exists. */
@@ -515,6 +519,7 @@ export function buildingRules(
       // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
       start: "alongside",
       queue: "apart",
+      refusal: (command) => building.checkPlacement(command.structure, { x: command.x, z: command.z }, command.turns).refusal,
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {
         const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);

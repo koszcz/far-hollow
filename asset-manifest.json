@@ -1422,6 +1422,23 @@
         "status": "draft",
         "ticket": ".scratch/regrowth/issues/02-dig-up-a-sapling.md"
       }
+    },
+    {
+      "id": "berry-bush-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/berry-bush-icon.tsx",
+        "src/ui/backpack-icons.tsx",
+        "src/render/berry-bush-pile-shape.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "A dug-up berry bush: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small round bush of green leaves dotted with three red berries, its roots in a ball of brown earth. In a pile, each bush lies on its side, about 50 cm across: a lumpy ball of dark green leaves dotted with red berries, with a ball of earth at one end, spread around the middle like other things in a pile.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/garden/issues/01-plant-berry-bushes.md"
+      }
     }
   ]
 }

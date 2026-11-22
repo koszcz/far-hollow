@@ -1,6 +1,6 @@
 // The shape of one action the player can do to a thing. src/app/thing-actions.ts works out the actions.
 // The action menu draws them. Both import the types from here, because the UI may not import the app.
-import type { BackpackContent, CampfireFuel, CarriedLog, Command, DeliveredMaterial, RecipeKind, WoodpileWood } from "../sim/api";
+import type { BackpackContent, CampfireFuel, CarriedLog, Command, DeliveredMaterial, Plantable, RecipeKind, WoodpileWood } from "../sim/api";
 import type { HudIconName } from "./hud-icons";
 
 /** The icon an action shows: a HUD icon or a backpack content icon. */
@@ -65,17 +65,17 @@ export interface ThingAction {
   readonly isMain: boolean;
   /**
    * What to send. The sim walks the player there first when needed. Undefined for actions the UI carries out itself:
-   * "open menu" on a work station, and planting a sapling, which sends its command only once the player clicks the ground.
+   * "open menu" on a work station, and planting a sapling or berry bush, which sends its command only once the player clicks the ground.
    */
   readonly command: Command | undefined;
   /**
-   * True for planting a sapling from the backpack. It sends no command itself. It puts a see-through sapling under the mouse instead,
-   * and a click on the ground sends the command that plants it there.
+   * What planting from the backpack plants: a sapling or a berry bush. It sends no command itself. It puts a see-through sapling or
+   * bush under the mouse instead, and a click on the ground sends the command that plants it there. Missing for every other action.
    */
-  readonly startsPlanting?: true;
+  readonly startsPlanting?: Plantable;
 }
 
-/** Whether the action menu lists an action: it sends a command, or it starts planting a sapling. */
+/** Whether the action menu lists an action: it sends a command, or it starts planting a sapling or berry bush. */
 export function isListed({ command, startsPlanting }: ThingAction): boolean {
-  return command !== undefined || startsPlanting === true;
+  return command !== undefined || startsPlanting !== undefined;
 }

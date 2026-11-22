@@ -12,6 +12,7 @@ import type {
   FurnitureKind,
   FurnitureUse,
   GroundOrThingPick,
+  Plantable,
   ScenePick,
   GameClient,
   GameView,
@@ -30,7 +31,10 @@ export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } | HotbarTarget;
 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */
-export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "refusal">;
+export type ActionReader = Pick<
+  GameClient,
+  "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "describeThing" | "refusal"
+>;
 
 /** An action before it is known whether it is the main one. */
 type Offer = Omit<ThingAction, "isMain">;
@@ -174,7 +178,7 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
     case "plantedTorch":
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "forage":
-      return withMain([offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId: pick.id })], "forage");
+      return forageActions(pick.id, context);
     case "campfire":
     case "fireplace": {
       const campfire = reader.describeCampfire(pick.id);
@@ -215,6 +219,18 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
         "openMenu",
       );
   }
+}
+
+/**
+ * Forage, then, for a berry bush, dig it up. Foraging is the main action while the bush has berries, and digging it up while it grows them back.
+ * A mushroom patch cannot be dug up.
+ */
+function forageActions(spotId: number, { reader, offer }: Context): readonly ThingAction[] {
+  const forage = offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId });
+  const thing = reader.describeThing(spotId);
+  if (thing?.kind !== "forage" || thing.food !== "berries") return withMain([forage], "forage");
+  const digUpBush = offer("digUp", strings.actions.digUp, { content: "berryBush" }, { type: "digUpBerryBush", bushId: spotId });
+  return withMain([forage, digUpBush], forage.enabled ? "forage" : "digUp");
 }
 
 /** The action id, label, and icon for each way the player uses a piece of furniture. */
@@ -380,21 +396,16 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
   }
 }
 
-/** Planting a sapling: it puts a see-through sapling under the mouse, so it sends no command until the player clicks the ground. */
-const PLANT_SAPLING: Offer = {
-  id: "plant",
-  label: strings.actions.plant,
-  icon: { content: "sapling" },
-  enabled: true,
-  command: undefined,
-  startsPlanting: true,
-};
+/** Planting a sapling or berry bush: it puts a see-through one under the mouse, so it sends no command until the player clicks the ground. */
+function plantOffer(plant: Plantable): Offer {
+  return { id: "plant", label: strings.actions.plant, icon: { content: plant }, enabled: true, command: undefined, startsPlanting: plant };
+}
 
-/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling is planted. */
+/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling or berry bush is planted. */
 function backpackContentActions(content: BackpackContent, { view, offer }: Context): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
-  const plant = content === "sapling" ? [PLANT_SAPLING] : [];
+  const plant = content === "sapling" || content === "berryBush" ? [plantOffer(content)] : [];
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
   const intoChest =
     chest === undefined

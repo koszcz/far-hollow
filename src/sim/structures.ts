@@ -11,6 +11,7 @@ import {
   edgePieceEntities,
   fireplaceEntities,
   floorEntities,
+  forageSpotEntities,
   furnitureEntities,
   leanToEntities,
   foundationEntities,
@@ -820,7 +821,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
 }
 
 /**
- * Whether `rect` keeps clear of standing trees, young trees, and every structure: any blueprint, a finished roof, a finished woodpile,
+ * Whether `rect` keeps clear of standing trees, young trees, berry bushes, and every structure: any blueprint, a finished roof, a finished woodpile,
  * a finished wall or door frame, a piece of furniture, a sled, or a finished work station such as a sawhorse.
  * A wall or door frame covers only the line it stands on, so it is in the way only of something that reaches across that line.
  * `ignoreFreelyPlaced` lets it go over furniture and sleds, and their blueprints, as a roof does.
@@ -842,6 +843,7 @@ function isClearOfTreesAndStructures(
   for (const tree of treeEntities(entities)) if (isInRect(nearTrees, tree.position)) return false;
   // A planted sapling is in the way too, since it grows into a tree where it stands. A sapling on a stump goes with its stump.
   for (const tree of growingTreeEntities(entities)) if ((isYoungTree(tree.growth) || tree.stump !== true) && isInRect(nearTrees, tree.position)) return false;
+  if (coversBerryBush(entities, rect)) return false;
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
     if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
@@ -863,6 +865,11 @@ function isClearOfTreesAndStructures(
     if (rectsOverlap(rect, footprintOfEntity(entity))) return false;
   }
   return true;
+}
+
+/** Whether a berry bush, wild or planted, stands on `rect`, edges included. Nothing is built over one. */
+export function coversBerryBush(entities: EntityStore, rect: GroundRect): boolean {
+  return forageSpotEntities(entities).entities.some((spot) => spot.forageSpot.food === "berries" && isInRect(rect, spot.position));
 }
 
 /**

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { nearbyOf, type Command, type StructureKind } from "./api";
 import { rainEntities, type Entity } from "./entities";
 import { RAIN_BARREL_BUILD_SECONDS, RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_PLANK_COST } from "./furniture/rain-barrel";
+import { addToBackpack } from "./backpack";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { FULL_NEED } from "./needs";
 import { RAIN_BARRELS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
@@ -273,6 +274,84 @@ describe("filling the pot from a rain barrel", () => {
 
     send(game, command);
     finishReach(game);
+    expect(barrel.rainBarrel.held).toBe(2);
+  });
+});
+
+describe("filling a jug from a rain barrel", () => {
+  it("pours 1 drink from the barrel into a jug", () => {
+    const game = createGame({ seed: 42 });
+    const barrel = finishedBarrelNearPlayer(game);
+    barrel.rainBarrel = { held: 3, progress: 0 };
+    onlyPlayer(game).backpack.contents.jug = 1;
+
+    send(game, { type: "fillJugFromRainBarrel", barrelId: idOf(game, barrel) });
+    finishReach(game);
+
+    expect(game.client.getView().backpack).toMatchObject({ jugWith1Drink: 1 });
+    expect(game.client.getView().backpack.jug ?? 0).toBe(0);
+    expect(barrel.rainBarrel.held).toBe(2);
+  });
+
+  it("fills the fullest jug that still has room", () => {
+    const game = createGame({ seed: 42 });
+    const barrel = finishedBarrelNearPlayer(game);
+    barrel.rainBarrel = { held: 3, progress: 0 };
+    Object.assign(onlyPlayer(game).backpack.contents, { jug: 1, jugWith1Drink: 1, jugWith3Drinks: 1 });
+
+    send(game, { type: "fillJugFromRainBarrel", barrelId: idOf(game, barrel) });
+    finishReach(game);
+
+    const view = game.client.getView().backpack;
+    expect(view).toMatchObject({ jug: 1, jugWith2Drinks: 1, jugWith3Drinks: 1 });
+    expect(view.jugWith1Drink ?? 0).toBe(0);
+  });
+
+  it("fills a jug up to 3 drinks, then refuses because every jug is full", () => {
+    const game = createGame({ seed: 42 });
+    const barrel = finishedBarrelNearPlayer(game);
+    barrel.rainBarrel = { held: 5, progress: 0 };
+    onlyPlayer(game).backpack.contents.jug = 1;
+    const command: Command = { type: "fillJugFromRainBarrel", barrelId: idOf(game, barrel) };
+
+    for (let fill = 0; fill < 3; fill += 1) {
+      send(game, command);
+      finishReach(game);
+    }
+
+    expect(game.client.getView().backpack).toMatchObject({ jugWith3Drinks: 1 });
+    expect(barrel.rainBarrel.held).toBe(2);
+    expect(game.client.refusal(command)).toEqual({ kind: "noJugWithRoom" });
+    send(game, command);
+    finishReach(game);
+    expect(barrel.rainBarrel.held).toBe(2);
+  });
+
+  it("is refused while the barrel is empty, or the backpack holds no jug", () => {
+    const game = createGame({ seed: 42 });
+    const barrel = finishedBarrelNearPlayer(game);
+    onlyPlayer(game).backpack.contents.jug = 1;
+    const command: Command = { type: "fillJugFromRainBarrel", barrelId: idOf(game, barrel) };
+
+    expect(game.client.refusal(command)).toEqual({ kind: "barrelEmpty" });
+
+    barrel.rainBarrel = { held: 2, progress: 0 };
+    delete onlyPlayer(game).backpack.contents.jug;
+    expect(game.client.refusal(command)).toEqual({ kind: "noJugWithRoom" });
+  });
+
+  it("leaves the jug and the barrel as they were when the heavier jug does not fit in the backpack", () => {
+    const game = createGame({ seed: 42 });
+    const barrel = finishedBarrelNearPlayer(game);
+    barrel.rainBarrel = { held: 2, progress: 0 };
+    const backpack = onlyPlayer(game).backpack;
+    backpack.contents.jug = 1;
+    while (addToBackpack(backpack, "stone", 1));
+
+    send(game, { type: "fillJugFromRainBarrel", barrelId: idOf(game, barrel) });
+    finishReach(game);
+
+    expect(game.client.getView().backpack).toMatchObject({ jug: 1 });
     expect(barrel.rainBarrel.held).toBe(2);
   });
 });

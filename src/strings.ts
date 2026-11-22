@@ -461,6 +461,8 @@ export const strings = {
     layBedrollHere: "Lay the bedroll here",
     fillPot: "Fill it at the river",
     fillPotHere: "Fill the pot",
+    /** Pouring 1 drink from a rain barrel into a jug in the backpack. */
+    fillJug: "Fill jug",
     drinkFromPot: "Drink",
     pourIntoJug: "Pour in clean water",
     drinkFromJug: "Drink",

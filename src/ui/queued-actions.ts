@@ -162,6 +162,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: "rainBarrel" }, name: actions.drink };
     case "fillPotFromRainBarrel":
       return { icon: { structure: "rainBarrel" }, name: actions.fillPotHere };
+    case "fillJugFromRainBarrel":
+      return { icon: { structure: "rainBarrel" }, name: actions.fillJug };
     case "drinkFromRiver":
       return { icon: { thing: "river" }, name: actions.drink };
     case "fish":

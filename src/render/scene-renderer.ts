@@ -9,6 +9,7 @@ import { movingEntities, playerEntities, type Entity, type EntityStore } from ".
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/river-bank-work";
+import { createGroundMap } from "../sim/ground-types";
 import { copyToward, groundDistance, headingToward, type GroundPoint } from "../sim/ground-point";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
@@ -25,6 +26,8 @@ import { createPlayerMesh } from "./player-mesh";
 import type { Fishing } from "./player-motions/fishing-animation";
 import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
+import { createFireflyEffect } from "./firefly-effect";
+import { fireflyOpenGround } from "./fireflies";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
 import { EAT_DRINK_SECONDS, eatDrinkCutShort, reachMotionOf, type DoingNow, type EatDrinkKind, type EatDrinkMotion } from "./player-eat-drink-pose";
@@ -139,6 +142,12 @@ export function createSceneRenderer(
   // Birds are only for looks: they are never picked, and they cast no shadows.
   const birdMeshes = createBirdMeshes(entities, valley);
   scene.add(birdMeshes.group);
+  // Fireflies are only for looks, like the rain. Game logic never sees them, and they are never saved.
+  const fireflyEffect = createFireflyEffect(entities, {
+    isOpen: fireflyOpenGround(createGroundMap(valley)),
+    heightAt: (x, z) => terrainHeightAt(valley.terrain, x, z),
+  });
+  scene.add(fireflyEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group,
@@ -614,6 +623,7 @@ export function createSceneRenderer(
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylightAt(hourOfDay));
+      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
@@ -666,6 +676,7 @@ export function createSceneRenderer(
       fishTrapMeshes.dispose();
       rainEffect.dispose();
       birdMeshes.dispose();
+      fireflyEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();
     },

@@ -3,7 +3,18 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, hasRoom, holdsWater, isJug, withOneMoreDrink, WOODPILE_WOODS } from "../sim/api";
+import {
+  CAMPFIRE_FUELS,
+  CARRIED_LOGS,
+  furnitureMoreUses,
+  furnitureUse,
+  hasRoom,
+  holdsWater,
+  isJug,
+  JUG_CONTENTS,
+  withOneMoreDrink,
+  WOODPILE_WOODS,
+} from "../sim/api";
 import type {
   BackpackContent,
   CampfireView,
@@ -253,19 +264,35 @@ function forageActions(spotId: number, { reader, offer }: Context): readonly Thi
   return withMain([forage, digUpBush], forage.enabled ? "forage" : "digUp");
 }
 
+/** How the action menu shows one way to use a piece of furniture. `listed`, if given, says whether to list it at all. */
+interface FurnitureUseAction {
+  readonly id: ActionId;
+  readonly label: string;
+  readonly icon: ActionIcon;
+  readonly listed?: (view: GameView) => boolean;
+}
+
 /** The action id, label, and icon for each way the player uses a piece of furniture. */
-const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: { readonly id: ActionId; readonly label: string; readonly icon: ActionIcon } } = {
+const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: FurnitureUseAction } = {
   open: { id: "open", label: strings.actions.open, icon: { hud: "backpack" } },
   sleep: { id: "sleep", label: strings.actions.sleep, icon: { hud: "moon" } },
   sit: { id: "sit", label: strings.actions.sit, icon: { hud: "moon" } },
   drink: { id: "drink", label: strings.actions.drink, icon: { hud: "droplet" } },
   fillPot: { id: "fillPot", label: strings.actions.fillPotHere, icon: { content: "potOfBoiledWater" } },
+  // Filling a jug is listed only while the backpack holds a jug, so a player without one never sees it.
+  fillJug: {
+    id: "fillJug",
+    label: strings.actions.fillJug,
+    icon: { content: "jugWith3Drinks" },
+    listed: (view) => JUG_CONTENTS.some((jug) => has(view, jug)),
+  },
 };
 
 /**
  * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action.
  * A piece with no use, such as a table, offers only taking it down. The player eats at a table as they eat anywhere.
- * A rain barrel offers drinking, then filling the pot. Each shows greyed, with the reason, when the game would refuse it.
+ * A rain barrel offers drinking, then filling the pot, then filling a jug while the backpack holds one.
+ * Each shows greyed, with the reason, when the game would refuse it.
  */
 function furnitureActions(kind: FurnitureKind, id: number, context: Context): readonly ThingAction[] {
   const use = furnitureUse(kind);
@@ -275,7 +302,8 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
     return context.offer(action.id, action.label, action.icon, command(id));
   };
   const main = offerUse(use);
-  return withMain([main, ...furnitureMoreUses(kind).map(offerUse), takeDown(context, id)], main.id);
+  const moreUses = furnitureMoreUses(kind).filter(({ name }) => FURNITURE_USE_ACTIONS[name].listed?.(context.view) ?? true);
+  return withMain([main, ...moreUses.map(offerUse), takeDown(context, id)], main.id);
 }
 
 /** Gathering one stone, then digging one clay, at a spot on the river bank or in the river. */

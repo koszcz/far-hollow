@@ -718,6 +718,28 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(furniture("rainBarrel", full), noPot.reader))).toEqual(["drink main", "fillPot off: no empty pot in the backpack", "takeDown"]);
   });
 
+  it("fills a jug from a rain barrel when the backpack holds a jug", () => {
+    const world = worldWith({ backpack: { pot: 1, jugWith1Drink: 1 } });
+    const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 2, progress: 0 }, facing: { turns: 0 } });
+    const actions = actionsFor(furniture("rainBarrel", barrel), world.reader);
+    expect(summary(actions)).toEqual(["drink main", "fillPot", "fillJug", "takeDown"]);
+    expect(find(actions, "fillJug")).toMatchObject({ label: "Fill jug", command: { type: "fillJugFromRainBarrel", barrelId: barrel } });
+
+    const noJug = worldWith({ backpack: { pot: 1 } });
+    const other = noJug.add({ furniture: "rainBarrel", rainBarrel: { held: 2, progress: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", other), noJug.reader))).not.toContain("fillJug");
+  });
+
+  it("greys filling a jug at an empty rain barrel, and when every jug is full", () => {
+    const world = worldWith({ backpack: { jug: 1 } });
+    const empty = world.add({ furniture: "rainBarrel", rainBarrel: { held: 0, progress: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", empty), world.reader))).toContain("fillJug off: the barrel is empty");
+
+    const fullJugs = worldWith({ backpack: { jugWith3Drinks: 2 } });
+    const barrel = fullJugs.add({ furniture: "rainBarrel", rainBarrel: { held: 2, progress: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", barrel), fullJugs.reader))).toContain("fillJug off: every jug is full");
+  });
+
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(furniture("chest", 6), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
     expect(summary(actionsFor(furniture("shelf", 7), worldWith({}).reader))).toEqual(["open main", "takeDown"]);

@@ -353,6 +353,25 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
+  // The draft "clay": lumps of clay lying in piles of 1, 4, and 12 beside a knife for size, and the backpack icon.
+  // src/ui/hud-showcase.tsx draws the HUD over the last view only, with clay in the backpack, digging under way, and the pile's tooltip.
+  clay: {
+    radius: 2.2,
+    focus: { x: 0, y: 0.2, z: 0 },
+    shots: [
+      { label: "one clay beside a knife", yaw: 20, pitch: 35, radius: 0.55, focus: { x: -1.1, y: 0.04, z: 0.07 } },
+      { label: "a pile of 4 clay", yaw: -30, pitch: 30, radius: 0.8, focus: { x: 0, y: 0.04, z: 0 } },
+      { label: "a pile of 12 clay", yaw: 40, pitch: 45, radius: 1.2, focus: { x: 1.3, y: 0.04, z: 0 } },
+      { label: "HUD: beside a pile of 12 clay", yaw: 0, pitch: 40, radius: 1.4, focus: { x: 1.3, y: 0.1, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-1.2, 0, { pile: { content: "clay", count: 1 } });
+      place(-0.95, 0.15, { pile: { content: "knife", count: 1 } });
+      place(0, 0, { pile: { content: "clay", count: 4 } });
+      place(1.3, 0, { pile: { content: "clay", count: 12 } });
+      movePlayer(0, -1.5, 0);
+    },
+  },
   // The draft "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with saplings in the backpack, digging up under way, and the pile's tooltip.
   "sapling-icon": {

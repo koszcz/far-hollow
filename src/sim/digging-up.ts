@@ -14,9 +14,11 @@ import { isBareStump, isSapling, isYoungTree } from "./tree-growth";
 /** How long the player works to dig up one sapling or berry bush, in seconds. */
 export const DIG_UP_SECONDS = 4;
 
-/** The player digs up a sapling from this far outside the stump's edge, and a berry bush from this far from its middle, in metres. */
-const DIG_UP_REACH_METRES = 1;
-const BUSH_DIG_UP_REACH_METRES = 1.5;
+/** How far from each thing the player digs it up, in metres: a sapling from 1 m outside its stump's edge, a berry bush from 1.5 m from its middle. */
+const DIG_UP_REACH_METRES: Readonly<Record<DugUp, (thing: Entity) => number>> = {
+  sapling: (thing) => (thing.blocksWalking?.radius ?? 0) + 1,
+  berryBush: () => 1.5,
+};
 
 /** How far the player is through digging up a sapling or berry bush, from 0 to 1, and what they dig up, or undefined if they are not digging now. */
 export function diggingUpNow(player: Entity): { progress: number; targetId: number } | undefined {
@@ -80,8 +82,7 @@ export function createDiggingUp(entities: EntityStore): DiggingUp {
     reach(kind, thingId) {
       const thing = diggableAs(kind, thingId);
       if (thing === undefined) return undefined;
-      const metres = kind === "berryBush" ? BUSH_DIG_UP_REACH_METRES : (thing.entity.blocksWalking?.radius ?? 0) + DIG_UP_REACH_METRES;
-      return { target: thing.entity.position, metres, walk: { style: "beside" } };
+      return { target: thing.entity.position, metres: DIG_UP_REACH_METRES[kind](thing.entity), walk: { style: "beside" } };
     },
     start(kind, thingId) {
       if (diggableAs(kind, thingId) === undefined) return;

@@ -16,10 +16,12 @@ import {
   treeEntities,
   type Entity,
   type EntityStore,
+  type Vec3,
 } from "./entities";
 import { isBerryBush } from "./foraging";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { isRiverBank } from "./stone";
+import { distanceToLogBody, logBody } from "./log-body";
+import { isRiverBank } from "./river-bank-work";
 import { isInRect, widenRect } from "./structure-kind";
 import { footprintOfEntity, placedStructures } from "./structures";
 import { startOfStage } from "./tree-growth";
@@ -50,11 +52,34 @@ export function plantingNow(player: Entity): { progress: number } | undefined {
   return { progress: Math.min(1, player.plantTask.secondsDone / PLANT_SECONDS) };
 }
 
-/** How far each kind of plant keeps from trees, stumps, saplings, and structures, and what the backpack lacks without one. */
-const RULES: Readonly<Record<Plantable, { treeSpacing: number; structureClearance: number; noneLeft: Refusal }>> = {
-  sapling: { treeSpacing: TREE_MIN_SPACING_METRES, structureClearance: SAPLING_STRUCTURE_CLEARANCE_METRES, noneLeft: { kind: "noSapling" } },
-  berryBush: { treeSpacing: BERRY_BUSH_SPACING_METRES, structureClearance: BERRY_BUSH_SPACING_METRES, noneLeft: { kind: "noBerryBush" } },
+/**
+ * How far each kind of plant keeps from trees, stumps, and saplings, from structures, and from garden things: berry bushes and mushroom logs.
+ * A sapling does not keep clear of garden things. Also what the backpack lacks without one, and what grows once it is planted.
+ */
+const RULES: Readonly<
+  Record<Plantable, { treeSpacing: number; structureClearance: number; gardenSpacing?: number; noneLeft: Refusal; grows: (position: Vec3) => Entity }>
+> = {
+  sapling: {
+    treeSpacing: TREE_MIN_SPACING_METRES,
+    structureClearance: SAPLING_STRUCTURE_CLEARANCE_METRES,
+    noneLeft: { kind: "noSapling" },
+    grows: (position) => ({ growth: startOfStage("sapling"), position }),
+  },
+  berryBush: {
+    treeSpacing: BERRY_BUSH_SPACING_METRES,
+    structureClearance: BERRY_BUSH_SPACING_METRES,
+    gardenSpacing: BERRY_BUSH_SPACING_METRES,
+    noneLeft: { kind: "noBerryBush" },
+    // A planted bush has no berries at first. Growing its first ones works as growing them back after foraging does.
+    grows: (position) => ({ forageSpot: { food: "berries" }, regrowing: { minutesLeft: FIRST_BERRIES_MINUTES }, position }),
+  },
 };
+
+/** Whether any of `distances` is less than `metres`. */
+function anyWithin(distances: Iterable<number>, metres: number): boolean {
+  for (const distance of distances) if (distance < metres) return true;
+  return false;
+}
 
 export interface Planting {
   /** Where the approach takes the player to plant at a spot: within reach of it. */
@@ -81,13 +106,15 @@ export function createPlanting(entities: EntityStore, walkMap: WalkMap, valley: 
   /** Why `plant` cannot grow at this spot, leaving the backpack aside. */
   function spotRefusal(plant: Plantable, spot: GroundPoint): Refusal | undefined {
     if (cellIndexAt(walkMap, spot) === undefined || isRiverBank(valley, spot)) return { kind: "notPlantableGround" };
-    const { treeSpacing, structureClearance } = RULES[plant];
+    const { treeSpacing, structureClearance, gardenSpacing } = RULES[plant];
+    const away = (thing: { position: GroundPoint }) => groundDistance(thing.position, spot);
     const trees = [...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)];
-    if (trees.some((tree) => groundDistance(tree.position, spot) < treeSpacing)) return { kind: "tooCloseToTree" };
-    if (plant === "berryBush") {
-      const near = (thing: { position: GroundPoint }) => groundDistance(thing.position, spot) < BERRY_BUSH_SPACING_METRES;
-      if (forageSpotEntities(entities).entities.filter(isBerryBush).some(near)) return { kind: "tooCloseToBerryBush" };
-      if (mushroomLogEntities(entities).entities.some(near)) return { kind: "tooCloseToMushroomLog" };
+    if (anyWithin(trees.map(away), treeSpacing)) return { kind: "tooCloseToTree" };
+    if (gardenSpacing !== undefined) {
+      if (anyWithin(forageSpotEntities(entities).entities.filter(isBerryBush).map(away), gardenSpacing)) return { kind: "tooCloseToBerryBush" };
+      // A mushroom log is 1 m long, so a bush keeps clear of all of it, not only its middle.
+      const logs = mushroomLogEntities(entities).entities.map(({ position, mushroomLog }) => distanceToLogBody(logBody(position, mushroomLog.heading), spot));
+      if (anyWithin(logs, gardenSpacing)) return { kind: "tooCloseToMushroomLog" };
     }
     for (const { entity } of placedStructures(entities)) {
       if (isInRect(widenRect(footprintOfEntity(entity), structureClearance), spot)) return { kind: "tooCloseToStructure" };
@@ -103,10 +130,7 @@ export function createPlanting(entities: EntityStore, walkMap: WalkMap, valley: 
 
   /** What grows at a spot once it is planted. */
   function planted(plant: Plantable, spot: GroundPoint): Entity {
-    const position = { x: spot.x, y: terrainHeightAt(valley.terrain, spot.x, spot.z), z: spot.z };
-    // A planted bush has no berries at first. Growing its first ones works as growing them back after foraging does.
-    if (plant === "berryBush") return { forageSpot: { food: "berries" }, regrowing: { minutesLeft: FIRST_BERRIES_MINUTES }, position };
-    return { growth: startOfStage("sapling"), position };
+    return RULES[plant].grows({ x: spot.x, y: terrainHeightAt(valley.terrain, spot.x, spot.z), z: spot.z });
   }
 
   return {

@@ -8,7 +8,7 @@ import { PLANT_SECONDS, SAPLING_STRUCTURE_CLEARANCE_METRES } from "./planting";
 import { widenRect } from "./structure-kind";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 import { readSave, SAPLINGS_SAVE_VERSION, writeSave } from "./save";
-import { isRiverBank } from "./stone";
+import { isRiverBank } from "./river-bank-work";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

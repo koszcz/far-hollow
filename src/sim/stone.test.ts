@@ -4,7 +4,7 @@ import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { readSave, REGROWTH_SAVE_VERSION, SAVE_VERSION, STONE_SAVE_VERSION, writeSave } from "./save";
-import { isRiverBank } from "./stone";
+import { isRiverBank } from "./river-bank-work";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 import { distanceToRiver } from "./valley";

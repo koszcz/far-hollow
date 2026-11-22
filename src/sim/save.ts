@@ -71,6 +71,8 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addMushroomLogs,
   addRainBarrels,
   plantBerryBushes,
+  renameMushroomLogRefusal,
+  addClay,
 ];
 
 /** The version of the save format this code writes. */
@@ -164,6 +166,10 @@ export const MUSHROOM_LOGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addMushroomLogs)
 export const RAIN_BARRELS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRainBarrels) + 2;
 /** The first save version in which the player can dig up and plant berry bushes. */
 export const BERRY_BUSHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantBerryBushes) + 2;
+/** The first save version in which the refusal for a blueprint over a mushroom log is named `mushroomLogInTheWay`. */
+export const MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION = SAVE_UPGRADES.indexOf(renameMushroomLogRefusal) + 2;
+/** The first save version that can hold clay. */
+export const CLAY_SAVE_VERSION = SAVE_UPGRADES.indexOf(addClay) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -879,4 +885,19 @@ function plantBerryBushes(save: Readonly<Record<string, unknown>>): Record<strin
     return { ...(entity as object), components: upgraded };
   });
   return { ...save, entities };
+}
+
+/**
+ * Version 50 to 51: the refusal for a blueprint over a mushroom log is renamed from `coversMushroomLog` to `mushroomLogInTheWay`,
+ * to match `berryBushInTheWay`. A notice may still show it.
+ */
+function renameMushroomLogRefusal(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const notice = save.notice as { refusal?: { kind?: unknown } } | null | undefined;
+  if (notice?.refusal?.kind !== "coversMushroomLog") return { ...save };
+  return { ...save, notice: { ...notice, refusal: { ...notice.refusal, kind: "mushroomLogInTheWay" } } };
+}
+
+/** Version 51 to 52: the player can dig clay. A save from before then holds none, so it carries over unchanged. */
+function addClay(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

@@ -4,20 +4,20 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `player` and its stone-gathering motion, `pile`, and `backpack-icons`. Add the draft `clay`.
 
-- [ ] "Dig clay" sits in the action menu of river bank ground and of river water, just below "Gather stone". Neither menu's main action changes.
-- [ ] Digging needs no tool. It takes longer than gathering one stone and reuses the stone-gathering motion.
-- [ ] Each dig adds one clay to the backpack. One clay weighs 2 kg. A full backpack refuses with the reason (ADR 0008).
-- [ ] The river bank never runs out of clay.
-- [ ] Clay can be dropped, forms piles, and can go in a chest or on a shelf.
-- [ ] Clay is saved. The save version goes up, and older saves are upgraded when loaded.
-- [ ] `GLOSSARY.md` describes clay as the spec does.
-- [ ] All player-facing text is in the strings file.
-- [ ] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
-- [ ] Unit tests cover digging, the weight limit, and saving.
+- [x] "Dig clay" sits in the action menu of river bank ground and of river water, just below "Gather stone". Neither menu's main action changes.
+- [x] Digging needs no tool. It takes longer than gathering one stone and reuses the stone-gathering motion.
+- [x] Each dig adds one clay to the backpack. One clay weighs 2 kg. A full backpack refuses with the reason (ADR 0008).
+- [x] The river bank never runs out of clay.
+- [x] Clay can be dropped, forms piles, and can go in a chest or on a shelf.
+- [x] Clay is saved. The save version goes up, and older saves are upgraded when loaded.
+- [x] `GLOSSARY.md` describes clay as the spec does.
+- [x] All player-facing text is in the strings file.
+- [x] Every asset under **Assets** is in the asset catalogue, reused or added as a draft (ADR 0006).
+- [x] Unit tests cover digging, the weight limit, and saving.
 
 ## Comments
 

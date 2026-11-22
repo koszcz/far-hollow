@@ -1,8 +1,11 @@
 // Runs the approved "gather-stone-animation" asset in asset-manifest.json. Posed in code by player-gather-stone-pose.ts, the
 // player squats, lifts a stone, drawn by stone-shape.ts, in both hands, and heaves it over the shoulder into the
-// backpack. The axe goes on the back.
-// Its moment is the steady real-time clock, in seconds.
+// backpack. The axe goes on the back. Digging clay plays the same motion with a lump of clay, drawn by clay-shape.ts.
+// Its moment is the steady real-time clock, in seconds, with what the player lifts.
 import * as THREE from "three";
+import { DIG_CLAY_SECONDS } from "../../sim/clay";
+import { GATHER_STONE_SECONDS } from "../../sim/stone";
+import { createClayGeometry } from "../clay-shape";
 import { GATHER_STONE_LEAVE_SECONDS, gatherStonePoseAt, holdsStoneAt, stoneInRightHandAt } from "../player-gather-stone-pose";
 import { createStoneGeometry } from "../stone-shape";
 import { createBodyWorkMotion, type PlayerMotion, type PlayerRig } from "./player-motion";
@@ -16,11 +19,26 @@ const STONE_IN_HANDS_SCALE = 2;
 const STONE_BELOW_WRISTS_METRES = 0.06;
 const STONE_AHEAD_OF_WRISTS_METRES = 0.08;
 
-export function createGatherStoneMotion(rig: PlayerRig): PlayerMotion<number> {
+/** The moment of the gather-stone motion: the steady real-time clock, in seconds, and what the player lifts. */
+export interface GatherMoment {
+  readonly seconds: number;
+  readonly lifts: "stone" | "clay";
+}
+
+/**
+ * How far into one lift the player is, in seconds of the stone lift. Digging one clay takes longer than gathering one stone,
+ * so the lift plays slower to fit it, and the clay goes into the backpack as the work ends.
+ */
+function liftSeconds(now: GatherMoment, since: number): number {
+  const seconds = now.seconds - since;
+  return now.lifts === "clay" ? (seconds * GATHER_STONE_SECONDS) / DIG_CLAY_SECONDS : seconds;
+}
+
+export function createGatherStoneMotion(rig: PlayerRig): PlayerMotion<GatherMoment> {
   const { group, leftArm, rightArm } = rig;
-  const motion = createBodyWorkMotion<number>(rig, {
-    startOf: (now) => now,
-    poseAt: (now, since) => gatherStonePoseAt(now - since),
+  const motion = createBodyWorkMotion<GatherMoment>(rig, {
+    startOf: (now) => now.seconds,
+    poseAt: (now, since) => gatherStonePoseAt(liftSeconds(now, since)),
     leaveSeconds: GATHER_STONE_LEAVE_SECONDS,
   });
   // The stone rides between the hands while the player lifts it, placed from the wrists each frame.
@@ -31,6 +49,8 @@ export function createGatherStoneMotion(rig: PlayerRig): PlayerMotion<number> {
   stoneInHands.scale.setScalar(STONE_IN_HANDS_SCALE);
   stoneInHands.visible = false;
   group.add(stoneInHands);
+  // Digging clay lifts a lump of clay in the same place, drawn the same way.
+  const clayGeometry = createClayGeometry();
   const leftWrist = new THREE.Vector3();
   const rightWrist = new THREE.Vector3();
 
@@ -46,7 +66,8 @@ export function createGatherStoneMotion(rig: PlayerRig): PlayerMotion<number> {
     placeProps() {
       const since = motion.since;
       const now = motion.at;
-      const seconds = since === undefined || now === undefined ? undefined : now - since;
+      const seconds = since === undefined || now === undefined ? undefined : liftSeconds(now, since);
+      if (now !== undefined) stoneInHands.geometry = now.lifts === "clay" ? clayGeometry : stoneGeometry;
       stoneInHands.visible = seconds !== undefined && holdsStoneAt(seconds);
       if (seconds === undefined || !stoneInHands.visible) return;
       group.updateWorldMatrix(true, true);
@@ -61,6 +82,7 @@ export function createGatherStoneMotion(rig: PlayerRig): PlayerMotion<number> {
     },
     dispose() {
       stoneGeometry.dispose();
+      clayGeometry.dispose();
     },
   };
 }

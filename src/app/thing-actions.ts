@@ -147,9 +147,9 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       const walk = offer("walk", strings.actions.walk, { hud: "place" }, { type: "walkTo", x, z });
       // With a log on the shoulder, the player can also carry it to the spot and drop it there.
       const dropHere = view.carrying === null ? [] : [offer("dropHere", strings.actions.dropHere[view.carrying], { hud: "log" }, { type: "dropLogAt", x, z })];
-      // River bank ground also gives stone.
-      const gatherStone = pick.riverBank === true ? [gatherStoneOffer(pick.spot, context)] : [];
-      return withMain([walk, ...dropHere, ...gatherStone], "walk");
+      // River bank ground also gives stone and clay.
+      const riverBankWork = pick.riverBank === true ? riverBankOffers(pick.spot, context) : [];
+      return withMain([walk, ...dropHere, ...riverBankWork], "walk");
     }
     case "river":
       return riverActions(pick.spot, context);
@@ -270,13 +270,16 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
   return withMain([main, ...furnitureMoreUses(kind).map(offerUse), takeDown(context, id)], main.id);
 }
 
-/** Gathering one stone at a spot on the river bank or in the river. */
-function gatherStoneOffer({ x, z }: { readonly x: number; readonly z: number }, { offer }: Context): Offer {
-  return offer("gatherStone", strings.actions.gatherStone, { content: "stone" }, { type: "gatherStone", x, z });
+/** Gathering one stone, then digging one clay, at a spot on the river bank or in the river. */
+function riverBankOffers({ x, z }: { readonly x: number; readonly z: number }, { offer }: Context): readonly Offer[] {
+  return [
+    offer("gatherStone", strings.actions.gatherStone, { content: "stone" }, { type: "gatherStone", x, z }),
+    offer("digClay", strings.actions.digClay, { content: "clay" }, { type: "digClay", x, z }),
+  ];
 }
 
 /**
- * Drink, fill the empty pot, fish, then gather stone. Drinking is the main action.
+ * Drink, fill the empty pot, fish, gather stone, then dig clay. Drinking is the main action.
  * Filling the pot shows only when the backpack holds the empty pot.
  */
 function riverActions({ x, z }: { readonly x: number; readonly z: number }, context: Context): readonly ThingAction[] {
@@ -287,7 +290,7 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, cont
       offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
       ...fillPot,
       offer("fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
-      gatherStoneOffer({ x, z }, context),
+      ...riverBankOffers({ x, z }, context),
     ],
     "drink",
   );

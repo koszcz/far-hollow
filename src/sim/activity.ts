@@ -13,6 +13,7 @@ import { diggingUpNow } from "./digging-up";
 import { plantingNow } from "./planting";
 import { plantingMushroomNow } from "./mushroom-logs";
 import { gatheringStoneNow } from "./stone";
+import { diggingClayNow } from "./clay";
 import { takingDownNow } from "./taking-down";
 
 /** Something the player does over time, which a new command cancels. */
@@ -43,6 +44,7 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["chop", choppingNow],
   ["fish", (_entities, player) => fishingNow(player)],
   ["gatherStone", (_entities, player) => gatheringStoneNow(player)],
+  ["digClay", (_entities, player) => diggingClayNow(player)],
   ["digUp", (_entities, player) => diggingUpNow(player)],
   ["plant", (_entities, player) => plantingNow(player)],
   ["plantMushroom", (_entities, player) => plantingMushroomNow(player)],
@@ -65,6 +67,7 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   takeDownTask: true,
   fishTask: true,
   stoneTask: true,
+  clayTask: true,
   digUpTask: true,
   plantTask: true,
   plantMushroomTask: true,

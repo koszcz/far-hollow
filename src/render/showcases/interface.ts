@@ -58,7 +58,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft fireplace icon shows among the build icons, so this showcase draws the same views as "build-icons".
+  // The fireplace icon shows among the build icons, so this showcase draws the same views as "build-icons".
   "fireplace-icon": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },

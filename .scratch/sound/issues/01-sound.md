@@ -12,6 +12,7 @@ Questions for grilling:
 - Does sound get louder or quieter with distance, such as the river or a campfire far away?
 - Does a roof change rain sound, so the player hears rain on the roof inside a room?
 - Do day and night sound different, such as birds by day and crickets at night?
+- Do birds sing near where they fly and land? Birds and fireflies come from `.scratch/valley-life/` and have no sound of their own (owner, 2026-11-22).
 - Where do the sounds come from: a CC0 pack, sounds made in code, or recordings?
 - What settings does the player need: one volume slider, or separate sliders for ambience and actions?
 - Does the game keep playing sound when the browser tab is in the background?

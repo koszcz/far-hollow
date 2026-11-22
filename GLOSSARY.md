@@ -85,6 +85,10 @@ _Avoid_: Board, lumber
 A material the player gathers on the river bank and carries in the backpack. One stone weighs 2 kg. Gathering one takes a few seconds of work and needs no tool. The river bank never runs out of stone. A fireplace is built from stone.
 _Avoid_: Rock, boulder
 
+**Clay**:
+A material the player digs by hand on the river bank and carries in the backpack. One clay weighs 2 kg. Digging one takes longer than gathering a stone and needs no tool. The river bank never runs out of clay.
+_Avoid_: Mud, earth
+
 **Stick**:
 A small piece of dry wood the player picks up from the forest floor. Sticks are used as fuel. New sticks keep falling from the trees, so the forest floor never runs out of them.
 
@@ -370,6 +374,18 @@ _Avoid_: Bonfire, fire pit
 **Fireplace**:
 A stone building piece built from stone on one foundation square. It does everything a campfire does, and its fuel lasts longer. A lit fireplace heats the room it is in. The player can build it before the walls and roof.
 _Avoid_: Hearth, stove
+
+**Unfired jug**:
+A jug the player has shaped by hand from 2 clay but not yet fired. It cannot hold water.
+_Avoid_: Raw jug, green jug
+
+**Fire** (verb):
+To harden an unfired jug on a lit campfire or fireplace until it becomes a jug. Firing takes 20 game minutes. If the fire goes out, the jug keeps its progress, and firing carries on when the fire is lit again. A campfire or fireplace fires one jug at a time.
+_Avoid_: Bake, kiln
+
+**Jug**:
+A fired clay vessel that holds up to 3 drinks of boiled water. The player fills it by pouring in a pot of boiled water, one drink per pour, so a jug never holds unsafe water. Each drink fills thirst completely. A jug never breaks, and a dropped jug keeps its water.
+_Avoid_: Pot, crock, bottle, flask
 
 **Torch**:
 A light the player makes by hand from a stick and bark. The player carries unlit torches in the backpack. Lighting one with the steel and flint puts it in the player's hand, where it lights the ground around them for 3 game hours, then is gone. The player holds one lit torch at a time. A torch gives no warmth, and rain does not put it out. Putting it out throws it away, so a torch is never lit twice.

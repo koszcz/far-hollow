@@ -1,6 +1,7 @@
 // How the player hears rain: plain rain in the open, or a muffled drumming under a roof. See docs/adr/0009.
 // "Under a roof" uses the same rule as the player's shelter from rain, so the drumming plays wherever rain would not fall on them.
 import { easeRainShare } from "../render/wind";
+import { easeToward, equalPowerCrossfade, smoothStep } from "../sim/share";
 
 /** How loud the rain is in the open at full strength, before the Volume. */
 const RAIN_LOUDNESS = 0.6;
@@ -32,25 +33,16 @@ export function rainHearingNow(raining: boolean, underRoof: boolean): RainHearin
 
 /** Moves the hearing on by `elapsedSeconds` toward whether it rains and whether the player is under a roof. */
 export function easeRainHearing(hearing: RainHearing, raining: boolean, underRoof: boolean, elapsedSeconds: number): RainHearing {
-  const step = elapsedSeconds / ROOF_CROSSFADE_SECONDS;
   return {
     falling: easeRainShare(hearing.falling, raining, elapsedSeconds),
-    underRoof: underRoof ? Math.min(1, hearing.underRoof + step) : Math.max(0, hearing.underRoof - step),
+    underRoof: easeToward(hearing.underRoof, underRoof ? 1 : 0, elapsedSeconds / ROOF_CROSSFADE_SECONDS),
   };
 }
 
 /** How loud the rain and the drumming on a roof play. They crossfade with equal power, so the rain never dips halfway. */
 export function rainLoudness(hearing: RainHearing): RainLoudness {
+  // The rain eases in with no sudden start or stop, as the drawn rain does.
   const falling = smoothStep(hearing.falling);
-  const quarterTurn = (hearing.underRoof * Math.PI) / 2;
-  // Exact ends, so a sound that should be silent is not left at a tiny loudness by rounding.
-  const open = hearing.underRoof >= 1 ? 0 : Math.cos(quarterTurn);
-  const roof = hearing.underRoof <= 0 ? 0 : Math.sin(quarterTurn);
+  const { from: open, to: roof } = equalPowerCrossfade(hearing.underRoof);
   return { open: RAIN_LOUDNESS * falling * open, roof: ROOF_LOUDNESS * falling * roof };
-}
-
-/** Eases from 0 to 1 with no sudden start or stop, as the drawn rain does. */
-function smoothStep(t: number): number {
-  const clamped = Math.min(1, Math.max(0, t));
-  return clamped * clamped * (3 - 2 * clamped);
 }

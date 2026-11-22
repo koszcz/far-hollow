@@ -51,6 +51,25 @@ describe("place clicks", () => {
   });
 });
 
+describe("skipped time", () => {
+  // Skipped time passes inside one logic step, with no frame drawn, so no work sound or footstep can play through it.
+  // A click is the one action sound that game state alone could set off.
+  for (const skip of [{ type: "skipTime", hours: 8 }, { type: "skipToRainChange" }] as const) {
+    it(`makes no click over ${skip.type}, even while the player takes a piece down`, () => {
+      const game = createGame({ seed: 42, freeBuilding: true });
+      const piece = placeCampfireNearPlayer(game);
+      buildUntilFinished(game, piece);
+      game.client.send({ type: "takeDown", pieceId: idOf(game, piece) });
+      game.step();
+      const clicks = createPlaceClicks(game.entities);
+      clicks.clicksSinceLastFrame();
+      game.client.send(skip);
+      game.step();
+      expect(clicks.clicksSinceLastFrame()).toBe(0);
+    });
+  }
+});
+
 /** Places a campfire blueprint on the first open spot near the player, and returns it. */
 function placeCampfireNearPlayer(game: Game): Entity {
   const player = game.entities.with("player", "position").first;

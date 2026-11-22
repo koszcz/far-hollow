@@ -1,12 +1,10 @@
 // Plays sounds through the browser's Web Audio. It plays what it is told each frame and never reads or changes game state.
 // Browsers block sound until the player clicks, so it starts on the first click or key press.
+import { clampShare } from "../sim/share";
 import { audibleVolume, type VolumeControl } from "./volume-control";
 import { actionSound } from "./action-sound-samples";
 import { ambienceLoop } from "./ambience-loops";
-import { isAmbienceSound, soundsToPlay, type SoundId, type SoundWish } from "./sound-mix";
-
-/** The sounds that play once and end, rather than loop while wished for. */
-const PLAYS_ONCE: ReadonlySet<SoundId> = new Set<SoundId>(["sound-place", "sound-footstep"]);
+import { isAmbienceSound, playsOnce, soundsToPlay, type SoundId, type SoundWish } from "./sound-mix";
 
 /** How fast a playing sound follows a change in loudness or side, in seconds. Short enough to keep up, long enough not to click. */
 const FOLLOW_SECONDS = 0.08;
@@ -84,7 +82,7 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   let masterTarget = 0;
 
   function overall(): number {
-    return hidden ? 0 : audibleVolume(volume.setting()) * (1 - Math.min(1, Math.max(0, silence)));
+    return hidden ? 0 : audibleVolume(volume.setting()) * (1 - clampShare(silence));
   }
 
   function setMaster(): void {
@@ -110,7 +108,7 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   function startVoice(audio: AudioContext, out: AudioNode, wish: SoundWish): Voice {
     const source = audio.createBufferSource();
     source.buffer = bufferOf(audio, wish.sound);
-    source.loop = !PLAYS_ONCE.has(wish.sound);
+    source.loop = !playsOnce(wish.sound);
     const gain = audio.createGain();
     gain.gain.value = 0;
     gain.gain.setTargetAtTime(wish.loudness, audio.currentTime, FOLLOW_SECONDS);

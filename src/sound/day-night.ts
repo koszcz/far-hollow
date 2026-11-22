@@ -1,5 +1,6 @@
 // The day and night crossfade: birdsong by day, crickets at night. It follows the daylight, so it shares the sky's clock.
 // See docs/adr/0009. Birdsong does not depend on the visible birds.
+import { easeToward, equalPowerCrossfade } from "../sim/share";
 
 /** How loud the birds sing in full daylight, before the Volume. */
 const BIRDS_LOUDNESS = 0.35;
@@ -19,17 +20,11 @@ export interface DayNightMix {
 
 /** The birds and crickets at this daylight, from 0 (night) to 1 (full day). They crossfade with equal power. */
 export function dayNightMix(daylight: number): DayNightMix {
-  const day = Math.min(1, Math.max(0, daylight));
-  const quarterTurn = (day * Math.PI) / 2;
-  // Exact ends, so a sound that should be silent is not left at a tiny loudness by rounding.
-  return {
-    birds: day <= 0 ? 0 : BIRDS_LOUDNESS * Math.sin(quarterTurn),
-    crickets: day >= 1 ? 0 : CRICKETS_LOUDNESS * Math.cos(quarterTurn),
-  };
+  const { from: night, to: day } = equalPowerCrossfade(daylight);
+  return { birds: BIRDS_LOUDNESS * day, crickets: CRICKETS_LOUDNESS * night };
 }
 
 /** Moves the heard daylight from `heard` toward the sky's `daylight` over `elapsedSeconds`, by at most a quick crossfade's pace. */
 export function easeHeardDaylight(heard: number, daylight: number, elapsedSeconds: number): number {
-  const step = elapsedSeconds / QUICK_CROSSFADE_SECONDS;
-  return heard < daylight ? Math.min(daylight, heard + step) : Math.max(daylight, heard - step);
+  return easeToward(heard, daylight, elapsedSeconds / QUICK_CROSSFADE_SECONDS);
 }

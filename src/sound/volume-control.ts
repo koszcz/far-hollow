@@ -1,4 +1,5 @@
 // The player's Volume and mute. They are stored in the browser, not in the saved game, so they apply to every save slot.
+import { clampShare } from "../sim/share";
 
 /** Where the browser stores the Volume and mute. */
 export const VOLUME_STORAGE_KEY = "far-hollow-volume";
@@ -44,7 +45,7 @@ export function createVolumeControl(storage: VolumeStorage): VolumeControl {
   return {
     setting: () => current,
     setVolume(volume) {
-      change({ ...current, volume: clampVolume(volume) });
+      change({ ...current, volume: clampShare(volume) });
     },
     toggleMute() {
       change({ ...current, muted: !current.muted });
@@ -65,12 +66,8 @@ function readSetting(storage: VolumeStorage): VolumeSetting {
     if (typeof stored !== "object" || stored === null || !("volume" in stored) || !("muted" in stored)) return fallback;
     const { volume, muted } = stored;
     if (typeof volume !== "number" || !Number.isFinite(volume) || typeof muted !== "boolean") return fallback;
-    return { volume: clampVolume(volume), muted };
+    return { volume: clampShare(volume), muted };
   } catch {
     return fallback;
   }
-}
-
-function clampVolume(volume: number): number {
-  return Math.min(1, Math.max(0, volume));
 }

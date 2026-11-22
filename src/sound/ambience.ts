@@ -2,11 +2,12 @@
 // the daylight as game logic and drawing leave them, and says which sounds want to play and how loud. It never changes game state.
 // A room changes only the rain. The river, the forest, birds, and crickets sound the same indoors.
 import { blendGroundPoints, groundDistance, type GroundPoint } from "../sim/ground-point";
+import { clampShare } from "../sim/share";
 import { nearestRiverPoint, type River } from "../sim/valley";
 import { distanceFade, panToward, type Listener } from "./listener";
 import { dayNightMix } from "./day-night";
 import { rainLoudness, type RainHearing } from "./rain-hearing";
-import type { SoundWish } from "./sound-mix";
+import { soundKeys, type SoundWish } from "./sound-mix";
 
 /** How loud the river is at the water's edge, before the Volume. */
 const RIVER_LOUDNESS = 0.7;
@@ -50,7 +51,7 @@ export function ambienceWishes(listener: Listener, scene: AmbienceScene): SoundW
   for (const fire of scene.fires) {
     if (fire.flameSize <= 0) continue;
     wishes.push({
-      key: `fire-${fire.id}`,
+      key: soundKeys.fire(fire.id),
       sound: "sound-fire",
       loudness: FIRE_LOUDNESS * fire.flameSize * distanceFade(listener, fire.spot),
       pan: panToward(listener, fire.spot),
@@ -61,7 +62,7 @@ export function ambienceWishes(listener: Listener, scene: AmbienceScene): SoundW
 
 /** How loud the forest rustles in a wind of this strength, from 0 (calm) to 1 (a gale). */
 function forestLoudness(wind: number): number {
-  return FOREST_LOUDNESS.calm + (FOREST_LOUDNESS.gale - FOREST_LOUDNESS.calm) * Math.min(1, Math.max(0, wind));
+  return FOREST_LOUDNESS.calm + (FOREST_LOUDNESS.gale - FOREST_LOUDNESS.calm) * clampShare(wind);
 }
 
 /** The bit of water nearest `spot`: the spot itself in the water, or else the nearest point on the river's edge. */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { STRIDE_METRES } from "../render/player-mesh";
-import { createActionSounds, FOOT_DOWN_SHARE, FOOTSTEP_SECONDS, PLACE_SECONDS, WORK_RHYTHMS, type ActionWork, type PlayerSoundsNow } from "./action-sounds";
+import { createActionSounds, FOOT_DOWN_SHARE, FOOTSTEP_SECONDS, PLACE_SECONDS, WORK_RHYTHMS, type PlayerSoundsNow } from "./action-sounds";
+import type { DrawnWork } from "../render/drawn-work";
 import { listenerFrom } from "./listener";
 
 const SPOT = { x: 5, z: 5 };
@@ -11,7 +12,7 @@ function now(changes: Partial<PlayerSoundsNow> = {}): PlayerSoundsNow {
 }
 
 describe("work sounds", () => {
-  const SOUNDS: readonly (readonly [ActionWork, string])[] = [
+  const SOUNDS: readonly (readonly [DrawnWork, string])[] = [
     ["chop", "sound-chop"],
     ["saw", "sound-saw"],
     ["debark", "sound-debark"],

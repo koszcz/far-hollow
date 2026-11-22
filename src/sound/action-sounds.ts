@@ -6,12 +6,9 @@ import { CROUCH_CYCLE_SECONDS } from "../render/player-build-pose";
 import { DEBARK_STROKE_SECONDS } from "../render/player-debark-pose";
 import { CHOP_SWINGS_PER_SECOND, STRIDE_METRES } from "../render/player-mesh";
 import { SAW_STROKE_SECONDS } from "../render/player-saw-pose";
-import type { DrawnWork } from "../render/scene-renderer";
+import type { DrawnWork } from "../render/drawn-work";
 import { distanceFade, panToward, type Listener } from "./listener";
-import type { ActionSoundId, SoundWish } from "./sound-mix";
-
-/** The timed work that makes a sound while the player does it: the work whose motion the drawing shows. */
-export type ActionWork = DrawnWork;
+import { soundKeys, type ActionSoundId, type SoundWish } from "./sound-mix";
 
 /** How one kind of work sounds: its sound, how long one beat of its motion lasts, and how loud it plays beside the player. */
 interface WorkRhythm {
@@ -26,7 +23,7 @@ interface WorkRhythm {
 export const DIG_STROKE_SECONDS = 1.2;
 
 /** Each kind of work's rhythm. Each work sound is a loop exactly one beat long, so it stays in time with the motion. */
-export const WORK_RHYTHMS: Readonly<Record<ActionWork, WorkRhythm>> = {
+export const WORK_RHYTHMS: Readonly<Record<DrawnWork, WorkRhythm>> = {
   chop: { sound: "sound-chop", beatSeconds: 1 / CHOP_SWINGS_PER_SECOND, byClock: true, loudness: 0.8 },
   saw: { sound: "sound-saw", beatSeconds: SAW_STROKE_SECONDS, byClock: false, loudness: 0.55 },
   debark: { sound: "sound-debark", beatSeconds: DEBARK_STROKE_SECONDS, byClock: false, loudness: 0.5 },
@@ -51,7 +48,7 @@ export interface PlayerSoundsNow {
   /** Where the player is. Every action sound comes from here. */
   readonly spot: GroundPoint;
   /** The timed work drawn now, with when its motion began on the performance clock, in seconds. */
-  readonly work?: { readonly kind: ActionWork; readonly since: number };
+  readonly work?: { readonly kind: DrawnWork; readonly since: number };
   /** The total metres walked so far as drawn, or undefined while the drawn player does not walk. */
   readonly walkedMetres?: number;
   /** How many blueprints were placed or pieces taken down since the last frame. */
@@ -75,11 +72,34 @@ function intoBeat(seconds: number, beatSeconds: number): number {
   return ((seconds % beatSeconds) + beatSeconds) % beatSeconds;
 }
 
+/** A sound that plays once: its number among the sounds of its kind, which names it, and when it began, in seconds. */
+interface OneShot {
+  readonly number: number;
+  readonly startedAt: number;
+}
+
+/** How one kind of one-shot sound plays: its sound, how long it lasts, how loud it plays beside the player, and its key. */
+interface OneShotSound {
+  readonly sound: ActionSoundId;
+  readonly seconds: number;
+  readonly loudness: number;
+  readonly key: (number: number) => string;
+}
+
+const FOOTSTEP: OneShotSound = { sound: "sound-footstep", seconds: FOOTSTEP_SECONDS, loudness: FOOTSTEP_LOUDNESS, key: soundKeys.footstep };
+const PLACE_CLICK: OneShotSound = { sound: "sound-place", seconds: PLACE_SECONDS, loudness: PLACE_LOUDNESS, key: soundKeys.place };
+
+/** The one-shot sound while it still rings at `nowSeconds`, starting as far in as it has played, or undefined once it ends. */
+function ringing(kind: OneShotSound, shot: OneShot | undefined, nowSeconds: number, loudnessHere: number, pan: number): SoundWish | undefined {
+  if (shot === undefined || nowSeconds - shot.startedAt >= kind.seconds) return undefined;
+  return { key: kind.key(shot.number), sound: kind.sound, loudness: kind.loudness * loudnessHere, pan, startAt: nowSeconds - shot.startedAt };
+}
+
 export function createActionSounds(): ActionSounds {
-  /** The footstep last heard, and when its foot came down. */
-  let lastStep: { index: number; at: number } | undefined;
+  /** The footstep last heard, by its number in the walk, and when its foot came down. */
+  let lastStep: OneShot | undefined;
   /** The click last heard, counted from the first, and when it happened. */
-  let lastClick: { count: number; at: number } | undefined;
+  let lastClick: OneShot | undefined;
 
   return {
     wishes(listener, player, nowSeconds) {
@@ -96,7 +116,7 @@ export function createActionSounds(): ActionSounds {
         const rhythm = WORK_RHYTHMS[work.kind];
         const origin = rhythm.byClock ? 0 : work.since;
         wishes.push({
-          key: `work-${work.kind}-${Math.round(work.since * 1000)}`,
+          key: soundKeys.work(work.kind, work.since),
           sound: rhythm.sound,
           loudness: rhythm.loudness * loudnessHere,
           pan,
@@ -106,27 +126,13 @@ export function createActionSounds(): ActionSounds {
       if (player.walkedMetres === undefined) lastStep = undefined;
       else {
         const index = stepIndex(player.walkedMetres);
-        if (lastStep === undefined) lastStep = { index, at: Number.NEGATIVE_INFINITY };
-        else if (index !== lastStep.index) lastStep = { index, at: nowSeconds };
+        // Where the walk starts is no footstep, so it began long ago.
+        if (lastStep === undefined) lastStep = { number: index, startedAt: Number.NEGATIVE_INFINITY };
+        else if (index !== lastStep.number) lastStep = { number: index, startedAt: nowSeconds };
       }
-      if (lastStep !== undefined && nowSeconds - lastStep.at < FOOTSTEP_SECONDS) {
-        wishes.push({
-          key: `footstep-${lastStep.index}`,
-          sound: "sound-footstep",
-          loudness: FOOTSTEP_LOUDNESS * loudnessHere,
-          pan,
-          startAt: nowSeconds - lastStep.at,
-        });
-      }
-      if (player.clicks > 0) lastClick = { count: (lastClick?.count ?? 0) + player.clicks, at: nowSeconds };
-      if (lastClick !== undefined && nowSeconds - lastClick.at < PLACE_SECONDS) {
-        wishes.push({
-          key: `place-${lastClick.count}`,
-          sound: "sound-place",
-          loudness: PLACE_LOUDNESS * loudnessHere,
-          pan,
-          startAt: nowSeconds - lastClick.at,
-        });
+      if (player.clicks > 0) lastClick = { number: (lastClick?.number ?? 0) + player.clicks, startedAt: nowSeconds };
+      for (const wish of [ringing(FOOTSTEP, lastStep, nowSeconds, loudnessHere, pan), ringing(PLACE_CLICK, lastClick, nowSeconds, loudnessHere, pan)]) {
+        if (wish !== undefined) wishes.push(wish);
       }
       return wishes;
     },

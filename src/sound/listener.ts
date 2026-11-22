@@ -1,5 +1,6 @@
 // Where the game hears from, and every rule about how loud a point sound is and which side it comes from. See docs/adr/0009.
 import { groundDistance, headingToward, type GroundPoint } from "../sim/ground-point";
+import { clampShare } from "../sim/share";
 
 /** Point sounds fade to silence at this distance from the player, in metres. */
 export const SILENT_AT_METRES = 30;
@@ -13,8 +14,14 @@ export interface Listener {
   readonly facing: number;
 }
 
-/** A listener at the player's spot, facing from the camera's eye toward the point it looks at. Height is ignored. */
-export function listenerFrom(player: GroundPoint, camera: { readonly eye: GroundPoint; readonly focus: GroundPoint }): Listener {
+/** Where the camera is and the point it looks at, seen from above. Height is ignored. */
+export interface CameraOnGround {
+  readonly eye: GroundPoint;
+  readonly focus: GroundPoint;
+}
+
+/** A listener at the player's spot, facing from the camera's eye toward the point it looks at. */
+export function listenerFrom(player: GroundPoint, camera: CameraOnGround): Listener {
   return { spot: { x: player.x, z: player.z }, facing: headingToward(camera.eye, camera.focus) };
 }
 
@@ -23,7 +30,7 @@ export function listenerFrom(player: GroundPoint, camera: { readonly eye: Ground
  * It falls fast close in and slowly far out, as sound does outdoors.
  */
 export function distanceFade(listener: Listener, source: GroundPoint): number {
-  const left = Math.max(0, 1 - groundDistance(listener.spot, source) / SILENT_AT_METRES);
+  const left = clampShare(1 - groundDistance(listener.spot, source) / SILENT_AT_METRES);
   return left * left;
 }
 

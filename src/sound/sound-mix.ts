@@ -1,4 +1,5 @@
 // Which sounds play at once. The browser mixes at most MAX_SOUNDS, so the quietest ones stop when more want to play.
+import type { DrawnWork } from "../render/drawn-work";
 
 /** The most sounds that play at once. */
 export const MAX_SOUNDS = 16;
@@ -9,8 +10,22 @@ export const AMBIENCE_SOUND_IDS = ["sound-river", "sound-forest", "sound-fire", 
 /** An ambience sound asset from asset-manifest.json. */
 export type AmbienceSoundId = (typeof AMBIENCE_SOUND_IDS)[number];
 
-/** An action sound asset from asset-manifest.json. Each plays from the start of its rhythm, in time with what the player does. */
-export type ActionSoundId = "sound-chop" | "sound-saw" | "sound-debark" | "sound-dig" | "sound-build" | "sound-place" | "sound-footstep";
+/**
+ * Every action sound asset from asset-manifest.json, and whether it plays once and ends. The others loop while the work
+ * goes on. Each starts where the player's motion is, so it plays in time with it.
+ */
+const ACTION_SOUNDS = {
+  "sound-chop": { playsOnce: false },
+  "sound-saw": { playsOnce: false },
+  "sound-debark": { playsOnce: false },
+  "sound-dig": { playsOnce: false },
+  "sound-build": { playsOnce: false },
+  "sound-place": { playsOnce: true },
+  "sound-footstep": { playsOnce: true },
+} as const satisfies Record<string, { readonly playsOnce: boolean }>;
+
+/** An action sound asset from asset-manifest.json. */
+export type ActionSoundId = keyof typeof ACTION_SOUNDS;
 
 /** A sound asset from asset-manifest.json. */
 export type SoundId = AmbienceSoundId | ActionSoundId;
@@ -19,6 +34,26 @@ export type SoundId = AmbienceSoundId | ActionSoundId;
 export function isAmbienceSound(sound: SoundId): sound is AmbienceSoundId {
   return (AMBIENCE_SOUND_IDS as readonly SoundId[]).includes(sound);
 }
+
+/** Whether a sound plays once and ends, rather than loops while it is wished for. */
+export function playsOnce(sound: SoundId): boolean {
+  return !isAmbienceSound(sound) && ACTION_SOUNDS[sound].playsOnce;
+}
+
+/**
+ * The key of each sound that can play more than once at a time, or again as a new sound. docs/agents/game-testing.md
+ * documents the fire key for tests.
+ */
+export const soundKeys = {
+  /** A campfire or fireplace, by its entity id, such as "fire-12". */
+  fire: (entityId: number): string => `fire-${entityId}`,
+  /** Work drawn now, by its kind and when its motion began on the performance clock, in seconds. */
+  work: (kind: DrawnWork, sinceSeconds: number): string => `work-${kind}-${Math.round(sinceSeconds * 1000)}`,
+  /** A footstep, by its number in the walk. */
+  footstep: (index: number): string => `footstep-${index}`,
+  /** A place click, by its number since sound began. */
+  place: (count: number): string => `place-${count}`,
+};
 
 /** One sound that wants to play this frame. */
 export interface SoundWish {

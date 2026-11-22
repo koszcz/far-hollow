@@ -1,17 +1,16 @@
 // The sound layer of a running game. Each frame it reads the game state and the drawn player, as the drawing does, works
 // out the ambience and action sounds the player hears, and hands them to the sound engine. It never changes game state (ADR 0001).
 import { campfireEntities, fireplaceEntities, playerEntities, rainEntities, type EntityStore } from "../sim/entities";
-import type { GroundPoint } from "../sim/ground-point";
 import { isUnderRoof } from "../sim/roofs";
 import type { Valley } from "../sim/valley";
 import { daylightAt } from "../render/daylight";
 import { flameSize } from "../render/flame-size";
 import { windStrength } from "../render/wind";
 import type { DrawnPlayer } from "../render/scene-renderer";
-import { createActionSounds } from "./action-sounds";
+import { createActionSounds, type PlayerSoundsNow } from "./action-sounds";
 import { ambienceWishes, type FireSound } from "./ambience";
 import { easeHeardDaylight } from "./day-night";
-import { listenerFrom } from "./listener";
+import { listenerFrom, type CameraOnGround } from "./listener";
 import { createPlaceClicks } from "./place-clicks";
 import { easeRainHearing, rainHearingNow, type RainHearing } from "./rain-hearing";
 import type { SoundEngine } from "./sound-engine";
@@ -19,7 +18,7 @@ import type { SoundEngine } from "./sound-engine";
 /** What the player hears now, as drawing shows it. */
 export interface SoundFrame {
   /** Where the camera is and where it looks. */
-  readonly camera: { readonly eye: GroundPoint; readonly focus: GroundPoint };
+  readonly camera: CameraOnGround;
   /** The hour of the day the sky shows, with its fraction. Birds and crickets follow its daylight. */
   readonly hourOfDay: number;
   /** Silences all sound, from 0 to 1, such as while the sleep animation fades to black. */
@@ -47,9 +46,16 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
   let daylight: number | undefined;
   let lastSeconds: number | undefined;
 
+  /** Every campfire and fireplace in the game. A fire is always in the store, so it always has an id. */
   function* fires(): Generator<FireSound> {
-    for (const entity of campfires) yield { id: entities.id(entity) ?? -1, spot: entity.position, flameSize: flameSize("campfire", entity.campfire) };
-    for (const entity of fireplaces) yield { id: entities.id(entity) ?? -1, spot: entity.position, flameSize: flameSize("fireplace", entity.fireplace) };
+    for (const entity of campfires) {
+      const id = entities.id(entity);
+      if (id !== undefined) yield { id, spot: entity.position, flameSize: flameSize("campfire", entity.campfire) };
+    }
+    for (const entity of fireplaces) {
+      const id = entities.id(entity);
+      if (id !== undefined) yield { id, spot: entity.position, flameSize: flameSize("fireplace", entity.fireplace) };
+    }
   }
 
   return {
@@ -73,7 +79,7 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
         daylight,
       });
       const { work, walkedMetres } = drawnPlayer;
-      const doing = {
+      const playerNow: PlayerSoundsNow = {
         spot: player,
         clicks: placeClicks.clicksSinceLastFrame(),
         asleep,
@@ -81,7 +87,7 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
         ...(walkedMetres === undefined ? {} : { walkedMetres }),
       };
       // Action sounds keep time on the performance clock, as the drawn motions do.
-      wishes.push(...actionSounds.wishes(listener, doing, performance.now() / 1000));
+      wishes.push(...actionSounds.wishes(listener, playerNow, performance.now() / 1000));
       engine.play(wishes, silence);
       engine.recordFrameMs(performance.now() - began);
     },

@@ -1,5 +1,6 @@
 // The wind: a breeze that blows harder in the rain. It is only for looks and sound. Game logic never sees it, and it is
 // never saved. The forest's rustle follows it.
+import { clampShare, easeToward } from "../sim/share";
 
 /** How hard the breeze blows on average in dry weather, from 0 (calm) to 1 (a gale). */
 const BREEZE = 0.25;
@@ -21,11 +22,10 @@ export function windStrength(nowSeconds: number, rainShare: number): number {
   const slow = Math.sin((nowSeconds / GUST_PERIOD_SECONDS.slow) * Math.PI * 2);
   const quick = Math.sin((nowSeconds / GUST_PERIOD_SECONDS.quick) * Math.PI * 2 + 1.3);
   const gust = slow * 0.6 + quick * 0.4;
-  return Math.min(1, Math.max(0, BREEZE + GUST * gust + RAIN_EXTRA * rainShare));
+  return clampShare(BREEZE + GUST * gust + RAIN_EXTRA * rainShare);
 }
 
 /** Moves the rain's share from `share` toward 1 while it rains, or toward 0 while dry, over `elapsedSeconds`. */
 export function easeRainShare(share: number, raining: boolean, elapsedSeconds: number): number {
-  const step = elapsedSeconds / RAIN_EASE_SECONDS;
-  return raining ? Math.min(1, share + step) : Math.max(0, share - step);
+  return easeToward(share, raining ? 1 : 0, elapsedSeconds / RAIN_EASE_SECONDS);
 }

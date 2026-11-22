@@ -3,10 +3,13 @@ import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
-export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, Plantable, WildFood } from "./backpack";
+export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugContent, Plantable, WildFood } from "./backpack";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
+
+/** The action menu uses these to offer drinking from a jug and pouring water into one. */
+export { hasRoom, holdsWater, isJug } from "./jug";
 import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */
@@ -224,6 +227,16 @@ export type Command =
   /** Drink the water in the full pot. Clean water fills thirst safely. Unboiled river water makes the player sick. */
   | { type: "drinkFromPot" }
   /**
+   * Pour the pot of clean water from the backpack into the fullest jug that still has room. The jug gains 1 drink and the pot is
+   * left empty. It is refused when the backpack holds no pot of clean water or no jug with room.
+   */
+  | { type: "pourIntoJug" }
+  /**
+   * Drink 1 drink from the emptiest jug in the backpack that holds water. It fills thirst completely. Jugs hold only clean water,
+   * so it never makes the player sick. It is refused when no jug holds water.
+   */
+  | { type: "drinkFromJug" }
+  /**
    * Walk the player within reach of a finished rain barrel, given by its entity id, and drink from it. It takes out 1 drink and
    * fills thirst completely. Its water is clean, so it never makes the player sick. It is refused while the barrel is empty.
    */
@@ -410,7 +423,7 @@ export interface ReachView {
  */
 export interface EatOrDrinkView {
   readonly count: number;
-  readonly kind: "eat" | "drinkFromRiver" | "drinkFromPot";
+  readonly kind: "eat" | "drinkFromRiver" | "drinkFromPot" | "drinkFromJug";
   readonly toward?: Readonly<GroundPoint>;
 }
 
@@ -591,6 +604,9 @@ export type Refusal =
  * - `noPotOfWater`, `noRawFish`: the backpack holds none.
  * - `fireFullOfFish`: the campfire holds as many fish as it can.
  * - `noUnfiredJug`: the backpack holds no unfired jug.
+ * - `noPotOfCleanWater`: the backpack holds no pot of clean water to pour into a jug.
+ * - `noJugWithRoom`: the backpack holds no jug that still has room for a drink.
+ * - `noWaterInJug`: the backpack holds no jug with water in it.
  * - `fireHoldsJug`: the campfire already holds a jug, and fires one at a time.
  * - `woodpileFull`, `sledFull`: it has no room left.
  * - `letGoFirst`: the player drags a sled, so their hands are busy.
@@ -632,6 +648,9 @@ export type PlainRefusal =
   | "noRawFish"
   | "fireFullOfFish"
   | "noUnfiredJug"
+  | "noPotOfCleanWater"
+  | "noJugWithRoom"
+  | "noWaterInJug"
   | "fireHoldsJug"
   | "woodpileFull"
   | "sledFull"

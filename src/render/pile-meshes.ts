@@ -302,6 +302,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
   // Stone has three shapes. A pile takes them in turn.
   const stoneShapes = stonePileShapes(material, track);
 
+  // Every fill level of the jug looks the same from outside: the water does not show.
+  const jug = jugPileParts(material, track);
   const SHAPES: Readonly<Record<Exclude<BackpackContent, "stick" | "pot" | "potOfRiverWater" | "potOfBoiledWater">, readonly Part[]>> = {
     firewood: [{ geometry: track(createFirewoodGeometry().center().translate(0, 0.07, 0)), material: material(FIREWOOD_COLOUR, { vertexColors: true }) }],
     bark: owned(barkParts().map((part) => ({ geometry: part.geometry, material: track(part.material) }))),
@@ -328,8 +330,11 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     clay: clayPileParts(material, track),
     // Unfired jugs stand upright. The jug is the draft "jug" asset, drawn by jug-shape.ts.
     unfiredJug: unfiredJugPileParts(material, track),
-    // Empty jugs stand upright too, in the fired look of the same draft "jug" asset.
-    jug: jugPileParts(material, track),
+    // Jugs stand upright too, in the fired look of the same draft "jug" asset, whatever water they hold.
+    jug,
+    jugWith1Drink: jug,
+    jugWith2Drinks: jug,
+    jugWith3Drinks: jug,
     // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,
     // Saplings lie on their sides, root ball and all. The shape is part of the draft "sapling-icon" asset, drawn by sapling-pile-shape.ts.
@@ -352,6 +357,9 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     clay: spread(0.13),
     unfiredJug: spread(0.2),
     jug: spread(0.2),
+    jugWith1Drink: spread(0.2),
+    jugWith2Drinks: spread(0.2),
+    jugWith3Drinks: spread(0.2),
     torch: spread(0.1),
     sapling: spread(0.2),
     berryBush: spread(0.35),

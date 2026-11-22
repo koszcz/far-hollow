@@ -173,6 +173,10 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { thing: "river" }, name: actions.fillPot };
     case "drinkFromPot":
       return { icon: { content: potHeld(view) }, name: actions.drinkFromPot };
+    case "pourIntoJug":
+      return { icon: { content: "potOfBoiledWater" }, name: actions.pourIntoJug };
+    case "drinkFromJug":
+      return { icon: { content: "jugWith1Drink" }, name: actions.drinkFromJug };
     case "craft": {
       const recipe = view.craftMenu.find(({ kind }) => kind === command.recipe);
       return { icon: recipe === undefined ? { hud: "backpack" } : { content: recipe.result.content }, name: strings.craftMenu.recipes[command.recipe] };

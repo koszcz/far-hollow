@@ -11,7 +11,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "HUD: the unfired jug in the craft menu", yaw: 20, pitch: 35 },
       { label: "Jug icons, large and at hotbar size", yaw: -20, pitch: 35 },
       { label: "HUD: shaping an unfired jug", yaw: 40, pitch: 35 },
-      { label: "HUD: unfired jugs in the backpack", yaw: 20, pitch: 35, hour: 18 },
+      { label: "HUD: unfired jugs and jugs at each fill level in the backpack", yaw: 20, pitch: 35, hour: 18 },
     ],
     build({ movePlayer }) {
       movePlayer(0, 0, 0);

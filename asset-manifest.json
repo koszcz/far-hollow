@@ -1327,7 +1327,7 @@
       "id": "jug",
       "kind": "code",
       "code": ["src/render/jug-shape.ts", "src/render/pile-meshes.ts", "src/render/jug-on-fire-meshes.ts"],
-      "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall, turned round like a pot: a round belly, a narrow neck that flares to a lip, and a loop handle from the shoulder to the neck. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and empty jugs stand upright in a pile, spread around the middle like other things in a pile. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
+      "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall, turned round like a pot: a round belly, a narrow neck that flares to a lip, and a loop handle from the shoulder to the neck. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and jugs stand upright in a pile, spread around the middle like other things in a pile. A jug looks the same whatever water it holds. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -1339,7 +1339,7 @@
       "id": "jug-icons",
       "kind": "code",
       "code": ["src/ui/jug-icons.tsx", "src/ui/backpack-icons.tsx"],
-      "description": "The jug icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unfired jug, the backpack icon and the craft menu icon, is a pale grey-brown jug with a round belly, a narrow neck with a lip, a dark opening, and a loop handle on its right side. The empty jug's backpack icon is the same shape in orange-brown fired clay. The icons for a jug with water in it come with clay ticket 04.",
+      "description": "The jug icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unfired jug, the backpack icon and the craft menu icon, is a pale grey-brown jug with a round belly, a narrow neck with a lip, a dark opening, and a loop handle on its right side. The empty jug's backpack icon is the same shape in orange-brown fired clay. A jug with water in it has one pale blue wave across its belly for each drink, from the bottom up: 1, 2, or 3 waves.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

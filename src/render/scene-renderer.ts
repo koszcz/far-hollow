@@ -24,7 +24,7 @@ import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
 import { createRiverMeshes } from "./river-meshes";
 import { createSawingStep } from "./sawing-stance";
-import { EAT_DRINK_SECONDS, eatDrinkCutShort, reachMotionOf, type DoingNow, type EatDrinkMotion } from "./player-eat-drink-pose";
+import { EAT_DRINK_SECONDS, eatDrinkCutShort, reachMotionOf, type DoingNow, type EatDrinkKind, type EatDrinkMotion } from "./player-eat-drink-pose";
 import { createSkyLighting } from "./sky-lighting";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
@@ -241,7 +241,7 @@ export function createSceneRenderer(
    * The eat or drink motion drawn now: when it began on the frame clock, in seconds, which it is, the spot on the river
    * for a drink from it, and what the player did last frame, once it has been drawn.
    */
-  let eatOrDrinkDrawn: { since: number; kind: EatOrDrinkView["kind"]; toward?: GroundPoint; doing?: DoingNow } | undefined;
+  let eatOrDrinkDrawn: { since: number; kind: EatDrinkKind; toward?: GroundPoint; doing?: DoingNow } | undefined;
   /** The forage, eat, or drink motion posing the player this frame, if any. */
   let eatOrDrinkShown: EatDrinkMotion | undefined;
 
@@ -548,7 +548,9 @@ export function createSceneRenderer(
     const last = readLastEatOrDrink();
     if (last === null || last.count === eatsOrDrinksSeen) return;
     eatsOrDrinksSeen = last.count;
-    eatOrDrinkDrawn = { since: nowSeconds, kind: last.kind, ...copyToward(last.toward) };
+    // A jug has no motion of its own yet. Drinking from it raises one hand to the mouth, as eating does.
+    const kind = last.kind === "drinkFromJug" ? "eat" : last.kind;
+    eatOrDrinkDrawn = { since: nowSeconds, kind, ...copyToward(last.toward) };
   }
 
   return {

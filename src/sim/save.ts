@@ -75,6 +75,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addClay,
   addUnfiredJugs,
   fireJugs,
+  fillJugs,
 ];
 
 /** The version of the save format this code writes. */
@@ -176,6 +177,8 @@ export const CLAY_SAVE_VERSION = SAVE_UPGRADES.indexOf(addClay) + 2;
 export const UNFIRED_JUGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addUnfiredJugs) + 2;
 /** The first save version that can hold a jug on a campfire or fireplace, and empty jugs. */
 export const JUG_FIRING_SAVE_VERSION = SAVE_UPGRADES.indexOf(fireJugs) + 2;
+/** The first save version that can hold jugs with water in them. */
+export const JUG_WATER_SAVE_VERSION = SAVE_UPGRADES.indexOf(fillJugs) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -918,5 +921,13 @@ function addUnfiredJugs(save: Readonly<Record<string, unknown>>): Record<string,
  * jug on a fire and no jugs, so it carries over unchanged.
  */
 function fireJugs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 54 to 55: the player can pour clean water into a jug and drink from it, so a jug can hold 1, 2, or 3 drinks. A save
+ * from before then holds only empty jugs, so it carries over unchanged.
+ */
+function fillJugs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

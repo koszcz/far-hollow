@@ -775,6 +775,37 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(river(), world.reader))).not.toContain("fillPot");
   });
 
+  it("pours clean water into a jug that is not full, greyed with the reason without a pot of clean water", () => {
+    const jug: ActionTarget = { kind: "backpackContent", content: "jug" };
+    const world = worldWith({ backpack: { jug: 1, potOfBoiledWater: 1 } });
+    const actions = actionsFor(jug, world.reader);
+    expect(summary(actions)).toEqual(["pourIntoJug main", "drop"]);
+    expect(find(actions, "pourIntoJug")?.label).toBe("Pour in clean water");
+    expect(find(actions, "pourIntoJug")?.command).toEqual({ type: "pourIntoJug" });
+
+    expect(summary(actionsFor(jug, worldWith({ backpack: { jug: 1, potOfRiverWater: 1 } }).reader))).toEqual([
+      "pourIntoJug main off: no pot of clean water",
+      "drop",
+    ]);
+  });
+
+  it("drinks from a jug with water as its main action, and offers no pour on a full jug", () => {
+    const world = worldWith({ backpack: { jugWith1Drink: 1, jugWith3Drinks: 1, potOfBoiledWater: 1 } });
+
+    const partly = actionsFor({ kind: "backpackContent", content: "jugWith1Drink" }, world.reader);
+    expect(summary(partly)).toEqual(["drinkFromJug main", "pourIntoJug", "drop"]);
+    expect(find(partly, "drinkFromJug")?.label).toBe("Drink");
+    expect(find(partly, "drinkFromJug")?.command).toEqual({ type: "drinkFromJug" });
+
+    expect(summary(actionsFor({ kind: "backpackContent", content: "jugWith3Drinks" }, world.reader))).toEqual(["drinkFromJug main", "drop"]);
+  });
+
+  it("offers no way to fill a jug at the river", () => {
+    const world = worldWith({ backpack: { jug: 2 } });
+
+    expect(summary(actionsFor(river(), world.reader)).join()).not.toMatch(/jug|fillPot/i);
+  });
+
   it("lights a torch from the hotbar, greyed with the reason without the steel and flint or with a torch already lit", () => {
     const torch: ActionTarget = { kind: "backpackContent", content: "torch" };
     const world = worldWith({ backpack: { torch: 2, steelAndFlint: 1 } });

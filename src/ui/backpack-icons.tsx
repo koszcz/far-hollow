@@ -3,7 +3,7 @@
 // The owner approved the steel and flint icon, a C-steel, a flint shard, and sparks, on 2026-11-12.
 // Each icon is drawn on a 24 by 24 grid in a main colour and an accent, such as a wooden handle on a steel blade. Shape and colour together tell the items apart.
 import { useId } from "preact/hooks";
-import type { BackpackContent, CraftingContent, Fish, FishingContent } from "../sim/api";
+import { isJug, type BackpackContent, type CraftingContent, type Fish, type FishingContent, type JugContent } from "../sim/api";
 import { CRAFTING_DRAWINGS, isCraftingContent } from "./crafting-icons";
 import { FISHING_DRAWINGS, isFishingContent } from "./fishing-icons";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
@@ -11,7 +11,7 @@ import { BERRY_BUSH_DRAWING } from "./berry-bush-icon";
 import { SAPLING_DRAWING } from "./sapling-icon";
 import { STONE_DRAWING } from "./stone-icon";
 import { CLAY_DRAWING } from "./clay-icon";
-import { JUG_DRAWING, UNFIRED_JUG_DRAWING } from "./jug-icons";
+import { JUG_DRAWINGS, UNFIRED_JUG_DRAWING } from "./jug-icons";
 import { TORCH_DRAWING } from "./torch-icons";
 
 /** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` and `.hud-build-entry` in style.css. */
@@ -47,11 +47,11 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the draft "clay" asset, the unfired jug and the empty jug in the draft "jug-icons" asset, and the torch in the approved "torch-icons" asset. A sapling is drawn in the draft "sapling-icon" asset, and a berry bush in the draft "berry-bush-icon" asset.
+ * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the draft "clay" asset, the unfired jug and the jug at each fill level in the draft "jug-icons" asset, and the torch in the approved "torch-icons" asset. A sapling is drawn in the draft "sapling-icon" asset, and a berry bush in the draft "berry-bush-icon" asset.
  */
 const DRAWINGS: Readonly<
   Record<
-    Exclude<BackpackContent, CraftingContent | FishingContent | Fish | "stone" | "clay" | "unfiredJug" | "jug" | "torch" | "sapling" | "berryBush">,
+    Exclude<BackpackContent, CraftingContent | FishingContent | Fish | "stone" | "clay" | "unfiredJug" | JugContent | "torch" | "sapling" | "berryBush">,
     BackpackIconDrawing
   >
 > = {
@@ -233,7 +233,7 @@ export function backpackDrawing(content: BackpackContent): BackpackIconDrawing {
   if (content === "stone") return STONE_DRAWING;
   if (content === "clay") return CLAY_DRAWING;
   if (content === "unfiredJug") return UNFIRED_JUG_DRAWING;
-  if (content === "jug") return JUG_DRAWING;
+  if (isJug(content)) return JUG_DRAWINGS[content];
   if (content === "torch") return TORCH_DRAWING;
   if (content === "sapling") return SAPLING_DRAWING;
   if (content === "berryBush") return BERRY_BUSH_DRAWING;

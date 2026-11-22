@@ -7,7 +7,7 @@ import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
 import { LIT_TORCH_DRAWING, TORCH_DRAWING } from "./torch-icons";
-import { JUG_DRAWING, UNFIRED_JUG_DRAWING } from "./jug-icons";
+import { JUG_DRAWINGS, UNFIRED_JUG_DRAWING } from "./jug-icons";
 import { Hud } from "./hud";
 
 const BASE_VIEW: GameView = {
@@ -251,7 +251,7 @@ const UNFIRED_JUG_RECIPE: GameView["craftMenu"][number] = {
 
 /**
  * The draft "jug-icons" asset: the unfired jug recipe in the craft menu, the icons drawn large, shaping a jug under way,
- * and unfired and empty jugs in the backpack. Clay ticket 04 adds the icons for a jug with water in it.
+ * and unfired jugs and jugs at each fill level in the backpack.
  */
 const JUG_ICON_STATES: readonly ShowcaseState[] = [
   {
@@ -268,7 +268,7 @@ const JUG_ICON_STATES: readonly ShowcaseState[] = [
     placing: null,
   },
   {
-    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, unfiredJug: 3, jug: 2, clay: 1 } },
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, unfiredJug: 3, jug: 2, jugWith1Drink: 1, jugWith2Drinks: 1, jugWith3Drinks: 2 } },
     buildMenuOpen: false,
     placing: null,
   },
@@ -646,7 +646,10 @@ function TorchIconSheet() {
 /** The jug icons that the "jug-icons" icon sheet draws, with their names. */
 const JUG_SHEET_ICONS = [
   { drawing: UNFIRED_JUG_DRAWING, name: "unfired jug" },
-  { drawing: JUG_DRAWING, name: "empty jug" },
+  { drawing: JUG_DRAWINGS.jug, name: "empty jug" },
+  { drawing: JUG_DRAWINGS.jugWith1Drink, name: "jug with 1 drink" },
+  { drawing: JUG_DRAWINGS.jugWith2Drinks, name: "jug with 2 drinks" },
+  { drawing: JUG_DRAWINGS.jugWith3Drinks, name: "jug with 3 drinks" },
 ] as const;
 
 /** The second view of "jug-icons": each jug icon drawn large and at hotbar size, so the owner can judge the drawing. */

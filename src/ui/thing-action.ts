@@ -52,6 +52,8 @@ export type ActionId =
   | "dropHere"
   | "split"
   | "fillPot"
+  | "pourIntoJug"
+  | "drinkFromJug"
   | "putOut"
   | "plant"
   | "plantMushroom";

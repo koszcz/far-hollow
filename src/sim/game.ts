@@ -69,6 +69,7 @@ import { createPot, potRules } from "./pot";
 import { createRainBarrels, rainBarrelRules } from "./rain-barrels";
 import { createCooking, cookingRules } from "./cooking";
 import { createFiring, firingRules } from "./firing";
+import { createJugs, jugRules } from "./jugs";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
@@ -190,6 +191,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const rainBarrels = createRainBarrels(entities);
   const cooking = createCooking(entities, campfires);
   const firing = createFiring(entities, campfires);
+  const jugs = createJugs(entities);
   const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
@@ -433,6 +435,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     }),
     ...cookingRules(cooking, campfires, ruleGame),
     ...firingRules(firing, campfires, ruleGame),
+    ...jugRules(jugs, () => {
+      reportEatOrDrink("drinkFromJug");
+    }),
     ...woodpileRules(woodpiles, ruleGame),
     ...sledRules(sleds, ruleGame),
     ...chestRules(chests, ruleGame),

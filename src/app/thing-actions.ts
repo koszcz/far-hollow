@@ -3,7 +3,7 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, WOODPILE_WOODS } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, hasRoom, holdsWater, isJug, WOODPILE_WOODS } from "../sim/api";
 import type {
   BackpackContent,
   CampfireView,
@@ -430,10 +430,26 @@ function plantOffer(plant: Plantable): Offer {
   return { id: "plant", label: strings.actions.plant, icon: { content: plant }, enabled: true, command: undefined, startsPlanting: plant };
 }
 
-/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling or berry bush is planted. */
-function backpackContentActions(content: BackpackContent, { view, offer }: Context): readonly ThingAction[] {
+/**
+ * A jug's own actions: drinking, while it holds water, then pouring in clean water, while it has room.
+ * Each command picks its own jug: drinking takes from the emptiest jug with water, and pouring fills the fullest jug with room.
+ */
+function jugOffers(content: BackpackContent, { offer }: Context): readonly Offer[] {
+  if (!isJug(content)) return [];
+  const drink = holdsWater(content) ? [offer("drinkFromJug", strings.actions.drinkFromJug, { content }, { type: "drinkFromJug" })] : [];
+  const pour = hasRoom(content) ? [offer("pourIntoJug", strings.actions.pourIntoJug, { content: "potOfBoiledWater" }, { type: "pourIntoJug" })] : [];
+  return [...drink, ...pour];
+}
+
+/**
+ * Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling or berry bush is planted.
+ * A jug is drunk from or filled.
+ */
+function backpackContentActions(content: BackpackContent, context: Context): readonly ThingAction[] {
+  const { view, offer } = context;
   const icon: ActionIcon = { content };
   const use = useCommand(content);
+  const jug = jugOffers(content, context);
   const plant = content === "sapling" || content === "berryBush" ? [plantOffer(content)] : [];
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
   const intoChest =
@@ -451,10 +467,12 @@ function backpackContentActions(content: BackpackContent, { view, offer }: Conte
   const offers = [
     ...intoChest,
     ...(use === undefined ? [] : [offer("use", use.label, icon, use.command)]),
+    ...jug,
     ...plant,
     offer("drop", strings.actions.drop, icon, { type: "dropFromBackpack", content }),
   ];
-  return withMain(offers, chest !== undefined ? "putInChest" : use !== undefined ? "use" : plant.length > 0 ? "plant" : undefined);
+  const own = use !== undefined ? "use" : (jug[0]?.id ?? (plant.length > 0 ? "plant" : undefined));
+  return withMain(offers, chest !== undefined ? "putInChest" : own);
 }
 
 /** Drop it, then split it into firewood if it is a log. */

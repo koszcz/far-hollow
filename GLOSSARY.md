@@ -173,6 +173,10 @@ _Avoid_: Right-click menu, context menu, radial menu, pie menu
 The actions the player has lined up to do in order, at most 4, counting the one under way. Shift with a click on an action, with E, or with a number key adds an action to the end. When the action under way is finished, the next one starts. A plain click, E, or number key empties the queue and starts that action at once.
 _Avoid_: Task list, job queue, command queue, to-do list
 
+**Command rule**:
+How the game handles one kind of command the player sends, such as chopping a tree: why it refuses the command, how it carries it out, and whether the player must approach first. The activity module that carries out the command owns its rule.
+_Avoid_: Command handler, action rule
+
 **Hotbar**:
 The row at the bottom of the screen that shows the backpack contents, anything on the shoulder, and the sled the player drags.
 _Avoid_: Inventory bar, toolbar, quick bar
@@ -416,3 +420,7 @@ _Avoid_: Placeholder, temp asset, stub
 **Approved asset**:
 An asset the owner has approved as final. Only the owner can approve an asset, and only the owner can approve a third-party file.
 _Avoid_: Final asset, polished asset
+
+**Player motion**:
+An animation asset that poses the player in code, such as fishing or crafting by hand, together with its props. Each player motion lives in its own module.
+_Avoid_: Player animation, player pose

@@ -1,0 +1,327 @@
+// Decides where the birds are and what each one does. It draws nothing: bird-meshes.ts draws the birds.
+// - Up to 3 flocks of 3 to 5 birds fly over the treetops, each on a straight line that passes near the player.
+// - Up to 6 birds peck on the ground in clearings near the player. They fly in to land, and fly off when the player comes
+//   within 6 m or the spot stops being a place a bird may land, such as when a fire is lit nearby.
+// - A bird that flies off lands in another clearing or flies away over the trees.
+// - Birds show only by day. In rain they leave within a few seconds, and they come back gradually after it stops.
+// Birds are only for looks. Game logic never sees them, they are never saved, and they start in new random places on
+// every load, because the renderer passes in Math.random.
+import { groundDistance, stepAlongHeading, headingToward, type GroundPoint } from "../sim/ground-point";
+import type { Random } from "../sim/random";
+
+/** The most flocks in the sky at once. */
+export const MOST_FLOCKS = 3;
+/** How many birds fly in one flock. */
+export const FLOCK_SIZE = { min: 3, max: 5 };
+/** The most birds on the ground near the player at once. */
+export const MOST_GROUND_BIRDS = 6;
+/** A bird on the ground flies off when the player comes this close, in metres. */
+export const FLY_OFF_METRES = 6;
+/** No bird lands this close to a lit fire, in metres. */
+export const LIT_FIRE_GAP_METRES = 8;
+
+/** Flocks fly this high above the ground, in metres, plus up to TREETOP_SPREAD_METRES more. Trees grow up to about 14 m. */
+const TREETOP_METRES = 16;
+const TREETOP_SPREAD_METRES = 6;
+const FLOCK_METRES_PER_SECOND = 9;
+/** A flock's line is this long, in metres, and passes this close to the player at most. */
+const FLOCK_PATH_METRES = 220;
+const FLOCK_PASS_METRES = 50;
+/** Where each bird flies in its flock, as metres to the side, behind, and above the flock's middle. */
+const FLOCK_SPREAD_METRES = 2.5;
+/** Birds land this far from the player, in metres. Farther away they are too small to see. */
+const GROUND_RADIUS_METRES = { min: 8, max: 20 };
+/** How many spots a step tries when it looks for one where a bird may land. */
+const LANDING_TRIES = 12;
+const GROUND_BIRD_METRES_PER_SECOND = 7;
+/** A landing bird starts this far away, in metres, and this high above the ground. */
+const LANDING_FROM = { metres: 18, height: 9 };
+/** A bird that flies away over the trees ends this far away, in metres, before it vanishes. */
+const FLY_AWAY_METRES = 45;
+/** A bird that flies off lands in another clearing this often. Otherwise it flies away over the trees. */
+const LAND_AGAIN_SHARE = 0.5;
+/** A new flock or a new bird on the ground arrives after a pause picked between these, in seconds. */
+const ARRIVAL_PAUSE_SECONDS = { min: 1, max: 6 };
+/** In rain, birds leave over this many seconds. After rain, they come back over this many. */
+const RAIN_LEAVE_SECONDS = 3;
+const RETURN_SECONDS = 90;
+/** How many wing beats a flying bird makes per second. */
+const FLAPS_PER_SECOND = { min: 5, max: 8 };
+/** A bird on the ground pecks once in each of these periods, in seconds, and its peck lasts PECK_SECONDS. */
+const PECK_PERIOD_SECONDS = { min: 0.9, max: 2.4 };
+const PECK_SECONDS = 0.35;
+
+/** What the birds need to know about the valley around them. */
+export interface BirdSurroundings {
+  /** How much daylight there is, from 0 (night) to 1 (full day). */
+  readonly daylight: number;
+  readonly raining: boolean;
+  /** Where the player stands. Undefined before the player is placed. */
+  readonly player: GroundPoint | undefined;
+  /** Whether a bird may land on this spot. See birdMayLandAt. */
+  readonly canLandAt: (spot: GroundPoint) => boolean;
+  readonly groundHeightAt: (x: number, z: number) => number;
+}
+
+/** One bird as it is drawn now. Heading is in radians about the vertical axis, from +z toward +x. */
+export interface DrawnBird {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly heading: number;
+  readonly flying: boolean;
+  /** How far the wings are raised, from -1 (down) to 1 (up). 0 when on the ground. */
+  readonly flap: number;
+  /** How far the head is bent down to peck, from 0 (up) to 1 (at the ground). 0 when flying. */
+  readonly peck: number;
+}
+
+export interface BirdLife {
+  /** Moves every bird on by `seconds`. */
+  step(seconds: number, surroundings: BirdSurroundings): void;
+  /** How strongly birds show, from 0 (gone) to 1. It follows daylight and fades in rain. */
+  visibility(): number;
+  /** The birds in each flock in the sky. */
+  flocks(): DrawnBird[][];
+  /** The birds near the player that land, peck, or fly off. */
+  groundBirds(): DrawnBird[];
+}
+
+/** The ground near a spot, as the landing rule sees it. */
+export interface LandingGround {
+  readonly isClearing: (spot: GroundPoint) => boolean;
+  readonly isRiver: (spot: GroundPoint) => boolean;
+  /** Whether the spot lies under something the player placed, such as a foundation. */
+  readonly isUnderCamp: (spot: GroundPoint) => boolean;
+  readonly litFires: readonly GroundPoint[];
+}
+
+/** Whether a bird may land here: in a clearing, not in the river, not on anything placed, and away from every lit fire. */
+export function birdMayLandAt(ground: LandingGround, spot: GroundPoint): boolean {
+  if (!ground.isClearing(spot) || ground.isRiver(spot) || ground.isUnderCamp(spot)) return false;
+  return ground.litFires.every((fire) => groundDistance(fire, spot) > LIT_FIRE_GAP_METRES);
+}
+
+interface Point3 {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+interface Flock {
+  readonly start: GroundPoint;
+  readonly heading: number;
+  readonly height: number;
+  metres: number;
+  readonly members: readonly { readonly side: number; readonly back: number; readonly up: number; readonly flapRate: number; readonly flapPhase: number }[];
+}
+
+/** A flight from one point to another, with a gentle arc. When it ends, the bird lands at `landsAt`, or vanishes. */
+interface Flight {
+  readonly kind: "flight";
+  readonly from: Point3;
+  readonly to: Point3;
+  readonly seconds: number;
+  elapsed: number;
+  readonly landsAt: GroundPoint | undefined;
+  /** Whether the bird is leaving. A leaving bird does not count toward the birds wanted on the ground. */
+  readonly leaving: boolean;
+}
+
+interface Pecking {
+  readonly kind: "pecking";
+  readonly spot: GroundPoint;
+  readonly heading: number;
+  elapsed: number;
+}
+
+interface GroundBird {
+  state: Flight | Pecking;
+  readonly flapRate: number;
+  readonly flapPhase: number;
+  readonly peckPeriod: number;
+  readonly peckPhase: number;
+}
+
+/** Starts the birds. They take their places on the first step. `random` should differ on every load. */
+export function createBirdLife(random: Random): BirdLife {
+  const between = (range: { min: number; max: number }): number => range.min + (range.max - range.min) * random();
+  let flocks: Flock[] = [];
+  let groundBirds: GroundBird[] = [];
+  let presence: number | undefined;
+  let daylight = 0;
+  let clock = 0;
+  let nextFlockAt = 0;
+  let nextGroundBirdAt = 0;
+  let centre: GroundPoint = { x: 0, z: 0 };
+  let groundHeightAt: (x: number, z: number) => number = () => 0;
+
+  function newFlock(midway: boolean): Flock {
+    const heading = random() * Math.PI * 2;
+    const pass = (random() * 2 - 1) * FLOCK_PASS_METRES;
+    // The line runs along `heading` and passes `pass` metres to the side of the player at its middle.
+    const middle = stepAlongHeading(centre, heading + Math.PI / 2, pass);
+    const start = stepAlongHeading(middle, heading, -FLOCK_PATH_METRES / 2);
+    const size = Math.floor(between({ min: FLOCK_SIZE.min, max: FLOCK_SIZE.max + 1 }));
+    return {
+      start,
+      heading,
+      height: TREETOP_METRES + random() * TREETOP_SPREAD_METRES,
+      metres: midway ? random() * FLOCK_PATH_METRES : 0,
+      members: Array.from({ length: size }, (_, index) => ({
+        side: (random() * 2 - 1) * FLOCK_SPREAD_METRES,
+        back: index * 0.8 + random() * FLOCK_SPREAD_METRES,
+        up: random() * 1.2,
+        flapRate: between(FLAPS_PER_SECOND),
+        flapPhase: random(),
+      })),
+    };
+  }
+
+  function groundBird(state: Flight | Pecking): GroundBird {
+    return { state, flapRate: between(FLAPS_PER_SECOND), flapPhase: random(), peckPeriod: between(PECK_PERIOD_SECONDS), peckPhase: random() };
+  }
+
+  /** A spot near the player where a bird may land, away from `awayFrom`, or undefined when none was found. */
+  function landingSpot(surroundings: BirdSurroundings, player: GroundPoint, awayFrom?: GroundPoint): GroundPoint | undefined {
+    for (let i = 0; i < LANDING_TRIES; i += 1) {
+      const spot = stepAlongHeading(player, random() * Math.PI * 2, between(GROUND_RADIUS_METRES));
+      if (awayFrom !== undefined && groundDistance(spot, awayFrom) < GROUND_RADIUS_METRES.min) continue;
+      if (surroundings.canLandAt(spot)) return spot;
+    }
+    return undefined;
+  }
+
+  function onGround(spot: GroundPoint): Point3 {
+    return { x: spot.x, y: groundHeightAt(spot.x, spot.z), z: spot.z };
+  }
+
+  function flight(from: Point3, to: Point3, landsAt: GroundPoint | undefined, leaving: boolean): Flight {
+    const metres = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
+    return { kind: "flight", from, to, seconds: Math.max(metres / GROUND_BIRD_METRES_PER_SECOND, 0.5), elapsed: 0, landsAt, leaving };
+  }
+
+  /** Sends a bird on the ground off: to another clearing, or away over the trees. */
+  function flyOff(bird: GroundBird, surroundings: BirdSurroundings, player: GroundPoint, mayLandAgain: boolean): void {
+    if (bird.state.kind !== "pecking") return;
+    const from = onGround(bird.state.spot);
+    const again = mayLandAgain && random() < LAND_AGAIN_SHARE ? landingSpot(surroundings, player, bird.state.spot) : undefined;
+    if (again !== undefined) {
+      bird.state = flight(from, onGround(again), again, false);
+      return;
+    }
+    const away = stepAlongHeading(bird.state.spot, headingToward(player, bird.state.spot) + (random() - 0.5), FLY_AWAY_METRES);
+    bird.state = flight(from, { x: away.x, y: groundHeightAt(away.x, away.z) + TREETOP_METRES + random() * TREETOP_SPREAD_METRES, z: away.z }, undefined, true);
+  }
+
+  function stepFlocks(seconds: number, wanted: number, first: boolean): void {
+    for (const flock of flocks) flock.metres += FLOCK_METRES_PER_SECOND * seconds;
+    flocks = flocks.filter((flock) => flock.metres < FLOCK_PATH_METRES);
+    // Flocks above the wanted count fly on until their line ends.
+    if (first) {
+      while (flocks.length < wanted) flocks.push(newFlock(true));
+    } else if (flocks.length < wanted && clock >= nextFlockAt) {
+      flocks.push(newFlock(false));
+      nextFlockAt = clock + between(ARRIVAL_PAUSE_SECONDS);
+    }
+  }
+
+  function stepGroundBirds(seconds: number, surroundings: BirdSurroundings, wanted: number, first: boolean): void {
+    const player = surroundings.player;
+    for (const bird of groundBirds) {
+      const state = bird.state;
+      if (state.kind === "flight") {
+        state.elapsed += seconds;
+        if (state.elapsed >= state.seconds && state.landsAt !== undefined) {
+          bird.state = { kind: "pecking", spot: state.landsAt, heading: headingToward(state.from, state.to), elapsed: 0 };
+        }
+        continue;
+      }
+      state.elapsed += seconds;
+      if (player === undefined) continue;
+      if (groundDistance(state.spot, player) <= FLY_OFF_METRES || !surroundings.canLandAt(state.spot)) {
+        flyOff(bird, surroundings, player, true);
+      }
+    }
+    groundBirds = groundBirds.filter((bird) => bird.state.kind === "pecking" || bird.state.elapsed < bird.state.seconds);
+    if (player === undefined) return;
+
+    // Birds above the wanted count, as in rain or at nightfall, fly away over the trees.
+    let staying = groundBirds.filter((bird) => !(bird.state.kind === "flight" && bird.state.leaving));
+    for (const bird of staying.slice(wanted)) flyOff(bird, surroundings, player, false);
+    staying = staying.slice(0, wanted);
+    // A leaving bird still counts toward the most on the ground, so there are never more than MOST_GROUND_BIRDS.
+    const room = Math.min(wanted - staying.length, MOST_GROUND_BIRDS - groundBirds.length);
+    if (room <= 0) return;
+    if (first) {
+      for (let i = 0; i < room; i += 1) {
+        const spot = landingSpot(surroundings, player);
+        if (spot !== undefined) groundBirds.push(groundBird({ kind: "pecking", spot, heading: random() * Math.PI * 2, elapsed: 0 }));
+      }
+    } else if (clock >= nextGroundBirdAt) {
+      nextGroundBirdAt = clock + between(ARRIVAL_PAUSE_SECONDS);
+      const spot = landingSpot(surroundings, player);
+      if (spot === undefined) return;
+      const from = stepAlongHeading(spot, random() * Math.PI * 2, LANDING_FROM.metres);
+      groundBirds.push(groundBird(flight({ x: from.x, y: groundHeightAt(from.x, from.z) + LANDING_FROM.height, z: from.z }, onGround(spot), spot, false)));
+    }
+  }
+
+  function drawnFlock(flock: Flock): DrawnBird[] {
+    const middle = stepAlongHeading(flock.start, flock.heading, flock.metres);
+    const ground = groundHeightAt(middle.x, middle.z);
+    return flock.members.map((member) => {
+      const behind = stepAlongHeading(middle, flock.heading, -member.back);
+      const spot = stepAlongHeading(behind, flock.heading + Math.PI / 2, member.side);
+      return { x: spot.x, y: ground + flock.height + member.up, z: spot.z, heading: flock.heading, flying: true, flap: flapAt(member), peck: 0 };
+    });
+  }
+
+  function flapAt(bird: { flapRate: number; flapPhase: number }): number {
+    return Math.sin((clock * bird.flapRate + bird.flapPhase) * Math.PI * 2);
+  }
+
+  function drawnGroundBird(bird: GroundBird): DrawnBird {
+    const state = bird.state;
+    if (state.kind === "pecking") {
+      const into = ((state.elapsed / bird.peckPeriod + bird.peckPhase) % 1) * bird.peckPeriod;
+      const peck = into < PECK_SECONDS ? Math.sin((into / PECK_SECONDS) * Math.PI) : 0;
+      return { ...onGround(state.spot), heading: state.heading, flying: false, flap: 0, peck };
+    }
+    const t = Math.min(state.elapsed / state.seconds, 1);
+    const arc = Math.sin(t * Math.PI) * 1.5;
+    return {
+      x: state.from.x + (state.to.x - state.from.x) * t,
+      y: state.from.y + (state.to.y - state.from.y) * t + arc,
+      z: state.from.z + (state.to.z - state.from.z) * t,
+      heading: headingToward(state.from, state.to),
+      flying: true,
+      flap: flapAt(bird),
+      peck: 0,
+    };
+  }
+
+  return {
+    step(seconds, surroundings) {
+      const first = presence === undefined;
+      clock += seconds;
+      daylight = surroundings.daylight;
+      groundHeightAt = surroundings.groundHeightAt;
+      if (surroundings.player !== undefined) centre = surroundings.player;
+      // The first step shows the weather as it is, so a game loaded in clear weather starts with every bird in place.
+      const target = surroundings.raining ? 0 : 1;
+      presence = first
+        ? target
+        : surroundings.raining
+          ? Math.max((presence ?? 0) - seconds / RAIN_LEAVE_SECONDS, 0)
+          : Math.min((presence ?? 0) + seconds / RETURN_SECONDS, 1);
+      // At night no birds are wanted. Those still there fly off, unseen, so the next morning starts afresh.
+      const share = daylight > 0 ? presence : 0;
+      stepFlocks(seconds, Math.round(MOST_FLOCKS * share), first);
+      stepGroundBirds(seconds, surroundings, Math.round(MOST_GROUND_BIRDS * share), first);
+    },
+    visibility: () => daylight * (presence ?? 0),
+    flocks: () => flocks.map(drawnFlock),
+    groundBirds: () => groundBirds.map(drawnGroundBird),
+  };
+}

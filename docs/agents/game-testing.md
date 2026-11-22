@@ -53,6 +53,7 @@ Do not try to listen. Call `window.farHollow.sound()` instead. It returns what t
 - `hidden` is true while the tab is hidden. All sound stops then.
 - `overall` is how loud all sound plays, from 0 to 1, after the Volume, mute, and the sleep fade. It is 0 while the sleep animation shows black.
 - `playing` lists every sound that plays, loudest first, at most 16. Each one has a `key`, such as `river`, `forest`, or `fire-12` (the campfire or fireplace with entity id 12), its asset in `sound`, its `loudness` from 0 to 1 before the Volume, and its `pan` from -1 (left) to 1 (right).
+- Action sounds are in `playing` too, by their asset: `sound-chop`, `sound-saw`, `sound-debark`, `sound-dig`, and `sound-build` while the player does that work, `sound-footstep` as each foot comes down while walking, and `sound-place` when a blueprint is placed or a piece taken down. A footstep lasts 0.25 s and a click 0.12 s, so read `sound()` over several frames to catch them. No action sound plays while the sleep animation plays.
 - `frameMs` is how long the last frame's sound work took, in milliseconds. It should stay under 0.5.
 
 The list fills even before `started` is true, so you can check which sounds would play without a click. The sounds follow the next drawn frame, so after `advance`, wait for one animation frame before you read `sound()`.

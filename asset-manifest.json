@@ -1331,7 +1331,11 @@
     {
       "id": "jug",
       "kind": "code",
-      "code": ["src/render/jug-shape.ts", "src/render/pile-meshes.ts", "src/render/jug-on-fire-meshes.ts"],
+      "code": [
+        "src/render/jug-shape.ts",
+        "src/render/pile-meshes.ts",
+        "src/render/jug-on-fire-meshes.ts"
+      ],
       "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall and faceted, like the stones and firewood around it: a small foot ring, an egg-shaped belly, a paler band round the shoulder, a narrow neck that flares to a lip, a dark open mouth, and a flat clay strap handle from the shoulder to just under the lip. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and empty jugs stand upright in a pile, spread around the middle like other things in a pile. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
       "source": "Built in code in this project",
       "license": "Project code",
@@ -1344,7 +1348,10 @@
     {
       "id": "jug-icons",
       "kind": "code",
-      "code": ["src/ui/jug-icons.tsx", "src/ui/backpack-icons.tsx"],
+      "code": [
+        "src/ui/jug-icons.tsx",
+        "src/ui/backpack-icons.tsx"
+      ],
       "description": "The jug icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unfired jug, the backpack icon and the craft menu icon, is a pale grey-brown jug with a round belly, a narrow neck with a lip, a dark opening, and a loop handle on its right side. The empty jug's backpack icon is the same shape in orange-brown fired clay. A jug with water in it has one pale blue wave across its belly for each drink, from the bottom up: 1, 2, or 3 waves.",
       "source": "Built in code in this project",
       "license": "Project code",
@@ -1671,6 +1678,138 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/sound/issues/01-sound.md"
+      }
+    },
+    {
+      "id": "sound-chop",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx",
+        "src/render/player-mesh.ts"
+      ],
+      "description": "The chopping sound: the axe bites into the trunk with a sharp crack over a low, woody thud. It plays from the player's spot once per swing, as the axe strikes the tree.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-saw",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx",
+        "src/render/player-saw-pose.ts"
+      ],
+      "description": "The sawing sound: a toothy rasp on the push and a stronger one on the pull, once per stroke. It plays from the player's spot while they saw at the sawhorse.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-debark",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx",
+        "src/render/player-debark-pose.ts"
+      ],
+      "description": "The debarking sound: a dry, crackling scrape while the drawknife pulls bark off the log, once per stroke. It plays from the player's spot while they debark.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-dig",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx"
+      ],
+      "description": "The digging sound: a gritty crunch as the spade cuts the soil, then a soft fall of earth. It plays from the player's spot while they dig up a sapling or berry bush.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-build",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx",
+        "src/render/player-build-pose.ts"
+      ],
+      "description": "The building sound: two wooden knocks as the hands press a piece into place, the second one softer. It plays from the player's spot once per crouch while they work on a blueprint's construction.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-place",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx",
+        "src/sound/place-clicks.ts"
+      ],
+      "description": "The place click: a short, quiet click. It plays once when the player places a blueprint or takes a piece down.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
+      }
+    },
+    {
+      "id": "sound-footstep",
+      "kind": "code",
+      "code": [
+        "src/sound/action-sound-samples.ts",
+        "src/sound/action-sounds.ts",
+        "src/sound/sound-engine.ts",
+        "src/render/showcases/sound.ts",
+        "src/ui/sound-showcase.tsx",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "One footstep: a soft, low thud with a light scuff. It plays from the player's spot each time a foot comes down while they walk. It is the same on every ground type.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/sound/issues/02-action-sounds.md"
       }
     },
     {

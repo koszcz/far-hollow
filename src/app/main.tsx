@@ -427,7 +427,10 @@ function frame(nowMs: number): void {
   lastFrameMs = nowMs;
   cameraInput.update(elapsedMs / 1000);
   sceneRenderer.render(alpha);
-  valleySound.update(nowMs / 1000, sceneRenderer.cameraRig.view(), sceneRenderer.sleepDarkness());
+  valleySound.update(nowMs / 1000, sceneRenderer.cameraRig.view(), sceneRenderer.sleepDarkness(), {
+    drawn: sceneRenderer.drawnPlayer(),
+    asleep: sceneRenderer.isPlayingSleep(),
+  });
   if (menuCameraView !== null && cameraViewKey() !== menuCameraView) closeMenu();
   if (isFirstFrame) hideLoadingScreen();
   requestAnimationFrame(frame);

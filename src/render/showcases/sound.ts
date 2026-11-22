@@ -1,9 +1,19 @@
-// Showcases for sound: the river, forest, and fire loops, and the Volume slider and sound button. The registry is
+// Showcases for sound: the river, forest, and fire loops, the action sounds, and the Volume slider and sound button. The registry is
 // src/render/showcases/index.ts. A sound cannot show in a picture, so each view shows where the sound comes from, and
-// src/ui/sound-showcase.tsx adds buttons over the page that play each loop, so the owner can listen to it.
+// src/ui/sound-showcase.tsx adds buttons over the page that play each sound, so the owner can listen to it.
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
 import { FOUR_ANGLES, NIGHT, NOON, STAGE_FROM_RIVER_METRES, type Showcase } from "./types";
+
+/** The view of an action sound: the player, whose work and steps it comes from. */
+const ACTION_SOUND_SHOWCASE: Showcase = {
+  radius: 4,
+  focus: { x: 0, y: 1, z: 0 },
+  shots: FOUR_ANGLES,
+  build({ movePlayer }) {
+    movePlayer(0, 0, 0);
+  },
+};
 
 export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   "sound-river": {
@@ -49,6 +59,10 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 2.5, Math.PI);
     },
   },
+  // Each action sound comes from the player's spot, so its views show the player.
+  ...Object.fromEntries(
+    ["sound-chop", "sound-saw", "sound-debark", "sound-dig", "sound-build", "sound-place", "sound-footstep"].map((id) => [id, ACTION_SOUND_SHOWCASE]),
+  ),
   // src/ui/sound-showcase.tsx draws the start screen's Volume slider and the open sound button over the views.
   "sound-button": {
     radius: 6,

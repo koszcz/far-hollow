@@ -46,6 +46,71 @@ test("sound starts on the first click and plays the river and the forest, cheapl
   expect(errors).toEqual([]);
 });
 
+interface ActionHooks {
+  client: {
+    send(command: unknown): void;
+    getView(): { playerPosition: { x: number; z: number } };
+    checkPlacement(structure: string, at: { x: number; z: number }, turns: number): { spot: { x: number; z: number }; allowed: boolean };
+  };
+  sound(): SoundState;
+}
+
+/** Collects every sound asset that plays over the next `frames` drawn frames, since footsteps and clicks are short. */
+async function soundsOverFrames(page: Page, frames: number): Promise<string[]> {
+  return page.evaluate(async (count) => {
+    const hooks = (window as unknown as { farHollow: ActionHooks }).farHollow;
+    const heard = new Set<string>();
+    for (let frame = 0; frame < count; frame += 1) {
+      await new Promise(requestAnimationFrame);
+      for (const playing of hooks.sound().playing) heard.add(playing.sound);
+    }
+    return [...heard];
+  }, frames);
+}
+
+test("walking plays footsteps, and placing and building a blueprint play their sounds until the work stops", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?seed=42&playground");
+  await page.waitForFunction(() => "farHollow" in window);
+  await expect(page.locator("#loading")).toHaveCount(0);
+
+  await page.evaluate(() => {
+    const { client } = (window as unknown as { farHollow: ActionHooks }).farHollow;
+    const { x, z } = client.getView().playerPosition;
+    client.send({ type: "walkTo", x: x + 6, z });
+  });
+  expect(await soundsOverFrames(page, 60)).toContain("sound-footstep");
+
+  // Places a campfire blueprint on the first open spot nearby and builds it, which costs nothing in the playground.
+  // The click is short, so listen over the frames after it.
+  const placedAt = await page.evaluate(() => {
+    const { client } = (window as unknown as { farHollow: ActionHooks }).farHollow;
+    const { x, z } = client.getView().playerPosition;
+    for (let dx = -4; dx <= 4; dx += 1) {
+      for (let dz = -4; dz <= 4; dz += 1) {
+        if (Math.hypot(dx, dz) < 2) continue;
+        const check = client.checkPlacement("campfire", { x: x + dx, z: z + dz }, 0);
+        if (!check.allowed) continue;
+        client.send({ type: "placeBlueprint", structure: "campfire", turns: 0, x: check.spot.x, z: check.spot.z, thenBuild: true });
+        return check.spot;
+      }
+    }
+    return null;
+  });
+  expect(placedAt).not.toBeNull();
+  expect(await soundsOverFrames(page, 15)).toContain("sound-place");
+
+  await expect.poll(async () => (await readSound(page)).playing.map((playing) => playing.sound)).toContain("sound-build");
+
+  await page.evaluate(() => {
+    const { client } = (window as unknown as { farHollow: ActionHooks }).farHollow;
+    client.send({ type: "stopBuilding" });
+  });
+  await expect.poll(async () => (await readSound(page)).playing.map((playing) => playing.sound)).not.toContain("sound-build");
+  expect(errors).toEqual([]);
+});
+
 test("M mutes, the sound button shows it, and the Volume and mute survive a reload", async ({ page }) => {
   await openGame(page);
   await page.locator("#scene").click({ position: { x: 5, y: 5 } });

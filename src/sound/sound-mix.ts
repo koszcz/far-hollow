@@ -3,8 +3,21 @@
 /** The most sounds that play at once. */
 export const MAX_SOUNDS = 16;
 
+/** An ambience sound asset from asset-manifest.json. Each is a loop that plays as long as it is wished for. */
+export type AmbienceSoundId = "sound-river" | "sound-forest" | "sound-fire";
+
+/** An action sound asset from asset-manifest.json. Each plays from the start of its rhythm, in time with what the player does. */
+export type ActionSoundId = "sound-chop" | "sound-saw" | "sound-debark" | "sound-dig" | "sound-build" | "sound-place" | "sound-footstep";
+
 /** A sound asset from asset-manifest.json. */
-export type SoundId = "sound-river" | "sound-forest" | "sound-fire";
+export type SoundId = AmbienceSoundId | ActionSoundId;
+
+const AMBIENCE_SOUNDS: Readonly<Record<AmbienceSoundId, true>> = { "sound-river": true, "sound-forest": true, "sound-fire": true };
+
+/** Whether a sound is ambience, rather than an action sound. */
+export function isAmbienceSound(sound: SoundId): sound is AmbienceSoundId {
+  return sound in AMBIENCE_SOUNDS;
+}
 
 /** One sound that wants to play this frame. */
 export interface SoundWish {
@@ -15,6 +28,11 @@ export interface SoundWish {
   readonly loudness: number;
   /** Which side it comes from: -1 fully left, 0 in the middle, 1 fully right. */
   readonly pan: number;
+  /**
+   * Where in the sound it starts, in seconds, when it starts this frame. An action sound gives it, so it keeps in time
+   * with the motion. Without it, a loop starts at a random place, so two fires never crackle in step.
+   */
+  readonly startAt?: number;
 }
 
 /** The sounds that play: the loudest MAX_SOUNDS that are not silent, loudest first. */

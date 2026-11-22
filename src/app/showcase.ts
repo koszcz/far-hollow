@@ -48,9 +48,9 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
       const { renderHudShowcase } = await import("../ui/hud-showcase");
       renderHudShowcase(ui, id);
     }
-    if (id === "sound-river" || id === "sound-forest" || id === "sound-fire" || id === "sound-button") {
-      const { renderSoundShowcase } = await import("../ui/sound-showcase");
-      renderSoundShowcase(ui, id);
+    if (id.startsWith("sound-")) {
+      const { isSoundShowcase, renderSoundShowcase } = await import("../ui/sound-showcase");
+      if (isSoundShowcase(id)) renderSoundShowcase(ui, id);
     }
   }
   document.body.dataset.showcase = "ready";

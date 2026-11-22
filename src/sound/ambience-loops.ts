@@ -5,7 +5,7 @@
 // - sound-fire: a low, soft roar under quick, uneven crackles and pops.
 // Each loop ends where it begins, so it repeats without a click.
 import { createRandom, type Random } from "../sim/random";
-import type { SoundId } from "./sound-mix";
+import type { AmbienceSoundId } from "./sound-mix";
 
 /** How long each loop lasts before it repeats, in seconds. */
 const LOOP_SECONDS = 6;
@@ -17,14 +17,14 @@ const PEAK = 0.9;
 /** How each loop is made, one sample at a time. Each maker is called once per sample, in order. */
 type SampleMaker = (random: Random, sampleRate: number) => (seconds: number) => number;
 
-const MAKERS: Readonly<Record<SoundId, SampleMaker>> = {
+const MAKERS: Readonly<Record<AmbienceSoundId, SampleMaker>> = {
   "sound-river": riverMaker,
   "sound-forest": forestMaker,
   "sound-fire": fireMaker,
 };
 
 /** The samples of one loop at this sample rate, between -PEAK and PEAK. The same sound always gives the same loop. */
-export function ambienceLoop(sound: SoundId, sampleRate: number): Float32Array<ArrayBuffer> {
+export function ambienceLoop(sound: AmbienceSoundId, sampleRate: number): Float32Array<ArrayBuffer> {
   const length = Math.round(LOOP_SECONDS * sampleRate);
   const seam = Math.round(SEAM_SECONDS * sampleRate);
   const next = MAKERS[sound](createRandom(SEEDS[sound]), sampleRate);
@@ -42,7 +42,7 @@ export function ambienceLoop(sound: SoundId, sampleRate: number): Float32Array<A
   return loop;
 }
 
-const SEEDS: Readonly<Record<SoundId, number>> = { "sound-river": 11, "sound-forest": 23, "sound-fire": 37 };
+const SEEDS: Readonly<Record<AmbienceSoundId, number>> = { "sound-river": 11, "sound-forest": 23, "sound-fire": 37 };
 
 /** A slow wave that repeats a whole number of times in each loop, so it lines up at the seam. Runs from -1 to 1. */
 function loopWave(seconds: number, timesPerLoop: number, phase = 0): number {

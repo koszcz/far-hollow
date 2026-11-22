@@ -1,8 +1,12 @@
 // Plays sounds through the browser's Web Audio. It plays what it is told each frame and never reads or changes game state.
 // Browsers block sound until the player clicks, so it starts on the first click or key press.
 import { audibleVolume, type VolumeControl } from "./volume-control";
+import { actionSound } from "./action-sound-samples";
 import { ambienceLoop } from "./ambience-loops";
-import { soundsToPlay, type SoundId, type SoundWish } from "./sound-mix";
+import { isAmbienceSound, soundsToPlay, type SoundId, type SoundWish } from "./sound-mix";
+
+/** The sounds that play once and end, rather than loop while wished for. */
+const PLAYS_ONCE: ReadonlySet<SoundId> = new Set<SoundId>(["sound-place", "sound-footstep"]);
 
 /** How fast a playing sound follows a change in loudness or side, in seconds. Short enough to keep up, long enough not to click. */
 const FOLLOW_SECONDS = 0.08;
@@ -69,6 +73,8 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   let master: GainNode | undefined;
   const buffers = new Map<SoundId, AudioBuffer>();
   const voices = new Map<string, Voice>();
+  /** The sounds to play now, loudest first, as they were wished for. */
+  let toPlay: SoundWish[] = [];
   let playing: PlayingSound[] = [];
   let silence = 0;
   let hidden = false;
@@ -94,7 +100,7 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   function bufferOf(audio: AudioContext, sound: SoundId): AudioBuffer {
     const made = buffers.get(sound);
     if (made !== undefined) return made;
-    const samples = ambienceLoop(sound, audio.sampleRate);
+    const samples = isAmbienceSound(sound) ? ambienceLoop(sound, audio.sampleRate) : actionSound(sound, audio.sampleRate);
     const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
     buffer.copyToChannel(samples, 0);
     buffers.set(sound, buffer);
@@ -104,16 +110,18 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   function startVoice(audio: AudioContext, out: AudioNode, wish: SoundWish): Voice {
     const source = audio.createBufferSource();
     source.buffer = bufferOf(audio, wish.sound);
-    source.loop = true;
+    source.loop = !PLAYS_ONCE.has(wish.sound);
     const gain = audio.createGain();
     gain.gain.value = 0;
     gain.gain.setTargetAtTime(wish.loudness, audio.currentTime, FOLLOW_SECONDS);
     const panner = audio.createStereoPanner();
     panner.pan.value = wish.pan;
     source.connect(gain).connect(panner).connect(out);
-    // Each sound starts somewhere in its loop, so two fires never crackle in step.
+    // An action sound starts where its motion is now. Any other sound starts somewhere in its loop, so two fires never crackle in step.
     const buffer = source.buffer;
-    source.start(audio.currentTime, Math.random() * buffer.duration);
+    const startAt =
+      wish.startAt === undefined ? Math.random() * buffer.duration : source.loop ? wish.startAt % buffer.duration : Math.min(wish.startAt, buffer.duration);
+    source.start(audio.currentTime, startAt);
     return { sound: wish.sound, source, gain, panner, loudness: wish.loudness, pan: wish.pan };
   }
 
@@ -126,13 +134,13 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   }
 
   function mix(audio: AudioContext, out: AudioNode): void {
-    const wanted = new Set(playing.map((sound) => sound.key));
+    const wanted = new Set(toPlay.map((sound) => sound.key));
     for (const [key, voice] of voices) {
       if (wanted.has(key)) continue;
       stopVoice(audio, voice);
       voices.delete(key);
     }
-    for (const wish of playing) {
+    for (const wish of toPlay) {
       const voice = voices.get(wish.key);
       if (voice === undefined) {
         voices.set(wish.key, startVoice(audio, out, wish));
@@ -165,7 +173,8 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
     },
     play(wishes, silenceNow) {
       silence = silenceNow;
-      playing = soundsToPlay(wishes).map(({ key, sound, loudness, pan }) => ({ key, sound, loudness, pan }));
+      toPlay = soundsToPlay(wishes);
+      playing = toPlay.map(({ key, sound, loudness, pan }) => ({ key, sound, loudness, pan }));
       if (context === undefined || master === undefined || hidden) return;
       setMaster();
       mix(context, master);

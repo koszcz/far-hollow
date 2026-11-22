@@ -62,6 +62,20 @@ const TURN_MIN_TRAVEL_METRES = 0.001;
 /** A player gathering stone this close to the spot clicked stands on it, so they keep facing the way they walked. In metres. */
 const STAND_ON_SPOT_METRES = 0.3;
 
+/** The timed work whose motion makes a sound: chopping, sawing at the sawhorse, debarking, digging up, and building. */
+export type DrawnWork = "chop" | "saw" | "debark" | "digUp" | "build";
+
+/** What the drawn player did in the last frame. */
+export interface DrawnPlayer {
+  /** The work drawn, with when its motion began, on the performance clock in seconds. Undefined while no such work shows. */
+  readonly work: { readonly kind: DrawnWork; readonly since: number } | undefined;
+  /** The total metres walked so far, while the legs walk, or undefined while they stand still. */
+  readonly walkedMetres: number | undefined;
+}
+
+/** Work that draws its own motion and so makes its own sound. */
+const DRAWN_WORK: ReadonlySet<string> = new Set<DrawnWork>(["chop", "debark", "digUp", "build"]);
+
 /** A pick that landed on an entity, other than a finished structure. Those are never outlined. */
 type EntityPick = Extract<GroundOrThingPick, { id: number }>;
 
@@ -82,6 +96,8 @@ export interface SceneRenderer {
   isPlayingSleep(): boolean;
   /** How dark the sleep animation has made the view in the last frame, from 0 (not at all) to 1 (black). Sound fades with it. */
   sleepDarkness(): number;
+  /** What the drawn player did in the last frame, for the action sounds. */
+  drawnPlayer(): DrawnPlayer;
   dispose(): void;
 }
 
@@ -240,6 +256,11 @@ export function createSceneRenderer(
   let reachDrawn: { since: number; seenSeconds: number } | undefined;
   /** Total metres the player has walked, which keeps the legs in step with the ground. */
   let playerWalkedMetres = 0;
+  /** The work drawn this frame, and the metres walked if the legs walk. posePlayer sets them. */
+  let workDrawn: DrawnWork | undefined;
+  let walkDrawn: number | undefined;
+  /** The work drawn last frame, with when its motion began. */
+  let workSince: DrawnPlayer["work"];
   /** The hour of the day the sky showed last frame. */
   let drawnHour = readHourOfDay();
   /** How many sleeps the player had when the last sleep animation began. */
@@ -319,6 +340,8 @@ export function createSceneRenderer(
    * Game logic decides which work the player is doing, the same way the HUD shows it.
    */
   function posePlayer(nowSeconds: number): void {
+    workDrawn = undefined;
+    walkDrawn = undefined;
     // Sleeping or sitting down ends an eat or drink motion: the branches that show those return before it goes on.
     const eatingOrDrinking = eatOrDrinkDrawn;
     eatOrDrinkDrawn = undefined;
@@ -388,6 +411,7 @@ export function createSceneRenderer(
     // A hand recipe, such as crafting the saw, works at it with both hands where the player stands.
     const craftMotion = activity?.kind === "craft" && player.craftTask !== undefined ? craftMotionOf(player.craftTask.recipe) : undefined;
     const sawhorse = craftMotion === "saw" && target?.position !== undefined ? target : undefined;
+    workDrawn = sawhorse !== undefined ? "saw" : activity !== undefined && DRAWN_WORK.has(activity.kind) ? (activity.kind as DrawnWork) : undefined;
     playerMesh.setMotion("hand-craft-animation", craftMotion === "hand" ? nowSeconds : undefined);
     playerMesh.setMotion("sawing-animation", sawhorse !== undefined && activity !== undefined ? { nowSeconds, progress: activity.progress } : undefined);
     const stance = sawingStep.drawnAt(
@@ -406,6 +430,7 @@ export function createSceneRenderer(
       if (stepped > 1e-4) {
         playerWalkedMetres += stepped;
         playerMesh.setWalking(playerWalkedMetres);
+        walkDrawn = playerWalkedMetres;
       } else {
         playerMesh.setWalking(undefined);
       }
@@ -458,6 +483,7 @@ export function createSceneRenderer(
     }
     playerWalkedMetres += travelled;
     playerMesh.setWalking(playerWalkedMetres);
+    walkDrawn = playerWalkedMetres;
   }
 
   /**
@@ -583,6 +609,7 @@ export function createSceneRenderer(
     cameraRig,
     isPlayingSleep: () => sleeping !== undefined,
     sleepDarkness: () => darkness,
+    drawnPlayer: () => ({ work: workSince, walkedMetres: walkDrawn }),
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
@@ -614,6 +641,8 @@ export function createSceneRenderer(
       }
       startEatOrDrinkIfNew(nowSeconds);
       posePlayer(nowSeconds);
+      if (workDrawn === undefined) workSince = undefined;
+      else if (workSince?.kind !== workDrawn) workSince = { kind: workDrawn, since: nowSeconds };
       playerMesh.setMotion("forage-eat-drink-animation", eatOrDrinkShown);
       // With follow off, the camera first looks at the player once the player is placed. After that it stays put.
       if (!cameraPlaced && players.first !== undefined) {

@@ -8,39 +8,23 @@ import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";
 import { structureReach } from "./building";
 import { isOnGridSquare } from "./build-grid";
-import { edgeMiddle, isEdgePiece, isEdgeTaken, squaresBeside } from "./edge-pieces";
-import {
-  blueprintEntities,
-  cabinRoofEntities,
-  campfireEntities,
-  fireplaceEntities,
-  floorEntities,
-  furnitureEntities,
-  leanToEntities,
-  lyingThings,
-  playerEntities,
-  roofFrameEntities,
-  setComponent,
-  type Entity,
-  type EntityStore,
-} from "./entities";
+import { isEdgePiece, squaresBeside } from "./edge-pieces";
+import { blueprintEntities, lyingThings, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { hasDoor } from "./doors";
 import { isColdAndEmpty } from "./fire";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { isSled, layLoadBeside } from "./sleds";
-import { rectsOverlap, SIDES, TAKEN_MATERIALS } from "./structure-kind";
+import { TAKEN_MATERIALS } from "./structure-kind";
 import {
   costOf,
-  footprintOfEntity,
   isDelivered,
   isKept,
-  isPlacedFreely,
   isPlacedStructure,
   isTaken,
-  liesUnderfoot,
   roofFrameOn,
   stageMaterials,
+  standsOnFoundation,
   structureKindOf,
   structureOf,
   type BuildMaterial,
@@ -255,7 +239,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
  */
 export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure, kind: StructureKind): boolean {
   if (structure.blueprint !== undefined) return false;
-  if (kind === "foundation") return standsOnSquare(entities, structure.position);
+  if (kind === "foundation") return standsOnFoundation(entities, structure.position);
   const blueprintsOf = (structureKind: StructureKind) => blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === structureKind);
   if (isEdgePiece(kind)) {
     if (kind === "doorFrame" && hasDoor(entities, structure.position)) return true;
@@ -296,32 +280,6 @@ function noticeOf(refusal: Refusal): TakeDownRefusal {
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined) return true;
   return !holdsNone(structure.storage?.contents ?? {}) || !holdsNone(structure.woodpile ?? {});
-}
-
-/**
- * Whether anything stands on the foundation square with this middle, finished or as a blueprint:
- * a log wall or door frame on one of its edges, a campfire, fireplace, or floor whose centre is on it, or a roof frame, roof section, lean-to, piece of furniture, or sled
- * over any of it. A structure placed freely, such as a piece of furniture, stands on every foundation its base reaches over.
- */
-function standsOnSquare(entities: EntityStore, square: GroundPoint): boolean {
-  if (SIDES.some((side) => isEdgeTaken(entities, edgeMiddle(square, side)))) return true;
-  const rect = structureOf("foundation").footprint(square, 0);
-  const others = [
-    ...campfireEntities(entities),
-    ...fireplaceEntities(entities),
-    ...floorEntities(entities),
-    ...leanToEntities(entities),
-    ...roofFrameEntities(entities),
-    ...cabinRoofEntities(entities),
-    ...furnitureEntities(entities),
-    ...blueprintEntities(entities),
-  ];
-  return others.some((other) => {
-    const kind = structureKindOf(other);
-    if (kind === undefined) return false;
-    if (kind === "campfire" || kind === "fireplace" || liesUnderfoot(kind)) return isOnGridSquare(square, other.position);
-    return (kind === "leanTo" || kind === "roofFrame" || kind === "roof" || isPlacedFreely(kind)) && rectsOverlap(rect, footprintOfEntity(other));
-  });
 }
 
 /** The rule for taking down a built piece. */

@@ -1,7 +1,7 @@
 // The shape of a foundation: a deck of logs over one building-grid square, held level on a leg at each corner.
 // On sloped ground the deck sits just above the highest corner, so the legs on the low side grow longer.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
-import { blueprintEntities, foundationEntities, type EntityStore } from "./entities";
+import { blueprintEntities, foundationEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { terrainHeightAt, type Terrain } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 
@@ -33,38 +33,92 @@ function highestGroundUnder(terrain: Terrain, middle: GroundPoint): number {
 }
 
 /**
- * The height of the top of the deck for a new foundation over the grid square with this middle, in metres.
- * Foundations that share an edge make one flat floor. So a new foundation beside others, finished or blueprints, takes their deck height.
- * On its own, it sits just above its highest ground, as `foundationDeckTop` gives.
- * Undefined if it cannot join a flat floor: the foundations beside it stand at different heights,
- * or the ground under it rises so high that the deck would not fit above it.
+ * How a new foundation joins the floors beside it.
+ * `deckTop` is the height of the top of its deck, in metres.
+ * `rising` lists the foundations, finished or blueprints, of the floors beside it that must rise to that height.
  */
-export function floorDeckTop(entities: EntityStore, terrain: Terrain, middle: GroundPoint): number | undefined {
-  const beside = foundationsBeside(entities, middle);
-  const floor = beside[0];
-  if (floor === undefined) return foundationDeckTop(terrain, middle);
-  if (beside.some((height) => !isClose(height, floor))) return undefined;
+export interface FloorJoin {
+  readonly deckTop: number;
+  readonly rising: readonly (Entity & { position: Vec3 })[];
+}
+
+/**
+ * How a new foundation over the grid square with this middle joins the floors beside it. Foundations that share an edge make one flat floor.
+ * On its own, the deck sits just above its highest ground, as `foundationDeckTop` gives.
+ * Beside others, finished or blueprints, it takes their deck height. Where its ground is too high for that, or two floors at
+ * different heights meet at it, the lower floors rise to the lowest height that fits them all. The floor levels itself.
+ * `canRise` says whether the foundation on a square may rise: nothing but a floor of planks stands on it.
+ * Undefined if a floor must rise, but one of its foundations may not.
+ */
+export function floorJoin(entities: EntityStore, terrain: Terrain, middle: GroundPoint, canRise: (square: GroundPoint) => boolean): FloorJoin | undefined {
+  const floors = floorsBeside(entities, middle);
+  if (floors.length === 0) return { deckTop: foundationDeckTop(terrain, middle), rising: [] };
   // The whole deck must fit above the ground, so the legs are never shorter than nothing.
-  return highestGroundUnder(terrain, middle) + FOUNDATION_DECK_THICKNESS_METRES <= floor + CLOSE_METRES ? floor : undefined;
+  const fits = highestGroundUnder(terrain, middle) + FOUNDATION_DECK_THICKNESS_METRES;
+  const deckTop = Math.max(fits, ...floors.flat().map(({ position }) => position.y));
+  const rising = floors.flat().filter(({ position }) => position.y < deckTop - CLOSE_METRES);
+  return rising.every(({ position }) => canRise(position)) ? { deckTop, rising } : undefined;
+}
+
+/**
+ * Raises the floors a new foundation joins to its deck height, as `floorJoin` worked out.
+ * Everything on the deck rises with it: a floor of planks, things lying there, a sled, and the player.
+ */
+export function raiseFloors(entities: EntityStore, { deckTop, rising }: FloorJoin): void {
+  const onDecks = [...entities.with("position").entities].filter((entity) => !rising.includes(entity));
+  for (const foundation of rising) {
+    const before = foundation.position.y;
+    for (const entity of onDecks) {
+      if (isOnGridSquare(foundation.position, entity.position) && isCloseToDeck(entity.position.y, before)) entity.position.y = deckTop;
+    }
+  }
+  for (const foundation of rising) foundation.position.y = deckTop;
 }
 
 /** Two heights or distances closer than this, in metres, count as the same. */
 const CLOSE_METRES = 1e-6;
+/** Something this close to a deck's height, in metres, rests on the deck. */
+const ON_DECK_METRES = 0.01;
 
 function isClose(a: number, b: number): boolean {
   return Math.abs(a - b) <= CLOSE_METRES;
 }
 
-/** The deck heights of the foundations, finished or blueprints, on the four grid squares that share an edge with this one. */
-function foundationsBeside(entities: EntityStore, middle: GroundPoint): number[] {
-  const isBeside = (spot: GroundPoint) => {
-    const dx = Math.abs(spot.x - middle.x);
-    const dz = Math.abs(spot.z - middle.z);
-    return (isClose(dx, BUILD_GRID_METRES) && isClose(dz, 0)) || (isClose(dx, 0) && isClose(dz, BUILD_GRID_METRES));
-  };
-  const finished = foundationEntities(entities).entities.filter(({ position }) => isBeside(position));
-  const planned = blueprintEntities(entities).entities.filter(({ blueprint, position }) => blueprint.structure === "foundation" && isBeside(position));
-  return [...finished, ...planned].map(({ position }) => position.y);
+function isCloseToDeck(height: number, deck: number): boolean {
+  return Math.abs(height - deck) <= ON_DECK_METRES;
+}
+
+/** The foundations, finished or blueprints, on the grid squares that share an edge with this one, and every foundation joined to them. One list per floor. */
+function floorsBeside(entities: EntityStore, middle: GroundPoint): (Entity & { position: Vec3 })[][] {
+  const all = [
+    ...foundationEntities(entities).entities,
+    ...blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "foundation"),
+  ];
+  const seen = new Set<Entity>();
+  const floors: (Entity & { position: Vec3 })[][] = [];
+  for (const start of all.filter(({ position }) => sharesEdge(position, middle))) {
+    if (seen.has(start)) continue;
+    const floor = [start];
+    seen.add(start);
+    for (let i = 0; i < floor.length; i += 1) {
+      const at = floor[i];
+      if (at === undefined) continue;
+      for (const next of all) {
+        if (seen.has(next) || !sharesEdge(next.position, at.position)) continue;
+        seen.add(next);
+        floor.push(next);
+      }
+    }
+    floors.push(floor);
+  }
+  return floors;
+}
+
+/** Whether two grid squares, given by their middles, share an edge. */
+function sharesEdge(a: GroundPoint, b: GroundPoint): boolean {
+  const dx = Math.abs(a.x - b.x);
+  const dz = Math.abs(a.z - b.z);
+  return (isClose(dx, BUILD_GRID_METRES) && isClose(dz, 0)) || (isClose(dx, 0) && isClose(dz, BUILD_GRID_METRES));
 }
 
 /**

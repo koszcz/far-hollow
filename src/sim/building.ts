@@ -250,7 +250,7 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       const { spot, turns: facing, allowed } = checkPlacement(structure, at, turns);
       if (!allowed) return undefined;
       const definition = structureOf(structure);
-      definition.clearSite?.(entities, spot);
+      definition.clearSite?.({ entities, walkMap: walking.walkMap, valley }, spot);
       const blocks = definition.blueprintBlocksWalkingSpots?.(spot);
       const added = entities.add({
         blueprint: { structure, progress: 0, materialsSpent: 0, delivered: {} },

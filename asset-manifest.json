@@ -1583,6 +1583,22 @@
         "status": "draft",
         "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
       }
+    },
+    {
+      "id": "birds",
+      "kind": "code",
+      "code": [
+        "src/render/bird-shape.ts",
+        "src/render/bird-life.ts",
+        "src/render/bird-meshes.ts"
+      ],
+      "description": "Birds by day: a small, generic brown songbird about 14 cm long, with a pale buff belly, a short dark tail, thin dark legs, a round head with dark eyes, and a short yellow-brown beak. Its brown wings have darker tips. In flight the wings beat up and down. On the ground they fold back along the body, and the bird pecks by tipping forward and bending its head to the ground. Up to 3 flocks of 3 to 5 birds fly over the treetops, and up to 6 birds peck in clearings near the player and fly off when the player comes within 6 m. They fade with the daylight and stay away in rain. They make no sound.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/valley-life/issues/01-birds.md"
+      }
     }
   ]
 }

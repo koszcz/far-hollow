@@ -5,6 +5,7 @@ import { BUILDING_SHOWCASES } from "./building";
 import { CAMP_SHOWCASES } from "./camp";
 import { INTERFACE_SHOWCASES } from "./interface";
 import { WEATHER_SHOWCASES } from "./weather";
+import { VALLEY_LIFE_SHOWCASES } from "./valley-life";
 import { ANIMATIONS_SHOWCASES } from "./animations";
 import type { Showcase } from "./types";
 
@@ -14,5 +15,6 @@ export const SHOWCASES: Readonly<Record<string, Showcase>> = {
   ...CAMP_SHOWCASES,
   ...INTERFACE_SHOWCASES,
   ...WEATHER_SHOWCASES,
+  ...VALLEY_LIFE_SHOWCASES,
   ...ANIMATIONS_SHOWCASES,
 };

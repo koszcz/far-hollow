@@ -12,6 +12,7 @@ import { isRiverBank } from "../sim/river-bank-work";
 import { copyToward, groundDistance, headingToward, type GroundPoint } from "../sim/ground-point";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
+import { createBirdMeshes } from "./bird-meshes";
 import { createPileMeshes } from "./pile-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
@@ -135,6 +136,9 @@ export function createSceneRenderer(
   scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
+  // Birds are only for looks: they are never picked, and they cast no shadows.
+  const birdMeshes = createBirdMeshes(entities, valley);
+  scene.add(birdMeshes.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group,
@@ -609,6 +613,7 @@ export function createSceneRenderer(
       outlineHovered();
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
+      birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylightAt(hourOfDay));
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
@@ -660,6 +665,7 @@ export function createSceneRenderer(
       plantedTorchMeshes.dispose();
       fishTrapMeshes.dispose();
       rainEffect.dispose();
+      birdMeshes.dispose();
       playerMesh.dispose();
       renderer.dispose();
     },

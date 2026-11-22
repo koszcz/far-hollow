@@ -2,7 +2,7 @@
 
 Each animation asset that poses the player in code, such as fishing or crafting by hand, lives in one module. That module holds the motion's pose, its props, its constants, and the paragraph that names its asset. The player mesh lends each motion a rig and runs the motions from a list. The renderer drives every such motion through one call, `setMotion(id, moment)`. Each animation showcase also lives in its own file. Both lists are marked `merge=union` in `.gitattributes`, so two branches that each add a line merge without a conflict.
 
-We chose this after six asset branches changed the player mesh in one afternoon on 2026-11-21, and two of them conflicted there. Polishing one motion edited the same lines as every other motion. Now a new motion adds one file and one line to the list.
+We chose this after six asset branches changed the player mesh in one afternoon on 2026-11-21, and two of them conflicted there. Polishing one motion edited the same lines as every other motion. Now a new motion adds one file and two lines to the list in `src/render/player-motions/motion-list.ts`: an import and an entry.
 
 ## The parts
 

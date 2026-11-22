@@ -165,6 +165,12 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { thing: "river" }, name: actions.drink };
     case "fish":
       return { icon: { thing: "river" }, name: actions.fish };
+    case "setFishTrap":
+      return { icon: { content: "fishTrap" }, name: actions.setFishTrap };
+    case "takeFishFromTrap":
+      return { icon: { content: "rawFish" }, name: actions.takeFish };
+    case "pickUpFishTrap":
+      return { icon: { content: "fishTrap" }, name: actions.pickUp };
     case "gatherStone":
       return { icon: { content: "stone" }, name: actions.gatherStone };
     case "digClay":

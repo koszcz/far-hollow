@@ -75,6 +75,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addClay,
   addUnfiredJugs,
   fireJugs,
+  addFishTraps,
 ];
 
 /** The version of the save format this code writes. */
@@ -176,6 +177,8 @@ export const CLAY_SAVE_VERSION = SAVE_UPGRADES.indexOf(addClay) + 2;
 export const UNFIRED_JUGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addUnfiredJugs) + 2;
 /** The first save version that can hold a jug on a campfire or fireplace, and empty jugs. */
 export const JUG_FIRING_SAVE_VERSION = SAVE_UPGRADES.indexOf(fireJugs) + 2;
+/** The first save version that can hold cord and fish traps, in the backpack and set in the river. */
+export const FISH_TRAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFishTraps) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -918,5 +921,10 @@ function addUnfiredJugs(save: Readonly<Record<string, unknown>>): Record<string,
  * jug on a fire and no jugs, so it carries over unchanged.
  */
 function fireJugs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 54 to 55: the player can twist cord and set fish traps. A save from before then holds none, so it carries over unchanged. */
+function addFishTraps(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

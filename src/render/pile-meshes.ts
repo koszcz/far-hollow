@@ -7,6 +7,7 @@
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // The fishing line, the fishing rod, raw fish, and cooked fish are the approved "fishing-piles" asset, built in fishing-pile-shapes.ts.
+// Cord and the fish trap are the draft "fish-trap-piles" asset, built in fish-trap-shape.ts.
 // Stone is the approved "stone" asset, built in stone-shape.ts. The torch is the approved "torch" asset, built in torch-shape.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
@@ -19,6 +20,7 @@ import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
 import { clayPileParts } from "./clay-shape";
 import { jugPileParts, unfiredJugPileParts } from "./jug-shape";
+import { cordPileParts, fishTrapPileParts } from "./fish-trap-shape";
 import { fishingPileParts } from "./fishing-pile-shapes";
 import { createSteelAndFlintShape } from "./steel-and-flint-shape";
 import { createTorchShape } from "./torch-shape";
@@ -330,6 +332,9 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     unfiredJug: unfiredJugPileParts(material, track),
     // Empty jugs stand upright too, in the fired look of the same approved "jug" asset.
     jug: jugPileParts(material, track),
+    // Cord and fish traps are the draft "fish-trap-piles" asset, drawn by fish-trap-shape.ts.
+    cord: cordPileParts((colour) => material(colour), track),
+    fishTrap: fishTrapPileParts((colour) => material(colour), track),
     // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,
     // Saplings lie on their sides, root ball and all. The shape is part of the draft "sapling-icon" asset, drawn by sapling-pile-shape.ts.
@@ -352,6 +357,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     clay: spread(0.13),
     unfiredJug: spread(0.2),
     jug: spread(0.2),
+    cord: spread(0.1),
+    fishTrap: spread(0.4),
     torch: spread(0.1),
     sapling: spread(0.2),
     berryBush: spread(0.35),

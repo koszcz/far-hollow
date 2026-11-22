@@ -25,6 +25,7 @@ import { createValleyMeshes } from "./valley-meshes";
 import { createStructureMeshes } from "./structure-meshes";
 import { createTorchLights } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
+import { createFishTrapMeshes } from "./fish-trap-meshes";
 import { SHOWCASES } from "./showcases";
 import { NOON, STAGE_FROM_RIVER_METRES, type Shot, type Stage } from "./showcases/types";
 
@@ -164,11 +165,35 @@ export function showAsset(
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   const plantedTorches = createPlantedTorchMeshes(store);
+  const fishTraps = createFishTrapMeshes(store, valley.river);
+  fishTraps.update();
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, structures.group, forage.group, mushroomLogs.group, bedrolls.group, bark.group, piles.group, plantedTorches.group, rain.group);
+  scene.add(
+    forest.group,
+    structures.group,
+    forage.group,
+    mushroomLogs.group,
+    bedrolls.group,
+    bark.group,
+    piles.group,
+    plantedTorches.group,
+    fishTraps.group,
+    rain.group,
+  );
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, structures.group, forage.group, mushroomLogs.group, bedrolls.group, bark.group, piles.group, player.group, props);
+  sky.addShadowCasters(
+    forest.group,
+    structures.group,
+    forage.group,
+    mushroomLogs.group,
+    bedrolls.group,
+    bark.group,
+    piles.group,
+    fishTraps.group,
+    player.group,
+    props,
+  );
   // Lit torches light the ground as in the game: the one in the player's hand, then the planted torches nearest the camera.
   const torchLights = createTorchLights();
   scene.add(torchLights.group);
@@ -250,6 +275,7 @@ export function showAsset(
       bedrolls.dispose();
       piles.dispose();
       plantedTorches.dispose();
+      fishTraps.dispose();
       bark.dispose();
       rain.dispose();
       player.dispose();

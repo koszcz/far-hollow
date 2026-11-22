@@ -402,6 +402,42 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
+  // The draft "fish-trap": set fish traps, one empty and one holding a raw fish. In the game a set trap sits half in the
+  // river's water. The showcase stands on flat ground, so it shows the trap sunk into the ground the same way.
+  "fish-trap": {
+    radius: 2.2,
+    focus: { x: 0, y: 0.1, z: 0 },
+    shots: [
+      { label: "an empty fish trap", yaw: 30, pitch: 30, radius: 1.1, focus: { x: -0.7, y: 0.05, z: 0 } },
+      { label: "a fish trap holding a fish", yaw: -30, pitch: 40, radius: 1.1, focus: { x: 0.7, y: 0.05, z: 0 } },
+      { label: "both from the side", yaw: 90, pitch: 15, radius: 1.8 },
+      { label: "both from above", yaw: 0, pitch: 70, radius: 2 },
+    ],
+    build({ place, movePlayer }) {
+      place(-0.7, 0, { fishTrap: { holding: false, minutesToNext: 400, draws: 1 } });
+      place(0.7, 0, { fishTrap: { holding: true, minutesToNext: 400, draws: 2 } });
+      movePlayer(0, -2.5, 0);
+    },
+  },
+  // The draft "fish-trap-piles": cord and fish traps lying in piles beside a knife for size.
+  "fish-trap-piles": {
+    radius: 2.2,
+    focus: { x: 0, y: 0.1, z: 0 },
+    shots: [
+      { label: "one cord beside a knife", yaw: 20, pitch: 35, radius: 0.55, focus: { x: -1.1, y: 0.04, z: 0.07 } },
+      { label: "a pile of 6 cords", yaw: -30, pitch: 35, radius: 0.7, focus: { x: -0.2, y: 0.04, z: 0 } },
+      { label: "one fish trap", yaw: 40, pitch: 35, radius: 1, focus: { x: 1, y: 0.1, z: -0.6 } },
+      { label: "a pile of 3 fish traps", yaw: 30, pitch: 45, radius: 1.4, focus: { x: 1, y: 0.1, z: 0.8 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-1.2, 0, { pile: { content: "cord", count: 1 } });
+      place(-0.95, 0.15, { pile: { content: "knife", count: 1 } });
+      place(-0.2, 0, { pile: { content: "cord", count: 6 } });
+      place(1, -0.6, { pile: { content: "fishTrap", count: 1 } });
+      place(1, 0.8, { pile: { content: "fishTrap", count: 3 } });
+      movePlayer(0, -2, 0);
+    },
+  },
   // The draft "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with saplings in the backpack, digging up under way, and the pile's tooltip.
   "sapling-icon": {

@@ -682,9 +682,39 @@ function JugIconSheet() {
 }
 
 /** The icons each icon sheet draws large. */
+/** The cord and fish trap recipes as the craft menu lists them. */
+const CORD_RECIPES: GameView["craftMenu"] = [
+  { kind: "cord", materials: [{ material: "bark", count: 3 }], result: { content: "cord", count: 1 }, seconds: 4 },
+  {
+    kind: "fishTrap",
+    materials: [
+      { material: "cord", count: 2 },
+      { material: "stick", count: 6 },
+    ],
+    result: { content: "fishTrap", count: 1 },
+    seconds: 8,
+    tool: "knife",
+  },
+];
+
+/** The draft "fish-trap-icons" asset: both recipes in the craft menu, cord and a fish trap in the backpack by day and evening, and both icons drawn large. */
+const FISH_TRAP_ICON_STATES: readonly ShowcaseState[] = [
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, bark: 6, cord: 1, stick: 6 }, craftMenu: [...BASE_VIEW.craftMenu, ...CORD_RECIPES] },
+    buildMenuOpen: false,
+    placing: null,
+    craftMenuOpen: true,
+  },
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, cord: 3, fishTrap: 2 } }, buildMenuOpen: false, placing: null },
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, cord: 1, fishTrap: 1, rawFish: 2 } }, buildMenuOpen: false, placing: null },
+  // IconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
+];
+
 const ICON_SHEETS = {
   "crafting-icons": { states: CRAFTING_ICON_STATES, contents: ["sawBlade", "saw", "plank"] },
   "fishing-icons": { states: FISHING_ICON_STATES, contents: ["fishingLine", "fishingRod", "rawFish", "cookedFish"] },
+  "fish-trap-icons": { states: FISH_TRAP_ICON_STATES, contents: ["cord", "fishTrap"] },
 } as const;
 
 /** A client that always shows `view` and ignores commands. `things` says what each made-up entity id is. */
@@ -730,9 +760,10 @@ const STATES_BY_ASSET = {
   "floor-and-door-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
+  "fish-trap-icons": FISH_TRAP_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", "torch-icons", or "fish-trap-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -769,7 +800,7 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
       render(<QueueIconSheet />, quarter);
       return;
     }
-    if ((asset === "crafting-icons" || asset === "fishing-icons") && index === ICON_SHEETS[asset].states.length - 1) {
+    if ((asset === "crafting-icons" || asset === "fishing-icons" || asset === "fish-trap-icons") && index === ICON_SHEETS[asset].states.length - 1) {
       render(<IconSheet contents={ICON_SHEETS[asset].contents} />, quarter);
       return;
     }

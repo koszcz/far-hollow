@@ -20,6 +20,8 @@ export type BackpackContent =
   | "unfiredJug"
   | "jug"
   | "torch"
+  | "cord"
+  | "fishTrap"
   | "sapling"
   | "berryBush"
   | Food
@@ -78,6 +80,8 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   // An empty jug. Clay ticket 04 adds the jug with water in it.
   jug: 1,
   torch: 0.8,
+  cord: 0.1,
+  fishTrap: 1,
   sapling: 1,
   berryBush: 1,
   berries: 0.1,

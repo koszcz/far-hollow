@@ -37,6 +37,7 @@ import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
+import { coversMushroomLog } from "./mushroom-logs";
 import type { Walking } from "./walking";
 import type { CommandRules, RuleGame } from "./command-rule";
 
@@ -119,10 +120,12 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const definition = structureOf(structure);
     const site = { entities, walkMap: walking.walkMap, valley };
     const { x, z } = definition.snap?.(site, at, turns) ?? snapToGridPoint(at);
-    const allowed = definition.canPlace(site, { x, z }, turns);
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
     const facing = definition.facingAt?.(site, { x, z }, turns) ?? turns;
-    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed });
+    // A mushroom log stays where it lies for good, so the game says why nothing can cover it.
+    const refusal: Refusal | undefined = coversMushroomLog(entities, definition.footprint({ x, z }, facing)) ? { kind: "coversMushroomLog" } : undefined;
+    const allowed = refusal === undefined && definition.canPlace(site, { x, z }, turns);
+    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed, ...(refusal === undefined ? {} : { refusal: Object.freeze(refusal) }) });
   }
 
   /** The placed blueprint with this id, if it still exists. */
@@ -514,6 +517,7 @@ export function buildingRules(
     placeBlueprint: {
       // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
       start: "alongside",
+      refusal: (command) => building.checkPlacement(command.structure, { x: command.x, z: command.z }, command.turns).refusal,
       queue: "apart",
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {

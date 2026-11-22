@@ -12,6 +12,7 @@ import { createPileMeshes } from "./pile-meshes";
 import { createPotMaker } from "./pot-shape";
 import { daylightAt } from "./daylight";
 import { createForageMeshes } from "./forage-meshes";
+import { createMushroomLogMeshes } from "./mushroom-log-meshes";
 import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
@@ -157,15 +158,17 @@ export function showAsset(
   const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
+  const mushroomLogs = createMushroomLogMeshes(store, shapes.log, shapes.mushrooms);
+  mushroomLogs.update();
   const bedrolls = createBedrollMeshes(store, groundAt);
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   const plantedTorches = createPlantedTorchMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  scene.add(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, plantedTorches.group, rain.group);
+  scene.add(forest.group, structures.group, forage.group, mushroomLogs.group, bedrolls.group, bark.group, piles.group, plantedTorches.group, rain.group);
   sky.addShadowReceivers(ground.group);
-  sky.addShadowCasters(forest.group, structures.group, forage.group, bedrolls.group, bark.group, piles.group, player.group, props);
+  sky.addShadowCasters(forest.group, structures.group, forage.group, mushroomLogs.group, bedrolls.group, bark.group, piles.group, player.group, props);
   // Lit torches light the ground as in the game: the one in the player's hand, then the planted torches nearest the camera.
   const torchLights = createTorchLights();
   scene.add(torchLights.group);
@@ -243,6 +246,7 @@ export function showAsset(
       structures.dispose();
       potMaker.dispose();
       forage.dispose();
+      mushroomLogs.dispose();
       bedrolls.dispose();
       piles.dispose();
       plantedTorches.dispose();

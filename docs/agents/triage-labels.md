@@ -33,6 +33,6 @@ The mattpocock skills speak of five triage labels. Use this table when a skill n
 
 - Never ask the owner to triage a ticket. Never set a status other than the ones above.
 - A new ticket the owner adds as a bare idea gets `idea`. The `/idea` skill writes one in the standard layout.
-- A grilling session ends with each ticket it settled set to `ready-for-agent`. When grilling turns one idea into a spec with several tickets, every new ticket gets `ready-for-agent`.
+- The `/grill` skill runs a grilling session. It ends with each ticket it settled set to `ready-for-agent`. When grilling turns one idea into a spec with several tickets, every new ticket gets `ready-for-agent`.
 - A ticket that still has open questions stays `idea`. Do not invent the answers.
 - When you finish building a ticket, set it to `resolved`. The wayfinding operations in `issue-tracker.md` use the same word.

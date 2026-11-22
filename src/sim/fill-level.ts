@@ -39,7 +39,7 @@ export function isEmptyFill(level: FillLevel): boolean {
   return level.held <= 0;
 }
 
-/** Whether it holds as many as `limit`, so it gains no more. */
-export function isFull(level: FillLevel, limit: number): boolean {
-  return level.held >= limit;
+/** Whether a value is a fill level's progress: a finite number from 0 up to but not including 1. A save check uses it. */
+export function isFillProgress(value: unknown): boolean {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value < 1;
 }

@@ -250,7 +250,8 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
     const action = FURNITURE_USE_ACTIONS[name];
     return context.offer(action.id, action.label, action.icon, command(id));
   };
-  return withMain([offerUse(use), ...furnitureMoreUses(kind).map(offerUse), takeDown(context, id)], FURNITURE_USE_ACTIONS[use.name].id);
+  const main = offerUse(use);
+  return withMain([main, ...furnitureMoreUses(kind).map(offerUse), takeDown(context, id)], main.id);
 }
 
 /** Gathering one stone at a spot on the river bank or in the river. */

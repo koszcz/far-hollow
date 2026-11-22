@@ -122,7 +122,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "HUD: starting backpack", yaw: 20, pitch: 35 },
       { label: "HUD: materials, one and many", yaw: -20, pitch: 35 },
       { label: "HUD: food and a pot of river water", yaw: 40, pitch: 35 },
-      { label: "HUD: a pot of boiled water", yaw: 20, pitch: 35 },
+      { label: "HUD: a pot of clean water", yaw: 20, pitch: 35 },
     ],
     build({ movePlayer }) {
       movePlayer(0, 0, 0);

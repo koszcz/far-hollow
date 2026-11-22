@@ -161,7 +161,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "steelAndFlint", count: 1 } });
     },
   },
-  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Then the tools and a pot.
+  // Back row: one of each long thing and food, and a pot of clean water. Middle row: many of each. Then the tools and a pot.
   // Front row: the crafting draft shapes: a saw blade, a saw, one plank, and several planks.
   // One view shows them all. The others come close to the wood and bark, the tools and crafting things, and the food.
   pile: {

@@ -7,16 +7,11 @@ import { addToBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { entityWith, playerEntities, type Entity, type EntityStore } from "./entities";
 import { fillBy, isEmptyFill, takeOne } from "./fill-level";
-import { RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK } from "./furniture/rain-barrel";
+import { RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_REACH_METRES, RAIN_BARREL_STAND_METRES } from "./furniture/rain-barrel";
 import { nearestWithin } from "./ground-point";
 import { FULL_NEED } from "./needs";
 import { goneRefusal } from "./refusals";
 import { isUnderRoof } from "./roofs";
-
-/** The player walks to a spot this far from a barrel's middle to use it, in metres. */
-const RAIN_BARREL_STAND_METRES = 1.1;
-/** The player can use a barrel from this far from its middle, in metres. */
-const RAIN_BARREL_REACH_METRES = 2;
 
 /** A finished rain barrel, standing somewhere, with its water. */
 type RainBarrelEntity = Entity & Required<Pick<Entity, "furniture" | "position" | "rainBarrel">>;

@@ -61,6 +61,8 @@ describe("building a rain barrel", () => {
     stepUntil(game, () => piecesOf(game.entities, "rainBarrel").length === 0);
 
     expect(backpack.contents.plank).toBe(RAIN_BARREL_PLANK_COST);
+    expect(game.entities.with("rainBarrel").entities).toHaveLength(0);
+    expect(backpack.contents.potOfBoiledWater ?? 0).toBe(0);
     expect(isWalkable(game.walkMap, barrel.position)).toBe(true);
   });
 });

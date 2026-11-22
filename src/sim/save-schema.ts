@@ -2,6 +2,7 @@
 import type { BackpackContent, GameNotice, PlainRefusal } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
+import { isFillProgress } from "./fill-level";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
 import { RECIPE_KINDS } from "./recipe-kind";
@@ -139,7 +140,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   onFoundation: point,
   furniture: exactly(...FURNITURE_KINDS),
   storage: shape({ contents: backpackContents }),
-  rainBarrel: shape({ held: count, progress: (value) => finite(value) && (value as number) >= 0 && (value as number) < 1 }),
+  rainBarrel: shape({ held: count, progress: isFillProgress }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,

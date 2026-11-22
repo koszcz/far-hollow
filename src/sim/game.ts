@@ -37,7 +37,7 @@ import { createCrafting, RECIPES, craftingRules } from "./crafting";
 import {
   clockStartMinutes,
   createClock,
-  isNight,
+  isNightAt,
   MINUTES_PER_HOUR,
   nextMorning,
   readClock,
@@ -257,7 +257,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       entityCount: entities.entities.length,
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
-      night: isNight(readClock(clock.minutes).hourOfDay),
+      night: isNightAt(clock.minutes),
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
@@ -446,7 +446,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       passWorldTime(minutes);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
-        night: isNight(readClock(clock.minutes).hourOfDay),
+        night: isNightAt(clock.minutes),
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
         working: currentAction() !== null,
         asleep: asleepIn !== undefined,
@@ -606,7 +606,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   function sleep(asleepIn: SleepPlace): boolean {
     const untilMorning = nextMorning(clock.minutes) - clock.minutes;
     const toRestFully = minutesToRestFully(player.needs, isUnderRoof(entities, player.position), asleepIn === "bed");
-    const wakesAtNight = isNight(readClock(clock.minutes + toRestFully).hourOfDay);
+    const wakesAtNight = isNightAt(clock.minutes + toRestFully);
     return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 

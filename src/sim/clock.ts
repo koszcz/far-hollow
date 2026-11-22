@@ -82,6 +82,11 @@ export function isNight(hourOfDay: number): boolean {
   return hourOfDay >= NIGHT_START_HOUR || hourOfDay < MORNING_HOUR;
 }
 
+/** Whether this moment, in game minutes since the start of day 1, falls in the night. */
+export function isNightAt(minutes: number): boolean {
+  return isNight(readClock(minutes).hourOfDay);
+}
+
 /** Game minutes since the start of day 1 at the next morning after this moment. */
 export function nextMorning(minutes: number): number {
   const morningOfThisDay = Math.floor(minutes / MINUTES_PER_DAY) * MINUTES_PER_DAY + MORNING_HOUR * MINUTES_PER_HOUR;

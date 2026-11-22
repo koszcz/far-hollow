@@ -1285,12 +1285,13 @@
         "src/render/player-motions/gather-stone-animation.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "The player gathers one stone at the water's edge: they crouch, reach both hands low in front, feel about for a stone, then rise halfway and lift it to the chest in both hands. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip; the axe goes on the back.",
+      "description": "The player gathers one stone at the water's edge the way people lift a heavy stone. They squat with the back fairly upright, grip the stone from either side, and rock it free with two short tugs. They drive up with the legs and hug it at the belly, leaning back against its weight. Then they dip at the knees, heave it up beside the right shoulder, and push it back over the shoulder into the backpack with the right hand, before standing easy. One lift takes 4 seconds, as long as gathering one stone. The player faces the spot clicked. Posed in code on top of the idle clip. The axe goes on the back.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fireplace/issues/01-gather-stone.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {

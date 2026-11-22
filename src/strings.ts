@@ -37,6 +37,8 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   jugWith2Drinks: (count) => (count === 1 ? "1 jug with 2 drinks" : `${count} jugs with 2 drinks`),
   jugWith3Drinks: (count) => (count === 1 ? "1 jug with 3 drinks" : `${count} jugs with 3 drinks`),
   torch: (count) => (count === 1 ? "1 torch" : `${count} torches`),
+  cord: (count) => (count === 1 ? "1 cord" : `${count} cords`),
+  fishTrap: (count) => (count === 1 ? "1 fish trap" : `${count} fish traps`),
   sapling: (count) => (count === 1 ? "1 sapling" : `${count} saplings`),
   berryBush: (count) => (count === 1 ? "1 berry bush" : `${count} berry bushes`),
   berries: (count) => (count === 1 ? "1 handful of berries" : `${count} handfuls of berries`),
@@ -115,6 +117,8 @@ export const strings = {
       fishingRod: "Fishing rod",
       torch: "Torch",
       unfiredJug: "Unfired jug",
+      cord: "Cord",
+      fishTrap: "Fish trap",
     },
     /** What a station recipe uses from the ground beside its station, such as "1 debarked log by the sawhorse". */
     besideStation: (materials: string, station: string) => `${materials} by the ${station.toLowerCase()}`,
@@ -323,6 +327,8 @@ export const strings = {
     jugWith2Drinks: "Jug with 2 drinks",
     jugWith3Drinks: "Jug with 3 drinks",
     torch: "Torch",
+    cord: "Cord",
+    fishTrap: "Fish trap",
     sapling: "Sapling",
     berryBush: "Berry bush",
     pot: "Pot (empty)",
@@ -408,6 +414,10 @@ export const strings = {
     walk: "Walk here",
     drink: "Drink",
     fish: "Fish",
+    /** Setting a fish trap from the backpack in the river's water at the bank. */
+    setFishTrap: "Set fish trap",
+    /** Taking the fish a set fish trap holds into the backpack. */
+    takeFish: "Take fish",
     gatherStone: "Gather stone",
     digClay: "Dig clay",
     chop: "Chop",
@@ -517,6 +527,9 @@ export const strings = {
     mushroomLogInTheWay: "a mushroom log is in the way",
     barrelEmpty: "the barrel is empty",
     noEmptyPot: "no empty pot in the backpack",
+    noFishTrap: "no fish trap in the backpack",
+    fishTrapTooClose: "another fish trap is less than 10 m away",
+    takeFishFirst: "take the fish first",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

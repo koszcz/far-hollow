@@ -12,6 +12,7 @@ export function describeThing(entities: EntityStore, id: number): ThingView | un
   if (structure !== undefined) return { kind: "structure", structure };
   if (entity.forageSpot !== undefined) return { kind: "forage", food: entity.forageSpot.food };
   if (entity.pile !== undefined) return { kind: "pile", content: entity.pile.content };
+  if (entity.fishTrap !== undefined) return { kind: "fishTrap", holdsFish: entity.fishTrap.holding };
   if (entity.tree === true || isYoungTree(entity.growth)) return { kind: "tree" };
   if (isSapling(entity.growth)) return { kind: "sapling" };
   if (entity.stump === true) return { kind: "stump" };

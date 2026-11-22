@@ -71,6 +71,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("pickUpBedroll", "sleep"), bedrollId: count })(value) ||
   shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value) ||
   shape({ type: exactly("pickUpTorch"), torchId: count })(value) ||
+  shape({ type: exactly("takeFishFromTrap", "pickUpFishTrap"), trapId: count })(value) ||
   shape({ type: exactly("pickUpPile"), pileId: count })(value) ||
   shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value) ||
   shape({ type: exactly("tendCampfire"), campfireId: count })(value) ||
@@ -86,7 +87,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("takeDown"), pieceId: count })(value) ||
   shape({ type: exactly("drinkFromRiver"), x: finite, z: finite })(value) ||
   shape({ type: exactly("fillPot") })(value) ||
-  shape({ type: exactly("fish", "gatherStone", "digClay"), x: finite, z: finite })(value) ||
+  shape({ type: exactly("fish", "setFishTrap", "gatherStone", "digClay"), x: finite, z: finite })(value) ||
   shape({ type: exactly("craft"), recipe: exactly(...RECIPE_KINDS), stationId: count })(value) ||
   tendCommand(value);
 
@@ -163,6 +164,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   sickness: shape({ minutesLeft: finite }),
   litTorch: shape({ minutesLeft: finite }),
   plantedTorch: shape({ minutesLeft: finite }),
+  fishTrap: shape({ holding: boolean, minutesToNext: finite, draws: count }),
   potOnFire: shape({ water: exactly("river", "boiled"), minutesBoiling: finite }),
   fishOnFire: (value) => list(shape({ minutesCooked: finite }))(value) && (value as unknown[]).length > 0 && (value as unknown[]).length <= FISH_ON_FIRE_LIMIT,
   jugOnFire: shape({ minutesFired: finite }),
@@ -236,6 +238,9 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   mushroomLogInTheWay: true,
   barrelEmpty: true,
   noEmptyPot: true,
+  noFishTrap: true,
+  fishTrapTooClose: true,
+  takeFishFirst: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

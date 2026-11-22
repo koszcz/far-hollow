@@ -23,6 +23,8 @@ export type BackpackContent =
   | "unfiredJug"
   | JugContent
   | "torch"
+  | "cord"
+  | "fishTrap"
   | "sapling"
   | "berryBush"
   | Food
@@ -84,6 +86,8 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   jugWith2Drinks: jugWeightKg("jugWith2Drinks"),
   jugWith3Drinks: jugWeightKg("jugWith3Drinks"),
   torch: 0.8,
+  cord: 0.1,
+  fishTrap: 1,
   sapling: 1,
   berryBush: 1,
   berries: 0.1,

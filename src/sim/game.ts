@@ -61,6 +61,7 @@ import type { CommandRule, CommandRules, RuleGame } from "./command-rule";
 import { createStoneGathering, stoneRules } from "./stone";
 import { clayRules, createClayDigging } from "./clay";
 import { createTorches, torchRules } from "./torches";
+import { createFishTraps, fishTrapRules } from "./fish-traps";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
 import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug } from "./rooms";
@@ -184,6 +185,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const clayDigging = createClayDigging(entities, walking.walkMap, valley);
+  const fishTraps = createFishTraps(entities, walking.walkMap, valley, seed);
   const diggingUp = createDiggingUp(entities);
   const planting = createPlanting(entities, walking.walkMap, valley);
   const mushroomLogs = createMushroomLogs(entities);
@@ -447,6 +449,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...rainBarrelRules(rainBarrels, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
+    ...fishTrapRules(fishTraps, ruleGame),
     ...stoneRules(stoneGathering),
     ...clayRules(clayDigging),
   };
@@ -518,7 +521,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
-   * sticks fall, pots and fish heat, and rain barrels catch the rain falling now.
+   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, and set fish traps catch fish.
    */
   function passWorldTime(minutes: number): void {
     rainBarrels.catchRain(minutes, rain.falling);
@@ -530,6 +533,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     pot.heat(minutes);
     cooking.cook(minutes);
     firing.fire(minutes);
+    fishTraps.pass(minutes);
   }
 
   /**

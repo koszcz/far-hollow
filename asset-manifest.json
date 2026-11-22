@@ -957,7 +957,11 @@
     {
       "id": "action-queue-icons",
       "kind": "code",
-      "code": ["src/ui/action-queue-icons.tsx", "src/ui/action-queue-row.tsx", "src/ui/queued-actions.ts"],
+      "code": [
+        "src/ui/action-queue-icons.tsx",
+        "src/ui/action-queue-row.tsx",
+        "src/ui/queued-actions.ts"
+      ],
       "description": "The action queue beside the clock, and the icons for queued actions on things that have no icon elsewhere. The row is a smoked walnut glass pill right of the clock pill, holding one round chip per queued action, up to 4. The action under way comes first, in a larger chip with a faint amber ring. Pointing at a chip tints it amber and shows the action's name in a pill label below it, as a hotbar cell does. With an empty queue, the row is gone. Each chip shows what its action works on. Backpack contents, structures, furniture, the sled, logs, and debarked logs reuse their approved icons. Three icons, drawn in the build icons' shaded style on the same 24 by 24 grid, cover the rest: a standing tree, a conifer of three green tiers on a short brown trunk, standing on a grassy patch; the river, a blue stream with pale ripples winding across a round grassy patch; and a spot on the ground to walk to, an amber pin on a patch of earth. The tree and the pin share one ground patch, each with a soft shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
@@ -1327,12 +1331,13 @@
       "id": "jug",
       "kind": "code",
       "code": ["src/render/jug-shape.ts", "src/render/pile-meshes.ts", "src/render/jug-on-fire-meshes.ts"],
-      "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall, turned round like a pot: a round belly, a narrow neck that flares to a lip, and a loop handle from the shoulder to the neck. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and jugs stand upright in a pile, spread around the middle like other things in a pile. A jug looks the same whatever water it holds. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
+      "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall and faceted, like the stones and firewood around it: a small foot ring, an egg-shaped belly, a paler band round the shoulder, a narrow neck that flares to a lip, a dark open mouth, and a flat clay strap handle from the shoulder to just under the lip. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and empty jugs stand upright in a pile, spread around the middle like other things in a pile. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/clay/issues/02-shape-an-unfired-jug.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {
@@ -1531,6 +1536,52 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/garden/issues/01-plant-berry-bushes.md"
+      }
+    },
+    {
+      "id": "fish-trap",
+      "kind": "code",
+      "code": [
+        "src/render/fish-trap-meshes.ts",
+        "src/render/fish-trap-shape.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "A set fish trap: a cone basket of ten thin sticks, about 70 cm long, with a 40 cm wide mouth held open by a hoop and a narrow tail, bound with two rings of dark cord. It sits sunk half into the river at the edge, its mouth facing upstream. When it holds a fish, a raw fish from fishing-piles lies inside it.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
+      }
+    },
+    {
+      "id": "fish-trap-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/fish-trap-icons.tsx",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "Backpack and craft menu icons in the backpack-icons style: cord, a brown coil of two loops with twist marks and a loose end; and the fish trap, a tan cone basket on its side with its open mouth on the left and two bands of cord.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
+      }
+    },
+    {
+      "id": "fish-trap-piles",
+      "kind": "code",
+      "code": [
+        "src/render/fish-trap-shape.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "How cord and fish traps look lying in a pile, laid out like other things in a pile. One cord is a flat coil of dark twisted bark string about 12 cm across. A fish trap is the same cone basket as the set trap, tipped onto its side so it lies flat.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
       }
     }
   ]

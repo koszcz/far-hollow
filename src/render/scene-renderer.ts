@@ -37,6 +37,7 @@ import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
+import { createFishTrapMeshes } from "./fish-trap-meshes";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 
 export const CAMERA_FIELD_OF_VIEW_DEGREES = 45;
@@ -127,6 +128,8 @@ export function createSceneRenderer(
   const barkMeshes = createBarkMeshes(entities);
   const plantedTorchMeshes = createPlantedTorchMeshes(entities);
   scene.add(plantedTorchMeshes.group);
+  const fishTrapMeshes = createFishTrapMeshes(entities, valley.river);
+  scene.add(fishTrapMeshes.group);
   scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
@@ -166,6 +169,7 @@ export function createSceneRenderer(
     bedroll: (entity) => bedrollMeshes.outlineOf(entity),
     pile: (entity) => pileMeshes.outlineOf(entity),
     plantedTorch: (entity) => plantedTorchMeshes.outlineOf(entity),
+    fishTrap: (entity) => fishTrapMeshes.outlineOf(entity),
   };
 
   /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */
@@ -502,6 +506,7 @@ export function createSceneRenderer(
       pileMeshes.pick(raycaster),
       barkMeshes.pick(raycaster),
       plantedTorchMeshes.pick(raycaster),
+      fishTrapMeshes.pick(raycaster),
     ];
     let nearest: (typeof candidates)[number];
     for (const candidate of candidates) {
@@ -574,6 +579,7 @@ export function createSceneRenderer(
       pileMeshes.update();
       barkMeshes.update();
       plantedTorchMeshes.update(nowSeconds);
+      fishTrapMeshes.update();
       Object.assign(playerDrawnBefore, playerDrawn);
       for (const entity of moving) {
         blendPosition(entity.previousPosition, entity.position, alpha, blended);
@@ -648,6 +654,7 @@ export function createSceneRenderer(
       pileMeshes.dispose();
       barkMeshes.dispose();
       plantedTorchMeshes.dispose();
+      fishTrapMeshes.dispose();
       rainEffect.dispose();
       playerMesh.dispose();
       renderer.dispose();

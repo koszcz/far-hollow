@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Assets:** Reuse `campfire`, `fireplace`, `pot`, and `fish-on-fire`. Extend the drafts `jug` (the fired look, and both looks sitting on a fire) and `jug-icons` (the empty jug's backpack icon).
 

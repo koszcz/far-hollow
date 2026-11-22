@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Assets:** Reuse `jug`, `pot`, and `pile`. Extend the draft `jug-icons` with a backpack icon for each fill level.
 

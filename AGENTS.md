@@ -8,9 +8,11 @@ Issues live as local markdown files under `.scratch/<feature>/`. See `docs/agent
 
 Implement one ticket per session. Land each finished ticket on `main` with `make land`, which merges, checks, pushes, and deletes the branch. Once it has landed, stop work and name the next unblocked ticket for the owner to start in a fresh session. The owner closes the tab.
 
-### Triage labels
+Idea sessions and grilling sessions also end with `make land`. Run it as soon as the files are written. Do not ask the owner first.
 
-Uses the five default triage labels, recorded as a `Status:` line in each issue file. See `docs/agents/triage-labels.md`.
+### Ticket statuses
+
+There is no triage. An open ticket is either an `idea`, which needs grilling, or `ready-for-agent`, which a grilling session settled. Never ask the owner to triage. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

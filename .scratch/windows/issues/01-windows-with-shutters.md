@@ -2,11 +2,11 @@
 
 **What to build:** The player can build a window into a log wall. A window has wooden shutters and no glass. Open shutters let daylight into the room. Closed shutters keep the room snug.
 
-**Status:** needs-triage
+**Status:** idea
 
-**Assets:** None yet. Decide during triage.
+**Assets:** None yet. Decide during grilling.
 
-Questions for triage:
+Questions for grilling:
 
 - Is a window a building piece of its own, like a door frame, or something added to a finished log wall?
 - What does a window cost, and does it need a tool or a work station?

@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Assets:** Reuse `player` and its stone-gathering motion, `pile`, and `backpack-icons`. Add the draft `clay`.
 

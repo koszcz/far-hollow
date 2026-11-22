@@ -2,11 +2,11 @@
 
 **What to build:** The valley has ambient sound and action sounds. The player hears the forest, the river, a burning fire, and rain. Chopping, sawing, walking, and building each make a sound. There is no music.
 
-**Status:** needs-triage
+**Status:** idea
 
-**Assets:** None yet. Decide during triage. Every sound is an asset in the catalogue (ADR 0006).
+**Assets:** None yet. Decide during grilling. Every sound is an asset in the catalogue (ADR 0006).
 
-Questions for triage:
+Questions for grilling:
 
 - Which sounds come first: ambience, action sounds, or both in one ticket?
 - Does sound get louder or quieter with distance, such as the river or a campfire far away?

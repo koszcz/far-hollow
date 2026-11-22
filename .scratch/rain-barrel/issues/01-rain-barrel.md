@@ -2,11 +2,11 @@
 
 **What to build:** The player can build a rain barrel. When it rains, the barrel fills with clean water. The player can drink it or fill the pot from it without boiling. Rain then helps the player as well as chilling them.
 
-**Status:** needs-triage
+**Status:** idea
 
-**Assets:** None yet. Decide during triage.
+**Assets:** None yet. Decide during grilling.
 
-Questions for triage:
+Questions for grilling:
 
 - What does the barrel cost to build, and does it need a work station?
 - How much water does it hold, and how fast does rain fill it?

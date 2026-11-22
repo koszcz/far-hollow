@@ -92,6 +92,13 @@ export interface Entity {
   log?: { heading: number };
   /** Marks a log with its bark stripped off, lying on the ground. Its position is the middle of the log. `heading` is as for `log`. */
   debarkedLog?: { heading: number };
+  /**
+   * Marks a mushroom log: a log on the ground the player planted a mushroom on. Its position is the middle of the log, and
+   * `heading` is as for `log`. It is a log no more, so nothing that takes logs finds it. It also has a `forageSpot` for mushrooms.
+   */
+  mushroomLog?: { heading: number };
+  /** The player is planting a mushroom on the log on the ground with this entity id, and has worked at it this long. */
+  plantMushroomTask?: { logId: number; secondsDone: number };
   /** The debarking in progress: the log on the ground the player is debarking, given by its entity id, and how long they have worked at it. */
   debarkTask?: { logId: number; secondsDone: number };
   /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
@@ -394,7 +401,12 @@ export function lyingThings(store: EntityStore): (Entity & { position: Vec3 })[]
   return queries.flatMap((query): (Entity & { position: Vec3 })[] => [...query(store)]);
 }
 
-/** Berry bushes and mushroom patches, with food or growing back. */
+/** Mushroom logs, with mushrooms or growing them back. */
+export function mushroomLogEntities(store: EntityStore) {
+  return store.with("mushroomLog", "position");
+}
+
+/** Berry bushes, mushroom patches, and mushroom logs, with food or growing back. */
 export function forageSpotEntities(store: EntityStore) {
   return store.with("forageSpot", "position");
 }

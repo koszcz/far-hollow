@@ -195,6 +195,11 @@ const walkInput = attachWalkInput({
   },
   onPlacingBlueprintChange: (placing) => {
     sceneRenderer.showPlacingBlueprint(placing);
+    // The HUD hint changes only when the reason does, so the HUD is not drawn again on every mouse move.
+    const refusal = placing?.refusal;
+    if (JSON.stringify(refusal) === JSON.stringify(uiState.placingRefusal)) return;
+    uiState.placingRefusal = refusal;
+    renderUi();
   },
   onPlantingChange: (planting, sapling) => {
     sceneRenderer.showPlantingSapling(sapling && { spot: sapling.spot, allowed: sapling.refusal === null });
@@ -268,8 +273,15 @@ document.addEventListener("click", (event) => {
 });
 
 /** Input state the UI shows: the build menu and placing, the craft menu, and the action menu, if one is open. */
-const uiState: { buildMode: BuildMode; planting: Refusal | null | undefined; craftMenuOpen: boolean; menu: MenuRequest | undefined } = {
+const uiState: {
+  buildMode: BuildMode;
+  placingRefusal: Refusal | undefined;
+  planting: Refusal | null | undefined;
+  craftMenuOpen: boolean;
+  menu: MenuRequest | undefined;
+} = {
   buildMode: NOT_BUILDING,
+  placingRefusal: undefined,
   planting: undefined,
   craftMenuOpen: false,
   menu: undefined,
@@ -317,6 +329,7 @@ function renderUi(): void {
         client={game.client}
         buildMenuOpen={buildMode.menuOpen}
         placing={buildMode.placing?.structure ?? null}
+        placingRefusal={uiState.placingRefusal}
         planting={uiState.planting}
         onToggleBuildMenu={() => {
           walkInput.toggleBuildMenu();

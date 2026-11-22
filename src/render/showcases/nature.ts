@@ -147,6 +147,16 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { forageSpot: { food: "mushroom" } });
     },
   },
+  "mushroom-log": {
+    radius: 1.6,
+    focus: { x: 0, y: 0.25, z: 0 },
+    shots: FOUR_ANGLES,
+    build({ place }) {
+      // With mushrooms on the left, foraged and growing them back on the right.
+      place(-0.6, 0, { mushroomLog: { heading: 0.3 }, forageSpot: { food: "mushroom" } });
+      place(0.7, 0.2, { mushroomLog: { heading: 1.6 }, forageSpot: { food: "mushroom" }, regrowing: { minutesLeft: 60 } });
+    },
+  },
   grass: undergrowthShowcase("grass", 5, 5),
   ferns: undergrowthShowcase("ferns", 3, 3),
   flowers: undergrowthShowcase("flowers", 9, 3),

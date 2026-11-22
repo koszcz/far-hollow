@@ -11,6 +11,7 @@ import { fishingNow } from "./fishing";
 import { splittingNow } from "./gathering";
 import { diggingUpNow } from "./digging-up";
 import { plantingNow } from "./planting";
+import { plantingMushroomNow } from "./mushroom-logs";
 import { gatheringStoneNow } from "./stone";
 import { takingDownNow } from "./taking-down";
 
@@ -44,6 +45,7 @@ const TIMED_WORK: readonly (readonly [PlayerAction["kind"], ActivityNow])[] = [
   ["gatherStone", (_entities, player) => gatheringStoneNow(player)],
   ["digUp", (_entities, player) => diggingUpNow(player)],
   ["plant", (_entities, player) => plantingNow(player)],
+  ["plantMushroom", (_entities, player) => plantingMushroomNow(player)],
 ];
 
 /** Each part of the player that means they are walking to do something, or doing it. */
@@ -65,6 +67,7 @@ const TASK_PARTS: Readonly<Record<TaskPart, true>> = {
   stoneTask: true,
   digUpTask: true,
   plantTask: true,
+  plantMushroomTask: true,
 };
 
 /**

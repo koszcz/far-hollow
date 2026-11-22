@@ -28,6 +28,15 @@ describe("the placing hint", () => {
   });
 });
 
+describe("the placing hint where the game refuses the spot", () => {
+  it("says why the spot under the mouse is not allowed, and still names the keys", () => {
+    expect(placingHint(MENU, "campfire", { kind: "coversMushroomLog" })).toEqual({
+      what: "Cannot place a Campfire here: a mushroom log lies here.",
+      keys: "R to rotate · Esc to cancel",
+    });
+  });
+});
+
 describe("the planting hint", () => {
   it("says what to click, and names the cancel key", () => {
     expect(plantingHint(null)).toEqual({ what: "Planting: Sapling. Click the ground to plant it.", keys: "Esc to cancel" });

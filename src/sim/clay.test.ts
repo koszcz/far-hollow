@@ -4,7 +4,7 @@ import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { DIG_CLAY_SECONDS } from "./clay";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { BERRY_BUSHES_SAVE_VERSION, CLAY_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { CLAY_SAVE_VERSION, MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { GATHER_STONE_SECONDS } from "./stone";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { distanceToRiver } from "./valley";
@@ -152,7 +152,7 @@ describe("saving clay", () => {
   it("raises the save version for clay, and loads a save from before then", () => {
     const game = createGame({ seed: 42 });
     expect(CLAY_SAVE_VERSION).toBe(SAVE_VERSION);
-    expect(CLAY_SAVE_VERSION).toBeGreaterThan(BERRY_BUSHES_SAVE_VERSION);
+    expect(CLAY_SAVE_VERSION).toBeGreaterThan(MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = CLAY_SAVE_VERSION - 1;
 

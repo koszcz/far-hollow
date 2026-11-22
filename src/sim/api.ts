@@ -603,7 +603,7 @@ export type Refusal =
  * - `noLitTorch`: the player holds no lit torch to plant.
  * - `noMushroom`: the backpack holds no mushroom to plant on a log.
  * - `needsPlainLog`: a mushroom grows only on a plain log, not a debarked one.
- * - `coversMushroomLog`: a blueprint there would cover a mushroom log.
+ * - `mushroomLogInTheWay`: a blueprint would cover a mushroom log.
  * - `barrelEmpty`: the rain barrel holds no drink.
  * - `noEmptyPot`: the backpack holds no empty pot to fill.
  */
@@ -645,7 +645,7 @@ export type PlainRefusal =
   | "noLitTorch"
   | "noMushroom"
   | "needsPlainLog"
-  | "coversMushroomLog"
+  | "mushroomLogInTheWay"
   | "barrelEmpty"
   | "noEmptyPot";
 

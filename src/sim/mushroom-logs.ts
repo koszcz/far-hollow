@@ -7,10 +7,8 @@
 import type { Refusal } from "./api";
 import type { ApproachReach } from "./approach";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
-import { mushroomLogEntities, playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
-import { addGroundPoints, scaleGroundPoint } from "./ground-point";
+import { playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { goneRefusal } from "./refusals";
-import { isInRect, type GroundRect } from "./structure-kind";
 import type { CommandRules } from "./command-rule";
 
 /** How long the player works to plant a mushroom on a log, in seconds. */
@@ -21,20 +19,6 @@ export const FIRST_MUSHROOMS_MINUTES = 2 * 24 * 60;
 
 /** The player plants a mushroom on a log, or takes a mushroom log down, from this far away, in metres. */
 const MUSHROOM_LOG_REACH_METRES = 2;
-
-/** A mushroom log is a log, which is this long, in metres. */
-const MUSHROOM_LOG_LENGTH_METRES = 1;
-
-/**
- * Whether ground a blueprint would cover reaches a mushroom log: its middle or either end lies in `rect`.
- * A mushroom log stays where it lies for good, so nothing may be built over it.
- */
-export function coversMushroomLog(entities: EntityStore, rect: GroundRect): boolean {
-  return mushroomLogEntities(entities).entities.some(({ position, mushroomLog }) => {
-    const toEnd = scaleGroundPoint({ x: Math.sin(mushroomLog.heading), z: Math.cos(mushroomLog.heading) }, MUSHROOM_LOG_LENGTH_METRES / 2);
-    return [position, addGroundPoints(position, toEnd), addGroundPoints(position, scaleGroundPoint(toEnd, -1))].some((spot) => isInRect(rect, spot));
-  });
-}
 
 /** How far the player is through planting a mushroom, from 0 to 1, and the log, or undefined if they are not planting one now. */
 export function plantingMushroomNow(player: Entity): { progress: number; targetId: number } | undefined {

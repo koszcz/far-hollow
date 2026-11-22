@@ -3,7 +3,7 @@ import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { toolRefusal } from "./refusals";
-import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
+import { groundDistance, stepAlongHeading, type GroundPoint } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";
 
 /** How long the player works at a log with the drawknife to strip its bark, in seconds. */
@@ -113,9 +113,9 @@ export function createDebarking(entities: EntityStore): Debarking {
 
 /** The spot just off the end of the log nearer `from`, on the log's line. The log lies along its `heading` from +z. */
 function standingSpot(middle: GroundPoint, heading: number, from: GroundPoint | undefined): GroundPoint {
-  const along = { x: Math.sin(heading), z: Math.cos(heading) };
-  const side = from === undefined || (from.x - middle.x) * along.x + (from.z - middle.z) * along.z >= 0 ? 1 : -1;
-  return addGroundPoints(middle, scaleGroundPoint(along, DEBARK_STAND_METRES * side));
+  const ahead = stepAlongHeading(middle, heading, DEBARK_STAND_METRES);
+  const behind = stepAlongHeading(middle, heading, -DEBARK_STAND_METRES);
+  return from === undefined || groundDistance(ahead, from) <= groundDistance(behind, from) ? ahead : behind;
 }
 
 function barkFits(backpack: Backpack): boolean {

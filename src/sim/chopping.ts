@@ -6,7 +6,7 @@ import { growingTreeEntities, playerEntities, setComponent, type Entity, type En
 import { isYoungTree, justFelled } from "./tree-growth";
 import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
 import { terrainHeightAt, type Valley } from "./valley";
-import { groundDistance, headingToward, type GroundPoint } from "./ground-point";
+import { groundDistance, headingToward, stepAlongHeading, type GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";
 import type { Walking } from "./walking";
 import type { CommandRules } from "./command-rule";
@@ -120,7 +120,6 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
   function fell(tree: Entity, at: GroundPoint, from: GroundPoint): Entity[] {
     const logCount = logsForTreeSize(treeSizeAt(at.x, at.z));
     const heading = clearFallHeading(tree, at, headingToward(from, at), logCount);
-    const direction = { x: Math.sin(heading), z: Math.cos(heading) };
     // The heading goes on before the tree goes, so the renderer can read it as the tree falls.
     entities.addComponent(tree, "fellHeading", heading);
     // The stump keeps the tree's place and its `blocksWalking`, so it blocks walking just as the tree did.
@@ -129,9 +128,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     entities.addComponent(tree, "growth", justFelled());
     const logs: Entity[] = [];
     for (let i = 0; i < logCount; i += 1) {
-      const along = FIRST_LOG_FROM_STUMP_METRES + i * LOG_SPACING_METRES;
-      const x = at.x + direction.x * along;
-      const z = at.z + direction.z * along;
+      const { x, z } = stepAlongHeading(at, heading, FIRST_LOG_FROM_STUMP_METRES + i * LOG_SPACING_METRES);
       logs.push(entities.add({ log: { heading }, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } }));
     }
     return logs;
@@ -165,7 +162,7 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
   function blockedPoints(at: GroundPoint, heading: number, trunkMetres: number, trunksNearby: readonly GroundPoint[]): number {
     let blocked = 0;
     for (let along = FALL_CHECK_SPACING_METRES; along <= trunkMetres; along += FALL_CHECK_SPACING_METRES) {
-      const point = { x: at.x + Math.sin(heading) * along, z: at.z + Math.cos(heading) * along };
+      const point = stepAlongHeading(at, heading, along);
       const nearTrunk = trunksNearby.some((trunk) => groundDistance(trunk, point) < FALL_TRUNK_CLEARANCE_METRES);
       const offGround = along >= STUMP_BLOCK_METRES && !isWalkable(walking.walkMap, point);
       if (nearTrunk || offGround) blocked += 1;

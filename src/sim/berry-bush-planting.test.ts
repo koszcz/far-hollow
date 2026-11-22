@@ -187,6 +187,16 @@ describe("where a berry bush can be planted", () => {
     expect(game.client.refusal(plant(spot))).toEqual({ kind: "tooCloseToMushroomLog" });
   });
 
+  it("measures from the whole mushroom log, so a spot near one end is refused", () => {
+    const game = gameWithBushes(1);
+    const spot = plantableSpot(game);
+    // The log lies along z, 1 m long, so its middle is 1.3 m away and its near end is 0.8 m away.
+    game.entities.add({ mushroomLog: { heading: 0 }, forageSpot: { food: "mushroom" }, position: { x: spot.x, y: 0, z: spot.z + 1.3 } });
+
+    expect(game.client.refusal(plant(spot))).toEqual({ kind: "tooCloseToMushroomLog" });
+    expect(game.client.refusal(plant({ x: spot.x, z: spot.z - 0.3 }))).toBeNull();
+  });
+
   it("refuses a spot within 1 m of a sapling", () => {
     const game = gameWithBushes(1);
     const spot = plantableSpot(game);

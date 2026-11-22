@@ -490,7 +490,7 @@ export const strings = {
     noLitTorch: "you hold no lit torch",
     noMushroom: "no mushroom in the backpack",
     needsPlainLog: "a mushroom grows only on a log with its bark on",
-    coversMushroomLog: "a mushroom log lies here",
+    mushroomLogInTheWay: "a mushroom log is in the way",
     barrelEmpty: "the barrel is empty",
     noEmptyPot: "no empty pot in the backpack",
     /** A delivered material the blueprint needs before the next stage can be built. */

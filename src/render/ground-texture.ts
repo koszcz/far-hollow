@@ -92,12 +92,39 @@ const TEXTURE_MIX_SPACING_METRES = 9;
  */
 export function bakeGroundTypeWeights(map: GroundMap, texels: number): Uint8Array {
   const data = new Uint8Array(texels * texels * 4);
+  rebakeGroundTypeWeights(data, map, texels, { minRow: 0, maxRow: texels - 1, minColumn: 0, maxColumn: texels - 1 });
+  return data;
+}
+
+/** A block of rows and columns of the baked map, each from its lowest to its highest, both included. */
+export interface TexelBlock {
+  readonly minRow: number;
+  readonly maxRow: number;
+  readonly minColumn: number;
+  readonly maxColumn: number;
+}
+
+/** The block of the baked map that covers a square of the valley, in metres from its centre. */
+export function texelsCovering(size: number, texels: number, area: { minX: number; maxX: number; minZ: number; maxZ: number }): TexelBlock {
+  const step = size / texels;
+  const half = size / 2;
+  const clamp = (value: number) => Math.min(texels - 1, Math.max(0, value));
+  return {
+    minRow: clamp(Math.floor((area.minZ + half) / step)),
+    maxRow: clamp(Math.ceil((area.maxZ + half) / step)),
+    minColumn: clamp(Math.floor((area.minX + half) / step)),
+    maxColumn: clamp(Math.ceil((area.maxX + half) / step)),
+  };
+}
+
+/** Bakes one block of the ground map again into `data`, laid out as bakeGroundTypeWeights lays it out. */
+export function rebakeGroundTypeWeights(data: Uint8Array, map: GroundMap, texels: number, block: TexelBlock): void {
   const step = map.size / texels;
   const half = map.size / 2;
   const toByte = (amount: number) => Math.round(Math.min(1, Math.max(0, amount)) * 255);
-  for (let row = 0; row < texels; row += 1) {
+  for (let row = block.minRow; row <= block.maxRow; row += 1) {
     const z = -half + (row + 0.5) * step;
-    for (let column = 0; column < texels; column += 1) {
+    for (let column = block.minColumn; column <= block.maxColumn; column += 1) {
       const x = -half + (column + 0.5) * step;
       const weights = groundTypeWeightsAt(map, { x, z });
       const brightness =
@@ -111,7 +138,6 @@ export function bakeGroundTypeWeights(map: GroundMap, texels: number): Uint8Arra
       data[index + 3] = toByte(0.5 + textureMix * 0.9);
     }
   }
-  return data;
 }
 
 function paintGroundTexture(paint: GroundPaint): THREE.CanvasTexture {

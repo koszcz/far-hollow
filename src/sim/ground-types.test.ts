@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { createGroundMap, groundTypeAt, groundTypeWeightsAt } from "./ground-types";
+import { createGroundMap, groundMapNow, groundTypeAt, groundTypeWeightsAt } from "./ground-types";
+import type { GroundChange } from "./ground-change";
 import { generateValley, type River } from "./valley";
 import { type GroundPoint } from "./ground-point";
 
@@ -94,5 +95,77 @@ describe("groundTypeWeightsAt", () => {
       previous = riverBank;
     }
     expect(previous).toBe(0);
+  });
+});
+
+describe("the ground now, after trees go or come for good", () => {
+  const DAY = 24 * 60;
+  const tree = { x: 100, z: 0 };
+  const gone = (startedAtMinutes: number): GroundChange => ({ x: tree.x, z: tree.z, toward: "clearing", startedAtMinutes });
+  const grown = (startedAtMinutes: number): GroundChange => ({ x: tree.x, z: tree.z, toward: "forestFloor", startedAtMinutes });
+
+  it("turns forest floor into clearing over 3 game days where a tree went for good", () => {
+    const start = mapWith([tree]);
+    expect(groundTypeAt(groundMapNow(start, [gone(0)], 0), { x: 101, z: 0 })).toBe("forestFloor");
+    expect(groundTypeAt(groundMapNow(start, [gone(0)], DAY), { x: 101, z: 0 })).toBe("forestFloor");
+    const done = groundMapNow(start, [gone(0)], 3 * DAY);
+    for (let x = 90; x <= 110; x += 0.5) expect(groundTypeWeightsAt(done, { x, z: 0 }).forestFloor).toBe(0);
+  });
+
+  it("changes a little at a time over the 3 days, with no jump when the change starts or ends", () => {
+    const start = mapWith([tree]);
+    const spot = { x: 103, z: 1 };
+    const at = (minutes: number) => groundTypeWeightsAt(groundMapNow(start, [gone(0)], minutes), spot).forestFloor;
+    expect(at(0)).toBe(groundTypeWeightsAt(start, spot).forestFloor);
+    expect(at(10)).toBeCloseTo(at(0), 3);
+    expect(at(3 * DAY - 10)).toBeCloseTo(0, 3);
+    let previous = at(0);
+    for (let minutes = 60; minutes <= 3 * DAY; minutes += 60) {
+      const now = at(minutes);
+      expect(previous - now).toBeLessThan(0.05);
+      expect(now).toBeLessThanOrEqual(previous);
+      previous = now;
+    }
+  });
+
+  it("keeps the forest floor of the trees still standing nearby", () => {
+    const neighbour = { x: 104, z: 0 };
+    const done = groundMapNow(mapWith([tree, neighbour]), [gone(0)], 3 * DAY);
+    expect(groundTypeAt(done, { x: 105, z: 0 })).toBe("forestFloor");
+    expect(groundTypeAt(done, { x: 101, z: 0 })).toBe("forestFloor");
+    expect(groundTypeAt(done, { x: 94, z: 0 })).toBe("clearing");
+  });
+
+  it("turns clearing into forest floor around a new full tree over 3 game days, as far as a starting tree reaches", () => {
+    const open = mapWith([]);
+    const spot = { x: 101, z: 0 };
+    expect(groundTypeWeightsAt(groundMapNow(open, [grown(0)], 0), spot).forestFloor).toBe(0);
+    expect(groundTypeAt(groundMapNow(open, [grown(0)], DAY / 2), spot)).toBe("clearing");
+    const done = groundMapNow(open, [grown(0)], 3 * DAY);
+    const starting = mapWith([tree]);
+    for (let x = 90; x <= 110; x += 0.5) {
+      expect(groundTypeWeightsAt(done, { x, z: 2 })).toEqual(groundTypeWeightsAt(starting, { x, z: 2 }));
+    }
+  });
+
+  it("never changes the river bank", () => {
+    const besideRiver = { x: 9, z: 0 };
+    const start = mapWith([besideRiver]);
+    const changes: GroundChange[] = [{ ...gone(0), x: besideRiver.x, z: besideRiver.z }];
+    for (let x = 4; x <= 14; x += 0.25) {
+      const before = groundTypeWeightsAt(start, { x, z: 0 });
+      const isBank = groundTypeAt(start, { x, z: 0 }) === "riverBank";
+      for (let minutes = 0; minutes <= 3 * DAY; minutes += DAY / 4) {
+        const now = groundMapNow(start, changes, minutes);
+        expect(groundTypeWeightsAt(now, { x, z: 0 }).riverBank).toBe(before.riverBank);
+        expect(groundTypeAt(now, { x, z: 0 }) === "riverBank").toBe(isBank);
+      }
+    }
+  });
+
+  it("leaves the starting map as it was", () => {
+    const start = mapWith([tree]);
+    groundMapNow(start, [gone(0)], 3 * DAY);
+    expect(groundTypeAt(start, { x: 101, z: 0 })).toBe("forestFloor");
   });
 });

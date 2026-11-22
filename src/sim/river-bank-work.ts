@@ -15,7 +15,7 @@ import type { WalkMap } from "./walk-map";
 /** The player can work river bank ground this far away, in metres. */
 const RIVER_BANK_REACH_METRES = 2;
 
-/** The ground map of each valley, made once, since every click on the ground asks for it. */
+/** The ground map of each valley, made once, since every click on the ground asks for it. The river bank never changes, so the starting map answers for the ground now. */
 const groundMaps = new WeakMap<Valley, GroundMap>();
 
 /** True if a spot is river bank ground or in the river: somewhere the player can gather stone and dig clay. */

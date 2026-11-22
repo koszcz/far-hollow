@@ -1,4 +1,6 @@
 import { createRegrowth } from "./regrowth";
+import { createGroundChanges } from "./ground-changes";
+import type { GroundMap } from "./ground-types";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 import { createActionQueue } from "./action-queue";
 import type {
@@ -150,6 +152,8 @@ export interface Game {
   readonly client: GameClient;
   /** A copy of the game's progress, for saving. Changing the copy does not change the game. */
   progress(): GameProgress;
+  /** The valley's ground types now, as the ground follows the trees that stand for good. */
+  groundNow(): GroundMap;
 }
 
 export function createGame({ seed, progress, startNotice, freeBuilding = false }: GameOptions): Game {
@@ -186,7 +190,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const clayDigging = createClayDigging(entities, walking.walkMap, valley);
   const fishTraps = createFishTraps(entities, walking.walkMap, valley, seed);
-  const diggingUp = createDiggingUp(entities);
+  // The ground follows the trees that stand for good. The clock is read only once the game runs.
+  const groundChanges = createGroundChanges(entities, valley, () => clock.minutes);
+  const diggingUp = createDiggingUp(entities, (spot) => {
+    groundChanges.treeGone(spot);
+  });
   const planting = createPlanting(entities, walking.walkMap, valley);
   const mushroomLogs = createMushroomLogs(entities);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
@@ -197,7 +205,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const torches = createTorches(entities, valley, handReach);
   const piles = createPiles(entities, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
-  const regrowth = createRegrowth(entities, walking.walkMap);
+  const regrowth = createRegrowth(entities, walking.walkMap, (spot) => {
+    groundChanges.treeGrown(spot);
+  });
   const approach = createApproach(entities, walking, {
     reach: (command) => ruleOf(command).approach?.reach(command),
     refusal: refusalOf,
@@ -729,7 +739,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     });
   }
 
-  return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress };
+  return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress, groundNow: () => groundChanges.mapNow() };
 }
 
 /** Freezes plain data and everything inside it, so whoever reads the view cannot change it. */

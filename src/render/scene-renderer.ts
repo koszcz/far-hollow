@@ -41,6 +41,7 @@ import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
+import { createGroundNow } from "./ground-now";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { createFishTrapMeshes } from "./fish-trap-meshes";
@@ -85,6 +86,7 @@ export interface SceneRenderer {
 
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
+ * readClockMinutes returns the game minutes since midnight at the start of day 1, from game logic.
  * Rendering only reads the clock. It never changes it.
  * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
  * readLastEatOrDrink returns the player's last bite or drink, from game logic. A new one plays its motion once.
@@ -95,6 +97,7 @@ export function createSceneRenderer(
   valley: Valley,
   entities: EntityStore,
   readHourOfDay: () => number,
+  readClockMinutes: () => number,
   readLastSleep: () => SleepView | null,
   readLastEatOrDrink: () => EatOrDrinkView | null,
   shapes: ModelShapes,
@@ -112,12 +115,14 @@ export function createSceneRenderer(
     camera.lookAt(focus.x, focus.y, focus.z);
   }
 
-  const valleyMeshes = createValleyMeshes(valley);
+  // The ground follows the trees that stand for good. The terrain and the undergrowth both draw it.
+  const groundNow = createGroundNow(valley, entities, readClockMinutes);
+  const valleyMeshes = createValleyMeshes(valley, groundNow);
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
-  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities);
+  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, groundNow);
   scene.add(undergrowthMeshes.group);
   const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
   scene.add(forestMeshes.group);
@@ -620,6 +625,9 @@ export function createSceneRenderer(
       // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
       structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
       outlineHovered();
+      const changedGround = groundNow.refresh();
+      valleyMeshes.redrawGround(changedGround);
+      undergrowthMeshes.regrow(changedGround);
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylightAt(hourOfDay));

@@ -8,6 +8,7 @@ import { addAllToBackpack, allFitInBackpack, type BackpackContents } from "./bac
 import { playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
 import { FOOD_PER_FORAGE, isBerryBush } from "./foraging";
 import { goneRefusal } from "./refusals";
+import type { GroundPoint } from "./ground-point";
 import type { CommandRules } from "./command-rule";
 import { isBareStump, isSapling, isYoungTree } from "./tree-growth";
 
@@ -45,8 +46,8 @@ export interface DiggingUp {
   step(stepSeconds: number): PlainNotice | undefined;
 }
 
-/** Lets the player dig up saplings and berry bushes into the backpack. */
-export function createDiggingUp(entities: EntityStore): DiggingUp {
+/** Lets the player dig up saplings and berry bushes into the backpack. `onSaplingGone` hears of each sapling dug up, at its spot. */
+export function createDiggingUp(entities: EntityStore, onSaplingGone: (spot: GroundPoint) => void = () => undefined): DiggingUp {
   const players = playerEntities(entities);
   const diggers = entities.with("digUpTask", "position", "backpack");
 
@@ -118,6 +119,7 @@ export function createDiggingUp(entities: EntityStore): DiggingUp {
         }
         // A sapling comes up with its stump, if it grew from one. Removing the entity frees the ground it blocked.
         entities.remove(thing.entity);
+        if (thing.kind === "sapling") onSaplingGone(thing.entity.position);
       }
       return notice;
     },

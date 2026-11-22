@@ -1,4 +1,5 @@
 // A spot on the valley floor, and every rule about adding, moving and measuring spots. See docs/adr/0009.
+import type { Random } from "./random";
 
 /** A spot on the valley floor, in metres from the valley's centre. */
 export interface GroundPoint {
@@ -36,6 +37,17 @@ export function headingToward(from: GroundPoint, to: GroundPoint): number {
 /** The spot `metres` from `from` along `heading`, in radians about the vertical axis from +z toward +x. */
 export function stepAlongHeading(from: GroundPoint, heading: number, metres: number): GroundPoint {
   return { x: from.x + Math.sin(heading) * metres, z: from.z + Math.cos(heading) * metres };
+}
+
+/**
+ * A random spot between `radius.min` (0 when unset) and `radius.max` metres from `centre`. Spots spread evenly by area,
+ * so they do not bunch up near the centre.
+ */
+export function randomPointAround(centre: GroundPoint, radius: { readonly min?: number; readonly max: number }, random: Random): GroundPoint {
+  const inner = radius.min ?? 0;
+  // Area grows with the square of the distance, so the distance is the square root of an even share of the squares.
+  const distance = Math.sqrt(inner * inner + random() * (radius.max * radius.max - inner * inner));
+  return stepAlongHeading(centre, random() * Math.PI * 2, distance);
 }
 
 /** The spot `share` of the way from `a` to `b`: `a` at 0, `b` at 1. */

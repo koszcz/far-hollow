@@ -6,7 +6,9 @@
 // - Splashes are short-lived rings that grow and fade on the ground, each time at a new spot near the focus.
 // - The rain eases in when it starts and eases out when it stops. It dims with the daylight, so it does not glow at night.
 import * as THREE from "three";
-import { rainEntities, type EntityStore, type Vec3 } from "../sim/entities";
+import { isRaining, type EntityStore, type Vec3 } from "../sim/entities";
+import { randomBetween } from "../sim/random";
+import { createEasedShare } from "./eased-share";
 
 const DROP_COUNT = 1500;
 /** The drops fill a box this wide and deep, and this tall above the focus, in metres. */
@@ -56,7 +58,6 @@ export interface RainEffect {
 
 /** Draws rain while the game says it is falling. Rendering only reads the rain. It never changes it. */
 export function createRainEffect(entities: EntityStore, groundHeightAt: (x: number, z: number) => number = () => 0): RainEffect {
-  const weather = rainEntities(entities);
   const group = new THREE.Group();
   group.name = "rain";
 
@@ -65,9 +66,9 @@ export function createRainEffect(entities: EntityStore, groundHeightAt: (x: numb
     x: (Math.random() - 0.5) * BOX_WIDTH_METRES,
     z: (Math.random() - 0.5) * BOX_WIDTH_METRES,
     phase: Math.random(),
-    length: between(DROP_LENGTH_METRES, Math.random()),
-    fallSeconds: BOX_HEIGHT_METRES / between(FALL_METRES_PER_SECOND, Math.random()),
-    brightness: between(DROP_BRIGHTNESS, Math.random()),
+    length: randomBetween(Math.random, DROP_LENGTH_METRES),
+    fallSeconds: BOX_HEIGHT_METRES / randomBetween(Math.random, FALL_METRES_PER_SECOND),
+    brightness: randomBetween(Math.random, DROP_BRIGHTNESS),
   }));
   const positions = new Float32Array(DROP_COUNT * 2 * 3);
   const geometry = new THREE.BufferGeometry();
@@ -105,7 +106,7 @@ export function createRainEffect(entities: EntityStore, groundHeightAt: (x: numb
   splashes.frustumCulled = false;
   splashes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   const splashTimings = Array.from({ length: SPLASH_COUNT }, () => ({
-    cycleSeconds: between(SPLASH_CYCLE_SECONDS, Math.random()),
+    cycleSeconds: randomBetween(Math.random, SPLASH_CYCLE_SECONDS),
     phase: Math.random(),
   }));
   const splashMatrix = new THREE.Matrix4();
@@ -117,21 +118,19 @@ export function createRainEffect(entities: EntityStore, groundHeightAt: (x: numb
   group.add(splashes);
 
   // How strongly the rain falls, from 0 (stopped) to 1 (full). It eases towards what the game says.
-  let strength: number | undefined;
+  const strength = createEasedShare({ riseSeconds: FADE_SECONDS, fallSeconds: FADE_SECONDS });
   let lastSeconds = 0;
 
   return {
     group,
     update(nowSeconds, focus, daylight) {
-      const target = weather.first?.rain.falling === true ? 1 : 0;
       // The first frame shows the weather as it is, so a game loaded in the rain does not ease in.
-      const step = strength === undefined ? 1 : Math.abs(nowSeconds - lastSeconds) / FADE_SECONDS;
-      strength = moveTowards(strength ?? target, target, step);
+      const falling = strength.toward(isRaining(entities) ? 1 : 0, Math.abs(nowSeconds - lastSeconds));
       lastSeconds = nowSeconds;
-      group.visible = strength > 0;
+      group.visible = falling > 0;
       if (!group.visible) return;
 
-      const eased = strength * strength * (3 - 2 * strength);
+      const eased = falling * falling * (3 - 2 * falling);
       const light = THREE.MathUtils.lerp(NIGHT_BRIGHTNESS, 1, daylight);
       material.opacity = DROP_OPACITY * light * eased;
       // Lighter rain also means fewer drops, so the rain thins out as it stops rather than only turning see-through.
@@ -178,14 +177,6 @@ export function createRainEffect(entities: EntityStore, groundHeightAt: (x: numb
       splashes.dispose();
     },
   };
-}
-
-function between(range: { min: number; max: number }, share: number): number {
-  return range.min + (range.max - range.min) * share;
-}
-
-function moveTowards(value: number, target: number, step: number): number {
-  return value < target ? Math.min(value + step, target) : Math.max(value - step, target);
 }
 
 /** A number from 0 to 1 that looks random but is always the same for the same splash, cycle, and purpose. */

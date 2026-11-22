@@ -1,6 +1,6 @@
-// Showcases for what lives in the valley only for looks, such as birds. The registry is src/render/showcases/index.ts.
+// Showcases for what lives in the valley only for looks: birds and fireflies. The registry is src/render/showcases/index.ts.
 import { createBirdMaterial, createBirdShape, posedBirdGeometry, type BirdPose } from "../bird-shape";
-import { NOON, type Showcase } from "./types";
+import { NIGHT, NOON, type Showcase } from "./types";
 
 /** The showcase's birds stand this far apart along x, in metres. Flying birds hang this high. */
 const BIRD_SPACING_METRES = 0.6;
@@ -34,6 +34,30 @@ export const VALLEY_LIFE_SHOWCASES: Readonly<Record<string, Showcase>> = {
         addProp(posedBirdGeometry(shape, pose), createBirdMaterial(), birdX(index), 0, birdLift(pose));
       });
       for (const part of Object.values(shape)) part.dispose();
+    },
+  },
+  fireflies: {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    fireflies: true,
+    shots: [
+      { label: "night, 22:00", yaw: 200, pitch: 8, hour: NIGHT, seconds: 0.6 },
+      { label: "night, a moment later", yaw: 200, pitch: 8, hour: NIGHT, seconds: 1.8 },
+      { label: "night, from above", yaw: 40, pitch: 35, hour: NIGHT, seconds: 3 },
+      { label: "dusk, 19:30, fading in", yaw: 200, pitch: 8, hour: 19.5, seconds: 0.6 },
+    ],
+    build({ place }) {
+      for (const [x, z] of [
+        [-6, -5],
+        [4, -7],
+        [7, 2],
+      ] as const)
+        place(x, z, { tree: true });
+    },
+    // Fireflies drift and blink all night, so they play live at night.
+    play: {
+      shot: { label: "fireflies at night", yaw: 200, pitch: 8, hour: NIGHT },
+      pose: () => undefined,
     },
   },
 };

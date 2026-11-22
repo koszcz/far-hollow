@@ -105,7 +105,9 @@ export function createSceneRenderer(
   const skyLighting = createSkyLighting(scene, renderer);
 
   const camera = new THREE.PerspectiveCamera(CAMERA_FIELD_OF_VIEW_DEGREES, 1, CAMERA_NEAR_METRES, CAMERA_FAR_METRES);
-  const cameraRig = createCameraRig({ groundHeightAt: (x, z) => terrainHeightAt(valley.terrain, x, z) });
+  const groundHeightAt = (x: number, z: number): number => terrainHeightAt(valley.terrain, x, z);
+  const groundMap = createGroundMap(valley);
+  const cameraRig = createCameraRig({ groundHeightAt });
   function placeCamera(): void {
     const { eye, focus } = cameraRig.view();
     camera.position.set(eye.x, eye.y, eye.z);
@@ -121,13 +123,13 @@ export function createSceneRenderer(
   scene.add(undergrowthMeshes.group);
   const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
   scene.add(forestMeshes.group);
-  const structureMeshes = createStructureMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z), shapes.log);
+  const structureMeshes = createStructureMeshes(entities, groundHeightAt, shapes.log);
   scene.add(structureMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
   const mushroomLogMeshes = createMushroomLogMeshes(entities, shapes.log, shapes.mushrooms);
   scene.add(mushroomLogMeshes.group);
-  const bedrollMeshes = createBedrollMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
+  const bedrollMeshes = createBedrollMeshes(entities, groundHeightAt);
   scene.add(bedrollMeshes.group);
   const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
   scene.add(pileMeshes.group);
@@ -137,16 +139,13 @@ export function createSceneRenderer(
   const fishTrapMeshes = createFishTrapMeshes(entities, valley.river);
   scene.add(fishTrapMeshes.group);
   scene.add(barkMeshes.group);
-  const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
+  const rainEffect = createRainEffect(entities, groundHeightAt);
   scene.add(rainEffect.group);
   // Birds are only for looks: they are never picked, and they cast no shadows.
-  const birdMeshes = createBirdMeshes(entities, valley);
+  const birdMeshes = createBirdMeshes(entities, { map: groundMap, heightAt: groundHeightAt });
   scene.add(birdMeshes.group);
   // Fireflies are only for looks, like the rain. Game logic never sees them, and they are never saved.
-  const fireflyEffect = createFireflyEffect(entities, {
-    isOpen: fireflyOpenGround(createGroundMap(valley)),
-    heightAt: (x, z) => terrainHeightAt(valley.terrain, x, z),
-  });
+  const fireflyEffect = createFireflyEffect(entities, { isOpen: fireflyOpenGround(groundMap), heightAt: groundHeightAt });
   scene.add(fireflyEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
@@ -588,7 +587,8 @@ export function createSceneRenderer(
       const hourOfDay = sleeping !== undefined && sleepSeconds !== undefined && sleepSeconds < SLEEP_MORNING_AT ? sleeping.hour : readHourOfDay();
       drawnHour = hourOfDay;
       darkenView(canvas, sleepSeconds === undefined ? 0 : sleepDarknessAt(sleepSeconds));
-      riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
+      const daylight = daylightAt(hourOfDay);
+      riverMeshes.update(nowSeconds, daylight);
       forestMeshes.update(nowSeconds);
       forageMeshes.update();
       mushroomLogMeshes.update();
@@ -621,9 +621,9 @@ export function createSceneRenderer(
       structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
       outlineHovered();
       undergrowthMeshes.update(cameraRig.view().focus);
-      rainEffect.update(nowSeconds, cameraRig.view().focus, daylightAt(hourOfDay));
-      birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylightAt(hourOfDay));
-      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylightAt(hourOfDay));
+      rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
+      birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
+      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };

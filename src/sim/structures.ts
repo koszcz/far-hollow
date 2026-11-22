@@ -34,7 +34,7 @@ import { unlitFire } from "./fire";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import { roomAround } from "./rooms";
 import { isYoungTree } from "./tree-growth";
-import { distanceToRiver, terrainHeightAt, type Valley } from "./valley";
+import { isRiverWater, terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, groundDistance, type GroundPoint } from "./ground-point";
 import {
   isInRect,
@@ -290,7 +290,7 @@ const foundation: StructureDefinition & { readonly kind: "foundation" } = {
     const corners = [rect.min, rect.max, { x: rect.min.x, z: rect.max.z }, { x: rect.max.x, z: rect.min.z }];
     for (const corner of [spot, ...corners]) {
       if (cellIndexAt(walkMap, corner) === undefined) return false;
-      if (distanceToRiver(valley.river, corner) <= valley.river.width / 2) return false;
+      if (isRiverWater(valley.river, corner)) return false;
     }
     if (!isClearOfTreesAndStructures(entities, rect)) return false;
     // Foundations side by side make one flat floor, so the floors beside it must be able to rise to its deck, if they need to.
@@ -711,7 +711,7 @@ function canPlaceFreely({ entities, walkMap, valley }: PlacementSite, spot: Grou
   // The spots are no further apart than half a walk-map cell, so every blocked cell it overlaps holds one of them.
   for (const point of [spot, ...spotsAcross(inside)]) {
     if (!isWalkable(walkMap, point)) return false;
-    if (distanceToRiver(valley.river, point) <= valley.river.width / 2) return false;
+    if (isRiverWater(valley.river, point)) return false;
   }
   // All on one level: every corner on a foundation's deck, or every corner on the ground.
   const onDecks = corners.filter((corner) => foundationOn(entities, snapToGridSquare(corner)) !== undefined).length;

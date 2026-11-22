@@ -6,10 +6,12 @@ import {
   groundDistance,
   headingToward,
   nearestWithin,
+  randomPointAround,
   scaleGroundPoint,
   stepAlongHeading,
   subtractGroundPoints,
 } from "./ground-point";
+import { createRandom } from "./random";
 
 describe("addGroundPoints", () => {
   it("adds the x parts and the z parts", () => {
@@ -98,5 +100,32 @@ describe("nearestWithin", () => {
 
   it("gives nothing when every candidate is out of reach", () => {
     expect(nearestWithin({ x: 0, z: 0 }, [far, near], 0.5)).toBeUndefined();
+  });
+});
+
+describe("randomPointAround", () => {
+  const centre = { x: 10, z: -5 };
+
+  it("keeps every spot within the radius of the centre", () => {
+    const random = createRandom(3);
+    for (let i = 0; i < 1000; i += 1) expect(groundDistance(randomPointAround(centre, { max: 20 }, random), centre)).toBeLessThanOrEqual(20);
+  });
+
+  it("keeps every spot outside the inner radius when one is given", () => {
+    const random = createRandom(4);
+    for (let i = 0; i < 1000; i += 1) {
+      const distance = groundDistance(randomPointAround(centre, { min: 8, max: 20 }, random), centre);
+      expect(distance).toBeGreaterThanOrEqual(8);
+      expect(distance).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it("spreads spots evenly by area, so a quarter fall within half the radius", () => {
+    const random = createRandom(5);
+    let inner = 0;
+    const tries = 20_000;
+    for (let i = 0; i < tries; i += 1) if (groundDistance(randomPointAround(centre, { max: 20 }, random), centre) < 10) inner += 1;
+    expect(inner / tries).toBeGreaterThan(0.23);
+    expect(inner / tries).toBeLessThan(0.27);
   });
 });

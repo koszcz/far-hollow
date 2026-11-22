@@ -16,6 +16,11 @@ export function createRandom(seed: number): Random {
   };
 }
 
+/** A random number from `range.min` up to, but not including, `range.max`. */
+export function randomBetween(random: Random, range: { readonly min: number; readonly max: number }): number {
+  return range.min + (range.max - range.min) * random();
+}
+
 /**
  * Stirs the bits of a number, so seeds next to each other give unrelated random numbers.
  * Without it, the first random number from neighbouring seeds can come out nearly the same.

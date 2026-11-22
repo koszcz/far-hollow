@@ -171,9 +171,9 @@ export function showAsset(
   fishTraps.update();
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
-  // Fireflies show only in their own showcase, over open ground everywhere. A fixed seed keeps their stills the same.
+  // Fireflies show only where the showcase asks for them, over open ground everywhere. A fixed seed keeps their stills the same.
   const fireflies: FireflyEffect | undefined =
-    id === "fireflies" ? createFireflyEffect(store, { isOpen: () => true, heightAt: groundAt }, createRandom(SHOWCASE_SEED)) : undefined;
+    showcase.fireflies === true ? createFireflyEffect(store, { isOpen: () => true, heightAt: groundAt }, createRandom(SHOWCASE_SEED)) : undefined;
   if (fireflies !== undefined) scene.add(fireflies.group);
   scene.add(
     forest.group,

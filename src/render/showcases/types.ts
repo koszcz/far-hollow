@@ -64,6 +64,8 @@ export interface Showcase {
   /** What the camera looks at, as an offset from the stage's middle, in metres. */
   readonly focus: Vec3;
   readonly shots: readonly Shot[];
+  /** Whether fireflies glow over the stage. They fly over open ground everywhere, from a fixed seed, so stills stay the same. */
+  readonly fireflies?: boolean;
   build(stage: Stage): void;
   /** Poses an animation for one view, before it draws. */
   pose?(stage: Stage, shot: Shot): void;

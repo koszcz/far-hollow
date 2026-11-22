@@ -69,6 +69,8 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addSaplings,
   addPlanting,
   addMushroomLogs,
+  addRainBarrels,
+  plantBerryBushes,
 ];
 
 /** The version of the save format this code writes. */
@@ -158,6 +160,10 @@ export const SAPLINGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addSaplings) + 2;
 export const PLANTING_SAVE_VERSION = SAVE_UPGRADES.indexOf(addPlanting) + 2;
 /** The first save version that can hold mushroom logs. */
 export const MUSHROOM_LOGS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addMushroomLogs) + 2;
+/** The first save version that can hold rain barrels. */
+export const RAIN_BARRELS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addRainBarrels) + 2;
+/** The first save version in which the player can dig up and plant berry bushes. */
+export const BERRY_BUSHES_SAVE_VERSION = SAVE_UPGRADES.indexOf(plantBerryBushes) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -846,4 +852,31 @@ function addPlanting(save: Readonly<Record<string, unknown>>): Record<string, un
  */
 function addMushroomLogs(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/** Version 48 to 49: the player can build rain barrels. A save from before then holds none, so it carries over unchanged. */
+function addRainBarrels(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 49 to 50: the player can dig up and plant berry bushes as well as saplings. Digging up under way names what it digs up
+ * as `thingId`, not `saplingId`, and planting under way says what it plants. In an older save, both can only be a sapling.
+ */
+function plantBerryBushes(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (!Array.isArray(save.entities)) return { ...save };
+  const entities: unknown[] = save.entities.map((entity: unknown) => {
+    const components = (entity as { components?: Record<string, unknown> | null } | null)?.components;
+    if (typeof components !== "object" || components === null) return entity;
+    const { digUpTask, plantTask } = components;
+    if (digUpTask === undefined && plantTask === undefined) return entity;
+    const upgraded: Record<string, unknown> = { ...components };
+    if (typeof digUpTask === "object" && digUpTask !== null) {
+      const { saplingId, ...rest } = digUpTask as Record<string, unknown>;
+      upgraded.digUpTask = { ...rest, thingId: saplingId };
+    }
+    if (typeof plantTask === "object" && plantTask !== null) upgraded.plantTask = { ...plantTask, plant: "sapling" };
+    return { ...(entity as object), components: upgraded };
+  });
+  return { ...save, entities };
 }

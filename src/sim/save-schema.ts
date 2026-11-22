@@ -2,6 +2,7 @@
 import type { BackpackContent, GameNotice, PlainRefusal } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
+import { isFillProgress } from "./fill-level";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
 import { RECIPE_KINDS } from "./recipe-kind";
@@ -61,6 +62,7 @@ const tendCommand: Check = (value) =>
 const approachCommand: Check = (value) =>
   shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
+  shape({ type: exactly("drinkFromRainBarrel", "fillPotFromRainBarrel"), barrelId: count })(value) ||
   shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
   shape({ type: exactly("pickUpBark"), barkId: count })(value) ||
   shape({ type: exactly("forage"), spotId: count })(value) ||
@@ -76,6 +78,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("chopTree"), treeId: count })(value) ||
   shape({ type: exactly("digUpSapling"), saplingId: count })(value) ||
   shape({ type: exactly("plantSapling"), x: finite, z: finite })(value) ||
+  shape({ type: exactly("digUpBerryBush"), bushId: count })(value) ||
+  shape({ type: exactly("plantBerryBush"), x: finite, z: finite })(value) ||
   shape({ type: exactly("debarkLog", "plantMushroom"), logId: count })(value) ||
   shape({ type: exactly("takeDownMushroomLog"), mushroomLogId: count })(value) ||
   shape({ type: exactly("build"), blueprintId: count })(value) ||
@@ -138,6 +142,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   onFoundation: point,
   furniture: exactly(...FURNITURE_KINDS),
   storage: shape({ contents: backpackContents }),
+  rainBarrel: shape({ held: count, progress: isFillProgress }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,
@@ -152,8 +157,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   fishTask: shape({ x: finite, z: finite, minutesWaited: finite, biteAfterMinutes: finite }),
   fishCasts: count,
   stoneTask: shape({ x: finite, z: finite, secondsDone: finite }),
-  digUpTask: shape({ saplingId: count, secondsDone: finite }),
-  plantTask: shape({ x: finite, z: finite, secondsDone: finite }),
+  digUpTask: shape({ thingId: count, secondsDone: finite }),
+  plantTask: shape({ x: finite, z: finite, secondsDone: finite, plant: exactly("sapling", "berryBush") }),
   sickness: shape({ minutesLeft: finite }),
   litTorch: shape({ minutesLeft: finite }),
   plantedTorch: shape({ minutesLeft: finite }),
@@ -205,6 +210,10 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noSaplingYet: true,
   tooBigToDigUp: true,
   noSapling: true,
+  noBerryBush: true,
+  tooCloseToBerryBush: true,
+  tooCloseToMushroomLog: true,
+  berryBushInTheWay: true,
   notPlantableGround: true,
   tooCloseToTree: true,
   tooCloseToStructure: true,
@@ -217,6 +226,8 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noMushroom: true,
   needsPlainLog: true,
   coversMushroomLog: true,
+  barrelEmpty: true,
+  noEmptyPot: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

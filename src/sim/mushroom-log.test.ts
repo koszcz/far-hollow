@@ -182,7 +182,7 @@ describe("saving mushroom logs", () => {
   });
 
   it("raises the save version, and loads a save from before mushroom logs", () => {
-    expect(MUSHROOM_LOGS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(MUSHROOM_LOGS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const game = gameWithMushrooms(1);
     const log = looseLog(game);
     const older = JSON.parse(JSON.stringify({ ...writeSave(game), version: MUSHROOM_LOGS_SAVE_VERSION - 1 })) as ReturnType<typeof writeSave>;

@@ -1,4 +1,4 @@
-import { isPlacedInRows, type BuildMenuEntry, type Refusal, type StructureKind } from "../sim/api";
+import { isPlacedInRows, type BuildMenuEntry, type Plantable, type Refusal, type StructureKind } from "../sim/api";
 import { strings } from "../strings";
 import { refusalText } from "./refusal-text";
 
@@ -25,8 +25,8 @@ export function placingHint(entries: readonly BuildMenuEntry[], placing: Structu
   };
 }
 
-/** The hint shown while planting a sapling: what to click, or why the spot under the mouse is not allowed, and the cancel key. */
-export function plantingHint(refusal: Refusal | null): PlacingHint {
-  const { what, refused } = strings.plantingSapling;
-  return { what: refusal === null ? what : refused(refusalText(refusal)), keys: strings.hudLabels.placingKeys.cancel };
+/** The hint shown while planting a sapling or berry bush: what to click, or why the spot under the mouse is not allowed, and the cancel key. */
+export function plantingHint(plant: Plantable, refusal: Refusal | null): PlacingHint {
+  const { what, refused } = strings.plantingHint;
+  return { what: refusal === null ? what[plant] : refused(refusalText(refusal)), keys: strings.hudLabels.placingKeys.cancel };
 }

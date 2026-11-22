@@ -3,7 +3,7 @@ import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
-export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, WildFood } from "./backpack";
+export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, Plantable, WildFood } from "./backpack";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
@@ -57,6 +57,17 @@ export type Command =
    * holds no sapling, off forest floor and clearing, near a tree, stump, or sapling, and near a structure or blueprint.
    */
   | ({ type: "plantSapling" } & GroundPoint)
+  /**
+   * Walk the player to a berry bush and dig it up into the backpack, with its berries if it has any. It takes a few seconds and
+   * needs no tool. The bush is gone from its spot for good. It is refused when the bush and its berries do not fit in the backpack.
+   */
+  | { type: "digUpBerryBush"; bushId: number }
+  /**
+   * Walk the player to a spot and plant a berry bush from the backpack there. It takes a few seconds. It is refused when the backpack
+   * holds no berry bush, off forest floor and clearing, within 1 m of a tree, stump, sapling, or berry bush, and within 1 m of a
+   * mushroom log, structure, blueprint, or foundation square.
+   */
+  | ({ type: "plantBerryBush" } & GroundPoint)
   /** Walk the player to a log or debarked log on the ground and shoulder it. The player carries one at a time. */
   | { type: "pickUpLog"; logId: number }
   /**
@@ -204,8 +215,18 @@ export type Command =
   | ({ type: "gatherStone" } & GroundPoint)
   /** Walk the player to the riverbank nearest them and fill the empty pot with river water. */
   | { type: "fillPot" }
-  /** Drink the water in the full pot. Boiled water fills thirst safely. Unboiled river water makes the player sick. */
+  /** Drink the water in the full pot. Clean water fills thirst safely. Unboiled river water makes the player sick. */
   | { type: "drinkFromPot" }
+  /**
+   * Walk the player within reach of a finished rain barrel, given by its entity id, and drink from it. It takes out 1 drink and
+   * fills thirst completely. Its water is clean, so it never makes the player sick. It is refused while the barrel is empty.
+   */
+  | { type: "drinkFromRainBarrel"; barrelId: number }
+  /**
+   * Walk the player within reach of a finished rain barrel, given by its entity id, and fill the empty pot from it with clean water.
+   * It takes out 1 drink. It is refused while the barrel is empty or the backpack holds no empty pot.
+   */
+  | { type: "fillPotFromRainBarrel"; barrelId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
@@ -504,6 +525,11 @@ export function furnitureUse(kind: FurnitureKind): FurnitureUse | undefined {
   return FURNITURE[kind].use;
 }
 
+/** The other ways the player uses a finished piece of furniture, after its main use, from its definition. Empty for most pieces. */
+export function furnitureMoreUses(kind: FurnitureKind): readonly FurnitureUse[] {
+  return FURNITURE[kind].moreUses ?? [];
+}
+
 /** One recipe in the craft menu. What the player lacks to follow it now comes from `GameClient.refusal`. */
 export type CraftMenuEntry = Recipe;
 
@@ -556,8 +582,12 @@ export type Refusal =
  * - `noSaplingYet`: the stump has no sapling growing from it yet, so there is nothing to dig up.
  * - `tooBigToDigUp`: the tree is a young or full tree, too big to dig up.
  * - `noSapling`: the backpack holds no sapling to plant.
- * - `notPlantableGround`: a sapling grows only on forest floor or in a clearing, not on the river bank or in the river.
+ * - `noBerryBush`: the backpack holds no berry bush to plant.
+ * - `notPlantableGround`: a sapling or berry bush grows only on forest floor or in a clearing, not on the river bank or in the river.
  * - `tooCloseToTree`: a tree, stump, or sapling stands too close to plant one here.
+ * - `tooCloseToBerryBush`: another berry bush stands too close to plant one here.
+ * - `tooCloseToMushroomLog`: a mushroom log lies too close to plant a berry bush here.
+ * - `berryBushInTheWay`: a blueprint would cover a berry bush.
  * - `tooCloseToStructure`: a structure, blueprint, or foundation square is too close to plant one here.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
  * - `torchAlreadyLit`: the player already holds a lit torch, and holds only one at a time.
@@ -568,6 +598,8 @@ export type Refusal =
  * - `noMushroom`: the backpack holds no mushroom to plant on a log.
  * - `needsPlainLog`: a mushroom grows only on a plain log, not a debarked one.
  * - `coversMushroomLog`: a blueprint there would cover a mushroom log.
+ * - `barrelEmpty`: the rain barrel holds no drink.
+ * - `noEmptyPot`: the backpack holds no empty pot to fill.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -592,8 +624,12 @@ export type PlainRefusal =
   | "noSaplingYet"
   | "tooBigToDigUp"
   | "noSapling"
+  | "noBerryBush"
   | "notPlantableGround"
   | "tooCloseToTree"
+  | "tooCloseToBerryBush"
+  | "tooCloseToMushroomLog"
+  | "berryBushInTheWay"
   | "tooCloseToStructure"
   | "backpackFull"
   | "torchAlreadyLit"
@@ -603,7 +639,9 @@ export type PlainRefusal =
   | "noLitTorch"
   | "noMushroom"
   | "needsPlainLog"
-  | "coversMushroomLog";
+  | "coversMushroomLog"
+  | "barrelEmpty"
+  | "noEmptyPot";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -668,6 +706,18 @@ export interface SledView {
   readonly planksThatFit: number;
 }
 
+/** A finished rain barrel, with the clean water it holds. */
+export interface RainBarrelView {
+  /** The barrel's entity id. */
+  readonly id: number;
+  /** How many drinks of clean water it holds. */
+  readonly drinks: number;
+  /** The most drinks it holds. */
+  readonly limit: number;
+  /** Whether it stands under a roof, so it catches no rain. */
+  readonly underRoof: boolean;
+}
+
 /** A pile of things the player dropped on the ground. */
 export interface PileView {
   /** The pile's entity id. */
@@ -680,7 +730,8 @@ export interface PileView {
 
 /**
  * What the HUD shows for each kind of thing within the player's reach:
- * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, and the nearest blueprint.
+ * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, the nearest blueprint,
+ * and the nearest rain barrel.
  * A chest closes when the player walks away.
  */
 export interface NearbyViews {
@@ -690,6 +741,7 @@ export interface NearbyViews {
   readonly woodpile: WoodpileView;
   readonly openChest: ChestView;
   readonly blueprint: BlueprintView;
+  readonly rainBarrel: RainBarrelView;
 }
 
 /** One thing within the player's reach, with its kind. */
@@ -778,7 +830,7 @@ export interface PlacementCheck {
   /** The turn it takes there. This is the turn asked for, except for a roof, which takes the turn of the frame under it. */
   readonly turns: QuarterTurns;
   readonly allowed: boolean;
-  /** Why it is not allowed there, when the game can say, such as a mushroom log lying there. Missing when allowed, or when no reason is given. */
+  /** Why it is not allowed there, when the game can say, such as a mushroom log lying there or a berry bush in the way. Missing when allowed, or when no reason is given. */
   readonly refusal?: Refusal;
 }
 

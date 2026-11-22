@@ -58,6 +58,20 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The draft rain barrel icon shows among the build icons, so this showcase draws the same views as "build-icons".
+  "rain-barrel-icon": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Build icons, large", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
+      { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The fireplace icon shows among the build icons, so this showcase draws the same views as "build-icons".
   "fireplace-icon": {
     radius: 6,
@@ -108,7 +122,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "HUD: starting backpack", yaw: 20, pitch: 35 },
       { label: "HUD: materials, one and many", yaw: -20, pitch: 35 },
       { label: "HUD: food and a pot of river water", yaw: 40, pitch: 35 },
-      { label: "HUD: a pot of boiled water", yaw: 20, pitch: 35 },
+      { label: "HUD: a pot of clean water", yaw: 20, pitch: 35 },
     ],
     build({ movePlayer }) {
       movePlayer(0, 0, 0);

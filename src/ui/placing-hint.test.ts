@@ -35,14 +35,22 @@ describe("the placing hint where the game refuses the spot", () => {
       keys: "R to rotate · Esc to cancel",
     });
   });
+
+  it("says a berry bush is in the way", () => {
+    expect(placingHint(MENU, "campfire", { kind: "berryBushInTheWay" }).what).toBe("Cannot place a Campfire here: a berry bush is in the way.");
+  });
 });
 
 describe("the planting hint", () => {
   it("says what to click, and names the cancel key", () => {
-    expect(plantingHint(null)).toEqual({ what: "Planting: Sapling. Click the ground to plant it.", keys: "Esc to cancel" });
+    expect(plantingHint("sapling", null)).toEqual({ what: "Planting: Sapling. Click the ground to plant it.", keys: "Esc to cancel" });
+  });
+
+  it("names the berry bush while planting one", () => {
+    expect(plantingHint("berryBush", null).what).toBe("Planting: Berry bush. Click the ground to plant it.");
   });
 
   it("says why the spot under the mouse is not allowed", () => {
-    expect(plantingHint({ kind: "tooCloseToTree" }).what).toBe("Cannot plant here: too close to a tree, stump, or sapling.");
+    expect(plantingHint("sapling", { kind: "tooCloseToTree" }).what).toBe("Cannot plant here: too close to a tree, stump, or sapling.");
   });
 });

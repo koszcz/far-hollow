@@ -25,12 +25,14 @@ const PLANK_SHADES = [1, 0.9, 1.05, 0.94, 0.86, 1.02, 0.97, 0.91];
 /**
  * One box-shaped part: its size, the middle of it, both in metres in the piece's own space, and its colour if it is not plank wood.
  * `tilt` turns the part about the front-to-back axis, in radians, for a slanted part such as a brace.
+ * `turn` turns the part about the vertical axis, in radians, for a part set round a circle such as a barrel stave.
  */
 export interface FurniturePart {
   readonly size: [number, number, number];
   readonly at: [number, number, number];
   readonly colour?: number;
   readonly tilt?: number;
+  readonly turn?: number;
 }
 
 /** What a piece of furniture looks like. */
@@ -118,9 +120,10 @@ export function createFurnitureMeshes(entities: EntityStore, model: FurnitureMod
         copy.transparent = true;
         return copy;
       });
-      const meshes = parts.map(({ at, tilt }, i) => {
+      const meshes = parts.map(({ at, tilt, turn }, i) => {
         const mesh = new THREE.Mesh(geometries[stageIndex]?.[i], blueprintMaterial);
         mesh.position.set(...at);
+        mesh.rotation.y = turn ?? 0;
         mesh.rotation.z = tilt ?? 0;
         mesh.castShadow = true;
         mesh.receiveShadow = true;

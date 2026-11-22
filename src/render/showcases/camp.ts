@@ -161,7 +161,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0, { pile: { content: "steelAndFlint", count: 1 } });
     },
   },
-  // Back row: one of each long thing and food, and a pot of boiled water. Middle row: many of each. Then the tools and a pot.
+  // Back row: one of each long thing and food, and a pot of clean water. Middle row: many of each. Then the tools and a pot.
   // Front row: the crafting draft shapes: a saw blade, a saw, one plank, and several planks.
   // One view shows them all. The others come close to the wood and bark, the tools and crafting things, and the food.
   pile: {
@@ -368,6 +368,24 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(-1.2, 0, { pile: { content: "sapling", count: 1 } });
       place(-0.9, 0.35, { pile: { content: "knife", count: 1 } });
       place(0.4, 0, { pile: { content: "sapling", count: 3 } });
+      movePlayer(0, -1.5, 0);
+    },
+  },
+  // The draft "berry-bush-icon": dug-up berry bushes lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
+  // src/ui/hud-showcase.tsx draws the HUD over the last view only, with berry bushes in the backpack, digging up under way, and the pile's tooltip.
+  "berry-bush-icon": {
+    radius: 2.2,
+    focus: { x: 0, y: 0.2, z: 0 },
+    shots: [
+      { label: "one berry bush beside a knife", yaw: 20, pitch: 35, radius: 1.1, focus: { x: -1.1, y: 0.15, z: 0.07 } },
+      { label: "a pile of 3 berry bushes", yaw: -30, pitch: 30, radius: 1.6, focus: { x: 0.4, y: 0.15, z: 0 } },
+      { label: "both piles from above", yaw: 40, pitch: 60, radius: 2.4, focus: { x: -0.3, y: 0.1, z: 0 } },
+      { label: "HUD: beside a pile of 3 berry bushes", yaw: 0, pitch: 40, radius: 1.8, focus: { x: 0.4, y: 0.15, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-1.2, 0, { pile: { content: "berryBush", count: 1 } });
+      place(-0.8, 0.4, { pile: { content: "knife", count: 1 } });
+      place(0.4, 0, { pile: { content: "berryBush", count: 3 } });
       movePlayer(0, -1.5, 0);
     },
   },

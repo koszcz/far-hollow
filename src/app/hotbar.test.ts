@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent, GameView } from "../sim/api";
 import { createGame } from "../sim/game";
-import { hotbarKeyStartsPlanting, mainHotbarCommand, pressHotbarKey } from "./hotbar";
+import { hotbarKeyPlanting, mainHotbarCommand, pressHotbarKey } from "./hotbar";
 import { menuActions, type ActionReader } from "./thing-actions";
 
 describe("a hotbar cell's main action", () => {
@@ -46,16 +46,31 @@ describe("a sapling's hotbar cell", () => {
     const actions = menuActions({ kind: "backpackContent", content: "sapling" }, readerWith({ backpack: { sapling: 2 } }));
 
     expect(actions.map(({ id }) => id)).toEqual(["plant", "drop"]);
-    expect(actions[0]).toMatchObject({ isMain: true, enabled: true, label: "Plant", command: undefined, startsPlanting: true });
+    expect(actions[0]).toMatchObject({ isMain: true, enabled: true, label: "Plant", command: undefined, startsPlanting: "sapling" });
   });
 
   it("starts planting from its number key", () => {
     const reader = readerWith({ backpack: { sapling: 2, berries: 1 } });
 
-    expect(hotbarKeyStartsPlanting("Digit1", reader, NOT_TYPING)).toBe(true);
+    expect(hotbarKeyPlanting("Digit1", reader, NOT_TYPING)).toBe("sapling");
     expect(pressHotbarKey("Digit1", reader, NOT_TYPING)).toBeUndefined();
-    expect(hotbarKeyStartsPlanting("Digit2", reader, NOT_TYPING)).toBe(false);
-    expect(hotbarKeyStartsPlanting("Digit1", reader, { typing: true })).toBe(false);
+    expect(hotbarKeyPlanting("Digit2", reader, NOT_TYPING)).toBeUndefined();
+    expect(hotbarKeyPlanting("Digit1", reader, { typing: true })).toBeUndefined();
+  });
+});
+
+describe("a berry bush's hotbar cell", () => {
+  it("offers planting it as the main action, which starts placing a see-through bush, then dropping it", () => {
+    const actions = menuActions({ kind: "backpackContent", content: "berryBush" }, readerWith({ backpack: { berryBush: 2 } }));
+
+    expect(actions.map(({ id }) => id)).toEqual(["plant", "drop"]);
+    expect(actions[0]).toMatchObject({ isMain: true, enabled: true, label: "Plant", command: undefined, startsPlanting: "berryBush" });
+  });
+
+  it("starts planting a berry bush from its number key", () => {
+    const reader = readerWith({ backpack: { berryBush: 1 } });
+
+    expect(hotbarKeyPlanting("Digit1", reader, NOT_TYPING)).toBe("berryBush");
   });
 });
 

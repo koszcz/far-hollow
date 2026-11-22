@@ -3,7 +3,7 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureUse, WOODPILE_WOODS } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, WOODPILE_WOODS } from "../sim/api";
 import type {
   BackpackContent,
   CampfireView,
@@ -12,6 +12,7 @@ import type {
   FurnitureKind,
   FurnitureUse,
   GroundOrThingPick,
+  Plantable,
   ScenePick,
   GameClient,
   GameView,
@@ -30,7 +31,10 @@ export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
 export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } | HotbarTarget;
 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */
-export type ActionReader = Pick<GameClient, "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "refusal">;
+export type ActionReader = Pick<
+  GameClient,
+  "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "describeThing" | "refusal"
+>;
 
 /** An action before it is known whether it is the main one. */
 type Offer = Omit<ThingAction, "isMain">;
@@ -178,7 +182,7 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
     case "plantedTorch":
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "forage":
-      return withMain([offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId: pick.id })], "forage");
+      return forageActions(pick.id, context);
     case "mushroomLog":
       return withMain(
         [
@@ -229,22 +233,41 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
   }
 }
 
+/**
+ * Forage, then, for a berry bush, dig it up. Foraging is the main action while the bush has berries, and digging it up while it grows them back.
+ * A mushroom patch cannot be dug up.
+ */
+function forageActions(spotId: number, { reader, offer }: Context): readonly ThingAction[] {
+  const forage = offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId });
+  const thing = reader.describeThing(spotId);
+  if (thing?.kind !== "forage" || thing.food !== "berries") return withMain([forage], "forage");
+  const digUpBush = offer("digUp", strings.actions.digUp, { content: "berryBush" }, { type: "digUpBerryBush", bushId: spotId });
+  return withMain([forage, digUpBush], forage.enabled ? "forage" : "digUp");
+}
+
 /** The action id, label, and icon for each way the player uses a piece of furniture. */
 const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: { readonly id: ActionId; readonly label: string; readonly icon: ActionIcon } } = {
   open: { id: "open", label: strings.actions.open, icon: { hud: "backpack" } },
   sleep: { id: "sleep", label: strings.actions.sleep, icon: { hud: "moon" } },
   sit: { id: "sit", label: strings.actions.sit, icon: { hud: "moon" } },
+  drink: { id: "drink", label: strings.actions.drink, icon: { hud: "droplet" } },
+  fillPot: { id: "fillPot", label: strings.actions.fillPotHere, icon: { content: "potOfBoiledWater" } },
 };
 
 /**
- * Use the piece, if its definition gives it a use, then take it down. Using it is the main action.
+ * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action.
  * A piece with no use, such as a table, offers only taking it down. The player eats at a table as they eat anywhere.
+ * A rain barrel offers drinking, then filling the pot. Each shows greyed, with the reason, when the game would refuse it.
  */
 function furnitureActions(kind: FurnitureKind, id: number, context: Context): readonly ThingAction[] {
   const use = furnitureUse(kind);
   if (use === undefined) return withMain([takeDown(context, id)], undefined);
-  const action = FURNITURE_USE_ACTIONS[use.name];
-  return withMain([context.offer(action.id, action.label, action.icon, use.command(id)), takeDown(context, id)], action.id);
+  const offerUse = ({ name, command }: FurnitureUse): Offer => {
+    const action = FURNITURE_USE_ACTIONS[name];
+    return context.offer(action.id, action.label, action.icon, command(id));
+  };
+  const main = offerUse(use);
+  return withMain([main, ...furnitureMoreUses(kind).map(offerUse), takeDown(context, id)], main.id);
 }
 
 /** Gathering one stone at a spot on the river bank or in the river. */
@@ -392,21 +415,16 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
   }
 }
 
-/** Planting a sapling: it puts a see-through sapling under the mouse, so it sends no command until the player clicks the ground. */
-const PLANT_SAPLING: Offer = {
-  id: "plant",
-  label: strings.actions.plant,
-  icon: { content: "sapling" },
-  enabled: true,
-  command: undefined,
-  startsPlanting: true,
-};
+/** Planting a sapling or berry bush: it puts a see-through one under the mouse, so it sends no command until the player clicks the ground. */
+function plantOffer(plant: Plantable): Offer {
+  return { id: "plant", label: strings.actions.plant, icon: { content: plant }, enabled: true, command: undefined, startsPlanting: plant };
+}
 
-/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling is planted. */
+/** Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling or berry bush is planted. */
 function backpackContentActions(content: BackpackContent, { view, offer }: Context): readonly ThingAction[] {
   const icon: ActionIcon = { content };
   const use = useCommand(content);
-  const plant = content === "sapling" ? [PLANT_SAPLING] : [];
+  const plant = content === "sapling" || content === "berryBush" ? [plantOffer(content)] : [];
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
   const intoChest =
     chest === undefined

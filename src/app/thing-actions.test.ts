@@ -443,6 +443,29 @@ describe("other things' actions", () => {
     ]);
   });
 
+  it("forages a berry bush with berries, and offers to dig it up", () => {
+    const world = worldWith({});
+    const bush = world.add({ forageSpot: { food: "berries" } });
+
+    const actions = actionsFor(scene("forage", bush), world.reader);
+    expect(summary(actions)).toEqual(["forage main", "digUp"]);
+    expect(find(actions, "digUp")).toMatchObject({ label: "Dig up", command: { type: "digUpBerryBush", bushId: bush } });
+  });
+
+  it("digs up a berry bush growing its berries back as the main action", () => {
+    const world = worldWith({});
+    const bush = world.add({ forageSpot: { food: "berries" }, regrowing: { minutesLeft: 60 } });
+
+    expect(summary(actionsFor(scene("forage", bush), world.reader))).toEqual(["digUp main", "forage off: nothing to take"]);
+  });
+
+  it("offers no digging up for a mushroom patch", () => {
+    const world = worldWith({});
+    const patch = world.add({ forageSpot: { food: "mushroom" } });
+
+    expect(summary(actionsFor(scene("forage", patch), world.reader))).toEqual(["forage main"]);
+  });
+
   it("digs up a sapling growing from a stump, with no tool", () => {
     const world = worldWith({});
     const sapling = world.add({ stump: true, growth: { stage: "sapling", minutesLeft: 60 }, blocksWalking: { radius: 0.9 } });
@@ -556,6 +579,29 @@ describe("other things' actions", () => {
     const actions = actionsFor(furniture("stool", stool), world.reader);
     expect(summary(actions)).toEqual(["sit main", "takeDown"]);
     expect(find(actions, "sit")?.command).toEqual({ type: "sitOnStool", stoolId: stool });
+  });
+
+  it("drinks from a rain barrel as its main action, fills the pot from it, or takes it down", () => {
+    const world = worldWith({ backpack: { pot: 1 } });
+    const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 2, progress: 0 }, facing: { turns: 0 } });
+    const actions = actionsFor(furniture("rainBarrel", barrel), world.reader);
+    expect(summary(actions)).toEqual(["drink main", "fillPot", "takeDown"]);
+    expect(find(actions, "drink")?.command).toEqual({ type: "drinkFromRainBarrel", barrelId: barrel });
+    expect(find(actions, "fillPot")?.command).toEqual({ type: "fillPotFromRainBarrel", barrelId: barrel });
+  });
+
+  it("greys drinking and filling the pot at an empty rain barrel, and filling the pot without an empty pot", () => {
+    const world = worldWith({ backpack: { pot: 1 } });
+    const empty = world.add({ furniture: "rainBarrel", rainBarrel: { held: 0, progress: 0.5 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", empty), world.reader))).toEqual([
+      "drink main off: the barrel is empty",
+      "fillPot off: the barrel is empty",
+      "takeDown",
+    ]);
+
+    const noPot = worldWith({ backpack: { potOfRiverWater: 1 } });
+    const full = noPot.add({ furniture: "rainBarrel", rainBarrel: { held: 3, progress: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("rainBarrel", full), noPot.reader))).toEqual(["drink main", "fillPot off: no empty pot in the backpack", "takeDown"]);
   });
 
   it("opens a chest, or takes it down", () => {
@@ -764,6 +810,7 @@ type ThingKind =
   | "bedroll"
   | "blueprint"
   | "plantedTorch"
+  | "forage"
   | "mushroomLog";
 
 /** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */

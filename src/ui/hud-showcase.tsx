@@ -208,6 +208,23 @@ const SAPLING_ICON_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
+/** The draft "berry-bush-icon" asset, over the last view only: berry bushes in the backpack while digging one up, beside a pile of them. */
+const BERRY_BUSH_ICON_STATES: readonly (ShowcaseState | null)[] = [
+  null,
+  null,
+  null,
+  {
+    view: {
+      ...BASE_VIEW,
+      backpack: { berryBush: 2, berries: 3, axe: 1, knife: 1 },
+      action: { kind: "digUp", progress: 0.6 },
+      nearby: [{ kind: "pile", view: { id: 1, content: "berryBush", count: 3 } }],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
 /** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
 const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
@@ -571,6 +588,7 @@ const STATES_BY_ASSET = {
   bark: BARK_STATES,
   stone: STONE_STATES,
   "sapling-icon": SAPLING_ICON_STATES,
+  "berry-bush-icon": BERRY_BUSH_ICON_STATES,
   "backpack-icons": BACKPACK_ICON_STATES,
   "crafting-icons": CRAFTING_ICON_STATES,
   "fishing-icons": FISHING_ICON_STATES,
@@ -581,13 +599,15 @@ const STATES_BY_ASSET = {
   "furniture-icons": BUILD_ICON_STATES,
   // So does the fireplace's icon.
   "fireplace-icon": BUILD_ICON_STATES,
+  // And the rain barrel's.
+  "rain-barrel-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "sapling-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -597,7 +617,14 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
-    if (asset === "build-icons" || asset === "sled-icon" || asset === "furniture-icons" || asset === "fireplace-icon" || asset === "floor-and-door-icons") {
+    if (
+      asset === "build-icons" ||
+      asset === "sled-icon" ||
+      asset === "furniture-icons" ||
+      asset === "fireplace-icon" ||
+      asset === "rain-barrel-icon" ||
+      asset === "floor-and-door-icons"
+    ) {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {

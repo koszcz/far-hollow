@@ -734,6 +734,13 @@ describe("other things' actions", () => {
     expect(find(actions, "putInChest")?.label).toBe("Put one in the chest");
   });
 
+  it("offers no way to fill an unfired jug, in the hotbar or at the river", () => {
+    const world = worldWith({ backpack: { unfiredJug: 2 } });
+
+    expect(summary(actionsFor({ kind: "backpackContent", content: "unfiredJug" }, world.reader))).toEqual(["drop"]);
+    expect(summary(actionsFor(river(), world.reader))).not.toContain("fillPot");
+  });
+
   it("lights a torch from the hotbar, greyed with the reason without the steel and flint or with a torch already lit", () => {
     const torch: ActionTarget = { kind: "backpackContent", content: "torch" };
     const world = worldWith({ backpack: { torch: 2, steelAndFlint: 1 } });

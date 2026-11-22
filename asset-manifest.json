@@ -1323,6 +1323,30 @@
       }
     },
     {
+      "id": "jug",
+      "kind": "code",
+      "code": ["src/render/jug-shape.ts", "src/render/pile-meshes.ts"],
+      "description": "The jug: how it looks standing in a pile. It is about 24 cm tall, turned round like a pot: a round belly, a narrow neck that flares to a lip, and a loop handle from the shoulder to the neck. The unfired jug is dull, pale grey-brown dried clay with no shine. Unfired jugs stand upright in a pile, spread around the middle like other things in a pile. The fired jug and both looks sitting on a fire come with clay ticket 03.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/clay/issues/02-shape-an-unfired-jug.md"
+      }
+    },
+    {
+      "id": "jug-icons",
+      "kind": "code",
+      "code": ["src/ui/jug-icons.tsx", "src/ui/backpack-icons.tsx"],
+      "description": "The jug icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unfired jug, the backpack icon and the craft menu icon, is a pale grey-brown jug with a round belly, a narrow neck with a lip, a dark opening, and a loop handle on its right side. The icons for each jug fill level come with clay tickets 03 and 04.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/clay/issues/02-shape-an-unfired-jug.md"
+      }
+    },
+    {
       "id": "gather-stone-animation",
       "kind": "code",
       "code": [

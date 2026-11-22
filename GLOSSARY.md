@@ -420,7 +420,7 @@ A stone building piece built from stone on one foundation square. It does everyt
 _Avoid_: Hearth, stove
 
 **Unfired jug**:
-A jug the player has shaped by hand from 2 clay but not yet fired. It cannot hold water.
+A jug the player has shaped by hand from 2 clay but not yet fired. Shaping it needs no tool. The player carries it in the backpack. It cannot hold water.
 _Avoid_: Raw jug, green jug
 
 **Fire** (verb):

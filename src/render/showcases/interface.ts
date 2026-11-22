@@ -3,6 +3,20 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { NIGHT, type Showcase } from "./types";
 
 export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
+  // The draft jug icons. src/ui/hud-showcase.tsx draws the HUD over each view.
+  "jug-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: the unfired jug in the craft menu", yaw: 20, pitch: 35 },
+      { label: "Jug icons, large and at hotbar size", yaw: -20, pitch: 35 },
+      { label: "HUD: shaping an unfired jug", yaw: 40, pitch: 35 },
+      { label: "HUD: unfired jugs in the backpack", yaw: 20, pitch: 35, hour: 18 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The approved torch icons. src/ui/hud-showcase.tsx draws the HUD over each view.
   "torch-icons": {
     radius: 6,

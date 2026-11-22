@@ -7,6 +7,7 @@ import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon } from "./build-icons";
 import { StructureIcon } from "./structure-icon";
 import { LIT_TORCH_DRAWING, TORCH_DRAWING } from "./torch-icons";
+import { UNFIRED_JUG_DRAWING } from "./jug-icons";
 import { Hud } from "./hud";
 
 const BASE_VIEW: GameView = {
@@ -203,6 +204,55 @@ const CLAY_STATES: readonly (ShowcaseState | null)[] = [
       action: { kind: "digClay", progress: 0.6 },
       nearby: [{ kind: "pile", view: { id: 1, content: "clay", count: 12 } }],
     },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
+/** The draft "jug" asset, over the last view only: unfired jugs in the backpack, beside a pile of them. */
+const JUG_STATES: readonly (ShowcaseState | null)[] = [
+  null,
+  null,
+  null,
+  {
+    view: {
+      ...BASE_VIEW,
+      backpack: { unfiredJug: 2, clay: 1, axe: 1, knife: 1 },
+      nearby: [{ kind: "pile", view: { id: 1, content: "unfiredJug", count: 12 } }],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+];
+
+/** The unfired jug recipe as the craft menu lists it, with what the player has. */
+const UNFIRED_JUG_RECIPE: GameView["craftMenu"][number] = {
+  kind: "unfiredJug",
+  materials: [{ material: "clay", count: 2 }],
+  result: { content: "unfiredJug", count: 1 },
+  seconds: 6,
+};
+
+/**
+ * The draft "jug-icons" asset: the unfired jug recipe in the craft menu, the icon drawn large, shaping a jug under way,
+ * and unfired jugs in the backpack. Clay ticket 03 adds the jug's icons.
+ */
+const JUG_ICON_STATES: readonly ShowcaseState[] = [
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, clay: 3 }, craftMenu: [...BASE_VIEW.craftMenu, UNFIRED_JUG_RECIPE] },
+    buildMenuOpen: false,
+    placing: null,
+    craftMenuOpen: true,
+  },
+  // JugIconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, clay: 2 }, action: { kind: "craft", progress: 0.6 } },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  {
+    view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, unfiredJug: 3, clay: 1 } },
     buildMenuOpen: false,
     placing: null,
   },
@@ -576,6 +626,35 @@ function TorchIconSheet() {
   );
 }
 
+/** The second view of "jug-icons": the unfired jug drawn large and at hotbar size, so the owner can judge the drawing. */
+function JugIconSheet() {
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "4px",
+          padding: "6px",
+          background: "#3d2b1e",
+          borderRadius: "6px",
+          color: "#cdb898",
+          fontSize: "11px",
+        }}
+      >
+        <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
+          <ShadedIcon drawing={UNFIRED_JUG_DRAWING} className="backpack-icon" />
+        </span>
+        <span style={{ width: "32px", height: "32px", display: "grid" }} class="showcase-big-icon">
+          <ShadedIcon drawing={UNFIRED_JUG_DRAWING} className="backpack-icon" />
+        </span>
+        unfired jug
+      </div>
+    </div>
+  );
+}
+
 /** The icons each icon sheet draws large. */
 const ICON_SHEETS = {
   "crafting-icons": { states: CRAFTING_ICON_STATES, contents: ["sawBlade", "saw", "plank"] },
@@ -605,6 +684,8 @@ const STATES_BY_ASSET = {
   bark: BARK_STATES,
   stone: STONE_STATES,
   clay: CLAY_STATES,
+  jug: JUG_STATES,
+  "jug-icons": JUG_ICON_STATES,
   "sapling-icon": SAPLING_ICON_STATES,
   "berry-bush-icon": BERRY_BUSH_ICON_STATES,
   "backpack-icons": BACKPACK_ICON_STATES,
@@ -625,7 +706,7 @@ const STATES_BY_ASSET = {
   "torch-icons": TORCH_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", or "torch-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -649,6 +730,10 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
         render(<BuildIconSheet />, quarter);
         return;
       }
+    }
+    if (asset === "jug-icons" && index === 1) {
+      render(<JugIconSheet />, quarter);
+      return;
     }
     if (asset === "torch-icons" && index === 1) {
       render(<TorchIconSheet />, quarter);

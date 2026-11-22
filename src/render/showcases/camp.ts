@@ -372,6 +372,25 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
+  // The draft "jug": unfired jugs standing in piles of 1, 3, and 12 beside a knife for size. Clay ticket 03 adds the fired jug.
+  // src/ui/hud-showcase.tsx draws the HUD over the last view only, with unfired jugs in the backpack and the pile's tooltip.
+  jug: {
+    radius: 2.2,
+    focus: { x: 0, y: 0.2, z: 0 },
+    shots: [
+      { label: "one unfired jug beside a knife", yaw: 20, pitch: 25, radius: 0.7, focus: { x: -1.1, y: 0.1, z: 0.07 } },
+      { label: "a pile of 3 unfired jugs", yaw: -30, pitch: 25, radius: 1, focus: { x: 0, y: 0.1, z: 0 } },
+      { label: "a pile of 12 unfired jugs", yaw: 40, pitch: 40, radius: 1.6, focus: { x: 1.4, y: 0.1, z: 0 } },
+      { label: "HUD: beside a pile of 12 unfired jugs", yaw: 0, pitch: 40, radius: 1.8, focus: { x: 1.4, y: 0.1, z: 0 } },
+    ],
+    build({ place, movePlayer }) {
+      place(-1.2, 0, { pile: { content: "unfiredJug", count: 1 } });
+      place(-0.95, 0.2, { pile: { content: "knife", count: 1 } });
+      place(0, 0, { pile: { content: "unfiredJug", count: 3 } });
+      place(1.4, 0, { pile: { content: "unfiredJug", count: 12 } });
+      movePlayer(0, -1.5, 0);
+    },
+  },
   // The draft "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with saplings in the backpack, digging up under way, and the pile's tooltip.
   "sapling-icon": {

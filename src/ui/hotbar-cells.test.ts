@@ -92,4 +92,13 @@ describe("the hotbar cells", () => {
 
     expect(cells.map(({ tip }) => tip)).toEqual(["Log", "Axe · 1.5 kg", "Berries ×3 · 0.3 kg", "Plank ×5 · 10 kg"]);
   });
+
+  it("shows unfired jugs in a cell of their own", () => {
+    const cells = hotbarCells({ carrying: null, dragging: null, litTorch: null, backpack: { clay: 1, unfiredJug: 2 } });
+
+    expect(cells.map(({ target, tip }) => [target, tip])).toEqual([
+      [{ kind: "backpackContent", content: "clay" }, "Clay · 2 kg"],
+      [{ kind: "backpackContent", content: "unfiredJug" }, "Unfired jug ×2 · 2 kg"],
+    ]);
+  });
 });

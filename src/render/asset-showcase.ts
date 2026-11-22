@@ -17,6 +17,8 @@ import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createRainEffect, type RainEffect } from "./rain-effect";
+import { createFireflyEffect, type FireflyEffect } from "./firefly-effect";
+import { createRandom } from "../sim/random";
 import { createSkyLighting } from "./sky-lighting";
 import { darkenView } from "./sleep-animation";
 import type { ModelShapes } from "./model-shapes";
@@ -169,6 +171,10 @@ export function showAsset(
   fishTraps.update();
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
+  // Fireflies show only in their own showcase, over open ground everywhere. A fixed seed keeps their stills the same.
+  const fireflies: FireflyEffect | undefined =
+    id === "fireflies" ? createFireflyEffect(store, { isOpen: () => true, heightAt: groundAt }, createRandom(SHOWCASE_SEED)) : undefined;
+  if (fireflies !== undefined) scene.add(fireflies.group);
   scene.add(
     forest.group,
     structures.group,
@@ -217,6 +223,7 @@ export function showAsset(
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
     rain.update(seconds, focus, daylightAt(shot.hour ?? NOON));
+    fireflies?.update(seconds, focus, daylightAt(shot.hour ?? NOON));
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
@@ -278,6 +285,7 @@ export function showAsset(
       fishTraps.dispose();
       bark.dispose();
       rain.dispose();
+      fireflies?.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();
       ground.dispose();

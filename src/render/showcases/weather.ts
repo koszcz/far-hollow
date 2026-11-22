@@ -1,4 +1,4 @@
-// Showcases for daylight and rain. The registry is src/render/showcases/index.ts.
+// Showcases for daylight, rain, and the fireflies that glow at night. The registry is src/render/showcases/index.ts.
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { NOON, NIGHT, type Showcase } from "./types";
 
@@ -46,6 +46,29 @@ export const WEATHER_SHOWCASES: Readonly<Record<string, Showcase>> = {
     // Rain falls all the time, so it plays live in the afternoon.
     play: {
       shot: { label: "rain falling", yaw: 200, pitch: 10, hour: 15 },
+      pose: () => undefined,
+    },
+  },
+  fireflies: {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "night, 22:00", yaw: 200, pitch: 8, hour: NIGHT, seconds: 0.6 },
+      { label: "night, a moment later", yaw: 200, pitch: 8, hour: NIGHT, seconds: 1.8 },
+      { label: "night, from above", yaw: 40, pitch: 35, hour: NIGHT, seconds: 3 },
+      { label: "dusk, 19:30, fading in", yaw: 200, pitch: 8, hour: 19.5, seconds: 0.6 },
+    ],
+    build({ place }) {
+      for (const [x, z] of [
+        [-6, -5],
+        [4, -7],
+        [7, 2],
+      ] as const)
+        place(x, z, { tree: true });
+    },
+    // Fireflies drift and blink all night, so they play live at night.
+    play: {
+      shot: { label: "fireflies at night", yaw: 200, pitch: 8, hour: NIGHT },
       pose: () => undefined,
     },
   },

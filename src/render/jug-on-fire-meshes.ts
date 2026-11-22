@@ -1,4 +1,4 @@
-// Draws the jug on each campfire and fireplace, part of the draft "jug" asset in asset-manifest.json. Built in code by clay
+// Draws the jug on each campfire and fireplace, part of the approved "jug" asset in asset-manifest.json. Built in code by clay
 // ticket 03. The jug is the shape from jug-shape.ts.
 // On a campfire, the jug stands upright on the ground against the stone ring, in the gap between two fish skewers, so the
 // pot on top of the fire and the fish never get in its way. On a fireplace, it stands on the hearth at its opening, beside
@@ -10,7 +10,7 @@ import { FISH_ON_FIRE_LIMIT } from "../sim/fish-on-fire";
 import { fireProgress } from "../sim/jug-on-fire";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { STONE_RING_RADIUS_METRES } from "./campfire-meshes";
-import { createJugGeometry, FIRED_JUG_COLOUR, FIRED_JUG_ROUGHNESS, UNFIRED_JUG_COLOUR, UNFIRED_JUG_ROUGHNESS } from "./jug-shape";
+import { createJugGeometry, FIRED_JUG_COLOUR, FIRED_JUG_ROUGHNESS, JUG_MATERIAL_OPTIONS, UNFIRED_JUG_COLOUR, UNFIRED_JUG_ROUGHNESS } from "./jug-shape";
 
 /** The jug's middle stands this far from a campfire's centre: its belly rests against the outside of the stone ring. */
 const CAMPFIRE_JUG_METRES = STONE_RING_RADIUS_METRES + 0.1;
@@ -45,7 +45,7 @@ export function createJugOnFireMeshes(entities: EntityStore, groundAt: (x: numbe
   function jugOf(fire: Entity & { position: { x: number; y: number; z: number } }) {
     const existing = drawn.get(fire);
     if (existing !== undefined) return existing;
-    const material = new THREE.MeshStandardMaterial({ color: UNFIRED_JUG_COLOUR, roughness: UNFIRED_JUG_ROUGHNESS });
+    const material = new THREE.MeshStandardMaterial({ ...JUG_MATERIAL_OPTIONS, color: UNFIRED_JUG_COLOUR, roughness: UNFIRED_JUG_ROUGHNESS });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     const { x, y, z } = fire.position;

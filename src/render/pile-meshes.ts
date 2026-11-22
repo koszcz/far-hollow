@@ -326,9 +326,9 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     stone: stoneShapes[0] ?? [],
     // Clay is the draft "clay" asset, drawn by clay-shape.ts.
     clay: clayPileParts(material, track),
-    // Unfired jugs stand upright. The jug is the draft "jug" asset, drawn by jug-shape.ts.
+    // Unfired jugs stand upright. The jug is the approved "jug" asset, drawn by jug-shape.ts.
     unfiredJug: unfiredJugPileParts(material, track),
-    // Empty jugs stand upright too, in the fired look of the same draft "jug" asset.
+    // Empty jugs stand upright too, in the fired look of the same approved "jug" asset.
     jug: jugPileParts(material, track),
     // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,

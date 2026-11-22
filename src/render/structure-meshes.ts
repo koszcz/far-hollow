@@ -83,7 +83,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
   const sleds = createSledMeshes(entities, logShape);
   // The fish on each campfire are an asset of their own, so they draw apart from the campfire.
   const fishOnFire = createFishOnFireMeshes(entities, groundAt);
-  // So is the jug on each fire, part of the draft "jug" asset.
+  // So is the jug on each fire, part of the approved "jug" asset.
   const jugOnFire = createJugOnFireMeshes(entities, groundAt);
   const all = [
     campfires,

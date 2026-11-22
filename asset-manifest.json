@@ -1327,12 +1327,13 @@
       "id": "jug",
       "kind": "code",
       "code": ["src/render/jug-shape.ts", "src/render/pile-meshes.ts", "src/render/jug-on-fire-meshes.ts"],
-      "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall, turned round like a pot: a round belly, a narrow neck that flares to a lip, and a loop handle from the shoulder to the neck. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and empty jugs stand upright in a pile, spread around the middle like other things in a pile. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
+      "description": "The jug: how it looks standing in a pile and sitting on a fire. It is about 24 cm tall and faceted, like the stones and firewood around it: a small foot ring, an egg-shaped belly, a paler band round the shoulder, a narrow neck that flares to a lip, a dark open mouth, and a flat clay strap handle from the shoulder to just under the lip. The unfired jug is dull, pale grey-brown dried clay with no shine. The fired jug is warm orange-brown terracotta with a faint sheen. Unfired jugs and empty jugs stand upright in a pile, spread around the middle like other things in a pile. On a campfire, the jug stands on the ground against the stone ring, between two fish skewers, clear of the pot. On a fireplace, it stands on the hearth at the opening, beside the row of fish. As it fires, it turns from the unfired colour to the fired colour.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/clay/issues/02-shape-an-unfired-jug.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-22"
       }
     },
     {

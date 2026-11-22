@@ -373,7 +373,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
-  // The draft "jug": an unfired jug and an empty jug beside a knife for size, piles of 3 of each, and jugs on campfires.
+  // The approved "jug": an unfired jug and an empty jug beside a knife for size, piles of 3 of each, and jugs on campfires.
   // The middle campfire holds a half-fired jug beside the pot and fish. The right one holds a fired jug on a fire that is out.
   // src/render/showcases/building.ts shows a jug on a fireplace, in the fireplace's cooking shot.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with the campfire panel showing how far the jug has fired.

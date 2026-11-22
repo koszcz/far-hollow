@@ -76,5 +76,5 @@ All new assets go in as drafts built in code. The owner approves or changes them
 - A kiln, a potter's wheel, or any other new work station
 - A clay oven or a clay chimney
 - A shovel or any other new tool
-- Filling a jug at the river or from the rain barrel. The rain barrel ticket in `.scratch/rain-barrel/` decides how it works with jugs.
+- Filling a jug at the river. Filling a jug from a rain barrel is `.scratch/rain-barrel/issues/02-fill-a-jug-from-a-rain-barrel.md`.
 - A journal goal for clay or jugs

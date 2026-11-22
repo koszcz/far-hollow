@@ -8,7 +8,7 @@
 
 **Assets:** Reuse `jug`, `pot`, and `pile`. Extend the draft `jug-icons` with a backpack icon for each fill level.
 
-- [ ] A jug that is not full offers "Pour in boiled water" when the backpack holds a pot of boiled water. Otherwise the action shows greyed with the reason (ADR 0008).
+- [ ] A jug that is not full offers "Pour in clean water" when the backpack holds a pot of boiled water. Rain barrel ticket 01 renames that pot "Pot of clean water". Otherwise the action shows greyed with the reason (ADR 0008).
 - [ ] Each pour adds 1 drink to the jug and leaves the pot empty.
 - [ ] A jug never holds unboiled river water. No action fills it at the river.
 - [ ] Each fill level is its own backpack content: empty, 1, 2, or 3 drinks.

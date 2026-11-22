@@ -49,6 +49,14 @@ _Avoid_: Stats, vitals, meters
 What happens when the player's needs are neglected for too long. The player wakes up again at their respawn point.
 _Avoid_: Death, game over
 
+**Drink**:
+The amount of water that fills thirst completely. A full pot holds 1 drink. Jugs and rain barrels count their water in drinks.
+_Avoid_: Sip, serving, litre
+
+**Clean water**:
+Water that is safe to drink: river water that has boiled, or rain caught in a rain barrel. Unboiled river water is not clean.
+_Avoid_: Safe water, fresh water, drinking water
+
 **Sickness**:
 A temporary state that makes the player's needs drain faster. The player can get sick from drinking unboiled river water or eating raw meat or fish. It wears off over a day.
 _Avoid_: Illness, poison, disease
@@ -374,6 +382,10 @@ _Avoid_: Desk, bench
 Furniture built from planks that the player sits on. Sitting slowly restores fatigue while time runs at normal speed.
 _Avoid_: Chair, seat
 
+**Rain barrel**:
+Furniture built from planks that catches rain and holds up to 6 drinks of clean water. It fills only while rain falls on it, so a barrel under a roof stays dry. The player drinks from it or fills the pot from it. Its water never goes bad.
+_Avoid_: Water butt, cistern, tank
+
 **Woodpile**:
 A structure the player builds to stack logs, debarked logs, and firewood. It holds a fixed number of them.
 _Avoid_: Log pile, log rack, stockpile
@@ -400,7 +412,7 @@ To harden an unfired jug on a lit campfire or fireplace until it becomes a jug. 
 _Avoid_: Bake, kiln
 
 **Jug**:
-A fired clay vessel that holds up to 3 drinks of boiled water. The player fills it by pouring in a pot of boiled water, one drink per pour, so a jug never holds unsafe water. Each drink fills thirst completely. A jug never breaks, and a dropped jug keeps its water.
+A fired clay vessel that holds up to 3 drinks of clean water. The player fills it by pouring in a pot of clean water, one drink per pour, so a jug never holds unsafe water. Each drink fills thirst completely. A jug never breaks, and a dropped jug keeps its water.
 _Avoid_: Pot, crock, bottle, flask
 
 **Torch**:

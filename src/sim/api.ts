@@ -65,7 +65,7 @@ export type Command =
   /**
    * Walk the player to a spot and plant a berry bush from the backpack there. It takes a few seconds. It is refused when the backpack
    * holds no berry bush, off forest floor and clearing, within 1 m of a tree, stump, sapling, or berry bush, and within 1 m of a
-   * structure, blueprint, or foundation square.
+   * mushroom log, structure, blueprint, or foundation square.
    */
   | ({ type: "plantBerryBush" } & GroundPoint)
   /** Walk the player to a log or debarked log on the ground and shoulder it. The player carries one at a time. */
@@ -75,6 +75,13 @@ export type Command =
    * The log becomes a debarked log, and its bark goes in the backpack, if it all fits.
    */
   | { type: "debarkLog"; logId: number }
+  /**
+   * Walk the player to a plain log on the ground and plant a mushroom from the backpack on it. It takes a few seconds and needs no tool.
+   * The log becomes a mushroom log where it lies. It is refused for a debarked log and when the backpack holds no mushroom.
+   */
+  | { type: "plantMushroom"; logId: number }
+  /** Walk the player to a mushroom log, given by its entity id, and take it down. It vanishes and gives nothing back. */
+  | { type: "takeDownMushroomLog"; mushroomLogId: number }
   /** Walk the player to a stick on the ground and put it in the backpack, if it fits. The stick is given by its entity id. */
   | { type: "pickUpStick"; stickId: number }
   /** Walk the player to a piece of bark on the ground and put it in the backpack, if it fits. The bark is given by its entity id. */
@@ -564,6 +571,7 @@ export type Refusal =
  * - `notPlantableGround`: a sapling or berry bush grows only on forest floor or in a clearing, not on the river bank or in the river.
  * - `tooCloseToTree`: a tree, stump, or sapling stands too close to plant one here.
  * - `tooCloseToBerryBush`: another berry bush stands too close to plant one here.
+ * - `tooCloseToMushroomLog`: a mushroom log lies too close to plant a berry bush here.
  * - `berryBushInTheWay`: a blueprint would cover a berry bush.
  * - `tooCloseToStructure`: a structure, blueprint, or foundation square is too close to plant one here.
  * - `backpackFull`: one more of what the command gathers does not fit in the backpack.
@@ -572,6 +580,9 @@ export type Refusal =
  * - `openFirst`: the chest or shelf is not the one the player has open.
  * - `torchTooClose`: another planted torch stands too close to plant one here.
  * - `noLitTorch`: the player holds no lit torch to plant.
+ * - `noMushroom`: the backpack holds no mushroom to plant on a log.
+ * - `needsPlainLog`: a mushroom grows only on a plain log, not a debarked one.
+ * - `coversMushroomLog`: a blueprint there would cover a mushroom log.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -600,6 +611,7 @@ export type PlainRefusal =
   | "notPlantableGround"
   | "tooCloseToTree"
   | "tooCloseToBerryBush"
+  | "tooCloseToMushroomLog"
   | "berryBushInTheWay"
   | "tooCloseToStructure"
   | "backpackFull"
@@ -607,7 +619,10 @@ export type PlainRefusal =
   | "gone"
   | "openFirst"
   | "torchTooClose"
-  | "noLitTorch";
+  | "noLitTorch"
+  | "noMushroom"
+  | "needsPlainLog"
+  | "coversMushroomLog";
 
 /** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
 export interface RoomView {
@@ -708,6 +723,7 @@ export function nearbyOf<Kind extends keyof NearbyViews>(view: GameView, kind: K
 /**
  * A thing in the world the player can act on with E, given by its entity id, with its kind.
  * What the scene reports under the cursor is built from this type, so the app can treat both the same way.
+ * A `mushroomLog` is a log the player planted a mushroom on, with mushrooms or growing them back.
  * A `youngTree` is a tree growing back, too young to chop. A `sapling` grows on a stump, or where the player planted it. A `stump` is a bare stump:
  * the player can click it, but E never reaches it, so it does not hide the logs lying beside it.
  */
@@ -723,6 +739,7 @@ export type ThingInReach =
         | "stick"
         | "bark"
         | "forage"
+        | "mushroomLog"
         | "blueprint"
         | "campfire"
         | "fireplace"
@@ -766,9 +783,9 @@ export type ThingView =
 export interface PlayerAction {
   /**
    * Chopping a tree, splitting a log into firewood, debarking a log, building a blueprint, taking down a finished piece, crafting,
-   * fishing, gathering stone, digging up a sapling, or planting one.
+   * fishing, gathering stone, digging up a sapling, planting one, or planting a mushroom on a log.
    */
-  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digUp" | "plant";
+  readonly kind: "chop" | "split" | "debark" | "build" | "takeDown" | "craft" | "fish" | "gatherStone" | "digUp" | "plant" | "plantMushroom";
   /** How far along the work is, from 0 to 1. While fishing, how far through the wait for the next fish. */
   readonly progress: number;
 }
@@ -780,7 +797,7 @@ export interface PlacementCheck {
   /** The turn it takes there. This is the turn asked for, except for a roof, which takes the turn of the frame under it. */
   readonly turns: QuarterTurns;
   readonly allowed: boolean;
-  /** Why it is not allowed there, when the game can say: a berry bush in the way. Missing when it is allowed, or for any other reason. */
+  /** Why it is not allowed there, when the game can say, such as a mushroom log lying there or a berry bush in the way. Missing when allowed, or when no reason is given. */
   readonly refusal?: Refusal;
 }
 

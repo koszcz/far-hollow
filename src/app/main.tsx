@@ -196,7 +196,7 @@ const walkInput = attachWalkInput({
   onPlacingBlueprintChange: (placing) => {
     sceneRenderer.showPlacingBlueprint(placing);
     // The HUD hint changes only when the reason does, so the HUD is not drawn again on every mouse move.
-    const refusal = placing?.refusal ?? null;
+    const refusal = placing?.refusal;
     if (JSON.stringify(refusal) === JSON.stringify(uiState.placingRefusal)) return;
     uiState.placingRefusal = refusal;
     renderUi();
@@ -275,13 +275,13 @@ document.addEventListener("click", (event) => {
 /** Input state the UI shows: the build menu and placing, the craft menu, and the action menu, if one is open. */
 const uiState: {
   buildMode: BuildMode;
-  placingRefusal: Refusal | null;
+  placingRefusal: Refusal | undefined;
   planting: PlantingHintState | undefined;
   craftMenuOpen: boolean;
   menu: MenuRequest | undefined;
 } = {
   buildMode: NOT_BUILDING,
-  placingRefusal: null,
+  placingRefusal: undefined,
   planting: undefined,
   craftMenuOpen: false,
   menu: undefined,

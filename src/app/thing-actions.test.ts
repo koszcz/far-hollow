@@ -475,6 +475,40 @@ describe("other things' actions", () => {
     expect(find(actions, "digUp")).toMatchObject({ label: "Dig up", command: { type: "digUpSapling", saplingId: sapling } });
   });
 
+  it("offers to plant a mushroom on a loose log while the backpack holds one, and keeps picking it up as the main action", () => {
+    const world = worldWith({ backpack: { mushroom: 1 } });
+    const log = world.add({ log: { heading: 0 } });
+
+    const actions = actionsFor(scene("log", log), world.reader);
+    expect(summary(actions)).toEqual(["pickUp main", "split off: needs the axe", "debark off: needs the drawknife", "plantMushroom"]);
+    expect(find(actions, "plantMushroom")).toMatchObject({ label: "Plant mushroom", command: { type: "plantMushroom", logId: log } });
+  });
+
+  it("offers no mushroom planting on a log without a mushroom in the backpack, or on a debarked log", () => {
+    const without = worldWith({});
+    expect(summary(actionsFor(scene("log", without.add({ log: { heading: 0 } })), without.reader))).not.toContain("plantMushroom");
+
+    const world = worldWith({ backpack: { mushroom: 1 } });
+    expect(summary(actionsFor(scene("debarkedLog", world.add({ debarkedLog: { heading: 0 } })), world.reader))).toEqual(["pickUp main"]);
+  });
+
+  it("forages a mushroom log, and takes it down", () => {
+    const world = worldWith({});
+    const mushroomLog = world.add({ mushroomLog: { heading: 0 }, forageSpot: { food: "mushroom" } });
+
+    const actions = actionsFor(scene("mushroomLog", mushroomLog), world.reader);
+    expect(summary(actions)).toEqual(["forage main", "takeDown"]);
+    expect(find(actions, "forage")?.command).toEqual({ type: "forage", spotId: mushroomLog });
+    expect(find(actions, "takeDown")?.command).toEqual({ type: "takeDownMushroomLog", mushroomLogId: mushroomLog });
+  });
+
+  it("says a mushroom log growing its mushrooms has nothing to forage yet", () => {
+    const world = worldWith({});
+    const mushroomLog = world.add({ mushroomLog: { heading: 0 }, forageSpot: { food: "mushroom" }, regrowing: { minutesLeft: 60 } });
+
+    expect(summary(actionsFor(scene("mushroomLog", mushroomLog), world.reader))).toEqual(["forage main off: nothing to take", "takeDown"]);
+  });
+
   it("says a bare stump has no sapling to dig up yet", () => {
     const world = worldWith({});
     const stump = world.add({ stump: true, growth: { stage: "stump", minutesLeft: 60 }, blocksWalking: { radius: 0.9 } });
@@ -753,7 +787,8 @@ type ThingKind =
   | "bedroll"
   | "blueprint"
   | "plantedTorch"
-  | "forage";
+  | "forage"
+  | "mushroomLog";
 
 /** A thing in the world, given by its kind and entity id, as the scene reports it under the cursor. */
 function scene(kind: ThingKind, id: number): ActionTarget {

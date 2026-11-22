@@ -93,6 +93,7 @@ export const strings = {
   gatheringStone: "Gathering stone",
   diggingUp: "Digging up",
   planting: "Planting",
+  plantingMushroom: "Planting a mushroom",
   /** The hint while a see-through sapling or berry bush follows the mouse. */
   plantingHint: {
     what: { sapling: "Planting: Sapling. Click the ground to plant it.", berryBush: "Planting: Berry bush. Click the ground to plant it." },
@@ -170,9 +171,9 @@ export const strings = {
     cost: (materials: readonly string[]) => materials.join(", "),
     /** The full name of a build menu tile, for screen readers, such as "Campfire: 5 sticks". A structure that costs nothing has only its name. */
     entryLabel: (structure: string, cost: string) => (cost === "" ? structure : `${structure}: ${cost}`),
-    /** Why the blueprint under the mouse cannot go there, given the reason. */
-    refused: (reason: string) => `Cannot build here: ${reason}.`,
     /** What to click while placing each kind of structure, given its name. The keys show after it, from `hudLabels.placingKeys`. */
+    /** The placing hint when the game refuses the spot under the mouse and says why. */
+    refusedHere: (structure: string, reason: string) => `Cannot place a ${structure} here: ${reason}.`,
     placing: {
       anywhere: (structure: string) => `Placing: ${structure}. Click the ground or a floor to place it anywhere.`,
       onGround: (structure: string) => `Placing: ${structure}. Click the ground to place it.`,
@@ -416,6 +417,8 @@ export const strings = {
     putOut: "Put out",
     /** Standing the lit torch in the player's hand in the ground at their feet. */
     plant: "Plant",
+    /** Planting a mushroom from the backpack on a plain log on the ground. */
+    plantMushroom: "Plant mushroom",
     /** Laying the bedroll from the backpack in a lean-to, across its open front. */
     layBedrollHere: "Lay the bedroll here",
     fillPot: "Fill it at the river",
@@ -464,6 +467,7 @@ export const strings = {
     notPlantableGround: "it grows only on forest floor or in a clearing",
     tooCloseToTree: "too close to a tree, stump, or sapling",
     tooCloseToBerryBush: "too close to another berry bush",
+    tooCloseToMushroomLog: "too close to a mushroom log",
     berryBushInTheWay: "a berry bush is in the way",
     tooCloseToStructure: "too close to something built here",
     backpackFull: "the backpack is full",
@@ -472,6 +476,9 @@ export const strings = {
     openFirst: "open it first",
     torchTooClose: "another torch stands too close",
     noLitTorch: "you hold no lit torch",
+    noMushroom: "no mushroom in the backpack",
+    needsPlainLog: "a mushroom grows only on a log with its bark on",
+    coversMushroomLog: "a mushroom log lies here",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

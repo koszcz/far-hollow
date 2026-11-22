@@ -6,7 +6,17 @@ import type { Refusal } from "./api";
 import type { ApproachReach } from "./approach";
 import type { CommandRules } from "./command-rule";
 import { hasInBackpack, removeFromBackpack, type Plantable } from "./backpack";
-import { forageSpotEntities, growingTreeEntities, playerEntities, setComponent, stumpEntities, treeEntities, type Entity, type EntityStore } from "./entities";
+import {
+  forageSpotEntities,
+  growingTreeEntities,
+  mushroomLogEntities,
+  playerEntities,
+  setComponent,
+  stumpEntities,
+  treeEntities,
+  type Entity,
+  type EntityStore,
+} from "./entities";
 import { isBerryBush } from "./foraging";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { isRiverBank } from "./stone";
@@ -28,7 +38,7 @@ const PLANT_REACH_METRES = 1.5;
  */
 export const SAPLING_STRUCTURE_CLEARANCE_METRES = 1;
 
-/** A berry bush keeps at least this far from any tree, stump, sapling, other berry bush, structure, blueprint, or foundation square, in metres. */
+/** A berry bush keeps at least this far from any tree, stump, sapling, other berry bush, mushroom log, structure, blueprint, or foundation square, in metres. */
 export const BERRY_BUSH_SPACING_METRES = 1;
 
 /** A planted berry bush bears its first berries this many game minutes after planting. Two days. */
@@ -54,7 +64,7 @@ export interface Planting {
   /**
    * Why the player could not plant `plant` at this spot now: the backpack holds none, the ground is not forest floor or clearing,
    * a tree, stump, or sapling stands too close, another berry bush stands too close, or a structure or blueprint is in the way.
-   * A sapling keeps TREE_MIN_SPACING_METRES from trees. A berry bush keeps BERRY_BUSH_SPACING_METRES from everything.
+   * A berry bush also keeps clear of mushroom logs. A sapling keeps TREE_MIN_SPACING_METRES from trees. A berry bush keeps BERRY_BUSH_SPACING_METRES from everything.
    */
   refusal(plant: Plantable, spot: GroundPoint): Refusal | undefined;
   /** Stops the player planting. The sapling or bush stays in the backpack. */
@@ -75,8 +85,9 @@ export function createPlanting(entities: EntityStore, walkMap: WalkMap, valley: 
     const trees = [...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)];
     if (trees.some((tree) => groundDistance(tree.position, spot) < treeSpacing)) return { kind: "tooCloseToTree" };
     if (plant === "berryBush") {
-      const bushes = forageSpotEntities(entities).entities.filter(isBerryBush);
-      if (bushes.some((bush) => groundDistance(bush.position, spot) < BERRY_BUSH_SPACING_METRES)) return { kind: "tooCloseToBerryBush" };
+      const near = (thing: { position: GroundPoint }) => groundDistance(thing.position, spot) < BERRY_BUSH_SPACING_METRES;
+      if (forageSpotEntities(entities).entities.filter(isBerryBush).some(near)) return { kind: "tooCloseToBerryBush" };
+      if (mushroomLogEntities(entities).entities.some(near)) return { kind: "tooCloseToMushroomLog" };
     }
     for (const { entity } of placedStructures(entities)) {
       if (isInRect(widenRect(footprintOfEntity(entity), structureClearance), spot)) return { kind: "tooCloseToStructure" };

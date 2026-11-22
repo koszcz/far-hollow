@@ -38,6 +38,7 @@ import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
+import { coversMushroomLog } from "./mushroom-logs";
 import type { Walking } from "./walking";
 import type { CommandRules, RuleGame } from "./command-rule";
 
@@ -120,13 +121,15 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const definition = structureOf(structure);
     const site = { entities, walkMap: walking.walkMap, valley };
     const { x, z } = definition.snap?.(site, at, turns) ?? snapToGridPoint(at);
-    const allowed = definition.canPlace(site, { x, z }, turns);
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
     const facing = definition.facingAt?.(site, { x, z }, turns) ?? turns;
-    // The game says why only when a berry bush is in the way, since nothing else shows the player that it is.
-    const refusal: Refusal | undefined =
-      !allowed && coversBerryBush(entities, definition.footprint({ x, z }, facing)) ? { kind: "berryBushInTheWay" } : undefined;
-    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed, ...(refusal === undefined ? {} : { refusal }) });
+    const footprint = definition.footprint({ x, z }, facing);
+    // A mushroom log stays where it lies for good, so the game says why nothing can cover it.
+    const logRefusal: Refusal | undefined = coversMushroomLog(entities, footprint) ? { kind: "coversMushroomLog" } : undefined;
+    const allowed = logRefusal === undefined && definition.canPlace(site, { x, z }, turns);
+    // Nothing else shows the player that a berry bush is in the way, so the game says that too.
+    const refusal: Refusal | undefined = logRefusal ?? (!allowed && coversBerryBush(entities, footprint) ? { kind: "berryBushInTheWay" } : undefined);
+    return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed, ...(refusal === undefined ? {} : { refusal: Object.freeze(refusal) }) });
   }
 
   /** The placed blueprint with this id, if it still exists. */
@@ -518,8 +521,8 @@ export function buildingRules(
     placeBlueprint: {
       // Placing alone leaves the player doing what they were doing. Building it at once starts afresh.
       start: "alongside",
-      queue: "apart",
       refusal: (command) => building.checkPlacement(command.structure, { x: command.x, z: command.z }, command.turns).refusal,
+      queue: "apart",
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {
         const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);

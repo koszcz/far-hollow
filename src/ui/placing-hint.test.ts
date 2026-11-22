@@ -28,12 +28,16 @@ describe("the placing hint", () => {
   });
 });
 
-describe("the placing hint for a refused spot", () => {
-  it("says why the game will not place the blueprint there", () => {
-    expect(placingHint(MENU, "campfire", { kind: "berryBushInTheWay" })).toEqual({
-      what: "Cannot build here: a berry bush is in the way.",
+describe("the placing hint where the game refuses the spot", () => {
+  it("says why the spot under the mouse is not allowed, and still names the keys", () => {
+    expect(placingHint(MENU, "campfire", { kind: "coversMushroomLog" })).toEqual({
+      what: "Cannot place a Campfire here: a mushroom log lies here.",
       keys: "R to rotate · Esc to cancel",
     });
+  });
+
+  it("says a berry bush is in the way", () => {
+    expect(placingHint(MENU, "campfire", { kind: "berryBushInTheWay" }).what).toBe("Cannot place a Campfire here: a berry bush is in the way.");
   });
 });
 

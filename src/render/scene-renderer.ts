@@ -14,6 +14,7 @@ import { createPileMeshes } from "./pile-meshes";
 import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createForageMeshes } from "./forage-meshes";
+import { createMushroomLogMeshes } from "./mushroom-log-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
@@ -117,6 +118,8 @@ export function createSceneRenderer(
   scene.add(structureMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
+  const mushroomLogMeshes = createMushroomLogMeshes(entities, shapes.log, shapes.mushrooms);
+  scene.add(mushroomLogMeshes.group);
   const bedrollMeshes = createBedrollMeshes(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(bedrollMeshes.group);
   const pileMeshes = createPileMeshes(entities, shapes.mushrooms);
@@ -128,7 +131,15 @@ export function createSceneRenderer(
   const rainEffect = createRainEffect(entities, (x, z) => terrainHeightAt(valley.terrain, x, z));
   scene.add(rainEffect.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
-  skyLighting.addShadowCasters(forestMeshes.group, structureMeshes.group, forageMeshes.group, bedrollMeshes.group, pileMeshes.group, barkMeshes.group);
+  skyLighting.addShadowCasters(
+    forestMeshes.group,
+    structureMeshes.group,
+    forageMeshes.group,
+    mushroomLogMeshes.group,
+    bedrollMeshes.group,
+    pileMeshes.group,
+    barkMeshes.group,
+  );
   const hoverOutline = createHoverOutline(scene);
   /** The thing under the pointer that the player can click, if any. */
   let hovered: { kind: EntityPick["kind"]; entity: Entity } | undefined;
@@ -144,6 +155,7 @@ export function createSceneRenderer(
     stick: (entity) => forestMeshes.outlineOf({ kind: "stick", entity }),
     bark: (entity) => barkMeshes.outlineOf(entity),
     forage: (entity) => forageMeshes.outlineOf({ kind: "forage", entity }),
+    mushroomLog: (entity) => mushroomLogMeshes.outlineOf(entity),
     blueprint: (entity) => structureMeshes.outlineOf({ kind: "blueprint", entity }),
     campfire: (entity) => structureMeshes.outlineOf({ kind: "campfire", entity }),
     fireplace: (entity) => structureMeshes.outlineOf({ kind: "fireplace", entity }),
@@ -483,6 +495,7 @@ export function createSceneRenderer(
       forestMeshes.pick(raycaster),
       structureMeshes.pick(raycaster),
       forageMeshes.pick(raycaster),
+      mushroomLogMeshes.pick(raycaster),
       bedrollMeshes.pick(raycaster),
       pileMeshes.pick(raycaster),
       barkMeshes.pick(raycaster),
@@ -552,6 +565,7 @@ export function createSceneRenderer(
       riverMeshes.update(nowSeconds, daylightAt(hourOfDay));
       forestMeshes.update(nowSeconds);
       forageMeshes.update();
+      mushroomLogMeshes.update();
       bedrollMeshes.update();
       pileMeshes.update();
       barkMeshes.update();
@@ -625,6 +639,7 @@ export function createSceneRenderer(
       forestMeshes.dispose();
       structureMeshes.dispose();
       forageMeshes.dispose();
+      mushroomLogMeshes.dispose();
       bedrollMeshes.dispose();
       pileMeshes.dispose();
       barkMeshes.dispose();

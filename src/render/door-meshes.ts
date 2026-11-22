@@ -8,7 +8,7 @@
 // and is set down, like the parts of plank furniture.
 // A blueprint shows the planks see-through. A plank the blueprint already has shows pale and half solid.
 // A finished door swings open, away from the player, while they are near the middle of its frame, and shuts once they leave.
-// door-swing.ts times the swing. A door between the camera and the player fades out with its frame.
+// door-swing.ts times the swing, and how its latch ring lifts off the face and taps back. A door between the camera and the player fades out with its frame.
 // While the player places a door from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { isDoorOpen } from "../sim/doors";
@@ -16,7 +16,7 @@ import { blueprintEntities, doorEntities, type Entity, type EntityStore, type Ve
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { DOOR_PLANK_COST } from "../sim/structures";
 import { DOORWAY_HEIGHT_METRES, DOORWAY_WIDTH_METRES, isBetweenCameraAndPlayer } from "./edge-piece-meshes";
-import { DOOR_OPEN_RADIANS, doorSwingRadians } from "./door-swing";
+import { DOOR_OPEN_RADIANS, doorSwingRadians, latchRingRadians } from "./door-swing";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import {
   BLUEPRINT_COLOUR,
@@ -99,7 +99,7 @@ export type DoorMeshes = BuildingPieceMeshes<DoorFrame>;
  * One part of the door: its size and middle, in metres, with the door shut along +x. The origin is the hinge, at the
  * inner face of the left post's foot. The doorway runs from 0 to DOORWAY_WIDTH_METRES. The door reaches past both ends into the posts.
  * A box's size is its width, height, and depth. A knuckle is an upright cylinder: radius, height, and radius.
- * A ring faces out of the door: its radius, its iron's thickness, and 0.
+ * A ring faces out of the door: its radius, its iron's thickness, and 0. Its `at` is the top of the ring, where it hangs.
  * `tilt` turns the part about the front-to-back axis, in radians.
  */
 interface DoorPart {
@@ -192,8 +192,8 @@ function latchParts(): DoorPart[] {
     {
       shape: "ring",
       size: [RING_RADIUS_METRES, RING_TUBE_METRES, 0],
-      // The ring hangs from the top of the plate and stands just off it.
-      at: [x, y + LATCH_PLATE_SIZE_METRES[1] / 2 - RING_RADIUS_METRES, OUTSIDE_Z + LATCH_PLATE_SIZE_METRES[2] + RING_TUBE_METRES],
+      // The ring hangs from the top of the plate and stands just off it. Its middle is the point it hangs from, so it swings there.
+      at: [x, y + LATCH_PLATE_SIZE_METRES[1] / 2, OUTSIDE_Z + LATCH_PLATE_SIZE_METRES[2] + RING_TUBE_METRES],
       kind: "iron",
       shade: 1,
     },
@@ -218,7 +218,7 @@ const STAGES: readonly (readonly DoorPart[])[] = Array.from({ length: DOOR_PLANK
 /** Builds one part's shape, centred on its own middle. */
 function partGeometry(plan: DoorPart): THREE.BufferGeometry {
   if (plan.shape === "knuckle") return new THREE.CylinderGeometry(plan.size[0], plan.size[0], plan.size[1], 8);
-  if (plan.shape === "ring") return new THREE.TorusGeometry(plan.size[0], plan.size[1], 6, 16);
+  if (plan.shape === "ring") return new THREE.TorusGeometry(plan.size[0], plan.size[1], 6, 16).translate(0, -plan.size[0], 0);
   return new THREE.BoxGeometry(...plan.size);
 }
 
@@ -231,7 +231,8 @@ interface Part {
 }
 
 /**
- * How a finished door last began to swing: toward open or shut, when, from how far turned, and which way.
+ * How a finished door last began to swing: toward open or shut, when, from how far turned, which way, and how far its
+ * latch ring had lifted off the face then.
  * `side` is 1 when it opens toward -z on its own axes, away from a player in front of it, and -1 the other way.
  */
 interface Swing {
@@ -239,6 +240,7 @@ interface Swing {
   startedAt: number;
   fromRadians: number;
   side: 1 | -1;
+  ringFromRadians: number;
 }
 
 interface Drawn {
@@ -246,6 +248,8 @@ interface Drawn {
   /** Turns on the hinges. The parts hang from it. */
   readonly leaf: THREE.Group;
   readonly stages: Part[][];
+  /** The latch ring. It swings about its x axis, where it hangs. */
+  readonly ring: THREE.Mesh | undefined;
   readonly picker: THREE.Mesh;
   swing?: Swing;
 }
@@ -305,12 +309,13 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
     if (existing !== undefined) return existing;
     const root = new THREE.Group();
     const { leaf, stages } = addLeaf(root);
+    const ring = stages.flat().find(({ plan }) => plan.shape === "ring")?.mesh;
     const picker = new THREE.Mesh(pickGeometry, pickMaterial);
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
     group.add(root);
-    const result: Drawn = { root, leaf, stages, picker };
+    const result: Drawn = { root, leaf, stages, ring, picker };
     drawn.set(entity, result);
     return result;
   }
@@ -359,16 +364,21 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
    */
   function swing(item: Drawn, entity: Entity & { position: Vec3 }, player: Vec3 | undefined, nowSeconds: number): void {
     const open = player !== undefined && isDoorOpen(entity.position, player);
-    item.swing ??= { open, startedAt: 0, fromRadians: open ? 0 : DOOR_OPEN_RADIANS, side: sideAwayFrom(item.root, player) };
+    item.swing ??= { open, startedAt: 0, fromRadians: open ? 0 : DOOR_OPEN_RADIANS, side: sideAwayFrom(item.root, player), ringFromRadians: 0 };
     const state = item.swing;
     if (state.open !== open) {
-      state.fromRadians = doorSwingRadians(state.fromRadians, state.open, nowSeconds - state.startedAt);
+      const since = nowSeconds - state.startedAt;
+      state.ringFromRadians = latchRingRadians(state.fromRadians, state.open, since, state.ringFromRadians);
+      state.fromRadians = doorSwingRadians(state.fromRadians, state.open, since);
       state.startedAt = nowSeconds;
       state.open = open;
       // A shut door opens away from the player. One still part way open keeps swinging the way it was.
       if (open && state.fromRadians === 0) state.side = sideAwayFrom(item.root, player);
     }
-    item.leaf.rotation.y = state.side * doorSwingRadians(state.fromRadians, state.open, nowSeconds - state.startedAt);
+    const since = nowSeconds - state.startedAt;
+    item.leaf.rotation.y = state.side * doorSwingRadians(state.fromRadians, state.open, since);
+    // A turn about +x swings the ring's foot toward -z, into the door, so a lift off the outside face is a negative turn.
+    if (item.ring !== undefined) item.ring.rotation.x = -latchRingRadians(state.fromRadians, state.open, since, state.ringFromRadians);
   }
 
   function fade(item: Drawn, faded: boolean): void {
@@ -399,6 +409,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
         const item = draw(entity);
         place(item, entity.position, entity.facing?.turns ?? 0);
         item.leaf.rotation.y = 0;
+        if (item.ring !== undefined) item.ring.rotation.x = 0;
         showProgress(item, entity.blueprint.progress, entity.blueprint.delivered.plank ?? 0);
         seen.add(entity);
       }

@@ -179,6 +179,14 @@ describe("where a berry bush can be planted", () => {
     expect(justOver.some((other) => game.client.refusal(plant(other)) === null)).toBe(true);
   });
 
+  it("refuses a spot within 1 m of a mushroom log", () => {
+    const game = gameWithBushes(1);
+    const spot = plantableSpot(game);
+    game.entities.add({ mushroomLog: { heading: 0 }, forageSpot: { food: "mushroom" }, position: { x: spot.x + 0.8, y: 0, z: spot.z } });
+
+    expect(game.client.refusal(plant(spot))).toEqual({ kind: "tooCloseToMushroomLog" });
+  });
+
   it("refuses a spot within 1 m of a sapling", () => {
     const game = gameWithBushes(1);
     const spot = plantableSpot(game);

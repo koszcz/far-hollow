@@ -167,7 +167,11 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       if (pick.kind === "debarkedLog") return withMain([pickUp], "pickUp");
       const split = offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog", logId: pick.id });
       const debark = offer("debark", strings.actions.debark, { content: "bark" }, { type: "debarkLog", logId: pick.id });
-      return withMain([pickUp, split, debark], "pickUp");
+      // Planting a mushroom shows only while the backpack holds one.
+      const plantMushroom = has(view, "mushroom")
+        ? [offer("plantMushroom", strings.actions.plantMushroom, { content: "mushroom" }, { type: "plantMushroom", logId: pick.id })]
+        : [];
+      return withMain([pickUp, split, debark, ...plantMushroom], "pickUp");
     }
     case "stick":
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "stick" }, { type: "pickUpStick", stickId: pick.id })], "pickUp");
@@ -179,6 +183,14 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "forage":
       return forageActions(pick.id, context);
+    case "mushroomLog":
+      return withMain(
+        [
+          offer("forage", strings.actions.forage, { content: "mushroom" }, { type: "forage", spotId: pick.id }),
+          offer("takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDownMushroomLog", mushroomLogId: pick.id }),
+        ],
+        "forage",
+      );
     case "campfire":
     case "fireplace": {
       const campfire = reader.describeCampfire(pick.id);

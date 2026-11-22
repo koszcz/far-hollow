@@ -1,6 +1,7 @@
 // Draws berry bushes and mushroom patches: "berry-bush" (approved) and "mushrooms" (approved) in asset-manifest.json.
 // A bush is Kenney's bush, loaded in berry-bush-model.ts, with red berries while it has food.
 // A mushroom patch is Kenney's group of three mushrooms, loaded in mushrooms-model.ts. It shows nothing while it grows back.
+// A mushroom log is a forage spot too, but mushroom-log-meshes.ts draws it.
 // While the player plants a berry bush, a see-through bush shows where it will go, red where planting is not allowed.
 import * as THREE from "three";
 import { forageSpotEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
@@ -114,6 +115,8 @@ export function createForageMeshes(entities: EntityStore, bushShape: BerryBushSh
     berriesDrawn = [];
     mushroomsDrawn = [];
     for (const spot of connected) {
+      // A mushroom log is a forage spot too, but mushroom-log-meshes.ts draws it.
+      if (spot.mushroomLog !== undefined) continue;
       const look = lookFor(spot.position.x, spot.position.z);
       rotation.setFromAxisAngle(up, look * Math.PI * 2);
       position.set(spot.position.x, spot.position.y, spot.position.z);

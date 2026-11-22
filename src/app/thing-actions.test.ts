@@ -730,6 +730,12 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(furniture("rainBarrel", other), noJug.reader))).not.toContain("fillJug");
   });
 
+  it("lists filling a jug, enabled, while the barrel holds water and a jug has room", () => {
+    const world = worldWith({ backpack: { jug: 1 } });
+    const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 1, progress: 0 }, facing: { turns: 0 } });
+    expect(find(actionsFor(furniture("rainBarrel", barrel), world.reader), "fillJug")).toMatchObject({ enabled: true, label: "Fill jug" });
+  });
+
   it("greys filling a jug at an empty rain barrel, and when every jug is full", () => {
     const world = worldWith({ backpack: { jug: 1 } });
     const empty = world.add({ furniture: "rainBarrel", rainBarrel: { held: 0, progress: 0 }, facing: { turns: 0 } });

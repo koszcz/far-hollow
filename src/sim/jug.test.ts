@@ -39,6 +39,14 @@ describe("pouring clean water into a jug", () => {
     expect(backpack(game)).toEqual({ jugWith3Drinks: 1, pot: 3, potOfBoiledWater: 1 });
   });
 
+  it("is refused without a jug, which is not the same as every jug being full", () => {
+    const game = gameHolding({ potOfBoiledWater: 1 });
+
+    expect(game.client.refusal({ type: "pourIntoJug" })).toEqual({ kind: "noJug" });
+    send(game, { type: "pourIntoJug" });
+    expect(backpack(game)).toEqual({ potOfBoiledWater: 1 });
+  });
+
   it("is refused without a pot of clean water, so a jug never holds river water", () => {
     for (const contents of [
       { jug: 1, pot: 1 },

@@ -1,13 +1,13 @@
 // Filling and drinking from jugs: the player pours a pot of clean water into a jug, and drinks from a jug later.
 import type { Refusal } from "./api";
-import { addToBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
+import { swapInBackpack } from "./backpack";
 import type { CommandRules } from "./command-rule";
 import type { EntityStore } from "./entities";
-import { jugToDrinkFrom, jugToPourInto, withOneLessDrink, withOneMoreDrink } from "./jug";
+import { jugToDrinkFrom, jugToPourInto, pourIntoJugRefusal, withOneLessDrink, withOneMoreDrink } from "./jug";
 import { quenchThirst } from "./needs";
 
 export interface Jugs {
-  /** Why the player could not pour a pot of clean water into a jug: they have no pot of clean water, or no jug has room. */
+  /** Why the player could not pour a pot of clean water into a jug: they have no pot of clean water, no jug, or no jug with room. */
   pourRefusal(): Refusal | undefined;
   /** Pours the pot of clean water into the fullest jug that still has room. The jug gains 1 drink and the pot is left empty. */
   pour(): void;
@@ -23,7 +23,7 @@ export function createJugs(entities: EntityStore): Jugs {
   function pourRefusal(): Refusal | undefined {
     const backpack = players.first?.backpack;
     if (backpack === undefined || (backpack.contents.potOfBoiledWater ?? 0) <= 0) return { kind: "noPotOfCleanWater" };
-    return jugToPourInto(backpack.contents) === undefined ? { kind: "noJugWithRoom" } : undefined;
+    return pourIntoJugRefusal(backpack.contents);
   }
 
   function drinkRefusal(): Refusal | undefined {
@@ -40,26 +40,20 @@ export function createJugs(entities: EntityStore): Jugs {
       const jug = jugToPourInto(backpack.contents);
       if (jug === undefined) return;
       // The water moves from the pot to the jug, so the backpack weighs the same after.
-      swap(backpack, "potOfBoiledWater", "pot");
-      swap(backpack, jug, withOneMoreDrink(jug));
+      swapInBackpack(backpack, "potOfBoiledWater", "pot");
+      swapInBackpack(backpack, jug, withOneMoreDrink(jug));
     },
     drink() {
       for (const player of players) {
         const jug = jugToDrinkFrom(player.backpack.contents);
         if (player.needs === undefined || jug === undefined) continue;
-        swap(player.backpack, jug, withOneLessDrink(jug));
+        swapInBackpack(player.backpack, jug, withOneLessDrink(jug));
         quenchThirst(player.needs);
         return true;
       }
       return false;
     },
   };
-}
-
-/** Swaps one `from` in the backpack for one `to`. The caller checks that the backpack holds `from` and that `to` weighs no more. */
-function swap(backpack: Backpack, from: BackpackContent, to: BackpackContent): void {
-  removeFromBackpack(backpack, from, 1);
-  addToBackpack(backpack, to, 1);
 }
 
 /** The rules for pouring clean water into a jug and drinking from one. `onDrink` runs after the player drinks, for drawing to play. */

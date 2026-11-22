@@ -1,5 +1,6 @@
 // The jug's fill level: how many drinks of clean water a jug holds. Each fill level is its own backpack content.
 // It imports only types, so the backpack can take its weights from here. See ADR 0009.
+import type { Refusal } from "./api";
 import type { BackpackContent, BackpackContents } from "./backpack";
 
 /** The most drinks a jug holds. */
@@ -71,4 +72,10 @@ export function jugToPourInto(contents: Readonly<BackpackContents>): JugContent 
 /** The jug that the player drinks from: the emptiest one in `contents` that holds water. Undefined if none holds water. */
 export function jugToDrinkFrom(contents: Readonly<BackpackContents>): JugContent | undefined {
   return JUG_CONTENTS.find((jug) => holdsWater(jug) && (contents[jug] ?? 0) > 0);
+}
+
+/** Why no water can be poured into a jug in `contents`: it holds no jug, or every jug it holds is full. */
+export function pourIntoJugRefusal(contents: Readonly<BackpackContents>): Refusal | undefined {
+  if (!JUG_CONTENTS.some((jug) => (contents[jug] ?? 0) > 0)) return { kind: "noJug" };
+  return jugToPourInto(contents) === undefined ? { kind: "noJugWithRoom" } : undefined;
 }

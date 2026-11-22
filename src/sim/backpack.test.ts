@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, countInBackpack, createStartingBackpack, removeFromBackpack } from "./backpack";
+import {
+  addToBackpack,
+  BACKPACK_WEIGHT_LIMIT_KG,
+  backpackWeight,
+  countInBackpack,
+  createStartingBackpack,
+  removeFromBackpack,
+  swapInBackpack,
+} from "./backpack";
 
 describe("the backpack's weight limit", () => {
   it("weighs what it holds", () => {
@@ -41,5 +49,31 @@ describe("taking things out of the backpack", () => {
     expect(removeFromBackpack(backpack, "firewood", 1)).toBe(false);
     expect(countInBackpack(backpack, "stick")).toBe(1);
     expect(countInBackpack(backpack, "firewood")).toBe(0);
+  });
+});
+
+describe("swapping one thing in the backpack for another", () => {
+  it("takes one out and puts the other in", () => {
+    const backpack = { contents: { pot: 1 } };
+    expect(swapInBackpack(backpack, "pot", "potOfBoiledWater")).toBe(true);
+    expect(countInBackpack(backpack, "pot")).toBe(0);
+    expect(countInBackpack(backpack, "potOfBoiledWater")).toBe(1);
+  });
+
+  it("refuses, and keeps what it held, when the backpack holds none of the first", () => {
+    const backpack = { contents: { stick: 1 } };
+    expect(swapInBackpack(backpack, "pot", "potOfBoiledWater")).toBe(false);
+    expect(backpack.contents).toEqual({ stick: 1 });
+  });
+
+  it("refuses, and keeps what it held, when the other does not fit once the first is out", () => {
+    const backpack = { contents: { jug: 1 } };
+    while (addToBackpack(backpack, "stick", 1));
+    const weight = backpackWeight(backpack);
+
+    expect(swapInBackpack(backpack, "jug", "jugWith1Drink")).toBe(false);
+    expect(countInBackpack(backpack, "jug")).toBe(1);
+    expect(countInBackpack(backpack, "jugWith1Drink")).toBe(0);
+    expect(backpackWeight(backpack)).toBe(weight);
   });
 });

@@ -627,7 +627,8 @@ export type Refusal =
  * - `fireFullOfFish`: the campfire holds as many fish as it can.
  * - `noUnfiredJug`: the backpack holds no unfired jug.
  * - `noPotOfCleanWater`: the backpack holds no pot of clean water to pour into a jug.
- * - `noJugWithRoom`: the backpack holds no jug that still has room for a drink.
+ * - `noJug`: the backpack holds no jug, empty or not.
+ * - `noJugWithRoom`: the backpack holds jugs, but every one is full.
  * - `noWaterInJug`: the backpack holds no jug with water in it.
  * - `fireHoldsJug`: the campfire already holds a jug, and fires one at a time.
  * - `woodpileFull`, `sledFull`: it has no room left.
@@ -674,6 +675,7 @@ export type PlainRefusal =
   | "fireFullOfFish"
   | "noUnfiredJug"
   | "noPotOfCleanWater"
+  | "noJug"
   | "noJugWithRoom"
   | "noWaterInJug"
   | "fireHoldsJug"

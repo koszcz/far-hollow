@@ -169,3 +169,14 @@ export function removeFromBackpack(backpack: Backpack, content: BackpackContent,
   backpack.contents = takeCount(backpack.contents, content, count);
   return true;
 }
+
+/**
+ * Swaps one `from` in the backpack for one `to`, such as an empty jug for a jug with 1 drink.
+ * Returns false, and changes nothing, if the backpack holds no `from`, or `to` does not fit once `from` is out.
+ */
+export function swapInBackpack(backpack: Backpack, from: BackpackContent, to: BackpackContent): boolean {
+  if (!removeFromBackpack(backpack, from, 1)) return false;
+  if (addToBackpack(backpack, to, 1)) return true;
+  addToBackpack(backpack, from, 1);
+  return false;
+}

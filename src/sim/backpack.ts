@@ -1,5 +1,5 @@
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";
-import { jugWeightKg, type JugContent } from "./jug";
+import { byJug, jugWeightKg, type JugContent } from "./jug";
 
 export type { JugContent } from "./jug";
 
@@ -81,10 +81,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   // An unfired jug weighs the same as the jug it becomes once fired.
   unfiredJug: 1,
   // A jug weighs 1 kg, plus 2 kg for each drink of water in it.
-  jug: jugWeightKg("jug"),
-  jugWith1Drink: jugWeightKg("jugWith1Drink"),
-  jugWith2Drinks: jugWeightKg("jugWith2Drinks"),
-  jugWith3Drinks: jugWeightKg("jugWith3Drinks"),
+  ...byJug(jugWeightKg),
   torch: 0.8,
   cord: 0.1,
   fishTrap: 1,

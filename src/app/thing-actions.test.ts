@@ -117,7 +117,7 @@ describe("a campfire's actions", () => {
     });
   });
 
-  it("offers to fire a jug only while the backpack holds an unfired jug, greyed with the reason on an unlit fire", () => {
+  it("offers to fire a jug only while the backpack holds an unfired jug, greyed with the reason on an unlit fire or one that holds a jug", () => {
     const lit = { lit: true, fuelMinutes: 60 };
     const fireJug = (setup: Setup) => {
       const world = worldWith(setup);
@@ -133,7 +133,7 @@ describe("a campfire's actions", () => {
     });
     expect(fireJug({ backpack: { unfiredJug: 1 }, campfire: {} }).action?.reason).toBe("light the fire first");
     expect(fireJug({ backpack: { jug: 1 }, campfire: lit }).action).toBeUndefined();
-    expect(fireJug({ backpack: { unfiredJug: 1 }, campfire: { ...lit, jug: false } }).action).toBeUndefined();
+    expect(fireJug({ backpack: { unfiredJug: 1 }, campfire: { ...lit, jug: false } }).action).toMatchObject({ enabled: false, reason: "the fire holds a jug" });
   });
 
   it("takes a jug off only when one is on the fire, after the fish", () => {
@@ -141,7 +141,12 @@ describe("a campfire's actions", () => {
     const jugOn = worldWith({ backpack: { unfiredJug: 1 }, campfire: { ...lit, jug: true } });
     const actions = actionsFor(scene("campfire", jugOn.campfire), jugOn.reader);
 
-    expect(summary(actions).slice(-3)).toEqual(["cookFish off: no raw fish", "takeJugOff", "takeDown off: take the jug off first"]);
+    expect(summary(actions).slice(-4)).toEqual([
+      "cookFish off: no raw fish",
+      "fireJug off: the fire holds a jug",
+      "takeJugOff",
+      "takeDown off: take the jug off first",
+    ]);
     expect(find(actions, "takeJugOff")).toMatchObject({
       label: "Take jug off",
       icon: { content: "jug" },
@@ -822,9 +827,12 @@ describe("other things' actions", () => {
     expect(summary(actions)).toEqual(["pourIntoJug main", "drop"]);
     expect(find(actions, "pourIntoJug")?.label).toBe("Pour in clean water");
     expect(find(actions, "pourIntoJug")?.command).toEqual({ type: "pourIntoJug" });
+    // The icon shows the jug as pouring leaves it, with one more drink.
+    expect(find(actions, "pourIntoJug")?.icon).toEqual({ content: "jugWith1Drink" });
 
+    // Greyed, pouring is not the main action: the empty jug has none, as before it could be filled.
     expect(summary(actionsFor(jug, worldWith({ backpack: { jug: 1, potOfRiverWater: 1 } }).reader))).toEqual([
-      "pourIntoJug main off: no pot of clean water",
+      "pourIntoJug off: no pot of clean water",
       "drop",
     ]);
   });
@@ -836,6 +844,7 @@ describe("other things' actions", () => {
     expect(summary(partly)).toEqual(["drinkFromJug main", "pourIntoJug", "drop"]);
     expect(find(partly, "drinkFromJug")?.label).toBe("Drink");
     expect(find(partly, "drinkFromJug")?.command).toEqual({ type: "drinkFromJug" });
+    expect(find(partly, "pourIntoJug")?.icon).toEqual({ content: "jugWith2Drinks" });
 
     expect(summary(actionsFor({ kind: "backpackContent", content: "jugWith3Drinks" }, world.reader))).toEqual(["drinkFromJug main", "drop"]);
   });

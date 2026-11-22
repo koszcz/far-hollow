@@ -11,6 +11,11 @@ export const JUG_CONTENTS = ["jug", "jugWith1Drink", "jugWith2Drinks", "jugWith3
 /** The jug, by how many drinks it holds. `jug` is empty. */
 export type JugContent = (typeof JUG_CONTENTS)[number];
 
+/** A table with one entry for each jug fill level, so a new fill level needs no edit in the tables built from it. */
+export function byJug<T>(value: (jug: JugContent) => T): Record<JugContent, T> {
+  return Object.fromEntries(JUG_CONTENTS.map((jug) => [jug, value(jug)])) as Record<JugContent, T>;
+}
+
 /** An empty jug weighs this much, in kilograms. */
 const EMPTY_JUG_KG = 1;
 /** One drink of water weighs this much, in kilograms. */
@@ -31,6 +36,16 @@ export function jugHolding(drinks: number): JugContent {
   const jug = JUG_CONTENTS[Math.min(JUG_DRINK_LIMIT, Math.max(0, Math.round(drinks)))];
   if (jug === undefined) throw new Error(`No jug holds ${drinks} drinks`);
   return jug;
+}
+
+/** The jug as it is after 1 more drink is poured in. A full jug stays full. */
+export function withOneMoreDrink(jug: JugContent): JugContent {
+  return jugHolding(drinksIn(jug) + 1);
+}
+
+/** The jug as it is after 1 drink is taken out. An empty jug stays empty. */
+export function withOneLessDrink(jug: JugContent): JugContent {
+  return jugHolding(drinksIn(jug) - 1);
 }
 
 /** How much a jug weighs: 1 kg, plus 2 kg for each drink, so a full jug weighs 7 kg. */

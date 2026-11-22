@@ -4,6 +4,7 @@ import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG, type BackpackContents } fr
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import { JUG_FIRING_SAVE_VERSION, JUG_WATER_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { byJug, drinksIn } from "./jug";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 
@@ -94,6 +95,12 @@ describe("drinking from a jug", () => {
     send(game, { type: "drinkFromJug" });
     expect(backpack(game)).toEqual({ jug: 1 });
     expect(game.client.getView().lastEatOrDrink?.count).toBe(1);
+  });
+});
+
+describe("a table by jug fill level", () => {
+  it("has one entry for each fill level", () => {
+    expect(byJug(drinksIn)).toEqual({ jug: 0, jugWith1Drink: 1, jugWith2Drinks: 2, jugWith3Drinks: 3 });
   });
 });
 

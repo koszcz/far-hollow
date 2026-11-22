@@ -30,15 +30,18 @@ export const GATHER_STONE_ANIMATION_SHOWCASE: Showcase = {
   pose({ player }, shot) {
     // Start gathering afresh at time 0 for each view, so the view shows the lift `shot.seconds` in.
     player.setMotion("gather-stone-animation", undefined);
-    player.setMotion("gather-stone-animation", { seconds: 0, lifts: "stone" });
-    player.setMotion("gather-stone-animation", { seconds: shot.seconds ?? 0, lifts: "stone" });
+    player.setMotion("gather-stone-animation", { seconds: 0, lifts: "stone", liftSeconds: GATHER_STONE_SECONDS });
+    player.setMotion("gather-stone-animation", { seconds: shot.seconds ?? 0, lifts: "stone", liftSeconds: GATHER_STONE_SECONDS });
   },
   // The player gathers one stone, as long as the game takes, stands up, rests, then starts again.
   play: {
     shot: { label: "gathering one stone, then standing up", yaw: 40, pitch: 20, radius: 1.8 },
     pose({ player }, seconds) {
       const cycle = seconds % (GATHER_STONE_SECONDS + GATHER_STONE_PLAY_REST_SECONDS);
-      player.setMotion("gather-stone-animation", cycle < GATHER_STONE_SECONDS ? { seconds: cycle, lifts: "stone" } : undefined);
+      player.setMotion(
+        "gather-stone-animation",
+        cycle < GATHER_STONE_SECONDS ? { seconds: cycle, lifts: "stone", liftSeconds: GATHER_STONE_SECONDS } : undefined,
+      );
       return undefined;
     },
   },

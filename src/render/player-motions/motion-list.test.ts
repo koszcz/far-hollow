@@ -10,7 +10,7 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
   "sawing-animation": { nowSeconds: 1, progress: 0.2 },
   "hand-craft-animation": 1,
   "fishing-animation": { nowSeconds: 3, sinceCast: 3, toBite: 1, floatForward: 4, floatHeight: -0.5 },
-  "gather-stone-animation": { seconds: 1, lifts: "stone" },
+  "gather-stone-animation": { seconds: 1, lifts: "stone", liftSeconds: 4 },
   "forage-eat-drink-animation": { kind: "drinkFromPot", seconds: 0.5 },
   "sled-drag-animation": true,
   torch: 1,

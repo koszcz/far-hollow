@@ -1,5 +1,6 @@
 // Picks the icon and name of each action in the action queue, for the row of icons beside the clock.
 // The icon shows what the action works on, such as a tree, a log, or a campfire. The name is the action's, such as "Chop".
+import { jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "../sim/api";
 import type { ActionCommand, BackpackContent, CarriedLog, GameClient, GameView, StructureKind, ThingView } from "../sim/api";
 import { strings } from "../strings";
 import type { QueueThing } from "./action-queue-icons";
@@ -180,9 +181,9 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
     case "drinkFromPot":
       return { icon: { content: potHeld(view) }, name: actions.drinkFromPot };
     case "pourIntoJug":
-      return { icon: { content: "potOfBoiledWater" }, name: actions.pourIntoJug };
+      return { icon: { content: jugPouredInto(view) }, name: actions.pourIntoJug };
     case "drinkFromJug":
-      return { icon: { content: "jugWith1Drink" }, name: actions.drinkFromJug };
+      return { icon: { content: jugToDrinkFrom(view.backpack) ?? "jug" }, name: actions.drinkFromJug };
     case "craft": {
       const recipe = view.craftMenu.find(({ kind }) => kind === command.recipe);
       return { icon: recipe === undefined ? { hud: "backpack" } : { content: recipe.result.content }, name: strings.craftMenu.recipes[command.recipe] };
@@ -200,6 +201,12 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
 /** A log with its bark on or a debarked log, drawn with their approved build material icons. */
 function logIcon(log: CarriedLog): QueueIcon {
   return { log };
+}
+
+/** The jug that pouring fills, as it is after the pour. The empty jug if no jug has room. */
+function jugPouredInto(view: GameView): BackpackContent {
+  const jug = jugToPourInto(view.backpack);
+  return jug === undefined ? "jug" : withOneMoreDrink(jug);
 }
 
 /** The pot of water the player would drink from: boiled water if the backpack holds it, or else river water. */

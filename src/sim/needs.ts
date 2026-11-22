@@ -162,6 +162,12 @@ export function needsSpeed(needs: Needs): number {
   return SLOWEST_SPEED + (1 - SLOWEST_SPEED) * (lowest / LOW_NEED);
 }
 
+/** Fills thirst to full after a drink, which also stops its count toward a collapse. */
+export function quenchThirst(needs: Needs): void {
+  needs.thirst.level = FULL_NEED;
+  needs.thirst.minutesWithout = 0;
+}
+
 /** Fills a need by this much, up to full. */
 export function fillNeed(needs: Needs, kind: NeedKind, amount: number): void {
   const need = needs[kind];

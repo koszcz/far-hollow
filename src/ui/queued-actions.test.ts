@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { queued, type ActionCommand } from "../sim/api";
+import { queued, type ActionCommand, type GameView } from "../sim/api";
 import type { Entity } from "../sim/entities";
 import { createGame, type Game } from "../sim/game";
 import { queuedAction, queuedActions, type QueuedAction } from "./queued-actions";
@@ -39,6 +39,19 @@ describe("the icon and name of a queued action", () => {
     expect(shown(game, { type: "eat", food: "berries" })).toEqual({ icon: { content: "berries" }, name: "Eat" });
     expect(shown(game, { type: "craft", recipe: "planks" })).toEqual({ icon: { content: "plank" }, name: "Cut planks" });
     expect(shown(game, { type: "sleep", bedrollId: 1 })).toEqual({ icon: { content: "bedroll" }, name: "Sleep" });
+  });
+
+  it("shows the jug that pouring fills, with its new drink, and the jug that drinking empties", () => {
+    const game = createGame({ seed: 42 });
+    const holding = (backpack: GameView["backpack"]) => (command: ActionCommand) => queuedAction(command, { ...game.client.getView(), backpack }, game.client);
+    const withJugs = holding({ jug: 1, jugWith1Drink: 1, jugWith3Drinks: 1, potOfBoiledWater: 1 });
+
+    expect(withJugs({ type: "pourIntoJug" })).toEqual({ icon: { content: "jugWith2Drinks" }, name: "Pour in clean water" });
+    expect(withJugs({ type: "drinkFromJug" })).toEqual({ icon: { content: "jugWith1Drink" }, name: "Drink" });
+
+    const withoutJugs = holding({});
+    expect(withoutJugs({ type: "pourIntoJug" }).icon).toEqual({ content: "jug" });
+    expect(withoutJugs({ type: "drinkFromJug" }).icon).toEqual({ content: "jug" });
   });
 
   it("shows the structure an action works on, blueprint or finished", () => {

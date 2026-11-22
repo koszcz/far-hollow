@@ -15,6 +15,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { BackpackContent } from "../sim/backpack";
 import { pileEntities, type Entity, type EntityStore } from "../sim/entities";
+import { byJug } from "../sim/jug";
 import { barkParts } from "./bark-meshes";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";
 import { STONE_SHAPE_COUNT, stonePileShapes } from "./stone-shape";
@@ -333,10 +334,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     // Unfired jugs stand upright. The jug is the approved "jug" asset, drawn by jug-shape.ts.
     unfiredJug: unfiredJugPileParts(material, track),
     // Jugs stand upright too, in the fired look of the same approved "jug" asset, whatever water they hold.
-    jug,
-    jugWith1Drink: jug,
-    jugWith2Drinks: jug,
-    jugWith3Drinks: jug,
+    ...byJug(() => jug),
     // Cord and fish traps are the draft "fish-trap-piles" asset, drawn by fish-trap-shape.ts.
     cord: cordPileParts((colour) => material(colour), track),
     fishTrap: fishTrapPileParts((colour) => material(colour), track),
@@ -361,10 +359,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     stone: spread(0.13),
     clay: spread(0.13),
     unfiredJug: spread(0.2),
-    jug: spread(0.2),
-    jugWith1Drink: spread(0.2),
-    jugWith2Drinks: spread(0.2),
-    jugWith3Drinks: spread(0.2),
+    ...byJug(() => spread(0.2)),
     cord: spread(0.1),
     fishTrap: spread(0.4),
     torch: spread(0.1),

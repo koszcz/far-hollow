@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { createGame, type Game } from "./game";
-import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, wakeFromCollapse } from "./needs";
+import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, quenchThirst, wakeFromCollapse } from "./needs";
 
 const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, working: false, asleep: false, sick: false };
 
@@ -91,6 +91,16 @@ describe("needs", () => {
     expect(needs.fatigue.level).toBeGreaterThan(0);
     expect(needs.fatigue.level).toBeLessThan(0.3);
     expect(needs.warmth.level).toBe(1);
+  });
+
+  it("quench thirst to full and stop the count toward a collapse", () => {
+    const needs = createNeeds();
+    needs.thirst.level = 0;
+    needs.thirst.minutesWithout = 40;
+
+    quenchThirst(needs);
+
+    expect(needs.thirst).toEqual({ level: 1, minutesWithout: 0 });
   });
 
   it("slow the player when a need other than warmth is low", () => {

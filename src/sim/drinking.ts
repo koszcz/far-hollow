@@ -1,6 +1,6 @@
 import type { ApproachReach } from "./approach";
 import { playerEntities, setComponent, type EntityStore } from "./entities";
-import { FULL_NEED } from "./needs";
+import { quenchThirst } from "./needs";
 import { catchSickness } from "./sickness";
 import { distanceToRiver, nearestRiverPoint, type Valley } from "./valley";
 import { type GroundPoint } from "./ground-point";
@@ -52,8 +52,7 @@ export function createDrinking(entities: EntityStore, walkMap: WalkMap, valley: 
     },
     drinkFromRiver(spot) {
       for (const player of drinkers) {
-        player.needs.thirst.level = FULL_NEED;
-        player.needs.thirst.minutesWithout = 0;
+        quenchThirst(player.needs);
         setComponent(entities, player, "sickness", catchSickness());
         onDrink({ x: spot.x, z: spot.z });
       }

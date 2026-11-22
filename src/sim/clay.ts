@@ -2,7 +2,7 @@
 // digs there by hand for a few seconds, and puts one clay in the backpack. Clay never runs out and needs no tool.
 import type { CommandRules } from "./command-rule";
 import type { Entity, EntityStore } from "./entities";
-import { createRiverBankWork, riverBankWorkNow, riverBankWorkRule, type RiverBankWork, type RiverBankWorkKind } from "./river-bank-work";
+import { createRiverBankWork, riverBankWorkNow, riverBankWorkRule, type RiverBankWork, type RiverBankWorkKind, type RiverBankWorkNow } from "./river-bank-work";
 import type { Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 
@@ -11,8 +11,8 @@ export const DIG_CLAY_SECONDS = 6;
 
 const DIGGING_CLAY: RiverBankWorkKind = { task: "clayTask", content: "clay", seconds: DIG_CLAY_SECONDS };
 
-/** How far the player is through digging one clay, from 0 to 1, or undefined if they are not digging now. */
-export function diggingClayNow(player: Entity): { progress: number } | undefined {
+/** How far the player is through digging one clay, where, and how long one takes. Undefined if they are not digging now. */
+export function diggingClayNow(player: Entity): RiverBankWorkNow | undefined {
   return riverBankWorkNow(player, DIGGING_CLAY);
 }
 

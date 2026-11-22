@@ -28,18 +28,45 @@ export function isRiverBank(valley: Valley, spot: GroundPoint): boolean {
   return groundTypeAt(map, spot) === "riverBank";
 }
 
+/** River bank work under way: the spot the player works, and how long they have worked at it, in seconds. */
+export interface RiverBankTask {
+  x: number;
+  z: number;
+  secondsDone: number;
+}
+
+/** The names of the player's task parts that hold exactly a RiverBankTask. The compiler rejects any other name. */
+type RiverBankTaskPart = {
+  [K in keyof Entity]-?: [NonNullable<Entity[K]>] extends [RiverBankTask] ? ([RiverBankTask] extends [NonNullable<Entity[K]>] ? K : never) : never;
+}[keyof Entity];
+
 /** One kind of river bank work: the task part that marks it on the player, what it yields, and how long one takes, in seconds. */
 export interface RiverBankWorkKind {
-  readonly task: "stoneTask" | "clayTask";
+  readonly task: RiverBankTaskPart;
   readonly content: BackpackContent;
   readonly seconds: number;
 }
 
-/** How far the player is through one piece of this work, from 0 to 1, or undefined if they are not doing it now. */
-export function riverBankWorkNow(player: Entity, kind: RiverBankWorkKind): { progress: number } | undefined {
-  const task = player[kind.task];
+/** The river bank work of this kind that the player does now, or undefined if none. */
+function taskOf(player: Entity, kind: RiverBankWorkKind): RiverBankTask | undefined {
+  return player[kind.task];
+}
+
+/** River bank work as the player does it now. */
+export interface RiverBankWorkNow {
+  /** How far the player is through one piece of the work, from 0 to 1. */
+  readonly progress: number;
+  /** The spot the player works. */
+  readonly spot: GroundPoint;
+  /** How long one piece of the work takes, in seconds. The drawing times the player's motion to it. */
+  readonly secondsEach: number;
+}
+
+/** The player's river bank work of this kind now, or undefined if they are not doing it. */
+export function riverBankWorkNow(player: Entity, kind: RiverBankWorkKind): RiverBankWorkNow | undefined {
+  const task = taskOf(player, kind);
   if (task === undefined) return undefined;
-  return { progress: Math.min(1, task.secondsDone / kind.seconds) };
+  return { progress: Math.min(1, task.secondsDone / kind.seconds), spot: { x: task.x, z: task.z }, secondsEach: kind.seconds };
 }
 
 export interface RiverBankWork {
@@ -99,7 +126,8 @@ export function createRiverBankWork(entities: EntityStore, walkMap: WalkMap, val
     step(stepSeconds) {
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const worker of [...workers]) {
-        const task = worker[kind.task];
+        const task = taskOf(worker, kind);
+        if (task === undefined) continue;
         if (!fits(worker.backpack)) {
           entities.removeComponent(worker, kind.task);
           continue;

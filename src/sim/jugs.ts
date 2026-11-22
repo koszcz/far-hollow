@@ -3,8 +3,8 @@ import type { Refusal } from "./api";
 import { addToBackpack, removeFromBackpack, type Backpack, type BackpackContent } from "./backpack";
 import type { CommandRules } from "./command-rule";
 import type { EntityStore } from "./entities";
-import { drinksIn, jugHolding, jugToDrinkFrom, jugToPourInto } from "./jug";
-import { FULL_NEED } from "./needs";
+import { jugToDrinkFrom, jugToPourInto, withOneLessDrink, withOneMoreDrink } from "./jug";
+import { quenchThirst } from "./needs";
 
 export interface Jugs {
   /** Why the player could not pour a pot of clean water into a jug: they have no pot of clean water, or no jug has room. */
@@ -41,15 +41,14 @@ export function createJugs(entities: EntityStore): Jugs {
       if (jug === undefined) return;
       // The water moves from the pot to the jug, so the backpack weighs the same after.
       swap(backpack, "potOfBoiledWater", "pot");
-      swap(backpack, jug, jugHolding(drinksIn(jug) + 1));
+      swap(backpack, jug, withOneMoreDrink(jug));
     },
     drink() {
       for (const player of players) {
         const jug = jugToDrinkFrom(player.backpack.contents);
         if (player.needs === undefined || jug === undefined) continue;
-        swap(player.backpack, jug, jugHolding(drinksIn(jug) - 1));
-        player.needs.thirst.level = FULL_NEED;
-        player.needs.thirst.minutesWithout = 0;
+        swap(player.backpack, jug, withOneLessDrink(jug));
+        quenchThirst(player.needs);
         return true;
       }
       return false;

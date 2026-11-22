@@ -3,7 +3,7 @@
 // It decides which actions to list, in what order, and which is the main one. The game decides whether each is allowed:
 // every action asks the reader why the game would refuse its command, and is greyed out with that reason.
 // It only reads game state through the reader, so tests can pass a real game's client.
-import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, hasRoom, holdsWater, isJug, WOODPILE_WOODS } from "../sim/api";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, furnitureMoreUses, furnitureUse, hasRoom, holdsWater, isJug, withOneMoreDrink, WOODPILE_WOODS } from "../sim/api";
 import type {
   BackpackContent,
   CampfireView,
@@ -12,6 +12,7 @@ import type {
   FurnitureKind,
   FurnitureUse,
   GroundOrThingPick,
+  JugContent,
   Plantable,
   ScenePick,
   GameClient,
@@ -106,6 +107,11 @@ function withMain(offers: readonly Offer[], main: ActionId | undefined): readonl
 }
 
 const has = (view: GameView, content: BackpackContent): boolean => (view.backpack[content] ?? 0) > 0;
+
+/** The offer `make` gives, in a list, if `shown`. Otherwise an empty list. */
+function offerIf(shown: boolean, make: () => Offer): readonly Offer[] {
+  return shown ? [make()] : [];
+}
 
 function chop({ offer }: Context, treeId: number): Offer {
   return offer("chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId });
@@ -312,13 +318,28 @@ function riverActions({ x, z }: { readonly x: number; readonly z: number }, cont
 }
 
 /**
+ * Firing a jug, then taking the jug off. Firing shows while the backpack holds an unfired jug. It is greyed, with the reason,
+ * while the fire already holds a jug, since a fire fires one jug at a time. Taking the jug off shows only while one is on the fire.
+ */
+function campfireJugOffers(campfire: CampfireView, { view, offer }: Context): readonly Offer[] {
+  const campfireId = campfire.id;
+  const jugOn = campfire.jug;
+  return [
+    ...offerIf(has(view, "unfiredJug"), () => offer("fireJug", strings.actions.fireJug, { content: "unfiredJug" }, { type: "fireJug", campfireId })),
+    ...offerIf(jugOn !== null, () =>
+      offer("takeJugOff", strings.actions.takeJugOff, { content: jugOn?.fired === true ? "jug" : "unfiredJug" }, { type: "takeJugOff", campfireId }),
+    ),
+  ];
+}
+
+/**
  * Light, each fuel, the pot, the fish, the jug, then Take down. Lighting shows only while the fire is out.
- * Firing a jug shows only while the backpack holds an unfired jug and no jug is on the fire. Taking the jug off shows only while one is.
+ * See campfireJugOffers for when the jug's actions show.
  * A campfire and a fireplace offer the same actions.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
  */
 function campfireActions(campfire: CampfireView, context: Context): readonly ThingAction[] {
-  const { offer, view } = context;
+  const { offer } = context;
   const campfireId = campfire.id;
   // The menu lists the fuels in the order a lit fire takes them.
   const fuels = CAMPFIRE_FUELS.map((fuel) => offer(`addFuel:${fuel}`, strings.actions.addFuel[fuel], { content: fuel }, { type: "addFuel", campfireId, fuel }));
@@ -330,13 +351,7 @@ function campfireActions(campfire: CampfireView, context: Context): readonly Thi
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
   const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
   const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const jug =
-    campfire.jug !== null
-      ? [offer("takeJugOff", strings.actions.takeJugOff, { content: campfire.jug.fired ? "jug" : "unfiredJug" }, { type: "takeJugOff", campfireId })]
-      : has(view, "unfiredJug")
-        ? [offer("fireJug", strings.actions.fireJug, { content: "unfiredJug" }, { type: "fireJug", campfireId })]
-        : [];
-  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, ...jug, takeDown(context, campfireId)];
+  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, ...campfireJugOffers(campfire, context), takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);
@@ -445,27 +460,42 @@ function plantOffer(plant: Plantable): Offer {
   return { id: "plant", label: strings.actions.plant, icon: { content: plant }, enabled: true, command: undefined, startsPlanting: plant };
 }
 
-/**
- * A jug's own actions: drinking, while it holds water, then pouring in clean water, while it has room.
- * Each command picks its own jug: drinking takes from the emptiest jug with water, and pouring fills the fullest jug with room.
- */
-function jugOffers(content: BackpackContent, { offer }: Context): readonly Offer[] {
-  if (!isJug(content)) return [];
-  const drink = holdsWater(content) ? [offer("drinkFromJug", strings.actions.drinkFromJug, { content }, { type: "drinkFromJug" })] : [];
-  const pour = hasRoom(content) ? [offer("pourIntoJug", strings.actions.pourIntoJug, { content: "potOfBoiledWater" }, { type: "pourIntoJug" })] : [];
-  return [...drink, ...pour];
+/** A backpack content's own actions, which come before dropping it, and which of them is the main action, if any. */
+interface OwnOffers {
+  readonly offers: readonly Offer[];
+  readonly main: ActionId | undefined;
 }
 
 /**
- * Use it, when it has a use, then drop it. With a chest or shelf open, putting it there comes first. A sapling or berry bush is planted.
- * A jug is drunk from or filled.
+ * A jug's own actions: drinking, while it holds water, then pouring in clean water, while it has room.
+ * Each command picks its own jug: drinking takes from the emptiest jug with water, and pouring fills the fullest jug with room.
+ * Drinking is the main action. Without it, pouring is the main action only when it can run, since a greyed main action does nothing.
+ */
+function jugOffers(jug: JugContent, { offer }: Context): OwnOffers {
+  const drink = offerIf(holdsWater(jug), () => offer("drinkFromJug", strings.actions.drinkFromJug, { content: jug }, { type: "drinkFromJug" }));
+  // The icon shows the jug as pouring leaves it, with one more drink.
+  const pour = offerIf(hasRoom(jug), () => offer("pourIntoJug", strings.actions.pourIntoJug, { content: withOneMoreDrink(jug) }, { type: "pourIntoJug" }));
+  const main = drink[0] ?? pour.find(({ enabled }) => enabled);
+  return { offers: [...drink, ...pour], main: main?.id };
+}
+
+/** Using it, for a content with a use. A jug's own actions. Planting, for a sapling or berry bush. Nothing for anything else. */
+function ownOffers(content: BackpackContent, context: Context): OwnOffers {
+  const use = useCommand(content);
+  if (use !== undefined) return { offers: [context.offer("use", use.label, { content }, use.command)], main: "use" };
+  if (isJug(content)) return jugOffers(content, context);
+  if (content === "sapling" || content === "berryBush") return { offers: [plantOffer(content)], main: "plant" };
+  return { offers: [], main: undefined };
+}
+
+/**
+ * Its own actions, then drop it. With a chest or shelf open, putting it there comes first and is the main action.
+ * Otherwise the main action is its own, if it has one. See ownOffers.
  */
 function backpackContentActions(content: BackpackContent, context: Context): readonly ThingAction[] {
   const { view, offer } = context;
   const icon: ActionIcon = { content };
-  const use = useCommand(content);
-  const jug = jugOffers(content, context);
-  const plant = content === "sapling" || content === "berryBush" ? [plantOffer(content)] : [];
+  const own = ownOffers(content, context);
   const chest = view.nearby.find((thing) => thing.kind === "openChest");
   const intoChest =
     chest === undefined
@@ -479,15 +509,8 @@ function backpackContentActions(content: BackpackContent, context: Context): rea
             all: true,
           }),
         ];
-  const offers = [
-    ...intoChest,
-    ...(use === undefined ? [] : [offer("use", use.label, icon, use.command)]),
-    ...jug,
-    ...plant,
-    offer("drop", strings.actions.drop, icon, { type: "dropFromBackpack", content }),
-  ];
-  const own = use !== undefined ? "use" : (jug[0]?.id ?? (plant.length > 0 ? "plant" : undefined));
-  return withMain(offers, chest !== undefined ? "putInChest" : own);
+  const offers = [...intoChest, ...own.offers, offer("drop", strings.actions.drop, icon, { type: "dropFromBackpack", content })];
+  return withMain(offers, chest !== undefined ? "putInChest" : own.main);
 }
 
 /** Drop it, then split it into firewood if it is a log. */

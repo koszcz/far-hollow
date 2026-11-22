@@ -3,10 +3,8 @@
 // backpack. The axe goes on the back. Digging clay plays the same motion with a lump of clay, drawn by clay-shape.ts.
 // Its moment is the steady real-time clock, in seconds, with what the player lifts.
 import * as THREE from "three";
-import { DIG_CLAY_SECONDS } from "../../sim/clay";
-import { GATHER_STONE_SECONDS } from "../../sim/stone";
 import { createClayGeometry } from "../clay-shape";
-import { GATHER_STONE_LEAVE_SECONDS, gatherStonePoseAt, holdsStoneAt, stoneInRightHandAt } from "../player-gather-stone-pose";
+import { GATHER_STONE_LEAVE_SECONDS, GATHER_STONE_LIFT_SECONDS, gatherStonePoseAt, holdsStoneAt, stoneInRightHandAt } from "../player-gather-stone-pose";
 import { createStoneGeometry } from "../stone-shape";
 import { createBodyWorkMotion, type PlayerMotion, type PlayerRig } from "./player-motion";
 
@@ -19,19 +17,19 @@ const STONE_IN_HANDS_SCALE = 2;
 const STONE_BELOW_WRISTS_METRES = 0.06;
 const STONE_AHEAD_OF_WRISTS_METRES = 0.08;
 
-/** The moment of the gather-stone motion: the steady real-time clock, in seconds, and what the player lifts. */
+/** The moment of the gather-stone motion: the steady real-time clock, in seconds, what the player lifts, and how long the game takes for one lift. */
 export interface GatherMoment {
   readonly seconds: number;
   readonly lifts: "stone" | "clay";
+  readonly liftSeconds: number;
 }
 
 /**
- * How far into one lift the player is, in seconds of the stone lift. Digging one clay takes longer than gathering one stone,
- * so the lift plays slower to fit it, and the clay goes into the backpack as the work ends.
+ * How far into one lift the player is, in seconds of the posed lift. The lift plays faster or slower to fit the time the game
+ * takes for one, so what the player lifts goes into the backpack as the work ends.
  */
 function liftSeconds(now: GatherMoment, since: number): number {
-  const seconds = now.seconds - since;
-  return now.lifts === "clay" ? (seconds * GATHER_STONE_SECONDS) / DIG_CLAY_SECONDS : seconds;
+  return ((now.seconds - since) * GATHER_STONE_LIFT_SECONDS) / now.liftSeconds;
 }
 
 export function createGatherStoneMotion(rig: PlayerRig): PlayerMotion<GatherMoment> {

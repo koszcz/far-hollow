@@ -9,7 +9,7 @@ import { entityWith, playerEntities, type Entity, type EntityStore } from "./ent
 import { fillBy, isEmptyFill, takeOne } from "./fill-level";
 import { RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_REACH_METRES, RAIN_BARREL_STAND_METRES } from "./furniture/rain-barrel";
 import { nearestWithin } from "./ground-point";
-import { FULL_NEED } from "./needs";
+import { quenchThirst } from "./needs";
 import { goneRefusal } from "./refusals";
 import { isUnderRoof } from "./roofs";
 
@@ -80,8 +80,7 @@ export function createRainBarrels(entities: EntityStore): RainBarrels {
       if (barrel === undefined || drinkRefusal(barrelId) !== undefined) return;
       for (const player of players) {
         if (player.needs === undefined) continue;
-        player.needs.thirst.level = FULL_NEED;
-        player.needs.thirst.minutesWithout = 0;
+        quenchThirst(player.needs);
         barrel.rainBarrel = takeOne(barrel.rainBarrel);
         return;
       }

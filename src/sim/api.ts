@@ -8,8 +8,8 @@ export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugC
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
 
-/** The action menu uses these to offer drinking from a jug and pouring water into one. */
-export { hasRoom, holdsWater, isJug } from "./jug";
+/** The action menu and the action queue use these to offer drinking from a jug and pouring water into one, and to pick their icons. */
+export { hasRoom, holdsWater, isJug, jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "./jug";
 import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */

@@ -6,7 +6,7 @@ import type { Campfires } from "./campfires";
 import { riverReach } from "./drinking";
 import { heldFireOf, heldFires, playerEntities, setComponent, type EntityStore, type HeldFire } from "./entities";
 import type { HandReach } from "./hand-reach";
-import { FULL_NEED } from "./needs";
+import { quenchThirst } from "./needs";
 import { BOIL_MINUTES, type PotWater } from "./pot-state";
 import { catchSickness } from "./sickness";
 import { nearestRiverPoint, type Valley } from "./valley";
@@ -106,8 +106,7 @@ export function createPot(entities: EntityStore, walkMap: WalkMap, valley: Valle
         if (player.needs === undefined) continue;
         for (const water of ["boiled", "river"] as const) {
           if (!swapPot(player.backpack, FULL_POT[water], "pot")) continue;
-          player.needs.thirst.level = FULL_NEED;
-          player.needs.thirst.minutesWithout = 0;
+          quenchThirst(player.needs);
           if (water === "river") setComponent(entities, player, "sickness", catchSickness());
           return true;
         }

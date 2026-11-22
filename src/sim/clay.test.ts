@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { nearbyOf, type Command } from "./api";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
-import { DIG_CLAY_SECONDS } from "./clay";
+import { DIG_CLAY_SECONDS, diggingClayNow } from "./clay";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { CLAY_SAVE_VERSION, MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { GATHER_STONE_SECONDS } from "./stone";
+import { GATHER_STONE_SECONDS, gatheringStoneNow } from "./stone";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { distanceToRiver } from "./valley";
 import { isWalkable } from "./walk-map";
@@ -38,6 +38,17 @@ describe("digging clay", () => {
 
     expect(game.client.getView().backpack.clay).toBe(1);
     expect(game.client.getView().action).toBeNull();
+  });
+
+  it("tells the drawing where the player digs and how long one clay takes", () => {
+    const game = createGame({ seed: 42 });
+    const spot = bankSpotNearPlayer(game);
+
+    send(game, { type: "digClay", ...spot });
+    stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
+
+    expect(diggingClayNow(onlyPlayer(game))).toMatchObject({ spot, secondsEach: DIG_CLAY_SECONDS });
+    expect(gatheringStoneNow(onlyPlayer(game))).toBeUndefined();
   });
 
   it("walks the player to the water's edge for a spot on the river", () => {

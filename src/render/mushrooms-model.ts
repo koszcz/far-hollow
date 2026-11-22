@@ -11,8 +11,8 @@ const MUSHROOMS_MODEL_PATH = "assets/mushrooms/mushrooms.glb";
 const PATCH_WIDTH_METRES = 0.35;
 /** The file's tan cap material, by name. Every other part of the file is a stem. */
 const CAP_MATERIAL_NAME = "colorTan";
-const CAP_COLOUR = new THREE.Color(0x7a4426);
-const STEM_COLOUR = new THREE.Color(0xe8dcc0);
+export const CAP_COLOUR = new THREE.Color(0x7a4426);
+export const STEM_COLOUR = new THREE.Color(0xe8dcc0);
 
 /**
  * The mushroom patch in metres, with the pivot at the middle of its foot on the ground.

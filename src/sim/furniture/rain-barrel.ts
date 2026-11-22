@@ -1,5 +1,5 @@
 // The rain barrel: furniture that catches rain as clean water. rain-barrels.ts fills it in the rain, and lets the player
-// drink from it or fill the pot from it.
+// drink from it or fill the pot or a jug from it.
 import { EMPTY_FILL } from "../fill-level";
 import type { FurnitureDefinition } from "../furniture";
 
@@ -20,7 +20,7 @@ export const RAIN_BARREL_REACH_METRES = 2;
 
 /**
  * A rain barrel. Building it needs the axe. A finished barrel starts empty and blocks walking.
- * "Drink" is its main use. It also fills the empty pot.
+ * "Drink" is its main use. It also fills the empty pot, and a jug with room.
  */
 export const RAIN_BARREL: FurnitureDefinition<"rainBarrel"> = {
   kind: "rainBarrel",
@@ -32,5 +32,8 @@ export const RAIN_BARREL: FurnitureDefinition<"rainBarrel"> = {
   reachHeight: "waist",
   finishedParts: () => ({ rainBarrel: EMPTY_FILL }),
   use: { name: "drink", command: (id) => ({ type: "drinkFromRainBarrel", barrelId: id }) },
-  moreUses: [{ name: "fillPot", command: (id) => ({ type: "fillPotFromRainBarrel", barrelId: id }) }],
+  moreUses: [
+    { name: "fillPot", command: (id) => ({ type: "fillPotFromRainBarrel", barrelId: id }) },
+    { name: "fillJug", command: (id) => ({ type: "fillJugFromRainBarrel", barrelId: id }) },
+  ],
 };

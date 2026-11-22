@@ -9,7 +9,7 @@ export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugC
 export { CONTENT_WEIGHT_KG } from "./backpack";
 
 /** The action menu and the action queue use these to offer drinking from a jug and pouring water into one, and to pick their icons. */
-export { hasRoom, holdsWater, isJug, jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "./jug";
+export { hasRoom, holdsWater, isJug, JUG_CONTENTS, jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "./jug";
 import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */
@@ -263,6 +263,11 @@ export type Command =
    * It takes out 1 drink. It is refused while the barrel is empty or the backpack holds no empty pot.
    */
   | { type: "fillPotFromRainBarrel"; barrelId: number }
+  /**
+   * Walk the player within reach of a finished rain barrel, given by its entity id, and pour 1 drink from it into the fullest jug
+   * in the backpack that still has room. It is refused while the barrel is empty or the backpack holds no jug with room.
+   */
+  | { type: "fillJugFromRainBarrel"; barrelId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */

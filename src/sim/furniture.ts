@@ -43,7 +43,7 @@ export interface FurnitureStorage {
  * The action menu turns the name into its label and icon.
  */
 export interface FurnitureUse {
-  readonly name: "open" | "sleep" | "sit" | "drink" | "fillPot";
+  readonly name: "open" | "sleep" | "sit" | "drink" | "fillPot" | "fillJug";
   readonly command: (id: number) => Command;
 }
 

@@ -54,6 +54,7 @@ export type ActionId =
   | "dropHere"
   | "split"
   | "fillPot"
+  | "fillJug"
   | "pourIntoJug"
   | "drinkFromJug"
   | "putOut"

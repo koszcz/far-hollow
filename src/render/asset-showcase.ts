@@ -174,7 +174,7 @@ export function showAsset(
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   const plantedTorches = createPlantedTorchMeshes(store);
-  const fishTraps = createFishTrapMeshes(store, valley.river);
+  const fishTraps = createFishTrapMeshes(store, valley.river, groundAt);
   fishTraps.update();
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);

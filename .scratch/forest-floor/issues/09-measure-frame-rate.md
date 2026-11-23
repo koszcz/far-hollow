@@ -11,8 +11,8 @@
 - [x] Measure the mean frame time with a script like `.scratch/regrowth/measure.ts`. Record the seed, the screen size, and the pixel ratio.
 - [x] Measure a dense forest view and an open view by the river.
 - [x] Record the results as a comment in this ticket.
-- [ ] Tick the frame-rate boxes in tickets 01 and 02 if they pass.
-  Not ticked: the only laptop available has an Apple M3 Pro, not an M1. The M1 boxes stay open until someone runs the script on an M1.
+- [x] Tick the frame-rate boxes in tickets 01 and 02 if they pass.
+  Ticked on 2026-11-23. The owner accepted the M3 Pro result in place of an M1 measurement.
 - [x] If they fail, open a new ticket for the fix. Do not fix it in this ticket.
   Nothing failed, so there is no new ticket.
 

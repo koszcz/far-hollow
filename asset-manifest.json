@@ -56,16 +56,25 @@
       "file": "public/assets/trees/trees.glb",
       "code": [
         "src/render/tree-model.ts",
-        "src/render/forest-meshes.ts"
+        "src/render/forest-meshes.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Standing trees.",
+      "description": "Standing trees. The crowns sway gently in the wind. The trunks stay still.",
       "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Eight GLTF-format models packed into one file, unchanged: tree_pineDefaultA, tree_pineDefaultB, tree_pineTallA, tree_pineRoundA, tree_oak, tree_default, tree_tall, tree_detailed",
       "license": "CC0 1.0",
       "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-22: The owner approved in chat a change so that the crowns sway in the wind and the trunks stay still. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "stumps",
@@ -91,16 +100,25 @@
       "code": [
         "src/render/sapling-shape.ts",
         "src/render/tree-model.ts",
-        "src/render/forest-meshes.ts"
+        "src/render/forest-meshes.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, drawn in that type's colours. The sapling is one of Kenney's small trees: a small pine for pine types and a small leafy tree for the others. It is about a metre tall, 0.15 of the full height, and stands on the cut face of the stump it grows from. The young tree is the type's own trunk and crown, half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way.",
+      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, drawn in that type's colours. The sapling is one of Kenney's small trees: a small pine for pine types and a small leafy tree for the others. It is about a metre tall, 0.15 of the full height, and stands on the cut face of the stump it grows from. The young tree is the type's own trunk and crown, half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way. Saplings and young trees sway gently in the wind, trunk and all.",
       "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. tree_pineSmallA and tree_small, GLTF-format models packed into one file, unchanged. The young tree is built in code in this project",
       "license": "CC0 1.0",
       "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-21"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that saplings and young trees sway in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "sticks",
@@ -807,16 +825,20 @@
         "src/render/grass-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
-        "src/render/undergrowth-layout.ts"
+        "src/render/undergrowth-layout.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Undergrowth grass: short grass tufts in clearings, sparse grass on the forest floor, and tall grass on the river bank.",
+      "description": "Undergrowth grass: short grass tufts in clearings, sparse grass on the forest floor, and tall grass on the river bank. It sways gently in the wind.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
-      }
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that the grass sways in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "ferns",
@@ -825,16 +847,20 @@
         "src/render/fern-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
-        "src/render/undergrowth-layout.ts"
+        "src/render/undergrowth-layout.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Undergrowth ferns on the forest floor.",
+      "description": "Undergrowth ferns on the forest floor. They sway gently in the wind.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
-      }
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that the ferns sway in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "flowers",
@@ -843,16 +869,20 @@
         "src/render/flower-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
-        "src/render/undergrowth-layout.ts"
+        "src/render/undergrowth-layout.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Undergrowth flowers in clearings: clumps of white daisies, purple bellflowers, and yellow buttercups.",
+      "description": "Undergrowth flowers in clearings: clumps of white daisies, purple bellflowers, and yellow buttercups. They sway gently in the wind.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
-      }
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that the flowers sway in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "pebbles",
@@ -1732,21 +1762,23 @@
     },
     {
       "id": "sound-forest",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/sound-forest/forest.ogg",
       "code": [
-        "src/sound/ambience-loops.ts",
+        "src/sound/sound-files.ts",
         "src/sound/ambience.ts",
         "src/sound/sound-engine.ts",
         "src/render/wind.ts",
         "src/render/showcases/sound.ts",
         "src/ui/sound-showcase.tsx"
       ],
-      "description": "The forest's ambience: a leaf rustle loop made from shaped noise, a high airy rustle in waves as gusts pass. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "The forest's ambience: a 26 s recording of leaves rustling in the wind, with soft gusts and lulls. Its end blends into its start, so it loops without a seam. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
+      "source": "Freesound, https://freesound.org/people/Borgory/sounds/751473/. Soft Wind in the Trees - Leaves rustle by Borgory. Cut from 26 s to 53 s with the last second blended into the start, high-passed at 50 Hz, raised 19 dB with a limiter on the loudest snaps, saved as Opus in Ogg at 96 kbit/s",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/sound/issues/01-sound.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

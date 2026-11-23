@@ -6,6 +6,7 @@ import type { SaplingModels } from "../sapling-shape";
 import type { TreeShape } from "../tree-model";
 import { type PlayerMesh } from "../player-mesh";
 import type { UndergrowthShape } from "../undergrowth-models";
+import type { WindSway } from "../wind-sway";
 
 /** Midday, so colours show as they do in daylight. */
 export const NOON = 12;
@@ -50,6 +51,8 @@ export interface Stage {
    * `lift` raises it, in metres, and `heading` turns it about the vertical, in radians. The showcase disposes it.
    */
   readonly addProp: (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, z: number, lift?: number, heading?: number) => void;
+  /** The wind that sways trees and undergrowth. Give it any prop that sways in the game. */
+  readonly windSway: WindSway;
   /** Every loaded undergrowth model, from loadUndergrowthShapes. */
   readonly undergrowthShapes: readonly UndergrowthShape[];
   /** Every loaded tree type, from loadTreeShapes. */

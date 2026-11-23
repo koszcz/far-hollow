@@ -6,6 +6,7 @@
 // Felled trees grow back as a sapling on the stump, then a young tree: the approved "saplings" asset, built in sapling-shape.ts.
 // Debarked logs, the "debarked-log" asset (approved), are built from the log shape by debarked-log-shape.ts.
 // While the player saws a debarked log into planks, it is drawn lying along the sawhorse beam. Game logic keeps it on the ground.
+// Treetops, young trees, and saplings sway in the wind with wind-sway.ts. Trunks, stumps, logs, and sticks stay still.
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { MOST_LOGS_PER_TREE, treeLookAt, treeSizeAt } from "../sim/tree-size";
@@ -36,6 +37,7 @@ import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
 import type { TreeShape, TreeTone } from "./tree-model";
 import { addTreeSeeThrough } from "./tree-see-through";
+import { SAPLING_SWAY, TREE_SWAY, YOUNG_TREE_SWAY, type SwayLook, type WindSway } from "./wind-sway";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { BLUEPRINT_COLOUR, BLUEPRINT_OPACITY, NOT_ALLOWED_COLOUR, seeThrough as seeThroughMaterial } from "./structure-look";
 
@@ -105,6 +107,7 @@ export function createForestMeshes(
   saplingModels: SaplingModels,
   stumpShape: StumpShape,
   logShape: LogShape,
+  windSway: WindSway,
 ): ForestMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
@@ -119,35 +122,29 @@ export function createForestMeshes(
   // Shadows always come from the real shape.
   // Every tree spot gets a place in its type's batches: standing trees, and felled trees that grow back there.
   const trees = [...new Set([...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)])];
-  const trunkMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
-    dark: track(
-      new THREE.MeshStandardMaterial({
-        color: TREE_COLOURS.trunk.dark,
-        flatShading: true,
-      }),
+  const treeMaterial = (colour: number) => track(new THREE.MeshStandardMaterial({ color: colour, flatShading: true }));
+  const toneMaterials = (part: "trunk" | "crown"): Record<TreeTone, THREE.MeshStandardMaterial> => ({
+    dark: treeMaterial(TREE_COLOURS[part].dark),
+    light: treeMaterial(TREE_COLOURS[part].light),
+  });
+  // Full trees sway only in their crowns. Young trees and saplings sway whole, each by their own height.
+  const trunkMaterials = toneMaterials("trunk");
+  const crownMaterials = toneMaterials("crown");
+  const youngMaterials = { trunk: toneMaterials("trunk"), crown: toneMaterials("crown") };
+  const saplingMaterials = { trunk: toneMaterials("trunk"), crown: toneMaterials("crown") };
+  const seeThrough = addTreeSeeThrough([
+    ...[trunkMaterials, crownMaterials, youngMaterials.trunk, youngMaterials.crown, saplingMaterials.trunk, saplingMaterials.crown].flatMap((byTone) =>
+      Object.values(byTone),
     ),
-    light: track(
-      new THREE.MeshStandardMaterial({
-        color: TREE_COLOURS.trunk.light,
-        flatShading: true,
-      }),
-    ),
-  };
-  const crownMaterials: Record<TreeTone, THREE.MeshStandardMaterial> = {
-    dark: track(
-      new THREE.MeshStandardMaterial({
-        color: TREE_COLOURS.crown.dark,
-        flatShading: true,
-      }),
-    ),
-    light: track(
-      new THREE.MeshStandardMaterial({
-        color: TREE_COLOURS.crown.light,
-        flatShading: true,
-      }),
-    ),
-  };
-  const seeThrough = addTreeSeeThrough([...Object.values(trunkMaterials), ...Object.values(crownMaterials)]);
+  ]);
+  const swaying: readonly [Record<TreeTone, THREE.MeshStandardMaterial>, SwayLook][] = [
+    [crownMaterials, TREE_SWAY],
+    [youngMaterials.trunk, YOUNG_TREE_SWAY],
+    [youngMaterials.crown, YOUNG_TREE_SWAY],
+    [saplingMaterials.trunk, SAPLING_SWAY],
+    [saplingMaterials.crown, SAPLING_SWAY],
+  ];
+  for (const [byTone, look] of swaying) for (const material of Object.values(byTone)) windSway.sway(material, look);
   for (const shape of treeShapes) {
     track(shape.trunk);
     track(shape.crown);
@@ -206,15 +203,15 @@ export function createForestMeshes(
     track(youngFarShape.trunk);
     track(youngFarShape.crown);
     const young = {
-      trunk: { geometry: growing.youngTree.trunk, material: trunk.material },
-      crown: { geometry: growing.youngTree.crown, material: crown.material },
+      trunk: { geometry: growing.youngTree.trunk, material: youngMaterials.trunk[shape.trunkTone] },
+      crown: { geometry: growing.youngTree.crown, material: youngMaterials.crown[shape.crownTone] },
     };
     const youngNear = track(createCulledBatch([young.trunk, young.crown], capacity, true, { to: FAR_TREE_METRES }));
     const youngFar = track(
       createCulledBatch(
         [
-          { geometry: youngFarShape.trunk, material: trunk.material },
-          { geometry: youngFarShape.crown, material: crown.material },
+          { geometry: youngFarShape.trunk, material: young.trunk.material },
+          { geometry: youngFarShape.crown, material: young.crown.material },
         ],
         capacity,
         false,
@@ -225,8 +222,8 @@ export function createForestMeshes(
     const saplings = track(
       createCulledBatch(
         [
-          { geometry: growing.sapling.trunk, material: trunk.material },
-          { geometry: growing.sapling.crown, material: crown.material },
+          { geometry: growing.sapling.trunk, material: saplingMaterials.trunk[shape.trunkTone] },
+          { geometry: growing.sapling.crown, material: saplingMaterials.crown[shape.crownTone] },
         ],
         capacity,
         false,

@@ -4,7 +4,7 @@
 // plays live in one full view instead, so the owner can judge its timing. &speed=0.25 slows it down.
 // Each asset's views live in src/render/showcases/, one file per family of assets.
 import * as THREE from "three";
-import { createEntityStore, type Vec3 } from "../sim/entities";
+import { createEntityStore, isRaining, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
@@ -31,6 +31,8 @@ import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { createFishTrapMeshes } from "./fish-trap-meshes";
 import { createWindowGlowMeshes } from "./window-glow-meshes";
 import { SHOWCASES } from "./showcases";
+import { windAt } from "./wind";
+import { createWindSway } from "./wind-sway";
 import { NOON, STAGE_FROM_RIVER_METRES, type Shot, type Stage } from "./showcases/types";
 
 /** Every showcase uses the same valley, so screenshots of one asset compare across sessions. */
@@ -131,9 +133,12 @@ export function showAsset(
   const props = new THREE.Group();
   const propResources = new Set<{ dispose(): void }>();
   scene.add(props);
+  // The wind sways trees and undergrowth as in the game. Stills show it at one moment. A live loop shows it sway.
+  const windSway = createWindSway();
   const stage: Stage = {
     store,
     player,
+    windSway,
     undergrowthShapes: shapes.undergrowth,
     treeShapes: shapes.trees,
     saplingModels: shapes.saplings,
@@ -166,7 +171,7 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
+  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.saplings, shapes.stump, shapes.log, windSway);
   const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
@@ -222,6 +227,7 @@ export function showAsset(
     // A tree felled by this pose starts falling at 0 seconds, so the view shows it `seconds` into the fall.
     // Stills restart every fall at time 0. A live loop lets each fall start when its tree is felled.
     if (!(options.play && showcase.play !== undefined)) forest.update(0);
+    windSway.update(windAt({ seed: SHOWCASE_SEED, nowSeconds: seconds, gameHours: shot.hour ?? NOON, rainShare: isRaining(store) ? 1 : 0 }), seconds);
     forest.update(seconds);
     structures.update({ nowSeconds: seconds, ropeHold: player.ropeHold() });
     bedrolls.update();

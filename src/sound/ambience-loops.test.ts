@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { ambienceLoop, loopSeconds } from "./ambience-loops";
+import { isFileSound } from "./sound-files";
 import { AMBIENCE_SOUND_IDS } from "./sound-mix";
 
 const SAMPLE_RATE = 8000;
 
 describe("the ambience loops", () => {
   for (const sound of AMBIENCE_SOUND_IDS) {
+    if (isFileSound(sound)) continue;
     it(`${sound} is a loop that never clips and is never silent`, () => {
       const loop = ambienceLoop(sound, SAMPLE_RATE);
       expect(loop.length).toBe(Math.round(loopSeconds(sound) * SAMPLE_RATE));

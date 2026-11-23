@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, cabinRoofEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { turnOffset } from "../sim/quarter-turns";
+import { SHADOW_ONLY_LAYER } from "./culled-batch";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { COURSE_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
 import { ALONE, gridCell, roofPlaces, shapeTop, type RoofPlace, type RoofShape } from "./roof-layout";
@@ -236,8 +237,12 @@ function random01(jitter: (size: number) => number): number {
   return (jitter(1) + 1) / 2;
 }
 
-/** Whether a picker and everything holding it are shown. A roof or frame hidden over the player cannot be picked. */
-export function isShown(object: THREE.Object3D): boolean {
-  for (let at: THREE.Object3D | null = object.parent; at !== null; at = at.parent) if (!at.visible) return false;
-  return true;
+/**
+ * Hides a roof or frame drawn under `root` over the player, or shows it again. A hidden one is drawn only into the sun's
+ * shadows, so the room under it stays in shade. Rays for clicks test only the default layer, so it cannot be picked either.
+ */
+export function hideKeepingShadow(root: THREE.Object3D, hidden: boolean): void {
+  root.traverse((object) => {
+    object.layers.set(hidden ? SHADOW_ONLY_LAYER : 0);
+  });
 }

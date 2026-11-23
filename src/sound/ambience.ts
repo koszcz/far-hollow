@@ -12,7 +12,7 @@ import { soundKeys, type SoundWish } from "./sound-mix";
 /** How loud the river is at the water's edge, before the Volume. */
 const RIVER_LOUDNESS = 0.7;
 /** How loud the forest rustles in a calm and in a gale, before the Volume. It follows the wind in between. */
-const FOREST_LOUDNESS = { calm: 0.08, gale: 0.55 };
+const FOREST_LOUDNESS = { calm: 0.12, gale: 0.7 };
 /** How loud a full-size fire crackles beside the player, before the Volume. A smaller flame crackles more quietly. */
 const FIRE_LOUDNESS = 0.8;
 

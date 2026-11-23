@@ -1519,12 +1519,13 @@
         "src/render/edge-piece-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "A window: a log wall with a square opening and no glass, on one edge of a foundation square, 2 m tall. It is built in the log wall's courses of debarked logs, with the same thickness, turn, and cut ends, so it lines up with a wall beside it. The three bottom courses run the full edge as a sill, the three courses beside the opening are each two short logs, one either side of a 0.6 m opening, and the two top courses run over it. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the sill courses, the courses beside the opening, then the courses over it: each stays in its place and turns solid during its stage. A finished window between the camera and the player fades out.",
+      "description": "A window: a log wall with a square opening and no glass, on one edge of a foundation square, 2 m tall. It is built in the log wall's courses of debarked logs, with the same thickness, turn, and cut ends, so it lines up with a wall beside it. The three bottom courses run the full edge as a sill, the three courses beside the opening are each two short logs, one either side of a 0.6 m opening, and the two top courses run over it. Each short log reaches and turns its own way. A frame of sawn boards, a little darker than plank wood, lines the opening: an upright board each side, and a 10 cm sill under it and header over it, each half sunk into its log. The boards sit just inside the wall's faces, so closed shutters never touch them. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the sill courses, the courses beside the opening with the sill and upright boards, then the courses over it with the header: each stays in its place and turns solid during its stage. A finished window between the camera and the player fades out.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

@@ -164,6 +164,12 @@ export interface Entity {
    */
   door?: true;
   /**
+   * Marks finished shutters: two plank shutters hung in a finished window. They are not an edge piece, so the window still holds the edge.
+   * Their position and `facing` are the window's. They never block walking. `open` says whether the player has opened them.
+   * They stay as the player left them: nothing else opens or closes them.
+   */
+  shutters?: { open: boolean };
+  /**
    * Marks a finished roof frame: the timber skeleton of one foundation square, level beams on the wall tops and sloped rafters on them.
    * It rests on the log walls and door frames on its square's edges. A cabin roof section is laid on it.
    * Its position is the middle of that square, at the height of the foundation's deck. Its `facing` says which way it slopes down.
@@ -457,6 +463,11 @@ export function edgePieceEntities(store: EntityStore) {
 /** Finished doors. */
 export function doorEntities(store: EntityStore) {
   return store.with("door", "position");
+}
+
+/** Finished shutters. */
+export function shuttersEntities(store: EntityStore) {
+  return store.with("shutters", "position");
 }
 
 /** Finished roof frames. */

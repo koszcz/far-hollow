@@ -7,7 +7,7 @@
 // berries are built here.
 // The saw blade, the saw, and the plank are rough draft shapes added by the crafting feature.
 // The fishing line, the fishing rod, raw fish, and cooked fish are the approved "fishing-piles" asset, built in fishing-pile-shapes.ts.
-// Cord and the fish trap are the draft "fish-trap-piles" asset, built in fish-trap-shape.ts.
+// Cord and the fish trap are the approved "fish-trap-piles" asset, built in fish-trap-shape.ts.
 // Stone is the approved "stone" asset, built in stone-shape.ts. The torch is the approved "torch" asset, built in torch-shape.ts.
 // Sticks never form piles: each dropped stick lies on its own, as a stick on the forest floor does.
 // The pivot of each pile is its middle, on the ground.
@@ -335,7 +335,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     unfiredJug: unfiredJugPileParts(material, track),
     // Jugs stand upright too, in the fired look of the same approved "jug" asset, whatever water they hold.
     ...byJug(() => jug),
-    // Cord and fish traps are the draft "fish-trap-piles" asset, drawn by fish-trap-shape.ts.
+    // Cord and fish traps are the approved "fish-trap-piles" asset, drawn by fish-trap-shape.ts.
     cord: cordPileParts((colour) => material(colour), track),
     fishTrap: fishTrapPileParts((colour) => material(colour), track),
     // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
@@ -360,8 +360,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     clay: spread(0.13),
     unfiredJug: spread(0.2),
     ...byJug(() => spread(0.2)),
-    cord: spread(0.1),
-    fishTrap: spread(0.4),
+    cord: spread(0.14),
+    fishTrap: spread(0.5),
     torch: spread(0.1),
     sapling: spread(0.2),
     berryBush: spread(0.35),

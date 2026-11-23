@@ -323,9 +323,11 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true },
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
+  { structure: "window", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame", fixedFacing: true },
   { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true },
+  { structure: "shutters", cost: [{ material: "plank", count: 2 }], placement: "inWindow", fixedFacing: true },
   { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   ...FURNITURE_BUILD_MENU,
@@ -578,6 +580,50 @@ function BuildIconSheet() {
   );
 }
 
+/** The furniture icons the "rain-barrel-icon" sheet draws beside the rain barrel, so the owner can compare their style. */
+const RAIN_BARREL_NEIGHBOURS = ["chest", "table", "stool", "bed"] as const;
+
+/**
+ * The "rain-barrel-icon" first view: the rain barrel's icon drawn large and at build menu size, beside four other furniture icons.
+ * The full build icon sheet does not fit the rain barrel in a quarter of the screen.
+ */
+function RainBarrelIconSheet() {
+  const cell = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "4px",
+    padding: "6px",
+    background: "#3d2b1e",
+    borderRadius: "6px",
+    color: "#cdb898",
+    fontSize: "11px",
+  } as const;
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "flex", gap: "6px" }}>
+      <div style={cell}>
+        <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
+          <StructureIcon structure="rainBarrel" />
+        </span>
+        <span style={{ width: "40px", height: "40px", display: "grid" }} class="showcase-big-icon">
+          <StructureIcon structure="rainBarrel" />
+        </span>
+        rainBarrel
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
+        {RAIN_BARREL_NEIGHBOURS.map((structure) => (
+          <div key={structure} style={cell}>
+            <span style={{ width: "72px", height: "72px", display: "grid" }} class="showcase-big-icon">
+              <StructureIcon structure={structure} />
+            </span>
+            {structure}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** The last view of "crafting-icons" or "fishing-icons": each icon drawn large, with its name, so the owner can judge the drawings. */
 function IconSheet({ contents }: { contents: readonly BackpackContent[] }) {
   return (
@@ -761,12 +807,13 @@ const STATES_BY_ASSET = {
   "rain-barrel-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
+  "window-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
   "fish-trap-icons": FISH_TRAP_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", "torch-icons", or "fish-trap-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "window-icons", "action-queue-icons", "torch-icons", or "fish-trap-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -782,12 +829,13 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
       asset === "furniture-icons" ||
       asset === "fireplace-icon" ||
       asset === "rain-barrel-icon" ||
-      asset === "floor-and-door-icons"
+      asset === "floor-and-door-icons" ||
+      asset === "window-icons"
     ) {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {
-        render(<BuildIconSheet />, quarter);
+        render(asset === "rain-barrel-icon" ? <RainBarrelIconSheet /> : <BuildIconSheet />, quarter);
         return;
       }
     }

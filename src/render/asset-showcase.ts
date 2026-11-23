@@ -117,6 +117,7 @@ export function showAsset(
     "hud",
     "log-wall",
     "door-frame",
+    "window",
     "torch",
   ].includes(id);
   // The bed's stills show the bed alone. Its live loop shows the player sleeping in it.
@@ -174,7 +175,7 @@ export function showAsset(
   const bark = createBarkMeshes(store);
   const piles = createPileMeshes(store, shapes.mushrooms);
   const plantedTorches = createPlantedTorchMeshes(store);
-  const fishTraps = createFishTrapMeshes(store, valley.river);
+  const fishTraps = createFishTrapMeshes(store, valley.river, groundAt);
   fishTraps.update();
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);

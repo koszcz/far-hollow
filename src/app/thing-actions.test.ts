@@ -933,6 +933,32 @@ describe("other things' actions", () => {
   });
 });
 
+describe("shutters' actions", () => {
+  it("opens closed shutters as the main action, clicked or reached with E, then takes them down", () => {
+    const world = worldWith({});
+    const shutters = world.add({ shutters: { open: false }, facing: { turns: 0 } });
+    const clicked: ActionTarget = { kind: "scene", pick: { kind: "structure", id: shutters, structure: "shutters", under: undefined } };
+
+    for (const target of [clicked, { kind: "scene", pick: { kind: "shutters", id: shutters } } as const]) {
+      const actions = actionsFor(target, world.reader);
+      expect(summary(actions)).toEqual(["openShutters main", "takeDown"]);
+      expect(mainAction(actions)?.label).toBe("Open shutters");
+      expect(mainAction(actions)?.command).toEqual({ type: "setShutters", shuttersId: shutters, open: true });
+    }
+  });
+
+  it("closes open shutters as the main action", () => {
+    const world = worldWith({});
+    const shutters = world.add({ shutters: { open: true }, facing: { turns: 0 } });
+
+    const actions = actionsFor({ kind: "scene", pick: { kind: "shutters", id: shutters } }, world.reader);
+
+    expect(summary(actions)).toEqual(["closeShutters main", "takeDown"]);
+    expect(mainAction(actions)?.label).toBe("Close shutters");
+    expect(mainAction(actions)?.command).toEqual({ type: "setShutters", shuttersId: shutters, open: false });
+  });
+});
+
 describe("a planted torch's actions", () => {
   it("picks it up, as the only and main action", () => {
     const world = worldWith({});

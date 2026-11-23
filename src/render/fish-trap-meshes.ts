@@ -1,19 +1,31 @@
-// Draws set fish traps: the draft "fish-trap" asset in asset-manifest.json. Built in code. Added by fish-trap ticket 01.
-// A set trap is the cone basket of sticks from fish-trap-shape.ts, sunk half into the river's water at the edge, its mouth facing
-// upstream. When it holds a fish, a raw fish from the approved "fishing-piles" shapes lies inside it, so the player can see it.
+// Draws set fish traps: the approved "fish-trap" asset in asset-manifest.json. Built in code. Added by fish-trap ticket 01.
+// A set trap is the woven cone basket from fish-trap-shape.ts, sunk half into the river's water at the edge, its mouth facing
+// upstream. A stake driven into the bank beside its mouth holds a cord line tied to the trap's hoop. When it holds a fish, a raw
+// fish from the approved "fishing-piles" shapes lies inside it, so the player can see it.
 // There are only ever a few traps, the ones the player set, so each is its own meshes rather than a batch.
 import * as THREE from "three";
 import { fishTrapEntities, type Entity, type EntityStore } from "../sim/entities";
-import type { River } from "../sim/valley";
-import { createFishTrapGeometries, CORD_COLOUR, FISH_TRAP_MOUTH_RADIUS_METRES, TRAP_STICK_COLOUR } from "./fish-trap-shape";
+import { nearestRiverPoint, type River } from "../sim/valley";
+import {
+  createFishTrapGeometries,
+  createFishTrapStakeGeometries,
+  CORD_COLOUR,
+  FISH_TRAP_MOUTH_RADIUS_METRES,
+  STAKE_COLOUR,
+  TRAP_STICK_COLOUR,
+  WITHY_COLOUR,
+} from "./fish-trap-shape";
 import { rawFishParts } from "./fishing-pile-shapes";
 import type { OutlinePart } from "./hover-outline";
 
 /** The trap sinks this far below the ground under it, in metres, so its lower half sits in the water. */
 const SINK_METRES = FISH_TRAP_MOUTH_RADIUS_METRES * 0.6;
-/** The fish inside lies just above the waterline, in metres above the trap's bottom, so it shows, and a little toward the narrow end. */
-const FISH_LIFT_METRES = SINK_METRES + 0.01;
-const FISH_ALONG_METRES = 0.05;
+/** The fish inside lies just above the waterline, in metres above the trap's bottom, so it shows, and toward the narrow end, past the funnel. */
+const FISH_LIFT_METRES = SINK_METRES + 0.03;
+const FISH_ALONG_METRES = 0.1;
+/** The stake stands on the bank this far from the trap, away from the river, and this far upstream, beside the trap's mouth. In metres. */
+const STAKE_OUT_METRES = 0.6;
+const STAKE_UPSTREAM_METRES = 0.25;
 
 /** What a click on a fish trap landed on. */
 export interface FishTrapHit {
@@ -50,7 +62,20 @@ function flowHeadingAt(river: River, spot: { x: number; z: number }): number {
   return best;
 }
 
-export function createFishTrapMeshes(entities: EntityStore, river: River): FishTrapMeshes {
+/** Where the stake stands for a trap at a spot: on the bank, away from the river's middle line, beside the trap's mouth. */
+function stakeSpot(river: River, spot: { x: number; z: number }, heading: number): { x: number; z: number } {
+  const middle = nearestRiverPoint(river, spot);
+  const outLength = Math.hypot(spot.x - middle.x, spot.z - middle.z) || 1;
+  const out = { x: (spot.x - middle.x) / outLength, z: (spot.z - middle.z) / outLength };
+  // The heading turns +z to the way the river flows, so upstream is the other way.
+  return {
+    x: spot.x + out.x * STAKE_OUT_METRES - Math.sin(heading) * STAKE_UPSTREAM_METRES,
+    z: spot.z + out.z * STAKE_OUT_METRES - Math.cos(heading) * STAKE_UPSTREAM_METRES,
+  };
+}
+
+/** Draws set fish traps. `heightAt` gives the ground's height at a spot, for the stake on the bank. */
+export function createFishTrapMeshes(entities: EntityStore, river: River, heightAt: (x: number, z: number) => number): FishTrapMeshes {
   const group = new THREE.Group();
   const resources = new Set<{ dispose(): void }>();
   const track = <T extends { dispose(): void }>(resource: T): T => {
@@ -58,15 +83,18 @@ export function createFishTrapMeshes(entities: EntityStore, river: River): FishT
     return resource;
   };
   const material = (color: number) => track(new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true }));
-  const { sticks, cord } = createFishTrapGeometries();
+  const { sticks, withy, cord } = createFishTrapGeometries();
   track(sticks);
+  track(withy);
   track(cord);
   const stickMaterial = material(TRAP_STICK_COLOUR);
+  const withyMaterial = material(WITHY_COLOUR);
   const cordMaterial = material(CORD_COLOUR);
+  const stakeMaterial = material(STAKE_COLOUR);
   const fishParts = rawFishParts(material, track);
   const query = fishTrapEntities(entities).connect();
-  /** Each drawn trap, with its meshes and whether they show a fish. */
-  const drawn = new Map<Entity, { holder: THREE.Group; holding: boolean }>();
+  /** Each drawn trap, with its meshes, its own stake and line geometries, and whether they show a fish. */
+  const drawn = new Map<Entity, { holder: THREE.Group; own: THREE.BufferGeometry[]; holding: boolean }>();
   let dirty = true;
   const markDirty = () => {
     dirty = true;
@@ -74,14 +102,23 @@ export function createFishTrapMeshes(entities: EntityStore, river: River): FishT
   query.onEntityAdded.subscribe(markDirty);
   query.onEntityRemoved.subscribe(markDirty);
 
-  function build(entity: Entity & { position: THREE.Vector3Like; fishTrap: { holding: boolean } }): THREE.Group {
+  function build(entity: Entity & { position: THREE.Vector3Like; fishTrap: { holding: boolean } }): { holder: THREE.Group; own: THREE.BufferGeometry[] } {
     const holder = new THREE.Group();
     holder.position.set(entity.position.x, entity.position.y - SINK_METRES, entity.position.z);
     // The trap's mouth is at -z. Turn it so the mouth faces upstream, where the fish swim in from.
-    holder.rotation.y = flowHeadingAt(river, entity.position);
+    const heading = flowHeadingAt(river, entity.position);
+    holder.rotation.y = heading;
+    holder.updateMatrix();
+    // The stake's foot on the bank, in the trap's own frame.
+    const stakeAt = stakeSpot(river, entity.position, heading);
+    const stakeFoot = new THREE.Vector3(stakeAt.x, heightAt(stakeAt.x, stakeAt.z), stakeAt.z).applyMatrix4(holder.matrix.clone().invert());
+    const { stake, line } = createFishTrapStakeGeometries(stakeFoot);
     for (const [geometry, partMaterial] of [
       [sticks, stickMaterial],
+      [withy, withyMaterial],
       [cord, cordMaterial],
+      [stake, stakeMaterial],
+      [line, cordMaterial],
     ] as const) {
       const mesh = new THREE.Mesh(geometry, partMaterial);
       mesh.castShadow = true;
@@ -95,15 +132,18 @@ export function createFishTrapMeshes(entities: EntityStore, river: River): FishT
       }
     }
     for (const mesh of holder.children) mesh.userData.fishTrap = entity;
-    return holder;
+    return { holder, own: [stake, line] };
   }
 
   function rebuild(): void {
-    for (const { holder } of drawn.values()) group.remove(holder);
+    for (const { holder, own } of drawn.values()) {
+      group.remove(holder);
+      for (const geometry of own) geometry.dispose();
+    }
     drawn.clear();
     for (const entity of query) {
-      const holder = build(entity);
-      drawn.set(entity, { holder, holding: entity.fishTrap.holding });
+      const { holder, own } = build(entity);
+      drawn.set(entity, { holder, own, holding: entity.fishTrap.holding });
       group.add(holder);
     }
   }
@@ -142,6 +182,7 @@ export function createFishTrapMeshes(entities: EntityStore, river: River): FishT
     },
     dispose() {
       query.disconnect();
+      for (const { own } of drawn.values()) for (const geometry of own) geometry.dispose();
       for (const resource of resources) resource.dispose();
     },
   };

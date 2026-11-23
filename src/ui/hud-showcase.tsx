@@ -49,6 +49,7 @@ const BASE_VIEW: GameView = {
   sittingOn: null,
   reach: null,
   actionQueue: [],
+  journal: { done: [], hidden: false, justDone: null },
 };
 
 /** One HUD state: the game state, whether the build menu is open, what the player is placing, and whether the craft menu is open. */
@@ -194,7 +195,7 @@ const STONE_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
-/** The draft "clay" asset, over the last view only: clay in the backpack while digging one, beside a pile of clay. */
+/** The approved "clay" asset, over the last view only: clay in the backpack while digging one, beside a pile of clay. */
 const CLAY_STATES: readonly (ShowcaseState | null)[] = [
   null,
   null,

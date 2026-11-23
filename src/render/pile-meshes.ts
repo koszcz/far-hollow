@@ -329,7 +329,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     ...fishingPileParts((colour) => material(colour), track),
     // Stone is the approved "stone" asset, drawn by stone-shape.ts.
     stone: stoneShapes[0] ?? [],
-    // Clay is the draft "clay" asset, drawn by clay-shape.ts.
+    // Clay is the approved "clay" asset, drawn by clay-shape.ts.
     clay: clayPileParts(material, track),
     // Unfired jugs stand upright. The jug is the approved "jug" asset, drawn by jug-shape.ts.
     unfiredJug: unfiredJugPileParts(material, track),

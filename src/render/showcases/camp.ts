@@ -354,7 +354,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
-  // The draft "clay": lumps of clay lying in piles of 1, 4, and 12 beside a knife for size, and the backpack icon.
+  // The approved "clay": lumps of clay lying in piles of 1, 4, and 12 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with clay in the backpack, digging under way, and the pile's tooltip.
   clay: {
     radius: 2.2,

@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. The panel is text only and uses the existing panel style.
 
@@ -25,17 +25,17 @@ Each goal has one short hint line. The hint names the key and the materials the 
 
 ## Acceptance criteria
 
-- [ ] A goal is done the first time the player does it. It stays done, even if the player later takes the thing down.
-- [ ] Goals can be done out of order. Any goal that happens is marked done.
-- [ ] The HUD always shows one short line with the first goal not yet done.
-- [ ] J opens and closes the journal panel. Escape closes it. The panel shows the goals not yet done, first ones first, each with its hint. It also shows the goals already done.
-- [ ] When a goal is done, the existing notice banner says so, such as "Journal: campfire lit."
-- [ ] The panel has a "Hide journal" toggle. It hides the HUD line and the done notices. J still opens the panel. The toggle is saved per game.
-- [ ] After the last goal, the panel shows one closing line, such as "Your camp is yours now." The HUD line goes away for good.
-- [ ] The playground has no journal. Goals are not marked done there, and J does nothing.
-- [ ] Done goals and the hide toggle are saved. The save version goes up. Older saves load with no goals done. Ticket 02 fills them in.
-- [ ] All player-facing text is in the strings file.
-- [ ] Unit tests cover each goal being marked done, out-of-order goals, the hide toggle, and saving.
+- [x] A goal is done the first time the player does it. It stays done, even if the player later takes the thing down.
+- [x] Goals can be done out of order. Any goal that happens is marked done.
+- [x] The HUD always shows one short line with the first goal not yet done.
+- [x] J opens and closes the journal panel. Escape closes it. The panel shows the goals not yet done, first ones first, each with its hint. It also shows the goals already done.
+- [x] When a goal is done, the existing notice banner says so, such as "Journal: campfire lit."
+- [x] The panel has a "Hide journal" toggle. It hides the HUD line and the done notices. J still opens the panel. The toggle is saved per game.
+- [x] After the last goal, the panel shows one closing line, such as "Your camp is yours now." The HUD line goes away for good.
+- [x] The playground has no journal. Goals are not marked done there, and J does nothing.
+- [x] Done goals and the hide toggle are saved. The save version goes up. Older saves load with no goals done. Ticket 02 fills them in.
+- [x] All player-facing text is in the strings file.
+- [x] Unit tests cover each goal being marked done, out-of-order goals, the hide toggle, and saving.
 
 ## Out of scope
 
@@ -46,3 +46,5 @@ Each goal has one short hint line. The hint names the key and the materials the 
 ## Comments
 
 Triaged in a grilling session on 2026-11-22. Decisions are recorded above. The glossary entries **Journal**, **Goal**, and **Bedroll** were added or updated in the same session.
+
+Built on 2026-11-23. The notice that a goal is done shows in the notice banner, but on its own line (`GameView.journal.justDone`), not as a game notice. So it never hides a refusal or the snug-room banner, and it does not wait behind them. A goal notice is not saved.

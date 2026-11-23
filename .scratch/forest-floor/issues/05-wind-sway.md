@@ -4,13 +4,9 @@
 
 **Blocked by:** none
 
-**Status:** idea
+**Status:** ready-for-agent
 
-**Assets:** Changes five approved assets so they sway: `trees`, `saplings`, `grass`, `ferns`, and `flowers`. Each goes back to `draft`. The owner approved the `trees` change in chat on 2026-11-22. The other four still need the owner's approval. Adds none.
-
-Questions for grilling:
-
-- Does the owner approve changing `saplings`, `grass`, `ferns`, and `flowers` so they sway? Once they do, record it here and set this ticket to `ready-for-agent`.
+**Assets:** Changes five approved assets so they sway: `trees`, `saplings`, `grass`, `ferns`, and `flowers`. Each goes back to `draft`. The owner approved the `trees` change in chat on 2026-11-22. The owner approved the `saplings`, `grass`, `ferns`, and `flowers` changes in chat on 2026-11-23. Adds none.
 
 - [ ] Grass, ferns, flowers, saplings, young trees, and treetops sway.
 - [ ] Tree trunks, pebbles, stumps, sticks, and berry bushes stay still.

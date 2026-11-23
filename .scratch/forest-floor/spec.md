@@ -59,6 +59,8 @@ The owner approved copying these Kenney files into `public/assets/<id>/` as draf
 
 The owner approved adding sway to the approved `trees` asset in chat on 2026-11-22.
 
+The owner approved adding sway to the approved `saplings`, `grass`, `ferns`, and `flowers` assets in chat on 2026-11-23.
+
 ## Not part of this feature
 
 - Birds, fireflies, and other animals. See `.scratch/valley-life/issues/01-birds-and-fireflies.md`.

@@ -47,6 +47,7 @@ import { createDrawnGround } from "./drawn-ground";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { createFishTrapMeshes } from "./fish-trap-meshes";
+import { createWindowGlowMeshes } from "./window-glow-meshes";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { isDrawnWork, type DrawnWork } from "./drawn-work";
 
@@ -180,6 +181,9 @@ export function createSceneRenderer(
   // Fireflies are only for looks, like the rain. Game logic never sees them, and they are never saved.
   const fireflyEffect = createFireflyEffect(entities, { isOpen: fireflyOpenGround(groundMap), heightAt: groundHeightAt });
   scene.add(fireflyEffect.group);
+  // The glow in firelit windows at night is only for looks: it casts no shadow, lights nothing, and is never picked.
+  const windowGlowMeshes = createWindowGlowMeshes(entities);
+  scene.add(windowGlowMeshes.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group,
@@ -681,6 +685,7 @@ export function createSceneRenderer(
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
       fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
+      windowGlowMeshes.update(daylight);
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
@@ -719,6 +724,7 @@ export function createSceneRenderer(
     },
     dispose() {
       hoverOutline.dispose();
+      windowGlowMeshes.dispose();
       valleyMeshes.dispose();
       undergrowthMeshes.dispose();
       riverMeshes.dispose();

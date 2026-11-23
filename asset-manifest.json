@@ -304,14 +304,17 @@
         "src/render/roof-layout.ts",
         "src/sim/structures.ts"
       ],
-      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Hewn beams, debarked logs squared with an adze, with chamfered corners, shallow adze marks, and pale cut ends, lie level on the top of every wall and door frame on the square's edges. Their square shape sets them apart from the round wall logs. The beams on the lower walls, which run along z, are hewn taller, so every beam top is level. A beam reaches about 0.15 m past the walls where no frame carries on beyond its end, so it stays under the steep eaves. The beams are a shade darker than the wall logs, so they read as their own part. Three hewn rafters, a little narrower than they are tall, rest on the beams and slope 35 degrees the way the frame faces, so the planks lie flat on them. Both ends of a rafter are cut upright. Where the front of a frame is an eave, the rafters reach on past the wall, under the roof's overhang. Where two frames slope away from each other, their rafters meet in pairs at the ridge, each pair held by wooden pegs, over a hewn ridge pole that runs under the planks and reaches past the gable ends under the overhang. The frame sloping down to +z or +x lays the ridge pole, with its last rafter. Where a slope rises above the beams, as at each end of a ridge, the high side of a shed roof, or the step beside a lower roof, plank gable ends (the gable-end draft) close the gap up to the roof. The frame's cost pays for them. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the gable ends going up with the last rafter. Each part stays in its place and turns solid during its stage. It hides with the roof above the player.",
+      "description": "The roof frame: the timber skeleton of one foundation square, between the walls and the roof. Hewn beams, debarked logs squared with an adze, with chamfered corners, shallow adze marks, and pale cut ends, lie level on the top of every wall and door frame on the square's edges. Their square shape sets them apart from the round wall logs. The beams on the lower walls, which run along z, are hewn taller, so every beam top is level. A beam reaches about 0.15 m past the walls where no frame carries on beyond its end, so it stays under the steep eaves. The beams are a shade darker than the wall logs, so they read as their own part. Three hewn rafters, a little narrower than they are tall, rest on the beams and slope 35 degrees the way the frame faces, so the planks lie flat on them. Both ends of a rafter are cut upright. Where the front of a frame is an eave, the rafters reach on past the wall, under the roof's overhang. Where two frames slope away from each other, their rafters meet in pairs at the ridge, each pair held by wooden pegs, over a hewn ridge pole that runs under the planks and reaches past the gable ends under the overhang. The frame sloping down to +z or +x lays the ridge pole, with its last rafter. Where a slope rises above the beams, as at each end of a ridge, the high side of a shed roof, or the step beside a lower roof, plank gable ends (the gable-end draft) close the gap up to the roof. The frame's cost pays for them. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction has one stage per log: the beams along x, the beams along z, then the rafters one by one, with the gable ends going up with the last rafter. Each part stays in its place and turns solid during its stage. It hides with the roof above the player, and still casts its shadow while hidden. A hidden frame cannot be picked.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-14"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-22: The owner approved keeping the roof frame casting its shadow while it hides over the player, so a room stays dark by day except where daylight comes in through an open window or a doorway (windows ticket 02)."
+      ]
     },
     {
       "id": "roof",
@@ -321,14 +324,17 @@
         "src/render/roof-parts.ts",
         "src/sim/roofs.ts"
       ],
-      "description": "The cabin roof section: planks laid on the roof frame of one foundation square, the same planks the sawhorse cuts. It slopes 35 degrees the way its frame does, and sections one behind another share one continuous slope. Two rows that slope away from each other meet at a ridge, where the planks of the slope down to +z or +x reach a little past it, over the other slope. Grey, weathered planks lie in 6 overlapping rows across the slope, from the eaves up. Each row is short planks side by side, running down the slope, with ragged, staggered lower ends that are a little darker. Each plank lies a little less steep than the roof, so its lower end lifts over the row below and every row casts a clear shadow line. Where an edge has no section beside it, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed roof. As a blueprint it shows see-through, and construction lays one row of planks per stage. The roof above the player hides when they stand under it. Its valley pieces are the separate asset roof-corners, and its gable ends the draft asset gable-end.",
+      "description": "The cabin roof section: planks laid on the roof frame of one foundation square, the same planks the sawhorse cuts. It slopes 35 degrees the way its frame does, and sections one behind another share one continuous slope. Two rows that slope away from each other meet at a ridge, where the planks of the slope down to +z or +x reach a little past it, over the other slope. Grey, weathered planks lie in 6 overlapping rows across the slope, from the eaves up. Each row is short planks side by side, running down the slope, with ragged, staggered lower ends that are a little darker. Each plank lies a little less steep than the roof, so its lower end lifts over the row below and every row casts a clear shadow line. Where an edge has no section beside it, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed roof. As a blueprint it shows see-through, and construction lays one row of planks per stage. The roof above the player hides when they stand under it, but it still casts its shadow, so the room under it stays dark except where daylight comes in through an open window or a doorway. A hidden roof cannot be picked. Its valley pieces are the separate asset roof-corners, and its gable ends the draft asset gable-end.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-14"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-22: The owner approved keeping the roof casting its shadow while it hides over the player, so a room stays dark by day except where daylight comes in through an open window or a doorway (windows ticket 02)."
+      ]
     },
     {
       "id": "roof-corners",
@@ -338,14 +344,17 @@
         "src/render/roof-frame-meshes.ts",
         "src/render/roof-layout.ts"
       ],
-      "description": "The valley pieces of the cabin roof and its frame. No roof has a hip. Where a frame's downhill neighbour slopes at right angles to it, one wing ends against another, and the frame becomes a valley, where the two slopes meet in a gutter. At the corner of an L-shaped or U-shaped cabin, the corner frames' own turns decide which wing runs through: the wing that slopes the same way as them. The player changes this by turning the corner frames with R. Where the butted wing is deeper, its slope starts higher and runs over the corner square as a straight section, and its ridge stands above the through-roof's. The frame has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Two dark, water-stained valley boards line the gutter, one on each slope, so they make a shallow V along the meeting line. They run from the square's high corner to its low corner and on under the eaves. Six rows of weathered planks, made like the straight section's, are laid on both slopes from the eaves up. Each slope's planks stop a hand's width short of the meeting line, cut a little ragged, and lap over the outer edge of their board, so the boards show between the slopes as a gutter. Construction stages match the straight frame's and roof's. The valley boards are laid with the first row of planks.",
+      "description": "The valley pieces of the cabin roof and its frame. No roof has a hip. Where a frame's downhill neighbour slopes at right angles to it, one wing ends against another, and the frame becomes a valley, where the two slopes meet in a gutter. At the corner of an L-shaped or U-shaped cabin, the corner frames' own turns decide which wing runs through: the wing that slopes the same way as them. The player changes this by turning the corner frames with R. Where the butted wing is deeper, its slope starts higher and runs over the corner square as a straight section, and its ridge stands above the through-roof's. The frame has a debarked-log rafter along each low edge and one corner to corner under the line where the slopes meet. Two dark, water-stained valley boards line the gutter, one on each slope, so they make a shallow V along the meeting line. They run from the square's high corner to its low corner and on under the eaves. Six rows of weathered planks, made like the straight section's, are laid on both slopes from the eaves up. Each slope's planks stop a hand's width short of the meeting line, cut a little ragged, and lap over the outer edge of their board, so the boards show between the slopes as a gutter. Construction stages match the straight frame's and roof's. The valley boards are laid with the first row of planks. Like the rest of the roof and its frame, the valley pieces hide over the player but still cast their shadows.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-14"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-22: The owner approved keeping the valley pieces of the roof and frame casting its shadow while it hides over the player, so a room stays dark by day except where daylight comes in through an open window or a doorway (windows ticket 02)."
+      ]
     },
     {
       "id": "gable-end",
@@ -1233,8 +1242,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/rain-barrel/issues/01-rain-barrel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {
@@ -1600,6 +1610,21 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+      }
+    },
+    {
+      "id": "window-glow",
+      "kind": "code",
+      "code": [
+        "src/render/window-glow-meshes.ts",
+        "src/sim/window-glow.ts"
+      ],
+      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, and a soft halo, a little larger than the opening, spreads from the outer face of the wall. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight. It casts no shadow, lights nothing, and is never picked.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/windows/issues/02-indoor-shadow-and-window-glow.md"
       }
     },
     {

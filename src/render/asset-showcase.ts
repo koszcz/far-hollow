@@ -29,6 +29,7 @@ import { createStructureMeshes } from "./structure-meshes";
 import { createTorchLights } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { createFishTrapMeshes } from "./fish-trap-meshes";
+import { createWindowGlowMeshes } from "./window-glow-meshes";
 import { SHOWCASES } from "./showcases";
 import { windAt } from "./wind";
 import { createWindSway } from "./wind-sway";
@@ -182,6 +183,7 @@ export function showAsset(
   const plantedTorches = createPlantedTorchMeshes(store);
   const fishTraps = createFishTrapMeshes(store, valley.river, groundAt);
   fishTraps.update();
+  const windowGlow = createWindowGlowMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
   // Fireflies show only where the showcase asks for them, over open ground everywhere. A fixed seed keeps their stills the same.
@@ -199,6 +201,7 @@ export function showAsset(
     plantedTorches.group,
     fishTraps.group,
     rain.group,
+    windowGlow.group,
   );
   sky.addShadowReceivers(ground.group);
   sky.addShadowCasters(
@@ -232,6 +235,7 @@ export function showAsset(
     bark.update();
     plantedTorches.update(seconds);
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
+    windowGlow.update(daylightAt(shot.hour ?? NOON));
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
@@ -297,6 +301,7 @@ export function showAsset(
       piles.dispose();
       plantedTorches.dispose();
       fishTraps.dispose();
+      windowGlow.dispose();
       bark.dispose();
       rain.dispose();
       fireflies?.dispose();

@@ -13,11 +13,15 @@ const result = await Bun.build({
   target: "browser",
   minify: true,
   splitting: true,
+  // Sentry reads the public source maps to show crash reports with the original code.
+  sourcemap: "linked",
   publicPath: base,
   define: {
     "import.meta.env.DEV": "false",
     "import.meta.env.PROD": "true",
     "import.meta.env.BASE_URL": JSON.stringify(base),
+    // CI sets GITHUB_SHA. A local build is named "local".
+    "import.meta.env.RELEASE": JSON.stringify(process.env.GITHUB_SHA ?? "local"),
   },
 });
 

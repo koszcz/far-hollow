@@ -270,14 +270,17 @@
         "src/render/edge-piece-meshes.ts",
         "src/sim/edge-pieces.ts"
       ],
-      "description": "The log wall: a 2 m stack of debarked logs laid along one edge of a foundation square. Each delivered log is cut in two, so each build stage lays two courses. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the courses from the bottom up: each delivered log's two courses stay in their places and turn solid during its stage. A finished wall between the camera and the player fades out.",
+      "description": "The log wall: a 2 m stack of debarked logs laid along one edge of a foundation square. Each delivered log is cut in two, so each build stage lays two courses. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the courses from the bottom up: each delivered log's two courses stay in their places and turn solid during its stage. A finished wall between the camera and the player fades out, but it still casts its shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved keeping the wall casting its shadow while it fades out between the camera and the player, so a faded wall does not let daylight into a room (windows ticket 02)."
+      ]
     },
     {
       "id": "door-frame",
@@ -286,14 +289,17 @@
         "src/render/edge-piece-meshes.ts",
         "src/sim/edge-pieces.ts"
       ],
-      "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel: each stays in its place and turns solid during its stage. A finished frame between the camera and the player fades out.",
+      "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel: each stays in its place and turns solid during its stage. A finished frame between the camera and the player fades out, but it still casts its shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved keeping the frame casting its shadow while it fades out between the camera and the player, so a faded frame does not let daylight into a room (windows ticket 02)."
+      ]
     },
     {
       "id": "roof-frame",
@@ -1513,14 +1519,17 @@
         "src/render/door-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "A plank door hung in a door frame. Three upright planks of pale hand-sawn wood, butted together with no gap, fill the doorway between the frame's posts. The door reaches 6 cm into each post and 5 cm up into the lintel, so no gap shows round it where the posts lean and taper; only a 5 mm gap is left above the floor. Each plank is a little lighter or darker than the next, and stands a few millimetres proud of or back from its neighbours. Two darker battens and a diagonal brace, rising from the hinge side to the free side, cross the inside face. On the outside, two dark iron strap hinges reach in from round knuckles at the left post, level with the battens, and an iron ring hangs from a small backplate near the free edge. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens, brace, hinges, and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player.",
+      "description": "A plank door hung in a door frame. Three upright planks of pale hand-sawn wood, butted together with no gap, fill the doorway between the frame's posts. The door reaches 6 cm into each post and 5 cm up into the lintel, so no gap shows round it where the posts lean and taper; only a 5 mm gap is left above the floor. Each plank is a little lighter or darker than the next, and stands a few millimetres proud of or back from its neighbours. Two darker battens and a diagonal brace, rising from the hinge side to the free side, cross the inside face. On the outside, two dark iron strap hinges reach in from round knuckles at the left post, level with the battens, and an iron ring hangs from a small backplate near the free edge. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens, brace, hinges, and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player, but it still casts its shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-21"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved keeping the door casting its shadow while it fades out between the camera and the player, so a faded door does not let daylight into a room (windows ticket 02)."
+      ]
     },
     {
       "id": "door-animation",

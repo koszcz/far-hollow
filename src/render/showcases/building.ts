@@ -16,8 +16,12 @@ import {
   SAWHORSE_LOG_COST,
   SLED_LOG_COST,
   SLED_STICK_COST,
+  SHUTTERS_PLANK_COST,
+  WINDOW_LOG_COST,
 } from "../../sim/structures";
 import { turnOffset, type QuarterTurns } from "../../sim/quarter-turns";
+import type { EdgePieceKind } from "../../sim/structure-kind";
+import { SHUTTER_SWING_SECONDS } from "../shutter-swing";
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
@@ -30,6 +34,8 @@ const SLED_STAGES = SLED_LOG_COST + SLED_STICK_COST;
 const DOOR_WALK_FROM_Z = -1.2;
 const DOOR_WALK_TO_Z = 2.2;
 const DOOR_WALK_CYCLE_SECONDS = 6;
+/** In the "shutter-swing" live loop, the shutters stand open for half of this long, then closed for the other half. */
+const SHUTTER_LOOP_SECONDS = 4;
 /** The fireplace showcase marks its lit shot with this time, past the end of the build. */
 const LIT_FIREPLACE_SHOT = 2;
 /** The fireplace showcase marks its shot of a pot and fish on the lit fire with this time. */
@@ -121,10 +127,10 @@ function lSquares(left: number): (readonly [number, number])[] {
 }
 
 /**
- * Shows a log wall or door frame on the back edge of a finished foundation, with the player beside it for size.
+ * Shows a log wall, door frame, or window on the back edge of a finished foundation, with the player beside it for size.
  * A blueprint with two logs delivered, the third log's part turning solid, then the finished piece from the front and from behind.
  */
-function edgePieceShowcase(piece: "logWall" | "doorFrame", logCost: number): Showcase {
+function edgePieceShowcase(piece: EdgePieceKind, logCost: number): Showcase {
   return {
     radius: 1.6,
     focus: { x: 0, y: 1.1, z: 0 },
@@ -321,6 +327,7 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   "log-wall": edgePieceShowcase("logWall", LOG_WALL_LOG_COST),
   "door-frame": edgePieceShowcase("doorFrame", DOOR_FRAME_LOG_COST),
+  window: edgePieceShowcase("window", WINDOW_LOG_COST),
   door: {
     radius: 1.5,
     focus: { x: 0, y: 1, z: 0.5 },
@@ -397,6 +404,74 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
         const share = outward ? t / half : (t - half) / half;
         const z = outward ? DOOR_WALK_FROM_Z + (DOOR_WALK_TO_Z - DOOR_WALK_FROM_Z) * share : DOOR_WALK_TO_Z + (DOOR_WALK_FROM_Z - DOOR_WALK_TO_Z) * share;
         movePlayer(0, z, outward ? 0 : Math.PI);
+        return undefined;
+      },
+    },
+  },
+  shutters: {
+    radius: 1.5,
+    focus: { x: 0, y: 1, z: 0.5 },
+    // A window on the front edge of a foundation: a shutters blueprint with 1 of 2 planks, the 2nd leaf being set down,
+    // then the finished shutters, closed, from the front with their hinges and from behind, then open. The player stands aside.
+    shots: [
+      { label: `blueprint, 1 of ${SHUTTERS_PLANK_COST} planks`, yaw: 25, pitch: 15, seconds: 0 },
+      { label: "2nd leaf above its place", yaw: 25, pitch: 15, seconds: (1 + BUILD_FADE_SHARE) / SHUTTERS_PLANK_COST },
+      { label: "built, closed, front", yaw: 0, pitch: 10, seconds: 1 },
+      { label: "built, closed, back", yaw: 180, pitch: 10, seconds: 1 },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      onDeck(0, 0.5, { edgePiece: "window", facing: { turns: 0 } });
+      onDeck(0, 0.5, { blueprint: { structure: "shutters", progress: 0, materialsSpent: 0, delivered: { plank: 1 } }, facing: { turns: 0 } });
+      stage.movePlayer(1.4, 1.6, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      const progress = shot.seconds ?? 0;
+      for (const entity of [...store.with("blueprint"), ...store.with("shutters")]) {
+        if (progress >= 1) {
+          store.removeComponent(entity, "blueprint");
+          setComponent(store, entity, "shutters", { open: false });
+          continue;
+        }
+        store.removeComponent(entity, "shutters");
+        setComponent(store, entity, "blueprint", { structure: "shutters", progress, materialsSpent: 0, delivered: {} });
+        if (entity.blueprint !== undefined) entity.blueprint.delivered.plank = Math.max(1, Math.ceil(progress * SHUTTERS_PLANK_COST));
+      }
+    },
+  },
+  "shutter-swing": {
+    radius: 1.6,
+    focus: { x: 0, y: 1, z: 0.5 },
+    // Finished shutters in a window. Each view hangs new shutters, so they start to swing as the view's clock starts:
+    // swinging open, open and folded back against the wall, swinging closed, then closed.
+    shots: [
+      { label: "swinging open", yaw: 35, pitch: 20, seconds: SHUTTER_SWING_SECONDS / 2 },
+      { label: "open, folded back", yaw: 35, pitch: 20, seconds: 1 },
+      { label: "swinging closed", yaw: 35, pitch: 20, seconds: SHUTTER_SWING_SECONDS / 2 },
+      { label: "closed", yaw: 35, pitch: 20, seconds: 1 },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      onDeck(0, 0.5, { edgePiece: "window", facing: { turns: 0 } });
+      stage.movePlayer(1.4, 1.6, -Math.PI / 2);
+    },
+    pose(stage, shot) {
+      for (const shutters of [...stage.store.with("shutters")]) stage.store.remove(shutters);
+      onDeckOf(stage)(0, 0.5, { shutters: { open: shot.label.includes("open") }, facing: { turns: 0 } });
+    },
+    // The shutters open and close in a loop, as the player opens and closes them.
+    play: {
+      shot: { label: "opening and closing", yaw: 35, pitch: 20 },
+      pose({ store }, seconds) {
+        const shutters = store.with("shutters").first;
+        if (shutters === undefined) {
+          const frame = store.with("edgePiece", "position").first;
+          if (frame !== undefined) store.add({ shutters: { open: false }, facing: { turns: 0 }, position: { ...frame.position } });
+          return undefined;
+        }
+        shutters.shutters.open = seconds % SHUTTER_LOOP_SECONDS < SHUTTER_LOOP_SECONDS / 2;
         return undefined;
       },
     },

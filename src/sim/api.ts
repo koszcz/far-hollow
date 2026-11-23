@@ -320,6 +320,11 @@ export type Command =
    * It is refused while the player already holds a lit torch.
    */
   | { type: "pickUpTorch"; torchId: number }
+  /**
+   * Walk the player within reach of finished shutters, given by their entity id, and open them, or close them with `open` false.
+   * It takes no time. The shutters stay that way until the player changes them. It is refused once the shutters are gone.
+   */
+  | { type: "setShutters"; shuttersId: number; open: boolean }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
@@ -665,6 +670,8 @@ export type Refusal =
  * - `noFishTrap`: the backpack holds no fish trap to set.
  * - `fishTrapTooClose`: another set fish trap is too close to set one here.
  * - `takeFishFirst`: the fish trap holds a fish, so it cannot be picked up.
+ * - `atCorner`: a door frame or window would meet another edge piece at a right angle at a corner, where a log cabin needs crossed logs.
+ * - `takeShuttersDownFirst`: shutters hang in the window, finished or as a blueprint, so it cannot come down.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -716,15 +723,17 @@ export type PlainRefusal =
   | "noEmptyPot"
   | "noFishTrap"
   | "fishTrapTooClose"
-  | "takeFishFirst";
+  | "takeFishFirst"
+  | "atCorner"
+  | "takeShuttersDownFirst";
 
-/** A room: foundation squares closed in by log walls or door frames, with a roof over every square. */
+/** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {
   /** The middles of the room's foundation squares, in metres. */
   readonly squares: readonly GroundPoint[];
   /** Whether a lit campfire in the room warms all of it. */
   readonly heated: boolean;
-  /** Whether the room is snug: a finished floor on every square and a finished door in every door frame. */
+  /** Whether the room is snug: a finished floor on every square, a finished door in every door frame, and closed shutters in every window. */
   readonly snug: boolean;
 }
 
@@ -856,7 +865,8 @@ export type ThingInReach =
         | "pile"
         | "sled"
         | "plantedTorch"
-        | "fishTrap";
+        | "fishTrap"
+        | "shutters";
       readonly id: number;
     }
   | { readonly kind: "workStation"; readonly id: number; readonly station: WorkStationKind }
@@ -865,7 +875,7 @@ export type ThingInReach =
 
 /**
  * What is under a point on the screen, as the scene reports it. Everything but the ground and the river is given by its entity id.
- * A finished lean-to, foundation, log wall, door frame, roof frame, or roof section is a `structure`.
+ * A finished lean-to, foundation, log wall, door frame, window, roof frame, or roof section is a `structure`.
  * Most clicks act on what is `under` it, as if it were not there, so the player can still walk onto a foundation or place a wall on it.
  * Every other thing is a ThingInReach, so the app treats a click and the E key the same way.
  */
@@ -882,9 +892,10 @@ export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
 /**
  * What a thing in the world is, given by its entity id. The action queue shows it as the icon of an action on it.
  * A blueprint or finished structure gives its structure, a forage spot its food, and a pile what it holds.
+ * Finished shutters also say whether they are `open`. It is missing for every other structure.
  */
 export type ThingView =
-  | { readonly kind: "structure"; readonly structure: StructureKind }
+  | { readonly kind: "structure"; readonly structure: StructureKind; readonly open?: boolean }
   | { readonly kind: "forage"; readonly food: WildFood }
   | { readonly kind: "pile"; readonly content: BackpackContent }
   /** A set fish trap, with whether it holds a fish. */

@@ -59,6 +59,7 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   if (entity.pile !== undefined) return { kind: "pile", id };
   if (entity.plantedTorch !== undefined) return { kind: "plantedTorch", id };
   if (entity.fishTrap !== undefined) return { kind: "fishTrap", id };
+  if (entity.shutters !== undefined) return { kind: "shutters", id };
   return undefined;
 }
 

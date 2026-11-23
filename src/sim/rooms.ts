@@ -1,4 +1,4 @@
-// Rooms: foundation squares closed in on every side by log walls or door frames, with a roof over every square.
+// Rooms: foundation squares closed in on every side by log walls, door frames, or windows, with a roof over every square.
 // Rooms are not stored. They are worked out from the finished pieces each time they are asked for,
 // so finishing or taking down a piece changes them at once.
 import { finishedDoorOn } from "./doors";
@@ -8,6 +8,8 @@ import { campfireEntities, fireplaceEntities, foundationEntities, type Entity, t
 import { finishedFloorOn } from "./floors";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
+import type { QuarterTurns } from "./quarter-turns";
+import { isWindowShut } from "./windows";
 import { SIDES } from "./structure-kind";
 import type { GroundPoint } from "./ground-point";
 
@@ -48,15 +50,25 @@ export function isRoomHeated(entities: EntityStore, room: Room): boolean {
 }
 
 /**
- * Whether this room is snug: every square has a finished floor, and every door frame on a square's edge has a finished door.
- * A room with no door frame is snug once every square has a floor. Blueprints do not count.
+ * Whether this room is snug: every square has a finished floor, every door frame on a square's edge has a finished door,
+ * and every window there has finished, closed shutters. A room with no door frame or window is snug once every square has a floor.
+ * Blueprints do not count.
  */
 export function isRoomSnug(entities: EntityStore, room: Room): boolean {
-  return room.every(
-    (square) =>
-      finishedFloorOn(entities, square) !== undefined &&
-      SIDES.every((side) => edgePieceOn(entities, square, side) !== "doorFrame" || finishedDoorOn(entities, edgeMiddle(square, side)) !== undefined),
-  );
+  return room.every((square) => finishedFloorOn(entities, square) !== undefined && SIDES.every((side) => isEdgeShut(entities, square, side)));
+}
+
+/** Whether one side of a square keeps the cold out: a log wall, a door frame with a finished door, a window with closed shutters, or no edge piece at all. */
+function isEdgeShut(entities: EntityStore, square: GroundPoint, side: QuarterTurns): boolean {
+  const edge = edgeMiddle(square, side);
+  switch (edgePieceOn(entities, square, side)) {
+    case "doorFrame":
+      return finishedDoorOn(entities, edge) !== undefined;
+    case "window":
+      return isWindowShut(entities, edge);
+    default:
+      return true;
+  }
 }
 
 /** Whether this spot is on a square of a snug room. */
@@ -66,7 +78,7 @@ export function isInSnugRoom(entities: EntityStore, at: GroundPoint): boolean {
 }
 
 /**
- * The foundation squares joined to the one at `start` through edges with no wall or door frame on them.
+ * The foundation squares joined to the one at `start` through edges with no edge piece on them.
  * They make a room if no open edge leads off the foundations and every square has a roof.
  */
 function regionFrom(entities: EntityStore, start: GroundPoint): { squares: GroundPoint[]; foundations: Set<Entity>; isRoom: boolean } {

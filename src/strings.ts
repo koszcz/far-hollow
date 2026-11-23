@@ -167,9 +167,11 @@ export const strings = {
       floor: "Floor",
       logWall: "Log wall",
       doorFrame: "Door frame",
+      window: "Window",
       roofFrame: "Roof frame",
       roof: "Roof section",
       door: "Door",
+      shutters: "Shutters",
       fireplace: "Fireplace",
       woodpile: "Woodpile",
       chest: "Chest",
@@ -203,9 +205,10 @@ export const strings = {
         `Placing: ${structure}. Point at a finished foundation and click to place it. Hold Shift and drag to place one on each square.`,
       onEdge: (structure: string) => `Placing: ${structure}. Point at a finished foundation and click to place it on an edge. R picks another edge.`,
       overWalls: (structure: string) =>
-        `Placing: ${structure}. Point at a finished foundation with a wall or door frame on its edge, and click to place it. R turns the way it slopes down.`,
+        `Placing: ${structure}. Point at a finished foundation with a wall, door frame, or window on its edge, and click to place it. R turns the way it slopes down.`,
       onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
       inDoorFrame: (structure: string) => `Placing: ${structure}. Point at a finished door frame with no door, and click to hang it there.`,
+      inWindow: (structure: string) => `Placing: ${structure}. Point at a finished window with no shutters, and click to hang them there.`,
     },
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */
@@ -461,6 +464,8 @@ export const strings = {
     layOut: "Lay it out",
     /** Throwing away the lit torch in the player's hand. */
     putOut: "Put out",
+    openShutters: "Open shutters",
+    closeShutters: "Close shutters",
     /** Standing the lit torch in the player's hand in the ground at their feet. */
     plant: "Plant",
     /** Planting a mushroom from the backpack on a plain log on the ground. */
@@ -541,6 +546,8 @@ export const strings = {
     noFishTrap: "no fish trap in the backpack",
     fishTrapTooClose: "another fish trap is less than 10 m away",
     takeFishFirst: "take the fish first",
+    atCorner: "a door frame or window cannot stand at a corner, which needs crossed logs",
+    takeShuttersDownFirst: "take the shutters down first",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

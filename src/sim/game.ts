@@ -63,6 +63,7 @@ import type { CommandRule, CommandRules, RuleGame } from "./command-rule";
 import { createStoneGathering, stoneRules } from "./stone";
 import { clayRules, createClayDigging } from "./clay";
 import { createTorches, torchRules } from "./torches";
+import { createShutters, shuttersRules } from "./shutters";
 import { createFishTraps, fishTrapRules } from "./fish-traps";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
@@ -203,6 +204,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   const firing = createFiring(entities, campfires);
   const jugs = createJugs(entities);
   const torches = createTorches(entities, valley, handReach);
+  const shutters = createShutters(entities);
   const piles = createPiles(entities, valley, handReach);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities, walking.walkMap, (spot) => {
@@ -434,6 +436,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...debarkingRules(debarking, ruleGame),
     ...craftingRules(crafting, ruleGame),
     ...torchRules(torches, ruleGame),
+    ...shuttersRules(shutters),
     ...gatheringRules(gathering, carrying, ruleGame),
     ...foragingRules(foraging, () => {
       reportEatOrDrink("eat");

@@ -42,6 +42,7 @@ const FOOTPRINT_OVERRIDES: Partial<Record<StructureKind, (x: number, z: number, 
   // A wall stands on a line with no width, so undergrowth hides in a strip either side of it.
   logWall: (x, z, turns) => edgePieceFootprint(x, z, turns),
   doorFrame: (x, z, turns) => edgePieceFootprint(x, z, turns),
+  window: (x, z, turns) => edgePieceFootprint(x, z, turns),
 };
 
 /** Undergrowth hides this far either side of the line a log wall or door frame stands on, in metres. */

@@ -204,6 +204,7 @@ export function createSceneRenderer(
     pile: (entity) => pileMeshes.outlineOf(entity),
     plantedTorch: (entity) => plantedTorchMeshes.outlineOf(entity),
     fishTrap: (entity) => fishTrapMeshes.outlineOf(entity),
+    shutters: (entity) => structureMeshes.outlineOf({ kind: "shutters", entity }),
   };
 
   /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */

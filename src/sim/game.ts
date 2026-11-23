@@ -83,7 +83,7 @@ import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
 import { createHandReach } from "./hand-reach";
-import { GOAL_NOTICE_MINUTES, goalsProvenByCamp, goalsShownNow, journalRules, markGoalDone, newJournal, type Goal, type Journal } from "./journal";
+import { GOAL_NOTICE_MINUTES, goalsProvenByCamp, journalRules, markGoalDone, newJournal, newlyShownGoals, type Goal, type Journal } from "./journal";
 import type { GroundPoint } from "./ground-point";
 
 /** The build menu never changes, so every view shares one frozen copy. */
@@ -481,14 +481,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     ...fishTrapRules(fishTraps, ruleGame),
     ...stoneRules(stoneGathering),
     ...clayRules(clayDigging),
-    ...journalRules({
-      setHidden: (hidden) => {
-        journal.hidden = hidden;
-        // Goals done while the journal is hidden are never announced.
-        if (!hidden) return;
-        goalsToAnnounce.splice(0);
-        goalNotice = null;
-      },
+    ...journalRules((hidden) => {
+      journal.hidden = hidden;
+      // Goals done while the journal is hidden are never announced.
+      if (!hidden) return;
+      goalsToAnnounce.splice(0);
+      goalNotice = null;
     }),
   };
 
@@ -542,11 +540,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   }
 
   /**
-   * Shows the banner that a snug room keeps out the cold, the first time in this game the player stands in one.
-   * It waits until no other notice is on screen, so neither notice hides the other. The step calls it last,
-   * so nothing later in the step can replace the banner before the player sees it.
-   */
-  /**
    * Marks a journal goal done, the first time the player does it, and queues a notice saying so unless the journal is hidden.
    * The playground has no journal, so nothing is marked there.
    */
@@ -558,7 +551,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   /** Marks done every journal goal the valley shows the player has done, then says so for the oldest waiting, once the last such notice has gone. */
   function noteGoals(): void {
     if (freeBuilding) return;
-    for (const goal of goalsShownNow(journal, entities, player)) reachGoal(goal);
+    for (const goal of newlyShownGoals(journal, entities, player)) reachGoal(goal);
     if (goalNoticeShown() !== null) return;
     const goal = goalsToAnnounce.shift();
     goalNotice = goal === undefined ? null : { goal, untilMinutes: clock.minutes + GOAL_NOTICE_MINUTES };
@@ -569,6 +562,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     return goalNotice !== null && clock.minutes < goalNotice.untilMinutes ? goalNotice.goal : null;
   }
 
+  /**
+   * Shows the banner that a snug room keeps out the cold, the first time in this game the player stands in one.
+   * It waits until no other notice is on screen, so neither notice hides the other. The step calls it last,
+   * so nothing later in the step can replace the banner before the player sees it.
+   */
   function noticeSnugRoom(): void {
     if (snugRoomNoticeShown || isNoticeOnScreen() || !isInSnugRoom(entities, player.position)) return;
     snugRoomNoticeShown = true;
@@ -712,8 +710,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     const rule = ruleOf(command);
     // The player stands up from a stool as soon as they walk or act. Pausing or skipping time is not acting.
     if (rule.keepsPlayerSitting !== true) stools.standUp();
-    // Any new command cancels a reach in progress. If the hand has not got to the thing yet, its command is never carried out.
-    if (command.type !== "setPaused" && command.type !== "setJournalHidden") handReach.cancel();
+    // A new command cancels a reach in progress, unless its rule keeps it. If the hand has not got to the thing yet, its command is never carried out.
+    if (rule.keepsHandReach !== true) handReach.cancel();
     if (rule.start === "fresh") cancelTasks();
     refuseWith(rule.run === undefined ? approach.start(command) : rule.run(command));
     return stoppedWork;

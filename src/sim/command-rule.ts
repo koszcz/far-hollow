@@ -19,6 +19,7 @@ import type { HandReach } from "./hand-reach";
  *   approach and no `run` starts the approach when it runs. See approach.ts.
  * - `needsFreeHands`: the player cannot do it while they drag a sled, such as shouldering a log, gathering, chopping, building, crafting, or fishing.
  * - `keepsPlayerSitting`: a player sitting on a stool stays sitting, as for pausing or skipping time. Every other command is the player walking or acting, so they stand up.
+ * - `keepsHandReach`: a reach in progress goes on, as for pausing or hiding the journal. Every other command cancels it.
  * - `queue` and `canStopForNext`: how the command meets the action queue. See QueueRule in action-queue.ts.
  */
 export type CommandRule<C extends ActionCommand> = CommandRuleParts<C> &
@@ -38,6 +39,7 @@ interface CommandRuleParts<C extends ActionCommand> extends QueueRule {
   readonly refusal?: (command: C) => Refusal | undefined;
   readonly needsFreeHands?: true | ((command: C) => boolean);
   readonly keepsPlayerSitting?: true;
+  readonly keepsHandReach?: true;
 }
 
 /** The rule for each of these kinds of command. Without a type argument, the rule for every kind. */

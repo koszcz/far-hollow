@@ -192,11 +192,11 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       const recipe = view.craftMenu.find(({ kind }) => kind === command.recipe);
       return { icon: recipe === undefined ? { hud: "backpack" } : { content: recipe.result.content }, name: strings.craftMenu.recipes[command.recipe] };
     }
-    // Pausing and skipping time never wait in the queue. They have an icon and name all the same, so every command has one.
+    // Pausing, hiding the journal, and skipping time never wait in the queue. They have an icon and name all the same, so every command has one.
+    // The journal has no icon of its own, so hiding it borrows the sun. No player ever sees it.
     case "setPaused":
       return { icon: { hud: command.paused ? "pause" : "play" }, name: command.paused ? strings.pause : strings.resume };
     case "setJournalHidden":
-      // It is never queued, but every command needs an icon and a name.
       return { icon: { hud: "sun" }, name: strings.journal.hide };
     case "skipTime":
       return { icon: { hud: "moon" }, name: strings.debugSkipHours(command.hours) };

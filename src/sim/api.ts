@@ -1,5 +1,6 @@
 import type { BackpackContent, BackpackContents, Food, WildFood } from "./backpack";
 import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
+import type { Goal } from "./journal";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
@@ -39,7 +40,6 @@ export { LOW_NEED, NEED_KINDS, type NeedKind } from "./needs";
 
 /** The HUD uses these to list the journal's goals in order and find the next one. */
 export { GOALS, nextGoal, type Goal } from "./journal";
-import type { Goal } from "./journal";
 
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";

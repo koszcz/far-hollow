@@ -27,6 +27,21 @@ describe("the journal goals", () => {
     expect(doneGoals(game)).toEqual(["pickUpSticks"]);
   });
 
+  it("marks picking up sticks done even when the next queued action drops the stick in the same step", () => {
+    const game = createGame({ seed: 42 });
+    const stick = nearest(game, game.entities.with("stick", "position").entities);
+
+    const stickId = idOf(game, stick);
+
+    game.client.send({ type: "queueAction", action: { type: "pickUpStick", stickId } });
+    game.client.send({ type: "queueAction", action: { type: "dropFromBackpack", content: "stick" } });
+    stepUntil(game, () => game.entities.entity(stickId) === undefined && game.client.getView().actionQueue.length === 0);
+    game.step();
+
+    expect(game.client.getView().backpack.stick ?? 0).toBe(0);
+    expect(doneGoals(game)).toEqual(["pickUpSticks"]);
+  });
+
   it("marks lighting a campfire done once a campfire burns, but not for an unlit one", () => {
     const game = createGame({ seed: 42 });
     const campfire = game.entities.add<Entity & { campfire: { lit: boolean } }>({ campfire: { lit: false, fuelMinutes: 30 }, position: besidePlayer(game) });
@@ -246,16 +261,35 @@ describe("saving the journal", () => {
 
   it("never fills in a save made with the journal, and takes its goals done from the save alone", () => {
     const game = createGame({ seed: 42 });
+    onlyPlayer(game).backpack.contents.plank = 2;
+    game.step();
+    onlyPlayer(game).backpack.contents.plank = 0;
     game.entities.add({ leanTo: true, position: besidePlayer(game) });
     const save = JSON.parse(JSON.stringify(writeSave(game))) as Record<string, unknown>;
 
     const loaded = load(save);
-    expect(doneGoals(loaded)).toEqual([]);
+    expect(doneGoals(loaded)).toEqual(["cutPlank"]);
 
     // Once loaded, the lean-to counts as the player doing the goal now, so only that goal is marked, and a notice says so.
     loaded.step();
-    expect(doneGoals(loaded)).toEqual(["buildLeanTo"]);
+    expect(doneGoals(loaded)).toEqual(["cutPlank", "buildLeanTo"]);
     expect(justDone(loaded)).toBe("buildLeanTo");
+  });
+
+  it("fills in an older save only on its first load, and never again", () => {
+    const game = createGame({ seed: 42 });
+    game.entities.add({ leanTo: true, position: besidePlayer(game) });
+    const filledIn = load(olderSave(game));
+    expect(doneGoals(filledIn)).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo"]);
+
+    // Swap the proof: take the lean-to away and add a sawhorse, which would prove more goals if the check ran again.
+    const loadedLeanTo = filledIn.entities.with("leanTo", "position").first;
+    if (loadedLeanTo === undefined) throw new Error("No lean-to");
+    filledIn.entities.remove(loadedLeanTo);
+    filledIn.entities.add({ workStation: "sawhorse", facing: { turns: 0 }, position: besidePlayer(filledIn) });
+    const reloaded = load(JSON.parse(JSON.stringify(writeSave(filledIn))));
+
+    expect(doneGoals(reloaded)).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo"]);
   });
 
   it("turns away a save whose journal names a goal the game does not know", () => {

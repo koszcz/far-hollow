@@ -54,10 +54,10 @@ export function nextGoal(journal: { readonly done: readonly Goal[] }): Goal | un
 }
 
 /**
- * Whether the valley shows that the player has done this goal now. It only covers goals that leave a trace in the valley.
+ * Whether the valley shows now that the player has done this goal. It only covers goals that leave a trace in the valley.
  * Sleeping on a bedroll leaves none, so the game marks it done when the player sleeps.
  */
-function goalShowsNow(goal: Goal, entities: EntityStore, player: Entity): boolean {
+function valleyShowsGoal(goal: Goal, entities: EntityStore, player: Entity): boolean {
   switch (goal) {
     case "pickUpSticks":
       return player.backpack !== undefined && hasInBackpack(player.backpack, "stick");
@@ -84,37 +84,39 @@ function goalShowsNow(goal: Goal, entities: EntityStore, player: Entity): boolea
   }
 }
 
-/** The goals not yet done that the valley shows the player has done now, in the journal's order. */
-export function goalsShownNow(journal: Journal, entities: EntityStore, player: Entity): Goal[] {
-  return GOALS.filter((goal) => !isGoalDone(journal, goal) && goalShowsNow(goal, entities, player));
+/** The goals not yet marked done that the valley shows the player has now done, in the journal's order. */
+export function newlyShownGoals(journal: Journal, entities: EntityStore, player: Entity): Goal[] {
+  return GOALS.filter((goal) => !isGoalDone(journal, goal) && valleyShowsGoal(goal, entities, player));
+}
+
+/**
+ * Whether the camp proves the player once did this goal. It is what the valley shows now, with one more proof:
+ * a sawhorse proves cutting a plank, since the player builds one to cut planks. The sawhorse is the only work station.
+ */
+function campProvesGoal(goal: Goal, entities: EntityStore, player: Entity): boolean {
+  if (goal === "cutPlank" && workStationEntities(entities).first !== undefined) return true;
+  return valleyShowsGoal(goal, entities, player);
 }
 
 /**
  * The goals the camp proves the player once did, in the journal's order, for a save made before the journal existed.
  * A proven goal also proves every goal before it: a room shows that the player once picked up sticks.
- * A sawhorse proves cutting a plank, since the player builds one to cut planks.
  */
 export function goalsProvenByCamp(entities: EntityStore, player: Entity): Goal[] {
-  // The sawhorse is the only work station.
-  const proves = (goal: Goal): boolean => goalShowsNow(goal, entities, player) || (goal === "cutPlank" && workStationEntities(entities).first !== undefined);
-  const provenCount = GOALS.reduce((count, goal, index) => (proves(goal) ? index + 1 : count), 0);
+  const provenCount = GOALS.reduce((count, goal, index) => (campProvesGoal(goal, entities, player) ? index + 1 : count), 0);
   return GOALS.slice(0, provenCount);
 }
 
-/** What the journal's command rule needs from the game. */
-export interface JournalControls {
-  setHidden(hidden: boolean): void;
-}
-
 /** The rule for hiding and showing the journal. It is not the player acting, so it keeps them sitting and leaves the queue alone. */
-export function journalRules(controls: JournalControls): CommandRules<"setJournalHidden"> {
+export function journalRules(setHidden: (hidden: boolean) => void): CommandRules<"setJournalHidden"> {
   return {
     setJournalHidden: {
       start: "alongside",
       keepsPlayerSitting: true,
+      keepsHandReach: true,
       queue: "apart",
       run: (command) => {
-        controls.setHidden(command.hidden);
+        setHidden(command.hidden);
       },
     },
   };

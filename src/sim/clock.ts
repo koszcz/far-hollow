@@ -114,6 +114,7 @@ export function timeRules(time: TimeControls): CommandRules<"setPaused" | "skipT
     setPaused: {
       start: "alongside",
       keepsPlayerSitting: true,
+      keepsHandReach: true,
       queue: "apart",
       run: (command) => {
         time.setPaused(command.paused);

@@ -1330,12 +1330,13 @@
         "src/ui/clay-icon.tsx",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Clay: how it looks lying on the ground in a pile, in the player's hands while digging, and its backpack icon. In a pile, each clay is a soft, squat, rounded lump of warm grey-brown river clay about 16 cm across, spread around the middle like other things in a pile. The same lump shows in the player's hands while they dig clay, which plays the gather-stone-animation slowed to fit 6 seconds. The backpack icon, drawn in the same style as backpack-icons, is a rounded grey-brown lump with a thumb dent on top and a pale sheen.",
+      "description": "Clay: how it looks lying on the ground in a pile, in the player's hands while digging, and its backpack icon. In a pile, each clay is a soft ball of wet, warm grey-brown river clay, about 16 cm across and 12 cm tall, cut flat where it sits. A thumb dent is pressed into its top. It is smooth-shaded with a wet sheen, unlike the faceted stones, and darker in the dent and at its damp foot. Clay is spread around the middle like other things in a pile. The same lump shows in the player's hands while they dig clay, which plays the gather-stone-animation slowed to fit 6 seconds. The backpack icon, drawn in the same style as backpack-icons, is a rounded grey-brown lump with a thumb dent on top and a pale sheen.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/clay/issues/01-dig-clay.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

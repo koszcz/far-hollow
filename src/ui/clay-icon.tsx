@@ -1,11 +1,11 @@
-// The backpack icon for clay, part of the draft "clay" asset in asset-manifest.json. Built in code.
+// The backpack icon for clay, part of the approved "clay" asset in asset-manifest.json. Built in code.
 // Added by clay ticket 01. BackpackIcon in backpack-icons.tsx draws it, in the same style as the approved "backpack-icons".
 import type { BackpackIconDrawing } from "./icon-drawing";
 
 /** Wet river clay: a warm grey-brown, darker in the dent, with a pale sheen where it was smoothed. */
-const CLAY = "#9a7b62";
-const CLAY_DARK = "#6f5644";
-const CLAY_LIGHT = "#c2a58c";
+const CLAY = "#9c7d66";
+const CLAY_DARK = "#6c5444";
+const CLAY_LIGHT = "#c8ae98";
 
 /** A rounded lump of clay, with a thumb dent on top and a sheen where it was smoothed by hand. */
 export const CLAY_DRAWING: BackpackIconDrawing = {

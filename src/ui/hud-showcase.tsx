@@ -194,7 +194,7 @@ const STONE_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
-/** The draft "clay" asset, over the last view only: clay in the backpack while digging one, beside a pile of clay. */
+/** The approved "clay" asset, over the last view only: clay in the backpack while digging one, beside a pile of clay. */
 const CLAY_STATES: readonly (ShowcaseState | null)[] = [
   null,
   null,

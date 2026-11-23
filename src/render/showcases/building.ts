@@ -25,7 +25,8 @@ import { SHUTTER_SWING_SECONDS } from "../shutter-swing";
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
-import { type Stage, type Showcase } from "./types";
+import { NIGHT_START_HOUR } from "../../sim/clock";
+import { NIGHT, NOON, type Stage, type Showcase } from "./types";
 import { FURNITURE_SHOWCASES } from "./furniture";
 
 /** A sled is built in one stage per log and one per stick. */
@@ -438,6 +439,34 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
         setComponent(store, entity, "blueprint", { structure: "shutters", progress, materialsSpent: 0, delivered: {} });
         if (entity.blueprint !== undefined) entity.blueprint.delivered.plank = Math.max(1, Math.ceil(progress * SHUTTERS_PLANK_COST));
       }
+    },
+  },
+  "window-glow": {
+    radius: 2.2,
+    focus: { x: 0, y: 1, z: 0.5 },
+    // A one-square cabin with a roof, a window in its front wall, and a lit torch planted inside. The window glows warm
+    // from outside at night, fainter at dusk. Closed shutters, or daylight, show no glow.
+    shots: [
+      { label: "night, open window", yaw: 20, pitch: 12, hour: NIGHT },
+      { label: "dusk, open window", yaw: 20, pitch: 12, hour: NIGHT_START_HOUR - 1 },
+      { label: "night, shutters closed", yaw: 20, pitch: 12, hour: NIGHT, seconds: 1 },
+      { label: "noon, open window", yaw: 20, pitch: 12, hour: NOON },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      for (const turns of [1, 2, 3] as const) {
+        const out = turnOffset({ x: 0, z: 0.5 }, turns);
+        onDeck(out.x, out.z, { edgePiece: "logWall", facing: { turns } });
+      }
+      onDeck(0, 0.5, { edgePiece: "window", facing: { turns: 0 } });
+      roofOver(stage, 0, 0, 0);
+      onDeck(0.2, -0.2, { plantedTorch: { minutesLeft: 60 } });
+      stage.movePlayer(1.6, 1.6, -Math.PI / 2);
+    },
+    pose(stage, shot) {
+      for (const shutters of [...stage.store.with("shutters")]) stage.store.remove(shutters);
+      if (shot.label.includes("closed")) onDeckOf(stage)(0, 0.5, { shutters: { open: false }, facing: { turns: 0 } });
     },
   },
   "shutter-swing": {

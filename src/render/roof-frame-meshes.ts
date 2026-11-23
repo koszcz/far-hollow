@@ -18,6 +18,7 @@
 // ends go up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
 // When the player stands under a cabin roof, the frames under that roof hide with it, so the player stays in view.
+// A hidden frame still casts its shadow, as the roof does.
 // While the player places a frame from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -44,7 +45,7 @@ import {
   FRAME_TOP_METRES,
   frameLayout,
   hewnTimber,
-  isShown,
+  hideKeepingShadow,
   neighboursOf,
   RAFTER_RADIUS_METRES,
   rafterBetween,
@@ -95,7 +96,7 @@ export interface RoofFrameMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every roof frame and frame blueprint up to date with game state.
-   * Finished frames under the roof above the player standing at `player` hide. Without it, nothing hides.
+   * Finished frames under the roof above the player standing at `player` hide, but still cast their shadows. Without it, nothing hides.
    */
   update(view?: { player: Vec3 }): void;
   /** What a ray from the camera hits first among frame blueprints, and how far away. */
@@ -467,8 +468,10 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         const place = layout.placeAt(entity.position);
         const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-        item.root.visible =
-          entity.blueprint !== undefined || !hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
+        hideKeepingShadow(
+          item.root,
+          entity.blueprint === undefined && hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position)),
+        );
         item.turned.position.y = raisedBy(place);
         item.turned.rotation.y = quarterTurnsToRadians(place.drawTurns);
         const beams = beamPlans(layout, entity);
@@ -500,7 +503,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       return undefined;
     },
     pickFinished(raycaster) {
-      return pickFinished(raycaster, pickers, isShown);
+      return pickFinished(raycaster, pickers);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);

@@ -4,8 +4,8 @@ import { playerActivity } from "../sim/activity";
 import { diggingClayNow } from "../sim/clay";
 import { gatheringStoneNow } from "../sim/stone";
 import { REACH_SECONDS } from "../sim/hand-reach";
-import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
-import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
+import { MINUTES_PER_HOUR, REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
+import { isRaining, movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/river-bank-work";
@@ -40,11 +40,14 @@ import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
+import { easeRainShare, windAt } from "./wind";
+import { createWindSway } from "./wind-sway";
 import { createValleyMeshes } from "./valley-meshes";
 import { createDrawnGround } from "./drawn-ground";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { createFishTrapMeshes } from "./fish-trap-meshes";
+import { createWindowGlowMeshes } from "./window-glow-meshes";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { isDrawnWork, type DrawnWork } from "./drawn-work";
 
@@ -138,10 +141,21 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
+  // The wind sways the undergrowth and the trees. It is only for looks, like the rain, and is never saved.
+  const windSway = createWindSway();
+  /** How far the rain has eased in for the wind, from 0 (dry) to 1 (full rain). Undefined until the first frame. */
+  let windRain: { share: number; atSeconds: number } | undefined;
+  function blowWind(nowSeconds: number): void {
+    const raining = isRaining(entities);
+    // The first frame takes the weather as it is, so a game loaded in the rain does not ease the wind in.
+    const share = windRain === undefined ? (raining ? 1 : 0) : easeRainShare(windRain.share, raining, nowSeconds - windRain.atSeconds);
+    windRain = { share, atSeconds: nowSeconds };
+    windSway.update(windAt({ seed: valley.seed, nowSeconds, gameHours: readClockMinutes() / MINUTES_PER_HOUR, rainShare: share }), nowSeconds);
+  }
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
-  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround);
+  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround, windSway);
   scene.add(undergrowthMeshes.group);
-  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
+  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log, windSway);
   scene.add(forestMeshes.group);
   const structureMeshes = createStructureMeshes(entities, groundHeightAt, shapes.log);
   scene.add(structureMeshes.group);
@@ -167,6 +181,9 @@ export function createSceneRenderer(
   // Fireflies are only for looks, like the rain. Game logic never sees them, and they are never saved.
   const fireflyEffect = createFireflyEffect(entities, { isOpen: fireflyOpenGround(groundMap), heightAt: groundHeightAt });
   scene.add(fireflyEffect.group);
+  // The glow in firelit windows at night is only for looks: it casts no shadow, lights nothing, and is never picked.
+  const windowGlowMeshes = createWindowGlowMeshes(entities);
+  scene.add(windowGlowMeshes.group);
   skyLighting.addShadowReceivers(valleyMeshes.group);
   skyLighting.addShadowCasters(
     forestMeshes.group,
@@ -627,6 +644,7 @@ export function createSceneRenderer(
       darkenView(canvas, darkness);
       const daylight = daylightAt(hourOfDay);
       riverMeshes.update(nowSeconds, daylight);
+      blowWind(nowSeconds);
       forestMeshes.update(nowSeconds);
       forageMeshes.update();
       mushroomLogMeshes.update();
@@ -667,6 +685,7 @@ export function createSceneRenderer(
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
       fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
+      windowGlowMeshes.update(daylight);
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
@@ -705,6 +724,7 @@ export function createSceneRenderer(
     },
     dispose() {
       hoverOutline.dispose();
+      windowGlowMeshes.dispose();
       valleyMeshes.dispose();
       undergrowthMeshes.dispose();
       riverMeshes.dispose();

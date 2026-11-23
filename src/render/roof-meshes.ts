@@ -15,6 +15,7 @@
 // Construction has one stage per plank, and lays one row each stage. A blueprint shows see-through. The row being laid fades
 // in above its place, is lowered, and set down, like the logs of a foundation.
 // When the player stands under a cabin roof, that roof and every section joined to it hide, so the player stays in view.
+// A hidden roof still casts its shadow, so the room under it stays dark except where daylight comes in through a window or doorway.
 // While the player places a roof from the build menu, a see-through copy follows the mouse, sloping the way the frame under it
 // does. It turns red where it is not allowed.
 import * as THREE from "three";
@@ -31,7 +32,7 @@ import {
   EAVE_REACH_METRES,
   FRAME_TOP_METRES,
   frameLayout,
-  isShown,
+  hideKeepingShadow,
   neighboursOf,
   PLANK_GAP_METRES,
   RAFTER_RADIUS_METRES,
@@ -99,7 +100,7 @@ export interface RoofMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every roof section and roof blueprint up to date with game state.
-   * Finished sections above the player standing at `player` hide. Without it, nothing hides.
+   * Finished sections above the player standing at `player` hide, but still cast their shadows. Without it, nothing hides.
    */
   update(view?: { player: Vec3 }): void;
   /** What a ray from the camera hits first among roof blueprints, and how far away. */
@@ -406,20 +407,20 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       const layout = frameLayout(entities);
       const seen = new Set<Entity>();
       const hidden = new Set(view === undefined ? [] : roofAbove(entities, view.player));
-      const show = (entity: Section, progress: number, visible: boolean) => {
+      const show = (entity: Section, progress: number, hidden: boolean) => {
         // A roof sits where the frame under it does, and takes its shape.
         const place = layout.placeAt(entity.position);
         const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y + raisedBy(place), entity.position.z);
         item.root.rotation.y = quarterTurnsToRadians(place.drawTurns);
-        item.root.visible = visible;
+        hideKeepingShadow(item.root, hidden);
         const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
         setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "straight" ? layoutOf(entity.position) : 0);
         showProgress(item, progress);
         seen.add(entity);
       };
-      for (const entity of blueprints) if (entity.blueprint.structure === "roof") show(entity, entity.blueprint.progress, true);
-      for (const entity of finished) show(entity, 1, !hidden.has(entity));
+      for (const entity of blueprints) if (entity.blueprint.structure === "roof") show(entity, entity.blueprint.progress, false);
+      for (const entity of finished) show(entity, 1, hidden.has(entity));
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
     },
     pick(raycaster) {
@@ -433,7 +434,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       return undefined;
     },
     pickFinished(raycaster) {
-      return pickFinished(raycaster, pickers, isShown);
+      return pickFinished(raycaster, pickers);
     },
     outlineOf(hit) {
       const item = drawn.get(hit.entity);

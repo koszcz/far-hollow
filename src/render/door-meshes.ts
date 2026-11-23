@@ -27,6 +27,7 @@ import {
   NOT_ALLOWED_COLOUR,
   pickBlueprint,
   pickFinished,
+  fadedOut,
   seeThrough,
   type BuildingPieceMeshes,
 } from "./structure-look";
@@ -268,7 +269,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(PLANK_WOOD_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const fadedMaterial = seeThrough(PLANK_WOOD_COLOUR, FADED_OPACITY);
+  const fadedMaterial = fadedOut(PLANK_WOOD_COLOUR, FADED_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const drawn = new Map<Entity, Drawn>();

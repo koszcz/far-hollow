@@ -7,6 +7,7 @@
 //   Plants shrink into the ground as they near that distance too.
 // - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
 // - Where the ground changes, the patches there grow again from the ground as it is now, so the undergrowth follows it.
+// - Grass, ferns, and flowers sway in the wind with wind-sway.ts. Pebbles stay still.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
 import type { EntityStore, Vec3 } from "../sim/entities";
@@ -16,6 +17,7 @@ import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, t
 import type { UndergrowthShape } from "./undergrowth-models";
 import type { GroundRect } from "../sim/structure-kind";
 import type { DrawnGround } from "./drawn-ground";
+import { UNDERGROWTH_SWAY, type WindSway } from "./wind-sway";
 
 /** Undergrowth is drawn out to this distance from where the camera looks, in metres. */
 export const UNDERGROWTH_DRAW_METRES = 80;
@@ -67,21 +69,37 @@ export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNorm
   return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: shape.ownNormals !== true });
 }
 
-/** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. */
+/** Whether a model sways in the wind. Grass, ferns, and flowers do. Pebbles stay still. */
+export function undergrowthSways(shape: Pick<UndergrowthShape, "asset">): boolean {
+  return shape.asset !== "pebbles";
+}
+
+/** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. `windSway` sways the plants. */
 export function createUndergrowthMeshes(
   valley: Valley,
   shapes: readonly UndergrowthShape[],
   entities: EntityStore,
   drawnGround: DrawnGround,
+  windSway: WindSway,
 ): UndergrowthMeshes {
   const group = new THREE.Group();
   group.name = "undergrowth";
   const patchesPerSide = Math.ceil(valley.size / UNDERGROWTH_PATCH_METRES);
 
   const focusUniform = { value: new THREE.Vector2() };
-  const flatMaterial = createUndergrowthMaterial({ ownNormals: false });
-  const ownNormalsMaterial = createUndergrowthMaterial({ ownNormals: true });
-  for (const material of [flatMaterial, ownNormalsMaterial]) {
+  /** One material for each mix of shading and swaying, made when a model first needs it. */
+  const materials = new Map<string, THREE.MeshStandardMaterial>();
+  const materialFor = (shape: UndergrowthShape): THREE.MeshStandardMaterial => {
+    const key = `${String(shape.ownNormals === true)}-${String(undergrowthSways(shape))}`;
+    const known = materials.get(key);
+    if (known !== undefined) return known;
+    const material = createUndergrowthMaterial(shape);
+    fadeAtEdges(material);
+    if (undergrowthSways(shape)) windSway.sway(material, UNDERGROWTH_SWAY);
+    materials.set(key, material);
+    return material;
+  };
+  function fadeAtEdges(material: THREE.Material): void {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.undergrowthFocus = focusUniform;
       shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform vec2 undergrowthFocus;").replace(
@@ -100,7 +118,6 @@ export function createUndergrowthMeshes(
       );
     };
   }
-  const materialFor = (shape: UndergrowthShape) => (shape.ownNormals === true ? ownNormalsMaterial : flatMaterial);
 
   // One batch per model. Batches grow when a view needs more plants than they hold.
   const batches = shapes.map((shape) => ({ shape, mesh: newBatch(shape.geometry, materialFor(shape), 64), count: 0 }));
@@ -260,8 +277,7 @@ export function createUndergrowthMeshes(
     },
     dispose() {
       for (const batch of batches) batch.mesh.dispose();
-      flatMaterial.dispose();
-      ownNormalsMaterial.dispose();
+      for (const material of materials.values()) material.dispose();
     },
   };
 }

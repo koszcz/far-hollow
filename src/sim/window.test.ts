@@ -20,6 +20,7 @@ import {
   type StructureKind,
 } from "./structures";
 import { isWalkable } from "./walk-map";
+import { firelitWindows } from "./window-glow";
 
 describe("the window and the shutters in the build menu", () => {
   it("lists the window after the door frame, for 3 debarked logs, 10 seconds, and no tool", () => {
@@ -303,6 +304,55 @@ describe("rooms with windows", () => {
   });
 });
 
+describe("the window's night glow", () => {
+  it("shows in an open window when a lit campfire, fireplace, or torch is in its room, facing away from the room", () => {
+    for (const light of ["campfire", "fireplace", "plantedTorch", "handTorch"] as const) {
+      const game = createGame({ seed: 42 });
+      const [, second] = cabinNearPlayer(game);
+      expect(firelitWindows(game.entities)).toEqual([]);
+
+      lightIn(game, light, second);
+
+      expect(firelitWindows(game.entities)).toEqual([{ window: windowOf(game), outward: 1 }]);
+    }
+  });
+
+  it("shows in a window with open shutters, but not with closed ones", () => {
+    const game = createGame({ seed: 42 });
+    const [, second] = cabinNearPlayer(game);
+    lightIn(game, "campfire", second);
+    const window = windowOf(game);
+    const shutters: { open: boolean } = { open: false };
+    game.entities.add({ shutters, facing: { ...(window.facing ?? { turns: 0 }) }, position: { ...window.position } });
+    expect(firelitWindows(game.entities)).toEqual([]);
+
+    shutters.open = true;
+    expect(firelitWindows(game.entities)).toHaveLength(1);
+  });
+
+  it("does not show with an unlit fire in the room, or a lit fire outside it", () => {
+    const game = createGame({ seed: 42 });
+    const [first, second] = cabinNearPlayer(game);
+    game.entities.add({ campfire: { lit: false, fuelMinutes: 60 }, onFoundation: second, position: { x: second.x, y: deckTop(game, second), z: second.z } });
+    const outside = { x: first.x - 2, z: first.z };
+    game.entities.add({ campfire: { lit: true, fuelMinutes: 60 }, position: { x: outside.x, y: 0, z: outside.z } });
+    game.entities.add({ plantedTorch: { minutesLeft: 60 }, position: { x: outside.x, y: 0, z: outside.z + 1 } });
+
+    expect(firelitWindows(game.entities)).toEqual([]);
+  });
+
+  it("does not show in a window whose foundations are not a room", () => {
+    const game = createGame({ seed: 42 });
+    const [, second] = cabinNearPlayer(game);
+    lightIn(game, "plantedTorch", second);
+    const roof = game.entities.with("cabinRoof", "position").entities.find(({ position }) => position.x === second.x && position.z === second.z);
+    if (roof === undefined) throw new Error("No roof");
+    game.entities.remove(roof);
+
+    expect(firelitWindows(game.entities)).toEqual([]);
+  });
+});
+
 describe("taking down windows and shutters", () => {
   it("takes down shutters on their own, open or closed, giving back their planks", () => {
     const game = createGame({ seed: 42 });
@@ -397,7 +447,7 @@ describe("saving windows and shutters", () => {
   it("raises the save version, and loads a save from before windows", () => {
     const game = createGame({ seed: 42 });
     expect(WINDOWS_SAVE_VERSION).toBeGreaterThan(SNUG_ROOM_NOTICE_SAVE_VERSION);
-    expect(WINDOWS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(WINDOWS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const old = { ...writeSave(game), version: WINDOWS_SAVE_VERSION - 1 };
 
     const loaded = readSave(structuredClone(old));
@@ -431,6 +481,19 @@ function finishShutters(game: Game, blueprint: Entity): void {
   contents.plank = (contents.plank ?? 0) + SHUTTERS_PLANK_COST;
   send(game, { type: "build", blueprintId: idOf(game, blueprint) });
   stepUntil(game, () => blueprint.blueprint === undefined);
+}
+
+/** Puts a lit campfire, fireplace, or planted torch on `square`, or stands the player there holding a lit torch. */
+function lightIn(game: Game, light: "campfire" | "fireplace" | "plantedTorch" | "handTorch", square: GroundPoint): void {
+  const position = { x: square.x, y: deckTop(game, square), z: square.z };
+  if (light === "campfire") game.entities.add({ campfire: { lit: true, fuelMinutes: 60 }, onFoundation: square, position });
+  if (light === "fireplace") game.entities.add({ fireplace: { lit: true, fuelMinutes: 60 }, position });
+  if (light === "plantedTorch") game.entities.add({ plantedTorch: { minutesLeft: 60 }, position: { ...position, x: square.x + 0.2 } });
+  if (light === "handTorch") {
+    const player = onlyPlayer(game);
+    Object.assign(player.position, position);
+    game.entities.addComponent(player, "litTorch", { minutesLeft: 60 });
+  }
 }
 
 /** The one finished window. */

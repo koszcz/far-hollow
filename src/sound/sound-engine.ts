@@ -1,9 +1,11 @@
 // Plays sounds through the browser's Web Audio. It plays what it is told each frame and never reads or changes game state.
-// Browsers block sound until the player clicks, so it starts on the first click or key press.
+// Browsers block sound until the player clicks, so it starts on the first click or key press. Sounds recorded in files load
+// then too. Each one stays silent until its file has loaded.
 import { clampShare } from "../sim/share";
 import { audibleVolume, type VolumeControl } from "./volume-control";
 import { actionSound } from "./action-sound-samples";
 import { ambienceLoop } from "./ambience-loops";
+import { FILE_SOUND_IDS, isFileSound, soundFilePath } from "./sound-files";
 import { isAmbienceSound, playsOnce, soundsToPlay, type SoundId, type SoundWish } from "./sound-mix";
 
 /** How fast a playing sound follows a change in loudness or side, in seconds. Short enough to keep up, long enough not to click. */
@@ -95,9 +97,23 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
   }
   volume.subscribe(setMaster);
 
-  function bufferOf(audio: AudioContext, sound: SoundId): AudioBuffer {
+  /** Fetches and decodes each sound file, then plays the sounds again so any that waited for its file start. */
+  function loadFiles(audio: AudioContext): void {
+    for (const sound of FILE_SOUND_IDS) {
+      void fetch(`${import.meta.env.BASE_URL}${soundFilePath(sound)}`)
+        .then((response) => response.arrayBuffer())
+        .then((bytes) => audio.decodeAudioData(bytes))
+        .then((buffer) => {
+          buffers.set(sound, buffer);
+          if (master !== undefined && !hidden) mix(audio, master);
+        });
+    }
+  }
+
+  /** The sound's samples, or undefined while its file is still loading. */
+  function bufferOf(audio: AudioContext, sound: SoundId): AudioBuffer | undefined {
     const made = buffers.get(sound);
-    if (made !== undefined) return made;
+    if (made !== undefined || isFileSound(sound)) return made;
     const samples = isAmbienceSound(sound) ? ambienceLoop(sound, audio.sampleRate) : actionSound(sound, audio.sampleRate);
     const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
     buffer.copyToChannel(samples, 0);
@@ -105,9 +121,9 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
     return buffer;
   }
 
-  function startVoice(audio: AudioContext, out: AudioNode, wish: SoundWish): Voice {
+  function startVoice(audio: AudioContext, out: AudioNode, wish: SoundWish, buffer: AudioBuffer): Voice {
     const source = audio.createBufferSource();
-    source.buffer = bufferOf(audio, wish.sound);
+    source.buffer = buffer;
     source.loop = !playsOnce(wish.sound);
     const gain = audio.createGain();
     gain.gain.value = 0;
@@ -116,7 +132,6 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
     panner.pan.value = wish.pan;
     source.connect(gain).connect(panner).connect(out);
     // An action sound starts where its motion is now. Any other sound starts somewhere in its loop, so two fires never crackle in step.
-    const buffer = source.buffer;
     const startAt =
       wish.startAt === undefined ? Math.random() * buffer.duration : source.loop ? wish.startAt % buffer.duration : Math.min(wish.startAt, buffer.duration);
     source.start(audio.currentTime, startAt);
@@ -141,7 +156,8 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
     for (const wish of toPlay) {
       const voice = voices.get(wish.key);
       if (voice === undefined) {
-        voices.set(wish.key, startVoice(audio, out, wish));
+        const buffer = bufferOf(audio, wish.sound);
+        if (buffer !== undefined) voices.set(wish.key, startVoice(audio, out, wish, buffer));
         continue;
       }
       if (Math.abs(voice.loudness - wish.loudness) > SMALLEST_CHANGE) {
@@ -166,6 +182,7 @@ export function createSoundEngine(volume: VolumeControl): SoundEngine {
       master.gain.value = 0;
       master.connect(context.destination);
       fadingInUntil = context.currentTime + FADE_IN_SECONDS;
+      loadFiles(context);
       setMaster();
       mix(context, master);
     },

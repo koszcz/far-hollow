@@ -1,7 +1,8 @@
 // All player-facing text lives here, so the game can be translated later.
-import { ACTION_QUEUE_LIMIT, type BackpackContent } from "./sim/api";
+import { ACTION_QUEUE_LIMIT, type BackpackContent, type Goal } from "./sim/api";
 import { NEARBY_MATERIALS_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
+import { CAMPFIRE_STICK_COST, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST, SAWHORSE_LOG_COST } from "./sim/structures";
 
 /** A weight in kilograms, to one decimal place at most, such as "5.5" or "10". */
 function kilogramsText(kilograms: number): string {
@@ -319,6 +320,67 @@ export const strings = {
     actionSkipped: (reason: string) => `Skipped the next action: ${reason}.`,
     /** The player sent an action the game refuses now, such as "You cannot do that: needs the fishing rod." */
     refused: (reason: string) => `You cannot do that: ${reason}.`,
+  },
+  /** The journal of suggested goals, its panel, and the HUD line that names the next goal. */
+  journal: {
+    title: "Journal",
+    /** The notice banner when the player does a goal for the first time, such as "Journal: campfire lit." */
+    justDone: (done: string) => `Journal: ${done}.`,
+    /** The key that opens and closes the journal panel. */
+    key: "J",
+    /** The HUD line that names the next goal, such as "Next (J): Light a campfire." */
+    next: (goal: string) => `Next (J): ${goal}`,
+    /** The heading over the goals not yet done. */
+    toDo: "To do",
+    /** The heading over the goals done. */
+    done: "Done",
+    hide: "Hide journal",
+    close: "Close",
+    /** The line the panel shows once every goal is done. */
+    finished: "Your camp is yours now.",
+    /** Each goal: what to do, one hint line that names the key and materials, and what the notice says once it is done. */
+    goals: {
+      pickUpSticks: {
+        name: "Pick up sticks.",
+        hint: "Sticks lie on the forest floor. Walk up to one and press E to pick it up.",
+        done: "sticks picked up",
+      },
+      lightCampfire: {
+        name: "Light a campfire.",
+        hint: `Press B to build a campfire from ${CAMPFIRE_STICK_COST} sticks. Add a stick as fuel, then light it with the steel and flint.`,
+        done: "campfire lit",
+      },
+      fellTree: {
+        name: "Fell a tree.",
+        hint: "Walk up to a tree and press E to chop it down with the axe.",
+        done: "tree felled",
+      },
+      buildLeanTo: {
+        name: "Build a lean-to.",
+        hint: `Press B to build a lean-to from ${LEAN_TO_STICK_COST} sticks and ${LEAN_TO_BARK_COST} pieces of bark. Strip bark from a log with the drawknife.`,
+        done: "lean-to built",
+      },
+      sleepOnBedroll: {
+        name: "Sleep on a bedroll, anywhere.",
+        hint: "Click the bedroll in your backpack to lay it down, then press E on it to sleep.",
+        done: "slept on the bedroll",
+      },
+      cutPlank: {
+        name: "Build a sawhorse and cut a plank.",
+        hint: `Press B to build a sawhorse from ${SAWHORSE_LOG_COST} debarked logs. Press C to craft a saw, then cut a debarked log beside the sawhorse into planks.`,
+        done: "first planks cut",
+      },
+      buildRoom: {
+        name: "Build a first room.",
+        hint: "Press B to lay foundations, close them in with log walls and a door frame, and roof them over. Walls take debarked logs, and the roof takes planks.",
+        done: "first room built",
+      },
+      makeRoomSnug: {
+        name: "Make the room snug.",
+        hint: "Press B to lay a plank floor on every square, hang a door in the door frame, and hang shutters in every window.",
+        done: "the room is snug",
+      },
+    } satisfies Record<Goal, { name: string; hint: string; done: string }>,
   },
   backpack: "Backpack",
   backpackContents: {

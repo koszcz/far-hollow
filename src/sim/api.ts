@@ -37,6 +37,10 @@ export { isPlacedInRows } from "./structure-kind";
 /** The HUD uses these to tell the player when a low need slows them, and which needs there are. */
 export { LOW_NEED, NEED_KINDS, type NeedKind } from "./needs";
 
+/** The HUD uses these to list the journal's goals in order and find the next one. */
+export { GOALS, nextGoal, type Goal } from "./journal";
+import type { Goal } from "./journal";
+
 /** The new-game screen uses it to turn typed text into a seed. */
 export { seedFromText } from "./seed";
 
@@ -325,6 +329,11 @@ export type Command =
    * It takes no time. The shutters stay that way until the player changes them. It is refused once the shutters are gone.
    */
   | { type: "setShutters"; shuttersId: number; open: boolean }
+  /**
+   * Hide the journal, or show it again with `hidden` false. Hidden, the HUD shows no next goal and no notice says when a goal is done.
+   * The journal panel still opens. It is saved with the game. It does nothing in the playground, which has no journal.
+   */
+  | { type: "setJournalHidden"; hidden: boolean }
   /** Jumps the valley's clock forward. Lit campfires burn their fuel and the player's needs change for the time skipped. A collapse cuts the skip short. The debug overlay sends it. */
   | { type: "skipTime"; hours: number }
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
@@ -427,6 +436,20 @@ export interface GameView {
    * is doing nothing they were asked to do. It holds at most ACTION_QUEUE_LIMIT actions. It is not saved.
    */
   readonly actionQueue: readonly ActionCommand[];
+  /** The journal, or null in the playground, which has no journal. See JournalView. */
+  readonly journal: JournalView | null;
+}
+
+/**
+ * The journal of suggested goals. `done` lists the goals done, in the order the player did them. `nextGoal` gives the first
+ * goal not yet done. `hidden` says whether the player hid the journal's next-goal line and its notices.
+ * `justDone` is the goal the player has just done for the first time, while the notice banner says so, or else null.
+ * It has its own place in the view, so it never hides another notice or waits behind one. It is never set while the journal is hidden.
+ */
+export interface JournalView {
+  readonly done: readonly Goal[];
+  readonly hidden: boolean;
+  readonly justDone: Goal | null;
 }
 
 /** A torch planted in the ground, given by its entity id: where it stands and how long it still burns. See `GameView.plantedTorches`. */

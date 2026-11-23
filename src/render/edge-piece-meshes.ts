@@ -28,7 +28,7 @@ import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import type { OutlinePart } from "./hover-outline";
-import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, fadedOut, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
 import { isEdgePiece } from "../sim/edge-pieces";
@@ -302,7 +302,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const fadedMaterial = seeThrough(DEBARKED_LOG_COLOUR, FADED_OPACITY);
+  const fadedMaterial = fadedOut(DEBARKED_LOG_COLOUR, FADED_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   /** The parts each stage adds, for each kind of piece. */

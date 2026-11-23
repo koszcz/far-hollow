@@ -94,7 +94,9 @@ export function createHoverOutline(scene: THREE.Scene): HoverOutline {
   }
 
   return {
-    show(parts) {
+    show(allParts) {
+      // A part can have no shape yet, such as a roof frame stage with nothing built. There is nothing to outline there.
+      const parts = allParts.filter((part) => part.geometry.hasAttribute("position"));
       parts.forEach((part, index) => {
         const mesh = meshAt(index);
         mesh.geometry = weldedCopy(part.geometry);

@@ -1,6 +1,6 @@
 // How the player hears rain: plain rain in the open, or a muffled drumming under a roof. See docs/adr/0009.
 // "Under a roof" uses the same rule as the player's shelter from rain, so the drumming plays wherever rain would not fall on them.
-import { easeRainShare } from "../render/wind";
+import { easeRain, type EasedRain } from "../render/eased-rain";
 import { easeToward, equalPowerCrossfade, smoothStep } from "../sim/share";
 
 /** How loud the rain is in the open at full strength, before the Volume. */
@@ -12,8 +12,8 @@ const ROOF_CROSSFADE_SECONDS = 0.8;
 
 /** What the player hears of the rain, as two shares that each ease between 0 and 1. */
 export interface RainHearing {
-  /** How far the rain has eased in: 0 dry, 1 full rain. It eases in and out with the drawn rain. */
-  readonly falling: number;
+  /** How far the rain has eased in, the same way as for the wind. It eases in and out with the drawn rain. */
+  readonly falling: EasedRain;
   /** How far the player has gone under a roof: 0 in the open, 1 under a roof. */
   readonly underRoof: number;
 }
@@ -26,15 +26,20 @@ export interface RainLoudness {
   readonly roof: number;
 }
 
-/** The rain as it is now, with no easing, such as on the first frame of a loaded game. */
-export function rainHearingNow(raining: boolean, underRoof: boolean): RainHearing {
-  return { falling: raining ? 1 : 0, underRoof: underRoof ? 1 : 0 };
+/** The rain as it is at `nowSeconds`, with no easing, such as on the first frame of a loaded game. */
+export function rainHearingNow(raining: boolean, underRoof: boolean, nowSeconds = 0): RainHearing {
+  return { falling: easeRain(undefined, raining, nowSeconds), underRoof: underRoof ? 1 : 0 };
 }
 
-/** Moves the hearing on by `elapsedSeconds` toward whether it rains and whether the player is under a roof. */
-export function easeRainHearing(hearing: RainHearing, raining: boolean, underRoof: boolean, elapsedSeconds: number): RainHearing {
+/**
+ * Moves the hearing on to `nowSeconds`, toward whether it rains and whether the player is under a roof.
+ * With no `hearing` yet, such as on the first frame of a loaded game, it takes the rain as it is.
+ */
+export function easeRainHearing(hearing: RainHearing | undefined, raining: boolean, underRoof: boolean, nowSeconds: number): RainHearing {
+  if (hearing === undefined) return rainHearingNow(raining, underRoof, nowSeconds);
+  const elapsedSeconds = nowSeconds - hearing.falling.atSeconds;
   return {
-    falling: easeRainShare(hearing.falling, raining, elapsedSeconds),
+    falling: easeRain(hearing.falling, raining, nowSeconds),
     underRoof: easeToward(hearing.underRoof, underRoof ? 1 : 0, elapsedSeconds / ROOF_CROSSFADE_SECONDS),
   };
 }
@@ -42,7 +47,7 @@ export function easeRainHearing(hearing: RainHearing, raining: boolean, underRoo
 /** How loud the rain and the drumming on a roof play. They crossfade with equal power, so the rain never dips halfway. */
 export function rainLoudness(hearing: RainHearing): RainLoudness {
   // The rain eases in with no sudden start or stop, as the drawn rain does.
-  const falling = smoothStep(hearing.falling);
+  const falling = smoothStep(hearing.falling.share);
   const { from: open, to: roof } = equalPowerCrossfade(hearing.underRoof);
   return { open: RAIN_LOUDNESS * falling * open, roof: ROOF_LOUDNESS * falling * roof };
 }

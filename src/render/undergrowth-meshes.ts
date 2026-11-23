@@ -7,6 +7,7 @@
 //   Plants shrink into the ground as they near that distance too.
 // - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
 // - Where the ground changes, the patches there grow again from the ground as it is now, so the undergrowth follows it.
+// - Grass, ferns, and flowers sway in the wind with wind-sway.ts. Pebbles stay still.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
 import type { EntityStore, Vec3 } from "../sim/entities";
@@ -16,17 +17,10 @@ import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, t
 import type { UndergrowthShape } from "./undergrowth-models";
 import type { GroundRect } from "../sim/structure-kind";
 import type { DrawnGround } from "./drawn-ground";
+import { EYE_DRAW_METRES, fadeAtEdges, UNDERGROWTH_DRAW_METRES } from "./undergrowth-fade";
+import type { UndergrowthAsset } from "./undergrowth-models";
+import { UNDERGROWTH_SWAY, type WindSway } from "./wind-sway";
 
-/** Undergrowth is drawn out to this distance from where the camera looks, in metres. */
-export const UNDERGROWTH_DRAW_METRES = 80;
-/** Plants start shrinking this far from where the camera looks, and are gone at the draw distance, in metres. */
-const FADE_START_METRES = 64;
-/**
- * Plants also shrink away between these distances from the camera, in metres, so a camera zoomed far out skips plants
- * smaller than a pixel or two.
- */
-const EYE_FADE_START_METRES = 120;
-const EYE_DRAW_METRES = 160;
 /** No plant stands taller than this, in metres, and none reaches further than this outside its patch. Used for culling. */
 const PLANT_REACH_METRES = 2;
 
@@ -67,40 +61,36 @@ export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNorm
   return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: shape.ownNormals !== true });
 }
 
-/** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. */
+/** Whether an undergrowth asset sways in the wind. Grass, ferns, and flowers do. Pebbles stay still. */
+export function undergrowthSways(asset: UndergrowthAsset): boolean {
+  return asset !== "pebbles";
+}
+
+/** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. `windSway` sways the plants. */
 export function createUndergrowthMeshes(
   valley: Valley,
   shapes: readonly UndergrowthShape[],
   entities: EntityStore,
   drawnGround: DrawnGround,
+  windSway: WindSway,
 ): UndergrowthMeshes {
   const group = new THREE.Group();
   group.name = "undergrowth";
   const patchesPerSide = Math.ceil(valley.size / UNDERGROWTH_PATCH_METRES);
 
   const focusUniform = { value: new THREE.Vector2() };
-  const flatMaterial = createUndergrowthMaterial({ ownNormals: false });
-  const ownNormalsMaterial = createUndergrowthMaterial({ ownNormals: true });
-  for (const material of [flatMaterial, ownNormalsMaterial]) {
-    material.onBeforeCompile = (shader) => {
-      shader.uniforms.undergrowthFocus = focusUniform;
-      shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform vec2 undergrowthFocus;").replace(
-        "#include <begin_vertex>",
-        [
-          "#include <begin_vertex>",
-          "#ifdef USE_INSTANCING",
-          // Shrink each plant towards its foot as it nears the edge of the drawn area.
-          "vec2 undergrowthSpot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xz;",
-          `transformed *= 1.0 - smoothstep( ${FADE_START_METRES.toFixed(1)}, ${UNDERGROWTH_DRAW_METRES.toFixed(1)}, distance( undergrowthSpot, undergrowthFocus ) );`,
-          // Shrink it as it nears the furthest distance from the camera that undergrowth is drawn at.
-          "vec3 undergrowthFoot = ( modelMatrix * instanceMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xyz;",
-          `transformed *= 1.0 - smoothstep( ${EYE_FADE_START_METRES.toFixed(1)}, ${EYE_DRAW_METRES.toFixed(1)}, distance( undergrowthFoot, cameraPosition ) );`,
-          "#endif",
-        ].join("\n"),
-      );
-    };
-  }
-  const materialFor = (shape: UndergrowthShape) => (shape.ownNormals === true ? ownNormalsMaterial : flatMaterial);
+  /** One material for each mix of shading and swaying. three.js compiles each only once a model draws with it. */
+  const material = (ownNormals: boolean, sways: boolean): THREE.MeshStandardMaterial => {
+    const made = createUndergrowthMaterial({ ownNormals });
+    fadeAtEdges(made, focusUniform);
+    return sways ? windSway.sway(made, UNDERGROWTH_SWAY) : made;
+  };
+  const materials = {
+    flat: { still: material(false, false), swaying: material(false, true) },
+    ownNormals: { still: material(true, false), swaying: material(true, true) },
+  };
+  const materialFor = (shape: UndergrowthShape): THREE.MeshStandardMaterial =>
+    materials[shape.ownNormals === true ? "ownNormals" : "flat"][undergrowthSways(shape.asset) ? "swaying" : "still"];
 
   // One batch per model. Batches grow when a view needs more plants than they hold.
   const batches = shapes.map((shape) => ({ shape, mesh: newBatch(shape.geometry, materialFor(shape), 64), count: 0 }));
@@ -260,8 +250,7 @@ export function createUndergrowthMeshes(
     },
     dispose() {
       for (const batch of batches) batch.mesh.dispose();
-      flatMaterial.dispose();
-      ownNormalsMaterial.dispose();
+      for (const byShading of Object.values(materials)) for (const made of Object.values(byShading)) made.dispose();
     },
   };
 }

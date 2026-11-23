@@ -156,7 +156,7 @@ export function createSceneRenderer(
   const barkMeshes = createBarkMeshes(entities);
   const plantedTorchMeshes = createPlantedTorchMeshes(entities);
   scene.add(plantedTorchMeshes.group);
-  const fishTrapMeshes = createFishTrapMeshes(entities, valley.river);
+  const fishTrapMeshes = createFishTrapMeshes(entities, valley.river, groundHeightAt);
   scene.add(fishTrapMeshes.group);
   scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, groundHeightAt);

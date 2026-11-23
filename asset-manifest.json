@@ -1614,12 +1614,13 @@
         "src/render/fish-trap-shape.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "A set fish trap: a cone basket of ten thin sticks, about 70 cm long, with a 40 cm wide mouth held open by a hoop and a narrow tail, bound with two rings of dark cord. It sits sunk half into the river at the edge, its mouth facing upstream. When it holds a fish, a raw fish from fishing-piles lies inside it.",
+      "description": "A set fish trap: a woven cone basket, about 70 cm long, with a 40 cm wide mouth held open by a hoop and a narrow tail. Eighteen slightly bent sticks run from the hoop to the tail, where a knot of dark cord gathers them. Five bands of pale withy are woven over and under the sticks, and an inner funnel of sticks points from the mouth into the basket. It sits sunk half into the river at the edge, its mouth facing upstream. A stake driven into the bank beside its mouth holds a cord line tied to the hoop. When it holds a fish, a raw fish from fishing-piles lies inside it.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

@@ -1212,8 +1212,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/rain-barrel/issues/01-rain-barrel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {
@@ -1669,12 +1670,13 @@
         "src/render/fish-trap-shape.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "How cord and fish traps look lying in a pile, laid out like other things in a pile. One cord is a flat coil of dark twisted bark string about 12 cm across. A fish trap is the same cone basket as the set trap, tipped onto its side so it lies flat.",
+      "description": "How cord and fish traps look lying in a pile, laid out like other things in a pile. One cord is two plies of dark bark string twisted together, laid in a flat coil about 12 cm across with a loose end. A fish trap is the same cone basket as the set trap, tipped onto its side so it lies flat.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

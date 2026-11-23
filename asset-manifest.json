@@ -1706,21 +1706,23 @@
     },
     {
       "id": "sound-forest",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/sound-forest/forest.ogg",
       "code": [
-        "src/sound/ambience-loops.ts",
+        "src/sound/sound-files.ts",
         "src/sound/ambience.ts",
         "src/sound/sound-engine.ts",
         "src/render/wind.ts",
         "src/render/showcases/sound.ts",
         "src/ui/sound-showcase.tsx"
       ],
-      "description": "The forest's ambience: a leaf rustle loop made from shaped noise, a high airy rustle in waves as gusts pass. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "The forest's ambience: a 26 s recording of leaves rustling in the wind, with soft gusts and lulls. Its end blends into its start, so it loops without a seam. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
+      "source": "Freesound, https://freesound.org/people/Borgory/sounds/751473/. Soft Wind in the Trees - Leaves rustle by Borgory. Cut from 26 s to 53 s with the last second blended into the start, high-passed at 50 Hz, raised 19 dB with a limiter on the loudest snaps, saved as Opus in Ogg at 96 kbit/s",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/sound/issues/01-sound.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

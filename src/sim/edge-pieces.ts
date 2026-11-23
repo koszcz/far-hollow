@@ -1,9 +1,9 @@
-// Where log walls and door frames stand: on the edges of foundation squares.
+// Where log walls, door frames, and windows stand: on the edges of foundation squares.
 // Two squares side by side share the edge between them, and that edge has one middle.
-// A wall or door frame sits at the middle of its edge, so one edge holds at most one piece, seen from either square.
+// An edge piece sits at the middle of its edge, so one edge holds at most one piece, seen from either square.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
 import { blueprintEntities, edgePieceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
-import { type EdgePieceKind } from "./structure-kind";
+import { EDGE_PIECE_KINDS, type EdgePieceKind } from "./structure-kind";
 import { areAtRightAngles, turnOffset, type QuarterTurns } from "./quarter-turns";
 import { addGroundPoints, type GroundPoint, subtractGroundPoints } from "./ground-point";
 
@@ -62,12 +62,12 @@ export function edgeEnds(edge: GroundPoint, turns: QuarterTurns): [GroundPoint, 
 }
 
 /**
- * Whether a piece of this kind on this edge would meet a door frame at a corner, or be a door frame meeting a wall or
- * door frame there. Two pieces meet at a corner when they run different ways and an end of one is at an end of the other.
- * A door frame never stands at a corner, because a log cabin's corner needs crossed logs on both sides.
+ * Whether a piece of this kind on this edge would meet a door frame or window at a corner, or be a door frame or window meeting
+ * any edge piece there. Two pieces meet at a corner when they run different ways and an end of one is at an end of the other.
+ * A door frame or window never stands at a corner, because a log cabin's corner needs crossed logs on both sides.
  * Blueprints count, so it does not matter which piece the player places first.
  */
-export function meetsDoorAtCorner(entities: EntityStore, kind: EdgePieceKind, edge: GroundPoint, turns: QuarterTurns): boolean {
+export function meetsOpeningAtCorner(entities: EntityStore, kind: EdgePieceKind, edge: GroundPoint, turns: QuarterTurns): boolean {
   const ends = edgeEnds(edge, turns);
   const pieces: { kind: EdgePieceKind; position: GroundPoint; turns: QuarterTurns }[] = [];
   for (const piece of edgePieceEntities(entities)) pieces.push({ kind: piece.edgePiece, position: piece.position, turns: piece.facing?.turns ?? 0 });
@@ -77,7 +77,7 @@ export function meetsDoorAtCorner(entities: EntityStore, kind: EdgePieceKind, ed
   }
   return pieces.some(
     (piece) =>
-      (kind === "doorFrame" || piece.kind === "doorFrame") &&
+      (hasOpening(kind) || hasOpening(piece.kind)) &&
       areAtRightAngles(piece.turns, turns) &&
       edgeEnds(piece.position, piece.turns).some((end) => ends.some((own) => isSameEdge(end, own))),
   );
@@ -85,5 +85,10 @@ export function meetsDoorAtCorner(entities: EntityStore, kind: EdgePieceKind, ed
 
 /** Whether a structure stands on the edge of a foundation square, rather than covering ground. */
 export function isEdgePiece(kind: string): kind is EdgePieceKind {
-  return kind === "logWall" || kind === "doorFrame";
+  return (EDGE_PIECE_KINDS as readonly string[]).includes(kind);
+}
+
+/** Whether an edge piece has an opening in it, as a door frame and a window do, so it never stands at a corner. */
+function hasOpening(kind: EdgePieceKind): boolean {
+  return kind !== "logWall";
 }

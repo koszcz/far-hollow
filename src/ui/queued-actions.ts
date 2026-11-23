@@ -144,6 +144,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { content: "torch" }, name: actions.putOut };
     case "plantTorch":
       return { icon: { content: "torch" }, name: actions.plant };
+    case "setShutters":
+      return { icon: structure(command.shuttersId, "shutters"), name: command.open ? actions.openShutters : actions.closeShutters };
     case "pickUpTorch":
       return { icon: { content: "torch" }, name: actions.pickUp };
     case "layBedroll":

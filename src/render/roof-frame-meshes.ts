@@ -256,8 +256,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     const logs = along.map(({ side, under, startReach, endReach }) => {
       const beamRandom = seededRandom(ROOF_SEED + 10 + side);
       const wobble = (size: number) => (beamRandom() * 2 - 1) * size;
-      // A log wall along z sits lower, so its beam is hewn taller, and its top is level with the others. Every beam is as wide.
-      const radius = BEAM_RADIUS_METRES + (under === "logWall" && !runsAlongX(side) ? CORNER_STAGGER_METRES / 2 : 0);
+      // A log wall or window along z sits lower, so its beam is hewn taller, and its top is level with the others. Every beam is as wide.
+      const radius = BEAM_RADIUS_METRES + (under !== "doorFrame" && !runsAlongX(side) ? CORNER_STAGGER_METRES / 2 : 0);
       const geometry = hewnTimber(BUILD_GRID_METRES + startReach + endReach, radius, wobble, BEAM_RADIUS_METRES, 0.006);
       const middle = turnOffset({ x: 0, z: BUILD_GRID_METRES / 2 }, side);
       const shift = (endReach - startReach) / 2;

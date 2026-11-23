@@ -13,12 +13,12 @@ import { isWalkable } from "./walk-map";
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the roof frame in the build menu", () => {
-  it("lists the roof frame between the door frame and the roof, costing debarked logs, and the roof costing only planks", () => {
+  it("lists the roof frame between the window and the roof, costing debarked logs, and the roof costing only planks", () => {
     const game = createGame({ seed: 42 });
 
     const menu = game.client.getView().buildMenu;
-    const doorFrame = menu.findIndex(({ structure }) => structure === "doorFrame");
-    expect(menu.slice(doorFrame + 1, doorFrame + 3)).toEqual([
+    const window = menu.findIndex(({ structure }) => structure === "window");
+    expect(menu.slice(window + 1, window + 3)).toEqual([
       { structure: "roofFrame", cost: [{ material: "debarkedLog", count: ROOF_FRAME_LOG_COST }], placement: "overWalls" },
       { structure: "roof", cost: [{ material: "plank", count: ROOF_PLANK_COST }], placement: "onFrame", fixedFacing: true },
     ]);

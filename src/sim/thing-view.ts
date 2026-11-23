@@ -9,7 +9,8 @@ export function describeThing(entities: EntityStore, id: number): ThingView | un
   const entity = entities.entity(id);
   if (entity === undefined) return undefined;
   const structure = structureKindOf(entity);
-  if (structure !== undefined) return { kind: "structure", structure };
+  if (structure !== undefined)
+    return entity.shutters === undefined ? { kind: "structure", structure } : { kind: "structure", structure, open: entity.shutters.open };
   if (entity.forageSpot !== undefined) return { kind: "forage", food: entity.forageSpot.food };
   if (entity.pile !== undefined) return { kind: "pile", content: entity.pile.content };
   if (entity.fishTrap !== undefined) return { kind: "fishTrap", holdsFish: entity.fishTrap.holding };

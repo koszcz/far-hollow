@@ -88,7 +88,30 @@ export function isEdgePiece(kind: string): kind is EdgePieceKind {
   return (EDGE_PIECE_KINDS as readonly string[]).includes(kind);
 }
 
+/**
+ * What sets each kind of edge piece apart.
+ * - `hasOpening`: it has an opening in it, so it never stands at a corner.
+ * - `blocksWalking`: the player cannot walk through it.
+ * - `isLaidInCourses`: it is built of log courses that cross the courses of the piece beside it at a corner.
+ *   One running along z sits lower than one running along x, so the corners interlock.
+ */
+const EDGE_PIECE_TRAITS: Readonly<Record<EdgePieceKind, { hasOpening: boolean; blocksWalking: boolean; isLaidInCourses: boolean }>> = {
+  logWall: { hasOpening: false, blocksWalking: true, isLaidInCourses: true },
+  doorFrame: { hasOpening: true, blocksWalking: false, isLaidInCourses: false },
+  window: { hasOpening: true, blocksWalking: true, isLaidInCourses: true },
+};
+
 /** Whether an edge piece has an opening in it, as a door frame and a window do, so it never stands at a corner. */
-function hasOpening(kind: EdgePieceKind): boolean {
-  return kind !== "logWall";
+export function hasOpening(kind: EdgePieceKind): boolean {
+  return EDGE_PIECE_TRAITS[kind].hasOpening;
+}
+
+/** Whether an edge piece stops the player walking across its edge, as a log wall and a window do. A door frame leaves the doorway open. */
+export function blocksWalking(kind: EdgePieceKind): boolean {
+  return EDGE_PIECE_TRAITS[kind].blocksWalking;
+}
+
+/** Whether an edge piece is built of log courses that interlock at corners, as a log wall and a window are. A door frame is not. */
+export function isLaidInCourses(kind: EdgePieceKind): boolean {
+  return EDGE_PIECE_TRAITS[kind].isLaidInCourses;
 }

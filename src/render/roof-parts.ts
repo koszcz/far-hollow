@@ -8,7 +8,7 @@ import { blueprintEntities, cabinRoofEntities, roofFrameEntities, type Entity, t
 import { turnOffset } from "../sim/quarter-turns";
 import { SHADOW_ONLY_LAYER } from "./culled-batch";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
-import { COURSE_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES } from "./edge-piece-meshes";
+import { COURSE_RADIUS_METRES, EDGE_PIECE_HEIGHT_METRES } from "./log-courses";
 import { ALONE, gridCell, roofPlaces, shapeTop, type RoofPlace, type RoofShape } from "./roof-layout";
 import { addGroundPoints } from "../sim/ground-point";
 

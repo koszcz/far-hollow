@@ -9,7 +9,7 @@ import { finishedFloorOn } from "./floors";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import type { QuarterTurns } from "./quarter-turns";
-import { isWindowShut } from "./windows";
+import { hasClosedShutters } from "./windows";
 import { SIDES } from "./structure-kind";
 import type { GroundPoint } from "./ground-point";
 
@@ -65,7 +65,7 @@ function isEdgeShut(entities: EntityStore, square: GroundPoint, side: QuarterTur
     case "doorFrame":
       return finishedDoorOn(entities, edge) !== undefined;
     case "window":
-      return isWindowShut(entities, edge);
+      return hasClosedShutters(entities, edge);
     default:
       return true;
   }

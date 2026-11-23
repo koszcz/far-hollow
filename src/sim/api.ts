@@ -915,10 +915,11 @@ export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
 /**
  * What a thing in the world is, given by its entity id. The action queue shows it as the icon of an action on it.
  * A blueprint or finished structure gives its structure, a forage spot its food, and a pile what it holds.
- * Finished shutters also say whether they are `open`. It is missing for every other structure.
+ * Shutters have a variant of their own: finished shutters also say whether they are `open`. A shutters blueprint does not.
  */
 export type ThingView =
-  | { readonly kind: "structure"; readonly structure: StructureKind; readonly open?: boolean }
+  | { readonly kind: "structure"; readonly structure: Exclude<StructureKind, "shutters"> }
+  | { readonly kind: "structure"; readonly structure: "shutters"; readonly open?: boolean }
   | { readonly kind: "forage"; readonly food: WildFood }
   | { readonly kind: "pile"; readonly content: BackpackContent }
   /** A set fish trap, with whether it holds a fish. */

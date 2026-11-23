@@ -10,7 +10,9 @@ import * as THREE from "three";
 import { blueprintEntities, shuttersEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { SHUTTERS_PLANK_COST } from "../sim/structures";
-import { COURSE_RADIUS_METRES, isBetweenCameraAndPlayer, WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./edge-piece-meshes";
+import { isBetweenCameraAndPlayer } from "./edge-piece-meshes";
+import { COURSE_RADIUS_METRES } from "./log-courses";
+import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import { SHUTTER_OPEN_RADIANS, shutterSwingRadians } from "./shutter-swing";
 import {
@@ -25,10 +27,9 @@ import {
   fadedOut,
   seeThrough,
   type BuildingPieceMeshes,
+  FADED_OPACITY,
 } from "./structure-look";
 
-/** Shutters between the camera and the player are this solid, as their window is. */
-const FADED_OPACITY = 0.2;
 /** The batten across each leaf is this much darker than the plank. */
 const BATTEN_SHADE = 0.82;
 /** The dark iron of the hinges. */

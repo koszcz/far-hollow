@@ -28,59 +28,38 @@ import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import type { OutlinePart } from "./hover-outline";
-import { deliveredOpacity, fadedOut, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, FADED_OPACITY, fadedOut, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
-import { isEdgePiece } from "../sim/edge-pieces";
+import { isEdgePiece, isLaidInCourses } from "../sim/edge-pieces";
+import {
+  CORNER_STAGGER_METRES,
+  COURSE_LENGTH_METRES,
+  COURSE_RADIUS_METRES,
+  COURSES_PER_LOG,
+  courseHeights,
+  courseLook,
+  EDGE_PIECE_HEIGHT_METRES,
+} from "./log-courses";
+import {
+  isBesideOpening,
+  JAMB_THICKNESS_METRES,
+  WINDOW_OPENING,
+  WINDOW_OPENING_WIDTH_METRES,
+  WINDOW_STAGE_COURSES,
+  WINDOW_STUB_INNER_METRES,
+  WINDOW_STUB_LENGTH_METRES,
+} from "./window-shape";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
 const BLUEPRINT_OPACITY = 0.35;
 /** A delivered log waiting in its place is this solid, so it stands out from the parts still needed. */
 const DELIVERED_OPACITY = 0.7;
-/** A wall or door frame between the camera and the player is this solid, from 0 (invisible) to 1 (solid). */
-const FADED_OPACITY = 0.2;
-
-/** How tall a log wall and a door frame stand above the deck, in metres. A little taller than the player. */
-export const EDGE_PIECE_HEIGHT_METRES = 2;
-/** Each delivered log makes this many courses of a log wall. */
-const COURSES_PER_LOG = 2;
-const COURSE_COUNT = LOG_WALL_LOG_COST * COURSES_PER_LOG;
-/**
- * How each course of a log wall differs from a plain one, from the bottom up: its thickness and length as shares of
- * the plain course, how far it sits off the middle along its length, and how far it is turned about its length, in radians.
- * A plain course is a little longer than the edge, so its ends stick out past it.
- * Fixed, so every wall looks the same and nothing changes from frame to frame.
- */
-const COURSE_LOOKS = [
-  { thickness: 1.06, length: 1.02, shift: 0.02, turn: 0.3 },
-  { thickness: 0.95, length: 0.98, shift: -0.03, turn: 1.1 },
-  { thickness: 1.02, length: 1.04, shift: 0.01, turn: 0.6 },
-  { thickness: 0.93, length: 1, shift: -0.01, turn: 1.6 },
-  { thickness: 1.04, length: 0.97, shift: 0.03, turn: 0.1 },
-  { thickness: 0.97, length: 1.03, shift: -0.02, turn: 0.9 },
-  { thickness: 1, length: 0.99, shift: 0.02, turn: 1.4 },
-  { thickness: 0.94, length: 1.02, shift: -0.02, turn: 0.4 },
-] as const;
-/** How much of its thickness each course sinks into the notch along the top of the course below. */
-const COURSE_NOTCH_SHARE = 0.12;
-/** How far a plain course sticks out past each end of the edge, in metres. */
-const COURSE_OVERHANG_METRES = 0.06;
 /** How much further a course reaches past an end where another wall crosses it at a corner, in metres. */
 const CORNER_REACH_METRES = 0.2;
-/** How long a plain course is, in metres. */
-const COURSE_LENGTH_METRES = BUILD_GRID_METRES + 2 * COURSE_OVERHANG_METRES;
 /** Two corner points closer than this, in metres, are the same point. */
 const SAME_POINT_METRES = 1e-6;
-/**
- * The radius of a plain course of a log wall, in metres, chosen so the stacked courses reach exactly the wall's height.
- * It is also how far the wall reaches out from the edge it stands on.
- */
-export const COURSE_RADIUS_METRES = (() => {
-  const looks = Array.from({ length: COURSE_COUNT }, (_, i) => courseLook(i));
-  const sunk = looks.slice(1).reduce((sum, look) => sum + look.thickness * (1 - COURSE_NOTCH_SHARE), 0);
-  return EDGE_PIECE_HEIGHT_METRES / (2 * ((looks[0]?.thickness ?? 1) + sunk));
-})();
 /** A door post is a little thicker at the foot than at the top, like the trunk it was cut from. */
 const POST_FOOT_RADIUS_METRES = 0.125;
 const POST_TOP_RADIUS_METRES = 0.11;
@@ -125,45 +104,6 @@ export interface EdgePieceMeshes {
   dispose(): void;
 }
 
-function courseLook(course: number): (typeof COURSE_LOOKS)[number] {
-  return COURSE_LOOKS[course % COURSE_LOOKS.length] ?? COURSE_LOOKS[0];
-}
-
-/**
- * How much lower a log wall running along z sits than one running along x, in metres: half the rise from one course to the next.
- * At a corner the logs of the two walls then take turns instead of passing through each other.
- */
-export const CORNER_STAGGER_METRES = (() => {
-  const heights = courseHeights();
-  return ((heights[COURSE_COUNT - 1] ?? 0) - (heights[0] ?? 0)) / (COURSE_COUNT - 1) / 2;
-})();
-
-/** The height of the middle of each course of a log wall above the deck, from the bottom up. */
-function courseHeights(): number[] {
-  const heights: number[] = [];
-  let top = 0;
-  for (let course = 0; course < COURSE_COUNT; course++) {
-    const radius = COURSE_RADIUS_METRES * courseLook(course).thickness;
-    const bottom = course === 0 ? 0 : top - 2 * radius * COURSE_NOTCH_SHARE;
-    heights.push(bottom + radius);
-    top = bottom + 2 * radius;
-  }
-  return heights;
-}
-
-/**
- * The courses of a window each stage of construction lays, from the bottom up: the sill courses, the courses beside
- * the opening, and the courses over it. A window has the same courses as a log wall, so the two line up side by side.
- */
-const WINDOW_STAGE_COURSES: readonly (readonly number[])[] = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7],
-];
-/** How wide the window's opening is inside its frame, in metres. Shutters hung in it fit this gap. */
-export const WINDOW_OPENING_WIDTH_METRES = 0.6;
-/** How thick each upright board of the window's frame is, along the edge, in metres. */
-const JAMB_THICKNESS_METRES = 0.04;
 /**
  * How tall the sill and the header of the window's frame are, in metres. Each sits half hidden in the round log it rests
  * on or under, so it is tall enough to cover the curve of the log at the wall's faces.
@@ -178,10 +118,6 @@ const SILL_REACH_METRES = 0.03;
 const FRAME_DEPTH_SHARE = 0.96;
 /** The frame's sawn boards are a little darker than plank wood, so pale shutters stand out against them. */
 const FRAME_WOOD_SHADE = 0.88;
-/** Where each short log beside the opening ends, along the edge, in metres from the middle: against the frame's upright board. */
-const WINDOW_STUB_INNER_METRES = WINDOW_OPENING_WIDTH_METRES / 2 + JAMB_THICKNESS_METRES;
-/** How long a plain short log beside the opening is, in metres: from the frame to just past the end of the edge, like a plain course. */
-const WINDOW_STUB_LENGTH_METRES = COURSE_LENGTH_METRES / 2 - WINDOW_STUB_INNER_METRES;
 /**
  * How each short log beside the opening differs from its course, from the bottom up, as a pair for the -x and +x
  * sides: how much longer or shorter it reaches past the end of the edge, in metres, and how much more it is turned
@@ -201,25 +137,6 @@ const STUB_LOOKS: readonly (readonly [{ reach: number; turn: number }, { reach: 
     { reach: 0.025, turn: -1.2 },
   ],
 ];
-
-/** Whether a course of a window runs beside its opening, so it is two short logs. */
-function isBesideOpening(course: number): boolean {
-  return WINDOW_STAGE_COURSES[1]?.includes(course) === true;
-}
-
-/**
- * Where a window's opening is, in metres above the deck: from the top of the sill course under it to the bottom of the
- * course over it. The frame's sill and header sit sunk into those logs, so this is also the opening inside the frame.
- * Shutters hung in the window fit this gap.
- */
-export const WINDOW_OPENING = (() => {
-  const heights = courseHeights();
-  const besides = WINDOW_STAGE_COURSES[1] ?? [];
-  const first = besides[0] ?? 0;
-  const last = besides.at(-1) ?? 0;
-  const radius = (course: number) => COURSE_RADIUS_METRES * courseLook(course).thickness;
-  return { bottom: (heights[first - 1] ?? 0) + radius(first - 1), top: (heights[last + 1] ?? 0) - radius(last + 1) };
-})();
 
 /**
  * One part of a piece: its shape and where it rests, from the middle of the edge at deck height, facing the default way.
@@ -394,7 +311,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
 
   /** Puts a piece of this kind at `spot`, facing `turns`. A log wall running along z sits lower, so corners interlock. */
   function place(root: THREE.Group, kind: EdgePieceKind, spot: Vec3, turns: QuarterTurns): void {
-    const stagger = kind !== "doorFrame" && !runsAlongX(turns) ? CORNER_STAGGER_METRES : 0;
+    const stagger = isLaidInCourses(kind) && !runsAlongX(turns) ? CORNER_STAGGER_METRES : 0;
     root.position.set(spot.x, spot.y - stagger, spot.z);
     root.rotation.y = quarterTurnsToRadians(turns);
   }

@@ -578,6 +578,50 @@ function BuildIconSheet() {
   );
 }
 
+/** The furniture icons the "rain-barrel-icon" sheet draws beside the rain barrel, so the owner can compare their style. */
+const RAIN_BARREL_NEIGHBOURS = ["chest", "table", "stool", "bed"] as const;
+
+/**
+ * The "rain-barrel-icon" first view: the rain barrel's icon drawn large and at build menu size, beside four other furniture icons.
+ * The full build icon sheet does not fit the rain barrel in a quarter of the screen.
+ */
+function RainBarrelIconSheet() {
+  const cell = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "4px",
+    padding: "6px",
+    background: "#3d2b1e",
+    borderRadius: "6px",
+    color: "#cdb898",
+    fontSize: "11px",
+  } as const;
+  return (
+    <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "flex", gap: "6px" }}>
+      <div style={cell}>
+        <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
+          <StructureIcon structure="rainBarrel" />
+        </span>
+        <span style={{ width: "40px", height: "40px", display: "grid" }} class="showcase-big-icon">
+          <StructureIcon structure="rainBarrel" />
+        </span>
+        rainBarrel
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
+        {RAIN_BARREL_NEIGHBOURS.map((structure) => (
+          <div key={structure} style={cell}>
+            <span style={{ width: "72px", height: "72px", display: "grid" }} class="showcase-big-icon">
+              <StructureIcon structure={structure} />
+            </span>
+            {structure}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** The last view of "crafting-icons" or "fishing-icons": each icon drawn large, with its name, so the owner can judge the drawings. */
 function IconSheet({ contents }: { contents: readonly BackpackContent[] }) {
   return (
@@ -787,7 +831,7 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {
-        render(<BuildIconSheet />, quarter);
+        render(asset === "rain-barrel-icon" ? <RainBarrelIconSheet /> : <BuildIconSheet />, quarter);
         return;
       }
     }

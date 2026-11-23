@@ -1203,8 +1203,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/rain-barrel/issues/01-rain-barrel.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

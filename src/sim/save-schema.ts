@@ -71,6 +71,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("pickUpBedroll", "sleep"), bedrollId: count })(value) ||
   shape({ type: exactly("layBedrollInLeanTo"), leanToId: count })(value) ||
   shape({ type: exactly("pickUpTorch"), torchId: count })(value) ||
+  shape({ type: exactly("setShutters"), shuttersId: count, open: boolean })(value) ||
   shape({ type: exactly("takeFishFromTrap", "pickUpFishTrap"), trapId: count })(value) ||
   shape({ type: exactly("pickUpPile"), pileId: count })(value) ||
   shape({ type: exactly("deliverToBlueprint"), blueprintId: count })(value) ||
@@ -136,6 +137,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   floor: exactly(true),
   edgePiece: exactly(...EDGE_PIECE_KINDS),
   door: exactly(true),
+  shutters: shape({ open: boolean }),
   roofFrame: exactly(true),
   cabinRoof: exactly(true),
   fireplace: shape({ lit: boolean, fuelMinutes: finite }),
@@ -243,6 +245,8 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noFishTrap: true,
   fishTrapTooClose: true,
   takeFishFirst: true,
+  atCorner: true,
+  takeShuttersDownFirst: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

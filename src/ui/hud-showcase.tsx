@@ -323,9 +323,11 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true },
   { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
   { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
+  { structure: "window", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
   { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
   { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame", fixedFacing: true },
   { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true },
+  { structure: "shutters", cost: [{ material: "plank", count: 2 }], placement: "inWindow", fixedFacing: true },
   { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
   { structure: "woodpile", cost: [], placement: "onGround" },
   ...FURNITURE_BUILD_MENU,
@@ -805,12 +807,13 @@ const STATES_BY_ASSET = {
   "rain-barrel-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
+  "window-icons": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
   "fish-trap-icons": FISH_TRAP_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "action-queue-icons", "torch-icons", or "fish-trap-icons" showcase. */
+/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "window-icons", "action-queue-icons", "torch-icons", or "fish-trap-icons" showcase. */
 export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
@@ -826,7 +829,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY
       asset === "furniture-icons" ||
       asset === "fireplace-icon" ||
       asset === "rain-barrel-icon" ||
-      asset === "floor-and-door-icons"
+      asset === "floor-and-door-icons" ||
+      asset === "window-icons"
     ) {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");

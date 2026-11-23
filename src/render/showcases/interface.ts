@@ -72,6 +72,20 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The draft window and shutters icons show among the build icons, so this showcase draws the same views as "build-icons".
+  "window-icons": {
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Build icons, large", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
+      { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The rain barrel icon shows among the build icons, so this showcase draws the same views as "build-icons",
   // except the first, which draws the rain barrel icon large beside other furniture icons.
   "rain-barrel-icon": {

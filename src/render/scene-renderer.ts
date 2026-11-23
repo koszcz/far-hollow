@@ -156,7 +156,7 @@ export function createSceneRenderer(
   const barkMeshes = createBarkMeshes(entities);
   const plantedTorchMeshes = createPlantedTorchMeshes(entities);
   scene.add(plantedTorchMeshes.group);
-  const fishTrapMeshes = createFishTrapMeshes(entities, valley.river);
+  const fishTrapMeshes = createFishTrapMeshes(entities, valley.river, groundHeightAt);
   scene.add(fishTrapMeshes.group);
   scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, groundHeightAt);
@@ -204,6 +204,7 @@ export function createSceneRenderer(
     pile: (entity) => pileMeshes.outlineOf(entity),
     plantedTorch: (entity) => plantedTorchMeshes.outlineOf(entity),
     fishTrap: (entity) => fishTrapMeshes.outlineOf(entity),
+    shutters: (entity) => structureMeshes.outlineOf({ kind: "shutters", entity }),
   };
 
   /** Outlines the hovered thing where it is drawn now. It may have moved, or be gone. */

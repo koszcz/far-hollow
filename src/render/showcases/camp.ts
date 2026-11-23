@@ -402,7 +402,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
-  // The draft "fish-trap": set fish traps, one empty and one holding a raw fish. In the game a set trap sits half in the
+  // The approved "fish-trap": set fish traps, one empty and one holding a raw fish. In the game a set trap sits half in the
   // river's water. The showcase stands on flat ground, so it shows the trap sunk into the ground the same way.
   "fish-trap": {
     radius: 2.2,

@@ -79,6 +79,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addFishTraps,
   fillJugs,
   matchGroundToTrees,
+  addWindows,
 ];
 
 /** The version of the save format this code writes. */
@@ -186,6 +187,8 @@ export const FISH_TRAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addFishTraps) + 2;
 export const JUG_WATER_SAVE_VERSION = SAVE_UPGRADES.indexOf(fillJugs) + 2;
 /** The first save version in which the ground follows the trees that stand for good, and saves when each change started. */
 export const GROUND_CHANGES_SAVE_VERSION = SAVE_UPGRADES.indexOf(matchGroundToTrees) + 2;
+/** The first save version that can hold windows and shutters, open or closed. */
+export const WINDOWS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWindows) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -989,4 +992,9 @@ function matchGroundToTrees(save: Readonly<Record<string, unknown>>): Record<str
     ...added.map((spot) => ({ x: spot.x, z: spot.z, toward: "forestFloor", startedAtMinutes })),
   ].map((groundChange) => ({ id: nextId++, components: { groundChange } }));
   return { ...save, entities: [...saved, ...changes] };
+}
+
+/** Version 57 to 58: the player can build windows and hang shutters in them. A save from before then holds none, so it carries over unchanged. */
+function addWindows(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

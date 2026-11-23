@@ -140,6 +140,8 @@ function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[]
   if (pick.kind !== "structure") return thingActions(pick, context);
   // A finished fireplace offers its fire, as it does when the player reaches it with E, and taking it down.
   if (pick.structure === "fireplace") return thingActions({ kind: "fireplace", id: pick.id }, context);
+  // So do finished shutters: opening or closing them, and taking them down.
+  if (pick.structure === "shutters") return thingActions({ kind: "shutters", id: pick.id }, context);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
   const under = pick.under === undefined ? [] : thingActions(pick.under, context);
   const [own] = structureOffers(pick, context);
@@ -200,6 +202,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "fishTrap":
       return fishTrapActions(pick.id, context);
+    case "shutters":
+      return shuttersActions(pick.id, context);
     case "forage":
       return forageActions(pick.id, context);
     case "mushroomLog":
@@ -250,6 +254,17 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
         "openMenu",
       );
   }
+}
+
+/** Open closed shutters, or close open ones, as the main action, then take them down. */
+function shuttersActions(shuttersId: number, context: Context): readonly ThingAction[] {
+  const { reader, offer } = context;
+  const thing = reader.describeThing(shuttersId);
+  const open = thing?.kind === "structure" && thing.open === true;
+  const toggle = open
+    ? offer("closeShutters", strings.actions.closeShutters, { hud: "flame" }, { type: "setShutters", shuttersId, open: false })
+    : offer("openShutters", strings.actions.openShutters, { hud: "sun" }, { type: "setShutters", shuttersId, open: true });
+  return withMain([toggle, takeDown(context, shuttersId)], toggle.id);
 }
 
 /**

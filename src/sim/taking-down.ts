@@ -11,6 +11,7 @@ import { isOnGridSquare } from "./build-grid";
 import { isEdgePiece, squaresBeside } from "./edge-pieces";
 import { blueprintEntities, lyingThings, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { hasDoor } from "./doors";
+import { hasShutters } from "./windows";
 import { isColdAndEmpty } from "./fire";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
@@ -233,7 +234,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
  * Whether another structure stands on this one, so it cannot come down yet.
  * A log wall, door frame, floor, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
- * A door, finished or as a blueprint, hangs in its door frame.
+ * A door, finished or as a blueprint, hangs in its door frame. Shutters in a window have a refusal of their own: see takeDownRefusal.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
  */
@@ -259,6 +260,8 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
  * fire burns or holds fuel. Undefined if it can.
  */
 function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind: StructureKind): Refusal | undefined {
+  // Shutters hang in a window, finished or as a blueprint, so they come down first. The refusal says so.
+  if (kind === "window" && structure.blueprint === undefined && hasShutters(entities, structure.position)) return { kind: "takeShuttersDownFirst" };
   if (holdsUpAnother(entities, structure, kind)) return { kind: "holdsUpPiece" };
   if (structure.potOnFire !== undefined) return { kind: "potOnFire" };
   if (structure.fishOnFire !== undefined) return { kind: "fishOnFire" };
@@ -270,7 +273,7 @@ function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind
 
 /** The notice the player sees when they try to take down a structure that refuses. */
 function noticeOf(refusal: Refusal): TakeDownRefusal {
-  return refusal.kind === "holdsUpPiece" ? "holdsUpPiece" : "stillHoldsSomething";
+  return refusal.kind === "holdsUpPiece" || refusal.kind === "takeShuttersDownFirst" ? "holdsUpPiece" : "stillHoldsSomething";
 }
 
 /**

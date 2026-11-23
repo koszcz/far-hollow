@@ -1,5 +1,5 @@
-// Draws log walls and door frames, and their blueprints: the "log-wall" and "door-frame" assets in asset-manifest.json,
-// built in code and approved by the owner. Both stand on the edge of a foundation square, along the line to the square beside it.
+// Draws log walls, door frames, and windows, and their blueprints: the approved "log-wall" and "door-frame" assets and the
+// draft "window" asset in asset-manifest.json, built in code. Each stands on the edge of a foundation square, along the line to the square beside it.
 // - A log wall is a stack of debarked logs laid along the edge. Each delivered log is cut in two, since the wall is
 //   one square wide, so each stage of construction lays two courses. Like the deck of a foundation, each course is a
 //   little thicker or thinner, longer or shorter, and turned a little, so the wall looks hand-built. Each course sits
@@ -8,23 +8,27 @@
 //   that runs along x, so where two walls meet at a corner their logs take turns, like the corners of a log cabin.
 //   Its bottom course sinks half into the deck. Where a wall meets another wall at a corner, its logs reach further
 //   past the corner, so the corner shows crossed log ends, like a log cabin. Ends with no wall across them stay short,
-//   so they never reach into a doorway. A door frame never stands at a corner: see `meetsDoorAtCorner` in edge-pieces.ts.
+//   so they never reach into a doorway. A door frame or window never stands at a corner: see `meetsOpeningAtCorner` in edge-pieces.ts.
+// - A window is a log wall with a square opening and no glass. It has the same courses as a log wall, and sits as low as one
+//   when it runs along z, so the two line up side by side. Its three stages lay the sill courses, then the courses beside the
+//   opening, each two short logs, then the courses over it. Shutters hang in the opening: see shutters-meshes.ts.
 // - A door frame is two posts with a lintel across the top. Each stage puts up one of the three. The posts taper and lean a
 //   little, and the lintel sits in notches on their tops and reaches past them. Their cut ends show the paler cut wood.
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
-// A finished wall or door frame between the camera and the player fades out, so the player never disappears behind it.
+// A finished wall, door frame, or window between the camera and the player fades out, so the player never disappears behind it.
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import type { EdgePieceKind } from "../sim/structure-kind";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST } from "../sim/structures";
+import { EDGE_PIECE_KINDS, type EdgePieceKind } from "../sim/structure-kind";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
+import { isEdgePiece } from "../sim/edge-pieces";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -145,6 +149,38 @@ function courseHeights(): number[] {
 }
 
 /**
+ * The courses of a window each stage of construction lays, from the bottom up: the sill courses, the courses beside
+ * the opening, and the courses over it. A window has the same courses as a log wall, so the two line up side by side.
+ */
+const WINDOW_STAGE_COURSES: readonly (readonly number[])[] = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7],
+];
+/** How wide the window's opening is, in metres. Shutters hung in it fit this gap. */
+export const WINDOW_OPENING_WIDTH_METRES = 0.6;
+/** How long each short log beside the opening is, in metres: from the opening to just past the end of the edge, like a plain course. */
+const WINDOW_STUB_LENGTH_METRES = (COURSE_LENGTH_METRES - WINDOW_OPENING_WIDTH_METRES) / 2;
+
+/** Whether a course of a window runs beside its opening, so it is two short logs. */
+function isBesideOpening(course: number): boolean {
+  return WINDOW_STAGE_COURSES[1]?.includes(course) === true;
+}
+
+/**
+ * Where a window's opening is, in metres above the deck: from the top of the sill course under it to the bottom of the
+ * course over it. Shutters hung in the window fit this gap.
+ */
+export const WINDOW_OPENING = (() => {
+  const heights = courseHeights();
+  const besides = WINDOW_STAGE_COURSES[1] ?? [];
+  const first = besides[0] ?? 0;
+  const last = besides.at(-1) ?? 0;
+  const radius = (course: number) => COURSE_RADIUS_METRES * courseLook(course).thickness;
+  return { bottom: (heights[first - 1] ?? 0) + radius(first - 1), top: (heights[last + 1] ?? 0) - radius(last + 1) };
+})();
+
+/**
  * One part of a piece: its shape and where it rests, from the middle of the edge at deck height, facing the default way.
  * `scale` stretches it along the edge and across it, and `turn` turns it about its length, in radians.
  * `cutEnds` gives a log lying along the edge its darker cut ends.
@@ -201,6 +237,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   // Logs lie along x, the way a piece facing the default way runs.
   // Cylinder groups are the side, then the two ends, so a list of three materials gives the ends their own colour.
   const courseGeometry = new THREE.CylinderGeometry(COURSE_RADIUS_METRES, COURSE_RADIUS_METRES, COURSE_LENGTH_METRES, 9).rotateZ(Math.PI / 2);
+  const stubGeometry = new THREE.CylinderGeometry(COURSE_RADIUS_METRES, COURSE_RADIUS_METRES, WINDOW_STUB_LENGTH_METRES, 9).rotateZ(Math.PI / 2);
   // The posts stop at the middle of the lintel, so the lintel sits half sunk in notches cut into their tops.
   const postHeight = EDGE_PIECE_HEIGHT_METRES - LINTEL_RADIUS_METRES;
   const leftPostGeometry = doorLogGeometry(POST_TOP_RADIUS_METRES, POST_FOOT_RADIUS_METRES, postHeight).rotateZ(LEFT_POST_LEAN_RADIANS);
@@ -243,8 +280,21 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       [{ geometry: rightPostGeometry, x: BUILD_GRID_METRES / 2 - POST_FOOT_RADIUS_METRES, y: postHeight / 2, wood: doorWoodMaterial }],
       [{ geometry: lintelGeometry, x: 0, y: postHeight, wood: doorWoodMaterial }],
     ],
+    window: WINDOW_STAGE_COURSES.map((courses) =>
+      courses.flatMap((course): PartPlan[] => {
+        const look = courseLook(course);
+        const y = heights[course] ?? 0;
+        const turn = look.turn;
+        if (!isBesideOpening(course)) {
+          return [{ geometry: courseGeometry, x: look.shift, y, scale: { along: look.length, across: look.thickness }, turn, cutEnds: true }];
+        }
+        // Beside the opening, each course is two short logs, one either side, so the opening shows between them.
+        const reach = WINDOW_OPENING_WIDTH_METRES / 2 + WINDOW_STUB_LENGTH_METRES / 2;
+        return [-1, 1].map((side) => ({ geometry: stubGeometry, x: side * reach, y, scale: { along: 1, across: look.thickness }, turn, cutEnds: true }));
+      }),
+    ),
   };
-  const LOG_COST: Readonly<Record<EdgePieceKind, number>> = { logWall: LOG_WALL_LOG_COST, doorFrame: DOOR_FRAME_LOG_COST };
+  const LOG_COST: Readonly<Record<EdgePieceKind, number>> = { logWall: LOG_WALL_LOG_COST, doorFrame: DOOR_FRAME_LOG_COST, window: WINDOW_LOG_COST };
 
   const drawn = new Map<Entity, Drawn>();
   const pickers: THREE.Mesh[] = [];
@@ -274,7 +324,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
 
   /** Puts a piece of this kind at `spot`, facing `turns`. A log wall running along z sits lower, so corners interlock. */
   function place(root: THREE.Group, kind: EdgePieceKind, spot: Vec3, turns: QuarterTurns): void {
-    const stagger = kind === "logWall" && !runsAlongX(turns) ? CORNER_STAGGER_METRES : 0;
+    const stagger = kind !== "doorFrame" && !runsAlongX(turns) ? CORNER_STAGGER_METRES : 0;
     root.position.set(spot.x, spot.y - stagger, spot.z);
     root.rotation.y = quarterTurnsToRadians(turns);
   }
@@ -297,7 +347,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   let walls: WallLine[] = [];
 
   const placingBlueprints = new Map<EdgePieceKind, { root: THREE.Group; stages: Drawn["stages"] }>();
-  for (const kind of ["logWall", "doorFrame"] as const) {
+  for (const kind of EDGE_PIECE_KINDS) {
     const root = new THREE.Group();
     root.visible = false;
     group.add(root);
@@ -372,7 +422,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       for (const entity of finished) if (entity.edgePiece === "logWall") walls.push({ middle: entity.position, turns: entity.facing?.turns ?? 0 });
       for (const entity of blueprints) {
         const kind = entity.blueprint.structure;
-        if (kind !== "logWall" && kind !== "doorFrame") continue;
+        if (!isEdgePiece(kind)) continue;
         const item = draw(entity, kind);
         place(item.root, kind, entity.position, entity.facing?.turns ?? 0);
         if (kind === "logWall") reachCorners(item.stages, wallEnds({ middle: entity.position, turns: entity.facing?.turns ?? 0 }, walls));
@@ -422,6 +472,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
     dispose() {
       for (const item of [
         courseGeometry,
+        stubGeometry,
         leftPostGeometry,
         rightPostGeometry,
         lintelGeometry,

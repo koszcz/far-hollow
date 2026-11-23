@@ -137,7 +137,7 @@ export function createSkyLighting(scene: THREE.Scene, renderer: THREE.WebGLRende
       group.traverse((object) => {
         // Culled batches cast shadows from a separate copy. See culled-batch.ts.
         if (!(object instanceof THREE.Mesh) || object.userData.castsShadowSeparately === true) return;
-        const solid = materialsOf(object as THREE.Mesh).every((material) => !material.transparent && material.visible);
+        const solid = castsSunShadow(object as THREE.Mesh);
         object.castShadow = solid;
         object.receiveShadow = solid;
       });
@@ -248,6 +248,14 @@ function keysAround(hourOfDay: number): [SkyKey, SkyKey, number] {
     before = after;
   }
   return [before, before, 0];
+}
+
+/**
+ * Whether a mesh casts the sun's shadow: every material on it is shown, and solid or marked `userData.castsShadow`.
+ * A piece faded out between the camera and the player is marked, so a faded wall still keeps the room behind it in shade.
+ */
+export function castsSunShadow(mesh: THREE.Mesh): boolean {
+  return materialsOf(mesh).every((material) => material.visible && (!material.transparent || material.userData.castsShadow === true));
 }
 
 function materialsOf(mesh: THREE.Mesh): THREE.Material[] {

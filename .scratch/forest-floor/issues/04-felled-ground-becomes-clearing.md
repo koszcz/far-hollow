@@ -20,5 +20,5 @@ Regrowth changed this ticket. A felled tree's stump grows back within 6 game day
 - [x] Gameplay rules that read the ground type, such as planting and gathering stone, use the current ground type.
 - [x] The game saves when each change started. The save version goes up. An older save loads with the ground matching the trees it holds now, with no change in progress. See ADR 0011.
 - [x] The same seed and the same actions always give the same ground.
-- [ ] The game still runs at 60 fps on an Apple M1 laptop in Chrome while the ground changes. Nobody has measured this on an M1 yet. See ticket 09 for the M3 Pro results.
+- [x] The game still runs at 60 fps on an Apple M1 laptop in Chrome while the ground changes. The owner accepted this on 2026-11-23 without an M1 measurement. See ticket 09 for the M3 Pro results.
 - [x] Unit tests cover a dug-up spot turning to clearing, a planted full tree turning to forest floor, a growing stump changing nothing, the 3-day timing, and loading saves from before and after the change.

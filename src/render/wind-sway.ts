@@ -30,8 +30,8 @@ const FLUTTER_SHARE = 0.25;
 const FLUTTER_WAVES_PER_SECOND = 0.6;
 
 export interface WindSway {
-  /** Makes shapes drawn with `material` sway like `look`. Patch the material's shader for anything else first. */
-  sway(material: THREE.Material, look: SwayLook): void;
+  /** Makes shapes drawn with `material` sway like `look`, and returns the material. Patch its shader for anything else first. */
+  sway<M extends THREE.Material>(material: M, look: SwayLook): M;
   /** Sets the wind for this frame. `nowSeconds` is a steady real-time clock, for the gusts and flutter. */
   update(wind: Wind, nowSeconds: number): void;
 }
@@ -57,6 +57,7 @@ export function createWindSway(): WindSway {
       // three.js shares compiled shaders between materials with the same key, so the key must show the sway too.
       material.customProgramCacheKey = () => `${beforeKey}|wind-sway`;
       material.needsUpdate = true;
+      return material;
     },
     update(wind, nowSeconds) {
       time.value = nowSeconds;

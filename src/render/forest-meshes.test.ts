@@ -1,22 +1,24 @@
 import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
-import { createForestMeshes } from "./forest-meshes";
+import { createForestMeshes, type ForestShapes } from "./forest-meshes";
 import { createWindSway } from "./wind-sway";
 
 const noTree = { name: "none", trunk: new THREE.BoxGeometry(), crown: new THREE.BoxGeometry(), trunkTone: "light", crownTone: "light" } as const;
 
+function testShapes(): ForestShapes {
+  return {
+    trees: [],
+    saplings: { pine: noTree, leafy: noTree },
+    stump: { geometry: new THREE.BoxGeometry(), footRadius: 0.3, height: 0.4 },
+    log: { geometry: new THREE.BoxGeometry(), restHeight: 0.15 },
+  };
+}
+
 function forestWithSticks(count: number) {
   const store = createEntityStore();
   for (let i = 0; i < count; i += 1) store.add({ stick: true, position: { x: i, y: 0, z: 0 } });
-  const forest = createForestMeshes(
-    store,
-    [],
-    { pine: noTree, leafy: noTree },
-    { geometry: new THREE.BoxGeometry(), footRadius: 0.3, height: 0.4 },
-    { geometry: new THREE.BoxGeometry(), restHeight: 0.15 },
-    createWindSway(),
-  );
+  const forest = createForestMeshes(store, testShapes(), createWindSway());
   return { store, forest };
 }
 
@@ -52,14 +54,7 @@ function sawhorseWithLog(turns: 0 | 1) {
     previousPosition: { x: 10, y: 0.5, z: 18.8 },
     backpack: { contents: { saw: 1 } },
   });
-  const forest = createForestMeshes(
-    store,
-    [],
-    { pine: noTree, leafy: noTree },
-    { geometry: new THREE.BoxGeometry(), footRadius: 0.3, height: 0.4 },
-    { geometry: new THREE.BoxGeometry(), restHeight: 0.15 },
-    createWindSway(),
-  );
+  const forest = createForestMeshes(store, testShapes(), createWindSway());
   const sawhorseId = store.id(sawhorse) ?? -1;
   const startSawing = () => {
     store.addComponent(player, "craftTask", { recipe: "planks", secondsDone: 2, stationId: sawhorseId });

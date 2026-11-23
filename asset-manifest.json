@@ -825,6 +825,7 @@
         "src/render/grass-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-fade.ts",
         "src/render/undergrowth-layout.ts",
         "src/render/wind-sway.ts",
         "src/render/wind.ts"
@@ -847,6 +848,7 @@
         "src/render/fern-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-fade.ts",
         "src/render/undergrowth-layout.ts",
         "src/render/wind-sway.ts",
         "src/render/wind.ts"
@@ -869,6 +871,7 @@
         "src/render/flower-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-fade.ts",
         "src/render/undergrowth-layout.ts",
         "src/render/wind-sway.ts",
         "src/render/wind.ts"
@@ -891,6 +894,7 @@
         "src/render/pebble-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-fade.ts",
         "src/render/undergrowth-layout.ts"
       ],
       "description": "Undergrowth stones: small rocks on the forest floor, rare stones in clearings, and flat pebbles on the river bank.",

@@ -3,6 +3,7 @@
 // Each change takes GROUND_CHANGE_MINUTES. See .scratch/forest-floor/spec.md.
 import { MINUTES_PER_DAY } from "./clock";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import { smoothStep } from "./share";
 
 /** Which ground type the ground around the spot turns into. */
 export type GroundChangeToward = "clearing" | "forestFloor";
@@ -38,9 +39,21 @@ export function isGroundChangeOver(change: GroundChange, nowMinutes: number): bo
  * It eases in and out, so the ground does not jump when the change starts or ends.
  */
 export function treeCover(change: GroundChange, nowMinutes: number): number {
-  const progress = groundChangeProgress(change, nowMinutes);
-  const eased = progress * progress * (3 - 2 * progress);
+  const eased = smoothStep(groundChangeProgress(change, nowMinutes));
   return change.toward === "forestFloor" ? eased : 1 - eased;
+}
+
+/** Whether two changes are the same: same spot, same way, started at the same minute. */
+export function isSameGroundChange(a: GroundChange, b: GroundChange): boolean {
+  return a.x === b.x && a.z === b.z && a.toward === b.toward && a.startedAtMinutes === b.startedAtMinutes;
+}
+
+/** The changes in `before` or `after` but not both: each change that started, turned, or went between the two lists. */
+export function groundChangesBetween(before: readonly GroundChange[], after: readonly GroundChange[]): GroundChange[] {
+  return [
+    ...after.filter((change) => !before.some((old) => isSameGroundChange(old, change))),
+    ...before.filter((old) => !after.some((change) => isSameGroundChange(old, change))),
+  ];
 }
 
 /** Whether two spots are the same tree spot. */

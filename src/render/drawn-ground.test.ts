@@ -3,7 +3,7 @@ import { createEntityStore } from "../sim/entities";
 import { GROUND_CHANGE_MINUTES } from "../sim/ground-change";
 import { groundTypeWeightsAt } from "../sim/ground-types";
 import type { River } from "../sim/valley";
-import { createGroundNow, REFRESH_GAME_MINUTES } from "./ground-now";
+import { createDrawnGround, REFRESH_GAME_MINUTES } from "./drawn-ground";
 
 const river: River = {
   path: [
@@ -18,7 +18,7 @@ const valley = { size: 1000, river, trees: [tree] };
 function setUp() {
   const entities = createEntityStore();
   const clock = { minutes: 600 };
-  const ground = createGroundNow(valley, entities, () => clock.minutes);
+  const ground = createDrawnGround(valley, entities, () => clock.minutes);
   return { entities, clock, ground };
 }
 
@@ -34,8 +34,8 @@ describe("the drawing's ground", () => {
     entities.add({ groundChange: { ...tree, toward: "clearing", startedAtMinutes: clock.minutes } });
     const [area, ...others] = ground.refresh();
     expect(others).toEqual([]);
-    expect(area?.minX).toBeLessThan(tree.x - 7);
-    expect(area?.maxX).toBeGreaterThan(tree.x + 7);
+    expect(area?.min.x).toBeLessThan(tree.x - 7);
+    expect(area?.max.x).toBeGreaterThan(tree.x + 7);
   });
 
   it("moves a change under way on every few game minutes, until it is over", () => {
@@ -49,7 +49,7 @@ describe("the drawing's ground", () => {
 
     clock.minutes += GROUND_CHANGE_MINUTES;
     expect(ground.refresh()).toHaveLength(1);
-    expect(groundTypeWeightsAt(ground.map(), { x: 101, z: 0 }).forestFloor).toBe(0);
+    expect(groundTypeWeightsAt(ground.currentMap(), { x: 101, z: 0 }).forestFloor).toBe(0);
     clock.minutes += 60;
     expect(ground.refresh()).toEqual([]);
   });
@@ -57,8 +57,8 @@ describe("the drawing's ground", () => {
   it("starts with every change already made, as a loaded game has", () => {
     const entities = createEntityStore();
     entities.add({ groundChange: { ...tree, toward: "clearing", startedAtMinutes: 0 } });
-    const ground = createGroundNow(valley, entities, () => GROUND_CHANGE_MINUTES);
-    expect(groundTypeWeightsAt(ground.map(), { x: 101, z: 0 }).forestFloor).toBe(0);
+    const ground = createDrawnGround(valley, entities, () => GROUND_CHANGE_MINUTES);
+    expect(groundTypeWeightsAt(ground.currentMap(), { x: 101, z: 0 }).forestFloor).toBe(0);
     expect(ground.refresh()).toEqual([]);
   });
 });

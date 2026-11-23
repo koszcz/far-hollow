@@ -28,19 +28,20 @@ export function createGroundChanges(entities: EntityStore, valley: Valley, nowMi
   const start = createGroundMap(valley);
   const changes = groundChangeEntities(entities);
 
-  function latestAt(spot: GroundPoint) {
+  /** The entity that holds the latest change at this spot, if the spot has had one. */
+  function changeEntityAt(spot: GroundPoint) {
     return changes.entities.find((entity) => isSameTreeSpot(entity.groundChange, spot));
   }
 
   /** Whether a tree at this spot spreads forest floor, or will once its change is over. */
   function counts(spot: GroundPoint): boolean {
-    const latest = latestAt(spot)?.groundChange;
+    const latest = changeEntityAt(spot)?.groundChange;
     if (latest !== undefined) return latest.toward === "forestFloor";
     return valley.trees.some((tree) => isSameTreeSpot(tree, spot));
   }
 
   function change(spot: GroundPoint, toward: GroundChangeToward): void {
-    const entity = latestAt(spot);
+    const entity = changeEntityAt(spot);
     const next = startGroundChange(spot, toward, nowMinutes(), entity?.groundChange);
     if (entity === undefined) entities.add({ groundChange: next });
     else entity.groundChange = next;

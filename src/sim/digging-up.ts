@@ -47,7 +47,7 @@ export interface DiggingUp {
 }
 
 /** Lets the player dig up saplings and berry bushes into the backpack. `onSaplingGone` hears of each sapling dug up, at its spot. */
-export function createDiggingUp(entities: EntityStore, onSaplingGone: (spot: GroundPoint) => void = () => undefined): DiggingUp {
+export function createDiggingUp(entities: EntityStore, onSaplingGone: (spot: GroundPoint) => void): DiggingUp {
   const players = playerEntities(entities);
   const diggers = entities.with("digUpTask", "position", "backpack");
 

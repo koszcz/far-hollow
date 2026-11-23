@@ -24,7 +24,7 @@ import { darkenView } from "./sleep-animation";
 import type { ModelShapes } from "./model-shapes";
 import { createRiverMeshes, type RiverMeshes } from "./river-meshes";
 import { createValleyMeshes } from "./valley-meshes";
-import { createGroundNow } from "./ground-now";
+import { createDrawnGround } from "./drawn-ground";
 import { createStructureMeshes } from "./structure-meshes";
 import { createTorchLights } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
@@ -83,7 +83,7 @@ export function showAsset(
   const ground = onValley
     ? createValleyMeshes(
         valley,
-        createGroundNow(valley, createEntityStore(), () => 0),
+        createDrawnGround(valley, createEntityStore(), () => 0),
       )
     : createFlatGround();
   scene.add(ground.group);

@@ -6,6 +6,7 @@
 import { distanceToSegment, RIVER_BANK_WIDTH_METRES, type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { isSameTreeSpot, treeCover, type GroundChange } from "./ground-change";
+import { smoothStep } from "./share";
 
 export type GroundType = "forestFloor" | "clearing" | "riverBank";
 
@@ -35,7 +36,7 @@ interface TreeSpot extends GroundPoint {
    * How many metres nearer the trunk the forest floor's edge has drawn in, from 0 for a tree's whole forest floor
    * to CELL_METRES for none at all. It is 0 for a starting tree with no change at its spot.
    */
-  readonly drawnIn: number;
+  readonly edgeDrawnInMetres: number;
 }
 
 interface RiverSegment {
@@ -73,7 +74,7 @@ export function createGroundMap(valley: Pick<Valley, "size" | "river" | "trees">
   const treesByCell: (TreeSpot[] | undefined)[] = Array.from({ length: cellsPerSide * cellsPerSide }, () => undefined);
   for (const tree of valley.trees) {
     const key = cellKey(valley.size, cellsPerSide, tree);
-    const spot: TreeSpot = { x: tree.x, z: tree.z, starting: true, drawnIn: 0 };
+    const spot: TreeSpot = { x: tree.x, z: tree.z, starting: true, edgeDrawnInMetres: 0 };
     const cell = treesByCell[key];
     if (cell) cell.push(spot);
     else treesByCell[key] = [spot];
@@ -110,16 +111,16 @@ export function groundMapNow(start: GroundMap, changes: readonly GroundChange[],
     const key = cellKey(start.size, start.cellsPerSide, change);
     const cell = treesByCell[key] ?? [];
     const starting = cell.some((tree) => tree.starting && isSameTreeSpot(change, tree));
-    const drawnIn = (1 - treeCover(change, nowMinutes)) * CELL_METRES;
-    treesByCell[key] = [...cell.filter((tree) => !isSameTreeSpot(change, tree)), { x: change.x, z: change.z, starting, drawnIn }];
+    const edgeDrawnInMetres = (1 - treeCover(change, nowMinutes)) * CELL_METRES;
+    treesByCell[key] = [...cell.filter((tree) => !isSameTreeSpot(change, tree)), { x: change.x, z: change.z, starting, edgeDrawnInMetres }];
   }
   return { ...start, treesByCell };
 }
 
 /** The ground type that shows most at a spot. Where river bank shows most is worked out from the starting trees, so it never changes. */
 export function groundTypeAt(map: GroundMap, spot: GroundPoint): GroundType {
-  const { weights, startingForest } = weighGround(map, spot);
-  const startingForestFloor = (1 - weights.riverBank) * startingForest;
+  const { weights, forestFromStartingTrees } = weighGround(map, spot);
+  const startingForestFloor = (1 - weights.riverBank) * forestFromStartingTrees;
   const startingClearing = 1 - weights.riverBank - startingForestFloor;
   if (weights.riverBank >= startingForestFloor && weights.riverBank >= startingClearing) return "riverBank";
   return weights.forestFloor > weights.clearing ? "forestFloor" : "clearing";
@@ -131,10 +132,10 @@ export function groundTypeWeightsAt(map: GroundMap, spot: GroundPoint): GroundTy
 }
 
 /** The weights at a spot, and how much forest floor the starting trees alone would give it, from 0 to 1, leaving the river bank aside. */
-function weighGround(map: GroundMap, spot: GroundPoint): { weights: GroundTypeWeights; startingForest: number } {
+function weighGround(map: GroundMap, spot: GroundPoint): { weights: GroundTypeWeights; forestFromStartingTrees: number } {
   const wobble = (offset: number) => EDGE_WOBBLE_METRES * smoothNoise(spot.x / EDGE_WOBBLE_SPACING_METRES + offset, spot.z / EDGE_WOBBLE_SPACING_METRES);
   const fromWater = distanceToRiverNear(map, spot) - map.river.width / 2 + wobble(0);
-  const riverBank = 1 - smoothstep((fromWater - RIVER_BANK_FULL_METRES) / (RIVER_BANK_EDGE_METRES - RIVER_BANK_FULL_METRES));
+  const riverBank = 1 - smoothStep((fromWater - RIVER_BANK_FULL_METRES) / (RIVER_BANK_EDGE_METRES - RIVER_BANK_FULL_METRES));
   const treeWobble = wobble(57.3);
   const { now, starting } = distancesToNearestTree(map, spot);
   const forest = forestFloorAt(now + treeWobble);
@@ -144,13 +145,13 @@ function weighGround(map: GroundMap, spot: GroundPoint): { weights: GroundTypeWe
       forestFloor: (1 - riverBank) * forest,
       clearing: (1 - riverBank) * (1 - forest),
     },
-    startingForest: forestFloorAt(starting + treeWobble),
+    forestFromStartingTrees: forestFloorAt(starting + treeWobble),
   };
 }
 
 /** How much forest floor shows this far from a trunk, from 0 to 1, leaving the river bank aside. */
 function forestFloorAt(fromTree: number): number {
-  return 1 - smoothstep((fromTree - FOREST_FLOOR_FULL_METRES) / (FOREST_FLOOR_EDGE_METRES - FOREST_FLOOR_FULL_METRES));
+  return 1 - smoothStep((fromTree - FOREST_FLOOR_FULL_METRES) / (FOREST_FLOOR_EDGE_METRES - FOREST_FLOOR_FULL_METRES));
 }
 
 /**
@@ -168,7 +169,7 @@ function distancesToNearestTree(map: GroundMap, spot: GroundPoint): { now: numbe
       if (r < 0 || c < 0 || r >= map.cellsPerSide || c >= map.cellsPerSide) continue;
       for (const tree of map.treesByCell[r * map.cellsPerSide + c] ?? []) {
         const distance = groundDistance(tree, spot);
-        now = Math.min(now, distance + tree.drawnIn);
+        now = Math.min(now, distance + tree.edgeDrawnInMetres);
         if (tree.starting) starting = Math.min(starting, distance);
       }
     }
@@ -203,8 +204,8 @@ function cellKey(size: number, cellsPerSide: number, point: GroundPoint): number
 export function smoothNoise(u: number, v: number): number {
   const column = Math.floor(u);
   const row = Math.floor(v);
-  const across = smoothstep(u - column);
-  const down = smoothstep(v - row);
+  const across = smoothStep(u - column);
+  const down = smoothStep(v - row);
   const top = lerp(latticeValue(column, row), latticeValue(column + 1, row), across);
   const bottom = lerp(latticeValue(column, row + 1), latticeValue(column + 1, row + 1), across);
   return lerp(top, bottom, down);
@@ -220,10 +221,4 @@ function latticeValue(column: number, row: number): number {
 
 function lerp(from: number, to: number, amount: number): number {
   return from + (to - from) * amount;
-}
-
-/** Eases a value from 0 to 1 so it starts and ends gently. */
-function smoothstep(amount: number): number {
-  const t = Math.min(1, Math.max(0, amount));
-  return t * t * (3 - 2 * t);
 }

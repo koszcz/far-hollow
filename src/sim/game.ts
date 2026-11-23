@@ -153,7 +153,7 @@ export interface Game {
   /** A copy of the game's progress, for saving. Changing the copy does not change the game. */
   progress(): GameProgress;
   /** The valley's ground types now, as the ground follows the trees that stand for good. */
-  groundNow(): GroundMap;
+  groundMap(): GroundMap;
 }
 
 export function createGame({ seed, progress, startNotice, freeBuilding = false }: GameOptions): Game {
@@ -739,7 +739,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     });
   }
 
-  return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress, groundNow: () => groundChanges.mapNow() };
+  return { entities, valley, walkMap: walking.walkMap, step, client, progress: readProgress, groundMap: () => groundChanges.mapNow() };
 }
 
 /** Freezes plain data and everything inside it, so whoever reads the view cannot change it. */

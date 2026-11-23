@@ -5,8 +5,10 @@
 // Undergrowth is only for looks. Game logic never sees it, it is never saved, and it never blocks the way.
 // The valley is split into square patches. Each patch grows from its own seed, made from the valley's seed and the patch,
 // so the same seed always grows the same undergrowth in the same spots, however the camera moves.
+import type { GroundPoint } from "../sim/ground-point";
 import { groundTypeAt, groundTypeWeightsAt, type GroundMap, type GroundType } from "../sim/ground-types";
 import { createRandom } from "../sim/random";
+import { smoothStep } from "../sim/share";
 import { distanceToRiver } from "../sim/valley";
 
 export type UndergrowthKind = "fern" | "smallRock" | "sparseGrass" | "grassTuft" | "flower" | "stone" | "tallGrass" | "flatPebble";
@@ -90,7 +92,7 @@ export function growUndergrowthPatch(seed: number, map: GroundMap, column: numbe
  * On river bank, the plant is river bank kind at full size. Elsewhere it turns from forest floor kind to clearing kind
  * where the share of forest floor passes its own turning share, picked from `look`, and it shrinks to nothing on the way.
  */
-function groundTypeFor(map: GroundMap, spot: { x: number; z: number }, look: number): { groundType: GroundType; shrink: number } {
+function groundTypeFor(map: GroundMap, spot: GroundPoint, look: number): { groundType: GroundType; shrink: number } {
   const groundType = groundTypeAt(map, spot);
   if (groundType === "riverBank") return { groundType, shrink: 1 };
   const weights = groundTypeWeightsAt(map, spot);
@@ -98,8 +100,8 @@ function groundTypeFor(map: GroundMap, spot: { x: number; z: number }, look: num
   // A spread of `look` that does not follow which model it picks.
   const spread = (look * 97.13) % 1;
   const turnShare = TURN_SHARE_LOWEST + spread * (TURN_SHARE_HIGHEST - TURN_SHARE_LOWEST);
-  const t = Math.min(1, Math.abs(share - turnShare) / TURN_SHRINK_SHARE);
-  return { groundType: share > turnShare ? "forestFloor" : "clearing", shrink: t * t * (3 - 2 * t) };
+  const shrink = smoothStep(Math.abs(share - turnShare) / TURN_SHRINK_SHARE);
+  return { groundType: share > turnShare ? "forestFloor" : "clearing", shrink };
 }
 
 /** The kind a tried spot grows on this ground type, or undefined when nothing grows there. */

@@ -41,7 +41,7 @@ import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
 import { createValleyMeshes } from "./valley-meshes";
-import { createGroundNow } from "./ground-now";
+import { createDrawnGround } from "./drawn-ground";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 import { createPlantedTorchMeshes } from "./planted-torch-meshes";
 import { createFishTrapMeshes } from "./fish-trap-meshes";
@@ -133,13 +133,13 @@ export function createSceneRenderer(
   }
 
   // The ground follows the trees that stand for good. The terrain and the undergrowth both draw it.
-  const groundNow = createGroundNow(valley, entities, readClockMinutes);
-  const valleyMeshes = createValleyMeshes(valley, groundNow);
+  const drawnGround = createDrawnGround(valley, entities, readClockMinutes);
+  const valleyMeshes = createValleyMeshes(valley, drawnGround);
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
-  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, groundNow);
+  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround);
   scene.add(undergrowthMeshes.group);
   const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
   scene.add(forestMeshes.group);
@@ -659,7 +659,7 @@ export function createSceneRenderer(
       // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
       structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
       outlineHovered();
-      const changedGround = groundNow.refresh();
+      const changedGround = drawnGround.refresh();
       valleyMeshes.redrawGround(changedGround);
       undergrowthMeshes.regrow(changedGround);
       undergrowthMeshes.update(cameraRig.view().focus);

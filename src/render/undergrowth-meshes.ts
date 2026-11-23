@@ -14,7 +14,8 @@ import { terrainHeightAt, type Valley } from "../sim/valley";
 import { campFootprints, isUnderCamp, sameFootprints, type CampFootprint } from "./camp-footprints";
 import { growUndergrowthPatch, UNDERGROWTH_PATCH_METRES, type UndergrowthKind, type UndergrowthItem } from "./undergrowth-layout";
 import type { UndergrowthShape } from "./undergrowth-models";
-import type { GroundArea, GroundNow } from "./ground-now";
+import type { GroundRect } from "../sim/structure-kind";
+import type { DrawnGround } from "./drawn-ground";
 
 /** Undergrowth is drawn out to this distance from where the camera looks, in metres. */
 export const UNDERGROWTH_DRAW_METRES = 80;
@@ -54,7 +55,7 @@ export interface UndergrowthMeshes {
    */
   cull(view: THREE.Frustum, eye: THREE.Vector3): void;
   /** Grows the patches in these areas again from the ground as it is now, after the ground changed there. */
-  regrow(areas: readonly GroundArea[]): void;
+  regrow(areas: readonly GroundRect[]): void;
   dispose(): void;
 }
 
@@ -66,8 +67,13 @@ export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNorm
   return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: shape.ownNormals !== true });
 }
 
-/** What grows comes from `groundNow`, so the undergrowth follows the ground as it changes. */
-export function createUndergrowthMeshes(valley: Valley, shapes: readonly UndergrowthShape[], entities: EntityStore, groundNow: GroundNow): UndergrowthMeshes {
+/** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. */
+export function createUndergrowthMeshes(
+  valley: Valley,
+  shapes: readonly UndergrowthShape[],
+  entities: EntityStore,
+  drawnGround: DrawnGround,
+): UndergrowthMeshes {
   const group = new THREE.Group();
   group.name = "undergrowth";
   const patchesPerSide = Math.ceil(valley.size / UNDERGROWTH_PATCH_METRES);
@@ -152,7 +158,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
   /** Grows one patch and places its plants. Null if no plant in it is drawn. */
   function growAndPlace(column: number, row: number): PlacedPatch | null {
     const patch: PlacedPatch = { box: new THREE.Box3(), matrices: batches.map(() => []) };
-    for (const plant of growUndergrowthPatch(valley.seed, groundNow.map(), column, row)) placePlant(plant, patch);
+    for (const plant of growUndergrowthPatch(valley.seed, drawnGround.currentMap(), column, row)) placePlant(plant, patch);
     if (patch.box.isEmpty()) return null;
     const half = valley.size / 2;
     patch.box.min.x = Math.min(patch.box.min.x, column * UNDERGROWTH_PATCH_METRES - half - PLANT_REACH_METRES);
@@ -244,7 +250,7 @@ export function createUndergrowthMeshes(valley: Valley, shapes: readonly Undergr
         const left = column * UNDERGROWTH_PATCH_METRES - half;
         const top = row * UNDERGROWTH_PATCH_METRES - half;
         const touched = areas.some(
-          (area) => area.maxX >= left && area.minX <= left + UNDERGROWTH_PATCH_METRES && area.maxZ >= top && area.minZ <= top + UNDERGROWTH_PATCH_METRES,
+          (area) => area.max.x >= left && area.min.x <= left + UNDERGROWTH_PATCH_METRES && area.max.z >= top && area.min.z <= top + UNDERGROWTH_PATCH_METRES,
         );
         if (!touched) continue;
         grown.delete(key);

@@ -18,18 +18,18 @@ describe("the ground where a sapling is dug up from a stump", () => {
   it("turns into the ground of a valley without that tree over 3 game days", () => {
     const { game, tree } = saplingOnStump();
     const spot = spotOf(tree);
-    const withTree = game.groundNow();
+    const withTree = game.groundMap();
     digUp(game, tree);
     // Digging takes a few game minutes, so the change has only just begun.
-    expect(largestDifference(weightsAround(game.groundNow(), spot), weightsAround(withTree, spot))).toBeLessThan(0.001);
+    expect(largestDifference(weightsAround(game.groundMap(), spot), weightsAround(withTree, spot))).toBeLessThan(0.001);
 
     passHours(game, 12);
-    const partWay = weightsAround(game.groundNow(), spot);
+    const partWay = weightsAround(game.groundMap(), spot);
     expect(largestDifference(partWay, weightsAround(withTree, spot))).toBeGreaterThan(0.1);
     expect(largestDifference(partWay, weightsAround(valleyWithout(game, spot), spot))).toBeGreaterThan(0);
 
     passHours(game, 60);
-    expect(weightsAround(game.groundNow(), spot)).toEqual(weightsAround(valleyWithout(game, spot), spot));
+    expect(weightsAround(game.groundMap(), spot)).toEqual(weightsAround(valleyWithout(game, spot), spot));
   });
 
   it("records when the change started, and saves it", () => {
@@ -41,7 +41,7 @@ describe("the ground where a sapling is dug up from a stump", () => {
 
     const loaded = reload(game);
     expect(groundChangesOf(loaded.entities)).toEqual(groundChangesOf(game.entities));
-    expect(weightsAround(loaded.groundNow(), spotOf(tree))).toEqual(weightsAround(game.groundNow(), spotOf(tree)));
+    expect(weightsAround(loaded.groundMap(), spotOf(tree))).toEqual(weightsAround(game.groundMap(), spotOf(tree)));
   });
 });
 
@@ -51,7 +51,7 @@ describe("a felled tree growing back", () => {
     const start = createGroundMap(game.valley);
     for (let day = 0; day < 7; day += 1) {
       passHours(game, 24);
-      expect(weightsAround(game.groundNow(), spotOf(tree))).toEqual(weightsAround(start, spotOf(tree)));
+      expect(weightsAround(game.groundMap(), spotOf(tree))).toEqual(weightsAround(start, spotOf(tree)));
     }
     expect(tree.tree).toBe(true);
     expect(groundChangesOf(game.entities)).toEqual([]);
@@ -67,13 +67,13 @@ describe("a planted sapling", () => {
     const start = createGroundMap(game.valley);
 
     passHours(game, 5 * 24 - 1);
-    expect(weightsAround(game.groundNow(), spot)).toEqual(weightsAround(start, spot));
+    expect(weightsAround(game.groundMap(), spot)).toEqual(weightsAround(start, spot));
     passHours(game, 2);
     expect(plantedAt(game, spot)?.tree).toBe(true);
     expect(groundChangesOf(game.entities)).toMatchObject([{ x: spot.x, z: spot.z, toward: "forestFloor" }]);
 
     passHours(game, 3 * 24);
-    expect(weightsAround(game.groundNow(), spot)).toEqual(weightsAround(valleyWith(game, spot), spot));
+    expect(weightsAround(game.groundMap(), spot)).toEqual(weightsAround(valleyWith(game, spot), spot));
   });
 
   it("keeps its forest floor when the full tree is felled and grows back", () => {
@@ -87,7 +87,7 @@ describe("a planted sapling", () => {
     chop(game, tree);
     passHours(game, 7 * 24);
     expect(groundChangesOf(game.entities)).toHaveLength(1);
-    expect(weightsAround(game.groundNow(), spot)).toEqual(weightsAround(valleyWith(game, spot), spot));
+    expect(weightsAround(game.groundMap(), spot)).toEqual(weightsAround(valleyWith(game, spot), spot));
   });
 });
 
@@ -103,7 +103,38 @@ describe("loading a save from before the ground followed the trees", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
     const minutes = clockMinutes(loaded.game);
     expect(groundChangesOf(loaded.game.entities).every((change) => isGroundChangeOver(change, minutes))).toBe(true);
-    expect(weightsAround(loaded.game.groundNow(), spotOf(tree))).toEqual(weightsAround(valleyWithout(game, spotOf(tree)), spotOf(tree)));
+    expect(weightsAround(loaded.game.groundMap(), spotOf(tree))).toEqual(weightsAround(valleyWithout(game, spotOf(tree)), spotOf(tree)));
+  });
+
+  it("shows forest floor round a planted tree that is full grown", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openSpot(game);
+    plantAt(game, spot);
+    walkAway(game, spot);
+    passHours(game, 8 * 24);
+    expect(plantedAt(game, spot)?.tree).toBe(true);
+
+    const loaded = loadAsOlder(game);
+    const minutes = clockMinutes(loaded);
+    expect(groundChangesOf(loaded.entities)).toMatchObject([{ x: spot.x, z: spot.z, toward: "forestFloor" }]);
+    expect(groundChangesOf(loaded.entities).every((change) => isGroundChangeOver(change, minutes))).toBe(true);
+    expect(weightsAround(loaded.groundMap(), spot)).toEqual(weightsAround(valleyWith(game, spot), spot));
+  });
+
+  it("shows forest floor round the stump of a felled planted tree, while a sapling grows on it", () => {
+    const game = createGame({ seed: 42 });
+    const spot = openSpot(game);
+    plantAt(game, spot);
+    walkAway(game, spot);
+    passHours(game, 8 * 24);
+    const tree = plantedAt(game, spot);
+    if (tree === undefined) throw new Error("No tree");
+    chop(game, tree);
+    for (let hour = 0; hour < 30 && tree.growth?.stage !== "sapling"; hour += 1) passHours(game, 1);
+    expect(tree).toMatchObject({ stump: true, growth: { stage: "sapling" } });
+
+    const loaded = loadAsOlder(game);
+    expect(weightsAround(loaded.groundMap(), spot)).toEqual(weightsAround(valleyWith(game, spot), spot));
   });
 
   it("keeps the ground of a valley that has not changed", () => {
@@ -145,8 +176,7 @@ function spotOf(entity: Placed): GroundPoint {
 }
 
 function clockMinutes(game: Game): number {
-  const { day, hourOfDay } = game.client.getView().time;
-  return (day - 1) * 24 * 60 + hourOfDay * 60;
+  return game.progress().clockMinutes;
 }
 
 /** A new game whose tree nearest the player has been felled and has grown a sapling, with the log gone. */
@@ -239,6 +269,16 @@ function nearestStanding(game: Game): Placed {
 
 function reload(game: Game): Game {
   const loaded = readSave(JSON.parse(JSON.stringify(writeSave(game))));
+  if (!loaded.ok) throw new Error("The save was rejected");
+  return loaded.game;
+}
+
+/** Saves the game, turns the save into one from before ground changes were saved, and loads it. */
+function loadAsOlder(game: Game): Game {
+  const older = JSON.parse(JSON.stringify(writeSave(game))) as { version: number; entities: { components: Entity }[] };
+  older.version = GROUND_CHANGES_SAVE_VERSION - 1;
+  older.entities = older.entities.filter((entity) => entity.components.groundChange === undefined);
+  const loaded = readSave(older);
   if (!loaded.ok) throw new Error("The save was rejected");
   return loaded.game;
 }

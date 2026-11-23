@@ -4,6 +4,7 @@
 // The terrain is approved in asset-manifest.json.
 import * as THREE from "three";
 import { groundTypeWeightsAt, smoothNoise, type GroundMap, type GroundType } from "../sim/ground-types";
+import type { GroundRect } from "../sim/structure-kind";
 
 /** Each painted texture covers a square this many metres on each side before it repeats. */
 export const GROUND_TEXTURE_TILE_METRES = 12;
@@ -105,15 +106,15 @@ export interface TexelBlock {
 }
 
 /** The block of the baked map that covers a square of the valley, in metres from its centre. */
-export function texelsCovering(size: number, texels: number, area: { minX: number; maxX: number; minZ: number; maxZ: number }): TexelBlock {
+export function texelsCovering(size: number, texels: number, area: GroundRect): TexelBlock {
   const step = size / texels;
   const half = size / 2;
   const clamp = (value: number) => Math.min(texels - 1, Math.max(0, value));
   return {
-    minRow: clamp(Math.floor((area.minZ + half) / step)),
-    maxRow: clamp(Math.ceil((area.maxZ + half) / step)),
-    minColumn: clamp(Math.floor((area.minX + half) / step)),
-    maxColumn: clamp(Math.ceil((area.maxX + half) / step)),
+    minRow: clamp(Math.floor((area.min.z + half) / step)),
+    maxRow: clamp(Math.ceil((area.max.z + half) / step)),
+    minColumn: clamp(Math.floor((area.min.x + half) / step)),
+    maxColumn: clamp(Math.ceil((area.max.x + half) / step)),
   };
 }
 

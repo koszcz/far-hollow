@@ -4,6 +4,7 @@ import { readClock } from "./clock";
 import { addCount, countOf } from "./counts";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
+import type { GroundPoint } from "./ground-point";
 import { droppedStickSpot } from "./piles";
 import { createGame, type Game, type GameProgress } from "./game";
 import { generateValley } from "./valley";
@@ -948,21 +949,28 @@ function fillJugs(save: Readonly<Record<string, unknown>>): Record<string, unkno
  * An older save gets the ground that matches the trees it holds now, with every change already over:
  * - clearing where a starting tree's spot holds no tree, stump, or sapling any more,
  * - forest floor round a full tree that did not stand when the valley was made, and round the stump such a tree left.
+ *   A felled tree keeps its stump through the sapling stage, so a sapling growing on that stump counts too.
+ * A young tree off a starting spot gets no change. The save cannot tell a young tree grown from a planted sapling, which
+ * spreads no forest floor yet, from one grown back on the stump of a felled planted tree. Either way, it spreads forest
+ * floor once it is full grown.
+ * A save that is not plain data is passed on unchanged, so the shape check turns it away.
  */
 function matchGroundToTrees(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  // These copy GROUND_CHANGE_MINUTES and isSameTreeSpot in ground-change.ts on purpose. An upgrade keeps its own fixed
+  // values, so it does the same thing however the game's rules change later (see SAVE_UPGRADES).
   const CHANGE_MINUTES = 3 * 24 * 60;
   const SAME_SPOT_METRES = 0.01;
   const { seed, clockMinutes, entities } = save;
   if (!Number.isSafeInteger(seed) || typeof clockMinutes !== "number" || !Array.isArray(entities)) return { ...save };
   const saved = entities as unknown[];
   const componentsOf = (entity: unknown) => (entity as { components?: Entity | null } | null)?.components ?? undefined;
-  const spotOf = (components: Entity | undefined) => {
+  const spotOf = (components: Entity | undefined): GroundPoint | undefined => {
     const position = components?.position;
     return typeof position?.x === "number" && typeof position.z === "number" ? { x: position.x, z: position.z } : undefined;
   };
-  const sameSpot = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z) < SAME_SPOT_METRES;
-  const treeSpots: { x: number; z: number }[] = [];
-  const grownSpots: { x: number; z: number }[] = [];
+  const sameSpot = (a: GroundPoint, b: GroundPoint) => Math.hypot(a.x - b.x, a.z - b.z) < SAME_SPOT_METRES;
+  const treeSpots: GroundPoint[] = [];
+  const grownSpots: GroundPoint[] = [];
   for (const entity of saved) {
     const components = componentsOf(entity);
     const spot = spotOf(components);

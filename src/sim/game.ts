@@ -83,7 +83,7 @@ import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
 import { createHandReach } from "./hand-reach";
-import { GOAL_NOTICE_MINUTES, goalsShownNow, journalRules, markGoalDone, newJournal, type Goal, type Journal } from "./journal";
+import { GOAL_NOTICE_MINUTES, goalsProvenByCamp, goalsShownNow, journalRules, markGoalDone, newJournal, type Goal, type Journal } from "./journal";
 import type { GroundPoint } from "./ground-point";
 
 /** The build menu never changes, so every view shares one frozen copy. */
@@ -117,6 +117,11 @@ export interface GameOptions {
   startNotice?: PlainNotice;
   /** Lets the player build anything without spending materials or needing tools. The playground turns it on. It is never saved. */
   freeBuilding?: boolean;
+  /**
+   * Marks done, with no notice, every journal goal the saved camp proves the player once did.
+   * Loading a save made before the journal existed turns it on. It is never saved, so it runs only once for each save.
+   */
+  journalFromCamp?: boolean;
 }
 
 /**
@@ -160,7 +165,7 @@ export interface Game {
   groundMap(): GroundMap;
 }
 
-export function createGame({ seed, progress, startNotice, freeBuilding = false }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -253,6 +258,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   let firstNightOver = progress?.firstNightOver ?? false;
   let snugRoomNoticeShown = progress?.snugRoomNoticeShown ?? false;
   const journal: Journal = progress?.journal === undefined ? newJournal() : structuredClone(progress.journal);
+  if (journalFromCamp && !freeBuilding) for (const goal of goalsProvenByCamp(entities, player)) markGoalDone(journal, goal);
   /** Goals done that no notice has said so yet, oldest first. Each waits for the one before to go. It is not saved. */
   const goalsToAnnounce: Goal[] = [];
   /** The goal the journal's notice says is done now, with the game minute it stops showing at, or null. It is not saved. */

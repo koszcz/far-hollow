@@ -195,14 +195,67 @@ describe("saving the journal", () => {
     expect(loaded.client.getView().journal).toEqual({ done: ["cutPlank"], hidden: true, justDone: null });
   });
 
-  it("loads an older save with no goal done and the journal shown", () => {
+  it("loads an older save with no camp with no goal done and the journal shown", () => {
     expect(JOURNAL_SAVE_VERSION).toBe(SAVE_VERSION);
     const game = createGame({ seed: 42 });
-    const save = JSON.parse(JSON.stringify(writeSave(game))) as Record<string, unknown>;
-    save.version = JOURNAL_SAVE_VERSION - 1;
-    delete save.journal;
 
-    expect(load(save).client.getView().journal).toEqual({ done: [], hidden: false, justDone: null });
+    expect(load(olderSave(game)).client.getView().journal).toEqual({ done: [], hidden: false, justDone: null });
+  });
+
+  it("marks done every goal up to the lean-to in an older save that has one, with no notice", () => {
+    const game = createGame({ seed: 42 });
+    game.entities.add({ leanTo: true, position: besidePlayer(game) });
+
+    const loaded = load(olderSave(game));
+    expect(loaded.client.getView().journal).toEqual({
+      done: ["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo"],
+      hidden: false,
+      justDone: null,
+    });
+    loaded.step();
+
+    expect(justDone(loaded)).toBeNull();
+    expect(doneGoals(loaded)).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo"]);
+  });
+
+  it("marks done every goal up to cutting a plank in an older save with a sawhorse", () => {
+    const game = createGame({ seed: 42 });
+    game.entities.add({ workStation: "sawhorse", facing: { turns: 0 }, position: besidePlayer(game) });
+
+    expect(doneGoals(load(olderSave(game)))).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo", "sleepOnBedroll", "cutPlank"]);
+  });
+
+  it("marks every goal done in an older save with a snug room, and the journal's closing line follows", () => {
+    const game = createGame({ seed: 42 });
+    const square = roomNearPlayer(game);
+    game.entities.add({ floor: true, position: { x: square.x, y: foundationDeckTop(game.valley.terrain, square), z: square.z } });
+
+    const loaded = load(olderSave(game));
+    loaded.step();
+
+    expect(doneGoals(loaded)).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo", "sleepOnBedroll", "cutPlank", "buildRoom", "makeRoomSnug"]);
+    expect(justDone(loaded)).toBeNull();
+  });
+
+  it("marks done only the room and the goals before it when an older save's room is not snug", () => {
+    const game = createGame({ seed: 42 });
+    roomNearPlayer(game);
+
+    expect(doneGoals(load(olderSave(game)))).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo", "sleepOnBedroll", "cutPlank", "buildRoom"]);
+  });
+
+  it("never fills in a save made with the journal, and takes its goals done from the save alone", () => {
+    const game = createGame({ seed: 42 });
+    game.entities.add({ leanTo: true, position: besidePlayer(game) });
+    const save = JSON.parse(JSON.stringify(writeSave(game))) as Record<string, unknown>;
+
+    const loaded = load(save);
+    expect(doneGoals(loaded)).toEqual([]);
+
+    // Once loaded, the lean-to counts as the player doing the goal now, so only that goal is marked, and a notice says so.
+    loaded.step();
+    expect(doneGoals(loaded)).toEqual(["buildLeanTo"]);
+    expect(justDone(loaded)).toBe("buildLeanTo");
   });
 
   it("turns away a save whose journal names a goal the game does not know", () => {
@@ -282,6 +335,14 @@ function stepUntil(game: Game, done: () => boolean, maxSteps = 100_000): void {
     game.step();
   }
   throw new Error("Never happened");
+}
+
+/** The game's save as a save made just before the journal existed: one version older, with no journal. */
+function olderSave(game: Game): Record<string, unknown> {
+  const save = JSON.parse(JSON.stringify(writeSave(game))) as Record<string, unknown>;
+  save.version = JOURNAL_SAVE_VERSION - 1;
+  delete save.journal;
+  return save;
 }
 
 function load(save: unknown): Game {

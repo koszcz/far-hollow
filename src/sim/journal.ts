@@ -9,6 +9,7 @@ import {
   pileEntities,
   sledEntities,
   stumpEntities,
+  workStationEntities,
   type Entity,
   type EntityStore,
 } from "./entities";
@@ -86,6 +87,18 @@ function goalShowsNow(goal: Goal, entities: EntityStore, player: Entity): boolea
 /** The goals not yet done that the valley shows the player has done now, in the journal's order. */
 export function goalsShownNow(journal: Journal, entities: EntityStore, player: Entity): Goal[] {
   return GOALS.filter((goal) => !isGoalDone(journal, goal) && goalShowsNow(goal, entities, player));
+}
+
+/**
+ * The goals the camp proves the player once did, in the journal's order, for a save made before the journal existed.
+ * A proven goal also proves every goal before it: a room shows that the player once picked up sticks.
+ * A sawhorse proves cutting a plank, since the player builds one to cut planks.
+ */
+export function goalsProvenByCamp(entities: EntityStore, player: Entity): Goal[] {
+  // The sawhorse is the only work station.
+  const proves = (goal: Goal): boolean => goalShowsNow(goal, entities, player) || (goal === "cutPlank" && workStationEntities(entities).first !== undefined);
+  const provenCount = GOALS.reduce((count, goal, index) => (proves(goal) ? index + 1 : count), 0);
+  return GOALS.slice(0, provenCount);
 }
 
 /** What the journal's command rule needs from the game. */

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None.
 
@@ -20,3 +20,5 @@
 ## Comments
 
 Split from ticket 01 in the grilling session on 2026-11-22.
+
+Built on 2026-11-23. The save upgrade `addJournal` still writes an empty journal. `readSave` sees that the upgrade ran and asks the new game to fill in the goals from the camp (`journalFromCamp`). The check runs on the camp after every upgrade, so later save changes cannot break it. A lit campfire proves goal 2, a stump or log proves goal 3, and planks prove goal 6, as in ticket 01. Sleeping on a bedroll leaves no trace, so only a later goal proves it.

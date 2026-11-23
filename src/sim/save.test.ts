@@ -37,8 +37,9 @@ describe("saving and loading a game", () => {
     if (!loaded.ok) throw new Error("The save was rejected");
 
     expect(writeSave(loaded.game)).toEqual(saved);
-    // The action queue is not saved, so the loaded game has only the work under way.
-    expect(loaded.game.client.getView()).toEqual({ ...game.client.getView(), actionQueue: [] });
+    // The action queue and the journal's notice that a goal is done are not saved, so the loaded game has only the work under way.
+    const view = game.client.getView();
+    expect(loaded.game.client.getView()).toEqual({ ...view, actionQueue: [], journal: view.journal && { ...view.journal, justDone: null } });
   });
 
   it("restores debarked logs, bark, a debarked log on the shoulder, and debarking under way", () => {

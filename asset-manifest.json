@@ -56,16 +56,25 @@
       "file": "public/assets/trees/trees.glb",
       "code": [
         "src/render/tree-model.ts",
-        "src/render/forest-meshes.ts"
+        "src/render/forest-meshes.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Standing trees.",
+      "description": "Standing trees. The crowns sway gently in the wind. The trunks stay still.",
       "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Eight GLTF-format models packed into one file, unchanged: tree_pineDefaultA, tree_pineDefaultB, tree_pineTallA, tree_pineRoundA, tree_oak, tree_default, tree_tall, tree_detailed",
       "license": "CC0 1.0",
       "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-22: The owner approved in chat a change so that the crowns sway in the wind and the trunks stay still. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "stumps",
@@ -91,16 +100,25 @@
       "code": [
         "src/render/sapling-shape.ts",
         "src/render/tree-model.ts",
-        "src/render/forest-meshes.ts"
+        "src/render/forest-meshes.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, drawn in that type's colours. The sapling is one of Kenney's small trees: a small pine for pine types and a small leafy tree for the others. It is about a metre tall, 0.15 of the full height, and stands on the cut face of the stump it grows from. The young tree is the type's own trunk and crown, half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way.",
+      "description": "A felled tree growing back. For each tree type in trees, a sapling and a young tree, drawn in that type's colours. The sapling is one of Kenney's small trees: a small pine for pine types and a small leafy tree for the others. It is about a metre tall, 0.15 of the full height, and stands on the cut face of the stump it grows from. The young tree is the type's own trunk and crown, half the full height and 0.35 of its width, so it reads as thin. Far from the camera the young tree draws with the far-trees stand-in, shrunk the same way. Saplings and young trees sway gently in the wind, trunk and all.",
       "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. tree_pineSmallA and tree_small, GLTF-format models packed into one file, unchanged. The young tree is built in code in this project",
       "license": "CC0 1.0",
       "approval": {
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "fileApproval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-21"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that saplings and young trees sway in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "sticks",
@@ -253,14 +271,17 @@
         "src/render/log-courses.ts",
         "src/sim/edge-pieces.ts"
       ],
-      "description": "The log wall: a 2 m stack of debarked logs laid along one edge of a foundation square. Each delivered log is cut in two, so each build stage lays two courses. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the courses from the bottom up: each delivered log's two courses stay in their places and turn solid during its stage. A finished wall between the camera and the player fades out.",
+      "description": "The log wall: a 2 m stack of debarked logs laid along one edge of a foundation square. Each delivered log is cut in two, so each build stage lays two courses. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the courses from the bottom up: each delivered log's two courses stay in their places and turn solid during its stage. A finished wall between the camera and the player fades out, but it still casts its shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved keeping the wall casting its shadow while it fades out between the camera and the player, so a faded wall does not let daylight into a room (windows ticket 02)."
+      ]
     },
     {
       "id": "door-frame",
@@ -269,14 +290,17 @@
         "src/render/edge-piece-meshes.ts",
         "src/sim/edge-pieces.ts"
       ],
-      "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel: each stays in its place and turns solid during its stage. A finished frame between the camera and the player fades out.",
+      "description": "The door frame: two debarked-log posts on one edge of a foundation square, with a lintel across the top, 2 m tall. The doorway stays open. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction puts up the left post, the right post, then the lintel: each stays in its place and turns solid during its stage. A finished frame between the camera and the player fades out, but it still casts its shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-11"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved keeping the frame casting its shadow while it fades out between the camera and the player, so a faded frame does not let daylight into a room (windows ticket 02)."
+      ]
     },
     {
       "id": "roof-frame",
@@ -808,16 +832,21 @@
         "src/render/grass-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
-        "src/render/undergrowth-layout.ts"
+        "src/render/undergrowth-fade.ts",
+        "src/render/undergrowth-layout.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Undergrowth grass: short grass tufts in clearings, sparse grass on the forest floor, and tall grass on the river bank.",
+      "description": "Undergrowth grass: short grass tufts in clearings, sparse grass on the forest floor, and tall grass on the river bank. It sways gently in the wind.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
-      }
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that the grass sways in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "ferns",
@@ -826,16 +855,21 @@
         "src/render/fern-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
-        "src/render/undergrowth-layout.ts"
+        "src/render/undergrowth-fade.ts",
+        "src/render/undergrowth-layout.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Undergrowth ferns on the forest floor.",
+      "description": "Undergrowth ferns on the forest floor. They sway gently in the wind.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
-      }
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that the ferns sway in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "flowers",
@@ -844,16 +878,21 @@
         "src/render/flower-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
-        "src/render/undergrowth-layout.ts"
+        "src/render/undergrowth-fade.ts",
+        "src/render/undergrowth-layout.ts",
+        "src/render/wind-sway.ts",
+        "src/render/wind.ts"
       ],
-      "description": "Undergrowth flowers in clearings: clumps of white daisies, purple bellflowers, and yellow buttercups.",
+      "description": "Undergrowth flowers in clearings: clumps of white daisies, purple bellflowers, and yellow buttercups. They sway gently in the wind.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "approved",
-        "by": "owner",
-        "date": "2026-11-11"
-      }
+        "status": "draft",
+        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved in chat a change so that the flowers sway in the wind. Forest floor ticket 05 made it."
+      ]
     },
     {
       "id": "pebbles",
@@ -862,6 +901,7 @@
         "src/render/pebble-shape.ts",
         "src/render/undergrowth-models.ts",
         "src/render/undergrowth-meshes.ts",
+        "src/render/undergrowth-fade.ts",
         "src/render/undergrowth-layout.ts"
       ],
       "description": "Undergrowth stones: small rocks on the forest floor, rare stones in clearings, and flat pebbles on the river bank.",
@@ -1331,12 +1371,13 @@
         "src/ui/clay-icon.tsx",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Clay: how it looks lying on the ground in a pile, in the player's hands while digging, and its backpack icon. In a pile, each clay is a soft, squat, rounded lump of warm grey-brown river clay about 16 cm across, spread around the middle like other things in a pile. The same lump shows in the player's hands while they dig clay, which plays the gather-stone-animation slowed to fit 6 seconds. The backpack icon, drawn in the same style as backpack-icons, is a rounded grey-brown lump with a thumb dent on top and a pale sheen.",
+      "description": "Clay: how it looks lying on the ground in a pile, in the player's hands while digging, and its backpack icon. In a pile, each clay is a soft ball of wet, warm grey-brown river clay, about 16 cm across and 12 cm tall, cut flat where it sits. A thumb dent is pressed into its top. It is smooth-shaded with a wet sheen, unlike the faceted stones, and darker in the dent and at its damp foot. Clay is spread around the middle like other things in a pile. The same lump shows in the player's hands while they dig clay, which plays the gather-stone-animation slowed to fit 6 seconds. The backpack icon, drawn in the same style as backpack-icons, is a rounded grey-brown lump with a thumb dent on top and a pale sheen.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/clay/issues/01-dig-clay.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {
@@ -1483,14 +1524,17 @@
         "src/render/door-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "A plank door hung in a door frame. Three upright planks of pale hand-sawn wood, butted together with no gap, fill the doorway between the frame's posts. The door reaches 6 cm into each post and 5 cm up into the lintel, so no gap shows round it where the posts lean and taper; only a 5 mm gap is left above the floor. Each plank is a little lighter or darker than the next, and stands a few millimetres proud of or back from its neighbours. Two darker battens and a diagonal brace, rising from the hinge side to the free side, cross the inside face. On the outside, two dark iron strap hinges reach in from round knuckles at the left post, level with the battens, and an iron ring hangs from a small backplate near the free edge. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens, brace, hinges, and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player.",
+      "description": "A plank door hung in a door frame. Three upright planks of pale hand-sawn wood, butted together with no gap, fill the doorway between the frame's posts. The door reaches 6 cm into each post and 5 cm up into the lintel, so no gap shows round it where the posts lean and taper; only a 5 mm gap is left above the floor. Each plank is a little lighter or darker than the next, and stands a few millimetres proud of or back from its neighbours. Two darker battens and a diagonal brace, rising from the hinge side to the free side, cross the inside face. On the outside, two dark iron strap hinges reach in from round knuckles at the left post, level with the battens, and an iron ring hangs from a small backplate near the free edge. As a blueprint it shows see-through, planks it already has wait pale and half solid, and construction lays one plank per stage, 3 in all; the battens, brace, hinges, and latch go on with the last plank. Each plank fades in above its place and is set down. It shows shut, open, or part way, as door-animation turns it, and fades with its frame when it stands between the camera and the player, but it still casts its shadow.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
         "status": "approved",
         "by": "owner",
         "date": "2026-11-21"
-      }
+      },
+      "approvalNotes": [
+        "2026-11-23: The owner approved keeping the door casting its shadow while it fades out between the camera and the player, so a faded door does not let daylight into a room (windows ticket 02)."
+      ]
     },
     {
       "id": "door-animation",
@@ -1532,12 +1576,13 @@
         "src/render/log-courses.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "A window: a log wall with a square opening and no glass, on one edge of a foundation square, 2 m tall. It is built in the log wall's courses of debarked logs, with the same thickness, turn, and cut ends, so it lines up with a wall beside it. The three bottom courses run the full edge as a sill, the three courses beside the opening are each two short logs, one either side of a 0.6 m opening, and the two top courses run over it. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the sill courses, the courses beside the opening, then the courses over it: each stays in its place and turns solid during its stage. A finished window between the camera and the player fades out.",
+      "description": "A window: a log wall with a square opening and no glass, on one edge of a foundation square, 2 m tall. It is built in the log wall's courses of debarked logs, with the same thickness, turn, and cut ends, so it lines up with a wall beside it. The three bottom courses run the full edge as a sill, the three courses beside the opening are each two short logs, one either side of a 0.6 m opening, and the two top courses run over it. Each short log reaches and turns its own way. A frame of sawn boards, a little darker than plank wood, lines the opening: an upright board each side, and a 10 cm sill under it and header over it, each half sunk into its log. The boards sit just inside the wall's faces, so closed shutters never touch them. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the sill courses, the courses beside the opening with the sill and upright boards, then the courses over it with the header: each stays in its place and turns solid during its stage. A finished window between the camera and the player fades out.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {
@@ -1734,21 +1779,23 @@
     },
     {
       "id": "sound-forest",
-      "kind": "code",
+      "kind": "file",
+      "file": "public/assets/sound-forest/forest.ogg",
       "code": [
-        "src/sound/ambience-loops.ts",
+        "src/sound/sound-files.ts",
         "src/sound/ambience.ts",
         "src/sound/sound-engine.ts",
         "src/render/wind.ts",
         "src/render/showcases/sound.ts",
         "src/ui/sound-showcase.tsx"
       ],
-      "description": "The forest's ambience: a leaf rustle loop made from shaped noise, a high airy rustle in waves as gusts pass. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
-      "source": "Built in code in this project",
-      "license": "Project code",
+      "description": "The forest's ambience: a 26 s recording of leaves rustling in the wind, with soft gusts and lulls. Its end blends into its start, so it loops without a seam. It plays all around the player and gets louder as the wind blows harder, so it is louder in rain.",
+      "source": "Freesound, https://freesound.org/people/Borgory/sounds/751473/. Soft Wind in the Trees - Leaves rustle by Borgory. Cut from 26 s to 53 s with the last second blended into the start, high-passed at 50 Hz, raised 19 dB with a limiter on the loudest snaps, saved as Opus in Ogg at 96 kbit/s",
+      "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/sound/issues/01-sound.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-23"
       }
     },
     {

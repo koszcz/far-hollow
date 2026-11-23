@@ -83,6 +83,7 @@ import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
 import { createHandReach } from "./hand-reach";
+import { GOAL_NOTICE_MINUTES, goalsProvenByCamp, goalsShownNow, journalRules, markGoalDone, newJournal, type Goal, type Journal } from "./journal";
 import type { GroundPoint } from "./ground-point";
 
 /** The build menu never changes, so every view shares one frozen copy. */
@@ -116,6 +117,11 @@ export interface GameOptions {
   startNotice?: PlainNotice;
   /** Lets the player build anything without spending materials or needing tools. The playground turns it on. It is never saved. */
   freeBuilding?: boolean;
+  /**
+   * Marks done, with no notice, every journal goal the saved camp proves the player once did.
+   * Loading a save made before the journal existed turns it on. It is never saved, so it runs only once for each save.
+   */
+  journalFromCamp?: boolean;
 }
 
 /**
@@ -129,6 +135,8 @@ export interface GameProgress {
   firstNightOver: boolean;
   /** Whether the banner saying a snug room keeps out the cold has shown. It shows once in each game. */
   snugRoomNoticeShown: boolean;
+  /** The journal's goals done and whether the player hid it. A playground game keeps it as a new game has it. */
+  journal: Journal;
   /** The notice showing now, with the game minute it stops showing at, or null if none shows. */
   notice: (Notice & { untilMinutes: number }) | null;
   /** Every entity, with the id that tasks and commands know it by. */
@@ -157,7 +165,7 @@ export interface Game {
   groundMap(): GroundMap;
 }
 
-export function createGame({ seed, progress, startNotice, freeBuilding = false }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -249,6 +257,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
   /** Whether the first night has ended, by morning coming or by a collapse. */
   let firstNightOver = progress?.firstNightOver ?? false;
   let snugRoomNoticeShown = progress?.snugRoomNoticeShown ?? false;
+  const journal: Journal = progress?.journal === undefined ? newJournal() : structuredClone(progress.journal);
+  if (journalFromCamp && !freeBuilding) for (const goal of goalsProvenByCamp(entities, player)) markGoalDone(journal, goal);
+  /** Goals done that no notice has said so yet, oldest first. Each waits for the one before to go. It is not saved. */
+  const goalsToAnnounce: Goal[] = [];
+  /** The goal the journal's notice says is done now, with the game minute it stops showing at, or null. It is not saved. */
+  let goalNotice: { goal: Goal; untilMinutes: number } | null = null;
   let notice: (Notice & { untilMinutes: number }) | null = progress?.notice ? structuredClone(progress.notice) : null;
   let paused = false;
   /** The player's last sleep since the game was loaded. It is not saved. */
@@ -310,6 +324,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       sittingOn: player.sitting?.stoolId ?? null,
       reach: player.handReach === undefined ? null : Object.freeze({ height: player.handReach.height, seconds: player.handReach.seconds }),
       actionQueue: deepFreeze(structuredClone(actionQueue.actions())),
+      // The playground has no journal.
+      journal: freeBuilding ? null : deepFreeze({ ...structuredClone(journal), justDone: goalNoticeShown() }),
     });
   }
 
@@ -465,6 +481,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     ...fishTrapRules(fishTraps, ruleGame),
     ...stoneRules(stoneGathering),
     ...clayRules(clayDigging),
+    ...journalRules({
+      setHidden: (hidden) => {
+        journal.hidden = hidden;
+        // Goals done while the journal is hidden are never announced.
+        if (!hidden) return;
+        goalsToAnnounce.splice(0);
+        goalNotice = null;
+      },
+    }),
   };
 
   /**
@@ -521,6 +546,29 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
    * It waits until no other notice is on screen, so neither notice hides the other. The step calls it last,
    * so nothing later in the step can replace the banner before the player sees it.
    */
+  /**
+   * Marks a journal goal done, the first time the player does it, and queues a notice saying so unless the journal is hidden.
+   * The playground has no journal, so nothing is marked there.
+   */
+  function reachGoal(goal: Goal): void {
+    if (freeBuilding || !markGoalDone(journal, goal)) return;
+    if (!journal.hidden) goalsToAnnounce.push(goal);
+  }
+
+  /** Marks done every journal goal the valley shows the player has done, then says so for the oldest waiting, once the last such notice has gone. */
+  function noteGoals(): void {
+    if (freeBuilding) return;
+    for (const goal of goalsShownNow(journal, entities, player)) reachGoal(goal);
+    if (goalNoticeShown() !== null) return;
+    const goal = goalsToAnnounce.shift();
+    goalNotice = goal === undefined ? null : { goal, untilMinutes: clock.minutes + GOAL_NOTICE_MINUTES };
+  }
+
+  /** The goal the journal's notice says is done now, or null if it shows none. */
+  function goalNoticeShown(): Goal | null {
+    return goalNotice !== null && clock.minutes < goalNotice.untilMinutes ? goalNotice.goal : null;
+  }
+
   function noticeSnugRoom(): void {
     if (snugRoomNoticeShown || isNoticeOnScreen() || !isInSnugRoom(entities, player.position)) return;
     snugRoomNoticeShown = true;
@@ -587,6 +635,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     Object.assign(player.position, bedroll.position);
     Object.assign(player.previousPosition, player.position);
     sleep("bedroll");
+    reachGoal("sleepOnBedroll");
     reportSleep(bedroll.position, undefined, bedroll.facing === undefined ? undefined : { turns: bedroll.facing.turns });
   }
 
@@ -664,7 +713,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
     // The player stands up from a stool as soon as they walk or act. Pausing or skipping time is not acting.
     if (rule.keepsPlayerSitting !== true) stools.standUp();
     // Any new command cancels a reach in progress. If the hand has not got to the thing yet, its command is never carried out.
-    if (command.type !== "setPaused") handReach.cancel();
+    if (command.type !== "setPaused" && command.type !== "setJournalHidden") handReach.cancel();
     if (rule.start === "fresh") cancelTasks();
     refuseWith(rule.run === undefined ? approach.start(command) : rule.run(command));
     return stoppedWork;
@@ -694,6 +743,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       actionQueue.moveOn();
+      noteGoals();
       noticeSnugRoom();
       stepCount += 1;
     }
@@ -737,6 +787,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false }
       stepCount,
       firstNightOver,
       snugRoomNoticeShown,
+      journal,
       notice,
       entities: saveEntities(entities),
     });

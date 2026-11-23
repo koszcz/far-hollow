@@ -3,6 +3,7 @@ import type { BackpackContent, GameNotice, PlainRefusal } from "./api";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { isFillProgress } from "./fill-level";
+import { GOALS } from "./journal";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { NEED_KINDS } from "./needs";
 import { RECIPE_KINDS } from "./recipe-kind";
@@ -305,6 +306,7 @@ const saveShape = shape({
   stepCount: count,
   firstNightOver: boolean,
   snugRoomNoticeShown: boolean,
+  journal: shape({ done: list(exactly(...GOALS)), hidden: boolean }),
   notice: (value) => value === null || notice(value),
   entities: list(shape({ id: count, components })),
 });

@@ -19,6 +19,7 @@ import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
 import { createDevHooks } from "./dev-hooks";
 import { pressCraftKey } from "./craft-menu";
+import { pressJournalKey } from "./journal-key";
 import { hotbarKeyPlanting, pressHotbarKey } from "./hotbar";
 import { downloadFile, saveExportFile, unreadableSlotExportFile } from "./save-export";
 import { importIntoSlot } from "./save-import";
@@ -281,20 +282,28 @@ document.addEventListener("click", (event) => {
   if (event.detail > 0 && button instanceof HTMLButtonElement) button.blur();
 });
 
-/** Input state the UI shows: the build menu and placing, the craft menu, and the action menu, if one is open. */
+/** Input state the UI shows: the build menu and placing, the craft menu, the journal panel, and the action menu, if one is open. */
 const uiState: {
   buildMode: BuildMode;
   placingRefusal: Refusal | undefined;
   planting: PlantingHintState | undefined;
   craftMenuOpen: boolean;
+  journalOpen: boolean;
   menu: MenuRequest | undefined;
 } = {
   buildMode: NOT_BUILDING,
   placingRefusal: undefined,
   planting: undefined,
   craftMenuOpen: false,
+  journalOpen: false,
   menu: undefined,
 };
+
+function setJournalOpen(open: boolean): void {
+  if (open === uiState.journalOpen) return;
+  uiState.journalOpen = open;
+  renderUi();
+}
 
 function setCraftMenuOpen(open: boolean): void {
   if (open === uiState.craftMenuOpen) return;
@@ -314,6 +323,8 @@ window.addEventListener("keydown", (event) => {
   if (event.code !== "Escape" && typing) return;
   const result = pressCraftKey(uiState.craftMenuOpen, event.code);
   if (result !== "ignore") setCraftMenuOpen(result === "open");
+  const journal = pressJournalKey({ open: uiState.journalOpen, hasJournal: game.client.getView().journal !== null }, event.code);
+  if (journal !== "ignore") setJournalOpen(journal === "open");
 });
 
 /** Draws the HUD, the action menu, and the debug overlay. Called again when the build mode or the action menu changes. */
@@ -348,6 +359,10 @@ function renderUi(): void {
           walkInput.pickBuildEntry(structure);
         }}
         craftMenuOpen={uiState.craftMenuOpen}
+        journalOpen={uiState.journalOpen}
+        onCloseJournal={() => {
+          setJournalOpen(false);
+        }}
         onToggleCraftMenu={() => {
           setCraftMenuOpen(!uiState.craftMenuOpen);
         }}

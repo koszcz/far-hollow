@@ -1,7 +1,6 @@
 // Builds the code-made draft ambience sounds listed in asset-manifest.json. Each is a short loop made from shaped noise or
-// simple tones, so the game downloads nothing for sound.
+// simple tones. The forest plays from a recorded file instead, see sound-files.ts.
 // - sound-river: a low, steady rush of flowing water with a soft babble on top that swells and falls slowly.
-// - sound-forest: a high, airy rustle of leaves in waves, as gusts pass through the treetops. How loud it plays follows the wind.
 // - sound-fire: a low, soft roar under quick, uneven crackles and pops.
 // - sound-rain: a bright, steady hiss of rain with fine drops ticking all through it.
 // - sound-rain-roof: a dull, muffled rush with soft, quick thuds of drops drumming on a roof overhead.
@@ -9,7 +8,7 @@
 // - sound-crickets: a few crickets chirp high, short trills over and over, each at its own pitch and pace.
 // Each loop ends where it begins, so it repeats without a click.
 import { createRandom, type Random } from "../sim/random";
-import type { AmbienceSoundId } from "./sound-mix";
+import type { CodeAmbienceSoundId } from "./sound-files";
 
 /** How long most loops last before they repeat, in seconds. */
 const LOOP_SECONDS = 6;
@@ -23,9 +22,8 @@ const PEAK = 0.9;
 /** How each loop is made, one sample at a time. Each maker is called once per sample, in order. */
 type SampleMaker = (random: Random, sampleRate: number) => (seconds: number) => number;
 
-const MAKERS: Readonly<Record<AmbienceSoundId, SampleMaker>> = {
+const MAKERS: Readonly<Record<CodeAmbienceSoundId, SampleMaker>> = {
   "sound-river": riverMaker,
-  "sound-forest": forestMaker,
   "sound-fire": fireMaker,
   "sound-rain": rainMaker,
   "sound-rain-roof": rainRoofMaker,
@@ -34,12 +32,12 @@ const MAKERS: Readonly<Record<AmbienceSoundId, SampleMaker>> = {
 };
 
 /** How long this sound's loop lasts before it repeats, in seconds. */
-export function loopSeconds(sound: AmbienceSoundId): number {
+export function loopSeconds(sound: CodeAmbienceSoundId): number {
   return sound === "sound-birds" ? BIRDS_LOOP_SECONDS : LOOP_SECONDS;
 }
 
 /** The samples of one loop at this sample rate, between -PEAK and PEAK. The same sound always gives the same loop. */
-export function ambienceLoop(sound: AmbienceSoundId, sampleRate: number): Float32Array<ArrayBuffer> {
+export function ambienceLoop(sound: CodeAmbienceSoundId, sampleRate: number): Float32Array<ArrayBuffer> {
   const length = Math.round(loopSeconds(sound) * sampleRate);
   const seam = Math.round(SEAM_SECONDS * sampleRate);
   const next = MAKERS[sound](createRandom(SEEDS[sound]), sampleRate);
@@ -57,9 +55,8 @@ export function ambienceLoop(sound: AmbienceSoundId, sampleRate: number): Float3
   return loop;
 }
 
-const SEEDS: Readonly<Record<AmbienceSoundId, number>> = {
+const SEEDS: Readonly<Record<CodeAmbienceSoundId, number>> = {
   "sound-river": 11,
-  "sound-forest": 23,
   "sound-fire": 37,
   "sound-rain": 41,
   "sound-rain-roof": 53,
@@ -92,24 +89,6 @@ function riverMaker(random: Random, sampleRate: number): (seconds: number) => nu
     // The babble is the band between the two filters. It swells and falls slowly, on two waves.
     const babble = (babbleLow - babbleHigh) * (0.6 + 0.25 * loopWave(seconds, 3) + 0.15 * loopWave(seconds, 7, 1.1));
     return rush * 2.2 + babble * 1.4;
-  };
-}
-
-function forestMaker(random: Random, sampleRate: number): (seconds: number) => number {
-  const airKeep = smoothing(5000, sampleRate);
-  const lowKeep = smoothing(1200, sampleRate);
-  const flutterKeep = smoothing(14, sampleRate);
-  let air = 0;
-  let low = 0;
-  let flutter = 0;
-  return (seconds) => {
-    const white = random() * 2 - 1;
-    air = air * airKeep + white * (1 - airKeep);
-    low = low * lowKeep + white * (1 - lowKeep);
-    // Leaves flutter quickly within each gust.
-    flutter = flutter * flutterKeep + (random() * 2 - 1) * (1 - flutterKeep);
-    const gust = 0.55 + 0.3 * loopWave(seconds, 2) + 0.15 * loopWave(seconds, 5, 0.7);
-    return (air - low) * gust * (0.75 + flutter * 6);
   };
 }
 

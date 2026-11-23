@@ -12,7 +12,7 @@ import { ambienceWishes, type FireSound } from "./ambience";
 import { easeHeardDaylight } from "./day-night";
 import { listenerFrom, type CameraOnGround } from "./listener";
 import { createPlaceClicks } from "./place-clicks";
-import { easeRainHearing, rainHearingNow, type RainHearing } from "./rain-hearing";
+import { easeRainHearing, type RainHearing } from "./rain-hearing";
 import type { SoundEngine } from "./sound-engine";
 
 /** What the player hears now, as drawing shows it. */
@@ -67,13 +67,13 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
       const underRoof = isUnderRoof(entities, player);
       const elapsed = nowSeconds - (lastSeconds ?? nowSeconds);
       // The first frame takes the weather and the time of day as they are, so a loaded game does not fade them in.
-      rain = rain === undefined ? rainHearingNow(raining, underRoof) : easeRainHearing(rain, raining, underRoof, elapsed);
+      rain = easeRainHearing(rain, raining, underRoof, nowSeconds);
       daylight = daylight === undefined ? daylightAt(hourOfDay) : easeHeardDaylight(daylight, daylightAt(hourOfDay), elapsed);
       lastSeconds = nowSeconds;
       const listener = listenerFrom(player, camera);
       const wishes = ambienceWishes(listener, {
         river: valley.river,
-        wind: windStrength(nowSeconds, rain.falling),
+        wind: windStrength(valley.seed, nowSeconds, rain.falling.share),
         fires: fires(),
         rain,
         daylight,

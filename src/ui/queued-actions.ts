@@ -195,6 +195,9 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
     // Pausing and skipping time never wait in the queue. They have an icon and name all the same, so every command has one.
     case "setPaused":
       return { icon: { hud: command.paused ? "pause" : "play" }, name: command.paused ? strings.pause : strings.resume };
+    case "setJournalHidden":
+      // It is never queued, but every command needs an icon and a name.
+      return { icon: { hud: "sun" }, name: strings.journal.hide };
     case "skipTime":
       return { icon: { hud: "moon" }, name: strings.debugSkipHours(command.hours) };
     case "skipToRainChange":

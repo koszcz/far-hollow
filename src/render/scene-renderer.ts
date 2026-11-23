@@ -4,8 +4,8 @@ import { playerActivity } from "../sim/activity";
 import { diggingClayNow } from "../sim/clay";
 import { gatheringStoneNow } from "../sim/stone";
 import { REACH_SECONDS } from "../sim/hand-reach";
-import { REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
-import { movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
+import { MINUTES_PER_HOUR, REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
+import { isRaining, movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/river-bank-work";
@@ -40,6 +40,9 @@ import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
+import { easeRain, type EasedRain } from "./eased-rain";
+import { windAt } from "./wind";
+import { createWindSway } from "./wind-sway";
 import { createValleyMeshes } from "./valley-meshes";
 import { createDrawnGround } from "./drawn-ground";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
@@ -139,10 +142,18 @@ export function createSceneRenderer(
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
+  // The wind sways the undergrowth and the trees. It is only for looks, like the rain, and is never saved.
+  const windSway = createWindSway();
+  /** How far the rain has eased in for the wind. Undefined until the first frame. */
+  let windRain: EasedRain | undefined;
+  function blowWind(nowSeconds: number): void {
+    windRain = easeRain(windRain, isRaining(entities), nowSeconds);
+    windSway.update(windAt({ seed: valley.seed, nowSeconds, gameHours: readClockMinutes() / MINUTES_PER_HOUR, rainShare: windRain.share }), nowSeconds);
+  }
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
-  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround);
+  const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround, windSway);
   scene.add(undergrowthMeshes.group);
-  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log);
+  const forestMeshes = createForestMeshes(entities, shapes, windSway);
   scene.add(forestMeshes.group);
   const structureMeshes = createStructureMeshes(entities, groundHeightAt, shapes.log);
   scene.add(structureMeshes.group);
@@ -631,6 +642,7 @@ export function createSceneRenderer(
       darkenView(canvas, darkness);
       const daylight = daylightAt(hourOfDay);
       riverMeshes.update(nowSeconds, daylight);
+      blowWind(nowSeconds);
       forestMeshes.update(nowSeconds);
       forageMeshes.update();
       mushroomLogMeshes.update();

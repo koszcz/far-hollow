@@ -15,10 +15,14 @@ const COURSES_OVER_OPENING = [6, 7] as const;
  */
 export const WINDOW_STAGE_COURSES: readonly (readonly number[])[] = [SILL_COURSES, COURSES_BESIDE_OPENING, COURSES_OVER_OPENING];
 
-/** How wide the window's opening is, in metres. Shutters hung in it fit this gap. */
+/** How wide the window's opening is inside its frame, in metres. Shutters hung in it fit this gap. */
 export const WINDOW_OPENING_WIDTH_METRES = 0.6;
-/** How long each short log beside the opening is, in metres: from the opening to just past the end of the edge, like a plain course. */
-export const WINDOW_STUB_LENGTH_METRES = (COURSE_LENGTH_METRES - WINDOW_OPENING_WIDTH_METRES) / 2;
+/** How thick each upright board of the window's frame is, along the edge, in metres. */
+export const JAMB_THICKNESS_METRES = 0.04;
+/** Where each short log beside the opening ends, along the edge, in metres from the middle: against the frame's upright board. */
+export const WINDOW_STUB_INNER_METRES = WINDOW_OPENING_WIDTH_METRES / 2 + JAMB_THICKNESS_METRES;
+/** How long a plain short log beside the opening is, in metres: from the frame to just past the end of the edge, like a plain course. */
+export const WINDOW_STUB_LENGTH_METRES = COURSE_LENGTH_METRES / 2 - WINDOW_STUB_INNER_METRES;
 
 /** Whether a course of a window runs beside its opening, so it is two short logs. */
 export function isBesideOpening(course: number): boolean {
@@ -27,7 +31,8 @@ export function isBesideOpening(course: number): boolean {
 
 /**
  * Where a window's opening is, in metres above the deck: from the top of the sill under it to the bottom of the
- * first course over it. Shutters hung in the window fit this gap.
+ * first course over it. The frame's sill and header sit sunk into those logs, so this is also the opening inside the frame.
+ * Shutters hung in the window fit this gap.
  */
 export const WINDOW_OPENING: { readonly bottom: number; readonly top: number } = (() => {
   const heights = courseHeights();

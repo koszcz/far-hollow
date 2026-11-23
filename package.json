@@ -21,6 +21,7 @@
     "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
+    "@sentry/browser": "^11.17.0",
     "miniplex": "^2.0.0",
     "preact": "^11.2.0",
     "three": "^0.187.0"

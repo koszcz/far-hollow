@@ -1,9 +1,11 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 // A piece of furniture comes from its definition in furniture.ts instead. freelyPlaced turns it into a structure.
+import type { Refusal } from "./api";
 import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
-import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsDoorAtCorner, squaresBeside } from "./edge-pieces";
+import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";
+import { hasShutters, nearestBareWindow, windowOn } from "./windows";
 import {
   blueprintEntities,
   cabinRoofEntities,
@@ -96,6 +98,7 @@ export type FinishedMarker =
   | "floor"
   | "edgePiece"
   | "door"
+  | "shutters"
   | "roofFrame"
   | "cabinRoof"
   | "fireplace"
@@ -128,6 +131,11 @@ export interface StructureDefinition {
   footprint(spot: GroundPoint, turns: QuarterTurns): GroundRect;
   /** Whether a blueprint of this structure may go at `spot`, a building-grid spot, facing `turns`. */
   canPlace(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): boolean;
+  /**
+   * Why a blueprint may not go at `spot`, facing `turns`, when the reason is not plain to see, such as a door frame or window
+   * at a corner (ADR 0008). Without this, or when it gives undefined, the game names no reason.
+   */
+  placementRefusal?(site: PlacementSite, spot: GroundPoint, turns: QuarterTurns): Refusal | undefined;
   /** The components a finished structure gets in place of its blueprint, at `spot` facing `turns`, among `entities`. */
   finish(spot: GroundPoint, turns: QuarterTurns, entities: EntityStore): Entity;
   /**
@@ -380,11 +388,16 @@ export const LOG_WALL_BUILD_SECONDS = 12;
 export const DOOR_FRAME_LOG_COST = 3;
 /** How long the player holds the build action to build a door frame, in seconds. */
 export const DOOR_FRAME_BUILD_SECONDS = 10;
+/** How many debarked logs a window costs: fewer than a wall, since the opening is left open, like a door frame. */
+export const WINDOW_LOG_COST = 3;
+/** How long the player holds the build action to build a window, in seconds. */
+export const WINDOW_BUILD_SECONDS = 10;
 
 /**
- * A log wall or a door frame. Each stands on one edge of a finished foundation's square, along the line to the square beside it.
+ * A log wall, door frame, or window. Each stands on one edge of a finished foundation's square, along the line to the square beside it.
  * R picks the edge: facing `turns`, it snaps to the edge that `edgeMiddle` gives for the square under the mouse.
  * Its ground is that line, so it never overlaps the squares on either side, and foundations can sit right beside it.
+ * A log wall and a window block walking across their edge. A door frame leaves the doorway open.
  */
 function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buildSeconds: number): StructureDefinition & { readonly kind: Kind } {
   const footprint = (spot: GroundPoint, turns: QuarterTurns) => turnedRect(spot, BUILD_GRID_METRES / 2, 0, turns);
@@ -404,20 +417,26 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
     canPlace({ entities }, spot, turns) {
       if (foundationsBeside(entities, spot, turns).length === 0) return false;
       if (isEdgeTaken(entities, spot)) return false;
-      if (meetsDoorAtCorner(entities, kind, spot, turns)) return false;
+      if (meetsOpeningAtCorner(entities, kind, spot, turns)) return false;
       if (overlapsOpenGroundCampfire(entities, footprint(spot, turns))) return false;
       return isClearOfTreesAndStructures(entities, footprint(spot, turns));
+    },
+    placementRefusal({ entities }, spot, turns) {
+      // Only an edge the piece could otherwise take says why, so a taken edge or open ground does not blame the corner.
+      if (foundationsBeside(entities, spot, turns).length === 0 || isEdgeTaken(entities, spot)) return undefined;
+      return meetsOpeningAtCorner(entities, kind, spot, turns) ? { kind: "atCorner" } : undefined;
     },
     finish(spot, turns) {
       const [inside, beyond] = squaresBeside(spot, turns);
       // A door frame leaves the doorway open, so it blocks nothing.
-      return kind === "logWall" ? { edgePiece: kind, blocksWalkingEdges: [{ from: inside, to: beyond }] } : { edgePiece: kind };
+      return kind === "doorFrame" ? { edgePiece: kind } : { edgePiece: kind, blocksWalkingEdges: [{ from: inside, to: beyond }] };
     },
   };
 }
 
 const logWall = edgePiece("logWall", LOG_WALL_LOG_COST, LOG_WALL_BUILD_SECONDS);
 const doorFrame = edgePiece("doorFrame", DOOR_FRAME_LOG_COST, DOOR_FRAME_BUILD_SECONDS);
+const windowPiece = edgePiece("window", WINDOW_LOG_COST, WINDOW_BUILD_SECONDS);
 
 /** How many debarked logs a roof frame costs: two beam logs, each cut in two, then three rafters. Construction spends one at the start of each stage. */
 export const ROOF_FRAME_LOG_COST = 5;
@@ -515,6 +534,36 @@ const door: StructureDefinition & { readonly kind: "door" } = {
   heightAt: ({ entities, valley }, spot) => doorFrameOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace: ({ entities }, spot) => doorFrameOn(entities, spot) !== undefined && !hasDoor(entities, spot),
   finish: () => ({ door: true }),
+};
+
+/** How many planks shutters cost. Construction spends one at the start of each stage. */
+export const SHUTTERS_PLANK_COST = 2;
+/** How long the player holds the build action to build shutters, in seconds. */
+export const SHUTTERS_BUILD_SECONDS = 4;
+/** A shutters blueprint snaps to the finished window with no shutters whose middle is within this many metres of the mouse. */
+const SHUTTERS_SNAP_METRES = 1;
+
+/**
+ * Shutters: two plank shutters hung in a finished window. They take the window's edge and facing, so R does not turn them.
+ * They are not an edge piece. The window keeps holding the edge, and a window with shutters, or a shutters blueprint, cannot come down.
+ * Finished shutters start closed. They never block walking, open or closed. Their ground is the window's line, like the window's own.
+ */
+const shutters: StructureDefinition & { readonly kind: "shutters" } = {
+  kind: "shutters",
+  placement: "inWindow",
+  fixedFacing: true,
+  finishedAs: "shutters",
+  cost: [{ material: "plank", count: SHUTTERS_PLANK_COST }],
+  buildSeconds: SHUTTERS_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, BUILD_GRID_METRES / 2, 0, turns),
+  snap({ entities }, at, turns) {
+    const bare = nearestBareWindow(entities, at, SHUTTERS_SNAP_METRES);
+    return bare === undefined ? edgeMiddle(snapToGridSquare(at), turns) : { x: bare.position.x, z: bare.position.z };
+  },
+  facingAt: ({ entities }, spot, turns) => windowOn(entities, spot)?.facing?.turns ?? turns,
+  heightAt: ({ entities, valley }, spot) => windowOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace: ({ entities }, spot) => windowOn(entities, spot) !== undefined && !hasShutters(entities, spot),
+  finish: () => ({ shutters: { open: false } }),
 };
 
 /** How many stones a fireplace costs. Construction spends one at the start of each stage. */
@@ -752,9 +801,11 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   floor,
   logWall,
   doorFrame,
+  window: windowPiece,
   roofFrame,
   roof,
   door,
+  shutters,
   fireplace,
   woodpile,
   ...FURNITURE_STRUCTURES,
@@ -789,10 +840,10 @@ function isClearFor({ entities, walkMap }: PlacementSite, rect: GroundRect): boo
 }
 
 /** The structures a cabin is built from. */
-const CABIN_PIECES: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "logWall", "doorFrame", "roofFrame", "roof"]);
+const CABIN_PIECES: ReadonlySet<StructureKind> = new Set<StructureKind>(["foundation", "logWall", "doorFrame", "window", "roofFrame", "roof"]);
 
 /**
- * Whether `rect` overlaps any foundation, log wall, door frame, roof frame, or roof section, finished or as a blueprint.
+ * Whether `rect` overlaps any foundation, log wall, door frame, window, roof frame, or roof section, finished or as a blueprint.
  * A wall or door frame covers only the line it stands on, so it overlaps only a rectangle that reaches across that line.
  */
 function overlapsCabinPiece(entities: EntityStore, rect: GroundRect): boolean {

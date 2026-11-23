@@ -117,6 +117,7 @@ export function showAsset(
     "hud",
     "log-wall",
     "door-frame",
+    "window",
     "torch",
   ].includes(id);
   // The bed's stills show the bed alone. Its live loop shows the player sleeping in it.

@@ -8,9 +8,10 @@ import { DOOR_DRAWING, FLOOR_DRAWING } from "./floor-and-door-icons";
 import { FURNITURE_DRAWINGS } from "./furniture-icons";
 import type { BackpackIconDrawing } from "./icon-drawing";
 import { SLED_DRAWING } from "./sled-icons";
+import { SHUTTERS_DRAWING, WINDOW_DRAWING } from "./window-icons";
 
 /**
- * Every structure's icon. The approved "build-icons" asset draws most of them. The sled's, the fireplace's, the floor's, the door's,
+ * Every structure's icon. The approved "build-icons" asset draws most of them. The sled's, the fireplace's, the floor's, the door's, the window's, the shutters',
  * and each piece of furniture's come from their own icon assets. TypeScript reports a structure with no icon.
  */
 const STRUCTURE_ICONS: Readonly<Record<StructureKind, BackpackIconDrawing>> = {
@@ -19,6 +20,8 @@ const STRUCTURE_ICONS: Readonly<Record<StructureKind, BackpackIconDrawing>> = {
   fireplace: FIREPLACE_DRAWING,
   floor: FLOOR_DRAWING,
   door: DOOR_DRAWING,
+  window: WINDOW_DRAWING,
+  shutters: SHUTTERS_DRAWING,
   ...FURNITURE_DRAWINGS,
 };
 

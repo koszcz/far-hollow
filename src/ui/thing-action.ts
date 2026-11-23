@@ -59,7 +59,9 @@ export type ActionId =
   | "drinkFromJug"
   | "putOut"
   | "plant"
-  | "plantMushroom";
+  | "plantMushroom"
+  | "openShutters"
+  | "closeShutters";
 
 export interface ThingAction {
   /** Stable id for code and tests, such as "chop", "addFuel:firewood", or "stack:firewood:all". */

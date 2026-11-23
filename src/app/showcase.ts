@@ -41,6 +41,7 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
       id === "fireplace-icon" ||
       id === "rain-barrel-icon" ||
       id === "floor-and-door-icons" ||
+      id === "window-icons" ||
       id === "action-queue-icons" ||
       id === "torch-icons" ||
       id === "fish-trap-icons"

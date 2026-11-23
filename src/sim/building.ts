@@ -123,8 +123,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const y = definition.heightAt?.(site, { x, z }) ?? terrainHeightAt(valley.terrain, x, z);
     const facing = definition.facingAt?.(site, { x, z }, turns) ?? turns;
     const footprint = definition.footprint({ x, z }, facing);
-    // Nothing else shows the player that a garden thing is in the way, so the game says why.
-    const refusal = gardenThingInTheWay(entities, footprint);
+    // Nothing else shows the player that a garden thing is in the way, or that a door frame or window may not stand at a corner, so the game says why.
+    const refusal = gardenThingInTheWay(entities, footprint) ?? definition.placementRefusal?.(site, { x, z }, turns);
     const allowed = refusal === undefined && definition.canPlace(site, { x, z }, turns);
     return Object.freeze({ spot: Object.freeze({ x, y, z }), turns: facing, allowed, ...(refusal === undefined ? {} : { refusal: Object.freeze(refusal) }) });
   }

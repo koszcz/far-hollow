@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { easeRainShare, RAIN_EASE_SECONDS, windAt, windDirection, windStrength } from "./wind";
+import { windAt, windDirection, windStrength } from "./wind";
 
-/** The wind's strength once a second for ten minutes. */
-function strengths(rainShare: number): number[] {
-  return Array.from({ length: 600 }, (_, second) => windStrength(second, rainShare));
+const SEED = 12345;
+
+/** The wind's strength once a second for ten minutes, in the valley made from `seed`. */
+function strengths(rainShare: number, seed = SEED): number[] {
+  return Array.from({ length: 600 }, (_, second) => windStrength(seed, second, rainShare));
 }
 
 describe("the wind", () => {
@@ -26,17 +28,26 @@ describe("the wind", () => {
   });
 
   it("is in between while rain eases in", () => {
-    expect(windStrength(100, 0.5)).toBeGreaterThan(windStrength(100, 0));
-    expect(windStrength(100, 0.5)).toBeLessThan(windStrength(100, 1));
+    expect(windStrength(SEED, 100, 0.5)).toBeGreaterThan(windStrength(SEED, 100, 0));
+    expect(windStrength(SEED, 100, 0.5)).toBeLessThan(windStrength(SEED, 100, 1));
   });
-});
 
-describe("easing the rain in and out", () => {
-  it("takes RAIN_EASE_SECONDS to go from dry to full rain, and back", () => {
-    expect(easeRainShare(0, true, RAIN_EASE_SECONDS / 2)).toBeCloseTo(0.5);
-    expect(easeRainShare(0, true, RAIN_EASE_SECONDS)).toBe(1);
-    expect(easeRainShare(1, false, RAIN_EASE_SECONDS / 4)).toBeCloseTo(0.75);
-    expect(easeRainShare(0.2, false, RAIN_EASE_SECONDS)).toBe(0);
+  it("gusts the same way for the same seed", () => {
+    expect(strengths(0, 7)).toEqual(strengths(0, 7));
+  });
+
+  it("gusts differently in valleys from other seeds", () => {
+    const one = strengths(0, 7);
+    const other = strengths(0, 8);
+    expect(one.some((strength, second) => Math.abs(strength - (other[second] ?? strength)) > 0.02)).toBe(true);
+  });
+
+  it("is a gentle breeze with slow gusts when dry, whatever the seed", () => {
+    for (const seed of [1, 2, 3, 99, 4242]) {
+      const dry = strengths(0, seed);
+      expect(Math.max(...dry)).toBeLessThan(0.5);
+      expect(Math.min(...dry)).toBeGreaterThan(0);
+    }
   });
 });
 

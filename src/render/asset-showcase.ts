@@ -171,7 +171,7 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, shapes.trees, shapes.saplings, shapes.stump, shapes.log, windSway);
+  const forest: ForestMeshes = createForestMeshes(store, shapes, windSway);
   const structures = createStructureMeshes(store, groundAt, shapes.log);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();

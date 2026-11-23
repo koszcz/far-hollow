@@ -101,14 +101,29 @@ export interface ForestMeshes {
   dispose(): void;
 }
 
-export function createForestMeshes(
-  entities: EntityStore,
-  treeShapes: readonly TreeShape[],
-  saplingModels: SaplingModels,
-  stumpShape: StumpShape,
-  logShape: LogShape,
-  windSway: WindSway,
-): ForestMeshes {
+/** The loaded shapes the forest draws. */
+export interface ForestShapes {
+  /** Every tree type, from loadTreeShapes. */
+  readonly trees: readonly TreeShape[];
+  readonly saplings: SaplingModels;
+  readonly stump: StumpShape;
+  readonly log: LogShape;
+}
+
+/** The material a tree part is drawn with, in one of TREE_COLOURS. */
+export function createTreeMaterial(colour: number): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
+}
+
+/** A tree's trunk and crown materials, one of each for each tone. */
+interface TreeMaterials {
+  readonly trunk: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
+  readonly crown: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
+}
+
+/** `windSway` sways the treetops, young trees, and saplings. */
+export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, windSway: WindSway): ForestMeshes {
+  const { trees: treeShapes, saplings: saplingModels, stump: stumpShape, log: logShape } = shapes;
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -122,29 +137,27 @@ export function createForestMeshes(
   // Shadows always come from the real shape.
   // Every tree spot gets a place in its type's batches: standing trees, and felled trees that grow back there.
   const trees = [...new Set([...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)])];
-  const treeMaterial = (colour: number) => track(new THREE.MeshStandardMaterial({ color: colour, flatShading: true }));
-  const toneMaterials = (part: "trunk" | "crown"): Record<TreeTone, THREE.MeshStandardMaterial> => ({
-    dark: treeMaterial(TREE_COLOURS[part].dark),
-    light: treeMaterial(TREE_COLOURS[part].light),
-  });
+  /** One material for each tone of a tree part, swaying like `look`, or still with none. */
+  const toneMaterials = (part: "trunk" | "crown", look?: SwayLook): Record<TreeTone, THREE.MeshStandardMaterial> => {
+    const made = (colour: number) => {
+      const material = track(createTreeMaterial(colour));
+      return look === undefined ? material : windSway.sway(material, look);
+    };
+    return { dark: made(TREE_COLOURS[part].dark), light: made(TREE_COLOURS[part].light) };
+  };
   // Full trees sway only in their crowns. Young trees and saplings sway whole, each by their own height.
-  const trunkMaterials = toneMaterials("trunk");
-  const crownMaterials = toneMaterials("crown");
-  const youngMaterials = { trunk: toneMaterials("trunk"), crown: toneMaterials("crown") };
-  const saplingMaterials = { trunk: toneMaterials("trunk"), crown: toneMaterials("crown") };
-  const seeThrough = addTreeSeeThrough([
-    ...[trunkMaterials, crownMaterials, youngMaterials.trunk, youngMaterials.crown, saplingMaterials.trunk, saplingMaterials.crown].flatMap((byTone) =>
-      Object.values(byTone),
-    ),
-  ]);
-  const swaying: readonly [Record<TreeTone, THREE.MeshStandardMaterial>, SwayLook][] = [
-    [crownMaterials, TREE_SWAY],
-    [youngMaterials.trunk, YOUNG_TREE_SWAY],
-    [youngMaterials.crown, YOUNG_TREE_SWAY],
-    [saplingMaterials.trunk, SAPLING_SWAY],
-    [saplingMaterials.crown, SAPLING_SWAY],
-  ];
-  for (const [byTone, look] of swaying) for (const material of Object.values(byTone)) windSway.sway(material, look);
+  const treeMaterials = (trunkLook: SwayLook | undefined, crownLook: SwayLook): TreeMaterials => ({
+    trunk: toneMaterials("trunk", trunkLook),
+    crown: toneMaterials("crown", crownLook),
+  });
+  const fullMaterials = treeMaterials(undefined, TREE_SWAY);
+  const youngMaterials = treeMaterials(YOUNG_TREE_SWAY, YOUNG_TREE_SWAY);
+  const saplingMaterials = treeMaterials(SAPLING_SWAY, SAPLING_SWAY);
+  const trunkMaterials = fullMaterials.trunk;
+  const crownMaterials = fullMaterials.crown;
+  const seeThrough = addTreeSeeThrough(
+    [fullMaterials, youngMaterials, saplingMaterials].flatMap(({ trunk, crown }) => [...Object.values(trunk), ...Object.values(crown)]),
+  );
   for (const shape of treeShapes) {
     track(shape.trunk);
     track(shape.crown);

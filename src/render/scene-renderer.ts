@@ -40,7 +40,8 @@ import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
 import { createUndergrowthMeshes } from "./undergrowth-meshes";
-import { easeRainShare, windAt } from "./wind";
+import { easeRain, type EasedRain } from "./eased-rain";
+import { windAt } from "./wind";
 import { createWindSway } from "./wind-sway";
 import { createValleyMeshes } from "./valley-meshes";
 import { createDrawnGround } from "./drawn-ground";
@@ -143,19 +144,16 @@ export function createSceneRenderer(
   scene.add(riverMeshes.group);
   // The wind sways the undergrowth and the trees. It is only for looks, like the rain, and is never saved.
   const windSway = createWindSway();
-  /** How far the rain has eased in for the wind, from 0 (dry) to 1 (full rain). Undefined until the first frame. */
-  let windRain: { share: number; atSeconds: number } | undefined;
+  /** How far the rain has eased in for the wind. Undefined until the first frame. */
+  let windRain: EasedRain | undefined;
   function blowWind(nowSeconds: number): void {
-    const raining = isRaining(entities);
-    // The first frame takes the weather as it is, so a game loaded in the rain does not ease the wind in.
-    const share = windRain === undefined ? (raining ? 1 : 0) : easeRainShare(windRain.share, raining, nowSeconds - windRain.atSeconds);
-    windRain = { share, atSeconds: nowSeconds };
-    windSway.update(windAt({ seed: valley.seed, nowSeconds, gameHours: readClockMinutes() / MINUTES_PER_HOUR, rainShare: share }), nowSeconds);
+    windRain = easeRain(windRain, isRaining(entities), nowSeconds);
+    windSway.update(windAt({ seed: valley.seed, nowSeconds, gameHours: readClockMinutes() / MINUTES_PER_HOUR, rainShare: windRain.share }), nowSeconds);
   }
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
   const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround, windSway);
   scene.add(undergrowthMeshes.group);
-  const forestMeshes = createForestMeshes(entities, shapes.trees, shapes.saplings, shapes.stump, shapes.log, windSway);
+  const forestMeshes = createForestMeshes(entities, shapes, windSway);
   scene.add(forestMeshes.group);
   const structureMeshes = createStructureMeshes(entities, groundHeightAt, shapes.log);
   scene.add(structureMeshes.group);

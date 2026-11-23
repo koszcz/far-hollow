@@ -1,6 +1,5 @@
 // Showcases for the land and what grows on it: ground, river, trees, undergrowth, and logs. The registry is src/render/showcases/index.ts.
-import * as THREE from "three";
-import { TREE_COLOURS } from "../forest-meshes";
+import { createTreeMaterial, TREE_COLOURS } from "../forest-meshes";
 import { createSaplingShapes } from "../sapling-shape";
 import { createFarTreeShape } from "../tree-far-shape";
 import { createUndergrowthMaterial, undergrowthSways } from "../undergrowth-meshes";
@@ -30,8 +29,8 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
   const rows = Math.ceil(count / columns);
   const width = (columns - 1) * UNDERGROWTH_SPACING_METRES;
   const depth = (rows - 1) * UNDERGROWTH_SPACING_METRES;
-  const sways = undergrowthSways({ asset });
-  return {
+  const sways = undergrowthSways(asset);
+  const showcase: Showcase = {
     radius: Math.max(1, Math.max(width, depth) * 0.9),
     focus: { x: 0, y: 0.15, z: 0 },
     shots: FOUR_ANGLES,
@@ -42,12 +41,12 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
           const x = (index % columns) * UNDERGROWTH_SPACING_METRES - width / 2;
           const z = Math.floor(index / columns) * UNDERGROWTH_SPACING_METRES - depth / 2;
           const material = createUndergrowthMaterial(shape);
-          if (sways) windSway.sway(material, UNDERGROWTH_SWAY);
-          addProp(shape.geometry.clone(), material, x, z);
+          addProp(shape.geometry.clone(), sways ? windSway.sway(material, UNDERGROWTH_SWAY) : material, x, z);
         });
     },
-    ...(sways ? { play: SWAY_PLAY } : {}),
   };
+  // Undergrowth that sways plays the wind live. Pebbles stay still, so they have only stills.
+  return sways ? { ...showcase, play: SWAY_PLAY } : showcase;
 }
 
 export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
@@ -82,9 +81,8 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       treeShapes.forEach((shape, index) => {
         const x = (index - (treeShapes.length - 1) / 2) * FAR_TREE_SPACING_METRES;
         const far = createFarTreeShape(shape);
-        const material = (colour: number) => new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
-        addProp(far.trunk, material(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
-        addProp(far.crown, material(TREE_COLOURS.crown[shape.crownTone]), x, 0);
+        addProp(far.trunk, createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
+        addProp(far.crown, createTreeMaterial(TREE_COLOURS.crown[shape.crownTone]), x, 0);
       });
     },
   },
@@ -114,13 +112,8 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
           [youngTree, -2, YOUNG_TREE_SWAY],
           [sapling, 1, SAPLING_SWAY],
         ] as const) {
-          const material = (colour: number) => {
-            const swaying = new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
-            windSway.sway(swaying, look);
-            return swaying;
-          };
-          addProp(part.trunk, material(TREE_COLOURS.trunk[shape.trunkTone]), x, z);
-          addProp(part.crown, material(TREE_COLOURS.crown[shape.crownTone]), x, z);
+          addProp(part.trunk, windSway.sway(createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), look), x, z);
+          addProp(part.crown, windSway.sway(createTreeMaterial(TREE_COLOURS.crown[shape.crownTone]), look), x, z);
         }
       });
       for (const [x, z] of [

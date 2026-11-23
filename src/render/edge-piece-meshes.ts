@@ -1,5 +1,5 @@
-// Draws log walls, door frames, and windows, and their blueprints: the approved "log-wall" and "door-frame" assets and the
-// draft "window" asset in asset-manifest.json, built in code. Each stands on the edge of a foundation square, along the line to the square beside it.
+// Draws log walls, door frames, and windows, and their blueprints: the approved "log-wall", "door-frame", and "window"
+// assets in asset-manifest.json, built in code. Each stands on the edge of a foundation square, along the line to the square beside it.
 // - A log wall is a stack of debarked logs laid along the edge. Each delivered log is cut in two, since the wall is
 //   one square wide, so each stage of construction lays two courses. Like the deck of a foundation, each course is a
 //   little thicker or thinner, longer or shorter, and turned a little, so the wall looks hand-built. Each course sits
@@ -10,8 +10,10 @@
 //   past the corner, so the corner shows crossed log ends, like a log cabin. Ends with no wall across them stay short,
 //   so they never reach into a doorway. A door frame or window never stands at a corner: see `meetsOpeningAtCorner` in edge-pieces.ts.
 // - A window is a log wall with a square opening and no glass. It has the same courses as a log wall, and sits as low as one
-//   when it runs along z, so the two line up side by side. Its three stages lay the sill courses, then the courses beside the
-//   opening, each two short logs, then the courses over it. Shutters hang in the opening: see shutters-meshes.ts.
+//   when it runs along z, so the two line up side by side. A frame of sawn boards lines the opening: an upright board each
+//   side, a sill under it, and a header over it, the last two half sunk into the logs. Its three stages lay the sill courses,
+//   then the courses beside the opening, each two short logs, with the sill and the upright boards, then the courses over it
+//   with the header. Each short log reaches and turns its own way. Shutters hang in the opening: see shutters-meshes.ts.
 // - A door frame is two posts with a lintel across the top. Each stage puts up one of the three. The posts taper and lean a
 //   little, and the lintel sits in notches on their tops and reaches past them. Their cut ends show the paler cut wood.
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
@@ -24,6 +26,7 @@ import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, ty
 import { EDGE_PIECE_KINDS, type EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
+import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import type { OutlinePart } from "./hover-outline";
 import { deliveredOpacity, fadedOut, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
@@ -157,10 +160,47 @@ const WINDOW_STAGE_COURSES: readonly (readonly number[])[] = [
   [3, 4, 5],
   [6, 7],
 ];
-/** How wide the window's opening is, in metres. Shutters hung in it fit this gap. */
+/** How wide the window's opening is inside its frame, in metres. Shutters hung in it fit this gap. */
 export const WINDOW_OPENING_WIDTH_METRES = 0.6;
-/** How long each short log beside the opening is, in metres: from the opening to just past the end of the edge, like a plain course. */
-const WINDOW_STUB_LENGTH_METRES = (COURSE_LENGTH_METRES - WINDOW_OPENING_WIDTH_METRES) / 2;
+/** How thick each upright board of the window's frame is, along the edge, in metres. */
+const JAMB_THICKNESS_METRES = 0.04;
+/**
+ * How tall the sill and the header of the window's frame are, in metres. Each sits half hidden in the round log it rests
+ * on or under, so it is tall enough to cover the curve of the log at the wall's faces.
+ */
+const SILL_HEIGHT_METRES = 0.1;
+/** How far the sill and the header reach past the outside of each upright board, in metres. */
+const SILL_REACH_METRES = 0.03;
+/**
+ * How deep the frame's boards are across the wall, as a share of a plain course's thickness. A little less than the
+ * logs, so the boards sit just inside the wall's faces and closed shutters never touch them.
+ */
+const FRAME_DEPTH_SHARE = 0.96;
+/** The frame's sawn boards are a little darker than plank wood, so pale shutters stand out against them. */
+const FRAME_WOOD_SHADE = 0.88;
+/** Where each short log beside the opening ends, along the edge, in metres from the middle: against the frame's upright board. */
+const WINDOW_STUB_INNER_METRES = WINDOW_OPENING_WIDTH_METRES / 2 + JAMB_THICKNESS_METRES;
+/** How long a plain short log beside the opening is, in metres: from the frame to just past the end of the edge, like a plain course. */
+const WINDOW_STUB_LENGTH_METRES = COURSE_LENGTH_METRES / 2 - WINDOW_STUB_INNER_METRES;
+/**
+ * How each short log beside the opening differs from its course, from the bottom up, as a pair for the -x and +x
+ * sides: how much longer or shorter it reaches past the end of the edge, in metres, and how much more it is turned
+ * about its length, in radians. Its end against the frame stays put. Fixed, so every window looks the same.
+ */
+const STUB_LOOKS: readonly (readonly [{ reach: number; turn: number }, { reach: number; turn: number }])[] = [
+  [
+    { reach: 0.015, turn: 0.7 },
+    { reach: -0.02, turn: -0.4 },
+  ],
+  [
+    { reach: -0.025, turn: -0.9 },
+    { reach: 0.01, turn: 0.5 },
+  ],
+  [
+    { reach: 0.02, turn: 0.3 },
+    { reach: 0.025, turn: -1.2 },
+  ],
+];
 
 /** Whether a course of a window runs beside its opening, so it is two short logs. */
 function isBesideOpening(course: number): boolean {
@@ -169,7 +209,8 @@ function isBesideOpening(course: number): boolean {
 
 /**
  * Where a window's opening is, in metres above the deck: from the top of the sill course under it to the bottom of the
- * course over it. Shutters hung in the window fit this gap.
+ * course over it. The frame's sill and header sit sunk into those logs, so this is also the opening inside the frame.
+ * Shutters hung in the window fit this gap.
  */
 export const WINDOW_OPENING = (() => {
   const heights = courseHeights();
@@ -248,6 +289,12 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
     .rotateY(0.3)
     .rotateZ(Math.PI / 2);
   const doorWoodMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true });
+  // The window's frame: an upright board each side of the opening, a sill under it, and a header over it.
+  const frameDepth = 2 * COURSE_RADIUS_METRES * FRAME_DEPTH_SHARE;
+  const openingHeight = WINDOW_OPENING.top - WINDOW_OPENING.bottom;
+  const jambGeometry = new THREE.BoxGeometry(JAMB_THICKNESS_METRES, openingHeight, frameDepth);
+  const sillGeometry = new THREE.BoxGeometry(2 * (WINDOW_STUB_INNER_METRES + SILL_REACH_METRES), SILL_HEIGHT_METRES, frameDepth);
+  const frameWoodMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(PLANK_WOOD_COLOUR).multiplyScalar(FRAME_WOOD_SHADE), flatShading: true });
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, EDGE_PIECE_HEIGHT_METRES, PICK_THICKNESS_METRES).translate(0, EDGE_PIECE_HEIGHT_METRES / 2, 0);
   const woodMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true });
   const cutMaterial = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_CUT_COLOUR, flatShading: true });
@@ -280,19 +327,42 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       [{ geometry: rightPostGeometry, x: BUILD_GRID_METRES / 2 - POST_FOOT_RADIUS_METRES, y: postHeight / 2, wood: doorWoodMaterial }],
       [{ geometry: lintelGeometry, x: 0, y: postHeight, wood: doorWoodMaterial }],
     ],
-    window: WINDOW_STAGE_COURSES.map((courses) =>
-      courses.flatMap((course): PartPlan[] => {
+    window: WINDOW_STAGE_COURSES.map((courses, stage) => {
+      const logs = courses.flatMap((course, index): PartPlan[] => {
         const look = courseLook(course);
         const y = heights[course] ?? 0;
         const turn = look.turn;
         if (!isBesideOpening(course)) {
           return [{ geometry: courseGeometry, x: look.shift, y, scale: { along: look.length, across: look.thickness }, turn, cutEnds: true }];
         }
-        // Beside the opening, each course is two short logs, one either side, so the opening shows between them.
-        const reach = WINDOW_OPENING_WIDTH_METRES / 2 + WINDOW_STUB_LENGTH_METRES / 2;
-        return [-1, 1].map((side) => ({ geometry: stubGeometry, x: side * reach, y, scale: { along: 1, across: look.thickness }, turn, cutEnds: true }));
-      }),
-    ),
+        // Beside the opening, each course is two short logs, one either side, butting against the frame's upright boards.
+        // Each reaches its own way past the end of the edge and is turned its own way, so no two look alike.
+        return [-1, 1].map((side, sideIndex) => {
+          const stub = STUB_LOOKS[index]?.[sideIndex] ?? { reach: 0, turn: 0 };
+          const length = WINDOW_STUB_LENGTH_METRES + stub.reach;
+          return {
+            geometry: stubGeometry,
+            x: side * (WINDOW_STUB_INNER_METRES + length / 2),
+            y,
+            scale: { along: length / WINDOW_STUB_LENGTH_METRES, across: look.thickness },
+            turn: turn + stub.turn,
+            cutEnds: true,
+          };
+        });
+      });
+      // The frame goes in with the logs around it: the sill and the upright boards with the logs beside the opening,
+      // and the header with the logs over it.
+      const jambX = WINDOW_OPENING_WIDTH_METRES / 2 + JAMB_THICKNESS_METRES / 2;
+      const frame: PartPlan[][] = [
+        [],
+        [
+          { geometry: sillGeometry, x: 0, y: WINDOW_OPENING.bottom - SILL_HEIGHT_METRES / 2, wood: frameWoodMaterial },
+          ...[-1, 1].map((side) => ({ geometry: jambGeometry, x: side * jambX, y: (WINDOW_OPENING.bottom + WINDOW_OPENING.top) / 2, wood: frameWoodMaterial })),
+        ],
+        [{ geometry: sillGeometry, x: 0, y: WINDOW_OPENING.top + SILL_HEIGHT_METRES / 2, wood: frameWoodMaterial }],
+      ];
+      return [...logs, ...(frame[stage] ?? [])];
+    }),
   };
   const LOG_COST: Readonly<Record<EdgePieceKind, number>> = { logWall: LOG_WALL_LOG_COST, doorFrame: DOOR_FRAME_LOG_COST, window: WINDOW_LOG_COST };
 
@@ -473,6 +543,9 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       for (const item of [
         courseGeometry,
         stubGeometry,
+        jambGeometry,
+        sillGeometry,
+        frameWoodMaterial,
         leftPostGeometry,
         rightPostGeometry,
         lintelGeometry,

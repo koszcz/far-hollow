@@ -4,7 +4,8 @@ import { easeRainHearing, rainHearingNow, rainLoudness, type RainHearing } from 
 /** Eases the hearing for `seconds`, one 60th of a second at a time, as frames do. */
 function easeFor(hearing: RainHearing, raining: boolean, underRoof: boolean, seconds: number): RainHearing {
   let eased = hearing;
-  for (let frame = 0; frame < seconds * 60; frame += 1) eased = easeRainHearing(eased, raining, underRoof, 1 / 60);
+  const start = hearing.falling.atSeconds;
+  for (let frame = 1; frame <= seconds * 60; frame += 1) eased = easeRainHearing(eased, raining, underRoof, start + frame / 60);
   return eased;
 }
 
@@ -38,6 +39,12 @@ describe("rain loudness as rain starts and stops", () => {
   it("plays at full loudness at once in a game loaded in the rain", () => {
     expect(rainLoudness(RAIN_IN_THE_OPEN).open).toBeGreaterThan(0.3);
     expect(rainLoudness(RAIN_IN_THE_OPEN).open).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("the first frame", () => {
+  it("takes the rain and the roof as they are, with no easing", () => {
+    expect(easeRainHearing(undefined, true, true, 30)).toEqual(rainHearingNow(true, true, 30));
   });
 });
 

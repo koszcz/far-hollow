@@ -397,7 +397,7 @@ describe("saving windows and shutters", () => {
   it("raises the save version, and loads a save from before windows", () => {
     const game = createGame({ seed: 42 });
     expect(WINDOWS_SAVE_VERSION).toBeGreaterThan(SNUG_ROOM_NOTICE_SAVE_VERSION);
-    expect(WINDOWS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(WINDOWS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const old = { ...writeSave(game), version: WINDOWS_SAVE_VERSION - 1 };
 
     const loaded = readSave(structuredClone(old));

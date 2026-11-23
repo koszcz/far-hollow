@@ -35,6 +35,7 @@ import { StructureIcon } from "./structure-icon";
 import { dayShare, timeOfDayWord } from "./clock-face";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
 import { HudIcon, type HudIconName } from "./hud-icons";
+import { JournalLine, JournalPanel } from "./journal-panel";
 import { lowNeedsHint, needPulses, needRingShare } from "./need-gauge";
 import { placingHint, plantingHint } from "./placing-hint";
 import { SLED_DRAWING } from "./sled-icons";
@@ -226,6 +227,10 @@ export interface HudProps {
   onToggleCraftMenu: () => void;
   /** Called when the player clicks a hotbar cell, with the middle of its top edge on the page, to open the menu of its actions above it. */
   onOpenHotbarMenu: (target: HotbarTarget, x: number, y: number) => void;
+  /** Whether the journal panel is open. Optional, so showcases need not pass it. */
+  journalOpen?: boolean;
+  /** Called when the player closes the journal panel. The panel is input state, not game state, so this is not a command. */
+  onCloseJournal?: () => void;
 }
 
 /** One row in a list menu: its icon, its name, and what it costs or lacks. */
@@ -723,6 +728,8 @@ export function Hud({
   craftMenuOpen,
   onToggleCraftMenu,
   onOpenHotbarMenu,
+  journalOpen = false,
+  onCloseJournal = () => {},
 }: HudProps) {
   const [view, setView] = useState(client.getView());
   useEffect(
@@ -737,16 +744,22 @@ export function Hud({
 
   const hasContext = view.action !== null || placing !== null || planting !== undefined || nearbyPanels.length > 0;
   const lowNeeds = lowNeedsHint(view.needs);
+  const justDone = view.journal?.justDone ?? null;
 
   return (
     <>
-      {(view.paused || view.raining || view.notice !== null) && (
+      {(view.paused || view.raining || view.notice !== null || justDone !== null) && (
         <div class="hud-banners">
           {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
           {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
           {view.notice !== null && (
             <p class="hud-banner hud-notice" role="status">
               {noticeText(view.notice)}
+            </p>
+          )}
+          {justDone !== null && (
+            <p class="hud-banner hud-notice" role="status">
+              {strings.journal.justDone(strings.journal.goals[justDone].done)}
             </p>
           )}
         </div>
@@ -761,6 +774,8 @@ export function Hud({
         </p>
         <ActionQueueRow client={client} view={view} />
       </div>
+      <JournalLine journal={view.journal} />
+      {journalOpen && view.journal !== null && <JournalPanel client={client} journal={view.journal} onClose={onCloseJournal} />}
       <div class="hud hud-pause">
         <div class="hud-panel">
           <HudIconButton

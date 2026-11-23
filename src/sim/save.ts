@@ -80,6 +80,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   fillJugs,
   matchGroundToTrees,
   addWindows,
+  addJournal,
 ];
 
 /** The version of the save format this code writes. */
@@ -189,6 +190,8 @@ export const JUG_WATER_SAVE_VERSION = SAVE_UPGRADES.indexOf(fillJugs) + 2;
 export const GROUND_CHANGES_SAVE_VERSION = SAVE_UPGRADES.indexOf(matchGroundToTrees) + 2;
 /** The first save version that can hold windows and shutters, open or closed. */
 export const WINDOWS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWindows) + 2;
+/** The first save version that records the journal's goals done and whether it is hidden. */
+export const JOURNAL_SAVE_VERSION = SAVE_UPGRADES.indexOf(addJournal) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -258,11 +261,11 @@ export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_
   if (refusal !== undefined) return { ok: false, reason: refusal };
   const save = upgradeSave(data, upgrades);
   if (!isValidSave(save)) return { ok: false, reason: "notASave" };
-  const { seed, clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } = save as unknown as SaveFile;
+  const { seed, clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } = save as unknown as SaveFile;
   try {
     return {
       ok: true,
-      game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, notice, entities } }),
+      game: createGame({ seed, progress: { clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } }),
     };
   } catch {
     // The save had the right shape but still could not be loaded.
@@ -997,4 +1000,12 @@ function matchGroundToTrees(save: Readonly<Record<string, unknown>>): Record<str
 /** Version 57 to 58: the player can build windows and hang shutters in them. A save from before then holds none, so it carries over unchanged. */
 function addWindows(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 58 to 59: the journal suggests goals, and the game saves which are done and whether it is hidden.
+ * A save from before then starts with no goal done and the journal shown.
+ */
+function addJournal(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return { ...save, journal: { done: [], hidden: false } };
 }

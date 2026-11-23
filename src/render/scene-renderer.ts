@@ -671,7 +671,7 @@ export function createSceneRenderer(
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
       fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
-      windowGlowMeshes.update(daylight);
+      windowGlowMeshes.update(daylight, { camera: cameraRig.view().eye, player: playerDrawn });
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };

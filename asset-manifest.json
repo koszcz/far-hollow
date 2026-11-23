@@ -250,6 +250,7 @@
       "kind": "code",
       "code": [
         "src/render/edge-piece-meshes.ts",
+        "src/render/log-courses.ts",
         "src/sim/edge-pieces.ts"
       ],
       "description": "The log wall: a 2 m stack of debarked logs laid along one edge of a foundation square. Each delivered log is cut in two, so each build stage lays two courses. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the courses from the bottom up: each delivered log's two courses stay in their places and turn solid during its stage. A finished wall between the camera and the player fades out.",
@@ -1527,6 +1528,8 @@
       "kind": "code",
       "code": [
         "src/render/edge-piece-meshes.ts",
+        "src/render/window-shape.ts",
+        "src/render/log-courses.ts",
         "src/render/structure-meshes.ts"
       ],
       "description": "A window: a log wall with a square opening and no glass, on one edge of a foundation square, 2 m tall. It is built in the log wall's courses of debarked logs, with the same thickness, turn, and cut ends, so it lines up with a wall beside it. The three bottom courses run the full edge as a sill, the three courses beside the opening are each two short logs, one either side of a 0.6 m opening, and the two top courses run over it. As a blueprint it shows see-through, each delivered log waits pale and half solid in its place, and construction lays the sill courses, the courses beside the opening, then the courses over it: each stays in its place and turns solid during its stage. A finished window between the camera and the player fades out.",
@@ -1589,7 +1592,7 @@
         "src/render/window-glow-meshes.ts",
         "src/sim/window-glow.ts"
       ],
-      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, and a soft halo, a little larger than the opening, spreads from the outer face of the wall. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight. It casts no shadow, lights nothing, and is never picked.",
+      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, and a soft halo, a little larger than the opening, spreads from the outer face of the wall. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {

@@ -30,7 +30,7 @@ export function hasShutters(entities: EntityStore, edge: GroundPoint): boolean {
   return blueprintEntities(entities).entities.some(({ blueprint, position }) => blueprint.structure === "shutters" && isSameEdge(position, edge));
 }
 
-/** Whether the window on the edge with this middle keeps the room closed: it has finished shutters, and they are closed. */
-export function isWindowShut(entities: EntityStore, edge: GroundPoint): boolean {
+/** Whether finished, closed shutters hang on the edge with this middle. A window with them keeps the room closed and lets no firelight out. */
+export function hasClosedShutters(entities: EntityStore, edge: GroundPoint): boolean {
   return finishedShuttersOn(entities, edge)?.shutters.open === false;
 }

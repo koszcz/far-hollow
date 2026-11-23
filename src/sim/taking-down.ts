@@ -2,7 +2,7 @@
 // Every structure can come down: a campfire, a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
 // A lit campfire goes out as it comes down, and any fuel still in it is lost. A fireplace comes down only once its fire is out
 // and holds no fuel.
-import type { Refusal } from "./api";
+import type { Notice, Refusal } from "./api";
 import type { ApproachReach } from "./approach";
 import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";
@@ -13,6 +13,7 @@ import { blueprintEntities, lyingThings, playerEntities, setComponent, type Enti
 import { hasDoor } from "./doors";
 import { hasShutters } from "./windows";
 import { isColdAndEmpty } from "./fire";
+import { refusedNotice } from "./notices";
 import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { isSled, layLoadBeside } from "./sleds";
@@ -53,12 +54,6 @@ const LAY_OFFSETS_METRES = [0, -0.3, 0.3];
 /** The player while taking a structure down. */
 type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
-/**
- * Why the player could not take a structure down.
- * `holdsUpPiece`: another structure stands on it. `stillHoldsSomething`: it is a piece of furniture or woodpile that still holds something, or a campfire with a pot, fish, or jug on it.
- */
-export type TakeDownRefusal = "holdsUpPiece" | "stillHoldsSomething";
-
 export interface TakingDown {
   /**
    * Where the approach takes the player to take down a blueprint or finished structure: just outside the ground it covers.
@@ -77,8 +72,8 @@ export interface TakingDown {
   refusal(structureId: number): Refusal | undefined;
   /** Stops the player taking a structure down. The structure stays as it is. */
   cancel(): void;
-  /** Moves taking down on by one logic step. Returns a refusal if the work had to stop. */
-  step(stepSeconds: number): TakeDownRefusal | undefined;
+  /** Moves taking down on by one logic step. Returns the refusal's notice if the work had to stop. */
+  step(stepSeconds: number): Notice | undefined;
 }
 
 /** Lets the player take down blueprints and finished structures, and get back what went into them. */
@@ -161,7 +156,7 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
       for (const player of players) entities.removeComponent(player, "takeDownTask");
     },
     step(stepSeconds) {
-      let refusal: TakeDownRefusal | undefined;
+      let refusal: Notice | undefined;
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const worker of [...workers]) {
         const structure = entities.entity(worker.takeDownTask.pieceId);
@@ -177,7 +172,7 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
         entities.removeComponent(worker, "takeDownTask");
         // Another structure may have gone onto it, or something into it, since the work started.
         const why = takeDownRefusal(entities, structure, kind);
-        if (why !== undefined) refusal = noticeOf(why);
+        if (why !== undefined) refusal = refusedNotice(why);
         else takeDown(worker, structure, kind);
       }
       return refusal;
@@ -269,11 +264,6 @@ function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind
   // A fireplace keeps its fire, so it comes down only once the fire is out and its fuel is gone. A campfire just goes out.
   if (structure.fireplace !== undefined && !isColdAndEmpty(structure.fireplace)) return { kind: "fireNotOut" };
   return holdsSomething(structure) ? { kind: "emptyFirst" } : undefined;
-}
-
-/** The notice the player sees when they try to take down a structure that refuses. */
-function noticeOf(refusal: Refusal): TakeDownRefusal {
-  return refusal.kind === "holdsUpPiece" || refusal.kind === "takeShuttersDownFirst" ? "holdsUpPiece" : "stillHoldsSomething";
 }
 
 /**

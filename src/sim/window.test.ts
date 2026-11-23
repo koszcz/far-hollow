@@ -385,6 +385,23 @@ describe("taking down windows and shutters", () => {
     expect(game.client.refusal(takeDownWindow)).toBeNull();
   });
 
+  it("says to take the shutters down first when shutters go up while the player takes the window down", () => {
+    const game = createGame({ seed: 42 });
+    const window = finishedWindow(game);
+    send(game, { type: "takeDown", pieceId: idOf(game, window) });
+    stepUntil(game, () => onlyPlayer(game).takeDownTask !== undefined);
+    game.entities.add({
+      ...structureOf("shutters").finish(window.position, window.facing?.turns ?? 0, game.entities),
+      facing: { turns: window.facing?.turns ?? 0 },
+      position: { ...window.position },
+    });
+
+    stepUntil(game, () => onlyPlayer(game).takeDownTask === undefined);
+
+    expect(game.entities.has(window)).toBe(true);
+    expect(game.client.getView().notice).toEqual({ kind: "refused", refusal: { kind: "takeShuttersDownFirst" } });
+  });
+
   it("gives back a window's debarked logs", () => {
     const game = createGame({ seed: 42 });
     const window = finishedWindow(game);

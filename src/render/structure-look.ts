@@ -60,22 +60,21 @@ export function pickBlueprint(raycaster: THREE.Raycaster, pickers: readonly THRE
 
 /**
  * The nearest finished structure a ray hits, and how far away it is. Each of `pickers` holds its entity in `userData.entity`.
- * Blueprints are skipped, and so is any picker that `isShown` says is hidden. A picker off the default layer is never hit.
+ * Blueprints are skipped. A picker off the default layer, such as a hidden roof drawn only into shadows, is never hit.
  */
-export function pickFinished(
-  raycaster: THREE.Raycaster,
-  pickers: readonly THREE.Object3D[],
-  isShown: (picker: THREE.Object3D) => boolean = () => true,
-): { entity: Entity; distance: number } | undefined {
+export function pickFinished(raycaster: THREE.Raycaster, pickers: readonly THREE.Object3D[]): { entity: Entity; distance: number } | undefined {
   hits.length = 0;
   raycaster.intersectObjects([...pickers], false, hits);
   hits.sort((a, b) => a.distance - b.distance);
   for (const hit of hits) {
     const entity = hit.object.userData.entity as Entity | undefined;
-    if (entity !== undefined && entity.blueprint === undefined && isShown(hit.object)) return { entity, distance: hit.distance };
+    if (entity !== undefined && entity.blueprint === undefined) return { entity, distance: hit.distance };
   }
   return undefined;
 }
+
+/** A finished wall, door frame, window, door, or shutters between the camera and the player is this solid, from 0 (invisible) to 1 (solid). */
+export const FADED_OPACITY = 0.2;
 
 /**
  * A see-through material for a finished piece faded out between the camera and the player, of `color`, from 0 (invisible)

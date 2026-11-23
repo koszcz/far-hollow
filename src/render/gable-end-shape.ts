@@ -8,7 +8,7 @@
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
-import { COURSE_RADIUS_METRES } from "./edge-piece-meshes";
+import { COURSE_RADIUS_METRES } from "./log-courses";
 import { EDGES, RAFTER_RADIUS_METRES } from "./roof-parts";
 
 /** How much of its thickness each course sinks into the notch along the top of the course below, as in a log wall. */

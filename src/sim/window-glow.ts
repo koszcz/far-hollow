@@ -6,7 +6,7 @@ import { isOnGridSquare } from "./build-grid";
 import type { GroundPoint } from "./ground-point";
 import { turnQuarters, type QuarterTurns } from "./quarter-turns";
 import { isRoomHeated, roomAround, type Room } from "./rooms";
-import { finishedShuttersOn } from "./windows";
+import { hasClosedShutters } from "./windows";
 
 /** A window that lets firelight out, and the way its glow faces: away from the lit room, toward the outside. */
 export interface FirelitWindow {
@@ -21,7 +21,7 @@ export interface FirelitWindow {
 export function firelitWindows(entities: EntityStore): FirelitWindow[] {
   const lit: FirelitWindow[] = [];
   for (const window of edgePieceEntities(entities)) {
-    if (window.edgePiece !== "window" || finishedShuttersOn(entities, window.position)?.shutters.open === false) continue;
+    if (window.edgePiece !== "window" || hasClosedShutters(entities, window.position)) continue;
     const turns = window.facing?.turns ?? 0;
     const [behind, beyond] = squaresBeside(window.position, turns);
     if (isLitRoom(entities, roomAround(entities, behind))) lit.push({ window, outward: turns });

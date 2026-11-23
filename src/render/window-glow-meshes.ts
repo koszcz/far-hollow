@@ -4,11 +4,15 @@
 // - A warm panel fills the opening, so the room behind it reads as lit.
 // - A soft halo, a little larger than the opening, spreads from the outer face of the wall.
 // The glow fades in at dusk and out at dawn with the daylight. It casts no shadow, lights nothing, and is never picked.
+// When its window fades out between the camera and the player, the glow fades with it.
 import * as THREE from "three";
-import type { Entity, EntityStore } from "../sim/entities";
+import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
-import { firelitWindows } from "../sim/window-glow";
-import { COURSE_RADIUS_METRES, WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./edge-piece-meshes";
+import { firelitWindows, type FirelitWindow } from "../sim/window-glow";
+import { isBetweenCameraAndPlayer } from "./edge-piece-meshes";
+import { COURSE_RADIUS_METRES } from "./log-courses";
+import { FADED_OPACITY } from "./structure-look";
+import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
 
 /** The warm colour of firelight seen through a window. */
 const GLOW_COLOUR = 0xffa24a;
@@ -33,18 +37,38 @@ export function windowGlowStrength(daylight: number): number {
 
 export interface WindowGlowMeshes {
   readonly group: THREE.Group;
-  /** Shows the glow in every firelit window, as strong as `daylight`, from 0 (night) to 1 (full day), allows. */
-  update(daylight: number): void;
+  /**
+   * Shows the glow in every firelit window, as strong as `daylight`, from 0 (night) to 1 (full day), allows.
+   * A window between `camera` and the player standing at `player` fades out, and so does its glow. Without them, nothing fades.
+   */
+  update(daylight: number, view?: { camera: Vec3; player: Vec3 }): void;
   dispose(): void;
 }
 
-export function createWindowGlowMeshes(entities: EntityStore): WindowGlowMeshes {
+/** The materials of one look of the glow: the panel and the halo. */
+interface GlowLook {
+  readonly panel: THREE.MeshBasicMaterial;
+  readonly halo: THREE.MeshBasicMaterial;
+}
+
+/** A drawn glow: its panel and halo meshes, placed in a window. */
+interface Drawn {
+  readonly root: THREE.Group;
+  readonly panel: THREE.Mesh;
+  readonly halo: THREE.Mesh;
+}
+
+/** `findFirelit` finds the windows that glow. Tests pass their own. */
+export function createWindowGlowMeshes(
+  entities: EntityStore,
+  findFirelit: (entities: EntityStore) => readonly FirelitWindow[] = firelitWindows,
+): WindowGlowMeshes {
   const group = new THREE.Group();
-  const halo = haloTexture();
-  const glowLook = (opacity: number, map: THREE.Texture | null = null) =>
-    new THREE.MeshBasicMaterial({ color: GLOW_COLOUR, map, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending });
-  const panelMaterial = glowLook(PANEL_OPACITY);
-  const haloMaterial = glowLook(HALO_OPACITY, halo);
+  const haloMap = haloTexture();
+  const glowMaterial = (map: THREE.Texture | null = null) =>
+    new THREE.MeshBasicMaterial({ color: GLOW_COLOUR, map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const clear: GlowLook = { panel: glowMaterial(), halo: glowMaterial(haloMap) };
+  const faded: GlowLook = { panel: glowMaterial(), halo: glowMaterial(haloMap) };
   const panelGeometry = new THREE.PlaneGeometry(WINDOW_OPENING_WIDTH_METRES, OPENING_HEIGHT_METRES).translate(0, OPENING_MIDDLE_Y, 0);
   const haloGeometry = new THREE.PlaneGeometry(WINDOW_OPENING_WIDTH_METRES * HALO_SCALE, OPENING_HEIGHT_METRES * HALO_SCALE).translate(
     0,
@@ -52,41 +76,48 @@ export function createWindowGlowMeshes(entities: EntityStore): WindowGlowMeshes 
     HALO_OUT_METRES,
   );
 
-  const drawn = new Map<Entity, THREE.Group>();
-  function draw(window: Entity): THREE.Group {
+  const drawn = new Map<Entity, Drawn>();
+  function draw(window: Entity): Drawn {
     const existing = drawn.get(window);
     if (existing !== undefined) return existing;
     const root = new THREE.Group();
-    root.add(new THREE.Mesh(panelGeometry, panelMaterial), new THREE.Mesh(haloGeometry, haloMaterial));
+    const item = { root, panel: new THREE.Mesh(panelGeometry, clear.panel), halo: new THREE.Mesh(haloGeometry, clear.halo) };
+    root.add(item.panel, item.halo);
     group.add(root);
-    drawn.set(window, root);
-    return root;
+    drawn.set(window, item);
+    return item;
   }
 
   return {
     group,
-    update(daylight) {
+    update(daylight, view) {
       const strength = windowGlowStrength(daylight);
       const lit = new Set<Entity>();
       // By day no window glows, so the rooms are not worked out at all.
       if (strength > 0) {
-        panelMaterial.opacity = PANEL_OPACITY * strength;
-        haloMaterial.opacity = HALO_OPACITY * strength;
-        for (const { window, outward } of firelitWindows(entities)) {
-          const root = draw(window);
-          root.position.set(window.position.x, window.position.y, window.position.z);
-          root.rotation.y = quarterTurnsToRadians(outward);
+        clear.panel.opacity = PANEL_OPACITY * strength;
+        clear.halo.opacity = HALO_OPACITY * strength;
+        faded.panel.opacity = clear.panel.opacity * FADED_OPACITY;
+        faded.halo.opacity = clear.halo.opacity * FADED_OPACITY;
+        for (const { window, outward } of findFirelit(entities)) {
+          const item = draw(window);
+          item.root.position.set(window.position.x, window.position.y, window.position.z);
+          item.root.rotation.y = quarterTurnsToRadians(outward);
+          const turns = window.facing?.turns ?? 0;
+          const look = view !== undefined && isBetweenCameraAndPlayer(window.position, turns, view.camera, view.player) ? faded : clear;
+          item.panel.material = look.panel;
+          item.halo.material = look.halo;
           lit.add(window);
         }
       }
-      for (const [window, root] of drawn) {
+      for (const [window, item] of drawn) {
         if (lit.has(window)) continue;
-        group.remove(root);
+        group.remove(item.root);
         drawn.delete(window);
       }
     },
     dispose() {
-      for (const item of [panelGeometry, haloGeometry, panelMaterial, haloMaterial, halo]) item.dispose();
+      for (const item of [panelGeometry, haloGeometry, clear.panel, clear.halo, faded.panel, faded.halo, haloMap]) item.dispose();
     },
   };
 }

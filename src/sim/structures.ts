@@ -4,7 +4,7 @@
 import type { Refusal } from "./api";
 import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
-import { edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";
+import { blocksWalking, edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";
 import { hasShutters, nearestBareWindow, windowOn } from "./windows";
 import {
   blueprintEntities,
@@ -429,7 +429,7 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
     finish(spot, turns) {
       const [inside, beyond] = squaresBeside(spot, turns);
       // A door frame leaves the doorway open, so it blocks nothing.
-      return kind === "doorFrame" ? { edgePiece: kind } : { edgePiece: kind, blocksWalkingEdges: [{ from: inside, to: beyond }] };
+      return blocksWalking(kind) ? { edgePiece: kind, blocksWalkingEdges: [{ from: inside, to: beyond }] } : { edgePiece: kind };
     },
   };
 }

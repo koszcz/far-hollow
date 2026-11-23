@@ -30,10 +30,9 @@ import {
   fadedOut,
   seeThrough,
   type BuildingPieceMeshes,
+  FADED_OPACITY,
 } from "./structure-look";
 
-/** A door between the camera and the player is this solid, as its frame is. */
-const FADED_OPACITY = 0.2;
 /**
  * How each plank differs from the next, so the door reads as hand-sawn: how much darker or lighter it is than plank wood,
  * and how far it stands proud of or back from the others, in metres.

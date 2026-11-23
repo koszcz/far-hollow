@@ -260,7 +260,7 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
 function shuttersActions(shuttersId: number, context: Context): readonly ThingAction[] {
   const { reader, offer } = context;
   const thing = reader.describeThing(shuttersId);
-  const open = thing?.kind === "structure" && thing.open === true;
+  const open = thing?.kind === "structure" && thing.structure === "shutters" && thing.open === true;
   const toggle = open
     ? offer("closeShutters", strings.actions.closeShutters, { hud: "flame" }, { type: "setShutters", shuttersId, open: false })
     : offer("openShutters", strings.actions.openShutters, { hud: "sun" }, { type: "setShutters", shuttersId, open: true });

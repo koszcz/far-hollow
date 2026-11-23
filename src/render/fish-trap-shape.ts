@@ -1,12 +1,12 @@
 // The fish trap and cord shapes. Built in code. Added by fish-trap ticket 01.
 // The fish trap is part of the approved "fish-trap" asset: fish-trap-meshes.ts draws a set trap half in the river's water,
 // with the stake and line from createFishTrapStakeGeometries that tie it to the bank.
-// The trap lying in a pile and a coil of cord in a pile are the draft "fish-trap-piles" asset: pile-meshes.ts lays them out.
+// The trap lying in a pile and a coil of cord in a pile are the approved "fish-trap-piles" asset: pile-meshes.ts lays them out.
 // A fish trap is a woven cone basket, about 70 cm long, its wide mouth at -z and its narrow tail at +z. Eighteen slightly
 // bent sticks run from a hoop at the mouth to the tail, where a knot of cord gathers them. Bands of pale withy are woven
 // over and under the sticks. An inner funnel of sticks points from the mouth into the basket, so a fish swims in but not
 // out. Its axis runs along z, at the height of the mouth's radius, so the mouth rests on y = 0.
-// One cord is a flat coil of twisted bark string, about 12 cm across. Sizes are in metres.
+// One cord is two plies of bark string twisted together, laid in a flat coil about 12 cm across with a loose end. Sizes are in metres.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
@@ -192,9 +192,15 @@ interface PilePart {
 /** A fish trap lying in a pile, tipped so its whole side rests on the ground, its pivot at the middle of its underside. */
 export function fishTrapPileParts(material: MakeMaterial, track: Track): readonly PilePart[] {
   const { sticks, withy, cord } = createFishTrapGeometries();
-  // Tip the cone so its lowest line, from the mouth's foot to the tail's foot, lies flat.
+  // Tip the cone so its lowest line, from the mouth's foot to the tail's foot, lies flat. Then move the middle of that line
+  // to the pivot, lifted by the mouth hoop's thickness so the hoop rests on the ground.
   const tilt = Math.atan((FISH_TRAP_MOUTH_RADIUS_METRES - TAIL_RADIUS_METRES) / FISH_TRAP_LENGTH_METRES);
-  const lay = (geometry: THREE.BufferGeometry) => geometry.rotateX(-tilt);
+  const turn = new THREE.Matrix4().makeRotationX(tilt);
+  const underside = new THREE.Vector3(0, 0, -FISH_TRAP_LENGTH_METRES / 2)
+    .applyMatrix4(turn)
+    .add(new THREE.Vector3(0, FISH_TRAP_MOUTH_RADIUS_METRES - TAIL_RADIUS_METRES, FISH_TRAP_LENGTH_METRES / 2).applyMatrix4(turn))
+    .multiplyScalar(0.5);
+  const lay = (geometry: THREE.BufferGeometry) => geometry.applyMatrix4(turn).translate(-underside.x, -underside.y + STICK_RADIUS_METRES * 2, -underside.z);
   return [
     { geometry: track(lay(sticks)), material: material(TRAP_STICK_COLOUR) },
     { geometry: track(lay(withy)), material: material(WITHY_COLOUR) },
@@ -202,12 +208,64 @@ export function fishTrapPileParts(material: MakeMaterial, track: Track): readonl
   ];
 }
 
-/** One cord lying in a pile: a flat coil of two loops, resting on y = 0. */
+/** A coiled cord: how many turns it makes, how far apart its turns lie, and how long its loose end is, in metres. */
+const COIL_TURNS = 2.25;
+const COIL_OUTER_RADIUS_METRES = 0.056;
+const COIL_TURN_SPACING_METRES = CORD_RADIUS_METRES * 2.1;
+const COIL_END_METRES = 0.07;
+/** A cord is two plies of bark string twisted round each other, one full twist along this length, in metres. */
+const PLY_RADIUS_METRES = CORD_RADIUS_METRES * 0.55;
+const TWIST_LENGTH_METRES = 0.025;
+
+/** The middle line of a coiled cord: a flat spiral from its inner end outwards, then its loose end running off. */
+function coilLine(): THREE.Vector3[] {
+  const points: THREE.Vector3[] = [];
+  const steps = Math.round(COIL_TURNS * 48);
+  const innerRadius = COIL_OUTER_RADIUS_METRES - COIL_TURNS * COIL_TURN_SPACING_METRES;
+  for (let step = 0; step <= steps; step += 1) {
+    const share = step / steps;
+    const angle = share * COIL_TURNS * Math.PI * 2;
+    const radius = innerRadius + share * COIL_TURNS * COIL_TURN_SPACING_METRES + wobble(step, 3) * 0.001;
+    points.push(new THREE.Vector3(Math.cos(angle) * radius, CORD_RADIUS_METRES, Math.sin(angle) * radius));
+  }
+  // The loose end leaves the outer turn along its tangent and curls a little away.
+  const last = points[points.length - 1] ?? new THREE.Vector3();
+  const endAngle = COIL_TURNS * Math.PI * 2;
+  const along = new THREE.Vector3(-Math.sin(endAngle), 0, Math.cos(endAngle));
+  const outward = new THREE.Vector3(Math.cos(endAngle), 0, Math.sin(endAngle));
+  for (let step = 1; step <= 12; step += 1) {
+    const share = step / 12;
+    points.push(
+      last
+        .clone()
+        .addScaledVector(along, share * COIL_END_METRES)
+        .addScaledVector(outward, share * share * COIL_END_METRES * 0.35),
+    );
+  }
+  return points;
+}
+
+/** One cord lying in a pile: a flat coil of two twisted plies with a loose end, resting on y = 0. */
 export function cordPileParts(material: MakeMaterial, track: Track): readonly PilePart[] {
-  const loops = [0.06, 0.045].map((radius, i) =>
-    new THREE.TorusGeometry(radius, CORD_RADIUS_METRES, 4, 14).rotateX(Math.PI / 2).translate(i * 0.01, CORD_RADIUS_METRES * (1 + i * 2), 0),
-  );
-  const coil = mergeGeometries(loops);
-  for (const loop of loops) loop.dispose();
+  const middle = new THREE.CatmullRomCurve3(coilLine());
+  const length = middle.getLength();
+  const samples = Math.ceil((length / TWIST_LENGTH_METRES) * 10);
+  const up = new THREE.Vector3(0, 1, 0);
+  const plies = [0, Math.PI].map((start) => {
+    const points: THREE.Vector3[] = [];
+    for (let step = 0; step <= samples; step += 1) {
+      const share = step / samples;
+      const at = middle.getPointAt(share);
+      const tangent = middle.getTangentAt(share);
+      const side = tangent.clone().cross(up).normalize();
+      const lift = side.clone().cross(tangent).normalize();
+      const turn = start + (share * length * Math.PI * 2) / TWIST_LENGTH_METRES;
+      const offset = CORD_RADIUS_METRES - PLY_RADIUS_METRES;
+      points.push(at.addScaledVector(side, Math.cos(turn) * offset).addScaledVector(lift, Math.sin(turn) * offset));
+    }
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), samples, PLY_RADIUS_METRES, 4, false);
+  });
+  const coil = mergeGeometries(plies);
+  for (const ply of plies) ply.dispose();
   return [{ geometry: track(coil), material: material(CORD_COLOUR) }];
 }

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
 import { MORNING_HOUR, NIGHT_START_HOUR } from "../sim/clock";
 import { createEntityStore } from "../sim/entities";
+import { cabinCutaway } from "./cabin-cutaway";
 import { daylightAt } from "./daylight";
 import { FADED_OPACITY } from "./structure-look";
 import { createWindowGlowMeshes, windowGlowStrength } from "./window-glow-meshes";
@@ -34,13 +35,14 @@ describe("drawing the glow", () => {
 
   it("fades with its window when the window stands between the camera and the player", () => {
     const window = { edgePiece: "window" as const, facing: { turns: 0 as const }, position: { x: 0, y: 0, z: 0 } };
-    const meshes = createWindowGlowMeshes(createEntityStore(), () => [{ window, outward: 0 }]);
+    const entities = createEntityStore();
+    const meshes = createWindowGlowMeshes(entities, () => [{ window, outward: 0 }]);
     const outside = { x: 0, y: 1, z: 5 };
     const inside = { x: 0, y: 0, z: -2 };
 
-    meshes.update(0, { camera: outside, player: outside });
+    meshes.update(0, cabinCutaway(entities, outside, outside));
     const clear = glowOpacities(meshes.group);
-    meshes.update(0, { camera: outside, player: inside });
+    meshes.update(0, cabinCutaway(entities, outside, inside));
     const faded = glowOpacities(meshes.group);
 
     expect(clear.length).toBeGreaterThan(0);

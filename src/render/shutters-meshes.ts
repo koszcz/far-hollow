@@ -4,13 +4,13 @@
 // Construction has one stage per plank: the left leaf, then the right.
 // A blueprint shows the leaves see-through. A plank the blueprint already has shows pale and half solid.
 // Finished shutters swing open or closed when the player opens or closes them. shutter-swing.ts times the swing.
-// Shutters between the camera and the player fade out with their window.
+// Shutters fade out with their window (cabin-cutaway.ts).
 // While the player places shutters from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { blueprintEntities, shuttersEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
+import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { SHUTTERS_PLANK_COST } from "../sim/structures";
-import { isBetweenCameraAndPlayer } from "./edge-piece-meshes";
 import { COURSE_RADIUS_METRES } from "./log-courses";
 import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
@@ -106,11 +106,11 @@ interface Drawn {
   swing?: Swing;
 }
 
-/** What one frame of drawing needs to know. Without `camera` and `player`, the shutters never fade. */
+/** What one frame of drawing needs to know. */
 export interface ShuttersFrame {
   readonly nowSeconds: number;
-  readonly camera?: Vec3 | undefined;
-  readonly player?: Vec3 | undefined;
+  /** Which pieces fade. Without it, none does. */
+  readonly cutaway?: CabinCutaway | undefined;
 }
 
 export type ShuttersMeshes = BuildingPieceMeshes<ShuttersFrame>;
@@ -247,7 +247,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
 
   return {
     group,
-    update({ nowSeconds, camera, player }) {
+    update({ nowSeconds, cutaway = NO_CUTAWAY }) {
       const seen = new Set<Entity>();
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "shutters") continue;
@@ -263,7 +263,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
         place(item.root, entity.position, turns);
         showProgress(item, 1, SHUTTERS_PLANK_COST);
         swing(item, entity.shutters.open, nowSeconds);
-        fade(item, camera !== undefined && player !== undefined && isBetweenCameraAndPlayer(entity.position, turns, camera, player));
+        fade(item, cutaway.fades(entity.position, turns));
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);

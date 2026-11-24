@@ -14,7 +14,7 @@
 // has none, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed.
 // Construction has one stage per plank, and lays one row each stage. A blueprint shows see-through. The row being laid fades
 // in above its place, is lowered, and set down, like the logs of a foundation.
-// When the player stands under a cabin roof, that roof and every section joined to it hide, so the player stays in view.
+// While the player is in a cabin, its whole roof hides, so the player stays in view (cabin-cutaway.ts).
 // A hidden roof still casts its shadow, so the room under it stays dark except where daylight comes in through a window or doorway.
 // While the player places a roof from the build menu, a see-through copy follows the mouse, sloping the way the frame under it
 // does. It turns red where it is not allowed.
@@ -23,7 +23,6 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, cabinRoofEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { areOpposite, quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import { roofAbove } from "../sim/roofs";
 import { ROOF_PLANK_COST } from "../sim/structures";
 import type { OutlinePart } from "./hover-outline";
 import { seededRandom } from "./lean-to-meshes";
@@ -100,9 +99,9 @@ export interface RoofMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every roof section and roof blueprint up to date with game state.
-   * Finished sections above the player standing at `player` hide, but still cast their shadows. Without it, nothing hides.
+   * Finished sections in `hidden` hide, but still cast their shadows: the roof of the cabin the player is in.
    */
-  update(view?: { player: Vec3 }): void;
+  update(hidden?: readonly Entity[]): void;
   /** What a ray from the camera hits first among roof blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: RoofHit; distance: number } | undefined;
   /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The action menu uses it. */
@@ -403,10 +402,10 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
 
   return {
     group,
-    update(view) {
+    update(hiddenRoof = []) {
       const layout = frameLayout(entities);
       const seen = new Set<Entity>();
-      const hidden = new Set(view === undefined ? [] : roofAbove(entities, view.player));
+      const hidden = new Set(hiddenRoof);
       const show = (entity: Section, progress: number, hidden: boolean) => {
         // A roof sits where the frame under it does, and takes its shape.
         const place = layout.placeAt(entity.position);

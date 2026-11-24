@@ -36,6 +36,7 @@ import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
 import { createStructureMeshes } from "./structure-meshes";
+import { cabinCutaway, NO_CUTAWAY } from "./cabin-cutaway";
 import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
@@ -673,8 +674,9 @@ export function createSceneRenderer(
       lightTorches(nowSeconds);
       // Trees between the camera and the player fade, so the player stays in view in a dense forest.
       forestMeshes.seeThroughTo(players.first === undefined ? null : playerDrawn);
-      // Walls between the camera and the player fade out, and the roof above the player hides, so the player stays in view.
-      structureMeshes.update({ nowSeconds, camera: cameraRig.view().eye, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
+      // Inside a cabin, its roof hides and its sides facing the camera fade. Anywhere, walls between the camera and the player fade.
+      const cutaway = players.first === undefined ? NO_CUTAWAY : cabinCutaway(entities, cameraRig.view().eye, playerDrawn);
+      structureMeshes.update({ nowSeconds, cutaway, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
       outlineHovered();
       const changedGround = drawnGround.refresh();
       valleyMeshes.redrawGround(changedGround);
@@ -683,7 +685,7 @@ export function createSceneRenderer(
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
       fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
-      windowGlowMeshes.update(daylight, { camera: cameraRig.view().eye, player: playerDrawn });
+      windowGlowMeshes.update(daylight, cutaway);
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };

@@ -4,10 +4,12 @@
 // - Each fern is a ring of fronds rising from one foot. Each frond arches up and out, then droops towards its tip.
 // - Each frond carries pairs of leaflets along its stem. The leaflets are longest a third of the way up
 //   and shrink to nothing at the tip. The bottom of the stem is bare.
-// - Colours fade from dark at the foot to light at the frond tips, so ferns blend into the forest floor.
+// - Colours fade from dark at the foot to a light yellow-green at the frond tips. The dark foot blends into the forest floor,
+//   and the light tips make each fern stand out from it.
 // - Each face has a front and a back, because the undergrowth material draws front faces only.
 // - Normals point nearly straight up, so ferns are lit like the ground under them, the same way as the grass.
 // - The pivot is the middle of the fern's foot, on the ground. Sizes are in metres.
+// - Ferns sway in the wind with FERN_SWAY in wind-sway.ts: the foot stays stiff while the drooping tips sway and bob.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createRandom, type Random } from "../sim/random";
@@ -40,8 +42,8 @@ const STEM_SEGMENTS = 6;
 const STEM_WIDTH = 0.012;
 
 const FOOT_COLOUR = 0x2c4a1c;
-const MIDDLE_COLOUR = 0x47722a;
-const TIP_COLOUR = 0x86ad4c;
+const MIDDLE_COLOUR = 0x4e7a2b;
+const TIP_COLOUR = 0xa3c45a;
 
 const RECIPES: readonly FernRecipe[] = [
   { name: "fern_small", seed: 7, fronds: 6, length: [0.26, 0.36], upright: [0.6, 0.85], pairs: 7, leaflet: 0.3 },

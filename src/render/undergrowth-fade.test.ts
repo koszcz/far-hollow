@@ -36,9 +36,9 @@ describe("undergrowth fading out at its edge", () => {
     const sway = vertexShader.indexOf("transformed += inverse( mat3( windModel ) ) * windOffset;");
     expect(shrink).toBeGreaterThan(-1);
     expect(sway).toBeGreaterThan(shrink);
-    // The sway grows with the height of the shrunken shape, so a plant shrunk to nothing does not sway at all.
-    const height = vertexShader.indexOf("float windHeight");
-    expect(height).toBeGreaterThan(shrink);
-    expect(vertexShader.slice(height, vertexShader.indexOf("\n", height))).toContain("transformed");
+    // The sway grows with the height and spread of the shrunken shape, so a plant shrunk to nothing does not sway at all.
+    const point = vertexShader.indexOf("vec3 windPoint");
+    expect(point).toBeGreaterThan(shrink);
+    expect(vertexShader.slice(point, vertexShader.indexOf("\n", point))).toContain("transformed");
   });
 });

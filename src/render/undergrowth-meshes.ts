@@ -7,7 +7,7 @@
 //   Plants shrink into the ground as they near that distance too.
 // - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
 // - Where the ground changes, the patches there grow again from the ground as it is now, so the undergrowth follows it.
-// - Grass, ferns, and flowers sway in the wind with wind-sway.ts. Pebbles stay still.
+// - Grass, ferns, and flowers sway in the wind with wind-sway.ts. Ferns have their own sway, with tips that bob. Pebbles stay still.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
 import type { EntityStore, Vec3 } from "../sim/entities";
@@ -19,7 +19,7 @@ import type { GroundRect } from "../sim/structure-kind";
 import type { DrawnGround } from "./drawn-ground";
 import { EYE_DRAW_METRES, fadeAtEdges, UNDERGROWTH_DRAW_METRES } from "./undergrowth-fade";
 import type { UndergrowthAsset } from "./undergrowth-models";
-import { UNDERGROWTH_SWAY, type WindSway } from "./wind-sway";
+import { FERN_SWAY, UNDERGROWTH_SWAY, type SwayLook, type WindSway } from "./wind-sway";
 
 /** No plant stands taller than this, in metres, and none reaches further than this outside its patch. Used for culling. */
 const PLANT_REACH_METRES = 2;
@@ -61,9 +61,10 @@ export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNorm
   return new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: shape.ownNormals !== true });
 }
 
-/** Whether an undergrowth asset sways in the wind. Grass, ferns, and flowers do. Pebbles stay still. */
-export function undergrowthSways(asset: UndergrowthAsset): boolean {
-  return asset !== "pebbles";
+/** How an undergrowth asset sways in the wind. Grass, ferns, and flowers sway. Pebbles stay still, so they have none. */
+export function undergrowthSway(asset: UndergrowthAsset): SwayLook | undefined {
+  if (asset === "pebbles") return undefined;
+  return asset === "ferns" ? FERN_SWAY : UNDERGROWTH_SWAY;
 }
 
 /** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. `windSway` sways the plants. */
@@ -79,18 +80,20 @@ export function createUndergrowthMeshes(
   const patchesPerSide = Math.ceil(valley.size / UNDERGROWTH_PATCH_METRES);
 
   const focusUniform = { value: new THREE.Vector2() };
-  /** One material for each mix of shading and swaying. three.js compiles each only once a model draws with it. */
-  const material = (ownNormals: boolean, sways: boolean): THREE.MeshStandardMaterial => {
+  /** One material for each mix of shading and asset, since each asset sways its own way. Pebbles stay still. */
+  const materials = new Map<string, THREE.MeshStandardMaterial>();
+  const materialFor = (shape: UndergrowthShape): THREE.MeshStandardMaterial => {
+    const ownNormals = shape.ownNormals === true;
+    const key = `${ownNormals}|${shape.asset}`;
+    const known = materials.get(key);
+    if (known !== undefined) return known;
     const made = createUndergrowthMaterial({ ownNormals });
     fadeAtEdges(made, focusUniform);
-    return sways ? windSway.sway(made, UNDERGROWTH_SWAY) : made;
+    const sway = undergrowthSway(shape.asset);
+    const material = sway === undefined ? made : windSway.sway(made, sway);
+    materials.set(key, material);
+    return material;
   };
-  const materials = {
-    flat: { still: material(false, false), swaying: material(false, true) },
-    ownNormals: { still: material(true, false), swaying: material(true, true) },
-  };
-  const materialFor = (shape: UndergrowthShape): THREE.MeshStandardMaterial =>
-    materials[shape.ownNormals === true ? "ownNormals" : "flat"][undergrowthSways(shape.asset) ? "swaying" : "still"];
 
   // One batch per model. Batches grow when a view needs more plants than they hold.
   const batches = shapes.map((shape) => ({ shape, mesh: newBatch(shape.geometry, materialFor(shape), 64), count: 0 }));
@@ -250,7 +253,7 @@ export function createUndergrowthMeshes(
     },
     dispose() {
       for (const batch of batches) batch.mesh.dispose();
-      for (const byShading of Object.values(materials)) for (const made of Object.values(byShading)) made.dispose();
+      for (const made of materials.values()) made.dispose();
     },
   };
 }

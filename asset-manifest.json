@@ -1602,12 +1602,13 @@
         "src/render/shutters-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "Two plank shutters hung in a window's opening, on the face the window faces. Each leaf is one board of pale hand-sawn plank wood, hinged at its outer edge, so the two meet in the middle when closed. Each reaches 4 cm past the opening at its outer edge, top, and bottom, so no gap shows round it. A darker batten crosses each leaf's outside, and two dark iron strap hinges reach in from its outer edge. As a blueprint they show see-through, a plank the blueprint has waits pale and half solid, and construction hangs the left leaf, then the right: each fades in above its place and is set down. They show closed, open, or part way, as shutter-swing turns them, and fade with their window when they stand between the camera and the player.",
+      "description": "Two plank shutters hung in a window's opening, on the face the window faces. Each leaf is three upright boards of plank wood, weathered darker than the logs round them, with dark seams between. Each is hinged 4 cm past the opening's side and reaches 4 cm over and under it, so no gap shows round it, and the two meet in the middle when closed. On each leaf's outside, a darker batten crosses the top and the bottom, a diagonal brace climbs from the hinge side's bottom to the free side's top, and a dark iron strap hinge runs along each batten to a knuckle on the hinge line. The hinge line stands out from the logs, so an open leaf folds back flat against the wall. As a blueprint they show see-through, a plank the blueprint has waits pale and half solid, and construction hangs the left leaf, then the right: each fades in above its place and is set down. They show closed, open, or part way, as shutter-swing turns them, and fade with their window when they stand between the camera and the player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1617,12 +1618,13 @@
         "src/render/shutter-swing.ts",
         "src/render/shutters-meshes.ts"
       ],
-      "description": "Shutters swinging open and closed on their hinges when the player opens or closes them. Each leaf turns about its outer edge, outward, away from the window, easing in and out. Open, each folds back 170 degrees from closed, almost flat against the wall. A full swing takes 0.6 seconds. Shutters that turn back part way through a swing return from where they stand, in a share of the time, so they never jump.",
+      "description": "Shutters swinging open and closed on their hinges when the player opens or closes them. A real person leans out and pushes both leaves with two hands, one a moment behind the other. Each leaf coasts out and knocks flat against the wall. Closing, the person pulls both in and slows them, so they meet softly in the middle. Each leaf turns about its outer edge, outward, away from the window. The right leaf starts 0.08 seconds after the left. Open, each folds back 170 degrees from closed, almost flat against the wall. A full swing travels in 0.6 seconds. Opening, a leaf is quick at first and still moving when it reaches the wall, then bounces back 6 degrees and once more, smaller. Closing, it slows into the middle, then taps back 2.5 degrees and once more, smaller. Shutters that turn back part way through a swing return from where they stand, in a share of the time, with smaller bounces, so they never jump.",
       "source": "Timed in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

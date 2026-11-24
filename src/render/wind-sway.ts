@@ -33,8 +33,13 @@ export const TREE_SWAY: SwayLook = { rootMetres: 3, reachMetres: 10, swayMetres:
 /** Young trees bend their whole thin trunk. */
 export const YOUNG_TREE_SWAY: SwayLook = { rootMetres: 0, reachMetres: 4, swayMetres: 0.35, flutterSpeed: 1 };
 export const SAPLING_SWAY: SwayLook = { rootMetres: 0, reachMetres: 1, swayMetres: 0.12, flutterSpeed: 1 };
-/** Grass and flowers. */
+/** Grass. */
 export const UNDERGROWTH_SWAY: SwayLook = { rootMetres: 0, reachMetres: 0.4, swayMetres: 0.12, flutterSpeed: 1 };
+/**
+ * Flowers have stiffer stems than grass. A head at the top of a tall stem, 0.3 m up, moves 4.5 cm in a wind of full
+ * strength, about the width of its head. Heads are light, so they flutter faster than grass.
+ */
+export const FLOWER_SWAY: SwayLook = { rootMetres: 0, reachMetres: 0.3, swayMetres: 0.045, flutterSpeed: 1.4 };
 /** Fern fronds stay stiff at the foot, while their drooping tips sway out and bob, a little slower than grass. */
 export const FERN_SWAY: SwayLook = {
   rootMetres: 0,

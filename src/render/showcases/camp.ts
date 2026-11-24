@@ -314,6 +314,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with bark in the backpack and on offer as fuel.
   // Pieces of bark lie on the ground beside the player, as taking down a building piece leaves them when the backpack is full.
   bark: {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -338,6 +339,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with stone in the backpack and the pile's tooltip.
   // The "gather-stone-animation" showcase shows the stone in the player's hands.
   stone: {
+    overlay: "hud",
     radius: 2.2,
     focus: { x: 0, y: 0.2, z: 0 },
     shots: [
@@ -357,6 +359,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The approved "clay": lumps of clay lying in piles of 1, 4, and 12 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with clay in the backpack, digging under way, and the pile's tooltip.
   clay: {
+    overlay: "hud",
     radius: 2.2,
     focus: { x: 0, y: 0.2, z: 0 },
     shots: [
@@ -378,6 +381,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // src/render/showcases/building.ts shows a jug on a fireplace, in the fireplace's cooking shot.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with the campfire panel showing how far the jug has fired.
   jug: {
+    overlay: "hud",
     radius: 2.2,
     focus: { x: 0, y: 0.2, z: 0 },
     shots: [
@@ -441,6 +445,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The approved "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with saplings in the backpack, digging up under way, and the pile's tooltip.
   "sapling-icon": {
+    overlay: "hud",
     radius: 2.2,
     focus: { x: 0, y: 0.2, z: 0 },
     shots: [
@@ -459,6 +464,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The approved "berry-bush-icon": dug-up berry bushes lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with berry bushes in the backpack, digging up under way, and the pile's tooltip.
   "berry-bush-icon": {
+    overlay: "hud",
     radius: 2.2,
     focus: { x: 0, y: 0.2, z: 0 },
     shots: [

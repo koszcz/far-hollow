@@ -67,6 +67,11 @@ export interface Showcase {
   /** What the camera looks at, as an offset from the stage's middle, in metres. */
   readonly focus: Vec3;
   readonly shots: readonly Shot[];
+  /**
+   * What the showcase page draws over the views: "hud" for the game's HUD (src/ui/hud-showcase.tsx), or "sound" for
+   * buttons that play the asset's sounds (src/ui/sound-showcase.tsx). Without it, the page draws only the labels.
+   */
+  readonly overlay?: "hud" | "sound";
   /** Whether fireflies glow over the stage. They fly over open ground everywhere, from a fixed seed, so stills stay the same. */
   readonly fireflies?: boolean;
   build(stage: Stage): void;

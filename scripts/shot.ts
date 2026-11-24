@@ -119,9 +119,14 @@ async function startDevServer(root: string): Promise<{ url: string; stop: () => 
   throw new Error(`The dev server did not start on port ${port}.`);
 }
 
-/** Waits until the showcase has drawn, or until the game has loaded. */
-async function waitUntilReady(page: Page, isShowcase: boolean): Promise<void> {
-  if (isShowcase) {
+/** Waits until the showcase has drawn, the asset browser's frame has drawn its showcase, or the game has loaded. */
+async function waitUntilReady(page: Page, isShowcase: boolean, isAssetBrowser: boolean): Promise<void> {
+  if (isAssetBrowser) {
+    await page.waitForFunction(() => document.body.dataset.assetBrowser === "ready", null, { timeout: 60_000 });
+    if ((await page.locator(".asset-browser-frame").count()) > 0) {
+      await page.frameLocator(".asset-browser-frame").locator("body[data-showcase=ready]").waitFor({ timeout: 60_000 });
+    }
+  } else if (isShowcase) {
     await page.waitForFunction(() => document.body.dataset.showcase === "ready", null, { timeout: 60_000 });
   } else {
     await page.waitForFunction(() => "farHollow" in window, null, { timeout: 60_000 });
@@ -145,7 +150,7 @@ async function takeShots(browser: Browser, root: string, fileOf: (shot: Shot) =>
     });
 
     await page.goto(server.url + pagePath);
-    await waitUntilReady(page, pagePath.includes("asset="));
+    await waitUntilReady(page, pagePath.includes("asset="), new URLSearchParams(pagePath.split("?")[1] ?? "").has("assets"));
     if (values.click !== undefined) await page.locator(values.click).first().click();
     for (const key of values.press ?? []) await page.keyboard.press(key);
     if (values.hover !== undefined) await page.locator(values.hover).first().hover();

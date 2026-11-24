@@ -1,6 +1,7 @@
 // The asset showcase page: /?asset=<id> on the dev server. See src/render/asset-showcase.ts.
 import { SHOWCASE_ASSET_IDS, showAsset, type ShowOptions } from "../render/asset-showcase";
 import { loadModelShapes } from "../render/model-shapes";
+import { SHOWCASES } from "../render/showcases";
 
 /**
  * Draws one asset in four views, labels each view, and marks the page ready for a screenshot.
@@ -23,33 +24,12 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
     ui.innerHTML = `<p class="showcase-missing">No showcase for "${id}". Try one of: ${SHOWCASE_ASSET_IDS.join(", ")}.</p>`;
   } else {
     ui.innerHTML = shown.labels.map((label, index) => `<span class="showcase-label showcase-label-${index}">${label}</span>`).join("");
-    if (
-      id === "hud" ||
-      id === "bark" ||
-      id === "stone" ||
-      id === "clay" ||
-      id === "jug" ||
-      id === "jug-icons" ||
-      id === "sapling-icon" ||
-      id === "berry-bush-icon" ||
-      id === "backpack-icons" ||
-      id === "build-icons" ||
-      id === "crafting-icons" ||
-      id === "fishing-icons" ||
-      id === "sled-icon" ||
-      id === "furniture-icons" ||
-      id === "fireplace-icon" ||
-      id === "rain-barrel-icon" ||
-      id === "floor-and-door-icons" ||
-      id === "window-icons" ||
-      id === "action-queue-icons" ||
-      id === "torch-icons" ||
-      id === "fish-trap-icons"
-    ) {
-      const { renderHudShowcase } = await import("../ui/hud-showcase");
-      renderHudShowcase(ui, id);
+    const overlay = SHOWCASES[id]?.overlay;
+    if (overlay === "hud") {
+      const { isHudShowcase, renderHudShowcase } = await import("../ui/hud-showcase");
+      if (isHudShowcase(id)) renderHudShowcase(ui, id);
     }
-    if (id.startsWith("sound-")) {
+    if (overlay === "sound") {
       const { isSoundShowcase, renderSoundShowcase } = await import("../ui/sound-showcase");
       if (isSoundShowcase(id)) renderSoundShowcase(ui, id);
     }

@@ -5,6 +5,7 @@ import { NIGHT, type Showcase } from "./types";
 export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The approved jug icons. src/ui/hud-showcase.tsx draws the HUD over each view.
   "jug-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -19,6 +20,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The approved torch icons. src/ui/hud-showcase.tsx draws the HUD over each view.
   "torch-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -32,6 +34,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   "sled-icon": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -46,6 +49,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The approved furniture icons, such as the shelf and the bed, show among the build icons, so this showcase draws the same views as "build-icons".
   "furniture-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -60,6 +64,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The approved floor and door icons show among the build icons too, so this showcase draws the same views as "build-icons".
   "floor-and-door-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -74,6 +79,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The approved window and shutters icons show among the build icons, so this showcase draws the same views as "build-icons".
   "window-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -89,6 +95,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The rain barrel icon shows among the build icons, so this showcase draws the same views as "build-icons",
   // except the first, which draws the rain barrel icon large beside other furniture icons.
   "rain-barrel-icon": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -103,6 +110,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The fireplace icon shows among the build icons, so this showcase draws the same views as "build-icons".
   "fireplace-icon": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -117,6 +125,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // src/ui/hud-showcase.tsx draws the drawn queue icons large over the first view, and the HUD with a queue beside the clock over the others.
   "action-queue-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -131,6 +140,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // src/ui/hud-showcase.tsx draws every build icon large over the first view, and the HUD with the full build menu open over the others.
   "build-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -145,6 +155,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with every kind of backpack content between the four views.
   "backpack-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -159,6 +170,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the saw blade and the saw in the backpack and the craft menu.
   "crafting-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -174,6 +186,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, with the fishing line, the fishing rod, raw fish, and cooked fish
   // in the backpack, the craft menu, and fish cooking on a campfire.
   "fishing-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -189,6 +202,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   // The approved "fish-trap-icons". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with cord and a fish trap in the
   // backpack, and their recipes in the craft menu.
   "fish-trap-icons": {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
@@ -203,6 +217,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The HUD is drawn over these views by src/ui/hud-showcase.tsx, one game state per view, in this order.
   hud: {
+    overlay: "hud",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [

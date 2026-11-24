@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { isBetweenCameraAndPlayer, wallEnds } from "./edge-piece-meshes";
+import { isBetweenCameraAndPlayer } from "./cabin-cutaway";
+import { wallEnds } from "./edge-piece-meshes";
 
 describe("fading walls between the camera and the player", () => {
   // A wall facing the default way, along x, on the line z = 0, with its deck at height 0.

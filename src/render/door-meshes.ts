@@ -8,14 +8,15 @@
 // and is set down, like the parts of plank furniture.
 // A blueprint shows the planks see-through. A plank the blueprint already has shows pale and half solid.
 // A finished door swings open, away from the player, while they are near the middle of its frame, and shuts once they leave.
-// door-swing.ts times the swing, and how its latch ring lifts off the face and taps back. A door between the camera and the player fades out with its frame.
+// door-swing.ts times the swing, and how its latch ring lifts off the face and taps back. A door fades out with its frame (cabin-cutaway.ts).
 // While the player places a door from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { isDoorOpen } from "../sim/doors";
 import { blueprintEntities, doorEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
+import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { DOOR_PLANK_COST } from "../sim/structures";
-import { DOORWAY_HEIGHT_METRES, DOORWAY_WIDTH_METRES, isBetweenCameraAndPlayer } from "./edge-piece-meshes";
+import { DOORWAY_HEIGHT_METRES, DOORWAY_WIDTH_METRES } from "./edge-piece-meshes";
 import { DOOR_OPEN_RADIANS, doorSwingRadians, latchRingRadians } from "./door-swing";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import {
@@ -85,10 +86,11 @@ const LATCH_INSET_METRES = 0.07;
 /** How thick the invisible box that catches clicks is, across the doorway, in metres. Thicker than its frame's, so a click in the doorway finds the door. */
 const PICK_THICKNESS_METRES = 0.45;
 
-/** What one frame of drawing needs to know. Without `player`, every door stays shut. Without `camera` too, no door fades. */
+/** What one frame of drawing needs to know. Without `player`, every door stays shut. */
 export interface DoorFrame {
   readonly nowSeconds: number;
-  readonly camera?: Vec3 | undefined;
+  /** Which pieces fade. Without it, none does. */
+  readonly cutaway?: CabinCutaway | undefined;
   readonly player?: Vec3 | undefined;
 }
 
@@ -400,7 +402,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
 
   return {
     group,
-    update({ nowSeconds, camera, player }) {
+    update({ nowSeconds, cutaway = NO_CUTAWAY, player }) {
       // Without a drawn player, as in an asset showcase, the doors answer to the player in game state.
       const near = player ?? players.first?.position;
       const seen = new Set<Entity>();
@@ -419,7 +421,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
         place(item, entity.position, turns);
         showProgress(item, 1, DOOR_PLANK_COST);
         swing(item, entity, near, nowSeconds);
-        fade(item, camera !== undefined && player !== undefined && isBetweenCameraAndPlayer(entity.position, turns, camera, player));
+        fade(item, cutaway.fades(entity.position, turns));
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);

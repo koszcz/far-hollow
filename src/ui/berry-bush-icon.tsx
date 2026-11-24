@@ -1,4 +1,4 @@
-// The backpack icon for a dug-up berry bush, the draft "berry-bush-icon" asset in asset-manifest.json. Built in code.
+// The backpack icon for a dug-up berry bush, the approved "berry-bush-icon" asset in asset-manifest.json. Built in code.
 // Added by garden ticket 01. BackpackIcon in backpack-icons.tsx draws it, in the same style as the approved "backpack-icons".
 import type { BackpackIconDrawing } from "./icon-drawing";
 

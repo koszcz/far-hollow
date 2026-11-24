@@ -4,12 +4,12 @@
 // - A warm panel fills the opening, so the room behind it reads as lit.
 // - A soft halo, a little larger than the opening, spreads from the outer face of the wall.
 // The glow fades in at dusk and out at dawn with the daylight. It casts no shadow, lights nothing, and is never picked.
-// When its window fades out between the camera and the player, the glow fades with it.
+// When its window fades out, the glow fades with it.
 import * as THREE from "three";
-import type { Entity, EntityStore, Vec3 } from "../sim/entities";
+import type { Entity, EntityStore } from "../sim/entities";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { firelitWindows, type FirelitWindow } from "../sim/window-glow";
-import { isBetweenCameraAndPlayer } from "./edge-piece-meshes";
+import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { COURSE_RADIUS_METRES } from "./log-courses";
 import { FADED_OPACITY } from "./structure-look";
 import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
@@ -39,9 +39,9 @@ export interface WindowGlowMeshes {
   readonly group: THREE.Group;
   /**
    * Shows the glow in every firelit window, as strong as `daylight`, from 0 (night) to 1 (full day), allows.
-   * A window between `camera` and the player standing at `player` fades out, and so does its glow. Without them, nothing fades.
+   * A window that fades where `cutaway` says fades its glow too. Without it, nothing fades.
    */
-  update(daylight: number, view?: { camera: Vec3; player: Vec3 }): void;
+  update(daylight: number, cutaway?: CabinCutaway): void;
   dispose(): void;
 }
 
@@ -90,7 +90,7 @@ export function createWindowGlowMeshes(
 
   return {
     group,
-    update(daylight, view) {
+    update(daylight, cutaway = NO_CUTAWAY) {
       const strength = windowGlowStrength(daylight);
       const lit = new Set<Entity>();
       // By day no window glows, so the rooms are not worked out at all.
@@ -104,7 +104,7 @@ export function createWindowGlowMeshes(
           item.root.position.set(window.position.x, window.position.y, window.position.z);
           item.root.rotation.y = quarterTurnsToRadians(outward);
           const turns = window.facing?.turns ?? 0;
-          const look = view !== undefined && isBetweenCameraAndPlayer(window.position, turns, view.camera, view.player) ? faded : clear;
+          const look = cutaway.fades(window.position, turns) ? faded : clear;
           item.panel.material = look.panel;
           item.halo.material = look.halo;
           lit.add(window);

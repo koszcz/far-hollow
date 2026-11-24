@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { PlacingBlueprint, StructureKind } from "../sim/api";
 import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
+import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCampfireMeshes } from "./campfire-meshes";
 import { createDoorMeshes } from "./door-meshes";
 import { createShuttersMeshes } from "./shutters-meshes";
@@ -34,12 +35,12 @@ export type StructureHit = {
   entity: Entity;
 };
 
-/** What one frame of drawing needs to know. Without `camera` and `player`, no wall fades and no roof hides. */
+/** What one frame of drawing needs to know. Without `cutaway`, no wall fades and no roof hides. */
 export interface StructureFrame {
   readonly nowSeconds: number;
-  /** Where the camera is. Walls between it and the player fade out. */
-  readonly camera?: Vec3;
-  /** Where the player is drawn. Walls in front of them fade, and the roof above them hides. */
+  /** Which walls fade and which roof hides, so the player stays in view. */
+  readonly cutaway?: CabinCutaway;
+  /** Where the player is drawn. Doors near them swing open, and a sled's rope runs from them. */
   readonly player?: Vec3;
   /** Where the player holds the rope while dragging a sled. The rope runs from it to the sled. */
   readonly ropeHold?: RopeHold | undefined;
@@ -225,21 +226,21 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
 
   return {
     group,
-    update({ nowSeconds, camera, player, ropeHold }) {
+    update({ nowSeconds, cutaway = NO_CUTAWAY, player, ropeHold }) {
       campfires.update(nowSeconds);
       fishOnFire.update();
       jugOnFire.update();
       leanTos.update();
       foundations.update();
       floors.update();
-      edgePieces.update(camera !== undefined && player !== undefined ? { camera, player } : undefined);
-      // The roof above the player, and the frames under it, hide.
-      roofFrames.update(player !== undefined ? { player } : undefined);
-      roofs.update(player !== undefined ? { player } : undefined);
+      edgePieces.update(cutaway);
+      // The roof of the cabin the player is in, and the frames under it, hide.
+      roofFrames.update(cutaway.roof);
+      roofs.update(cutaway.roof);
       // A door swings open while the player is near it, and fades with its frame.
-      doors.update({ nowSeconds, camera, player });
+      doors.update({ nowSeconds, cutaway, player });
       // Shutters swing when the player opens or closes them, and fade with their window.
-      shutters.update({ nowSeconds, camera, player });
+      shutters.update({ nowSeconds, cutaway });
       fireplaces.update(nowSeconds);
       woodpiles.update();
       for (const meshes of Object.values(furniture)) meshes.update();

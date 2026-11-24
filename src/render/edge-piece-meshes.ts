@@ -18,7 +18,7 @@
 //   little, and the lintel sits in notches on their tops and reaches past them. Their cut ends show the paler cut wood.
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
-// A finished wall, door frame, or window between the camera and the player fades out, so the player never disappears behind it.
+// A finished wall, door frame, or window fades out where the cabin cutaway says (cabin-cutaway.ts), so the player never disappears behind it.
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
@@ -27,6 +27,7 @@ import { EDGE_PIECE_KINDS, type EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
+import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import type { OutlinePart } from "./hover-outline";
 import { deliveredOpacity, FADED_OPACITY, fadedOut, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
@@ -78,11 +79,6 @@ const DOOR_LOG_SIDES = 10;
 /** How thick the invisible box that catches clicks on a blueprint is, across its edge, in metres. */
 const PICK_THICKNESS_METRES = 0.35;
 
-/** Where the camera looks at the player from, to fade out walls in the way. The player's middle is used, not their feet. */
-const PLAYER_MIDDLE_METRES = 0.9;
-/** A wall fades when the line from the camera to the player passes this close beyond its ends or over its top, in metres. */
-const FADE_MARGIN_METRES = 0.3;
-
 /** What a click on a wall or door frame blueprint landed on. Finished walls and door frames are not clicked. */
 export type EdgePieceHit = { kind: "blueprint"; entity: Entity };
 
@@ -90,9 +86,9 @@ export interface EdgePieceMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every wall, door frame, and their blueprints up to date with game state.
-   * Finished pieces between `camera` and the player standing at `player` fade out. Without them, nothing fades.
+   * Finished pieces fade where `cutaway` says. Without it, nothing fades.
    */
-  update(view?: { camera: Vec3; player: Vec3 }): void;
+  update(cutaway?: CabinCutaway): void;
   /** What a ray from the camera hits first among wall and door frame blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: EdgePieceHit; distance: number } | undefined;
   /** The parts of a wall or door frame blueprint, placed in the world. Empty once it is gone. */
@@ -400,7 +396,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
 
   return {
     group,
-    update(view) {
+    update(cutaway = NO_CUTAWAY) {
       const seen = new Set<Entity>();
       walls = [];
       for (const entity of blueprints) {
@@ -422,7 +418,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
         place(item.root, entity.edgePiece, entity.position, turns);
         if (entity.edgePiece === "logWall") reachCorners(item.stages, wallEnds({ middle: entity.position, turns }, walls));
         showProgress(item, 1, LOG_COST[entity.edgePiece]);
-        fade(item, view !== undefined && isBetweenCameraAndPlayer(entity.position, turns, view.camera, view.player));
+        fade(item, cutaway.fades(entity.position, turns));
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -513,24 +509,4 @@ export function wallEnds(wall: WallLine, walls: readonly WallLine[]): WallEnds {
   const same = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.abs(a.x - b.x) < SAME_POINT_METRES && Math.abs(a.z - b.z) < SAME_POINT_METRES;
   const crossing = walls.filter((other) => areAtRightAngles(other.turns, wall.turns)).flatMap(endsOf);
   return { start: crossing.some((point) => same(point, start)), end: crossing.some((point) => same(point, end)) };
-}
-
-/**
- * Whether a wall or door frame stands in the way of the camera's view of the player.
- * `middle` is the middle of the piece's edge at deck height, and `turns` the way it faces.
- * It is in the way when the line from the camera to the player's middle crosses the piece, or passes just beyond its ends or over its top.
- */
-export function isBetweenCameraAndPlayer(middle: Vec3, turns: QuarterTurns, camera: Vec3, player: Vec3): boolean {
-  const alongX = runsAlongX(turns);
-  const across = (spot: Vec3) => (alongX ? spot.z - middle.z : spot.x - middle.x);
-  const along = (spot: Vec3) => (alongX ? spot.x - middle.x : spot.z - middle.z);
-  const target = { x: player.x, y: player.y + PLAYER_MIDDLE_METRES, z: player.z };
-  const cameraSide = across(camera);
-  const playerSide = across(target);
-  // The camera and the player must be on opposite sides of the line the piece stands on.
-  if (cameraSide === 0 || cameraSide * playerSide >= 0) return false;
-  const share = cameraSide / (cameraSide - playerSide);
-  const alongAtCrossing = along(camera) + (along(target) - along(camera)) * share;
-  const heightAtCrossing = camera.y + (target.y - camera.y) * share - middle.y;
-  return Math.abs(alongAtCrossing) <= BUILD_GRID_METRES / 2 + FADE_MARGIN_METRES && heightAtCrossing <= EDGE_PIECE_HEIGHT_METRES + FADE_MARGIN_METRES;
 }

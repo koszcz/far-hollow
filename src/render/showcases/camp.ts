@@ -438,7 +438,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -2, 0);
     },
   },
-  // The draft "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
+  // The approved "sapling-icon": dug-up saplings lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with saplings in the backpack, digging up under way, and the pile's tooltip.
   "sapling-icon": {
     radius: 2.2,
@@ -456,7 +456,7 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, -1.5, 0);
     },
   },
-  // The draft "berry-bush-icon": dug-up berry bushes lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
+  // The approved "berry-bush-icon": dug-up berry bushes lying in piles of 1 and 3 beside a knife for size, and the backpack icon.
   // src/ui/hud-showcase.tsx draws the HUD over the last view only, with berry bushes in the backpack, digging up under way, and the pile's tooltip.
   "berry-bush-icon": {
     radius: 2.2,

@@ -7,6 +7,7 @@ import {
   CAMPFIRE_FUELS,
   CARRIED_LOGS,
   furnitureMoreUses,
+  isCarriedLog,
   furnitureUse,
   hasRoom,
   holdsWater,
@@ -19,6 +20,7 @@ import type {
   BackpackContent,
   CampfireView,
   CarriedLog,
+  CarriedThing,
   Command,
   FurnitureKind,
   FurnitureUse,
@@ -408,11 +410,12 @@ function woodpileActions(woodpile: WoodpileView, context: Context): readonly Thi
   const { view, offer } = context;
   const woodpileId = woodpile.id;
   const woodIcon = (wood: WoodpileWood): ActionIcon => (wood === "firewood" ? { content: "firewood" } : { hud: "log" });
+  const shouldered = shoulderedLog(view);
   // With nothing on the shoulder, stacking the log still shows, greyed, so the player learns they can.
-  const stackLog = offer(`stack:${view.carrying ?? "log"}`, strings.actions.stack[view.carrying ?? "log"], woodIcon(view.carrying ?? "log"), {
+  const stackLog = offer(`stack:${shouldered ?? "log"}`, strings.actions.stack[shouldered ?? "log"], woodIcon(shouldered ?? "log"), {
     type: "stackOnWoodpile",
     woodpileId,
-    wood: view.carrying ?? "log",
+    wood: shouldered ?? "log",
     all: false,
   });
   const stackFirewood = [
@@ -423,9 +426,9 @@ function woodpileActions(woodpile: WoodpileView, context: Context): readonly Thi
   const offers = [stackLog, ...stackFirewood, ...take, takeDown(context, woodpileId)];
   return withMain(
     offers,
-    view.carrying === null
+    shouldered === null
       ? woodpileMainWithoutLog([...take.filter(({ id }) => id === "take:firewood"), ...take.filter(({ id }) => id !== "take:firewood"), stackFirewood[0]])
-      : `stack:${view.carrying}`,
+      : `stack:${shouldered}`,
   );
 }
 
@@ -449,8 +452,8 @@ function sledActions(sled: SledView, context: Context): readonly ThingAction[] {
   const sledId = sled.id;
   if (view.dragging?.id === sledId) return letGoActions(context);
   const drag = offer("drag", strings.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
-  const load =
-    view.carrying === null ? [] : [offer(`load:${view.carrying}`, strings.actions.loadSled[view.carrying], { hud: "log" }, { type: "loadSled", sledId })];
+  const shouldered = shoulderedLog(view);
+  const load = shouldered === null ? [] : [offer(`load:${shouldered}`, strings.actions.loadSled[shouldered], { hud: "log" }, { type: "loadSled", sledId })];
   // Only the kinds the sled holds are offered. An empty sled still shows taking a log, greyed, so the player learns they can.
   const held = CARRIED_LOGS.filter((log) => sled.contents[log] > 0);
   const take = (held.length === 0 ? (["log"] as const) : held).map((log: CarriedLog) =>
@@ -462,7 +465,12 @@ function sledActions(sled: SledView, context: Context): readonly ThingAction[] {
   const tipOut = offer("tipOut", strings.actions.tipOut, { hud: "log" }, { type: "tipOutSled", sledId });
   // A loaded sled can be taken down. Its logs are laid on the ground beside it first, and its planks drop in a pile.
   const offers = [...load, ...loadPlanks, drag, ...take, ...takePlanks, tipOut, takeDown(context, sledId)];
-  return withMain(offers, view.carrying === null ? "drag" : `load:${view.carrying}`);
+  return withMain(offers, shouldered === null ? "drag" : `load:${shouldered}`);
+}
+
+/** The log or debarked log on the player's shoulder, or null if they carry none. A plank or stone in the hands is no log. */
+function shoulderedLog(view: GameView): CarriedLog | null {
+  return view.carrying !== null && isCarriedLog(view.carrying) ? view.carrying : null;
 }
 
 /** Main: add the carried material if the blueprint still needs it, otherwise build. Then taking it down. */
@@ -472,7 +480,8 @@ function blueprintActions(blueprintId: number, context: Context): readonly Thing
   const build = offer("build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
   const carried = view.carrying;
   const needed = carried !== null && blueprint?.deliveries.some(({ material, has: delivered, needs }) => material === carried && delivered < needs);
-  const deliver = needed ? [offer(`deliver:${carried}`, strings.actions.deliver[carried], { hud: "log" }, { type: "deliverToBlueprint", blueprintId })] : [];
+  const icon: ActionIcon = carried === null || isCarriedLog(carried) ? { hud: "log" } : { content: carried };
+  const deliver = needed ? [offer(`deliver:${carried}`, strings.actions.deliver[carried], icon, { type: "deliverToBlueprint", blueprintId })] : [];
   return withMain([...deliver, build, takeDown(context, blueprintId)], deliver[0]?.id ?? "build");
 }
 
@@ -557,7 +566,7 @@ function backpackContentActions(content: BackpackContent, context: Context): rea
 }
 
 /** Drop it, then split it into firewood if it is a log. */
-function shoulderActions(log: CarriedLog, { offer }: Context): readonly ThingAction[] {
+function shoulderActions(log: CarriedThing, { offer }: Context): readonly ThingAction[] {
   const drop = offer("drop", strings.actions.drop, { hud: "log" }, { type: "dropLog" });
   const split = log === "log" ? [offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
   return withMain([drop, ...split], "drop");

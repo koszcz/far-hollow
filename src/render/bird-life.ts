@@ -10,6 +10,7 @@
 // every load, because the renderer passes in Math.random.
 import { groundDistance, stepAlongHeading, headingToward, randomPointAround, type GroundPoint } from "../sim/ground-point";
 import { randomBetween, type Random } from "../sim/random";
+import { flightLegPose, flightPose, groundPose, SHORTEST_PECK_PERIOD_SECONDS, type BirdPose } from "./bird-motion";
 import { createEasedShare } from "./eased-share";
 
 /** The most flocks in the sky at once. */
@@ -52,9 +53,8 @@ const RAIN_LEAVE_SECONDS = 3;
 const RETURN_SECONDS = 90;
 /** How many wing beats a flying bird makes per second. */
 const FLAPS_PER_SECOND = { min: 5, max: 8 };
-/** A bird on the ground pecks once in each of these periods, in seconds, and its peck lasts PECK_SECONDS. */
-const PECK_PERIOD_SECONDS = { min: 0.9, max: 2.4 };
-const PECK_SECONDS = 0.35;
+/** A bird on the ground pecks once in each of these periods, in seconds, and looks around or hops between pecks. */
+const PECK_PERIOD_SECONDS = { min: SHORTEST_PECK_PERIOD_SECONDS, max: 2.6 };
 
 /** What the birds need to know about the valley around them. */
 export interface BirdSurroundings {
@@ -75,10 +75,8 @@ export interface DrawnBird {
   readonly z: number;
   readonly heading: number;
   readonly flying: boolean;
-  /** How far the wings are raised, from -1 (down) to 1 (up). 0 when on the ground. */
-  readonly flap: number;
-  /** How far the head is bent down to peck, from 0 (up) to 1 (at the ground). 0 when flying. */
-  readonly peck: number;
+  /** How the bird holds its wings, legs, and head. See bird-motion.ts. */
+  readonly pose: BirdPose;
 }
 
 export interface BirdLife {
@@ -131,6 +129,8 @@ interface Flight {
   readonly landsAt: GroundPoint | undefined;
   /** Whether the bird is leaving. A leaving bird does not count toward the birds wanted on the ground. */
   readonly leaving: boolean;
+  /** How the bird stood or flew when this flight began, so it blends into flight without a jump. */
+  readonly startPose: BirdPose | undefined;
 }
 
 interface Pecking {
@@ -204,9 +204,9 @@ export function createBirdLife(random: Random): BirdLife {
     return { x: spot.x, y: groundHeightAt(spot.x, spot.z), z: spot.z };
   }
 
-  function flight(from: Point3, to: Point3, landsAt: GroundPoint | undefined, leaving: boolean): Flight {
+  function flight(from: Point3, to: Point3, landsAt: GroundPoint | undefined, leaving: boolean, startPose?: BirdPose): Flight {
     const metres = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
-    return { kind: "flight", from, to, seconds: Math.max(metres / GROUND_BIRD_METRES_PER_SECOND, 0.5), elapsed: 0, landsAt, leaving };
+    return { kind: "flight", from, to, seconds: Math.max(metres / GROUND_BIRD_METRES_PER_SECOND, 0.5), elapsed: 0, landsAt, leaving, startPose };
   }
 
   /** Where a bird on this flight is now: along the line from start to end, raised by a gentle arc. */
@@ -223,21 +223,35 @@ export function createBirdLife(random: Random): BirdLife {
   /** Sends a bird on the ground off: to another clearing, or away over the trees. */
   function flyOff(bird: GroundBird, surroundings: BirdSurroundings, player: GroundPoint, mayLandAgain: boolean): void {
     if (bird.state.kind !== "pecking") return;
-    sendOff(bird, onGround(bird.state.spot), bird.state.spot, surroundings, player, mayLandAgain ? LAND_AGAIN_SHARE : 0);
+    sendOff(bird, onGround(bird.state.spot), bird.state.spot, surroundings, player, mayLandAgain ? LAND_AGAIN_SHARE : 0, poseOf(bird));
   }
 
   /**
    * Sends a bird from `from` to another clearing, away from `leftSpot`, this share of the time, or away over the trees.
    * It flies away over the trees too when no other clearing is found.
    */
-  function sendOff(bird: GroundBird, from: Point3, leftSpot: GroundPoint, surroundings: BirdSurroundings, player: GroundPoint, landAgainShare: number): void {
+  function sendOff(
+    bird: GroundBird,
+    from: Point3,
+    leftSpot: GroundPoint,
+    surroundings: BirdSurroundings,
+    player: GroundPoint,
+    landAgainShare: number,
+    startPose: BirdPose,
+  ): void {
     const again = random() < landAgainShare ? landingSpot(surroundings, player, leftSpot) : undefined;
     if (again !== undefined) {
-      bird.state = flight(from, onGround(again), again, false);
+      bird.state = flight(from, onGround(again), again, false, startPose);
       return;
     }
     const away = stepAlongHeading(leftSpot, headingToward(player, leftSpot) + (random() - 0.5), FLY_AWAY_METRES);
-    bird.state = flight(from, { x: away.x, y: groundHeightAt(away.x, away.z) + TREETOP_METRES + random() * TREETOP_SPREAD_METRES, z: away.z }, undefined, true);
+    bird.state = flight(
+      from,
+      { x: away.x, y: groundHeightAt(away.x, away.z) + TREETOP_METRES + random() * TREETOP_SPREAD_METRES, z: away.z },
+      undefined,
+      true,
+      startPose,
+    );
   }
 
   function stepFlocks(seconds: number, wanted: number, first: boolean): void {
@@ -260,7 +274,7 @@ export function createBirdLife(random: Random): BirdLife {
         state.elapsed += seconds;
         // A spot can be refused while the bird flies to it, such as when a fire is lit nearby. It goes elsewhere.
         if (state.landsAt !== undefined && !surroundings.canLandAt(state.landsAt)) {
-          sendOff(bird, flightPoint(state), state.landsAt, surroundings, player ?? centre, 1);
+          sendOff(bird, flightPoint(state), state.landsAt, surroundings, player ?? centre, 1, poseOf(bird));
           continue;
         }
         if (state.elapsed >= state.seconds && state.landsAt !== undefined) {
@@ -304,22 +318,23 @@ export function createBirdLife(random: Random): BirdLife {
     return flock.members.map((member) => {
       const behind = stepAlongHeading(middle, flock.heading, -member.back);
       const spot = stepAlongHeading(behind, flock.heading + Math.PI / 2, member.side);
-      return { x: spot.x, y: ground + flock.height + member.up, z: spot.z, heading: flock.heading, flying: true, flap: flapAt(member), peck: 0 };
+      const pose = flightPose(clock, member.flapRate, member.flapPhase, true);
+      return { x: spot.x, y: ground + flock.height + member.up, z: spot.z, heading: flock.heading, flying: true, pose };
     });
   }
 
-  function flapAt(bird: { flapRate: number; flapPhase: number }): number {
-    return Math.sin((clock * bird.flapRate + bird.flapPhase) * Math.PI * 2);
+  /** How a bird on the ground, or flying to or from it, holds itself now. It flies with steady beats, without bursts. */
+  function poseOf(bird: GroundBird): BirdPose {
+    const state = bird.state;
+    if (state.kind === "pecking") return groundPose(state.elapsed, bird.peckPeriod, bird.peckPhase);
+    const flying = flightPose(clock, bird.flapRate, bird.flapPhase, false);
+    return flightLegPose(flying, state.elapsed, state.startPose, state.landsAt === undefined ? undefined : state.seconds - state.elapsed);
   }
 
   function drawnGroundBird(bird: GroundBird): DrawnBird {
     const state = bird.state;
-    if (state.kind === "pecking") {
-      const into = ((state.elapsed / bird.peckPeriod + bird.peckPhase) % 1) * bird.peckPeriod;
-      const peck = into < PECK_SECONDS ? Math.sin((into / PECK_SECONDS) * Math.PI) : 0;
-      return { ...onGround(state.spot), heading: state.heading, flying: false, flap: 0, peck };
-    }
-    return { ...flightPoint(state), heading: headingToward(state.from, state.to), flying: true, flap: flapAt(bird), peck: 0 };
+    if (state.kind === "pecking") return { ...onGround(state.spot), heading: state.heading, flying: false, pose: poseOf(bird) };
+    return { ...flightPoint(state), heading: headingToward(state.from, state.to), flying: true, pose: poseOf(bird) };
   }
 
   return {

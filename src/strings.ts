@@ -1,6 +1,6 @@
 // All player-facing text lives here, so the game can be translated later.
 import { ACTION_QUEUE_LIMIT, type BackpackContent, type Goal } from "./sim/api";
-import { NEARBY_MATERIALS_METRES } from "./sim/building";
+import { FETCH_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
 import { CAMPFIRE_STICK_COST, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST, SAWHORSE_LOG_COST } from "./sim/structures";
 
@@ -237,10 +237,10 @@ export const strings = {
     },
     /** How to add the material the blueprint still waits for. */
     deliverHint: {
-      log: `Lay logs within ${NEARBY_MATERIALS_METRES} m of the blueprint, or carry one here and click the blueprint to add it.`,
-      debarkedLog: `Lay debarked logs within ${NEARBY_MATERIALS_METRES} m of the blueprint, or carry one here and click the blueprint to add it.`,
-      plank: "Bring planks in your backpack and click the blueprint to build with them.",
-      stone: `Bring stone in your backpack, or lay it within ${NEARBY_MATERIALS_METRES} m of the blueprint, and click the blueprint to build with it.`,
+      log: `Lay logs within ${FETCH_METRES} m of the blueprint, and you fetch them as you build. You can also carry one here and click the blueprint to add it.`,
+      debarkedLog: `Lay debarked logs within ${FETCH_METRES} m of the blueprint, and you fetch them as you build. You can also carry one here and click the blueprint to add it.`,
+      plank: `Bring planks in your backpack, or lay them within ${FETCH_METRES} m of the blueprint, and click the blueprint to build with them.`,
+      stone: `Bring stone in your backpack, or lay it within ${FETCH_METRES} m of the blueprint, and click the blueprint to build with it.`,
     },
     buildHint: "Click the blueprint to build it. Click elsewhere or press Escape to stop.",
   },
@@ -450,6 +450,8 @@ export const strings = {
     cell: (what: string, key: string | undefined) => (key === undefined ? what : `${what}, key ${key}`),
     /** The name of the shoulder cell for screen readers, such as "On your shoulder: Log". */
     shoulder: (name: string) => `On your shoulder: ${name}`,
+    /** The name of the same cell when the player carries a plank or stone in both hands, such as "In your hands: Plank". */
+    inHands: (name: string) => `In your hands: ${name}`,
     /**
      * The name of the sled cell, with how many log spaces the sled's load fills and how many it has, such as "Sled 4/6".
      * Each plank fills a quarter of a log space, so the load can be a fraction, such as "Sled 1.5/6".
@@ -519,7 +521,7 @@ export const strings = {
     sleep: "Sleep",
     sit: "Sit",
     build: "Build",
-    deliver: { log: "Add the log", debarkedLog: "Add the debarked log" },
+    deliver: { log: "Add the log", debarkedLog: "Add the debarked log", plank: "Add the plank", stone: "Add the stone" },
     openMenu: "Open its menu",
     takeDown: "Take down",
     eat: "Eat",
@@ -542,7 +544,7 @@ export const strings = {
     pourIntoJug: "Pour in clean water",
     drinkFromJug: "Drink",
     drop: "Drop",
-    dropHere: { log: "Drop the log here", debarkedLog: "Drop the debarked log here" },
+    dropHere: { log: "Drop the log here", debarkedLog: "Drop the debarked log here", plank: "Drop the plank here", stone: "Drop the stone here" },
     /** Putting a backpack content in the open chest or on the open shelf. */
     putInChest: { chest: "Put one in the chest", shelf: "Put one on the shelf" },
     putAllInChest: { chest: "Put all in the chest", shelf: "Put all on the shelf" },
@@ -574,6 +576,7 @@ export const strings = {
     sledFull: "the sled is full",
     letGoFirst: "let go of the sled first",
     shoulderFull: "your shoulder is full",
+    handsFull: "put down what you carry first",
     putLogDownFirst: "put the log down first",
     noLogCarried: "carrying no log",
     nothingToTake: "nothing to take",
@@ -617,6 +620,8 @@ export const strings = {
   things: {
     log: "Log",
     debarkedLog: "Debarked log",
+    plank: "Plank",
+    stone: "Stone",
   },
   debugFps: "FPS",
   debugEntities: "Entities",

@@ -2,6 +2,7 @@
 // them in this order, and the first body motion playing wins. To add a motion, add its module to this folder, then one
 // import line and one entry line here. Git merges this file by union (see .gitattributes), so two branches that each add
 // a motion merge without a conflict. A line kept twice fails the typecheck. See docs/adr/0012-each-player-motion-is-its-own-module.md.
+import { createCarryInHandsMotion } from "./carry-in-hands-animation";
 import { createDebarkingMotion } from "./debarking-animation";
 import { createFishingMotion } from "./fishing-animation";
 import { createEatDrinkMotion } from "./forage-eat-drink-animation";
@@ -24,6 +25,7 @@ export const PLAYER_MOTIONS = {
   "forage-eat-drink-animation": createEatDrinkMotion,
   "sled-drag-animation": createSledDragMotion,
   torch: createTorchMotion,
+  "carry-in-hands-animation": createCarryInHandsMotion,
 } as const;
 
 export type MotionId = keyof typeof PLAYER_MOTIONS;

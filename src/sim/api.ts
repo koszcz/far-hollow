@@ -20,9 +20,21 @@ import type { BurnTime } from "./burn-time";
 
 /** The hotbar and drawing use these to show how long a lit torch still burns. */
 export { burnShare, type BurnTime } from "./burn-time";
-import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
+import type { CampfireFuel, CarriedLog, CarriedThing, WoodpileWood } from "./wood-and-fuel";
 
-export { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS, type CampfireFuel, type CarriedLog, type WoodpileWood } from "./wood-and-fuel";
+export {
+  CAMPFIRE_FUELS,
+  CARRIED_LOGS,
+  CARRIED_THINGS,
+  HELD_MATERIALS,
+  isCarriedLog,
+  WOODPILE_WOODS,
+  type CampfireFuel,
+  type CarriedLog,
+  type CarriedThing,
+  type HeldMaterial,
+  type WoodpileWood,
+} from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
 import type { BuildMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
 import type { QuarterTurns } from "./quarter-turns";
@@ -387,8 +399,8 @@ export interface GameView {
   readonly craftMenu: readonly CraftMenuEntry[];
   /** The timed work the player is doing right now, or null if none. Walking to the work does not count. */
   readonly action: PlayerAction | null;
-  /** What the player carries on their shoulder, or null if nothing. */
-  readonly carrying: CarriedLog | null;
+  /** What the player carries outside the backpack, or null if nothing: a log on the shoulder, or a plank or stone in the hands. */
+  readonly carrying: CarriedThing | null;
   /** The sled the player drags behind them, or null if none. */
   readonly dragging: SledView | null;
   /**
@@ -662,6 +674,7 @@ export type Refusal =
  * - `woodpileFull`, `sledFull`: it has no room left.
  * - `letGoFirst`: the player drags a sled, so their hands are busy.
  * - `shoulderFull`: the player already carries a log.
+ * - `handsFull`: the player carries something the next building stage does not need, so they cannot build it.
  * - `putLogDownFirst`: the player carries a log, and fishing needs both hands.
  * - `noLogCarried`: the player carries no log to put there.
  * - `nothingToTake`: it holds none of what the command takes.
@@ -713,6 +726,7 @@ export type PlainRefusal =
   | "sledFull"
   | "letGoFirst"
   | "shoulderFull"
+  | "handsFull"
   | "putLogDownFirst"
   | "noLogCarried"
   | "nothingToTake"

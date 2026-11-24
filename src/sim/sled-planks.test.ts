@@ -146,89 +146,6 @@ describe("taking down a sled with planks", () => {
   });
 });
 
-describe("a blueprint taking planks from nearby", () => {
-  // A chest costs 4 planks, and lies 0.9 m wide along x and 0.55 m deep along z.
-
-  it("takes planks from the backpack first, then a parked sled next to it, then plank piles within 2 m", () => {
-    const game = createGame({ seed: 42 });
-    const chest = chestBlueprintNearPlayer(game);
-    give(game, 1);
-    // The sled's near side lies 1.5 m from the chest's back. The pile lies 1.5 m in front of it.
-    const sled = sledAt(game, chest.position.x, chest.position.z + 0.275 + 1.5 + 0.4, { log: 0, debarkedLog: 0, plank: 2 });
-    const pile = pileAt(game, chest.position.x, chest.position.z - 0.275 - 1.5, 3);
-
-    build(game, chest);
-
-    expect(chest.furniture).toBe("chest");
-    expect(game.client.getView().backpack.plank ?? 0).toBe(0);
-    expect(sled.sled.plank).toBe(0);
-    expect(pile.pile?.count).toBe(2);
-  });
-
-  it("takes planks from a sled before a pile, and leaves what it does not need", () => {
-    const game = createGame({ seed: 42 });
-    const chest = chestBlueprintNearPlayer(game);
-    const sled = sledAt(game, chest.position.x, chest.position.z + 1.5, { log: 1, debarkedLog: 0, plank: 6 });
-    const pile = pileAt(game, chest.position.x, chest.position.z - 1, 3);
-
-    build(game, chest);
-
-    expect(chest.furniture).toBe("chest");
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 0, plank: 2 });
-    expect(pile.pile?.count).toBe(3);
-  });
-
-  it("takes every plank from a pile it empties, and shows nothing lacking while planks lie near", () => {
-    const game = createGame({ seed: 42 });
-    const chest = chestBlueprintNearPlayer(game);
-    const pile = pileAt(game, chest.position.x + 1, chest.position.z, 4);
-    game.step();
-
-    expect(game.client.describeBlueprint(idOf(game, chest))?.lacks).toBeNull();
-    build(game, chest);
-
-    expect(chest.furniture).toBe("chest");
-    expect(game.entities.has(pile)).toBe(false);
-  });
-
-  it("ignores plank piles further than 2 m away and sleds further than 2 m away", () => {
-    const game = createGame({ seed: 42 });
-    const chest = chestBlueprintNearPlayer(game);
-    const pile = pileAt(game, chest.position.x + 0.45 + 2.3, chest.position.z, 4);
-    const sled = sledAt(game, chest.position.x, chest.position.z + 0.275 + 2.3 + 0.4, { log: 0, debarkedLog: 0, plank: 4 });
-    game.step();
-
-    expect(game.client.describeBlueprint(idOf(game, chest))?.lacks).toEqual({ kind: "material", material: "plank" });
-    send(game, { type: "build", blueprintId: idOf(game, chest) });
-    stepUntil(game, () => onlyPlayer(game).buildTask === undefined && onlyPlayer(game).approach === undefined);
-
-    expect(chest.blueprint?.delivered).toEqual({});
-    expect(pile.pile?.count).toBe(4);
-    expect(sled.sled.plank).toBe(4);
-  });
-
-  it("does not take planks from a sled the player is dragging", () => {
-    const game = createGame({ seed: 42 });
-    const chest = chestBlueprintNearPlayer(game);
-    const sled = sledAt(game, chest.position.x, chest.position.z + 1.5, { log: 0, debarkedLog: 0, plank: 4 });
-    game.entities.addComponent(onlyPlayer(game), "dragging", { sledId: idOf(game, sled) });
-    game.step();
-
-    expect(game.client.describeBlueprint(idOf(game, chest))?.lacks).toEqual({ kind: "material", material: "plank" });
-  });
-
-  it("keeps the planks it took from nearby when the player stops partway", () => {
-    const game = createGame({ seed: 42 });
-    const chest = chestBlueprintNearPlayer(game);
-    sledAt(game, chest.position.x, chest.position.z + 1.5, { log: 0, debarkedLog: 0, plank: 4 });
-    send(game, { type: "build", blueprintId: idOf(game, chest) });
-    stepUntil(game, () => (chest.blueprint?.progress ?? 0) > 0);
-    send(game, { type: "stopBuilding" });
-
-    expect(chest.blueprint?.delivered).toEqual({ plank: 4 });
-  });
-});
-
 describe("saving planks on a sled", () => {
   it("keeps the planks on each sled", () => {
     const game = createGame({ seed: 42 });
@@ -256,37 +173,11 @@ describe("saving planks on a sled", () => {
   });
 });
 
-/** Puts a finished sled holding `load` straight into the world, its runners along x. */
-function sledAt(game: Game, x: number, z: number, load: SledLoad): Entity & { sled: SledLoad } {
-  const sled = { ...load };
-  const y = onlyPlayer(game).position.y;
-  return Object.assign(game.entities.add({ sled, facing: { turns: 0 }, position: { x, y, z } }), { sled });
-}
-
-/** Puts a pile of planks straight on the ground. */
-function pileAt(game: Game, x: number, z: number, count: number): Entity {
-  const y = onlyPlayer(game).position.y;
-  return game.entities.add({ pile: { content: "plank", count }, position: { x, y, z } });
-}
-
 /** The plank piles within a few metres of a spot. */
 function plankPilesNear(game: Game, near: { position: { x: number; z: number } }) {
   return game.entities
     .with("pile", "position")
     .entities.filter(({ pile, position }) => pile.content === "plank" && Math.hypot(position.x - near.position.x, position.z - near.position.z) < 3);
-}
-
-/** Holds the build action on a blueprint until the player stops. */
-function build(game: Game, blueprint: Entity): void {
-  send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-  stepUntil(game, () => onlyPlayer(game).buildTask === undefined && onlyPlayer(game).approach === undefined);
-}
-
-/** Places a chest blueprint on open ground near the player. */
-function chestBlueprintNearPlayer(game: Game) {
-  const square = openSquareNearPlayer(game, 4);
-  send(game, place("chest", square.x, square.z, 0));
-  return onlyBlueprint(game);
 }
 
 /** Builds a woodpile on the grid point just off one side of a sled. */

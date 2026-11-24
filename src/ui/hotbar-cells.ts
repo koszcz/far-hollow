@@ -1,6 +1,6 @@
 // The cells of the hotbar: the sled the player drags, if any, the log on their shoulder, if any, the lit torch in their hand, if any,
 // then one cell per kind of thing in the backpack.
-import { burnShare, CONTENT_WEIGHT_KG, type BackpackContent, type CarriedLog, type GameView } from "../sim/api";
+import { burnShare, CONTENT_WEIGHT_KG, type BackpackContent, type CarriedThing, type GameView } from "../sim/api";
 import { strings } from "../strings";
 
 /**
@@ -9,7 +9,7 @@ import { strings } from "../strings";
  */
 export type HotbarTarget =
   | { readonly kind: "backpackContent"; readonly content: BackpackContent }
-  | { readonly kind: "shoulder"; readonly log: CarriedLog }
+  | { readonly kind: "shoulder"; readonly log: CarriedThing }
   | { readonly kind: "litTorch" }
   | { readonly kind: "sled"; readonly sledId: number };
 

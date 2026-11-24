@@ -1,6 +1,6 @@
 // The shape of one action the player can do to a thing. src/app/thing-actions.ts works out the actions.
 // The action menu draws them. Both import the types from here, because the UI may not import the app.
-import type { BackpackContent, CampfireFuel, CarriedLog, Command, DeliveredMaterial, Plantable, RecipeKind, WoodpileWood } from "../sim/api";
+import type { BackpackContent, CampfireFuel, CarriedLog, CarriedThing, Command, Plantable, RecipeKind, WoodpileWood } from "../sim/api";
 import type { HudIconName } from "./hud-icons";
 
 /** The icon an action shows: a HUD icon or a backpack content icon. */
@@ -42,7 +42,7 @@ export type ActionId =
   | "layBedroll"
   | "sit"
   | "build"
-  | `deliver:${DeliveredMaterial}`
+  | `deliver:${CarriedThing}`
   | "openMenu"
   | `craft:${RecipeKind}`
   | "takeDown"

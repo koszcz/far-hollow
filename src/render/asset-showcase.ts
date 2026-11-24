@@ -122,6 +122,7 @@ export function showAsset(
     "door-frame",
     "window",
     "torch",
+    "carry-in-hands-animation",
   ].includes(id);
   // The bed's stills show the bed alone. Its live loop shows the player sleeping in it.
   const showsPlayerInLoop = options.play && id === "bed";

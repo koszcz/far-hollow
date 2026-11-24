@@ -10,7 +10,7 @@ import { RECIPE_KINDS } from "./recipe-kind";
 import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
 import { isDelivered, isKept, STRUCTURES } from "./structures";
 import { GROWTH_STAGES } from "./tree-growth";
-import { CAMPFIRE_FUELS, CARRIED_LOGS, WOODPILE_WOODS } from "./wood-and-fuel";
+import { CAMPFIRE_FUELS, CARRIED_LOGS, CARRIED_THINGS, WOODPILE_WOODS } from "./wood-and-fuel";
 
 /** Says whether a value has the right shape. */
 type Check = (value: unknown) => boolean;
@@ -118,7 +118,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   mushroomLog: shape({ heading: finite }),
   plantMushroomTask: shape({ logId: count, secondsDone: finite }),
   debarkTask: shape({ logId: count, secondsDone: finite }),
-  carrying: exactly(...CARRIED_LOGS),
+  carrying: exactly(...CARRIED_THINGS),
   dragging: shape({ sledId: count }),
   stick: exactly(true),
   bark: exactly(true),
@@ -132,7 +132,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   builtCost: list(shape({ material: exactly(...CARRIED_MATERIALS), count: (value) => count(value) && (value as number) > 0 })),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),
-  buildTask: shape({ blueprintId: count }),
+  buildTask: shape({ blueprintId: count, fetchFrom: count }, ["fetchFrom"]),
   takeDownTask: shape({ pieceId: count, secondsDone: finite }),
   foundation: exactly(true),
   floor: exactly(true),
@@ -212,6 +212,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   sledFull: true,
   letGoFirst: true,
   shoulderFull: true,
+  handsFull: true,
   putLogDownFirst: true,
   noLogCarried: true,
   nothingToTake: true,
@@ -259,7 +260,7 @@ const refusal: Check = (value) =>
     kind: exactly("cannotBuildYet"),
     lacks: (lacks) =>
       shape({ kind: exactly("tool"), tool: backpackContent })(lacks) ||
-      shape({ kind: exactly("material"), material: exactly("stick", "bark", "plank", ...CARRIED_LOGS) })(lacks),
+      shape({ kind: exactly("material"), material: exactly("stick", "bark", "plank", "stone", ...CARRIED_LOGS) })(lacks),
   })(value) ||
   shape({ kind: exactly("cannotCraftYet"), lacks: list(recipeLack) })(value);
 

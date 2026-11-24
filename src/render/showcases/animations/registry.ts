@@ -18,3 +18,4 @@ export { HAND_CRAFT_ANIMATION_SHOWCASE as "hand-craft-animation" } from "./hand-
 export { FISHING_ANIMATION_SHOWCASE as "fishing-animation" } from "./fishing-animation";
 export { FORAGE_EAT_DRINK_ANIMATION_SHOWCASE as "forage-eat-drink-animation" } from "./forage-eat-drink-animation";
 export { SPLIT_ANIMATION_SHOWCASE as "split-animation" } from "./split-animation";
+export { CARRY_IN_HANDS_ANIMATION_SHOWCASE as "carry-in-hands-animation" } from "./carry-in-hands-animation";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { nearbyOf } from "./api";
-import type { Entity, SledLoad } from "./entities";
+import type { Entity } from "./entities";
 import { FOUNDATION_DECK_LIFT_METRES, foundationDeckTop, foundationLegs } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { terrainHeightAt } from "./valley";
@@ -286,64 +286,6 @@ describe("building a foundation", () => {
   });
 });
 
-describe("building a foundation from debarked logs nearby", () => {
-  // A foundation covers one 1 m grid square, so its edge lies 0.5 m from its middle.
-
-  it("takes debarked logs lying within 2 m, one per stage, so the player need not carry them to it first", () => {
-    const game = createGame({ seed: 42 });
-    const blueprint = foundationBlueprintNearPlayer(game);
-    const id = idOf(game, blueprint);
-    const logs = [0, 1, 2, 3].map((i) => debarkedLogAt(game, blueprint.position.x + 0.5 + 1.5, blueprint.position.z - 1.5 + i));
-    game.step();
-
-    expect(game.client.describeBlueprint(id)?.lacks).toBeNull();
-    send(game, { type: "build", blueprintId: id });
-    stepUntil(game, () => game.client.getView().action?.kind === "build");
-    // Only the first stage's log goes in when work starts.
-    expect(blueprint.blueprint?.delivered).toEqual({ debarkedLog: 1 });
-    expect(logs.filter((log) => game.entities.has(log))).toHaveLength(3);
-    runSeconds(game, FOUNDATION_BUILD_SECONDS + 1);
-
-    expect(blueprint.foundation).toBe(true);
-    expect(logs.some((log) => game.entities.has(log))).toBe(false);
-  });
-
-  it("uses delivered logs first, then logs on the ground, then logs on a parked sled", () => {
-    const game = createGame({ seed: 42 });
-    const blueprint = foundationBlueprintNearPlayer(game);
-    deliverLogs(game, blueprint, 1);
-    const log = debarkedLogAt(game, blueprint.position.x + 1.5, blueprint.position.z);
-    const sled = sledAt(game, blueprint.position.x, blueprint.position.z + 2, { log: 1, debarkedLog: 3, plank: 0 });
-
-    send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-    runSeconds(game, FOUNDATION_BUILD_SECONDS + 1);
-
-    expect(blueprint.foundation).toBe(true);
-    expect(game.entities.has(log)).toBe(false);
-    // The sled gave only the two debarked logs still needed, and kept its log with bark.
-    expect(sled.sled).toEqual({ log: 1, debarkedLog: 1, plank: 0 });
-  });
-
-  it("ignores debarked logs further than 2 m away, logs with bark, and a sled being dragged", () => {
-    const game = createGame({ seed: 42 });
-    const blueprint = foundationBlueprintNearPlayer(game);
-    const far = debarkedLogAt(game, blueprint.position.x + 0.5 + 2.3, blueprint.position.z);
-    const barked = game.entities.add({ log: { heading: 0 }, position: { ...blueprint.position, x: blueprint.position.x + 1 } });
-    const sled = sledAt(game, blueprint.position.x, blueprint.position.z + 1.5, { log: 0, debarkedLog: 2, plank: 0 });
-    game.entities.addComponent(onlyPlayer(game), "dragging", { sledId: idOf(game, sled) });
-    game.step();
-
-    expect(game.client.describeBlueprint(idOf(game, blueprint))?.lacks).toEqual({ kind: "material", material: "debarkedLog" });
-    send(game, { type: "build", blueprintId: idOf(game, blueprint) });
-    runSeconds(game, 3);
-
-    expect(blueprint.blueprint?.progress).toBe(0);
-    expect(game.entities.has(far)).toBe(true);
-    expect(game.entities.has(barked)).toBe(true);
-    expect(sled.sled.debarkedLog).toBe(2);
-  });
-});
-
 describe("a foundation on sloped ground", () => {
   it("keeps its deck level above the highest ground, on legs that reach down to the ground", () => {
     const game = createGame({ seed: 42 });
@@ -390,19 +332,6 @@ function foundationBlueprintNearPlayer(game: Game, from = 3) {
 /** Puts a log or debarked log on the player's shoulder, as if they had picked it up. */
 function shoulder(game: Game, log: "log" | "debarkedLog"): void {
   game.entities.addComponent(onlyPlayer(game), "carrying", log);
-}
-
-/** Lays a debarked log straight on the ground. */
-function debarkedLogAt(game: Game, x: number, z: number): Entity {
-  const y = onlyPlayer(game).position.y;
-  return game.entities.add({ debarkedLog: { heading: 0 }, position: { x, y, z } });
-}
-
-/** Puts a finished sled, loaded with `load`, straight on the ground. */
-function sledAt(game: Game, x: number, z: number, load: SledLoad): Entity & { sled: SledLoad } {
-  const sled = { ...load };
-  const y = onlyPlayer(game).position.y;
-  return Object.assign(game.entities.add({ sled, facing: { turns: 0 }, position: { x, y, z } }), { sled });
 }
 
 /** Carries `count` debarked logs to a blueprint, one at a time. */

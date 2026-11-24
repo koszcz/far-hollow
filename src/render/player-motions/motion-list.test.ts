@@ -14,6 +14,7 @@ const MOMENTS: { readonly [Id in MotionId]: MotionMoment<Id> } = {
   "forage-eat-drink-animation": { kind: "drinkFromPot", seconds: 0.5 },
   "sled-drag-animation": true,
   torch: 1,
+  "carry-in-hands-animation": "plank",
 };
 
 describe("the player motions", () => {
@@ -28,6 +29,7 @@ describe("the player motions", () => {
       "forage-eat-drink-animation",
       "sled-drag-animation",
       "torch",
+      "carry-in-hands-animation",
     ]);
   });
 
@@ -44,6 +46,7 @@ describe("the player motions", () => {
       "forage-eat-drink-animation": true,
       "sled-drag-animation": false,
       torch: false,
+      "carry-in-hands-animation": true,
     });
   });
 

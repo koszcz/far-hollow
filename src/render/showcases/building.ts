@@ -110,6 +110,21 @@ function cabinWalls(stage: Stage, squares: readonly (readonly [number, number])[
   }
 }
 
+/**
+ * Builds a cabin two squares wide over columns 0 and 1 and three squares deep over rows -10 to -8, behind the other cabins, with a finished frame on
+ * every square, and with `roofs`, a finished roof too. The front row slopes down to the front, the back row to the back,
+ * and the middle row with the front one, so the middle row becomes ridge sections and the ridge runs along the middle.
+ */
+function oddWidthCabin(stage: Stage, { roofs }: { roofs: boolean }): void {
+  const squares = [0, 1].flatMap((x) => [-10, -9, -8].map((z) => [x, z] as const));
+  cabinWalls(stage, squares);
+  for (const [x, z] of squares) {
+    const turns = z === -10 ? 2 : 0;
+    if (roofs) roofOver(stage, x, z, turns);
+    else onDeckOf(stage)(x, z, { roofFrame: true, facing: { turns } });
+  }
+}
+
 /** Puts a finished roof frame facing `turns` on a square, and a finished roof on it. */
 function roofOver(stage: Stage, x: number, z: number, turns: QuarterTurns): void {
   const onDeck = onDeckOf(stage);
@@ -515,9 +530,10 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: `blueprint, 2 of ${ROOF_FRAME_LOG_COST} logs delivered`, yaw: 30, pitch: 35, seconds: 0 },
       { label: "beams laid, rafters going up", yaw: 30, pitch: 35, seconds: 3.5 / ROOF_FRAME_LOG_COST },
       { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.4, focus: { x: 0, y: 1.3, z: -0.5 } },
-      { label: "3 by 2 cabin, side", yaw: 90, pitch: 12, seconds: 1, radius: 2.2, focus: { x: 0, y: 1.4, z: -0.5 } },
+      { label: "3 deep: ridge in the middle row", yaw: 90, pitch: 12, seconds: 1, radius: 2.6, focus: { x: 0.5, y: 1.5, z: -9 } },
     ],
     build(stage) {
+      oddWidthCabin(stage, { roofs: false });
       const onDeck = squareCabin(stage, { roofs: false });
       onDeck(1, 0, { blueprint: { structure: "roofFrame", progress: 0, materialsSpent: 0, delivered: { debarkedLog: 2 } }, facing: { turns: 0 } });
       stage.movePlayer(0.6, 1.3, Math.PI);
@@ -536,9 +552,10 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "blueprint on its frame", yaw: 30, pitch: 35, seconds: 0 },
       { label: `${ROOF_PLANK_COST / 2} of ${ROOF_PLANK_COST} rows of planks laid`, yaw: 30, pitch: 35, seconds: 0.5 },
       { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.6, focus: { x: 0, y: 1.5, z: -0.5 } },
-      { label: "3 by 2 cabin, side", yaw: 90, pitch: 12, seconds: 1, radius: 2.4, focus: { x: 0, y: 1.6, z: -0.5 } },
+      { label: "3 deep: ridge in the middle row", yaw: 90, pitch: 12, seconds: 1, radius: 2.8, focus: { x: 0.5, y: 1.6, z: -9 } },
     ],
     build(stage) {
+      oddWidthCabin(stage, { roofs: true });
       const onDeck = squareCabin(stage, { roofs: true });
       onDeck(1, 0, { roofFrame: true, facing: { turns: 0 } });
       onDeck(1, 0, { blueprint: { structure: "roof", progress: 0, materialsSpent: 0, delivered: {} }, facing: { turns: 0 } });

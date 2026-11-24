@@ -299,6 +299,9 @@ _Avoid_: Window panes, curtains, blinds
 The top line of a roof, where two slopes that face away from each other meet.
 _Avoid_: Peak, apex
 
+**Ridge section**:
+The middle roof section of a roof an odd number of squares wide. It slopes down both ways from a ridge along its middle, so the ridge is centred. The game makes one by itself: the player turns the middle frame either way.
+
 **Gable end**:
 The triangle of stacked logs that closes the space between the wall top and the roof at the end of a ridge. It comes with the roof frame, so the player never builds it on its own.
 _Avoid_: Gable wall, end wall

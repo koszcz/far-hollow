@@ -209,6 +209,48 @@ describe("wings deeper than two squares", () => {
   });
 });
 
+describe("a roof an odd number of squares wide", () => {
+  it("makes the middle section a ridge section, whichever way its frame faces, so the ridge is centred", () => {
+    // Three sections across x: the left slopes down to -x, the right to +x, and the middle either way.
+    for (const middleTurns of [1, 3] as const) {
+      const left = section(-1, 0, 1);
+      const middle = section(0, 0, middleTurns);
+      const right = section(1, 0, 3);
+      const places = roofPlaces([left, middle, right]);
+
+      expect(placeOf(places, middle)).toMatchObject({ shape: "ridge", inFront: 1 });
+      expect(placeOf(places, left)).toMatchObject({ shape: "straight", inFront: 0 });
+      expect(placeOf(places, right)).toMatchObject({ shape: "straight", inFront: 0 });
+      expect(meetAlongEdge(places, left, middle)).toBe(true);
+      expect(meetAlongEdge(places, middle, right)).toBe(true);
+      // The ridge runs along the middle of the middle square, half a rise above its edges.
+      expect(roofTopAt(placeOf(places, middle), middle.position, { x: 0.5, z: 0.5 })).toBeCloseTo(1.5, 9);
+    }
+  });
+
+  it("makes the middle of five a ridge section, with two sections on each slope", () => {
+    const row = [section(-2, 0, 1), section(-1, 0, 1), section(0, 0, 3), section(1, 0, 3), section(2, 0, 3)];
+    const places = roofPlaces(row);
+
+    expect(row.map((one) => placeOf(places, one).shape)).toEqual(["straight", "straight", "ridge", "straight", "straight"]);
+    row.slice(1).forEach((next, i) => {
+      const previous = row[i];
+      if (previous !== undefined) expect(meetAlongEdge(places, previous, next)).toBe(true);
+    });
+  });
+
+  it("leaves an even-width roof, a shed roof, and a roof set off centre on purpose straight", () => {
+    const even = [section(0, 0, 1), section(1, 0, 3)];
+    const shed = [section(0, 0, 3), section(1, 0, 3), section(2, 0, 3)];
+    const offCentre = [section(0, 0, 1), section(1, 0, 3), section(2, 0, 3), section(3, 0, 3)];
+
+    for (const roof of [even, shed, offCentre]) {
+      const places = roofPlaces(roof);
+      expect(roof.every((one) => placeOf(places, one).shape === "straight")).toBe(true);
+    }
+  });
+});
+
 describe("a shed roof", () => {
   it("is one slope with no ridge where every frame in a run faces the same way", () => {
     const shed = [0, 1].flatMap((x) => [section(x, -1, 0), section(x, 0, 0)]);

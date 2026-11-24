@@ -869,8 +869,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       },
       "approvalNotes": [
         "2026-11-23: The owner approved in chat a change so that the ferns sway in the wind. Forest floor ticket 05 made it."

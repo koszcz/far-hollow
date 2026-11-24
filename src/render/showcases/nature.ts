@@ -2,8 +2,8 @@
 import { createTreeMaterial, TREE_COLOURS } from "../forest-meshes";
 import { createSaplingShapes } from "../sapling-shape";
 import { createFarTreeShape } from "../tree-far-shape";
-import { createUndergrowthMaterial, undergrowthSways } from "../undergrowth-meshes";
-import { SAPLING_SWAY, UNDERGROWTH_SWAY, YOUNG_TREE_SWAY } from "../wind-sway";
+import { createUndergrowthMaterial, undergrowthSway } from "../undergrowth-meshes";
+import { SAPLING_SWAY, YOUNG_TREE_SWAY } from "../wind-sway";
 import type { UndergrowthAsset } from "../undergrowth-models";
 import { STAGE_FROM_RIVER_METRES, FOUR_ANGLES, type Showcase } from "./types";
 
@@ -29,7 +29,7 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
   const rows = Math.ceil(count / columns);
   const width = (columns - 1) * UNDERGROWTH_SPACING_METRES;
   const depth = (rows - 1) * UNDERGROWTH_SPACING_METRES;
-  const sways = undergrowthSways(asset);
+  const sway = undergrowthSway(asset);
   const showcase: Showcase = {
     radius: Math.max(1, Math.max(width, depth) * 0.9),
     focus: { x: 0, y: 0.15, z: 0 },
@@ -41,12 +41,12 @@ function undergrowthShowcase(asset: UndergrowthAsset, count: number, columns: nu
           const x = (index % columns) * UNDERGROWTH_SPACING_METRES - width / 2;
           const z = Math.floor(index / columns) * UNDERGROWTH_SPACING_METRES - depth / 2;
           const material = createUndergrowthMaterial(shape);
-          addProp(shape.geometry.clone(), sways ? windSway.sway(material, UNDERGROWTH_SWAY) : material, x, z);
+          addProp(shape.geometry.clone(), sway === undefined ? material : windSway.sway(material, sway), x, z);
         });
     },
   };
   // Undergrowth that sways plays the wind live. Pebbles stay still, so they have only stills.
-  return sways ? { ...showcase, play: SWAY_PLAY } : showcase;
+  return sway === undefined ? showcase : { ...showcase, play: SWAY_PLAY };
 }
 
 export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {

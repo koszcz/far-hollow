@@ -60,12 +60,13 @@
         "src/render/wind-sway.ts",
         "src/render/wind.ts"
       ],
-      "description": "Standing trees. The crowns sway gently in the wind. The trunks stay still.",
+      "description": "Standing trees. The crowns sway gently in the wind, bending from about where they start, 3 m up. They flutter at half the speed of grass, so they look heavy. The trunks stay still.",
       "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. Eight GLTF-format models packed into one file, unchanged: tree_pineDefaultA, tree_pineDefaultB, tree_pineTallA, tree_pineRoundA, tree_oak, tree_default, tree_tall, tree_detailed",
       "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       },
       "fileApproval": {
         "status": "approved",
@@ -108,8 +109,9 @@
       "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit. tree_pineSmallA and tree_small, GLTF-format models packed into one file, unchanged. The young tree is built in code in this project",
       "license": "CC0 1.0",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       },
       "fileApproval": {
         "status": "approved",
@@ -843,8 +845,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       },
       "approvalNotes": [
         "2026-11-23: The owner approved in chat a change so that the grass sways in the wind. Forest floor ticket 05 made it."

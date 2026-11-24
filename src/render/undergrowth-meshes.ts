@@ -7,7 +7,8 @@
 //   Plants shrink into the ground as they near that distance too.
 // - Plants under anything the player has placed are not drawn. camp-footprints.ts decides which spots are covered.
 // - Where the ground changes, the patches there grow again from the ground as it is now, so the undergrowth follows it.
-// - Grass, ferns, and flowers sway in the wind with wind-sway.ts. Ferns have their own sway, with tips that bob. Pebbles stay still.
+// - Grass, ferns, and flowers sway in the wind with wind-sway.ts. Ferns have their own sway, with tips that bob.
+//   Flowers have their own sway too, with stiffer stems than grass. Pebbles stay still.
 // - Undergrowth is only for looks. Nothing here is picked, saved, or seen by game logic, and it casts no shadows.
 import * as THREE from "three";
 import type { EntityStore, Vec3 } from "../sim/entities";
@@ -19,7 +20,7 @@ import type { GroundRect } from "../sim/structure-kind";
 import type { DrawnGround } from "./drawn-ground";
 import { EYE_DRAW_METRES, fadeAtEdges, UNDERGROWTH_DRAW_METRES } from "./undergrowth-fade";
 import type { UndergrowthAsset } from "./undergrowth-models";
-import { FERN_SWAY, UNDERGROWTH_SWAY, type SwayLook, type WindSway } from "./wind-sway";
+import { FERN_SWAY, FLOWER_SWAY, UNDERGROWTH_SWAY, type SwayLook, type WindSway } from "./wind-sway";
 
 /** No plant stands taller than this, in metres, and none reaches further than this outside its patch. Used for culling. */
 const PLANT_REACH_METRES = 2;
@@ -64,7 +65,8 @@ export function createUndergrowthMaterial(shape: Pick<UndergrowthShape, "ownNorm
 /** How an undergrowth asset sways in the wind. Grass, ferns, and flowers sway. Pebbles stay still, so they have none. */
 export function undergrowthSway(asset: UndergrowthAsset): SwayLook | undefined {
   if (asset === "pebbles") return undefined;
-  return asset === "ferns" ? FERN_SWAY : UNDERGROWTH_SWAY;
+  if (asset === "ferns") return FERN_SWAY;
+  return asset === "flowers" ? FLOWER_SWAY : UNDERGROWTH_SWAY;
 }
 
 /** What grows comes from `drawnGround`, so the undergrowth follows the ground as it changes. `windSway` sways the plants. */

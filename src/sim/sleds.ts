@@ -24,7 +24,7 @@ import { nearestQuarterTurns, quarterTurnsToRadians } from "./quarter-turns";
 import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
 import type { Valley } from "./valley";
 import type { ApproachReach } from "./approach";
-import { CARRIED_LOGS } from "./wood-and-fuel";
+import { CARRIED_LOGS, isCarriedLog } from "./wood-and-fuel";
 import { stackOnWoodpile } from "./woodpiles";
 import { scaleGroundPoint, subtractGroundPoints } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";
@@ -199,7 +199,8 @@ export function createSleds(entities: EntityStore, valley: Valley): Sleds {
     const contents = sled.sled;
     switch (command.type) {
       case "loadSled":
-        if (player?.carrying === undefined) return { kind: "noLogCarried" };
+        // A plank or stone fetched in the hands never goes on a sled by itself.
+        if (player?.carrying === undefined || !isCarriedLog(player.carrying)) return { kind: "noLogCarried" };
         return logsThatFitOnSled(contents) <= 0 ? { kind: "sledFull" } : undefined;
       case "takeFromSled":
         return contents[command.log] <= 0 ? { kind: "nothingToTake" } : shoulderRefusal(player);
@@ -236,7 +237,7 @@ export function createSleds(entities: EntityStore, valley: Valley): Sleds {
     },
     load(sledId) {
       const { sled, player } = usable({ type: "loadSled", sledId }) ?? {};
-      if (sled === undefined || player?.carrying === undefined) return;
+      if (sled === undefined || player?.carrying === undefined || !isCarriedLog(player.carrying)) return;
       sled.sled = addCount(sled.sled, player.carrying, 1);
       entities.removeComponent(player, "carrying");
     },

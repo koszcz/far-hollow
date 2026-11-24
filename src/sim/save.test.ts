@@ -370,8 +370,11 @@ function playedGame(): Game {
   const tree = nearestTo(game, game.entities.with("tree", "position").entities);
   send(game, { type: "chopTree", treeId: idOf(game, tree) });
   stepUntil(game, () => game.entities.with("log").first !== undefined);
+  // Felling puts the first log on the shoulder. The player puts it down, because building needs free hands.
+  send(game, { type: "dropLog" });
+  runSeconds(game, 1);
 
-  give(game, "stick", CAMPFIRE_STICK_COST + 3);
+  give(game, "stick", 2 * CAMPFIRE_STICK_COST + 3);
   const campfireSpot = openSpotNearPlayer(game, 3);
   send(game, { type: "placeBlueprint", structure: "campfire", turns: 0, x: campfireSpot.x, z: campfireSpot.z });
   const blueprint = game.entities.with("blueprint").first;

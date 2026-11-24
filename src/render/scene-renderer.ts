@@ -9,6 +9,7 @@ import { isRaining, movingEntities, playerEntities, type Entity, type EntityStor
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/river-bank-work";
+import { isCarriedLog } from "../sim/wood-and-fuel";
 import { createGroundMap } from "../sim/ground-types";
 import { copyToward, groundDistance, headingToward, type GroundPoint } from "../sim/ground-point";
 import { createBarkMeshes } from "./bark-meshes";
@@ -367,7 +368,10 @@ export function createSceneRenderer(
     eatOrDrinkShown = undefined;
     const player = entities.with("player", "position").first;
     if (player === undefined) return;
-    playerMesh.setCarryingLog(player.carrying);
+    // A log rides on the shoulder. A plank or stone fetched for a blueprint rides in both hands.
+    const carried = player.carrying;
+    playerMesh.setCarryingLog(carried !== undefined && isCarriedLog(carried) ? carried : undefined);
+    playerMesh.setMotion("carry-in-hands-animation", carried !== undefined && !isCarriedLog(carried) ? carried : undefined);
     // The lit torch stays in the left hand through every motion. Game logic puts it out before the player sleeps.
     playerMesh.setMotion("torch", player.litTorch === undefined || sleeping !== undefined ? undefined : nowSeconds);
     // Dragging a sled leans the player into the rope, walking or standing. Letting go stands them up at once.

@@ -8,6 +8,8 @@ import { type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { putDown } from "./hand-reach";
+import { addToPileAt } from "./piles";
+import { isCarriedLog } from "./wood-and-fuel";
 
 /** The player can pick up a log from this far away, in metres. */
 const PICK_UP_REACH_METRES = 2;
@@ -25,7 +27,10 @@ export interface Carrying {
   pickUp(logId: number, thenSplit?: boolean): void;
   /** Why the player could not pick up a log now: one is already on their shoulder. */
   pickUpRefusal(): Refusal | undefined;
-  /** Lays the carried log or debarked log on the ground at the player's feet. Does nothing if the player carries nothing. */
+  /**
+   * Lays the carried log or debarked log on the ground at the player's feet, or the plank or stone in their hands in a pile there.
+   * Does nothing if the player carries nothing.
+   */
   drop(): void;
   /** Where the player walks to lay the carried log at a spot: to the spot itself. Undefined if the player carries nothing. */
   dropReach(spot: GroundPoint): ApproachReach | undefined;
@@ -42,7 +47,9 @@ export function createCarrying(entities: EntityStore, valley: Valley, hand: Pick
     if (carried === undefined) return;
     entities.removeComponent(player, "carrying");
     const { x, z } = player.position;
-    entities.add({ [carried]: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
+    // A plank or stone in the hands goes down in a pile, joining a pile of the same kind beside it.
+    if (!isCarriedLog(carried)) addToPileAt(entities, valley.terrain, carried, 1, { x, z });
+    else entities.add({ [carried]: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
   }
 
   /** The entity with this id, if it is within the player's reach. */

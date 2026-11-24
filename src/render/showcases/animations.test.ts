@@ -25,7 +25,9 @@ const KEYS_BEFORE_THE_SPLIT = [
 
 describe("animation showcases", () => {
   it("keeps every showcase that existed before the split", () => {
-    expect(new Set(Object.keys(ANIMATIONS_SHOWCASES))).toEqual(new Set(KEYS_BEFORE_THE_SPLIT));
+    // Showcases added since the split, such as the "carry-in-hands-animation", may join them.
+    const keys = Object.keys(ANIMATIONS_SHOWCASES);
+    for (const key of KEYS_BEFORE_THE_SPLIT) expect(keys).toContain(key);
   });
 
   it("builds each showcase in a file named after its asset id", async () => {

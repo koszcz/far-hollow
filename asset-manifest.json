@@ -597,6 +597,22 @@
       }
     },
     {
+      "id": "carry-in-hands-animation",
+      "kind": "code",
+      "code": [
+        "src/render/player-motions/carry-in-hands-animation.ts",
+        "src/render/showcases/animations/carry-in-hands-animation.ts",
+        "src/render/scene-renderer.ts"
+      ],
+      "description": "The player carries a plank or a stone in front of them in both hands, at waist height, while they fetch it for a blueprint. Both wrists come together in front of the belly, a little apart, over whatever the legs do, so the player walks with it. The plank lies across the body: it is the plank shape from the pile asset, a flat board of pale sawn wood 0.8 m long. The stone is the first shape of the stone asset, shown a little larger than true size so it reads beside the hands. The axe goes on the back while the hands are full. It is posed in code with the build pose's bones.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fetch-materials/issues/01-fetch-materials-within-10-m.md"
+      }
+    },
+    {
       "id": "player-build-animation",
       "kind": "code",
       "code": [

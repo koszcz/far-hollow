@@ -1,6 +1,6 @@
 import { World } from "miniplex";
 import type { ActionCommand } from "./api";
-import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
+import type { CampfireFuel, CarriedLog, CarriedThing, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, Plantable, WildFood } from "./backpack";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
@@ -26,7 +26,7 @@ export interface Vec3 {
   z: number;
 }
 
-export type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
+export type { CampfireFuel, CarriedLog, CarriedThing, HeldMaterial, WoodpileWood } from "./wood-and-fuel";
 
 /**
  * Work on a campfire, woodpile, or sled that needs the player within its reach. Out of reach, the player walks there first.
@@ -105,8 +105,11 @@ export interface Entity {
   plantMushroomTask?: { logId: number; secondsDone: number };
   /** The debarking in progress: the log on the ground the player is debarking, given by its entity id, and how long they have worked at it. */
   debarkTask?: { logId: number; secondsDone: number };
-  /** What the entity carries on their shoulder: a log or a debarked log. Only one fits. */
-  carrying?: CarriedLog;
+  /**
+   * What the entity carries outside the backpack: a log or a debarked log on the shoulder, or a plank or a stone in both hands.
+   * Only one fits. A plank or stone is carried this way only when the player fetches it for a blueprint.
+   */
+  carrying?: CarriedThing;
   /** The sled the player drags behind them, given by its entity id. Their hands are busy until they let go. Only the player has one. */
   dragging?: { sledId: number };
   /** Marks a stick lying on the forest floor. Its position is the middle of the stick. */
@@ -135,8 +138,11 @@ export interface Entity {
   builtCost?: { material: DeliveredMaterial; count: number }[];
   /** Which way a blueprint, or the structure built from it, faces. A bedroll laid in a lean-to has it too. A bedroll without it lies along z. */
   facing?: { turns: QuarterTurns };
-  /** The building in progress: the blueprint the player is building, given by its entity id. Its progress lives on the blueprint. */
-  buildTask?: { blueprintId: number };
+  /**
+   * The building in progress: the blueprint the player is building, given by its entity id. Its progress lives on the blueprint.
+   * `fetchFrom` is the pile, sled, or log on the ground the player is on their way to, to fetch the next stage's material.
+   */
+  buildTask?: { blueprintId: number; fetchFrom?: number };
   /**
    * The taking down in progress: the blueprint or finished structure the player is taking down, given by its entity id,
    * and how long they have worked at it.

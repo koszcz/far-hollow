@@ -24,7 +24,7 @@ import type {
   WoodpileView,
   WoodpileWood,
 } from "../sim/api";
-import { nearbyOf } from "../sim/api";
+import { isCarriedLog, nearbyOf } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { ActionQueueRow } from "./action-queue-row";
@@ -153,7 +153,7 @@ const HOTBAR_CELL_CLASS: Readonly<Record<HotbarTarget["kind"], string | undefine
 function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined, tip: string): string {
   switch (target.kind) {
     case "shoulder":
-      return strings.hotbar.shoulder(name);
+      return isCarriedLog(target.log) ? strings.hotbar.shoulder(name) : strings.hotbar.inHands(name);
     case "litTorch":
       return strings.hotbar.inHand(tip);
     case "sled":
@@ -196,7 +196,7 @@ function HotbarCellIcon({ target }: { target: HotbarTarget }) {
     case "backpackContent":
       return <BackpackIcon content={target.content} />;
     case "shoulder":
-      return <HudIcon name="log" />;
+      return isCarriedLog(target.log) ? <HudIcon name="log" /> : <BackpackIcon content={target.log} />;
     case "sled":
       return <ShadedIcon drawing={SLED_DRAWING} className="backpack-icon" />;
     case "litTorch":

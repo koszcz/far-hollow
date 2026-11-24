@@ -1,4 +1,4 @@
-import type { BlueprintView, BuildLack, PlacementCheck, Refusal } from "./api";
+import type { BlueprintView, BuildLack, Notice, PlacementCheck, Refusal } from "./api";
 import type { ApproachReach } from "./approach";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, countOf, takeCount } from "./counts";
@@ -24,13 +24,11 @@ import {
   stageMaterials,
   structureOf,
   type BuildMaterial,
-  type DeliveredMaterial,
   type GroundRect,
   type KeptMaterial,
   type MaterialCost,
   type PlacedStructure,
   type StructureKind,
-  type TakenMaterial,
 } from "./structures";
 import { TAKEN_MATERIALS } from "./structure-kind";
 import { gardenThingInTheWay } from "./garden-things";
@@ -38,7 +36,10 @@ import { type QuarterTurns } from "./quarter-turns";
 import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
-import type { Walking } from "./walking";
+import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
+import { distanceToTarget, walkingDistancesFrom, type WalkTarget } from "./pathfinding";
+import { isWalkable } from "./walk-map";
+import { refusedNotice } from "./notices";
 import type { CommandRules, RuleGame } from "./command-rule";
 
 /** The player walks to a spot this far outside the ground a blueprint covers to build it, in metres. */
@@ -46,29 +47,45 @@ export const BUILD_STAND_METRES = 0.7;
 /** The player can build a blueprint, or add a material to it, from this far outside the ground it covers, in metres. */
 export const BUILD_REACH_METRES = 1.7;
 /**
- * A blueprint takes the planks, logs, and debarked logs it costs from parked sleds whose edge is within this many metres of its edge.
- * It also takes planks and stone from piles, and logs and debarked logs lying on the ground, whose middle is within this many metres of its edge.
+ * The player fetches a stage's material themselves if it lies within this many metres of the blueprint's edge, measured along
+ * the walking path. They fetch from logs and debarked logs lying on the ground, plank and stone piles, and parked sleds.
  */
-export const NEARBY_MATERIALS_METRES = 2;
+export const FETCH_METRES = 10;
+/** The player picks up a fetched material from this far from a pile's or log's middle, or from a sled's edge, in metres. */
+const FETCH_REACH_METRES = 2;
 
 type Blueprint = NonNullable<Entity["blueprint"]>;
 type Backpack = NonNullable<Entity["backpack"]>;
+type Builder = Entity & Required<Pick<Entity, "buildTask" | "position" | "backpack">>;
 
-/** One material a blueprint can take from near it, besides what is in the backpack or was carried to it. */
-interface MaterialNearby {
-  /** How many lie there in all. */
-  readonly count: number;
-  /** Takes up to `count` of them, nearest first. Returns how many it took. */
-  take(count: number): number;
+/** One place the player can fetch a material from: a pile, a log lying on the ground, or a parked sled. */
+interface Source {
+  readonly id: number;
+  /** Where it lies: the middle of a pile or a log, or the ground a sled covers. */
+  readonly target: WalkTarget;
+  /** Where the player walks to pick it up, if they can stand on it: the middle of a pile or a log. */
+  readonly spot?: GroundPoint;
+  /** Where the hand reaches to take one. */
+  readonly reachToward: GroundPoint;
+  /** Takes one of the material from it. */
+  take(): void;
 }
 
-/** Every material a blueprint can take from near it. */
-type MaterialsNearby = Readonly<Record<KeptMaterial, MaterialNearby>>;
+/** Why building stopped, with the notice that says so, if any. */
+interface Stop {
+  readonly notice?: Notice;
+}
 
-const NOTHING_NEARBY: MaterialNearby = { count: 0, take: () => 0 };
+/** Building stopped without a notice, such as when the player cannot walk back to the blueprint. */
+const STOP: Stop = {};
 
-/** Nothing nearby, as with free building. */
-const NO_MATERIALS_NEARBY: MaterialsNearby = { log: NOTHING_NEARBY, debarkedLog: NOTHING_NEARBY, plank: NOTHING_NEARBY, stone: NOTHING_NEARBY };
+/** Building stopped because the next stage lacks something, and the notice says what. */
+function stopLacking(lacks: BuildLack): Stop {
+  return { notice: refusedNotice({ kind: "cannotBuildYet", lacks }) };
+}
+
+/** Building stopped because the player carries something the next stage does not need. */
+const STOP_HANDS_FULL: Stop = { notice: refusedNotice({ kind: "handsFull" }) };
 
 export interface Building {
   /** Where a blueprint of `structure` facing `turns` would go if placed near `at`, and whether it is allowed there. Changes nothing. */
@@ -78,11 +95,15 @@ export interface Building {
    * Returns the new blueprint's entity id. Does nothing, and returns undefined, if the structure's placement rule refuses the spot.
    */
   place(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): number | undefined;
-  /** Whether the player could start building a blueprint now: they have the tool it needs and the material for its next stage. */
+  /**
+   * Whether the player could start building a blueprint now: they carry nothing its next stage does not need, and they have
+   * the tool it needs and the material for its next stage.
+   */
   canStartBuilding(blueprintId: number): boolean;
   /**
    * Starts the player building a blueprint within reach. The approach runs it once they arrive.
-   * Building goes on until the player stops, the piece is finished, or the next material runs out.
+   * Building goes one stage at a time. When the blueprint lacks a stage's material, the player fetches it from within FETCH_METRES.
+   * It goes on until the player stops, the piece is finished, or no material for the next stage is left within reach.
    */
   build(blueprintId: number): void;
   /**
@@ -91,25 +112,25 @@ export interface Building {
    */
   reach(blueprintId: number): ApproachReach | undefined;
   /**
-   * Has the player lay the material on their shoulder, such as a debarked log, by a blueprint within reach, which takes it when
+   * Has the player hand what they carry, such as a debarked log, to a blueprint within reach, which takes it when
    * the hand gets there. The approach runs it once they arrive. The material is added only if the blueprint still needs more of it.
    */
   deliver(blueprintId: number): void;
-  /** Stops the player building. The blueprint keeps its progress. */
+  /** Stops the player building. The blueprint keeps its progress, and the player keeps what they carry. */
   cancel(): void;
   /** What a blueprint needs and has, or undefined if the entity is not a blueprint. */
   describe(blueprintId: number): BlueprintView | undefined;
-  /** Why the player could not build a blueprint's next stage now: the tool or material it lacks. */
+  /** Why the player could not start building a blueprint now: their hands are full, or the next stage lacks a tool or material. */
   refusal(blueprintId: number): Refusal | undefined;
   /** The blueprint nearest the player within reach, or undefined if none is. */
   nearby(): BlueprintView | undefined;
-  /** Moves construction and deliveries on by one logic step. Run it after walking has moved the player. */
-  step(stepSeconds: number): undefined;
+  /** Moves construction, fetching, and deliveries on by one logic step. Run it after walking has moved the player. */
+  step(stepSeconds: number): Notice | undefined;
 }
 
 /**
  * Lets the player place blueprints, add materials to them, and turn them into finished building pieces.
- * With `freeBuilding`, building spends no materials and needs no tools. The playground uses it.
+ * With `freeBuilding`, building spends no materials, needs no tools, and fetches nothing. The playground uses it.
  */
 export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">, freeBuilding = false): Building {
   const players = playerEntities(entities);
@@ -138,90 +159,103 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     return { target, blueprint, position };
   }
 
+  type Placed = NonNullable<ReturnType<typeof placedBlueprint>>;
+
+  /** Whether a worker stands within reach of a placed blueprint. */
+  function inReach(worker: { position: GroundPoint }, target: PlacedStructure): boolean {
+    return distanceOutside(footprintOfEntity(target), worker.position) <= BUILD_REACH_METRES;
+  }
+
   /** The blueprint a task points at, if it still exists and the worker has it within reach. */
   function reachedBlueprint(worker: { position: GroundPoint }, blueprintId: number) {
     const placed = placedBlueprint(blueprintId);
     // The player may have walked as close as they could but still be out of reach.
-    if (placed === undefined || distanceOutside(footprintOfEntity(placed.target), worker.position) > BUILD_REACH_METRES) return undefined;
+    if (placed === undefined || !inReach(worker, placed.target)) return undefined;
     return placed;
   }
 
-  /**
-   * The materials lying near a blueprint, within NEARBY_MATERIALS_METRES of it.
-   * Planks come from parked sleds, nearest first, then from plank piles, nearest first. Stone comes from stone piles, nearest first.
-   * Logs and debarked logs come from the ground, nearest first, then from parked sleds, nearest first.
-   */
-  function materialsNearby(target: Entity): MaterialsNearby {
-    if (!isPlacedStructure(target)) return NO_MATERIALS_NEARBY;
+  /** The entity as a place to fetch one `material` from, if it is one now: a pile, a log on the ground, or a parked sled holding some. */
+  function sourceOf(entity: Entity, material: KeptMaterial): Source | undefined {
+    const id = entities.id(entity);
+    const position = entity.position;
+    if (id === undefined || position === undefined) return undefined;
+    const at = { x: position.x, z: position.z };
+    const lying = material === "log" ? entity.log : material === "debarkedLog" ? entity.debarkedLog : undefined;
+    if (lying !== undefined) {
+      return {
+        id,
+        target: at,
+        spot: at,
+        reachToward: at,
+        take: () => {
+          entities.remove(entity);
+        },
+      };
+    }
+    const pile = entity.pile;
+    if (pile !== undefined && pile.content === material && pile.count > 0) {
+      return {
+        id,
+        target: at,
+        spot: at,
+        reachToward: at,
+        take: () => {
+          pile.count -= 1;
+          if (pile.count === 0) entities.remove(entity);
+        },
+      };
+    }
+    // A sled carries logs, debarked logs, and planks, but never stone. A sled the player drags is no source.
+    const load = entity.sled;
+    if (load !== undefined && material !== "stone" && load[material] > 0 && isPlacedStructure(entity) && isParked(entities, entity)) {
+      return {
+        id,
+        target: footprintOfEntity(entity),
+        reachToward: at,
+        take: () => {
+          entity.sled = takeCount(load, material, 1);
+        },
+      };
+    }
+    return undefined;
+  }
+
+  /** Every place to fetch `material` from, anywhere in the valley. */
+  function sourcesOf(material: KeptMaterial): Source[] {
+    const candidates: readonly Entity[] =
+      material === "log"
+        ? logEntities(entities).entities
+        : material === "debarkedLog"
+          ? debarkedLogEntities(entities).entities
+          : pileEntities(entities).entities;
+    const sleds = material === "stone" ? [] : sledEntities(entities).entities;
+    return [...candidates, ...sleds].flatMap((entity) => sourceOf(entity, material) ?? []);
+  }
+
+  /** The places to fetch `material` from within FETCH_METRES of a blueprint, measured along the walking path, nearest first. */
+  function fetchableSources(target: PlacedStructure, material: KeptMaterial): Source[] {
     const footprint = footprintOfEntity(target);
-    const sleds = sledEntities(entities)
-      .entities.filter((sled) => isParked(entities, sled))
-      .map((sled) => ({ sled, distance: gapBetween(footprintOfEntity(sled), footprint) }))
-      .filter(({ distance }) => distance <= NEARBY_MATERIALS_METRES)
+    // No walk is shorter than the straight line, so anything further than that cannot count.
+    const close = sourcesOf(material).filter((source) => gapTo(footprint, source.target) <= FETCH_METRES);
+    if (close.length === 0) return [];
+    const walks = walkingDistancesFrom(walking.walkMap, footprint, FETCH_METRES);
+    return close
+      .map((source) => ({ source, distance: walks.to(source.target) }))
+      .filter((found): found is { source: Source; distance: number } => found.distance !== undefined)
       .sort((a, b) => a.distance - b.distance)
-      .map(({ sled }) => sled);
-    /** The entities in `list` whose middle lies within NEARBY_MATERIALS_METRES of the blueprint, nearest first. */
-    const near = <T extends Entity & { position: GroundPoint }>(list: readonly T[]): T[] =>
-      list
-        .map((entity) => ({ entity, distance: distanceOutside(footprint, entity.position) }))
-        .filter(({ distance }) => distance <= NEARBY_MATERIALS_METRES)
-        .sort((a, b) => a.distance - b.distance)
-        .map(({ entity }) => entity);
+      .map(({ source }) => source);
+  }
 
-    /** The things of one kind in piles near the blueprint, and, for planks, on parked sleds near it. */
-    function takenNearby(material: TakenMaterial): MaterialNearby {
-      const piles = near(pileEntities(entities).entities.filter((pile) => pile.pile.content === material));
-      // A sled carries planks but never stone.
-      const loaded = material === "plank" ? sleds : [];
-      return {
-        count: loaded.reduce((total, sled) => total + sled.sled.plank, 0) + piles.reduce((total, pile) => total + pile.pile.count, 0),
-        take(wanted) {
-          let taken = 0;
-          for (const sled of loaded) {
-            const fromSled = Math.min(wanted - taken, sled.sled.plank);
-            sled.sled = takeCount(sled.sled, "plank", fromSled);
-            taken += fromSled;
-          }
-          for (const pile of piles) {
-            const fromPile = Math.min(wanted - taken, pile.pile.count);
-            pile.pile.count -= fromPile;
-            taken += fromPile;
-            if (pile.pile.count === 0) entities.remove(pile);
-          }
-          return taken;
-        },
-      };
-    }
+  /** Whether the player carries something a blueprint's next stage does not need. Their hands must be free to build it then. */
+  function handsFull(player: Entity, blueprint: Blueprint, cost: readonly MaterialCost[]): boolean {
+    if (freeBuilding || player.carrying === undefined) return false;
+    return stageMaterials(cost)[blueprint.materialsSpent] !== player.carrying;
+  }
 
-    /** The logs of one kind lying near the blueprint, on the ground in `onGround` or on a parked sled. */
-    function logsNearby(material: DeliveredMaterial, onGround: readonly (Entity & { position: GroundPoint })[]): MaterialNearby {
-      const lying = near(onGround);
-      return {
-        count: lying.length + sleds.reduce((total, sled) => total + sled.sled[material], 0),
-        take(wanted) {
-          let taken = 0;
-          for (const log of lying) {
-            if (taken >= wanted) break;
-            entities.remove(log);
-            taken += 1;
-          }
-          for (const sled of sleds) {
-            while (taken < wanted && sled.sled[material] > 0) {
-              sled.sled = takeCount(sled.sled, material, 1);
-              taken += 1;
-            }
-          }
-          return taken;
-        },
-      };
-    }
-
-    return {
-      plank: takenNearby("plank"),
-      stone: takenNearby("stone"),
-      log: logsNearby("log", logEntities(entities).entities),
-      debarkedLog: logsNearby("debarkedLog", debarkedLogEntities(entities).entities),
-    };
+  /** What the player lacks to build a blueprint's next stage, or undefined if nothing. A material they carry or can fetch counts. */
+  function lackOf(player: Entity, backpack: Backpack, target: Entity, blueprint: Blueprint): BuildLack | undefined {
+    const available = (material: KeptMaterial) => player.carrying === material || (isPlacedStructure(target) && fetchableSources(target, material).length > 0);
+    return nextStageLack(blueprint, costOf(target, blueprint.structure), backpack, available, freeBuilding);
   }
 
   function describe(blueprintId: number): BlueprintView | undefined {
@@ -233,8 +267,8 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     const deliveries = cost.flatMap(({ material, count }) =>
       isKept(material) && !freeBuilding ? [Object.freeze({ material, has: countOf(blueprint.delivered, material), needs: count })] : [],
     );
-    const backpack = players.first?.backpack;
-    const lacks = backpack === undefined ? null : nextStageLack(blueprint, cost, backpack, materialsNearby(target), freeBuilding);
+    const player = players.first;
+    const lacks = player?.backpack === undefined ? null : lackOf(player, player.backpack, target, blueprint);
     return Object.freeze({
       id: blueprintId,
       structure: blueprint.structure,
@@ -244,11 +278,144 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
     });
   }
 
+  /** Why the player could not start building a blueprint now, if they could not. Full hands come first. */
+  function refusal(blueprintId: number): Refusal | undefined {
+    const target = entities.entity(blueprintId);
+    const blueprint = target?.blueprint;
+    const player = players.first;
+    if (target === undefined || blueprint === undefined) return undefined;
+    if (player !== undefined && handsFull(player, blueprint, costOf(target, blueprint.structure))) return { kind: "handsFull" };
+    const lacks = describe(blueprintId)?.lacks ?? null;
+    return lacks === null ? undefined : { kind: "cannotBuildYet", lacks };
+  }
+
+  /** Whether the walk the player has just set off on ends within `metres` of `target`. */
+  function arrivesWithin(walker: Entity & { position: GroundPoint }, target: WalkTarget, metres: number): boolean {
+    const end = walker.walkPath?.at(-1) ?? walker.position;
+    return distanceToTarget(target, end) <= metres;
+  }
+
+  /**
+   * Sets the player walking to within `metres` of `target`: onto `spot` if it is open ground, or else the shortest way to within reach.
+   * Returns false, and stops them, if no walk gets them within reach.
+   */
+  function walkWithinReach(walker: Entity & { position: GroundPoint }, target: WalkTarget, metres: number, spot?: GroundPoint): boolean {
+    if (spot !== undefined && isWalkable(walking.walkMap, spot)) {
+      walking.walkTo(spot);
+      if (arrivesWithin(walker, target, metres)) return true;
+    }
+    walking.walkWithin(target, metres - WALK_REACH_MARGIN_METRES);
+    if (arrivesWithin(walker, target, metres)) return true;
+    entities.removeComponent(walker, "walkPath");
+    return false;
+  }
+
+  /** Sets the builder walking back within reach of the blueprint, on the side they come from. */
+  function walkBack(builder: Builder, placed: Placed): Stop | undefined {
+    const reach = structureReach(placed.target, builder.position);
+    const spot = reach.walk.style === "offAndBeside" ? reach.walk.spot : undefined;
+    return walkWithinReach(builder, reach.target, reach.metres, spot) ? undefined : STOP;
+  }
+
+  /** Has the builder reach out and hand the material they carry to the blueprint, which keeps it, when the hand gets there. */
+  function handOver(builder: Builder, placed: Placed, material: KeptMaterial): void {
+    const blueprintId = builder.buildTask.blueprintId;
+    hand.start("low", placed.position, () => {
+      const still = reachedBlueprint(builder, blueprintId);
+      if (still === undefined || builder.carrying !== material) return undefined;
+      entities.removeComponent(builder, "carrying");
+      still.blueprint.delivered = addCount(still.blueprint.delivered, material, 1);
+      return undefined;
+    });
+  }
+
+  /**
+   * Gets the material for a blueprint's next stage, which the blueprint does not keep yet. A material the builder carries is
+   * handed over, and planks or stone in the backpack are taken once they stand within reach. Otherwise the builder sets off
+   * to fetch one from the nearest source within FETCH_METRES.
+   */
+  function bringStageMaterial(builder: Builder, placed: Placed, material: KeptMaterial, withinReach: boolean): Stop | undefined {
+    if (builder.carrying === material) {
+      if (!withinReach) return walkBack(builder, placed);
+      handOver(builder, placed, material);
+      return undefined;
+    }
+    // Building takes planks and stone from the backpack once the player stands within reach. A log never goes in the backpack.
+    if (!isDelivered(material) && hasInBackpack(builder.backpack, material)) return walkBack(builder, placed);
+    if (builder.carrying !== undefined) return STOP_HANDS_FULL;
+    const source = fetchableSources(placed.target, material)[0];
+    if (source === undefined) return stopLacking({ kind: "material", material });
+    builder.buildTask = { blueprintId: builder.buildTask.blueprintId, fetchFrom: source.id };
+    return walkWithinReach(builder, source.target, FETCH_REACH_METRES, source.spot) ? undefined : stopLacking({ kind: "material", material });
+  }
+
+  /**
+   * Has the builder, who has walked to a source to fetch the next stage's material, pick one up. A log goes on the shoulder,
+   * and a plank or stone in the hands. If the source has none left, the builder looks again on the next step.
+   */
+  function pickUp(builder: Builder, placed: Placed, sourceId: number): Stop | undefined {
+    builder.buildTask = { blueprintId: builder.buildTask.blueprintId };
+    const material = stageMaterials(costOf(placed.target, placed.blueprint.structure))[placed.blueprint.materialsSpent];
+    if (material === undefined || !isKept(material)) return undefined;
+    const entity = entities.entity(sourceId);
+    const source = entity === undefined ? undefined : sourceOf(entity, material);
+    if (entity === undefined || source === undefined) return undefined;
+    if (builder.carrying !== undefined) return STOP_HANDS_FULL;
+    if (distanceToTarget(source.target, builder.position) > FETCH_REACH_METRES) return stopLacking({ kind: "material", material });
+    hand.start("low", source.reachToward, () => {
+      const still = sourceOf(entity, material);
+      if (still === undefined || builder.carrying !== undefined) return undefined;
+      still.take();
+      entities.addComponent(builder, "carrying", material);
+      return undefined;
+    });
+    return undefined;
+  }
+
+  /**
+   * Works on a blueprint for one step: fetches or hands over the next stage's material if the blueprint lacks it,
+   * spends it, and builds. Each stage spends its material before work on it starts: a stick or bark comes out of the backpack,
+   * and a kept material, such as a debarked log, a plank, or a stone, from what the blueprint keeps.
+   * Returns why building stopped, if it did. With free building, every stage's material counts as spent without taking anything.
+   */
+  function workOn(builder: Builder, placed: Placed, stepSeconds: number): Stop | undefined {
+    const { target, blueprint } = placed;
+    const cost = costOf(target, blueprint.structure);
+    const structure = structureOf(blueprint.structure);
+    const stages = stageMaterials(cost);
+    if (!freeBuilding && structure.tool !== undefined && !hasInBackpack(builder.backpack, structure.tool)) {
+      return stopLacking({ kind: "tool", tool: structure.tool });
+    }
+    const fetchFrom = builder.buildTask.fetchFrom;
+    if (!freeBuilding && fetchFrom !== undefined) return pickUp(builder, placed, fetchFrom);
+    const withinReach = inReach(builder, target);
+    if (!freeBuilding && withinReach) takeFromBackpack(blueprint, cost, builder.backpack);
+    if (stages.length > 0 && blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
+      const material = stages[blueprint.materialsSpent];
+      if (material === undefined) return STOP;
+      if (!freeBuilding && isKept(material) && keptLeft(blueprint, stages, material) <= 0) {
+        return bringStageMaterial(builder, placed, material, withinReach);
+      }
+      if (!withinReach) return walkBack(builder, placed);
+      if (!freeBuilding && !isKept(material) && !removeFromBackpack(builder.backpack, material, 1)) return stopLacking({ kind: "material", material });
+      blueprint.materialsSpent += 1;
+    }
+    if (!withinReach) return walkBack(builder, placed);
+    // A structure that costs nothing, such as a woodpile, is one stage of work with nothing to spend.
+    const builtUpTo = stages.length === 0 ? 1 : blueprint.materialsSpent / stages.length;
+    blueprint.progress = Math.min(builtUpTo, blueprint.progress + stepSeconds / structure.buildSeconds);
+    return undefined;
+  }
+
+  /** Turns a blueprint whose progress has reached 1 into the finished structure. */
+  function finish({ target, blueprint, position }: Placed): void {
+    entities.removeComponent(target, "blueprint");
+    const finished = structureOf(blueprint.structure).finish({ x: position.x, z: position.z }, target.facing?.turns ?? 0, entities);
+    for (const key of Object.keys(finished) as (keyof Entity)[]) entities.addComponent(target, key, finished[key]);
+  }
+
   return {
-    refusal(blueprintId) {
-      const lacks = describe(blueprintId)?.lacks ?? null;
-      return lacks === null ? undefined : { kind: "cannotBuildYet", lacks };
-    },
+    refusal,
     checkPlacement,
     place(structure, at, turns) {
       const { spot, turns: facing, allowed } = checkPlacement(structure, at, turns);
@@ -269,8 +436,11 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       const blueprint = target?.blueprint;
       if (target === undefined || blueprint === undefined) return false;
       const cost = costOf(target, blueprint.structure);
+      const stages = stageMaterials(cost);
+      // Every stage built already leaves nothing to build.
+      if (!freeBuilding && stages.length > 0 && stages[blueprint.materialsSpent] === undefined) return false;
       return players.entities.some(
-        (player) => player.backpack !== undefined && hasNextStage(blueprint, cost, player.backpack, materialsNearby(target), freeBuilding),
+        (player) => player.backpack !== undefined && !handsFull(player, blueprint, cost) && lackOf(player, player.backpack, target, blueprint) === undefined,
       );
     },
     build(blueprintId) {
@@ -315,37 +485,34 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
       return nearest === undefined ? undefined : describe(nearest.id);
     },
     step(stepSeconds) {
+      let notice: Notice | undefined;
       // Copy the list first, because players who finish or give up leave the query while it is being walked.
       for (const builder of [...builders]) {
-        const reached = placedBlueprint(builder.buildTask.blueprintId);
-        if (
-          reached === undefined ||
-          !buildOn(
-            reached.blueprint,
-            costOf(reached.target, reached.blueprint.structure),
-            builder.backpack,
-            freeBuilding ? NO_MATERIALS_NEARBY : materialsNearby(reached.target),
-            stepSeconds,
-            freeBuilding,
-          )
-        ) {
+        const placed = placedBlueprint(builder.buildTask.blueprintId);
+        if (placed === undefined) {
           entities.removeComponent(builder, "buildTask");
           continue;
         }
-        if (reached.blueprint.progress < 1) continue;
+        // The builder is still walking to fetch or bring back a material, or their hand is still on its way to it.
+        if (builder.walkPath !== undefined || builder.handReach !== undefined) continue;
+        const stopped = workOn(builder, placed, stepSeconds);
+        if (stopped !== undefined) {
+          entities.removeComponent(builder, "buildTask");
+          notice = stopped.notice ?? notice;
+          continue;
+        }
+        if (placed.blueprint.progress < 1) continue;
         entities.removeComponent(builder, "buildTask");
-        const { target, blueprint, position } = reached;
-        entities.removeComponent(target, "blueprint");
-        const finished = structureOf(blueprint.structure).finish({ x: position.x, z: position.z }, target.facing?.turns ?? 0, entities);
-        for (const key of Object.keys(finished) as (keyof Entity)[]) entities.addComponent(target, key, finished[key]);
+        finish(placed);
       }
+      return notice;
     },
   };
 }
 
-/** Whether the deliverer carries something on the shoulder that the blueprint still needs. */
+/** Whether the deliverer carries something that the blueprint still needs. */
 function canDeliver(deliverer: Entity, target: Entity, blueprint: Blueprint): boolean {
-  // Everything carried on the shoulder, a log or a debarked log, is a material some structure is built from.
+  // Everything carried outside the backpack, a log, a debarked log, a plank, or a stone, is a material some structure is built from.
   return deliverer.carrying !== undefined && stillNeeded(blueprint, costOf(target, blueprint.structure), deliverer.carrying) > 0;
 }
 
@@ -356,73 +523,29 @@ function stillNeeded(blueprint: Blueprint, cost: readonly MaterialCost[], materi
 }
 
 /**
- * Moves planks and stone to a blueprint costing `cost`, as many of each as it still needs: from the backpack first, then from `nearby`.
+ * Moves planks and stone from the backpack to a blueprint costing `cost`, as many of each as it still needs.
  * The blueprint keeps them, so the player can bring the rest on later trips.
  */
-function takeMaterials(blueprint: Blueprint, cost: readonly MaterialCost[], backpack: Backpack, nearby: MaterialsNearby): void {
+function takeFromBackpack(blueprint: Blueprint, cost: readonly MaterialCost[], backpack: Backpack): void {
   for (const material of TAKEN_MATERIALS) {
-    const needed = stillNeeded(blueprint, cost, material);
-    if (needed <= 0) continue;
-    const fromBackpack = Math.min(needed, countInBackpack(backpack, material));
-    if (fromBackpack > 0) removeFromBackpack(backpack, material, fromBackpack);
-    const fromNearby = fromBackpack < needed && nearby[material].count > 0 ? nearby[material].take(needed - fromBackpack) : 0;
-    if (fromBackpack + fromNearby > 0) blueprint.delivered = addCount(blueprint.delivered, material, fromBackpack + fromNearby);
+    const fromBackpack = Math.min(stillNeeded(blueprint, cost, material), countInBackpack(backpack, material));
+    if (fromBackpack <= 0) continue;
+    removeFromBackpack(backpack, material, fromBackpack);
+    blueprint.delivered = addCount(blueprint.delivered, material, fromBackpack);
   }
-}
-
-/**
- * Works on a blueprint costing `cost` for one step. First the blueprint takes the planks and stone it still needs,
- * from the backpack, then from `nearby`.
- * Each stage spends its material before work on it starts: a stick or bark comes out of the backpack,
- * and a kept material, such as a debarked log, a plank, or a stone, from what the blueprint keeps.
- * A stage that needs a log or debarked log the blueprint does not have yet takes one from `nearby`.
- * Returns false when the next stage's material has run out or the player lacks the tool the structure needs.
- * With `free`, every stage's material counts as spent without taking anything, and no tool is needed.
- */
-function buildOn(
-  blueprint: Blueprint,
-  cost: readonly MaterialCost[],
-  backpack: Backpack,
-  nearby: MaterialsNearby,
-  stepSeconds: number,
-  free: boolean,
-): boolean {
-  const structure = structureOf(blueprint.structure);
-  if (!free && structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return false;
-  const stages = stageMaterials(cost);
-  // A structure that costs nothing, such as a woodpile, is one stage of work with nothing to spend.
-  if (stages.length === 0) {
-    blueprint.progress = Math.min(1, blueprint.progress + stepSeconds / structure.buildSeconds);
-    return true;
-  }
-  if (!free) takeMaterials(blueprint, cost, backpack, nearby);
-  if (blueprint.materialsSpent < stageOf(blueprint.progress, stages.length) + 1) {
-    const material = stages[blueprint.materialsSpent];
-    if (material === undefined) return false;
-    if (!free && !spendStageMaterial(blueprint, backpack, stages, material, nearby)) return false;
-    blueprint.materialsSpent += 1;
-  }
-  blueprint.progress = Math.min(blueprint.materialsSpent / stages.length, blueprint.progress + stepSeconds / structure.buildSeconds);
-  return true;
-}
-
-/**
- * Whether a blueprint costing `cost` has a next stage that can be worked on: the player has the tool it needs,
- * and its material is in the backpack, kept by the blueprint, or lies `nearby`.
- */
-function hasNextStage(blueprint: Blueprint, cost: readonly MaterialCost[], backpack: Backpack, nearby: MaterialsNearby, free: boolean): boolean {
-  if (free) return true;
-  const stages = stageMaterials(cost);
-  // Every stage built already leaves nothing to build.
-  if (stages.length > 0 && stages[blueprint.materialsSpent] === undefined) return false;
-  return nextStageLack(blueprint, cost, backpack, nearby, free) === undefined;
 }
 
 /**
  * What the player lacks to build the next stage of a blueprint costing `cost`, or undefined if nothing.
- * `nearby` holds what the blueprint can take from sleds, piles, and the ground near it.
+ * `available` says whether the player carries a kept material or can fetch it.
  */
-function nextStageLack(blueprint: Blueprint, cost: readonly MaterialCost[], backpack: Backpack, nearby: MaterialsNearby, free: boolean): BuildLack | undefined {
+function nextStageLack(
+  blueprint: Blueprint,
+  cost: readonly MaterialCost[],
+  backpack: Backpack,
+  available: (material: KeptMaterial) => boolean,
+  free: boolean,
+): BuildLack | undefined {
   if (free) return undefined;
   const structure = structureOf(blueprint.structure);
   if (structure.tool !== undefined && !hasInBackpack(backpack, structure.tool)) return { kind: "tool", tool: structure.tool };
@@ -430,7 +553,7 @@ function nextStageLack(blueprint: Blueprint, cost: readonly MaterialCost[], back
   const material = stages[blueprint.materialsSpent];
   if (material === undefined) return undefined;
   if (!isKept(material)) return hasInBackpack(backpack, material) ? undefined : { kind: "material", material };
-  if (keptLeft(blueprint, stages, material) > 0 || nearby[material].count > 0) return undefined;
+  if (keptLeft(blueprint, stages, material) > 0 || available(material)) return undefined;
   // Building takes planks and stone from the backpack too. A log or debarked log never goes in the backpack.
   return !isDelivered(material) && hasInBackpack(backpack, material) ? undefined : { kind: "material", material };
 }
@@ -441,32 +564,23 @@ function keptLeft(blueprint: Blueprint, stages: readonly BuildMaterial[], materi
   return countOf(blueprint.delivered, material) - spent;
 }
 
+/** How far a walk target lies from the edge of a rectangle in a straight line, in metres. */
+function gapTo(rect: GroundRect, target: WalkTarget): number {
+  return "min" in target ? gapBetween(rect, target) : distanceOutside(rect, target);
+}
+
 /**
- * Spends the material for the blueprint's next stage. A log or debarked log the blueprint does not have yet comes from `nearby`.
- * Returns false, changing nothing, if it has run out.
+ * How far the blueprint the player builds has got, from 0 to 1, and the blueprint, or undefined if they are not building now.
+ * Walking there, fetching a material, and handing it over do not count.
  */
-function spendStageMaterial(
-  blueprint: Blueprint,
-  backpack: Backpack,
-  stages: readonly BuildMaterial[],
-  material: BuildMaterial,
-  nearby: MaterialsNearby,
-): boolean {
-  if (!isKept(material)) return removeFromBackpack(backpack, material, 1);
-  if (keptLeft(blueprint, stages, material) > 0) return true;
-  if (!isDelivered(material) || nearby[material].take(1) === 0) return false;
-  blueprint.delivered = addCount(blueprint.delivered, material, 1);
-  return true;
+export function buildingNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
+  const task = player.buildTask;
+  if (task === undefined || task.fetchFrom !== undefined || player.walkPath !== undefined || player.handReach !== undefined) return undefined;
+  const blueprint = entities.entity(task.blueprintId)?.blueprint;
+  return blueprint === undefined ? undefined : { progress: blueprint.progress, targetId: task.blueprintId };
 }
 
 /** Which stage of construction a blueprint is in, from 0 to one less than its number of stages. */
-/** How far the blueprint the player builds has got, from 0 to 1, and the blueprint, or undefined if they are not building now. Walking there does not count. */
-export function buildingNow(entities: EntityStore, player: Entity): { progress: number; targetId: number } | undefined {
-  if (player.buildTask === undefined) return undefined;
-  const blueprint = entities.entity(player.buildTask.blueprintId)?.blueprint;
-  return blueprint === undefined ? undefined : { progress: blueprint.progress, targetId: player.buildTask.blueprintId };
-}
-
 export function stageOf(progress: number, stages: number): number {
   // The small allowance stops rounding errors from holding a stage back at its very end.
   return Math.min(stages - 1, Math.floor(progress * stages + 1e-9));
@@ -523,7 +637,11 @@ export function buildingRules(
       needsFreeHands: (command) => command.thenBuild === true,
       run: (command) => {
         const id = building.place(command.structure, { x: command.x, z: command.z }, command.turns);
-        if (command.thenBuild !== true || id === undefined || !building.canStartBuilding(id)) return undefined;
+        if (command.thenBuild !== true || id === undefined) return undefined;
+        // Full hands stop building at once, and the game says why. A blueprint that lacks a material just stays placed.
+        const refusal = building.refusal(id);
+        if (refusal?.kind === "handsFull") return refusedNotice(refusal);
+        if (!building.canStartBuilding(id)) return undefined;
         stopOtherWork();
         return startApproach({ type: "build", blueprintId: id });
       },

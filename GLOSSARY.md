@@ -141,10 +141,14 @@ _Avoid_: Item, slot
 
 **Shoulder**:
 Where the player carries a single log or debarked log, outside the backpack.
-_Avoid_: Hands, carry slot
+_Avoid_: Carry slot
+
+**Hands**:
+Where the player carries a single plank or stone they fetch for a blueprint, outside the backpack. The player carries one thing at a time, on the shoulder or in the hands.
+_Avoid_: Carry slot, held item
 
 **Drop**:
-To put something the player carries on the ground at their feet. Anything in the backpack or on the player's shoulder can be dropped. Dropped things stay where they lie until the player picks them up again.
+To put something the player carries on the ground at their feet. Anything in the backpack, on the player's shoulder, or in their hands can be dropped. Dropped things stay where they lie until the player picks them up again.
 _Avoid_: Discard, throw away
 
 **Pile**:
@@ -160,7 +164,7 @@ To pull a sled behind the player as they walk. The player drags one sled at a ti
 _Avoid_: Pull, tow, push
 
 **Parked**:
-Said of a sled that no one drags. The player can load, take from, and tip out only a parked sled, and a work station can use the logs on a parked sled next to it.
+Said of a sled that no one drags. The player can load, take from, and tip out only a parked sled, a work station can use the logs on a parked sled next to it, and the player can fetch from a parked sled for a blueprint.
 _Avoid_: Stopped, idle, left
 
 **Tip out**:
@@ -331,8 +335,12 @@ To remove a blueprint or a finished structure and get back the materials in it. 
 _Avoid_: Demolish, deconstruct, destroy
 
 **Construction**:
-The timed work of turning a blueprint into a finished building piece. The player can stop partway and come back later.
+The timed work of turning a blueprint into a finished building piece. It goes one stage at a time, and each stage uses one material. When the player lacks a stage's material, they fetch it. The player can stop partway and come back later.
 _Avoid_: Crafting, assembly
+
+**Fetch**:
+During construction, to walk to the next stage's material, pick it up, carry it back, and hand it to the blueprint. The player fetches one item per trip, from the nearest source within 10 m of the blueprint's edge, measured along the walking path. Sources are logs and debarked logs lying on the ground, plank and stone piles, and parked sleds. A log goes on the shoulder, and a plank or stone goes in the hands, never in the backpack. Planks and stone in the backpack are used first. The player never shapes a material on the way, so a plain log never counts for a debarked log or a plank. Construction cannot start while the player carries something the next stage does not need.
+_Avoid_: Gather, collect, haul
 
 **Recipe**:
 A known way to make something from materials. A recipe becomes available as soon as the player has the tool or work station it needs. Every recipe is either a hand recipe or a station recipe.

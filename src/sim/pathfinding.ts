@@ -104,6 +104,79 @@ export function findPathWithin(map: WalkMap, from: GroundPoint, target: WalkTarg
   );
 }
 
+/** A walk starts or ends on any open square whose middle lies this many squares from its spot or rectangle, or closer. */
+const WALK_ENDS_CELLS = 1.5;
+
+/** How far the player walks from one place to others, measured along the walking path. See `walkingDistancesFrom`. */
+export interface WalkingDistances {
+  /** How far the walk from the start to `target` is, in metres, or undefined if it is further than the limit or cannot be walked at all. */
+  to(target: WalkTarget): number | undefined;
+}
+
+/**
+ * Measures the walk from `from` to other places, around anything in the way, up to `limit` metres.
+ * A rectangle is measured from its edge. The walk may start on any open square beside `from` and end on any open square
+ * beside the target, so a thing that blocks walking, such as a sled, can still be reached. The search covers only the
+ * squares within `limit`, so measuring many targets near one place costs one search.
+ */
+export function walkingDistancesFrom(map: WalkMap, from: WalkTarget, limit: number): WalkingDistances {
+  const near = WALK_ENDS_CELLS * map.cellSize;
+  const distances = new Map<number, number>();
+  const open = new MinHeap();
+  for (const cell of cellsNear(map, from, near)) {
+    if (map.blockerCounts[cell] !== 0) continue;
+    const distance = distanceToTarget(from, cellCentre(map, cell));
+    distances.set(cell, distance);
+    open.push(cell, distance);
+  }
+  const side = map.cellsPerSide;
+  const done = new Set<number>();
+  while (open.size > 0) {
+    const cell = open.pop();
+    if (done.has(cell)) continue;
+    done.add(cell);
+    const here = distances.get(cell) ?? Infinity;
+    const column = cell % side;
+    const row = Math.floor(cell / side);
+    for (const [dx, dz] of NEIGHBOURS) {
+      const nextColumn = column + dx;
+      const nextRow = row + dz;
+      if (nextColumn < 0 || nextRow < 0 || nextColumn >= side || nextRow >= side) continue;
+      const next = nextRow * side + nextColumn;
+      if (done.has(next) || !canStep(map, cell, next)) continue;
+      const nextDistance = here + (dx !== 0 && dz !== 0 ? Math.SQRT2 : 1) * map.cellSize;
+      if (nextDistance > limit || nextDistance >= (distances.get(next) ?? Infinity)) continue;
+      distances.set(next, nextDistance);
+      open.push(next, nextDistance);
+    }
+  }
+  return {
+    to(target) {
+      let best = Infinity;
+      for (const cell of cellsNear(map, target, near)) {
+        const walked = distances.get(cell);
+        if (walked !== undefined) best = Math.min(best, walked + distanceToTarget(target, cellCentre(map, cell)));
+      }
+      return best <= limit ? best : undefined;
+    },
+  };
+}
+
+/** Every square of the map whose middle lies within `metres` of a walk target. */
+function cellsNear(map: WalkMap, target: WalkTarget, metres: number): number[] {
+  const middle = middleOf(target);
+  const halfX = "min" in target ? (target.max.x - target.min.x) / 2 : 0;
+  const halfZ = "min" in target ? (target.max.z - target.min.z) / 2 : 0;
+  const cells: number[] = [];
+  for (let x = middle.x - halfX - metres; x <= middle.x + halfX + metres + map.cellSize; x += map.cellSize) {
+    for (let z = middle.z - halfZ - metres; z <= middle.z + halfZ + metres + map.cellSize; z += map.cellSize) {
+      const cell = cellIndexAt(map, { x, z });
+      if (cell !== undefined && !cells.includes(cell) && distanceToTarget(target, cellCentre(map, cell)) <= metres) cells.push(cell);
+    }
+  }
+  return cells;
+}
+
 const BLOCKED_REGION = 0;
 
 interface Regions {

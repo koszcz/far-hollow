@@ -1752,12 +1752,13 @@
         "src/render/firefly-effect.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "Fireflies: up to 40 small yellow-green glowing dots, each a bright core in a soft halo, that drift slowly and blink over clearings and the river bank near the player at night. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
+      "description": "Fireflies: up to 40 small glowing dots, each a hot core in a wide soft halo, that drift slowly over clearings and the river bank near the player at night. Each flashes for about a second, brightening fast and fading slower from yellow-green to amber, and climbs a little while lit, as a real firefly does in its upward flash stroke. Then it stays dark for a few seconds. Far fireflies never shrink below a few pixels. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/valley-life/issues/02-fireflies.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

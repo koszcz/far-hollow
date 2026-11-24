@@ -48,7 +48,7 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the approved "clay" asset, the unfired jug and the jug at each fill level in the draft "jug-icons" asset, the torch in the approved "torch-icons" asset, and cord and the fish trap in the draft "fish-trap-icons" asset. A sapling is drawn in the draft "sapling-icon" asset, and a berry bush in the draft "berry-bush-icon" asset.
+ * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the approved "clay" asset, the unfired jug and the jug at each fill level in the approved "jug-icons" asset, the torch in the approved "torch-icons" asset, and cord and the fish trap in the approved "fish-trap-icons" asset. A sapling is drawn in the approved "sapling-icon" asset, and a berry bush in the approved "berry-bush-icon" asset.
  */
 const DRAWINGS: Readonly<
   Record<

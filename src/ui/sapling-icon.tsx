@@ -1,4 +1,4 @@
-// The backpack icon for a sapling, the draft "sapling-icon" asset in asset-manifest.json. Built in code.
+// The backpack icon for a sapling, the approved "sapling-icon" asset in asset-manifest.json. Built in code.
 // Added by regrowth ticket 02. BackpackIcon in backpack-icons.tsx draws it, in the same style as the approved "backpack-icons".
 import type { BackpackIconDrawing } from "./icon-drawing";
 

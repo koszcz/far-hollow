@@ -3,7 +3,7 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { NIGHT, type Showcase } from "./types";
 
 export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
-  // The draft jug icons. src/ui/hud-showcase.tsx draws the HUD over each view.
+  // The approved jug icons. src/ui/hud-showcase.tsx draws the HUD over each view.
   "jug-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
@@ -58,7 +58,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft floor and door icons show among the build icons too, so this showcase draws the same views as "build-icons".
+  // The approved floor and door icons show among the build icons too, so this showcase draws the same views as "build-icons".
   "floor-and-door-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
@@ -72,7 +72,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft window and shutters icons show among the build icons, so this showcase draws the same views as "build-icons".
+  // The approved window and shutters icons show among the build icons, so this showcase draws the same views as "build-icons".
   "window-icons": {
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
@@ -186,7 +186,7 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
-  // The draft "fish-trap-icons". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with cord and a fish trap in the
+  // The approved "fish-trap-icons". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with cord and a fish trap in the
   // backpack, and their recipes in the craft menu.
   "fish-trap-icons": {
     radius: 6,

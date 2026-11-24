@@ -251,7 +251,7 @@ const UNFIRED_JUG_RECIPE: GameView["craftMenu"][number] = {
 };
 
 /**
- * The draft "jug-icons" asset: the unfired jug recipe in the craft menu, the icons drawn large, shaping a jug under way,
+ * The approved "jug-icons" asset: the unfired jug recipe in the craft menu, the icons drawn large, shaping a jug under way,
  * and unfired jugs and jugs at each fill level in the backpack.
  */
 const JUG_ICON_STATES: readonly ShowcaseState[] = [
@@ -275,7 +275,7 @@ const JUG_ICON_STATES: readonly ShowcaseState[] = [
   },
 ];
 
-/** The draft "sapling-icon" asset, over the last view only: saplings in the backpack while digging one up, beside a pile of them. */
+/** The approved "sapling-icon" asset, over the last view only: saplings in the backpack while digging one up, beside a pile of them. */
 const SAPLING_ICON_STATES: readonly (ShowcaseState | null)[] = [
   null,
   null,
@@ -292,7 +292,7 @@ const SAPLING_ICON_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
-/** The draft "berry-bush-icon" asset, over the last view only: berry bushes in the backpack while digging one up, beside a pile of them. */
+/** The approved "berry-bush-icon" asset, over the last view only: berry bushes in the backpack while digging one up, beside a pile of them. */
 const BERRY_BUSH_ICON_STATES: readonly (ShowcaseState | null)[] = [
   null,
   null,
@@ -747,7 +747,7 @@ const CORD_RECIPES: GameView["craftMenu"] = [
   },
 ];
 
-/** The draft "fish-trap-icons" asset: both recipes in the craft menu, cord and a fish trap in the backpack by day and evening, and both icons drawn large. */
+/** The approved "fish-trap-icons" asset: both recipes in the craft menu, cord and a fish trap in the backpack by day and evening, and both icons drawn large. */
 const FISH_TRAP_ICON_STATES: readonly ShowcaseState[] = [
   {
     view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, bark: 6, cord: 1, stick: 6 }, craftMenu: [...BASE_VIEW.craftMenu, ...CORD_RECIPES] },

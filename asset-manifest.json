@@ -1766,15 +1766,17 @@
       "kind": "code",
       "code": [
         "src/render/bird-shape.ts",
+        "src/render/bird-motion.ts",
         "src/render/bird-life.ts",
         "src/render/bird-meshes.ts"
       ],
-      "description": "Birds by day: a small, generic brown songbird about 14 cm long, with a pale buff belly, a short dark tail, thin dark legs, a round head with dark eyes, and a short yellow-brown beak. Its brown wings have darker tips. In flight the wings beat up and down. On the ground they fold back along the body, and the bird pecks by tipping forward and bending its head to the ground. Up to 3 flocks of 3 to 5 birds fly over the treetops, and up to 6 birds peck in clearings near the player and fly off when the player comes within 6 m. They fade with the daylight and stay away in rain. They make no sound.",
+      "description": "Birds by day: a small, generic brown songbird about 14 cm long, with a pale buff belly, a fanned dark tail, thin dark legs, a round head with dark eyes, and a short yellow-brown beak. Each brown wing has an inner half and a darker outer half. Like a real songbird, it flies in bursts: a few beats with a fast downstroke and a slower upstroke, the outer wing bent back at the wrist, then a short dip with the wings tucked. Its legs tuck up in flight. To land, it raises and spreads its wings to brake and puts its legs down. On the ground its wings fold back along the body. It pecks by tipping forward at the hips while its feet stay put, with a fast jab down and a slower return, and between pecks it looks to one side or makes a small hop. Up to 3 flocks of 3 to 5 birds fly over the treetops, and up to 6 birds peck in clearings near the player and fly off when the player comes within 6 m. They fade with the daylight and stay away in rain. They make no sound.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/valley-life/issues/01-birds.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

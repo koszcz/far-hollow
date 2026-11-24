@@ -526,6 +526,14 @@ _Avoid_: Placeholder, temp asset, stub
 An asset the owner has approved as final. Only the owner can approve an asset, and only the owner can approve a third-party file.
 _Avoid_: Final asset, polished asset
 
+**Asset showcase**:
+One asset drawn on its own in four labelled views, or played live when it is an animation, so the owner can review it.
+_Avoid_: Preview, demo page
+
+**Asset browser**:
+The page that lists every asset in the asset catalogue and shows the chosen asset's showcase beside the list.
+_Avoid_: Storybook, asset gallery
+
 **Player motion**:
 An animation asset that poses the player in code, such as fishing or crafting by hand, together with its props. Each player motion lives in its own module.
 _Avoid_: Player animation, player pose

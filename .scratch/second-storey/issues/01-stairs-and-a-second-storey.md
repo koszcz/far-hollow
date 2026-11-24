@@ -2,7 +2,7 @@
 
 **What to build:** The player can build stairs and a second storey on a cabin. The design spec already allows up to two storeys. A loft over the fireplace is the kind of home this makes possible.
 
-**Status:** idea
+**Status:** deferred
 
 **Assets:** None yet. Decide during grilling.
 

@@ -236,7 +236,7 @@ export function showAsset(
     bark.update();
     plantedTorches.update(seconds);
     river?.update(seconds, daylightAt(shot.hour ?? NOON));
-    windowGlow.update(daylightAt(shot.hour ?? NOON));
+    windowGlow.update({ daylight: daylightAt(shot.hour ?? NOON), nowSeconds: seconds });
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);

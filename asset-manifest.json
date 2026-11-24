@@ -909,11 +909,13 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       },
       "approvalNotes": [
-        "2026-11-23: The owner approved in chat a change so that the flowers sway in the wind. Forest floor ticket 05 made it."
+        "2026-11-23: The owner approved in chat a change so that the flowers sway in the wind. Forest floor ticket 05 made it.",
+        "2026-11-24: The owner approved the flowers with their own sway, with stiffer stems than grass."
       ]
     },
     {
@@ -1616,12 +1618,13 @@
         "src/render/shutters-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "Two plank shutters hung in a window's opening, on the face the window faces. Each leaf is one board of pale hand-sawn plank wood, hinged at its outer edge, so the two meet in the middle when closed. Each reaches 4 cm past the opening at its outer edge, top, and bottom, so no gap shows round it. A darker batten crosses each leaf's outside, and two dark iron strap hinges reach in from its outer edge. As a blueprint they show see-through, a plank the blueprint has waits pale and half solid, and construction hangs the left leaf, then the right: each fades in above its place and is set down. They show closed, open, or part way, as shutter-swing turns them, and fade with their window when they stand between the camera and the player.",
+      "description": "Two plank shutters hung in a window's opening, on the face the window faces. Each leaf is three upright boards of plank wood, weathered darker than the logs round them, with dark seams between. Each is hinged 4 cm past the opening's side and reaches 4 cm over and under it, so no gap shows round it, and the two meet in the middle when closed. On each leaf's outside, a darker batten crosses the top and the bottom, a diagonal brace climbs from the hinge side's bottom to the free side's top, and a dark iron strap hinge runs along each batten to a knuckle on the hinge line. The hinge line stands out from the logs, so an open leaf folds back flat against the wall. As a blueprint they show see-through, a plank the blueprint has waits pale and half solid, and construction hangs the left leaf, then the right: each fades in above its place and is set down. They show closed, open, or part way, as shutter-swing turns them, and fade with their window when they stand between the camera and the player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1631,12 +1634,13 @@
         "src/render/shutter-swing.ts",
         "src/render/shutters-meshes.ts"
       ],
-      "description": "Shutters swinging open and closed on their hinges when the player opens or closes them. Each leaf turns about its outer edge, outward, away from the window, easing in and out. Open, each folds back 170 degrees from closed, almost flat against the wall. A full swing takes 0.6 seconds. Shutters that turn back part way through a swing return from where they stand, in a share of the time, so they never jump.",
+      "description": "Shutters swinging open and closed on their hinges when the player opens or closes them. A real person leans out and pushes both leaves with two hands, one a moment behind the other. Each leaf coasts out and knocks flat against the wall. Closing, the person pulls both in and slows them, so they meet softly in the middle. Each leaf turns about its outer edge, outward, away from the window. The right leaf starts 0.08 seconds after the left. Open, each folds back 170 degrees from closed, almost flat against the wall. A full swing travels in 0.6 seconds. Opening, a leaf is quick at first and still moving when it reaches the wall, then bounces back 6 degrees and once more, smaller. Closing, it slows into the middle, then taps back 2.5 degrees and once more, smaller. Shutters that turn back part way through a swing return from where they stand, in a share of the time, with smaller bounces, so they never jump.",
       "source": "Timed in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1662,12 +1666,13 @@
         "src/render/window-glow-meshes.ts",
         "src/sim/window-glow.ts"
       ],
-      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, and a soft halo, a little larger than the opening, spreads from the outer face of the wall. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
+      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, brightest at the sill and dimmer at the top, and a soft halo, about twice the size of the opening, spreads from the outer face of the wall. Both breathe with a slow, soft flicker, out of step from window to window. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/02-indoor-shadow-and-window-glow.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1763,12 +1768,13 @@
         "src/render/firefly-effect.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "Fireflies: up to 40 small yellow-green glowing dots, each a bright core in a soft halo, that drift slowly and blink over clearings and the river bank near the player at night. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
+      "description": "Fireflies: up to 40 small glowing dots, each a hot core in a wide soft halo, that drift slowly over clearings and the river bank near the player at night. Each flashes for about a second, brightening fast and fading slower from yellow-green to amber, and climbs a little while lit, as a real firefly does in its upward flash stroke. Then it stays dark for a few seconds. Far fireflies never shrink below a few pixels. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/valley-life/issues/02-fireflies.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1776,15 +1782,17 @@
       "kind": "code",
       "code": [
         "src/render/bird-shape.ts",
+        "src/render/bird-motion.ts",
         "src/render/bird-life.ts",
         "src/render/bird-meshes.ts"
       ],
-      "description": "Birds by day: a small, generic brown songbird about 14 cm long, with a pale buff belly, a short dark tail, thin dark legs, a round head with dark eyes, and a short yellow-brown beak. Its brown wings have darker tips. In flight the wings beat up and down. On the ground they fold back along the body, and the bird pecks by tipping forward and bending its head to the ground. Up to 3 flocks of 3 to 5 birds fly over the treetops, and up to 6 birds peck in clearings near the player and fly off when the player comes within 6 m. They fade with the daylight and stay away in rain. They make no sound.",
+      "description": "Birds by day: a small, generic brown songbird about 14 cm long, with a pale buff belly, a fanned dark tail, thin dark legs, a round head with dark eyes, and a short yellow-brown beak. Each brown wing has an inner half and a darker outer half. Like a real songbird, it flies in bursts: a few beats with a fast downstroke and a slower upstroke, the outer wing bent back at the wrist, then a short dip with the wings tucked. Its legs tuck up in flight. To land, it raises and spreads its wings to brake and puts its legs down. On the ground its wings fold back along the body. It pecks by tipping forward at the hips while its feet stay put, with a fast jab down and a slower return, and between pecks it looks to one side or makes a small hop. Up to 3 flocks of 3 to 5 birds fly over the treetops, and up to 6 birds peck in clearings near the player and fly off when the player comes within 6 m. They fade with the daylight and stay away in rain. They make no sound.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/valley-life/issues/01-birds.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

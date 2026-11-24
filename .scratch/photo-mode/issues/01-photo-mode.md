@@ -2,7 +2,7 @@
 
 **What to build:** The player can hide the hotbar and every panel, move the camera freely, and take a picture of their camp. The picture saves as an image file on their computer.
 
-**Status:** idea
+**Status:** deferred
 
 **Assets:** None yet. Decide during grilling.
 

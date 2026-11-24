@@ -814,8 +814,16 @@ const STATES_BY_ASSET = {
   "fish-trap-icons": FISH_TRAP_ICON_STATES,
 } as const;
 
-/** Draws one HUD in each quarter of `ui`, in the states for the "hud", "bark", "stone", "clay", "jug", "jug-icons", "sapling-icon", "berry-bush-icon", "backpack-icons", "crafting-icons", "fishing-icons", "build-icons", "sled-icon", "furniture-icons", "fireplace-icon", "rain-barrel-icon", "floor-and-door-icons", "window-icons", "action-queue-icons", "torch-icons", or "fish-trap-icons" showcase. */
-export function renderHudShowcase(ui: HTMLElement, asset: keyof typeof STATES_BY_ASSET): void {
+/** A showcase that draws the HUD over its views. Its showcase has `overlay: "hud"`. */
+export type HudShowcaseId = keyof typeof STATES_BY_ASSET;
+
+/** Whether this showcase has HUD states to draw. */
+export function isHudShowcase(id: string): id is HudShowcaseId {
+  return Object.hasOwn(STATES_BY_ASSET, id);
+}
+
+/** Draws one HUD in each quarter of `ui`, in the states for one showcase with `overlay: "hud"`. */
+export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
   const states: readonly (ShowcaseState | null)[] = STATES_BY_ASSET[asset];
   states.forEach((state, index) => {
     // A view with no state shows the scene alone.

@@ -22,6 +22,7 @@ function placeTrees(place: Stage["place"]): void {
 
 /** The view of an action sound: the player, whose work and steps it comes from. */
 const ACTION_SOUND_SHOWCASE: Showcase = {
+  overlay: "sound",
   radius: 4,
   focus: { x: 0, y: 1, z: 0 },
   shots: FOUR_ANGLES,
@@ -32,6 +33,7 @@ const ACTION_SOUND_SHOWCASE: Showcase = {
 
 export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   "sound-river": {
+    overlay: "sound",
     radius: 16,
     focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
@@ -40,6 +42,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
     },
   },
   "sound-forest": {
+    overlay: "sound",
     radius: 9,
     focus: { x: 0, y: 3, z: 0 },
     shots: FOUR_ANGLES,
@@ -50,6 +53,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The rain falls on the player in the open.
   "sound-rain": {
+    overlay: "sound",
     radius: 6,
     focus: { x: 0, y: 1.5, z: 0 },
     shots: [
@@ -65,6 +69,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // The player shelters under a lean-to in the rain, so they hear the drumming on its roof.
   "sound-rain-roof": {
+    overlay: "sound",
     radius: 4,
     focus: { x: 0, y: 0.8, z: 0 },
     shots: FOUR_ANGLES,
@@ -76,6 +81,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // Birds sing in the trees by day.
   "sound-birds": {
+    overlay: "sound",
     radius: 9,
     focus: { x: 0, y: 3, z: 0 },
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, hour: NOON })),
@@ -86,6 +92,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // Crickets chirp at night.
   "sound-crickets": {
+    overlay: "sound",
     radius: 9,
     focus: { x: 0, y: 1, z: 0 },
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, hour: NIGHT })),
@@ -96,6 +103,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   },
   // Left to right: a full campfire crackles loudest, a low one more quietly, and the unlit campfire, fireplace, and torch are silent.
   "sound-fire": {
+    overlay: "sound",
     radius: 7,
     focus: { x: 0, y: 0.5, z: 0 },
     shots: [
@@ -119,6 +127,7 @@ export const SOUND_SHOWCASES: Readonly<Record<string, Showcase>> = {
   ),
   // src/ui/sound-showcase.tsx draws the start screen's Volume slider and the open sound button over the views.
   "sound-button": {
+    overlay: "sound",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [

@@ -20,3 +20,21 @@ export const SHOWCASES: Readonly<Record<string, Showcase>> = {
   ...SOUND_SHOWCASES,
   ...ANIMATIONS_SHOWCASES,
 };
+
+/** One family file's showcases, under the name the asset browser groups them by. */
+export interface ShowcaseFamily {
+  readonly name: string;
+  readonly showcases: Readonly<Record<string, Showcase>>;
+}
+
+/** Every family file with its name, in the order the asset browser lists them. Each showcase id is in exactly one. */
+export const SHOWCASE_FAMILIES: readonly ShowcaseFamily[] = [
+  { name: "nature", showcases: NATURE_SHOWCASES },
+  { name: "building", showcases: BUILDING_SHOWCASES },
+  { name: "camp", showcases: CAMP_SHOWCASES },
+  { name: "interface", showcases: INTERFACE_SHOWCASES },
+  { name: "weather", showcases: WEATHER_SHOWCASES },
+  { name: "valley life", showcases: VALLEY_LIFE_SHOWCASES },
+  { name: "sound", showcases: SOUND_SHOWCASES },
+  { name: "animations", showcases: ANIMATIONS_SHOWCASES },
+];

@@ -483,6 +483,13 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       for (const shutters of [...stage.store.with("shutters")]) stage.store.remove(shutters);
       if (shot.label.includes("closed")) onDeckOf(stage)(0, 0.5, { shutters: { open: false }, facing: { turns: 0 } });
     },
+    // The open window at night, so the firelight flickers live.
+    play: {
+      shot: { label: "night, flickering", yaw: 20, pitch: 12, hour: NIGHT },
+      pose() {
+        return undefined;
+      },
+    },
   },
   "shutter-swing": {
     radius: 1.6,

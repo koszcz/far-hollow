@@ -1646,12 +1646,13 @@
         "src/render/window-glow-meshes.ts",
         "src/sim/window-glow.ts"
       ],
-      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, and a soft halo, a little larger than the opening, spreads from the outer face of the wall. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
+      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, brightest at the sill and dimmer at the top, and a soft halo, about twice the size of the opening, spreads from the outer face of the wall. Both breathe with a slow, soft flicker, out of step from window to window. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/02-indoor-shadow-and-window-glow.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

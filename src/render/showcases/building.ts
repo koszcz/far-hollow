@@ -111,12 +111,12 @@ function cabinWalls(stage: Stage, squares: readonly (readonly [number, number])[
 }
 
 /**
- * Builds a cabin two squares wide over columns 0 and 1 and three squares deep over rows -10 to -8, behind the other cabins, with a finished frame on
+ * Builds a cabin three squares wide over columns -1 to 1 and three squares deep over rows -10 to -8, behind the other cabins, with a finished frame on
  * every square, and with `roofs`, a finished roof too. The front row slopes down to the front, the back row to the back,
  * and the middle row with the front one, so the middle row becomes ridge sections and the ridge runs along the middle.
  */
 function oddWidthCabin(stage: Stage, { roofs }: { roofs: boolean }): void {
-  const squares = [0, 1].flatMap((x) => [-10, -9, -8].map((z) => [x, z] as const));
+  const squares = [-1, 0, 1].flatMap((x) => [-10, -9, -8].map((z) => [x, z] as const));
   cabinWalls(stage, squares);
   for (const [x, z] of squares) {
     const turns = z === -10 ? 2 : 0;
@@ -552,7 +552,7 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "blueprint on its frame", yaw: 30, pitch: 35, seconds: 0 },
       { label: `${ROOF_PLANK_COST / 2} of ${ROOF_PLANK_COST} rows of planks laid`, yaw: 30, pitch: 35, seconds: 0.5 },
       { label: "3 by 2 cabin, front", yaw: 25, pitch: 25, seconds: 1, radius: 2.6, focus: { x: 0, y: 1.5, z: -0.5 } },
-      { label: "3 deep: ridge in the middle row", yaw: 90, pitch: 12, seconds: 1, radius: 2.8, focus: { x: 0.5, y: 1.6, z: -9 } },
+      { label: "3 deep: ridge in the middle row", yaw: 40, pitch: 30, seconds: 1, radius: 3.6, focus: { x: 0, y: 1.6, z: -9 } },
     ],
     build(stage) {
       oddWidthCabin(stage, { roofs: true });

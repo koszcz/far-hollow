@@ -7,7 +7,8 @@
 // row casts a clear shadow line. The roof slopes 35 degrees the way its frame does, and sits where its frame's layout puts
 // it, as roof-layout.ts works out: sections one behind another share one slope, two rows that slope away from each other
 // meet at a ridge, and a wing that ends against another meets it in valleys. At a ridge, the planks of the slope down to
-// +z or +x reach a little past it, over the other slope. A valley (the approved "roof-corners" asset) has two dark valley boards in
+// +z or +x reach a little past it, over the other slope. On a roof an odd number of squares wide, the middle section is a
+// ridge section: two half slopes, each with 6 rows from its edge up to the ridge along its middle. A valley (the approved "roof-corners" asset) has two dark valley boards in
 // its gutter, one on each slope. The planks on both slopes stop a hand's width short of the line where the slopes meet,
 // cut a little ragged, so the boards show between them.
 // The planks reach a little past the square's edges where a section is beside it, so the sections overlap. Where an edge
@@ -146,6 +147,19 @@ export function plankRows(shape: RoofShape, reach: Reach, layout = 0): THREE.Buf
     return Array.from({ length: ROWS }, (_, row) =>
       slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -half - reach.back, z1: half + reach.front }, random),
     );
+  }
+  if (shape === "ridge") {
+    // Two half slopes, each laid like a straight section from the edge up to the ridge along the middle. The one down to
+    // -z is laid facing +z, then turned half round. The planks of the one down to +z reach a little past the ridge, over it.
+    const random = seededRandom(ROOF_SEED + 101 * layout);
+    return Array.from({ length: ROWS }, (_, row) => {
+      const front = slopeRow(row, { x0: -half - reach.left, x1: half + reach.right, z0: -RIDGE_LAP_METRES, z1: half + reach.front }, random);
+      const back = slopeRow(row, { x0: -half - reach.right, x1: half + reach.left, z0: 0, z1: half + reach.back }, random).rotateY(quarterTurnsToRadians(2));
+      const geometry = mergeGeometries([front, back]);
+      front.dispose();
+      back.dispose();
+      return geometry;
+    });
   }
   // A valley: the slope down to +z covers the part of the square right of the line x = z, and the slope down to +x the
   // part left of it. Each is laid like a straight section, the one down to +x turned a quarter round to face +x.
@@ -290,8 +304,11 @@ function plank(x: number, width: number, high: number, low: number, jitter: (siz
 export function plankReach(place: RoofPlace, neighbours: readonly (RoofPlace | undefined)[]): Reach {
   const [back, front, left, right] = neighbours;
   const side = (beside: RoofPlace | undefined) => (beside === undefined ? EAVE_REACH_METRES : NEIGHBOUR_LAP_METRES);
-  // Behind a section is the one above it on the same slope, which laps over it, or the other slope of a ridge.
-  const ridge = back !== undefined && areOpposite(back.drawTurns, place.drawTurns);
+  // A ridge section slopes down both ways, so its planks lap over the sections in front and behind, as over those beside it.
+  if (place.shape === "ridge") return { back: side(back), front: side(front), left: side(left), right: side(right) };
+  // Behind a section is the one above it on the same slope, which laps over it, or the other slope of a ridge. A ridge
+  // section behind it carries its slope on up, and laps over it too.
+  const ridge = back !== undefined && back.shape === "straight" && areOpposite(back.drawTurns, place.drawTurns);
   const lapsRidge = place.drawTurns === 0 || place.drawTurns === 3;
   return {
     back: back === undefined ? EAVE_REACH_METRES : ridge && lapsRidge ? RIDGE_LAP_METRES : 0,
@@ -414,7 +431,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
         item.root.rotation.y = quarterTurnsToRadians(place.drawTurns);
         hideKeepingShadow(item.root, hidden);
         const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
-        setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "straight" ? layoutOf(entity.position) : 0);
+        setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "valley" ? 0 : layoutOf(entity.position));
         showProgress(item, progress);
         seen.add(entity);
       };

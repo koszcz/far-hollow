@@ -1,9 +1,13 @@
 // Works out how each cabin roof section is drawn from the sections round it: how high it sits, and whether it is a
-// straight section or a valley. The game rules store only each section's turn (tickets 09 and 11). The valleys are the
+// straight section, a ridge section, or a valley. The game rules store only each section's turn (tickets 09 and 11). The valleys are the
 // "roof-corners" asset, approved by the owner.
 // A section facing `turns` slopes down the way `turnOffset` turns +z. Each slope rises from its own downhill wall: a
 // section sits one rise higher for each section in front of it, in its own slope direction, that slopes the same way.
 // Two rows that slope away from each other meet at a ridge. A run whose sections all slope the same way is a shed roof.
+// A cabin an odd number of squares across the slope has one square left over in the middle. Its frame slopes the same way
+// as one of the two rows, so that row is one section longer than the row sloping away behind it. That middle section
+// becomes a ridge section: it slopes down both ways from a ridge along its middle, so the two slopes are as long and the
+// ridge is centred.
 // No roof has a hip. Where the section past the end of a run slopes at right angles to it, one wing ends against another.
 // The other wing's slope carries on over the run, and where both slopes start at the same height, a section becomes a
 // valley, where the two slopes meet in a gutter. On a deep wing, the valleys run on up, one square further each rise.
@@ -12,11 +16,11 @@
 // over the corner squares instead, and its ridge stands above the through-roof's. The rule looks only along a section's
 // own run and the section just past its end.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { wrapQuarterTurns, areAtRightAngles, turnQuarters, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
+import { wrapQuarterTurns, areAtRightAngles, areOpposite, turnQuarters, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
 import type { GroundPoint } from "../sim/ground-point";
 
 /** The shape a roof section takes from its neighbours. */
-export type RoofShape = "straight" | "valley";
+export type RoofShape = "straight" | "valley" | "ridge";
 
 /** A roof section, finished or as a blueprint: the middle of its square, and which way it slopes down. */
 export interface RoofSection {
@@ -30,6 +34,7 @@ export interface RoofPlace {
   /**
    * How far round the shape is drawn. A straight section is drawn sloping down to +z, then turned this far.
    * A valley is drawn sloping down to +z and +x, then turned this far.
+   * A ridge section is drawn with its ridge along x through its middle, sloping down to +z and to -z, then turned this far.
    */
   readonly drawTurns: QuarterTurns;
   /**
@@ -81,7 +86,10 @@ export function roofPlaces<Section extends RoofSection>(sections: readonly Secti
     // The first section past the end of this section's run, in its own slope direction.
     const end = at(column + down.x * (inFront + 1), row + down.z * (inFront + 1));
     if (end === undefined || !areAtRightAngles(end.turns, section.turns)) {
-      places.set(section, { shape: "straight", drawTurns: section.turns, inFront, lifted });
+      // Behind the middle section of an odd-width roof lies the row sloping the other way, one section shorter than its own.
+      const behind = at(column - down.x, row - down.z);
+      const isMiddle = inFront > 0 && behind !== undefined && areOpposite(behind.turns, section.turns) && inFrontOf(behind) === inFront - 1;
+      places.set(section, { shape: isMiddle ? "ridge" : "straight", drawTurns: section.turns, inFront, lifted });
       continue;
     }
     // A wing that slopes at right angles ends the run. Its slope carries on over this square, and meets this section's own
@@ -108,6 +116,8 @@ export function roofPlaces<Section extends RoofSection>(sections: readonly Secti
 export function shapeTop(shape: RoofShape, x: number, z: number): number {
   const downZ = 0.5 - z;
   if (shape === "valley") return Math.max(downZ, 0.5 - x);
+  // A ridge section's edges are as high as the high edges of the sections beside them. It rises half a rise more to its ridge.
+  if (shape === "ridge") return 0.5 - Math.abs(z);
   return downZ;
 }
 

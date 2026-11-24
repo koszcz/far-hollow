@@ -9,7 +9,9 @@
 //   Frames side by side work out their heights and their valleys from each other, as roof-layout.ts says. Where the front
 //   of a frame is an eave, its rafters reach on past the wall, under the roof's overhang. Both ends of a rafter are cut
 //   upright. Where two frames slope away from each other, their rafters meet in pegged pairs over a hewn ridge pole, which
-//   the frame sloping down to +z or +x lays with its last rafter. The beams are a shade darker than the wall logs. A valley has a rafter along each
+//   the frame sloping down to +z or +x lays with its last rafter. On a roof an odd number of squares wide, the middle
+//   frame is a ridge section's: each of its three rafters is a pair, rising from its front and back edges to a ridge pole
+//   along its middle. The beams are a shade darker than the wall logs. A valley has a rafter along each
 //   low edge and one corner to corner under the line where its two slopes meet.
 // - Gable ends: where a slope rises above the beams, as at each end of a ridge or the high side of a shed roof, stacked
 //   debarked logs stand on the beams and close the gap up to the roof (gable-end-shape.ts). Beside a lower roof, as where a taller
@@ -109,6 +111,12 @@ export interface RoofFrameMeshes {
   dispose(): void;
 }
 
+/** Which edges of a frame, drawn unturned, are eaves with no frame beyond them: the front (+z) and the back (-z). */
+interface Eaves {
+  readonly front: boolean;
+  readonly back: boolean;
+}
+
 /** A beam on one edge of a square: which side, what stands under it, and how far it reaches past each end. */
 interface BeamPlan {
   readonly side: QuarterTurns;
@@ -146,15 +154,39 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const empty = new THREE.BufferGeometry();
 
   const rafterCount = ROOF_FRAME_LOG_COST - BEAM_STAGES;
-  /** The rafters of each shape, with or without tails past an eave at the front, made once and shared, in the order construction adds them. */
+  /**
+   * The rafters of each shape, with or without tails past an eave at the front, and for a ridge section at the back too,
+   * made once and shared, in the order construction adds them.
+   */
   const raftersByKind = new Map<string, readonly THREE.BufferGeometry[]>();
-  function raftersOf(shape: RoofShape, eaveInFront: boolean): readonly THREE.BufferGeometry[] {
-    const name = `${shape}:${eaveInFront}`;
+  function raftersOf(shape: RoofShape, eaves: Eaves): readonly THREE.BufferGeometry[] {
+    const name = `${shape}:${eaves.front}:${eaves.back}`;
     const known = raftersByKind.get(name);
     if (known !== undefined) return known;
-    const made = shape === "straight" ? straightRafters(eaveInFront) : valleyRafters();
+    const made = shape === "straight" ? straightRafters(eaves.front) : shape === "ridge" ? ridgeRafters(eaves) : valleyRafters();
     raftersByKind.set(name, made);
     return made;
+  }
+
+  /**
+   * The rafters of a ridge section's frame, in pairs side by side across it. Each pair runs from the front and back edges
+   * up to the ridge along its middle, and on past an eave at either edge. Construction lays one pair each stage.
+   */
+  function ridgeRafters(eaves: Eaves): THREE.BufferGeometry[] {
+    const random = seededRandom(ROOF_SEED + 7);
+    const jitter = (size: number) => (random() * 2 - 1) * size;
+    const half = BUILD_GRID_METRES / 2;
+    const tail = (eave: boolean) => half + (eave ? EAVE_REACH_METRES - RAFTER_TAIL_SHORT_METRES : 0);
+    return Array.from({ length: rafterCount }, (_, i) => {
+      const x = rafterX(i) + jitter(0.01);
+      const pair = [
+        rafterBetween(onRafterLine("ridge", x, 0), onRafterLine("ridge", x, tail(eaves.front)), jitter, true),
+        rafterBetween(onRafterLine("ridge", x, 0), onRafterLine("ridge", x, -tail(eaves.back)), jitter, true),
+      ];
+      const geometry = mergeGeometries(pair);
+      for (const rafter of pair) rafter.dispose();
+      return geometry;
+    });
   }
 
   /** A point on the middle line of a rafter resting on the beams under a roof of `shape`, at (x, z), in the frame's own frame. */
@@ -176,31 +208,31 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const rafterX = (i: number) =>
     -BUILD_GRID_METRES / 2 + RAFTER_RADIUS_METRES + (i * (BUILD_GRID_METRES - 2 * RAFTER_RADIUS_METRES)) / Math.max(1, rafterCount - 1);
 
-  /** The ridge pole of a straight frame and the pegs through its rafter pairs, made once for each pair of reaches and shared. */
+  /** The ridge pole of a frame and the pegs through its rafter pairs, made once for each shape and pair of reaches and shared. */
   const ridgeGeometries = new Map<string, THREE.BufferGeometry>();
   /**
-   * The ridge pole along the high back edge of a straight frame, in its own frame: a hewn timber under the planks where the
-   * two slopes meet, reaching `startReach` past the -x end and `endReach` past the +x end. A wooden peg runs through each
-   * pair of rafters on either side of it.
+   * The ridge pole of a frame of `shape`, in its own frame: a hewn timber under the planks where the two slopes meet,
+   * reaching `startReach` past the -x end and `endReach` past the +x end. It runs along the high back edge of a straight
+   * frame, or along the middle of a ridge section's frame. A wooden peg runs through each pair of rafters on either side of it.
    */
-  function ridgeOf(startReach: number, endReach: number): THREE.BufferGeometry {
-    const name = `${startReach}:${endReach}`;
+  function ridgeOf(shape: RoofShape, startReach: number, endReach: number): THREE.BufferGeometry {
+    const name = `${shape}:${startReach}:${endReach}`;
     const known = ridgeGeometries.get(name);
     if (known !== undefined) return known;
     const random = seededRandom(ROOF_SEED + 20);
     const wobble = (size: number) => (random() * 2 - 1) * size;
-    const half = BUILD_GRID_METRES / 2;
+    const line = shape === "ridge" ? 0 : -BUILD_GRID_METRES / 2;
     const pole = hewnTimber(BUILD_GRID_METRES + startReach + endReach, RIDGE_HALF_HEIGHT_METRES, wobble, RIDGE_HALF_WIDTH_METRES, 0.006);
     // Logs are made along z. The ridge runs along x, low enough that its top corners stay under the planks sloping away from it.
-    const top = coverUnderside("straight")(0, -half) - RIDGE_HALF_WIDTH_METRES * Math.tan(ROOF_SLOPE_RADIANS);
-    pole.rotateY(Math.PI / 2).translate((endReach - startReach) / 2, top - RIDGE_HALF_HEIGHT_METRES, -half);
+    const top = coverUnderside(shape)(0, line) - RIDGE_HALF_WIDTH_METRES * Math.tan(ROOF_SLOPE_RADIANS);
+    pole.rotateY(Math.PI / 2).translate((endReach - startReach) / 2, top - RIDGE_HALF_HEIGHT_METRES, line);
     const pegLength = 2 * RAFTER_RADIUS_METRES + 2 * PEG_PROUD_METRES;
     const pegs = Array.from({ length: rafterCount }, (_, i) =>
       [-1, 1].map((side) => {
-        const at = onRafterLine("straight", rafterX(i), -half + PEG_FROM_RIDGE_METRES);
+        const at = onRafterLine(shape, rafterX(i), line + PEG_FROM_RIDGE_METRES);
         const peg = new THREE.CylinderGeometry(PEG_RADIUS_METRES, PEG_RADIUS_METRES, pegLength, 6).rotateZ(Math.PI / 2);
         // The partner rafter, on the other slope, has its peg as far past the ridge line on its own side, at the same height.
-        return paleLog(peg.translate(at.x, at.y, -half + side * PEG_FROM_RIDGE_METRES), () => 1);
+        return paleLog(peg.translate(at.x, at.y, line + side * PEG_FROM_RIDGE_METRES), () => 1);
       }),
     ).flat();
     const parts = [pole, ...pegs];
@@ -212,17 +244,19 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
 
   /**
    * How far the ridge pole of the frame `section` reaches past each end, or undefined if it lays none.
-   * A ridge forms where a straight frame's high back edge meets one sloping the other way, as high. Only the frame sloping
-   * down to +z or +x lays the ridge pole, so a ridge has one.
+   * A ridge section's frame always lays one, along its middle. Elsewhere a ridge forms where a straight frame's high back
+   * edge meets one sloping the other way, as high. Only the frame sloping down to +z or +x lays that ridge pole, so a ridge has one.
    */
   function ridgeReach(layout: FrameLayout, section: Section, place: RoofPlace): { start: number; end: number } | undefined {
-    if (place.shape !== "straight" || (place.drawTurns !== 0 && place.drawTurns !== 3)) return undefined;
     const [back, , left, right] = neighboursOf(layout, section.position, place);
+    const reach = { start: left === undefined ? RIDGE_OVERHANG_METRES : 0, end: right === undefined ? RIDGE_OVERHANG_METRES : 0 };
+    if (place.shape === "ridge") return reach;
+    if (place.shape !== "straight" || (place.drawTurns !== 0 && place.drawTurns !== 3)) return undefined;
     if (back === undefined) return undefined;
     const backPlace = layout.placeAt(back.position);
     const facesAway = backPlace.shape === "straight" && areOpposite(backPlace.drawTurns, place.drawTurns);
     if (!facesAway || backPlace.inFront !== place.inFront || Math.abs(back.position.y - section.position.y) > 0.01) return undefined;
-    return { start: left === undefined ? RIDGE_OVERHANG_METRES : 0, end: right === undefined ? RIDGE_OVERHANG_METRES : 0 };
+    return reach;
   }
 
   /**
@@ -366,9 +400,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     });
   }
 
-  /** Gives the rafter stages of `parts` the rafters of a frame of `shape`, with tails past an eave in front where it has one. */
-  function setRafters(parts: Drawn["parts"], shape: RoofShape, eaveInFront: boolean): void {
-    const rafters = raftersOf(shape, eaveInFront);
+  /** Gives the rafter stages of `parts` the rafters of a frame of `shape`, with tails past the eaves `eaves` names. */
+  function setRafters(parts: Drawn["parts"], shape: RoofShape, eaves: Eaves): void {
+    const rafters = raftersOf(shape, eaves);
     parts.forEach(({ mesh }, stage) => {
       if (stage >= BEAM_STAGES) mesh.geometry = rafters[stage - BEAM_STAGES] ?? empty;
     });
@@ -383,7 +417,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   placingParts.forEach(({ mesh }, stage) => {
     if (stage < BEAM_STAGES) mesh.geometry = beamsOf(allSides, stage);
   });
-  setRafters(placingParts, ALONE.shape, true);
+  setRafters(placingParts, ALONE.shape, { front: true, back: true });
   const placingGables = new THREE.Mesh(aloneGables(), blueprintMaterial);
   placingTurned.add(placingGables);
   group.add(placingBlueprint);
@@ -476,11 +510,12 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         item.parts.forEach(({ mesh }, stage) => {
           if (stage < BEAM_STAGES) mesh.geometry = beamsOf(beams, stage);
         });
-        // The front edge, as drawn, is the second in EDGES order.
-        setRafters(item.parts, place.shape, neighboursOf(layout, entity.position, place)[1] === undefined);
+        // The back and front edges, as drawn, are the first and second in EDGES order.
+        const [back, front] = neighboursOf(layout, entity.position, place);
+        setRafters(item.parts, place.shape, { front: front === undefined, back: back === undefined });
         item.gables.geometry = gablesOf(layout, entity, place);
         const ridge = ridgeReach(layout, entity, place);
-        item.ridge.geometry = ridge === undefined ? empty : ridgeOf(ridge.start, ridge.end);
+        item.ridge.geometry = ridge === undefined ? empty : ridgeOf(place.shape, ridge.start, ridge.end);
         showProgress(item, progress, delivered);
         seen.add(entity);
       };

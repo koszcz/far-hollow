@@ -21,7 +21,7 @@ import {
 } from "../../sim/structures";
 import { turnOffset, type QuarterTurns } from "../../sim/quarter-turns";
 import type { EdgePieceKind } from "../../sim/structure-kind";
-import { SHUTTER_SWING_SECONDS } from "../shutter-swing";
+import { SHUTTER_FIRST_BOUNCE_SHARE, SHUTTER_KNOCK_SECONDS, SHUTTER_SWING_SECONDS } from "../shutter-swing";
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
@@ -495,12 +495,18 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     radius: 1.6,
     focus: { x: 0, y: 1, z: 0.5 },
     // Finished shutters in a window. Each view hangs new shutters, so they start to swing as the view's clock starts:
-    // swinging open, open and folded back against the wall, swinging closed, then closed.
+    // swinging open with the right leaf trailing, the left leaf knocked back off the wall, open and folded back, then
+    // swinging closed.
     shots: [
-      { label: "swinging open", yaw: 35, pitch: 20, seconds: SHUTTER_SWING_SECONDS / 2 },
-      { label: "open, folded back", yaw: 35, pitch: 20, seconds: 1 },
+      { label: "swinging open, right leaf trailing", yaw: 35, pitch: 20, seconds: SHUTTER_SWING_SECONDS / 3 },
+      {
+        label: "opening, left leaf knocked back off the wall",
+        yaw: 35,
+        pitch: 20,
+        seconds: SHUTTER_SWING_SECONDS + (SHUTTER_KNOCK_SECONDS * SHUTTER_FIRST_BOUNCE_SHARE) / 2,
+      },
+      { label: "open, folded back", yaw: 35, pitch: 20, seconds: 1.5 },
       { label: "swinging closed", yaw: 35, pitch: 20, seconds: SHUTTER_SWING_SECONDS / 2 },
-      { label: "closed", yaw: 35, pitch: 20, seconds: 1 },
     ],
     build(stage) {
       const onDeck = onDeckOf(stage);

@@ -1,6 +1,6 @@
-// Draws shutters and shutters blueprints: the draft "shutters" asset in asset-manifest.json, built in code.
+// Draws shutters and shutters blueprints: the approved "shutters" asset in asset-manifest.json, built in code.
 // Shutters are two plank leaves hung in a finished window's opening, on the face the window faces. Each leaf is hinged at
-// its outer edge, so the two meet in the middle when closed. Each has a darker batten across it and an iron strap hinge.
+// its outer edge, so the two meet in the middle when closed. Each is three weathered boards with battens, a diagonal brace, and iron strap hinges.
 // Construction has one stage per plank: the left leaf, then the right.
 // A blueprint shows the leaves see-through. A plank the blueprint already has shows pale and half solid.
 // Finished shutters swing open or closed when the player opens or closes them. shutter-swing.ts times the swing.
@@ -30,52 +30,107 @@ import {
   FADED_OPACITY,
 } from "./structure-look";
 
-/** The batten across each leaf is this much darker than the plank. */
-const BATTEN_SHADE = 0.82;
+/** The shutters' boards are plank wood weathered darker by sun and rain, so they stand off the pale logs round them. Each board's own shade. */
+const BOARD_SHADES = [0.74, 0.68, 0.71] as const;
+/** The battens and the brace are this much darker than the boards. */
+const BATTEN_SHADE = 0.6;
 /** The dark iron of the hinges. */
-const IRON_COLOUR = 0x3a3633;
+const IRON_COLOUR = 0x2e2a27;
 /** How far each leaf reaches past the opening at its outer edge, and over and under it, in metres, so no gap shows round it. */
 const OVERLAP_METRES = 0.04;
-/** How thick each leaf's plank is, in metres. */
-const PLANK_THICKNESS_METRES = 0.035;
-/** How thick the batten is and how tall, in metres. */
+/** The gap between the two leaves where they meet in the middle, in metres. */
+const MEETING_GAP_METRES = 0.006;
+/** The dark seam between two boards of a leaf, in metres. */
+const SEAM_METRES = 0.007;
+/** How thick each board is, in metres. */
+const BOARD_THICKNESS_METRES = 0.035;
+/** How thick the battens and the brace are, how tall the battens are, and how wide the brace is, in metres. */
 const BATTEN_THICKNESS_METRES = 0.025;
-const BATTEN_HEIGHT_METRES = 0.08;
-/** Each strap hinge's length across the leaf, height, and thickness, in metres. */
-const STRAP_SIZE_METRES: readonly [number, number, number] = [0.16, 0.03, 0.006];
-/** The hinges sit on the outside of the wall's logs, this far out from the middle of the edge, in metres. */
-const HINGE_OUT_METRES = COURSE_RADIUS_METRES + PLANK_THICKNESS_METRES / 2;
+const BATTEN_HEIGHT_METRES = 0.07;
+const BRACE_WIDTH_METRES = 0.06;
+/** How far the battens stand in from the leaf's top and bottom, to their middle, in metres. */
+const BATTEN_INSET_METRES = 0.1;
+/** Each strap hinge's height and thickness, in metres. It runs along its batten for most of the leaf's width. */
+const STRAP_HEIGHT_METRES = 0.035;
+const STRAP_THICKNESS_METRES = 0.006;
+/** The knuckle each strap turns on, on the hinge line: its width and depth, in metres. */
+const PINTLE_SIZE_METRES = 0.026;
+/**
+ * The hinge line stands this far out from the wall's logs, in metres. A leaf turned all the way open lies against the wall
+ * with its battens toward the logs, so the line stands out by half the leaf's full thickness, battens and all, and a little more.
+ */
+const HINGE_STANDOFF_METRES = (BOARD_THICKNESS_METRES + BATTEN_THICKNESS_METRES) / 2 + 0.005;
+/** The hinge line, out from the middle of the edge, in metres. */
+const HINGE_OUT_METRES = COURSE_RADIUS_METRES + HINGE_STANDOFF_METRES;
 /** How thick the invisible box that catches clicks is, in metres. Thicker than the window's, so a click on the opening finds the shutters. */
 const PICK_THICKNESS_METRES = 0.6;
 
 const OPENING_HEIGHT_METRES = WINDOW_OPENING.top - WINDOW_OPENING.bottom;
-const LEAF_WIDTH_METRES = WINDOW_OPENING_WIDTH_METRES / 2 + OVERLAP_METRES;
+/** Each hinge line stands this far from the middle of the opening, in metres: past the opening's side by the overlap. */
+const HINGE_ALONG_METRES = WINDOW_OPENING_WIDTH_METRES / 2 + OVERLAP_METRES;
+const LEAF_WIDTH_METRES = HINGE_ALONG_METRES - MEETING_GAP_METRES / 2;
 const LEAF_HEIGHT_METRES = OPENING_HEIGHT_METRES + 2 * OVERLAP_METRES;
 const LEAF_MIDDLE_Y = (WINDOW_OPENING.bottom + WINDOW_OPENING.top) / 2;
+const BOARD_WIDTH_METRES = (LEAF_WIDTH_METRES - (BOARD_SHADES.length - 1) * SEAM_METRES) / BOARD_SHADES.length;
+const BATTEN_LENGTH_METRES = LEAF_WIDTH_METRES - 0.03;
+const BATTEN_YS = [WINDOW_OPENING.bottom - OVERLAP_METRES + BATTEN_INSET_METRES, WINDOW_OPENING.top + OVERLAP_METRES - BATTEN_INSET_METRES] as const;
 
-/** One part of a leaf: its size and middle, in metres, with the leaf closed. The origin is the leaf's hinge. `side` is -1 for the left leaf. */
+/** Depths across a leaf, in metres from the hinge line, outward positive: the middle of the boards, of the battens, and of the straps. */
+const BOARD_Z = -HINGE_STANDOFF_METRES + BOARD_THICKNESS_METRES / 2;
+const BATTEN_Z = BOARD_Z + (BOARD_THICKNESS_METRES + BATTEN_THICKNESS_METRES) / 2;
+const STRAP_Z = BATTEN_Z + (BATTEN_THICKNESS_METRES + STRAP_THICKNESS_METRES) / 2;
+
+/**
+ * One part of a leaf: its size and middle, in metres, with the leaf closed, and how far it is turned about the leaf's
+ * forward axis, in radians. The origin is the leaf's hinge line, level with the ground. `shade` scales the plank wood's colour.
+ */
 interface LeafPart {
   readonly size: readonly [number, number, number];
   readonly at: readonly [number, number, number];
-  readonly kind: "plank" | "batten" | "iron";
+  readonly tilt: number;
+  readonly kind: "wood" | "iron";
+  readonly shade: number;
 }
 
-/** The parts of one leaf. Closed, it reaches from its hinge toward the middle of the opening: toward +x for the left leaf, -x for the right. */
+/**
+ * The parts of one leaf: upright boards with dark seams between them, a batten across the top and the bottom, a diagonal
+ * brace between them, and an iron strap hinge on each batten turning on a knuckle. Closed, the leaf reaches from its hinge
+ * toward the middle of the opening: toward +x for the left leaf, -x for the right. The brace climbs from the hinge side's
+ * bottom to the free side's top, as a real one does, so it holds the free edge up.
+ */
 function leafParts(side: -1 | 1): LeafPart[] {
   const toward = -side;
-  return [
-    { size: [LEAF_WIDTH_METRES, LEAF_HEIGHT_METRES, PLANK_THICKNESS_METRES], at: [(toward * LEAF_WIDTH_METRES) / 2, LEAF_MIDDLE_Y, 0], kind: "plank" },
-    {
-      size: [LEAF_WIDTH_METRES * 0.9, BATTEN_HEIGHT_METRES, BATTEN_THICKNESS_METRES],
-      at: [(toward * LEAF_WIDTH_METRES) / 2, LEAF_MIDDLE_Y, (PLANK_THICKNESS_METRES + BATTEN_THICKNESS_METRES) / 2],
-      kind: "batten",
-    },
-    ...[WINDOW_OPENING.bottom + 0.08, WINDOW_OPENING.top - 0.08].map((y): LeafPart => ({
-      size: STRAP_SIZE_METRES,
-      at: [(toward * STRAP_SIZE_METRES[0]) / 2, y, (PLANK_THICKNESS_METRES + STRAP_SIZE_METRES[2]) / 2],
-      kind: "iron",
-    })),
-  ];
+  const across = (metres: number): number => toward * metres;
+  const boards = BOARD_SHADES.map((shade, index): LeafPart => ({
+    size: [BOARD_WIDTH_METRES, LEAF_HEIGHT_METRES, BOARD_THICKNESS_METRES],
+    at: [across(index * (BOARD_WIDTH_METRES + SEAM_METRES) + BOARD_WIDTH_METRES / 2), LEAF_MIDDLE_Y, BOARD_Z],
+    tilt: 0,
+    kind: "wood",
+    shade,
+  }));
+  const battens = BATTEN_YS.map((y): LeafPart => ({
+    size: [BATTEN_LENGTH_METRES, BATTEN_HEIGHT_METRES, BATTEN_THICKNESS_METRES],
+    at: [across(LEAF_WIDTH_METRES / 2), y, BATTEN_Z],
+    tilt: 0,
+    kind: "wood",
+    shade: BATTEN_SHADE,
+  }));
+  const [low, high] = BATTEN_YS;
+  const rise = high - low - BATTEN_HEIGHT_METRES;
+  const run = BATTEN_LENGTH_METRES - 2 * BRACE_WIDTH_METRES;
+  const brace: LeafPart = {
+    size: [Math.hypot(run, rise), BRACE_WIDTH_METRES, BATTEN_THICKNESS_METRES],
+    at: [across(LEAF_WIDTH_METRES / 2), (low + high) / 2, BATTEN_Z],
+    tilt: toward * Math.atan2(rise, run),
+    kind: "wood",
+    shade: BATTEN_SHADE,
+  };
+  const strapLength = LEAF_WIDTH_METRES * 0.72;
+  const hinges = BATTEN_YS.flatMap((y): LeafPart[] => [
+    { size: [strapLength, STRAP_HEIGHT_METRES, STRAP_THICKNESS_METRES], at: [across(strapLength / 2), y, STRAP_Z], tilt: 0, kind: "iron", shade: 1 },
+    { size: [PINTLE_SIZE_METRES, STRAP_HEIGHT_METRES + 0.02, PINTLE_SIZE_METRES], at: [0, y, 0], tilt: 0, kind: "iron", shade: 1 },
+  ]);
+  return [...boards, ...battens, brace, ...hinges];
 }
 
 /** The two leaves, left then right. Each is one stage of construction, and one plank. */
@@ -89,11 +144,12 @@ interface Part {
   readonly fading: THREE.MeshStandardMaterial;
 }
 
-/** How finished shutters last began to swing: toward open or closed, when, and from how far turned. */
+/** How finished shutters last began to swing: toward open or closed, when, and from how far each leaf stood turned. */
 interface Swing {
   open: boolean;
   startedAt: number;
-  fromRadians: number;
+  /** Left leaf first. The right leaf trails it. */
+  fromRadians: number[];
 }
 
 interface Drawn {
@@ -123,7 +179,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
     for (const plan of parts) {
       geometries.set(plan, new THREE.BoxGeometry(...plan.size));
       const iron = plan.kind === "iron";
-      const color = iron ? new THREE.Color(IRON_COLOUR) : new THREE.Color(PLANK_WOOD_COLOUR).multiplyScalar(plan.kind === "batten" ? BATTEN_SHADE : 1);
+      const color = iron ? new THREE.Color(IRON_COLOUR) : new THREE.Color(PLANK_WOOD_COLOUR).multiplyScalar(plan.shade);
       solids.set(plan, new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: iron ? 0.55 : 0.9, metalness: iron ? 0.3 : 0 }));
     }
   }
@@ -139,17 +195,18 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
   const blueprints = blueprintEntities(entities);
   const finished = shuttersEntities(entities);
 
-  /** Adds both leaves, each hinged at its outer edge of the opening, and every part on them, see-through, to `root`. */
+  /** Adds both leaves, each hinged just past its side of the opening, and every part on them, see-through, to `root`. */
   function addLeaves(root: THREE.Group): Pick<Drawn, "leaves" | "stages"> {
     const leaves: Drawn["leaves"][number][] = [];
     const stages = LEAVES.map(({ side, parts }) => {
       const leaf = new THREE.Group();
-      leaf.position.set((side * WINDOW_OPENING_WIDTH_METRES) / 2, 0, HINGE_OUT_METRES);
+      leaf.position.set(side * HINGE_ALONG_METRES, 0, HINGE_OUT_METRES);
       root.add(leaf);
       leaves.push({ group: leaf, side });
       return parts.map((plan) => {
         const mesh = new THREE.Mesh(geometries.get(plan), blueprintMaterial);
         mesh.position.set(...plan.at);
+        mesh.rotation.z = plan.tilt;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         leaf.add(mesh);
@@ -187,9 +244,9 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
     root.rotation.y = quarterTurnsToRadians(turns);
   }
 
-  /** Turns both leaves `radians` from closed. Each folds outward, away from the window, about its own hinge. */
-  function turnLeaves(leaves: Drawn["leaves"], radians: number): void {
-    for (const { group: leaf, side } of leaves) leaf.rotation.y = side * radians;
+  /** Turns each leaf its own `radians` from closed, left first. Each folds outward, away from the window, about its own hinge. */
+  function turnLeaves(leaves: Drawn["leaves"], radians: (index: number) => number): void {
+    leaves.forEach(({ group: leaf, side }, index) => (leaf.rotation.y = side * radians(index)));
   }
 
   /** Shows how far construction has gone, as a door does: one leaf a stage, fading in and set down. */
@@ -218,14 +275,15 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
    * showcase, whose clock starts at 0, shows them part way.
    */
   function swing(item: Drawn, open: boolean, nowSeconds: number): void {
-    item.swing ??= { open, startedAt: 0, fromRadians: open ? 0 : SHUTTER_OPEN_RADIANS };
+    item.swing ??= { open, startedAt: 0, fromRadians: item.leaves.map(() => (open ? 0 : SHUTTER_OPEN_RADIANS)) };
     const state = item.swing;
+    const leafRadians = (index: number): number => shutterSwingRadians(state.fromRadians[index] ?? 0, state.open, nowSeconds - state.startedAt, index > 0);
     if (state.open !== open) {
-      state.fromRadians = shutterSwingRadians(state.fromRadians, state.open, nowSeconds - state.startedAt);
+      state.fromRadians = item.leaves.map((_, index) => leafRadians(index));
       state.startedAt = nowSeconds;
       state.open = open;
     }
-    turnLeaves(item.leaves, shutterSwingRadians(state.fromRadians, state.open, nowSeconds - state.startedAt));
+    turnLeaves(item.leaves, leafRadians);
   }
 
   function fade(item: Drawn, faded: boolean): void {
@@ -253,7 +311,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
         if (entity.blueprint.structure !== "shutters") continue;
         const item = draw(entity);
         place(item.root, entity.position, entity.facing?.turns ?? 0);
-        turnLeaves(item.leaves, 0);
+        turnLeaves(item.leaves, () => 0);
         showProgress(item, entity.blueprint.progress, entity.blueprint.delivered.plank ?? 0);
         seen.add(entity);
       }

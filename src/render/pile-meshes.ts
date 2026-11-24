@@ -340,9 +340,9 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     fishTrap: fishTrapPileParts((colour) => material(colour), track),
     // Unlit torches lie on their sides. The torch is the approved "torch" asset, drawn by torch-shape.ts.
     torch: torch.lyingParts,
-    // Saplings lie on their sides, root ball and all. The shape is part of the draft "sapling-icon" asset, drawn by sapling-pile-shape.ts.
+    // Saplings lie on their sides, root ball and all. The shape is part of the approved "sapling-icon" asset, drawn by sapling-pile-shape.ts.
     sapling: owned(saplingPileParts((colour) => material(colour))),
-    // Dug-up berry bushes lie on their sides, root ball and all. The shape is part of the draft "berry-bush-icon" asset, drawn by berry-bush-pile-shape.ts.
+    // Dug-up berry bushes lie on their sides, root ball and all. The shape is part of the approved "berry-bush-icon" asset, drawn by berry-bush-pile-shape.ts.
     berryBush: owned(berryBushPileParts((colour) => material(colour))),
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });

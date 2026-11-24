@@ -1410,12 +1410,13 @@
         "src/ui/jug-icons.tsx",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "The jug icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unfired jug, the backpack icon and the craft menu icon, is a pale grey-brown jug with a round belly, a narrow neck with a lip, a dark opening, and a loop handle on its right side. The empty jug's backpack icon is the same shape in orange-brown fired clay. A jug with water in it has one pale blue wave across its belly for each drink, from the bottom up: 1, 2, or 3 waves.",
+      "description": "The jug icons, drawn in the backpack icons' shaded style on the same 24 by 24 grid. The unfired jug, the backpack icon and the craft menu icon, is a pale grey-brown jug with a round belly, a short neck, a lip with a dark oval opening in its top, and a loop handle on its right side that springs from the neck and joins the belly. The empty jug's backpack icon is the same shape in orange-brown fired clay. A jug with water in it has one thin pale blue wave across its belly for each drink, from the bottom up: 1, 2, or 3 waves.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/clay/issues/02-shape-an-unfired-jug.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1565,12 +1566,13 @@
         "src/ui/floor-and-door-icons.tsx",
         "src/ui/structure-icon.tsx"
       ],
-      "description": "Build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The floor's icon is a square of plank boards seen from the front and above, narrowing as it goes back, with dark seams between the boards and two boards in a paler shade. Under its front edge lies the foundation deck, with the pale cut ends of its logs. The door's icon is a door of three upright plank boards seen from the front, hung in a pale log door frame with a lintel across the top. Two darker battens cross the boards, and a small dark latch sits on the right.",
+      "description": "Build menu icons for the floor and the door, drawn in the build icons' shaded style on the same 24 by 24 grid. The floor's icon is a deck of five plank boards laid front to back, seen from the front and above, narrowing as it goes back, with thin dark seams between the boards and two boards in a paler shade. The boards' sawn ends show along a thick front edge in shadow. Under it lies the foundation deck, with the pale round cut ends of its logs. The door's icon is a door of three upright plank boards seen from the front, hung in a pale log door frame with a lintel across the top. Two darker battens cross the boards. On the right, a small iron latch plate holds a ring pull.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/floors-and-doors/issues/01-lay-a-floor.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1628,12 +1630,13 @@
         "src/ui/window-icons.tsx",
         "src/ui/structure-icon.tsx"
       ],
-      "description": "Build menu icons for the window and the shutters, drawn in the build icons' shaded style on the same 24 by 24 grid. The window's icon is four courses of debarked logs seen from the front, in two shades, with a dark square opening through the middle two. The shutters' icon is two closed plank shutters side by side, with dark seams, a darker batten across each, and two small dark iron hinge straps on each outer edge.",
+      "description": "Build menu icons for the window and the shutters, drawn in the build icons' shaded style on the same 24 by 24 grid. The window's icon is four courses of debarked logs seen from the front, in two shades, with a dark square opening through the middle two. A thin plank frame lines the opening, and a plank sill juts out under it. The shutters' icon is two closed plank shutters side by side in a pale log surround, which shows in the thin gap between them. Each leaf is two boards with a dark seam, a darker batten across it, and two small dark iron hinge straps on its outer edge, each held by a paler pin.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1660,12 +1663,13 @@
         "src/render/sapling-pile-shape.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "A dug-up sapling: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small young pine with two tiers of green over a thin brown stem, its roots in a ball of brown earth. In a pile, each sapling lies on its side, about 70 cm long: a lumpy ball of earth at one end, a thin brown stem, and two cones of green needles toward the tip, spread around the middle like other things in a pile.",
+      "description": "A dug-up sapling: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small young pine with two tiers of green over a thin brown stem, its roots in a ball of brown earth. In a pile, each sapling lies on its side, about 70 cm long: a lumpy ball of earth at one end with three thin roots poking out of it, a thin brown stem, and three full tiers of green needles toward the tip, the lowest a darker green. Saplings spread around the middle like other things in a pile.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/regrowth/issues/02-dig-up-a-sapling.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1677,12 +1681,13 @@
         "src/render/berry-bush-pile-shape.ts",
         "src/render/pile-meshes.ts"
       ],
-      "description": "A dug-up berry bush: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small round bush of green leaves dotted with three red berries, its roots in a ball of brown earth. In a pile, each bush lies on its side, about 50 cm across: a lumpy ball of dark green leaves dotted with red berries, with a ball of earth at one end, spread around the middle like other things in a pile.",
+      "description": "A dug-up berry bush: its hotbar and backpack icon, and how it lies on the ground in a pile. The icon, drawn in the same style as backpack-icons, is a small round bush of green leaves dotted with three red berries, its roots in a ball of brown earth. In a pile, each bush lies on its side, about 50 cm across: three lumps of dark green leaves dotted with six red berries, with a ball of earth tucked into its foot. Bushes spread around the middle like other things in a pile.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/garden/issues/01-plant-berry-bushes.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1709,12 +1714,13 @@
         "src/ui/fish-trap-icons.tsx",
         "src/ui/backpack-icons.tsx"
       ],
-      "description": "Backpack and craft menu icons in the backpack-icons style: cord, a brown coil of two loops with twist marks and a loose end; and the fish trap, a tan cone basket on its side with its open mouth on the left and two bands of cord.",
+      "description": "Backpack and craft menu icons in the backpack-icons style: cord, a hank of brown cord in two loops like a figure of eight, tied round the middle with both loose ends hanging below, and dark twist marks along it; and the fish trap, a tan cone basket of sticks lying on its side, its round mouth on the left open to show its dark inside, dark ribs tapering to a tail tied off with cord, and two bands of cord wrapped round the cone.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/fish-trap/issues/01-fish-trap.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

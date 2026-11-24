@@ -144,11 +144,12 @@ interface Part {
   readonly fading: THREE.MeshStandardMaterial;
 }
 
-/** How finished shutters last began to swing: toward open or closed, when, and from how far turned. */
+/** How finished shutters last began to swing: toward open or closed, when, and from how far each leaf stood turned. */
 interface Swing {
   open: boolean;
   startedAt: number;
-  fromRadians: number;
+  /** Left leaf first. The right leaf trails it. */
+  fromRadians: number[];
 }
 
 interface Drawn {
@@ -243,9 +244,9 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
     root.rotation.y = quarterTurnsToRadians(turns);
   }
 
-  /** Turns both leaves `radians` from closed. Each folds outward, away from the window, about its own hinge. */
-  function turnLeaves(leaves: Drawn["leaves"], radians: number): void {
-    for (const { group: leaf, side } of leaves) leaf.rotation.y = side * radians;
+  /** Turns each leaf its own `radians` from closed, left first. Each folds outward, away from the window, about its own hinge. */
+  function turnLeaves(leaves: Drawn["leaves"], radians: (index: number) => number): void {
+    leaves.forEach(({ group: leaf, side }, index) => (leaf.rotation.y = side * radians(index)));
   }
 
   /** Shows how far construction has gone, as a door does: one leaf a stage, fading in and set down. */
@@ -274,14 +275,15 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
    * showcase, whose clock starts at 0, shows them part way.
    */
   function swing(item: Drawn, open: boolean, nowSeconds: number): void {
-    item.swing ??= { open, startedAt: 0, fromRadians: open ? 0 : SHUTTER_OPEN_RADIANS };
+    item.swing ??= { open, startedAt: 0, fromRadians: item.leaves.map(() => (open ? 0 : SHUTTER_OPEN_RADIANS)) };
     const state = item.swing;
+    const leafRadians = (index: number): number => shutterSwingRadians(state.fromRadians[index] ?? 0, state.open, nowSeconds - state.startedAt, index > 0);
     if (state.open !== open) {
-      state.fromRadians = shutterSwingRadians(state.fromRadians, state.open, nowSeconds - state.startedAt);
+      state.fromRadians = item.leaves.map((_, index) => leafRadians(index));
       state.startedAt = nowSeconds;
       state.open = open;
     }
-    turnLeaves(item.leaves, shutterSwingRadians(state.fromRadians, state.open, nowSeconds - state.startedAt));
+    turnLeaves(item.leaves, leafRadians);
   }
 
   function fade(item: Drawn, faded: boolean): void {
@@ -309,7 +311,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
         if (entity.blueprint.structure !== "shutters") continue;
         const item = draw(entity);
         place(item.root, entity.position, entity.facing?.turns ?? 0);
-        turnLeaves(item.leaves, 0);
+        turnLeaves(item.leaves, () => 0);
         showProgress(item, entity.blueprint.progress, entity.blueprint.delivered.plank ?? 0);
         seen.add(entity);
       }

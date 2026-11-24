@@ -1,30 +1,56 @@
 # 01: Asset browser
 
-**What to build:** One page on the dev server that lists every asset in the catalogue, `asset-manifest.json`, and shows the chosen asset beside the list. It works like Storybook: a sidebar to search and pick, and a main view that draws the asset.
+**What to build:** One page on the dev server, `/?assets`, that lists every asset in the asset catalogue, `asset-manifest.json`, and shows the chosen asset's showcase beside the list. A sidebar lets the owner search, filter, and pick an asset. The main view loads that asset's showcase in a frame and shows its catalogue entry.
 
-**Status:** idea
+**Status:** ready-for-agent
 
-**Assets:** None. The browser reuses each asset's existing showcase.
+**Assets:** None (settled 2026-11-24). The browser reuses each asset's existing showcase and adds or changes no asset.
 
 ## What exists already
 
-- Every one of the 115 catalogue assets has a showcase at `/?asset=<id>`. The showcase draws 3D objects, animations, HUD icons, UI, and sounds. See `src/render/asset-showcase.ts` and `src/app/showcase.ts`.
+- Every catalogue asset with code has a showcase at `/?asset=<id>`. A test checks this in `src/render/asset-showcase.test.ts`. See `src/render/asset-showcase.ts` and `src/app/showcase.ts`.
 - `&play` plays an animation live, and `&speed=0.25` slows it down.
-- What is missing is a way to browse. Today you must know an asset's id and type the address.
+- `src/app/boot.ts` opens the showcase only on the dev server.
+- `src/render/showcases/index.ts` merges eight family files into one map, so the family of each asset is lost there.
 
-## Rough shape
+## The page
 
-- A sidebar groups assets by showcase family (nature, camp, building, interface, sound, and so on).
-- The sidebar shows each asset's status, draft or approved, and lets you search by id or description.
-- The main view loads the asset's showcase. It shows the catalogue entry's description, source, licence, and code files.
-- Buttons switch between the four still views and live play, and set the speed.
+- [ ] `/?assets` opens the asset browser on the dev server only. The production build does not include it.
+- [ ] `/?assets=<id>` opens the browser with that asset chosen.
+- [ ] The address records the chosen asset, still views or play, and the speed, for example `/?assets=bed&play&speed=0.25`. Reloading the page restores all three.
 
-Questions for grilling:
+## Sidebar
 
-- Where does the page live: `/?assets` on the dev server, or its own page and build?
-- Does the main view embed the showcase in a frame, or draw it directly? A frame keeps each showcase's WebGL context separate. Drawing directly switches faster.
-- Should the sidebar show small preview pictures? If so, are they rendered live, or saved as images by `make shot`?
-- Should the browser offer controls beyond play and speed, such as time of day, weather, or wind?
-- Should the owner approve a draft from the browser, or keep approval in the `make-asset` skill?
-- Does the `make-asset` skill link to the browser when it shows an asset to the owner?
-- Does `src/app/showcase.ts` need its hard-coded list of HUD showcase ids replaced by a field on each showcase first?
+- [ ] The sidebar lists every catalogue asset, grouped by showcase family: nature, building, camp, interface, weather, valley life, sound, and animations. An asset with no showcase is listed in its own group.
+- [ ] Each asset shows its status: draft, pending, or approved.
+- [ ] A search box filters the list by id or description.
+- [ ] A "Not approved" filter shows only draft and pending assets.
+- [ ] The up and down arrow keys move to the previous or next asset in the list. The `/` key moves to the search box.
+- [ ] The sidebar shows no preview pictures.
+
+## Main view
+
+- [ ] The main view loads `/?asset=<id>` in a frame, so each asset gets a fresh page.
+- [ ] Below or beside the frame, the main view shows the catalogue entry's description, source, licence, and code files.
+- [ ] For an asset with no showcase, the main view shows the catalogue entry and the note "No showcase" instead of the frame.
+- [ ] A switch chooses between the four still views and live play. Play is greyed out for an asset whose showcase has no `play` entry.
+- [ ] A speed control offers 0.25, 0.5, 1, and 2. It applies only to live play.
+- [ ] An "Open alone" link opens the bare showcase, `/?asset=<id>` with the current options, in a new tab.
+- [ ] The browser is read-only. It offers no way to approve or change an asset. Approval stays in chat through the `make-asset` skill.
+
+## Showcase changes
+
+- [ ] Each family file in `src/render/showcases/` is exported with its family name, so the browser can group assets. `SHOWCASES` stays as it is for the showcase page.
+- [ ] `Showcase` gets an optional `overlay` field, `"hud"` or `"sound"`. It replaces the hard-coded list of HUD ids and the `sound-` prefix check in `src/app/showcase.ts`.
+- [ ] The showcase page at `/?asset=<id>` looks and behaves as before. The `make-asset` skill needs no change.
+
+## Docs and tests
+
+- [ ] `GLOSSARY.md` defines asset showcase and asset browser. This is done already.
+- [ ] The dev server's address options are noted where `/?asset=<id>` is documented today, in the comment at the top of `src/app/boot.ts`.
+- [ ] Unit tests check that every showcase id is in exactly one family.
+- [ ] Unit tests check that search matches by id and by description.
+- [ ] Unit tests check the "Not approved" filter.
+- [ ] Unit tests check that the address is read and written correctly.
+- [ ] Unit tests check that the `overlay` field marks the same assets as the old HUD list and the `sound-` ids.
+- [ ] An e2e test opens `/?assets=bed`, picks another asset, and checks that the frame's showcase reaches `document.body.dataset.showcase === "ready"`.

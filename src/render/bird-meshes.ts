@@ -1,4 +1,4 @@
-// Draws the "birds" (draft) in the valley: the flocks over the treetops and the birds on the ground near the player.
+// Draws the "birds" (approved) in the valley: the flocks over the treetops and the birds on the ground near the player.
 // bird-life.ts decides where every bird is. This file tells it about the valley and draws what it says.
 // Birds are only for looks. They are never picked, so they never block walking or the action menu, and they cast no shadows.
 import * as THREE from "three";
@@ -51,12 +51,7 @@ export function createBirdMeshes(entities: EntityStore, ground: BirdGround, rand
     group.add(mesh);
     return mesh;
   };
-  const parts: Record<BirdPart, THREE.InstancedMesh> = {
-    body: partMesh("body"),
-    head: partMesh("head"),
-    leftWing: partMesh("leftWing"),
-    rightWing: partMesh("rightWing"),
-  };
+  const parts = Object.fromEntries(BIRD_PARTS.map((part) => [part, partMesh(part)])) as Record<BirdPart, THREE.InstancedMesh>;
 
   const life = createBirdLife(random);
   let lastSeconds: number | undefined;
@@ -72,7 +67,7 @@ export function createBirdMeshes(entities: EntityStore, ground: BirdGround, rand
   function draw(birds: readonly DrawnBird[]): void {
     birds.forEach((bird, index) => {
       birdMatrix.compose(birdPosition.set(bird.x, bird.y, bird.z), facing.setFromAxisAngle(upright, bird.heading), drawnScale);
-      for (const part of BIRD_PARTS) parts[part].setMatrixAt(index, partMatrix.multiplyMatrices(birdMatrix, birdPartMatrix(part, bird, partMatrix)));
+      for (const part of BIRD_PARTS) parts[part].setMatrixAt(index, partMatrix.multiplyMatrices(birdMatrix, birdPartMatrix(part, bird.pose, partMatrix)));
     });
     for (const part of BIRD_PARTS) {
       parts[part].count = birds.length;

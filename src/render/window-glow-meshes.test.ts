@@ -5,7 +5,7 @@ import { createEntityStore } from "../sim/entities";
 import { cabinCutaway } from "./cabin-cutaway";
 import { daylightAt } from "./daylight";
 import { FADED_OPACITY } from "./structure-look";
-import { createWindowGlowMeshes, windowGlowStrength } from "./window-glow-meshes";
+import { createWindowGlowMeshes, windowGlowFlicker, windowGlowStrength } from "./window-glow-meshes";
 
 describe("how strongly a firelit window glows", () => {
   it("is off by day, full at night, and fades in at dusk and out at dawn with the daylight", () => {
@@ -21,10 +21,26 @@ describe("how strongly a firelit window glows", () => {
   });
 });
 
+describe("the firelight's flicker", () => {
+  it("stays near full strength and changes smoothly, with no jump between frames", () => {
+    const frame = 1 / 60;
+    for (let seconds = 0; seconds < 20; seconds += frame) {
+      const now = windowGlowFlicker(seconds, 0);
+      expect(now).toBeGreaterThan(0.8);
+      expect(now).toBeLessThan(1.2);
+      expect(Math.abs(windowGlowFlicker(seconds + frame, 0) - now)).toBeLessThan(0.03);
+    }
+  });
+
+  it("is out of step in two windows", () => {
+    expect(windowGlowFlicker(3, 0)).not.toBeCloseTo(windowGlowFlicker(3, 2));
+  });
+});
+
 describe("drawing the glow", () => {
   it("draws nothing for a valley with no firelit window", () => {
     const meshes = createWindowGlowMeshes(createEntityStore());
-    meshes.update(0);
+    meshes.update({ daylight: 0, nowSeconds: 0 });
     let shown = 0;
     meshes.group.traverseVisible((object) => {
       if (object instanceof THREE.Mesh) shown += 1;
@@ -40,9 +56,9 @@ describe("drawing the glow", () => {
     const outside = { x: 0, y: 1, z: 5 };
     const inside = { x: 0, y: 0, z: -2 };
 
-    meshes.update(0, cabinCutaway(entities, outside, outside));
+    meshes.update({ daylight: 0, nowSeconds: 0, cutaway: cabinCutaway(entities, outside, outside) });
     const clear = glowOpacities(meshes.group);
-    meshes.update(0, cabinCutaway(entities, outside, inside));
+    meshes.update({ daylight: 0, nowSeconds: 0, cutaway: cabinCutaway(entities, outside, inside) });
     const faded = glowOpacities(meshes.group);
 
     expect(clear.length).toBeGreaterThan(0);

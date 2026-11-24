@@ -893,11 +893,13 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/forest-floor/issues/05-wind-sway.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       },
       "approvalNotes": [
-        "2026-11-23: The owner approved in chat a change so that the flowers sway in the wind. Forest floor ticket 05 made it."
+        "2026-11-23: The owner approved in chat a change so that the flowers sway in the wind. Forest floor ticket 05 made it.",
+        "2026-11-24: The owner approved the flowers with their own sway, with stiffer stems than grass."
       ]
     },
     {
@@ -1600,12 +1602,13 @@
         "src/render/shutters-meshes.ts",
         "src/render/structure-meshes.ts"
       ],
-      "description": "Two plank shutters hung in a window's opening, on the face the window faces. Each leaf is one board of pale hand-sawn plank wood, hinged at its outer edge, so the two meet in the middle when closed. Each reaches 4 cm past the opening at its outer edge, top, and bottom, so no gap shows round it. A darker batten crosses each leaf's outside, and two dark iron strap hinges reach in from its outer edge. As a blueprint they show see-through, a plank the blueprint has waits pale and half solid, and construction hangs the left leaf, then the right: each fades in above its place and is set down. They show closed, open, or part way, as shutter-swing turns them, and fade with their window when they stand between the camera and the player.",
+      "description": "Two plank shutters hung in a window's opening, on the face the window faces. Each leaf is three upright boards of plank wood, weathered darker than the logs round them, with dark seams between. Each is hinged 4 cm past the opening's side and reaches 4 cm over and under it, so no gap shows round it, and the two meet in the middle when closed. On each leaf's outside, a darker batten crosses the top and the bottom, a diagonal brace climbs from the hinge side's bottom to the free side's top, and a dark iron strap hinge runs along each batten to a knuckle on the hinge line. The hinge line stands out from the logs, so an open leaf folds back flat against the wall. As a blueprint they show see-through, a plank the blueprint has waits pale and half solid, and construction hangs the left leaf, then the right: each fades in above its place and is set down. They show closed, open, or part way, as shutter-swing turns them, and fade with their window when they stand between the camera and the player.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/01-build-a-window-with-shutters.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1647,12 +1650,13 @@
         "src/render/window-glow-meshes.ts",
         "src/sim/window-glow.ts"
       ],
-      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, and a soft halo, a little larger than the opening, spreads from the outer face of the wall. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
+      "description": "The warm glow in an open window at night. A window glows when it has no shutters or open shutters, and a lit campfire, fireplace, or torch is in its room. A warm orange panel fills the window's opening, brightest at the sill and dimmer at the top, and a soft halo, about twice the size of the opening, spreads from the outer face of the wall. Both breathe with a slow, soft flicker, out of step from window to window. Both face away from the lit room, so the glow shows from outside. It fades in at dusk and out at dawn with the daylight, and fades with its window when the window stands between the camera and the player. It casts no shadow, lights nothing, and is never picked.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/windows/issues/02-indoor-shadow-and-window-glow.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {
@@ -1748,12 +1752,13 @@
         "src/render/firefly-effect.ts",
         "src/render/scene-renderer.ts"
       ],
-      "description": "Fireflies: up to 40 small yellow-green glowing dots, each a bright core in a soft halo, that drift slowly and blink over clearings and the river bank near the player at night. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
+      "description": "Fireflies: up to 40 small glowing dots, each a hot core in a wide soft halo, that drift slowly over clearings and the river bank near the player at night. Each flashes for about a second, brightening fast and fading slower from yellow-green to amber, and climbs a little while lit, as a real firefly does in its upward flash stroke. Then it stays dark for a few seconds. Far fireflies never shrink below a few pixels. They fade in at dusk and out at dawn, and stay away while it rains. They light nothing around them. They have no sound.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/valley-life/issues/02-fireflies.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-24"
       }
     },
     {

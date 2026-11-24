@@ -7,6 +7,8 @@
 // - Daisies and buttercups face the sky. Bellflowers cup their petals and hang their heads, so they read as bells.
 // - Every face has a front and a back, because the undergrowth material draws front faces only.
 // - Every normal points nearly straight up, so the flowers are lit like the ground and never turn black.
+// - Flowers sway in the wind with FLOWER_SWAY in wind-sway.ts. Their stems are stiffer than grass, so the heads bob
+//   lightly rather than swing.
 // - The pivot is the middle of the clump's foot, on the ground. Sizes are in metres. A flower stands 0.15 m to 0.34 m.
 import * as THREE from "three";
 import { createRandom, type Random } from "../sim/random";

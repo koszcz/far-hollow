@@ -144,6 +144,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   roofFrame: exactly(true),
   cabinRoof: exactly(true),
   fireplace: shape({ lit: boolean, fuelMinutes: finite }),
+  chimney: exactly(true),
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
   furniture: exactly(...FURNITURE_KINDS),
@@ -253,6 +254,9 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   takeShuttersDownFirst: true,
   nothingGrowsInWinter: true,
   riverFrozen: true,
+  chimneyNeedsFireplace: true,
+  fireplaceHasChimney: true,
+  takeChimneyDownFirst: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

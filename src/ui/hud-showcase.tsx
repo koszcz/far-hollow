@@ -335,6 +335,7 @@ const FULL_BUILD_MENU: GameView["buildMenu"] = [
   { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true },
   { structure: "shutters", cost: [{ material: "plank", count: 2 }], placement: "inWindow", fixedFacing: true },
   { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
+  { structure: "chimney", cost: [{ material: "stone", count: 8 }], placement: "onFireplace", fixedFacing: true },
   { structure: "woodpile", cost: [], placement: "onGround" },
   ...FURNITURE_BUILD_MENU,
   { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
@@ -814,6 +815,7 @@ const STATES_BY_ASSET = {
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
   "window-icons": BUILD_ICON_STATES,
+  "chimney-icon": BUILD_ICON_STATES,
   "action-queue-icons": ACTION_QUEUE_ICON_STATES,
   "torch-icons": TORCH_ICON_STATES,
   "fish-trap-icons": FISH_TRAP_ICON_STATES,
@@ -844,7 +846,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       asset === "fireplace-icon" ||
       asset === "rain-barrel-icon" ||
       asset === "floor-and-door-icons" ||
-      asset === "window-icons"
+      asset === "window-icons" ||
+      asset === "chimney-icon"
     ) {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");

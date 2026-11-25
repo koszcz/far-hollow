@@ -196,6 +196,11 @@ export interface Entity {
    */
   fireplace?: Fire;
   /**
+   * Marks a finished chimney: stone built up from the cap stone of a finished fireplace, rising through any roof over it.
+   * Its position and `facing` are its fireplace's. It is only for looks: it changes nothing in play and blocks no walking of its own.
+   */
+  chimney?: true;
+  /**
    * Marks a finished campfire. Its position is the centre of the fire.
    * `fuelMinutes` is how many more game minutes its fuel can burn. A lit fire goes out when it reaches 0.
    */
@@ -496,6 +501,11 @@ export function cabinRoofEntities(store: EntityStore) {
 /** Finished fireplaces. */
 export function fireplaceEntities(store: EntityStore) {
   return store.with("fireplace", "position");
+}
+
+/** Finished chimneys. */
+export function chimneyEntities(store: EntityStore) {
+  return store.with("chimney", "position");
 }
 
 /** A finished campfire or fireplace, which kind it is, and the fire it holds. Set the fire back on `entity[kind]` to change it. */

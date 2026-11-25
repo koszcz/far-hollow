@@ -14,6 +14,7 @@ export type StructureKind =
   | "door"
   | "shutters"
   | "fireplace"
+  | "chimney"
   | "woodpile"
   | FurnitureKind
   | WorkStationKind
@@ -42,10 +43,11 @@ export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];
 /**
  * How a blueprint follows the mouse while the player places it:
  * on the ground at a grid point or square, on a finished foundation square, on the edge of a foundation square, over a square with walls, on a finished roof frame,
- * in a finished door frame, in a finished window, or anywhere, off the grid. Furniture and the sled are placed anywhere.
+ * in a finished door frame, in a finished window, on a finished fireplace, or anywhere, off the grid. Furniture and the sled are placed anywhere.
  * A floor goes `underfoot`: on a finished foundation square, one after another, with a Shift-drag placing a row.
  */
-export type Placement = "onGround" | "onFoundation" | "underfoot" | "onEdge" | "overWalls" | "onFrame" | "inDoorFrame" | "inWindow" | "anywhere";
+export type Placement =
+  "onGround" | "onFoundation" | "underfoot" | "onEdge" | "overWalls" | "onFrame" | "inDoorFrame" | "inWindow" | "onFireplace" | "anywhere";
 
 /** Whether the player places blueprints with this placement one after another: build mode stays open after each, and a Shift-drag places a row. Only `underfoot` does. */
 export function isPlacedInRows(placement: Placement): boolean {

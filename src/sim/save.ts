@@ -82,6 +82,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addWindows,
   addJournal,
   startTheYear,
+  addChimneys,
 ];
 
 /** The version of the save format this code writes. */
@@ -195,6 +196,8 @@ export const WINDOWS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWindows) + 2;
 export const JOURNAL_SAVE_VERSION = SAVE_UPGRADES.indexOf(addJournal) + 2;
 /** The first save version that records the day the year started on, which the season follows from. */
 export const SEASONS_SAVE_VERSION = SAVE_UPGRADES.indexOf(startTheYear) + 2;
+/** The first save version that can hold chimneys. */
+export const CHIMNEYS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addChimneys) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1039,4 +1042,9 @@ function startTheYear(save: Readonly<Record<string, unknown>>): Record<string, u
   const { clockMinutes } = save;
   if (typeof clockMinutes !== "number" || !Number.isFinite(clockMinutes) || clockMinutes < 0) return { ...save };
   return { ...save, yearStartDay: Math.floor(clockMinutes / MINUTES_PER_DAY) + 1 };
+}
+
+/** Version 60 to 61: the player can build a chimney on a fireplace. A save from before then holds none, so it carries over unchanged. */
+function addChimneys(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

@@ -10,11 +10,18 @@
 // pool of light as a campfire. Added by fireplace ticket 03.
 // A pot on the fire shows the approved "pot" from pot-shape.ts sitting on the fire, steaming while lit. Added by fireplace
 // ticket 04. The fish on a fireplace are drawn by fish-on-fire-meshes.ts.
+// Once a chimney is finished on a fireplace, the fire's smoke rises from the chimney's top instead of the hearth. The flames,
+// embers, sparks, and light stay in the fire box. Added by chimney ticket 01.
 import * as THREE from "three";
+import { finishedChimneyOn } from "../sim/chimneys";
 import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { FIREPLACE_STONE_COST } from "../sim/structures";
+import type { Fire as FireState } from "../sim/fire";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
+import { CHIMNEY_MIDDLE, chimneyTopAt } from "./chimney-height";
 import { createFireplaceStageShapes } from "./fireplace-shape";
+import { flameSize } from "./flame-size";
+import { frameLayout, type FrameLayout } from "./roof-parts";
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import type { OutlinePart } from "./hover-outline";
@@ -41,6 +48,8 @@ const LIGHTS_FORWARD_METRES = 0.45;
  * the slab. It sits over the fire, FIRE_FORWARD_METRES toward the opening.
  */
 const POT_HEIGHT_METRES = 0.28;
+/** Smoke from a chimney's top is drawn at this share of a campfire's, a little bigger than the hearth's, so it reads above the roof. */
+const CHIMNEY_SMOKE_SCALE = 0.8;
 
 /** What a click on a fireplace blueprint landed on. A finished fireplace is found with `pickFinished`. */
 export type FireplaceHit = { kind: "blueprint"; entity: Entity };
@@ -73,6 +82,8 @@ interface Drawn {
   readonly picker: THREE.Mesh;
   /** The fire in the hearth, and its lights. Made for a finished fireplace the first time it is drawn, and hidden while it is out. */
   lit?: { readonly fire: Fire; readonly lights: FireLights };
+  /** The smoke rising from the top of the chimney on it. Made the first time a chimney is finished on it, and hidden while there is none. */
+  chimneySmoke?: Fire;
   /** The pot on the fire. Made the first time a pot goes on, and hidden while there is none. */
   pot?: PotMesh;
 }
@@ -179,6 +190,34 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
     if (entity.potOnFire !== undefined) item.pot.show(entity.fireplace?.lit === true ? "steaming" : "full", nowSeconds);
   }
 
+  /**
+   * Sends a finished fireplace's smoke out of the top of its chimney while one is finished on it, or lets it rise at the hearth.
+   * `layout` gives the roof over the chimney, which sets how tall it is.
+   */
+  function showSmoke(
+    item: Drawn,
+    entity: Entity & { position: Vec3; fireplace: FireState },
+    fire: Fire,
+    layout: () => FrameLayout,
+    nowSeconds: number,
+    seed: number,
+  ): void {
+    const hasChimney = finishedChimneyOn(entities, entity.position) !== undefined;
+    fire.showSmoke(!hasChimney);
+    if (!hasChimney && item.chimneySmoke === undefined) return;
+    if (item.chimneySmoke === undefined) {
+      item.chimneySmoke = fireMaker.make("smokeOnly");
+      item.chimneySmoke.group.scale.setScalar(CHIMNEY_SMOKE_SCALE);
+      item.root.add(item.chimneySmoke.group);
+    }
+    const smoke = item.chimneySmoke;
+    smoke.group.visible = hasChimney && entity.fireplace.lit;
+    if (!smoke.group.visible) return;
+    const top = chimneyTopAt(entities, layout(), entity.position, entity.facing?.turns ?? 0);
+    smoke.group.position.set(CHIMNEY_MIDDLE.x, top, CHIMNEY_MIDDLE.z);
+    smoke.animate(nowSeconds, flameSize("fireplace", entity.fireplace), seed);
+  }
+
   function disposeFading(stages: readonly Stage[]): void {
     for (const stage of stages) stage.fading.dispose();
   }
@@ -198,6 +237,9 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
     group,
     update(nowSeconds) {
       const seen = new Set<Entity>();
+      // Every chimney this frame stands under the same roofs, so the layout is worked out once, and only if a chimney needs it.
+      let layout: FrameLayout | undefined;
+      const layoutNow = () => (layout ??= frameLayout(entities));
       for (const entity of blueprints) {
         if (entity.blueprint.structure !== "fireplace") continue;
         showProgress(draw(entity), entity, entity.blueprint.progress, entity.blueprint.delivered.stone ?? 0);
@@ -207,7 +249,9 @@ export function createFireplaceMeshes(entities: EntityStore): FireplaceMeshes {
         const item = draw(entity);
         showProgress(item, entity, 1, FIREPLACE_STONE_COST);
         const { fire, lights } = fireOf(item);
-        showLitFire(fire, lights, entity.fireplace, "fireplace", nowSeconds, entity.position.x * 3.1 + entity.position.z * 1.7);
+        const seed = entity.position.x * 3.1 + entity.position.z * 1.7;
+        showLitFire(fire, lights, entity.fireplace, "fireplace", nowSeconds, seed);
+        showSmoke(item, entity, fire, layoutNow, nowSeconds, seed);
         showPot(item, entity, nowSeconds);
         seen.add(entity);
       }

@@ -6,6 +6,7 @@ import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { blocksWalking, edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";
 import { hasShutters, nearestBareWindow, windowOn } from "./windows";
+import { fireplaceOn, hasChimney, nearestBareFireplace } from "./chimneys";
 import {
   blueprintEntities,
   cabinRoofEntities,
@@ -102,6 +103,7 @@ export type FinishedMarker =
   | "roofFrame"
   | "cabinRoof"
   | "fireplace"
+  | "chimney"
   | "woodpile"
   | "furniture"
   | "workStation"
@@ -500,7 +502,7 @@ const roof: StructureDefinition & { readonly kind: "roof" } = {
   heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities }, spot, turns) {
     if (roofFrameOn(entities, spot) === undefined) return false;
-    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it, a fireplace, furniture, and sleds are not.
+    // A roof already over the square, finished or as a blueprint, is in the way. The frame under it, a fireplace, a chimney, furniture, and sleds are not.
     return isClearOfTreesAndStructures(entities, roof.footprint(spot, turns), { ignoreFreelyPlaced: true, ignoreRoofFrames: true, ignoreFireplaces: true });
   },
   finish: (spot, turns) => ({ cabinRoof: true, roof: roof.footprint(spot, turns) }),
@@ -598,6 +600,45 @@ const fireplace: StructureDefinition & { readonly kind: "fireplace" } = {
   finish: (spot) => ({ fireplace: unlitFire(), blocksWalkingSpots: [{ x: spot.x, z: spot.z }] }),
   blueprintBlocksWalkingSpots: (spot) => [{ x: spot.x, z: spot.z }],
 };
+
+/** How many stones a chimney costs. Construction spends one at the start of each stage. */
+export const CHIMNEY_STONE_COST = 8;
+/** How long the player holds the build action to build a chimney, in seconds. */
+export const CHIMNEY_BUILD_SECONDS = 16;
+/** A chimney blueprint snaps to the finished fireplace with no chimney whose middle is within this many metres of the mouse. */
+const CHIMNEY_SNAP_METRES = 1;
+
+/**
+ * A chimney: stone built up from the cap stone of a finished fireplace, through any roof over it. It takes the fireplace's
+ * square and facing, so R does not turn it. A fireplace holds one chimney. A chimney is only for looks, and the fireplace
+ * already blocks walking on the square, so a chimney blocks nothing more. A roof frame and roof section can go over it.
+ */
+const chimney: StructureDefinition & { readonly kind: "chimney" } = {
+  kind: "chimney",
+  placement: "onFireplace",
+  fixedFacing: true,
+  finishedAs: "chimney",
+  cost: [{ material: "stone", count: CHIMNEY_STONE_COST }],
+  buildSeconds: CHIMNEY_BUILD_SECONDS,
+  footprint: (spot, turns) => turnedRect(spot, FOUNDATION_HALF_METRES, FOUNDATION_HALF_METRES, turns),
+  snap({ entities }, at) {
+    const bare = nearestBareFireplace(entities, at, CHIMNEY_SNAP_METRES);
+    return bare === undefined ? snapToGridSquare(at) : { x: bare.position.x, z: bare.position.z };
+  },
+  facingAt: ({ entities }, spot, turns) => fireplaceOn(entities, spot)?.facing?.turns ?? turns,
+  heightAt: ({ entities, valley }, spot) => fireplaceOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
+  canPlace: ({ entities }, spot) => fireplaceOn(entities, spot) !== undefined && !hasChimney(entities, spot),
+  placementRefusal({ entities }, spot) {
+    if (fireplaceOn(entities, spot) === undefined) return { kind: "chimneyNeedsFireplace" };
+    return hasChimney(entities, spot) ? { kind: "fireplaceHasChimney" } : undefined;
+  },
+  finish: () => ({ chimney: true }),
+};
+
+/** Whether a structure is a fireplace or a chimney, which a roof frame and a roof section may go over. */
+function isFireplaceOrChimney(kind: StructureKind): boolean {
+  return kind === "fireplace" || kind === "chimney";
+}
 
 /** How long the player holds the build action to build a woodpile, in seconds. It costs nothing, so it goes up quickly. */
 export const WOODPILE_BUILD_SECONDS = 3;
@@ -807,6 +848,7 @@ const STRUCTURE_BY_KIND: { readonly [Kind in StructureKind]: StructureDefinition
   door,
   shutters,
   fireplace,
+  chimney,
   woodpile,
   ...FURNITURE_STRUCTURES,
   sawhorse,
@@ -878,7 +920,7 @@ function hasThingsLyingOn(entities: EntityStore, rect: GroundRect): boolean {
  * `ignoreFreelyPlaced` lets it go over furniture and sleds, and their blueprints, as a roof does.
  * `ignoreCabinRoofs` lets it go under a finished cabin roof or roof frame, or a blueprint of either, as furniture does. A lean-to is still in the way.
  * `ignoreRoofFrames` lets it go over a finished roof frame, as a roof does.
- * `ignoreFireplaces` lets it go over a fireplace or its blueprint, as a roof frame and a roof do.
+ * `ignoreFireplaces` lets it go over a fireplace or chimney, finished or as a blueprint, as a roof frame and a roof do.
  */
 function isClearOfTreesAndStructures(
   entities: EntityStore,
@@ -897,7 +939,7 @@ function isClearOfTreesAndStructures(
   for (const blueprint of blueprintEntities(entities)) {
     const { structure } = blueprint.blueprint;
     if ((ignoreFreelyPlaced && isPlacedFreely(structure)) || (ignoreCabinRoofs && (structure === "roof" || structure === "roofFrame"))) continue;
-    if ((ignoreFireplaces && structure === "fireplace") || liesUnderfoot(structure)) continue;
+    if ((ignoreFireplaces && isFireplaceOrChimney(structure)) || liesUnderfoot(structure)) continue;
     if (rectsOverlap(rect, footprintOfEntity(blueprint))) return false;
   }
   for (const roofed of roofEntities(entities)) {
@@ -911,7 +953,7 @@ function isClearOfTreesAndStructures(
   if (!ignoreFreelyPlaced && !isClearOfFreelyPlaced(entities, rect)) return false;
   // Every other finished structure is in the way, so a new kind of structure is in the way unless it says otherwise.
   for (const { entity, kind } of finishedStructures(entities)) {
-    if (CHECKED_APART.has(kind) || isPlacedFreely(kind) || liesUnderfoot(kind) || (ignoreFireplaces && kind === "fireplace")) continue;
+    if (CHECKED_APART.has(kind) || isPlacedFreely(kind) || liesUnderfoot(kind) || (ignoreFireplaces && isFireplaceOrChimney(kind))) continue;
     if (rectsOverlap(rect, footprintOfEntity(entity))) return false;
   }
   return true;
@@ -958,7 +1000,7 @@ export function costOf(entity: Entity, kind: StructureKind): readonly MaterialCo
 
 /**
  * What kind of structure an entity is: a blueprint of any structure, or a finished campfire, lean-to, foundation,
- * log wall, door frame, roof frame, roof section, fireplace, woodpile, piece of furniture, work station, or sled. Undefined for anything else.
+ * log wall, door frame, roof frame, roof section, fireplace, chimney, woodpile, piece of furniture, work station, or sled. Undefined for anything else.
  */
 export function structureKindOf(entity: Entity): StructureKind | undefined {
   if (entity.blueprint !== undefined) return entity.blueprint.structure;

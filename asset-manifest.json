@@ -1525,6 +1525,40 @@
       }
     },
     {
+      "id": "chimney",
+      "kind": "code",
+      "code": [
+        "src/render/chimney-meshes.ts",
+        "src/render/chimney-shape.ts",
+        "src/render/chimney-height.ts",
+        "src/render/fireplace-shape.ts",
+        "src/render/fireplace-meshes.ts",
+        "src/render/structure-meshes.ts"
+      ],
+      "description": "A stone chimney built on a finished fireplace. It stands on the fireplace's cap stone, at the back, and rises straight up through any roof section over the square. No hole is cut in the roof. It is hand-stacked rubble in the same style as the approved fireplace: lumpy river stones in warm greys, laid in rough courses over dark mortar, about 0.38 m wide and 0.36 m deep. Its top is a cap like the fireplace's: two small stones at the sides, a black opening between them, and a flat cap stone over all three. The top stands 0.8 m above the roof surface at the chimney's middle, so a chimney under a higher roof section is taller. With no roof section over its square, it is as tall as it would be under a roof one rise high. As a blueprint it shows see-through, the stones it already has wait pale and half solid, and construction lays one part per stage, 8 in all: seven courses, then the cap. Each part fades in above its place and is set down. Once it is finished, the smoke of the lit fireplace rises from its top, as the approved fire-effect's smoke drawn alone at 80% of a campfire's size, and no smoke rises at the hearth. The flames, embers, sparks, and light stay in the fire box. The chimney never hides or fades, even when the roof over the player hides.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/chimney/issues/01-chimney-through-the-roof.md"
+      }
+    },
+    {
+      "id": "chimney-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/chimney-icon.tsx",
+        "src/ui/structure-icon.tsx"
+      ],
+      "description": "The build menu icon for the chimney, drawn in the build icons' shaded style on the same 24 by 24 grid: a tall grey stone chimney seen from the front, in staggered courses with dark mortar joints, under a pale cap stone, rising through a sloped plank roof in weathered grey. A puff of pale smoke drifts up from its top.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/chimney/issues/01-chimney-through-the-roof.md"
+      }
+    },
+    {
       "id": "torch",
       "kind": "code",
       "code": [

@@ -7,11 +7,12 @@ import type { Building } from "./building";
 import { hasChimney } from "./chimneys";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { hasDoor } from "./doors";
-import { blueprintEntities, type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, type EntityStore } from "./entities";
 import type { GroundPoint } from "./ground-point";
 import { refusedNotice } from "./notices";
+import type { QuarterTurns } from "./quarter-turns";
 import { cabinRoofOn } from "./roofs";
-import { ADD_ON_OF_HOST, isHost, type HostKind } from "./structure-kind";
+import { ADD_ON_OF_HOST, isHost, type AddOnKind, type HostKind } from "./structure-kind";
 import { structureKindOf } from "./structures";
 import { hasShutters } from "./windows";
 
@@ -32,31 +33,31 @@ export function holdsAddOn(entities: EntityStore, host: HostKind, at: GroundPoin
   }
 }
 
-/** The finished host with this id, with its kind, or undefined if the entity is gone, is no host, or is still a blueprint. */
-function finishedHost(entities: EntityStore, hostId: number): { host: Entity & { position: GroundPoint }; kind: HostKind } | undefined {
+/** The finished host with this id and its kind, or why it cannot take an add-on: it is gone, or it is no finished host. */
+function finishedHost(
+  entities: EntityStore,
+  hostId: number,
+): { refusal: Refusal } | { refusal?: undefined; position: GroundPoint; turns: QuarterTurns; kind: HostKind } {
   const host = entities.entity(hostId);
-  const kind = host === undefined ? undefined : structureKindOf(host);
-  if (host?.position === undefined || host.blueprint !== undefined || kind === undefined || !isHost(kind)) return undefined;
-  return { host: { ...host, position: host.position }, kind };
+  if (host === undefined) return { refusal: { kind: "gone" } };
+  const kind = structureKindOf(host);
+  if (host.position === undefined || host.blueprint !== undefined || kind === undefined || !isHost(kind)) return { refusal: { kind: "finishHostFirst" } };
+  return { position: host.position, turns: host.facing?.turns ?? 0, kind };
 }
 
 /** The rule for building an add-on from its host. */
 export function addOnRules(building: Building, { entities, startApproach, stopOtherWork }: RuleGame): CommandRules<"buildAddOn"> {
-  /** Why the add-on cannot be placed on the host, or undefined if it can, with where its blueprint goes. */
-  function check(hostId: number): { refusal: Refusal } | { refusal?: undefined; place: () => number | undefined } {
-    const host = entities.entity(hostId);
-    if (host === undefined) return { refusal: { kind: "gone" } };
-    const found = finishedHost(entities, hostId);
-    if (found === undefined) return { refusal: { kind: "finishHostFirst" } };
-    const { position, facing } = found.host;
-    if (holdsAddOn(entities, found.kind, position)) return { refusal: { kind: "holdsAddOn" } };
-    const addOn = ADD_ON_OF_HOST[found.kind];
-    const at = { x: position.x, z: position.z };
-    const turns = facing?.turns ?? 0;
-    const placement = building.checkPlacement(addOn, at, turns);
+  /** Why the add-on cannot be placed on the host, or undefined if it can, with which add-on goes where. */
+  function check(hostId: number): { refusal: Refusal } | { refusal?: undefined; addOn: AddOnKind; at: GroundPoint; turns: QuarterTurns } {
+    const host = finishedHost(entities, hostId);
+    if (host.refusal !== undefined) return host;
+    if (holdsAddOn(entities, host.kind, host.position)) return { refusal: { kind: "holdsAddOn" } };
+    const addOn = ADD_ON_OF_HOST[host.kind];
+    const at = { x: host.position.x, z: host.position.z };
+    const placement = building.checkPlacement(addOn, at, host.turns);
     if (placement.refusal !== undefined) return { refusal: placement.refusal };
     if (!placement.allowed) return { refusal: { kind: "addOnInTheWay" } };
-    return { place: () => building.place(addOn, at, turns) };
+    return { addOn, at, turns: host.turns };
   }
 
   return {
@@ -68,7 +69,7 @@ export function addOnRules(building: Building, { entities, startApproach, stopOt
       run: (command) => {
         const checked = check(command.hostId);
         if (checked.refusal !== undefined) return refusedNotice(checked.refusal);
-        const id = checked.place();
+        const id = building.place(checked.addOn, checked.at, checked.turns);
         if (id === undefined) return refusedNotice({ kind: "addOnInTheWay" });
         // The blueprint stays even when the player cannot start building it, and the game says why, as it does for build.
         const refusal = building.refusal(id);

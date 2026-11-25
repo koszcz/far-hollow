@@ -147,15 +147,16 @@ function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[]
   if (pick.structure === "shutters") return thingActions({ kind: "shutters", id: pick.id }, context);
   // A finished structure acts like the thing under it, and can also be taken down. Ground under it offers a walk there, such as onto a foundation.
   const under = pick.under === undefined ? [] : thingActions(pick.under, context);
-  const [own] = structureOffers(pick, context);
-  const takeDownStructure: ThingAction = { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false };
+  const own = structureOffers(pick, context);
+  const takeDownStructure = notMain([{ ...takeDown(context, pick.id), id: "takeDownStructure" }]);
   // A finished door frame, window, or roof frame that does not hold its add-on yet offers to build it, as the main action.
   const [addOn] = addOnOffers(pick.id, context);
-  if (addOn !== undefined) return [{ ...addOn, isMain: true }, ...notMain(under), ...(own === undefined ? [] : [{ ...own, isMain: false }]), takeDownStructure];
-  if (own === undefined) return [...under, takeDownStructure];
+  if (addOn !== undefined) return [{ ...addOn, isMain: true }, ...notMain(under), ...notMain(own), ...takeDownStructure];
+  const [ownMain] = own;
+  if (ownMain === undefined) return [...under, ...takeDownStructure];
   // The structure's own action is the main one when nothing under it has one, such as when the pointer is on the lean-to's roof.
-  if (under[0]?.isMain === true) return [...under, { ...own, isMain: false }, takeDownStructure];
-  return [{ ...own, isMain: true }, ...under, takeDownStructure];
+  if (under[0]?.isMain === true) return [...under, ...notMain(own), ...takeDownStructure];
+  return [{ ...ownMain, isMain: true }, ...under, ...takeDownStructure];
 }
 
 /**
@@ -168,8 +169,8 @@ function addOnOffers(hostId: number, { reader, offer }: Context): readonly Offer
   return [offer("addOn", strings.actions.addOn[host.structure], { hud: "place" }, { type: "buildAddOn", hostId })];
 }
 
-/** The same actions, none of them the main one. */
-function notMain(actions: readonly ThingAction[]): readonly ThingAction[] {
+/** The same actions or offers, none of them the main one. */
+function notMain(actions: readonly Offer[]): readonly ThingAction[] {
   return actions.map((action) => ({ ...action, isMain: false }));
 }
 
@@ -243,7 +244,7 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       // A fireplace also offers to build its chimney, just before taking it down. The fire keeps the main action.
       const campfire = reader.describeCampfire(pick.id);
       const fire = campfire === null ? withMain([takeDown(context, pick.id)], undefined) : campfireActions(campfire, context);
-      return [...fire.slice(0, -1), ...notMain(withMain(addOnOffers(pick.id, context), undefined)), ...fire.slice(-1)];
+      return [...fire.slice(0, -1), ...notMain(addOnOffers(pick.id, context)), ...fire.slice(-1)];
     }
     case "woodpile": {
       const woodpile = reader.describeWoodpile(pick.id);

@@ -425,7 +425,7 @@ function BuildMenu({
         </span>
       ),
       ...(addOn === undefined ? {} : { detail: addOn }),
-      label: [strings.buildMenu.entryLabel(name, costText), ...(addOn === undefined ? [] : [addOn])].join(" · "),
+      label: strings.buildMenu.entryLabel(name, costText, addOn),
       onPick: () => {
         onPick(structure);
       },

@@ -218,8 +218,12 @@ export const strings = {
       debarkedLog: (count: number) => (count === 1 ? "1 debarked log" : `${count} debarked logs`),
     },
     cost: (materials: readonly string[]) => materials.join(", "),
-    /** The full name of a build menu tile, for screen readers, such as "Campfire: 5 sticks". A structure that costs nothing has only its name. */
-    entryLabel: (structure: string, cost: string) => (cost === "" ? structure : `${structure}: ${cost}`),
+    /**
+     * The full name of a build menu row, for screen readers, such as "Campfire: 5 sticks". A structure that costs nothing has only its name.
+     * A host's row adds its detail line after a " · ", such as "Hang a door in it once it is built."
+     */
+    entryLabel: (structure: string, cost: string, detail?: string) =>
+      [cost === "" ? structure : `${structure}: ${cost}`, ...(detail === undefined ? [] : [detail])].join(" · "),
     /** What to click while placing each kind of structure, given its name. The keys show after it, from `hudLabels.placingKeys`. */
     /** The placing hint when the game refuses the spot under the mouse and says why. */
     refusedHere: (structure: string, reason: string) => `Cannot place a ${structure} here: ${reason}.`,

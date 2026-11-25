@@ -58,6 +58,20 @@ describe("building an add-on from its host", () => {
     expect(game.client.refusal({ type: "buildAddOn", hostId: frame.id })).toEqual({ kind: "holdsAddOn" });
   });
 
+  it("is refused on a window, roof frame, or fireplace once its add-on blueprint exists", () => {
+    const game = createGame({ seed: 42, freeBuilding: true });
+    const square = openFoundation(game);
+    addFinished(game, "logWall", square, 0);
+    const hosts = [addFinished(game, "window", square, 2), addFinished(game, "roofFrame", square, 3), addFinished(game, "fireplace", square, 1)];
+
+    for (const host of hosts) {
+      expect(game.client.refusal({ type: "buildAddOn", hostId: host.id })).toBeNull();
+      send(game, { type: "buildAddOn", hostId: host.id });
+      send(game, { type: "stopBuilding" });
+      expect(game.client.refusal({ type: "buildAddOn", hostId: host.id })).toEqual({ kind: "holdsAddOn" });
+    }
+  });
+
   it("is refused for a host that is still a blueprint, which says nothing about an add-on", () => {
     const game = createGame({ seed: 42 });
     const square = openFoundation(game);

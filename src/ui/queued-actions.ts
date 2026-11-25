@@ -80,8 +80,9 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: command.structure }, name: actions.build };
     case "buildAddOn": {
       const host = thing(command.hostId);
-      const addOn = host?.kind === "structure" && isHost(host.structure) ? ADD_ON_OF_HOST[host.structure] : "door";
-      return { icon: { structure: addOn }, name: actions.build };
+      // A host that is gone shows the plain build icon, not some add-on's.
+      const icon: QueueIcon = host?.kind === "structure" && isHost(host.structure) ? { structure: ADD_ON_OF_HOST[host.structure] } : { hud: "place" };
+      return { icon, name: actions.build };
     }
     case "build":
       return { icon: structure(command.blueprintId, "campfire"), name: actions.build };

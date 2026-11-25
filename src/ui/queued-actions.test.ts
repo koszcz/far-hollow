@@ -76,6 +76,7 @@ describe("the icon and name of a queued action", () => {
 
     expect(shown(game, { type: "takeDown", pieceId: 999_999 })).toEqual({ icon: { hud: "backpack" }, name: "Take down" });
     expect(shown(game, { type: "pickUpPile", pileId: 999_999 })).toEqual({ icon: { hud: "backpack" }, name: "Pick up" });
+    expect(shown(game, { type: "buildAddOn", hostId: 999_999 })).toEqual({ icon: { hud: "place" }, name: "Build" });
   });
 });
 

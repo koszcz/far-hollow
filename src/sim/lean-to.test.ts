@@ -38,6 +38,7 @@ describe("the lean-to in the build menu", () => {
       { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true },
       { structure: "shutters", cost: [{ material: "plank", count: 2 }], placement: "inWindow", fixedFacing: true },
       { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
+      { structure: "chimney", cost: [{ material: "stone", count: 8 }], placement: "onFireplace", fixedFacing: true },
       { structure: "woodpile", cost: [], placement: "onGround" },
       { structure: "chest", cost: [{ material: "plank", count: 4 }], tool: "axe", placement: "anywhere" },
       { structure: "shelf", cost: [{ material: "plank", count: 4 }], placement: "anywhere" },

@@ -7,6 +7,7 @@ import { DOOR_FIRST_BOUNCE_SHARE, DOOR_REBOUND_SECONDS, DOOR_SWING_SECONDS, RING
 import {
   DOOR_FRAME_LOG_COST,
   DOOR_PLANK_COST,
+  CHIMNEY_STONE_COST,
   FIREPLACE_STONE_COST,
   FLOOR_PLANK_COST,
   FOUNDATION_LOG_COST,
@@ -41,6 +42,8 @@ const SHUTTER_LOOP_SECONDS = 4;
 const LIT_FIREPLACE_SHOT = 2;
 /** The fireplace showcase marks its shot of a pot and fish on the lit fire with this time. */
 const COOKING_FIREPLACE_SHOT = 3;
+/** The chimney showcase marks its shots with a roof section over the chimney with this time, past the end of the build. */
+const ROOFED_CHIMNEY_SHOT = 2;
 
 /**
  * Builds a 3 by 2 square cabin with log walls all round and a door frame in the middle of the front. Every square but the
@@ -264,6 +267,55 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
         store.removeComponent(entity, "fireplace");
         setComponent(store, entity, "blueprint", { structure: "fireplace", progress, materialsSpent: 0, delivered: {} });
         if (entity.blueprint !== undefined) entity.blueprint.delivered.stone = Math.max(4, Math.ceil(progress * FIREPLACE_STONE_COST));
+      }
+    },
+  },
+  chimney: {
+    radius: 3.6,
+    focus: { x: 0, y: 1.7, z: 0 },
+    // On a lit fireplace with log walls behind and beside it and a roof frame over it: a blueprint with 3 of 8 stones while
+    // the smoke still rises at the hearth, the 4th course being set down, the finished chimney with its smoke rising from the
+    // top, then a roof section laid on the frame, which the chimney passes through and stands 0.8 m above.
+    shots: [
+      { label: `blueprint, 3 of ${CHIMNEY_STONE_COST} stones, smoke at the hearth`, yaw: 30, pitch: 22, seconds: 0 },
+      { label: "4th course above its place", yaw: 30, pitch: 22, seconds: (3 + BUILD_FADE_SHARE) / CHIMNEY_STONE_COST },
+      { label: "built under the frame, smoke from the top", yaw: 30, pitch: 22, seconds: 1 },
+      { label: "through a roof section, smoke from the top", yaw: 30, pitch: 22, seconds: ROOFED_CHIMNEY_SHOT },
+      { label: "through a roof section, from behind", yaw: 200, pitch: 25, seconds: ROOFED_CHIMNEY_SHOT },
+    ],
+    build(stage) {
+      const onDeck = onDeckOf(stage);
+      onDeck(0, 0, { foundation: true });
+      onDeck(0, -0.5, { edgePiece: "logWall", facing: { turns: 2 } });
+      onDeck(-0.5, 0, { edgePiece: "logWall", facing: { turns: 1 } });
+      onDeck(0.5, 0, { edgePiece: "logWall", facing: { turns: 3 } });
+      onDeck(0, 0, { roofFrame: true, facing: { turns: 0 } });
+      onDeck(0, 0, { fireplace: { lit: true, fuelMinutes: FUEL_LIMIT_MINUTES.fireplace }, facing: { turns: 0 } });
+      onDeck(0, 0, { blueprint: { structure: "chimney", progress: 0, materialsSpent: 0, delivered: { stone: 3 } }, facing: { turns: 0 } });
+      stage.movePlayer(1.3, 1, -Math.PI / 2);
+    },
+    pose({ store }, shot) {
+      const seconds = shot.seconds ?? 0;
+      const progress = Math.min(1, seconds);
+      // The roofed shots lay a roof section on the frame, and the other shots take it off.
+      for (const frame of store.with("roofFrame", "position")) {
+        store.removeComponent(frame, "cabinRoof");
+        store.removeComponent(frame, "roof");
+        if (seconds !== ROOFED_CHIMNEY_SHOT) continue;
+        const { x, z } = frame.position;
+        setComponent(store, frame, "cabinRoof", true);
+        setComponent(store, frame, "roof", { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } });
+      }
+      // The built shots swap the blueprint for a finished chimney, and the other shots swap it back.
+      for (const entity of [...store.with("blueprint"), ...store.with("chimney")]) {
+        if (progress >= 1) {
+          store.removeComponent(entity, "blueprint");
+          setComponent(store, entity, "chimney", true);
+          continue;
+        }
+        store.removeComponent(entity, "chimney");
+        setComponent(store, entity, "blueprint", { structure: "chimney", progress, materialsSpent: 0, delivered: {} });
+        if (entity.blueprint !== undefined) entity.blueprint.delivered.stone = Math.max(3, Math.ceil(progress * CHIMNEY_STONE_COST));
       }
     },
   },

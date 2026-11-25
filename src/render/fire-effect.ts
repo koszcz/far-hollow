@@ -5,6 +5,7 @@
 // - Sparks rise from the flames, drift sideways, and shrink away.
 // - Smoke puffs rise above the flames, swell, and thin out.
 // - A wide glow lights the ground far around, and a brighter pool of light ends where the fire stops warming the player.
+// A fire can be made as smoke alone, rising from its middle, for smoke that leaves through a chimney. Added by chimney ticket 01.
 import * as THREE from "three";
 import { CAMPFIRE_WARMTH_RADIUS_METRES } from "../sim/campfires";
 import type { FireKind } from "../sim/fire";
@@ -140,9 +141,17 @@ const SMOKE_DRIFT_METRES = 0.35;
 /** A puff grows to this many times its starting size before it thins away. */
 const SMOKE_GROWTH = 2.5;
 
+/**
+ * Which parts of a fire to make. `whole` is the flames, embers, sparks, and smoke. `smokeOnly` is the smoke alone, its puffs rising
+ * from the middle of the group rather than above the flame tips, as from the top of a chimney.
+ */
+export type FireParts = "whole" | "smokeOnly";
+
 /** The parts of one fire, ready to add to a campfire and animate. */
 export interface Fire {
   readonly group: THREE.Group;
+  /** Shows or hides the smoke. A fire whose smoke leaves through a chimney hides its own. */
+  showSmoke(shown: boolean): void;
   /**
    * Moves every part to how it looks at `nowSeconds`. `size` scales the flames, sparks, and smoke, from about 0.3 for
    * a fire nearly out of fuel to 1 for a full one. `seed` keeps neighbouring fires from moving in step.
@@ -151,7 +160,7 @@ export interface Fire {
 }
 
 export interface FireMaker {
-  make(): Fire;
+  make(parts?: FireParts): Fire;
   dispose(): void;
 }
 
@@ -207,11 +216,13 @@ export function createFireMaker(): FireMaker {
   });
   const emberMaterials: THREE.MeshBasicMaterial[] = [];
 
-  function make(): Fire {
+  function make(parts: FireParts = "whole"): Fire {
+    const whole = parts === "whole";
+    const smokeStart = whole ? SMOKE_START_METRES : 0;
     const group = new THREE.Group();
     const flames = new THREE.Group();
     group.add(flames);
-    const tongues = TONGUES.map((tongue) => {
+    const tongues = (whole ? TONGUES : []).map((tongue) => {
       const pivot = new THREE.Group();
       pivot.position.set(tongue.x, 0.04, tongue.z);
       const mesh = new THREE.Mesh(tongue.core ? coreGeometry : flameGeometry, tongue.core ? coreMaterial : flameMaterial);
@@ -226,7 +237,7 @@ export function createFireMaker(): FireMaker {
     // Each fire's embers share one material, so the whole bed pulses together.
     const emberMaterial = new THREE.MeshBasicMaterial({ color: EMBER_HOT_COLOUR, transparent: true, toneMapped: false });
     emberMaterials.push(emberMaterial);
-    for (let i = 0; i < EMBER_COUNT; i += 1) {
+    for (let i = 0; i < (whole ? EMBER_COUNT : 0); i += 1) {
       const angle = i * 2.4;
       const out = EMBER_BED_RADIUS_METRES * Math.sqrt((i + 0.5) / EMBER_COUNT);
       const ember = new THREE.Mesh(emberGeometry, emberMaterial);
@@ -235,7 +246,7 @@ export function createFireMaker(): FireMaker {
       group.add(ember);
     }
 
-    const sparks = Array.from({ length: SPARK_COUNT }, () => {
+    const sparks = Array.from({ length: whole ? SPARK_COUNT : 0 }, () => {
       const spark = new THREE.Mesh(sparkGeometry, sparkMaterial);
       flames.add(spark);
       return spark;
@@ -248,6 +259,9 @@ export function createFireMaker(): FireMaker {
 
     return {
       group,
+      showSmoke(shown) {
+        for (const puff of puffs) puff.visible = shown;
+      },
       animate(nowSeconds, size, seed) {
         flames.scale.setScalar(size);
         for (const [index, { pivot, mesh, tongue }] of tongues.entries()) {
@@ -278,7 +292,7 @@ export function createFireMaker(): FireMaker {
           const life = (nowSeconds / SMOKE_LIFE_SECONDS + index / SMOKE_COUNT + seed * 0.21) % 1;
           puff.position.set(
             Math.sin(life * 2.2 + index) * SMOKE_DRIFT_METRES * life,
-            SMOKE_START_METRES + life * SMOKE_RISE_METRES,
+            smokeStart + life * SMOKE_RISE_METRES,
             Math.cos(life * 1.7 + index * 2) * SMOKE_DRIFT_METRES * life * 0.6,
           );
           // A puff swells as it rises, then shrinks away near the end of its life so it seems to thin out.

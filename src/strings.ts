@@ -174,6 +174,7 @@ export const strings = {
       door: "Door",
       shutters: "Shutters",
       fireplace: "Fireplace",
+      chimney: "Chimney",
       woodpile: "Woodpile",
       chest: "Chest",
       shelf: "Shelf",
@@ -210,6 +211,7 @@ export const strings = {
       onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
       inDoorFrame: (structure: string) => `Placing: ${structure}. Point at a finished door frame with no door, and click to hang it there.`,
       inWindow: (structure: string) => `Placing: ${structure}. Point at a finished window with no shutters, and click to hang them there.`,
+      onFireplace: (structure: string) => `Placing: ${structure}. Point at a finished fireplace with no chimney, and click to place it there.`,
     },
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */
@@ -613,6 +615,9 @@ export const strings = {
     takeFishFirst: "take the fish first",
     atCorner: "a door frame or window cannot stand at a corner, which needs crossed logs",
     takeShuttersDownFirst: "take the shutters down first",
+    chimneyNeedsFireplace: "a chimney goes only on a finished fireplace",
+    fireplaceHasChimney: "this fireplace already has a chimney",
+    takeChimneyDownFirst: "take down the chimney first",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

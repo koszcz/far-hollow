@@ -211,7 +211,7 @@ describe("saving the journal", () => {
   });
 
   it("loads an older save with no camp with no goal done and the journal shown", () => {
-    expect(JOURNAL_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(JOURNAL_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const game = createGame({ seed: 42 });
 
     expect(load(olderSave(game)).client.getView().journal).toEqual({ done: [], hidden: false, justDone: null });

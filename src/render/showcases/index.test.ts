@@ -21,6 +21,7 @@ const OLD_HUD_IDS = [
   "rain-barrel-icon",
   "floor-and-door-icons",
   "window-icons",
+  "chimney-icon",
   "action-queue-icons",
   "torch-icons",
   "fish-trap-icons",

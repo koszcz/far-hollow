@@ -88,8 +88,9 @@ export interface FrameLayout {
 /**
  * Works out the frame layout from every roof frame, finished or as a blueprint. A roof section takes the place of the frame under it.
  * A finished roof with no frame under it, which the game never makes, is laid out by its own turn.
+ * `placing` is a frame blueprint the player is about to place. It is laid out with the others, so it shows the shape it will take.
  */
-export function frameLayout(entities: EntityStore): FrameLayout {
+export function frameLayout(entities: EntityStore, placing?: Section): FrameLayout {
   const cellName = (point: { x: number; z: number }) => {
     const { column, row } = gridCell(point);
     return `${column},${row}`;
@@ -98,6 +99,7 @@ export function frameLayout(entities: EntityStore): FrameLayout {
   const frameBlueprints = [...blueprintEntities(entities)].filter(({ blueprint }) => blueprint.structure === "roofFrame");
   for (const frame of [...frameBlueprints, ...roofFrameEntities(entities)]) byCell.set(cellName(frame.position), frame);
   for (const roof of cabinRoofEntities(entities)) if (!byCell.has(cellName(roof.position))) byCell.set(cellName(roof.position), roof);
+  if (placing !== undefined) byCell.set(cellName(placing.position), placing);
   const laid = [...byCell.values()].map((entity) => ({ entity, position: entity.position, turns: entity.facing?.turns ?? 0 }));
   const places = roofPlaces(laid);
   const placeByCell = new Map(laid.map((section) => [cellName(section.position), places.get(section) ?? ALONE]));

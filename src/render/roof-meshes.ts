@@ -494,8 +494,13 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
       if (shown === undefined) return;
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
       for (const { mesh } of placingParts) mesh.material = material;
-      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
+      // A roof takes the shape and height of the frame under it, so the blueprint shows the shape the roof will take.
+      const layout = frameLayout(entities);
+      const place = layout.sectionAt(shown.spot) === undefined ? { ...ALONE, drawTurns: shown.turns } : layout.placeAt(shown.spot);
+      const beside = neighboursOf(layout, shown.spot, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
+      setRows(placingParts, place.shape, plankReach(place, beside), place.shape === "valley" ? 0 : layoutOf(shown.spot));
+      placingBlueprint.position.set(shown.spot.x, shown.spot.y + raisedBy(place), shown.spot.z);
+      placingBlueprint.rotation.y = quarterTurnsToRadians(place.drawTurns);
     },
     dispose() {
       for (const item of [

@@ -451,9 +451,48 @@ export function roofFrameOn(entities: EntityStore, square: GroundPoint): (Entity
   return undefined;
 }
 
+/** The middles of the four grid squares that share an edge with the square with this middle. */
+function squaresAround(square: GroundPoint): GroundPoint[] {
+  return SIDES.map((side) => squaresBeside(edgeMiddle(square, side), side)[1]);
+}
+
+/** Whether a finished log wall, door frame, or window stands on any edge of the square with this middle. */
+function hasWallOnEdges(entities: EntityStore, square: GroundPoint): boolean {
+  return SIDES.some((side) => edgePieceOn(entities, square, side) !== undefined);
+}
+
+/**
+ * Whether a roof frame over this square has something to rest on: a finished wall, door frame, or window on its edges,
+ * or a finished roof frame on a square beside it. The middle square of a cabin 3 squares wide has no walls, so it rests on its neighbours' frames.
+ */
+function canCarryRoofFrame(entities: EntityStore, square: GroundPoint): boolean {
+  return hasWallOnEdges(entities, square) || squaresAround(square).some((beside) => roofFrameOn(entities, beside) !== undefined);
+}
+
+/**
+ * Whether every roof frame, finished or as a blueprint, would still rest on walls with the finished frame over `without` taken away.
+ * A frame rests on walls itself, or through a run of finished frames beside each other that reaches one that does.
+ */
+export function roofFramesStayCarried(entities: EntityStore, without: GroundPoint): boolean {
+  const finished = roofFrameEntities(entities).entities.filter((frame) => !isOnGridSquare(without, frame.position));
+  const carried = finished.filter((frame) => hasWallOnEdges(entities, frame.position));
+  const isCarriedBeside = (square: GroundPoint) => squaresAround(square).some((beside) => carried.some((frame) => isOnGridSquare(beside, frame.position)));
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const frame of finished) {
+      if (carried.includes(frame) || !isCarriedBeside(frame.position)) continue;
+      carried.push(frame);
+      grew = true;
+    }
+  }
+  if (carried.length < finished.length) return false;
+  const frameBlueprints = blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === "roofFrame");
+  return frameBlueprints.every(({ position }) => hasWallOnEdges(entities, position) || isCarriedBeside(position));
+}
+
 /**
  * A roof frame over one foundation square: level beams on the tops of the walls, and sloped rafters on the beams.
- * It rests on the log walls and door frames on the square's edges, so it needs at least one.
+ * It rests on the log walls and door frames on the square's edges, or on a finished frame beside it, so it needs one of them.
  * R turns it: facing `turns`, it slopes down the way `turnOffset` turns +z. The frame keeps its turn in `facing`.
  * The game rules store only that turn. The renderer works out each frame's height and corner shape from its neighbours.
  * It is no roof overhead. A roof section laid on it is.
@@ -469,8 +508,8 @@ const roofFrame: StructureDefinition & { readonly kind: "roofFrame" } = {
   heightAt: ({ entities, valley }, spot) => foundationOn(entities, spot)?.position.y ?? terrainHeightAt(valley.terrain, spot.x, spot.z),
   canPlace({ entities }, spot, turns) {
     if (foundationOn(entities, spot) === undefined) return false;
-    // The frame rests on the walls: at least one finished log wall or door frame must stand on the square's edges.
-    if (!SIDES.some((side) => edgePieceOn(entities, spot, side) !== undefined)) return false;
+    // The frame rests on the walls, or on a finished frame beside it where the square has no walls, as in the middle of a cabin.
+    if (!canCarryRoofFrame(entities, spot)) return false;
     // Logs, sticks, bark, and bedrolls on the deck are in the way, as is a frame or roof already over the square, finished or as a blueprint.
     // Furniture and sleds under it are not.
     const rect = roofFrame.footprint(spot, turns);

@@ -204,6 +204,33 @@ body {
 .hud-pause .hud-icon-button:hover:not(:disabled) {
   background: var(--hud-fill);
 }
+/* The round cutaway button sits left of the sound button. It shows amber while the cutaway is on. */
+.hud-cutaway {
+  top: 12px;
+  right: 116px;
+}
+.hud-cutaway .hud-panel {
+  padding: 0;
+  border-radius: 50%;
+}
+.hud-cutaway .hud-icon-button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 50%;
+}
+.hud-cutaway .hud-icon-button:hover:not(:disabled) {
+  background: var(--hud-fill);
+}
+.hud-cutaway .hud-icon-button[aria-pressed="true"] {
+  color: var(--hud-amber);
+}
+.hud-cutaway .hud-icon-button[data-tip]:hover::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}
 /* The round sound button sits left of the pause button. Its Volume slider opens below it. */
 .hud-sound {
   top: 12px;

@@ -29,6 +29,9 @@ import { stackOnWoodpile } from "./woodpiles";
 import { scaleGroundPoint, subtractGroundPoints } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { tendApproach } from "./tending";
+import { extendTrail, pullAlongTrail, type DragTrail } from "./drag-trail";
+import { hasLineOfSight } from "./pathfinding";
+import type { WalkMap } from "./walk-map";
 
 /** A sled has this many log spaces. Each holds one log, one debarked log, or PLANKS_PER_LOG_SPACE planks, in any mix. */
 export const SLED_CAPACITY = 6;
@@ -153,9 +156,11 @@ export function layLoadBeside(entities: EntityStore, valley: Valley, sled: SledE
 }
 
 /** Lets the player keep logs on parked sleds. */
-export function createSleds(entities: EntityStore, valley: Valley): Sleds {
+export function createSleds(entities: EntityStore, valley: Valley, walkMap: WalkMap): Sleds {
   const players = playerEntities(entities);
   const woodpiles = woodpileEntities(entities);
+  /** The ground the player walked that each dragged sled has still to follow. It is not saved: after loading, a sled pulls straight at first. */
+  const trails = new Map<SledEntity, DragTrail>();
 
   const sledById = (sledId: number): SledEntity | undefined => entityWith(entities, sledId, "sled", "position");
 
@@ -277,6 +282,7 @@ export function createSleds(entities: EntityStore, valley: Valley): Sleds {
     drag(sledId) {
       const { player } = usable({ type: "dragSled", sledId }) ?? {};
       if (player === undefined) return;
+      trails.clear();
       entities.addComponent(player, "dragging", { sledId });
     },
     letGo() {
@@ -288,7 +294,11 @@ export function createSleds(entities: EntityStore, valley: Valley): Sleds {
     },
     follow() {
       const dragged = draggedSled();
-      if (dragged !== undefined) dragAfter(dragged.sled, dragged.player.position);
+      if (dragged === undefined) {
+        trails.clear();
+        return;
+      }
+      dragAfter(dragged.sled, dragged.player.position);
     },
   };
 
@@ -301,17 +311,19 @@ export function createSleds(entities: EntityStore, valley: Valley): Sleds {
     return undefined;
   }
 
-  /** Drags the sled straight towards `dragger` until its middle is DRAG_ROPE_METRES away, turning its runners to point at them. */
+  /**
+   * Drags the sled after `dragger` along the ground they walked, until its middle is DRAG_ROPE_METRES behind them along the rope,
+   * turning its runners the way the rope pulls. It goes round walls and trees as the player did. See drag-trail.ts.
+   */
   function dragAfter(sled: SledEntity, dragger: Vec3): void {
-    const dx = dragger.x - sled.position.x;
-    const dz = dragger.z - sled.position.z;
-    const distance = Math.hypot(dx, dz);
-    if (distance <= DRAG_ROPE_METRES) return;
-    const x = dragger.x - (dx / distance) * DRAG_ROPE_METRES;
-    const z = dragger.z - (dz / distance) * DRAG_ROPE_METRES;
+    const trail = extendTrail(trails.get(sled) ?? [], dragger);
+    const dragged = pullAlongTrail(sled.position, dragger, trail, DRAG_ROPE_METRES, (from, to) => hasLineOfSight(walkMap, from, to));
+    trails.set(sled, dragged.trail);
+    if (dragged.pull === undefined) return;
+    const { x, z } = dragged.sled;
     Object.assign(sled.position, { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z });
     // Turned by θ, the runners run along (cos θ, -sin θ), as for facing.
-    const heading = Math.atan2(-dz, dx);
+    const heading = Math.atan2(-dragged.pull.z, dragged.pull.x);
     setComponent(entities, sled, "dragHeading", heading);
     setComponent(entities, sled, "facing", { turns: nearestQuarterTurns(heading) });
   }

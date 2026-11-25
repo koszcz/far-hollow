@@ -418,29 +418,14 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     });
   }
 
-  const placingBlueprint = new THREE.Group();
-  placingBlueprint.visible = false;
-  const placingTurned = new THREE.Group();
-  placingBlueprint.add(placingTurned);
-  const placingParts = addParts(placingBlueprint, placingTurned);
-  const allSides: BeamPlan[] = SIDES.map((side) => ({ side, under: "doorFrame", startReach: BEAM_OVERHANG_METRES, endReach: BEAM_OVERHANG_METRES }));
-  placingParts.forEach(({ mesh }, stage) => {
-    if (stage < BEAM_STAGES) mesh.geometry = beamsOf(allSides, stage);
-  });
-  setRafters(placingParts, ALONE.shape, { front: true, back: true });
-  const placingGables = new THREE.Mesh(aloneGables(), blueprintMaterial);
-  placingTurned.add(placingGables);
-  group.add(placingBlueprint);
-
   const drawn = new Map<Entity, Drawn>();
   const fades = createCutawayFades();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const finished = roofFrameEntities(entities);
 
-  function draw(entity: Entity & { position: Vec3 }): Drawn {
-    const existing = drawn.get(entity);
-    if (existing !== undefined) return existing;
+  /** Makes the meshes of one frame and adds them to the group. Their shapes are set later. */
+  function makeDrawn(): Drawn {
     const root = new THREE.Group();
     const turned = new THREE.Group();
     root.add(turned);
@@ -455,14 +440,43 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     gablesFading.transparent = true;
     // The picker turns and rises with the rafters, and takes their shape each update.
     const picker = new THREE.Mesh(pickSurfaceOf(ALONE.shape), pickMaterial);
-    picker.userData.entity = entity;
     turned.add(picker);
-    pickers.push(picker);
     group.add(root);
-    const result = { root, turned, parts, ridge, gables, gablesFading, picker };
+    return { root, turned, parts, ridge, gables, gablesFading, picker };
+  }
+
+  function draw(entity: Section): Drawn {
+    const existing = drawn.get(entity);
+    if (existing !== undefined) return existing;
+    const result = makeDrawn();
+    result.picker.userData.entity = entity;
+    pickers.push(result.picker);
     drawn.set(entity, result);
     return result;
   }
+
+  /** Gives a frame's meshes the shape its place in `layout` sets: its height, turn, beams, rafters, gable ends, and ridge pole. */
+  function shapeFrame(item: Drawn, layout: FrameLayout, entity: Section): void {
+    const place = layout.placeAt(entity.position);
+    item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
+    item.turned.position.y = raisedBy(place);
+    item.turned.rotation.y = quarterTurnsToRadians(place.drawTurns);
+    const beams = beamPlans(layout, entity);
+    item.parts.forEach(({ mesh }, stage) => {
+      if (stage < BEAM_STAGES) mesh.geometry = beamsOf(beams, stage);
+    });
+    // The back and front edges, as drawn, are the first and second in EDGES order.
+    const [back, front] = neighboursOf(layout, entity.position, place);
+    setRafters(item.parts, place.shape, { front: front === undefined, back: back === undefined });
+    item.picker.geometry = pickSurfaceOf(place.shape);
+    item.gables.geometry = gablesOf(layout, entity, place);
+    const ridge = ridgeReach(layout, entity, place);
+    item.ridge.geometry = ridge === undefined ? empty : ridgeOf(place.shape, ridge.start, ridge.end);
+  }
+
+  /** The frame blueprint under the mouse while the player places one. It is laid out with the other frames, so it shows the shape it will take. */
+  const placing = makeDrawn();
+  placing.root.visible = false;
 
   /**
    * Shows how far construction has gone. Built parts are solid. The part being built stays in its place and turns solid.
@@ -526,22 +540,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       const layout = frameLayout(entities);
       const seen = new Set<Entity>();
       const show = (entity: Section, progress: number, delivered: number) => {
-        const place = layout.placeAt(entity.position);
         const item = draw(entity);
-        item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-        item.turned.position.y = raisedBy(place);
-        item.turned.rotation.y = quarterTurnsToRadians(place.drawTurns);
-        const beams = beamPlans(layout, entity);
-        item.parts.forEach(({ mesh }, stage) => {
-          if (stage < BEAM_STAGES) mesh.geometry = beamsOf(beams, stage);
-        });
-        // The back and front edges, as drawn, are the first and second in EDGES order.
-        const [back, front] = neighboursOf(layout, entity.position, place);
-        setRafters(item.parts, place.shape, { front: front === undefined, back: back === undefined });
-        item.picker.geometry = pickSurfaceOf(place.shape);
-        item.gables.geometry = gablesOf(layout, entity, place);
-        const ridge = ridgeReach(layout, entity, place);
-        item.ridge.geometry = ridge === undefined ? empty : ridgeOf(place.shape, ridge.start, ridge.end);
+        shapeFrame(item, layout, entity);
         showProgress(item, progress, delivered);
         const hidden =
           entity.blueprint === undefined && hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
@@ -574,12 +574,16 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
       return item.parts.map(({ mesh }) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld }));
     },
     showPlacingBlueprint(shown) {
-      placingBlueprint.visible = shown !== undefined;
+      placing.root.visible = shown !== undefined;
       if (shown === undefined) return;
+      const section: Section = {
+        position: shown.spot,
+        facing: { turns: shown.turns },
+        blueprint: { structure: "roofFrame", progress: 0, materialsSpent: 0, delivered: {} },
+      };
+      shapeFrame(placing, frameLayout(entities, section), section);
       const material = shown.allowed ? blueprintMaterial : notAllowedMaterial;
-      for (const mesh of [...placingParts.map(({ mesh }) => mesh), placingGables]) mesh.material = material;
-      placingBlueprint.position.set(shown.spot.x, shown.spot.y, shown.spot.z);
-      placingTurned.rotation.y = quarterTurnsToRadians(shown.turns);
+      for (const mesh of [...placing.parts.map(({ mesh }) => mesh), placing.ridge, placing.gables]) mesh.material = material;
     },
     dispose() {
       for (const item of [
@@ -603,7 +607,8 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         for (const { fading } of item.parts) fading.dispose();
         item.gablesFading.dispose();
       }
-      for (const { fading } of placingParts) fading.dispose();
+      for (const { fading } of placing.parts) fading.dispose();
+      placing.gablesFading.dispose();
     },
   };
 }

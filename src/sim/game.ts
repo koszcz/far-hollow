@@ -238,7 +238,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
   const beds = createBeds(entities, sleepIn);
   const woodpiles = createWoodpiles(entities);
-  const sleds = createSleds(entities, valley);
+  const sleds = createSleds(entities, valley, walking.walkMap);
   const sledFilling = createSledFilling(entities, walking, handReach);
   const chests = createChests(entities);
   // The player puts down what they hold to sit, as they do to sleep.

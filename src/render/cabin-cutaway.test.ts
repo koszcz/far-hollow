@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createEntityStore, type EntityStore, type Vec3 } from "../sim/entities";
 import type { QuarterTurns } from "../sim/quarter-turns";
 import { structureOf } from "../sim/structures";
-import { cabinCutaway, isBetweenCameraAndPlayer } from "./cabin-cutaway";
+import { cabinCutaway, everyCabinCutaway, isBetweenCameraAndPlayer, noCabinCutaway } from "./cabin-cutaway";
 
 // A cabin two squares long along x, from x = 0 to 2 and z = 0 to 1, with its door in the middle of the +z side.
 const WEST = { x: 0.5, z: 0.5 };
@@ -36,6 +36,28 @@ function cabin(roofOn = true): EntityStore {
   wall(WEST_EDGE, 1);
   return entities;
 }
+
+describe("the cabin cutaway turned on and off by hand", () => {
+  it("on, hides the whole roof and fades every side facing the camera, even with the player outside", () => {
+    const entities = cabin();
+    const cutaway = everyCabinCutaway(entities, CORNER_CAMERA, { x: 6, y: 0, z: 6 });
+
+    expect(cutaway.roof.length).toBe(4);
+    for (const edge of NORTH_EDGES) expect(cutaway.fades(edge, 0)).toBe(true);
+    expect(cutaway.fades(EAST_EDGE, 1)).toBe(true);
+    for (const edge of SOUTH_EDGES) expect(cutaway.fades(edge, 0)).toBe(false);
+    expect(cutaway.fades(WEST_EDGE, 1)).toBe(false);
+  });
+
+  it("off, hides no roof and fades only a wall between the camera and the player, even with the player inside", () => {
+    const player = { x: WEST.x, y: 0, z: WEST.z };
+    const cutaway = noCabinCutaway(CORNER_CAMERA, player);
+
+    expect(cutaway.roof).toEqual([]);
+    for (const edge of SOUTH_EDGES) expect(cutaway.fades(edge, 0)).toBe(false);
+    expect(cutaway.fades(EAST_EDGE, 1)).toBe(isBetweenCameraAndPlayer(EAST_EDGE, 1, CORNER_CAMERA, player));
+  });
+});
 
 describe("the cabin cutaway", () => {
   it("hides the whole roof and fades every side facing the camera while the player is inside", () => {

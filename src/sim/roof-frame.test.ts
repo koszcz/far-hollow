@@ -51,6 +51,23 @@ describe("where a roof frame can go", () => {
     expect(game.client.checkPlacement("roofFrame", square, 0).allowed).toBe(true);
   });
 
+  it("rests on a finished frame beside it where its square has no walls, as in the middle of a cabin 3 squares wide", () => {
+    const game = createGame({ seed: 42 });
+    const middle = openSquareNearPlayer(game);
+    const west = { x: middle.x - 1, z: middle.z };
+    const east = { x: middle.x + 1, z: middle.z };
+    for (const square of [west, middle, east]) finishedFoundationAt(game, square);
+    finishedPieceAt(game, "logWall", west, 1);
+    finishedPieceAt(game, "logWall", east, 3);
+
+    expect(game.client.checkPlacement("roofFrame", middle, 0).allowed).toBe(false);
+    // A frame blueprint beside it is not enough.
+    send(game, place("roofFrame", west, 0));
+    expect(game.client.checkPlacement("roofFrame", middle, 0).allowed).toBe(false);
+    finishedFrameAt(game, west, 0, { placed: true });
+    expect(game.client.checkPlacement("roofFrame", middle, 0).allowed).toBe(true);
+  });
+
   it("allows one frame on each square, finished or as a blueprint", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
@@ -187,6 +204,32 @@ describe("taking down a roof frame", () => {
     stepUntil(game, () => !game.entities.has(frame));
     send(game, { type: "takeDown", pieceId: idOf(game, wall) });
     stepUntil(game, () => !game.entities.has(wall));
+  });
+
+  it("keeps a frame while a frame with no walls needs it to reach the walls, even a frame blueprint", () => {
+    const game = createGame({ seed: 42 });
+    const middle = openSquareNearPlayer(game);
+    const west = { x: middle.x - 1, z: middle.z };
+    const east = { x: middle.x + 1, z: middle.z };
+    for (const square of [west, middle, east]) finishedFoundationAt(game, square);
+    finishedPieceAt(game, "logWall", west, 1);
+    finishedPieceAt(game, "logWall", east, 3);
+    const westFrame = finishedFrameAt(game, west);
+    send(game, place("roofFrame", middle, 0));
+
+    send(game, { type: "takeDown", pieceId: idOf(game, westFrame) });
+    expect(game.client.getView().notice).toEqual({ kind: "holdsUpPiece" });
+
+    // Once the middle frame is finished and the east frame carries it too, the west frame can come down.
+    const middleFrame = finishedFrameAt(game, middle, 0, { placed: true });
+    const eastFrame = finishedFrameAt(game, east);
+    send(game, { type: "takeDown", pieceId: idOf(game, westFrame) });
+    stepUntil(game, () => !game.entities.has(westFrame));
+
+    // Now the middle frame rests only on the east frame.
+    send(game, { type: "takeDown", pieceId: idOf(game, eastFrame) });
+    expect(game.client.getView().notice).toEqual({ kind: "holdsUpPiece" });
+    expect(game.entities.has(middleFrame)).toBe(true);
   });
 
   it("keeps a foundation while a frame stands on it", () => {

@@ -280,7 +280,7 @@ The first shelter the player builds: a sloped roof of sticks and bark on a frame
 _Avoid_: Shack, tent, hut
 
 **Roof frame**:
-The timber skeleton of one foundation square, built on its walls before the roof. Level beams lie on the wall tops, and sloped rafters rest on the beams. The frame sets which way the roof slopes. The roof section laid on it is only planks.
+The timber skeleton of one foundation square, built on its walls before the roof. A square with no walls, such as the middle of a cabin 3 squares wide, rests its frame on a finished frame beside it. Level beams lie on the wall tops, and sloped rafters rest on the beams. The frame sets which way the roof slopes. The roof section laid on it is only planks.
 _Avoid_: Truss, rafters (for the whole frame)
 
 **Roof section**:

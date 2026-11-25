@@ -77,6 +77,45 @@ describe("a dragged sled", () => {
     expect(game.client.nearestInReach()).toEqual({ kind: "sled", id: idOf(game, sled) });
   });
 
+  it("follows the player round the end of a wall, and never crosses it", () => {
+    const game = createGame({ seed: 42 });
+    const sled = finishedSledNearPlayer(game);
+    sendAndSettle(game, { type: "dragSled", sledId: idOf(game, sled) });
+    const player = onlyPlayer(game).position;
+    // A wall 7 squares long, two squares beyond the player, blocks the straight way to a spot behind it.
+    const column = Math.floor(player.x);
+    const row = Math.floor(player.z) + 2;
+    const wallZ = row + 1;
+    const edges = Array.from({ length: 7 }, (_, i) => ({ from: { x: column - 3 + i + 0.5, z: row + 0.5 }, to: { x: column - 3 + i + 0.5, z: row + 1.5 } }));
+    game.entities.add({ blocksWalkingEdges: edges });
+    const minX = column - 3;
+    const maxX = column + 4;
+    // Just behind the wall near its end, so the player turns sharply round the end.
+    const target = { x: maxX - 1.5, z: wallZ + 0.5 };
+
+    send(game, { type: "walkTo", x: target.x, z: target.z });
+    let crossed = false;
+    stepUntil(game, () => {
+      const before = { ...sled.position };
+      game.step();
+      const after = sled.position;
+      const sideBefore = Math.sign(before.z - wallZ);
+      const sideAfter = Math.sign(after.z - wallZ);
+      if (sideBefore !== sideAfter) {
+        const x = before.x + ((after.x - before.x) * (wallZ - before.z)) / (after.z - before.z);
+        if (x > minX && x < maxX) crossed = true;
+      }
+      return onlyPlayer(game).walkPath === undefined;
+    });
+    runSeconds(game, 1);
+
+    expect(onlyPlayer(game).position.z).toBeGreaterThan(wallZ);
+    expect(crossed).toBe(false);
+    // It still trails close behind the player, on the same side of the wall.
+    expect(sled.position.z).toBeGreaterThan(wallZ);
+    expect(Math.hypot(sled.position.x - player.x, sled.position.z - player.z)).toBeLessThan(2);
+  });
+
   it("stays where it was let go", () => {
     const game = createGame({ seed: 42 });
     const sled = finishedSledNearPlayer(game);

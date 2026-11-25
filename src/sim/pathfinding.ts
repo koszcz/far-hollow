@@ -247,7 +247,7 @@ function regionsOf(map: WalkMap): Int32Array {
 }
 
 /** True if a straight walk between two spots crosses only walkable cells, and no blocked edge between them. */
-function hasLineOfSight(map: WalkMap, a: GroundPoint, b: GroundPoint): boolean {
+export function hasLineOfSight(map: WalkMap, a: GroundPoint, b: GroundPoint): boolean {
   const steps = Math.ceil(groundDistance(b, a) / (map.cellSize * LINE_OF_SIGHT_STEP_CELLS));
   let cell = cellIndexAt(map, a);
   for (let s = 0; s <= steps; s += 1) {

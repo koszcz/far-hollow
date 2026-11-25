@@ -95,6 +95,11 @@ export const strings = {
     unmute: "Unmute",
     muteKey: "M",
   },
+  /** The HUD button that hides cabin roofs and fades the cabin walls facing the camera, so the player can see inside. */
+  cutaway: {
+    show: "See inside cabins",
+    hide: "Show cabin roofs",
+  },
   pause: "Pause",
   resume: "Resume",
   paused: "Paused",

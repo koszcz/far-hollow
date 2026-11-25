@@ -19,11 +19,11 @@ const WEST_EDGE = { x: 0, y: 0, z: 0.5 };
 /** Up and away beyond the cabin's +x, +z corner. */
 const CORNER_CAMERA = { x: 10, y: 8, z: 10 };
 
-function cabin(): EntityStore {
+function cabin(roofOn = true): EntityStore {
   const entities = createEntityStore();
   for (const square of [WEST, EAST]) {
     entities.add({ foundation: true, facing: { turns: 0 }, position: { x: square.x, y: 0, z: square.z } });
-    for (const kind of ["roofFrame", "roof"] as const) {
+    for (const kind of roofOn ? (["roofFrame", "roof"] as const) : (["roofFrame"] as const)) {
       entities.add({ ...structureOf(kind).finish(square, 0, entities), facing: { turns: 0 }, position: { x: square.x, y: 0, z: square.z } });
     }
   }
@@ -41,6 +41,17 @@ describe("the cabin cutaway", () => {
   it("hides the whole roof and fades every side facing the camera while the player is inside", () => {
     const entities = cabin();
     const cutaway = cabinCutaway(entities, CORNER_CAMERA, { x: WEST.x, y: 0, z: WEST.z });
+
+    expect(cutaway.roof.length).toBe(4);
+    for (const edge of NORTH_EDGES) expect(cutaway.fades(edge, 0)).toBe(true);
+    expect(cutaway.fades(EAST_EDGE, 1)).toBe(true);
+    for (const edge of SOUTH_EDGES) expect(cutaway.fades(edge, 0)).toBe(false);
+    expect(cutaway.fades(WEST_EDGE, 1)).toBe(false);
+  });
+
+  it("treats a cabin with only its roof frames up as a cabin", () => {
+    const entities = cabin(false);
+    const cutaway = cabinCutaway(entities, CORNER_CAMERA, { x: EAST.x, y: 0, z: EAST.z });
 
     expect(cutaway.roof.length).toBe(2);
     for (const edge of NORTH_EDGES) expect(cutaway.fades(edge, 0)).toBe(true);
@@ -61,7 +72,7 @@ describe("the cabin cutaway", () => {
   it("counts a player standing in the doorway as inside", () => {
     const entities = cabin();
     const inDoorway = cabinCutaway(entities, CORNER_CAMERA, { x: DOOR.x, y: 0, z: DOOR.z + 0.3 });
-    expect(inDoorway.roof.length).toBe(2);
+    expect(inDoorway.roof.length).toBe(4);
     expect(inDoorway.fades(EAST_EDGE, 1)).toBe(true);
 
     const pastDoorway = cabinCutaway(entities, CORNER_CAMERA, { x: DOOR.x, y: 0, z: DOOR.z + 0.8 });

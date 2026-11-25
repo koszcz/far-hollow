@@ -156,6 +156,12 @@ describe("clicking a thing", () => {
   it("opens a menu on plain ground to walk or drop the log, while the player carries one", () => {
     expect(menuFor({ kind: "ground", spot: { x: 0, z: 0 } }, worldWith({ carrying: "log" }).reader)?.map(({ id }) => id)).toEqual(["walk", "dropHere"]);
   });
+
+  it("opens no menu on the river bank while dragging a sled, since walking is the only action the player can do there", () => {
+    const bank = { kind: "ground", spot: { x: 1, z: 2 }, riverBank: true } as const;
+    expect(ids(bank)).toEqual(["walk", "gatherStone", "digClay"]);
+    expect(menuFor(bank, worldWith({ dragging: "anotherSled" }).reader)).toBeUndefined();
+  });
 });
 
 describe("the river", () => {

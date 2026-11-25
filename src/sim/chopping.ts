@@ -1,6 +1,5 @@
 import type { Refusal } from "./api";
 import type { ApproachReach } from "./approach";
-import { shoulderLog } from "./carrying";
 import { toolRefusal } from "./refusals";
 import { growingTreeEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import { isYoungTree, justFelled } from "./tree-growth";
@@ -101,9 +100,8 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
         chopper.chopTask.secondsDone += stepSeconds;
         if (chopper.chopTask.secondsDone >= chopSecondsFor(tree)) {
           entities.removeComponent(chopper, "chopTask");
-          const logs = fell(tree, tree.position, chopper.position);
-          const first = logs[0];
-          if (first !== undefined) shoulderLog(entities, chopper, first);
+          // Every log lands on the ground. The player picks one up only when they choose to.
+          fell(tree, tree.position, chopper.position);
         }
       }
     },
@@ -116,8 +114,8 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     return tree as Entity & { position: NonNullable<Entity["position"]> };
   }
 
-  /** Turns a standing tree at `at` into a stump that starts growing back, and lays its logs, more for a bigger tree, on clear ground, falling away from `from` if it can. Returns the logs. */
-  function fell(tree: Entity, at: GroundPoint, from: GroundPoint): Entity[] {
+  /** Turns a standing tree at `at` into a stump that starts growing back, and lays its logs, more for a bigger tree, on clear ground, falling away from `from` if it can. */
+  function fell(tree: Entity, at: GroundPoint, from: GroundPoint): void {
     const logCount = logsForTreeSize(treeSizeAt(at.x, at.z));
     const heading = clearFallHeading(tree, at, headingToward(from, at), logCount);
     // The heading goes on before the tree goes, so the renderer can read it as the tree falls.
@@ -126,12 +124,10 @@ export function createChopping(entities: EntityStore, walking: Walking, valley: 
     entities.removeComponent(tree, "tree");
     entities.addComponent(tree, "stump", true);
     entities.addComponent(tree, "growth", justFelled());
-    const logs: Entity[] = [];
     for (let i = 0; i < logCount; i += 1) {
       const { x, z } = stepAlongHeading(at, heading, FIRST_LOG_FROM_STUMP_METRES + i * LOG_SPACING_METRES);
-      logs.push(entities.add({ log: { heading }, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } }));
+      entities.add({ log: { heading }, position: { x, y: terrainHeightAt(valley.terrain, x, z), z } });
     }
-    return logs;
   }
 
   /**

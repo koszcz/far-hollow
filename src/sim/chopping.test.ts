@@ -79,9 +79,9 @@ describe("chopping a tree", () => {
     const player = onlyPlayer(game);
     stepUntil(game, () => player.walkPath === undefined);
     expect(Math.hypot(player.position.x - spot.x, player.position.z - spot.z)).toBeGreaterThan(1);
-    // The player shoulders one log, and the rest lie on the ground.
-    expect(game.client.getView().carrying).toBe("log");
-    expect(game.entities.with("log", "position").size).toBe(logsOf(spot) - 1);
+    // Every log lies on the ground. The player carries none of them.
+    expect(game.client.getView().carrying).toBeNull();
+    expect(game.entities.with("log", "position").size).toBe(logsOf(spot));
   });
 
   it("does nothing when asked to chop something that is not a standing tree", () => {
@@ -167,9 +167,8 @@ describe("tree size", () => {
     const smallSteps = fellCounting(small.game, small.tree);
     const bigSteps = fellCounting(big.game, big.tree);
 
-    // The player shoulders one log, and the rest lie on the ground.
-    expect(small.game.entities.with("log").size).toBe(FEWEST_LOGS_PER_TREE - 1);
-    expect(big.game.entities.with("log").size).toBe(MOST_LOGS_PER_TREE - 1);
+    expect(small.game.entities.with("log").size).toBe(FEWEST_LOGS_PER_TREE);
+    expect(big.game.entities.with("log").size).toBe(MOST_LOGS_PER_TREE);
     expect(chopSecondsOf(big.tree)).toBeGreaterThan(chopSecondsOf(small.tree) * 1.5);
     expect(bigSteps).toBeGreaterThan(smallSteps);
   });
@@ -188,6 +187,7 @@ describe("carrying a log", () => {
     const tree = nearestTreeToPlayer(game);
     const logCount = logsOf(tree.position);
     fell(game, tree);
+    shoulderNearestLog(game);
     const player = onlyPlayer(game);
 
     game.client.send({ type: "dropLog" });
@@ -206,6 +206,7 @@ describe("carrying a log", () => {
     const tree = nearestTreeToPlayer(game);
     const logCount = logsOf(tree.position);
     fell(game, tree);
+    shoulderNearestLog(game);
     const onGround = game.entities.with("log", "position").first;
     if (onGround === undefined) throw new Error("No log on the ground");
 
@@ -222,9 +223,6 @@ describe("carrying a log", () => {
     const tree = nearestTreeToPlayer(game);
     const logCount = logsOf(tree.position);
     fell(game, tree);
-    game.client.send({ type: "dropLog" });
-    game.step();
-    finishReach(game);
     const player = onlyPlayer(game);
     const logs = [...game.entities.with("log", "position")];
     const distance = (log: (typeof logs)[number]) => Math.hypot(log.position.x - player.position.x, log.position.z - player.position.z);
@@ -241,6 +239,7 @@ describe("carrying a log", () => {
   it("walks to a spot and lays the carried log there", () => {
     const game = createGame({ seed: 42 });
     fell(game, nearestTreeToPlayer(game));
+    shoulderNearestLog(game);
     const player = onlyPlayer(game);
     const spot = { x: player.position.x + 4, z: player.position.z };
     const logsBefore = game.entities.with("log", "position").size;
@@ -268,6 +267,17 @@ describe("carrying a log", () => {
 function fell(game: Game, tree: Entity): void {
   game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
   stepUntil(game, () => tree.stump === true);
+}
+
+/** Sends the player to pick up the felled log nearest them, and waits until it is on their shoulder. */
+function shoulderNearestLog(game: Game): void {
+  const player = onlyPlayer(game);
+  const logs = [...game.entities.with("log", "position")];
+  const distance = (log: (typeof logs)[number]) => Math.hypot(log.position.x - player.position.x, log.position.z - player.position.z);
+  const nearest = logs.sort((a, b) => distance(a) - distance(b))[0];
+  if (nearest === undefined) throw new Error("No log on the ground");
+  game.client.send({ type: "pickUpLog", logId: idOf(game, nearest) });
+  stepUntil(game, () => game.client.getView().carrying === "log", STEPS_PER_SECOND * 10);
 }
 
 /** Removes every other tree within 8 metres of this one, so its trunk can fall any way. */

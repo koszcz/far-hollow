@@ -255,6 +255,39 @@ _Avoid_: Roast, grill, fry
 Raw fish that has cooked on a lit campfire or fireplace. It is food the player carries in the backpack. It fills hunger more than raw fish and does not make the player sick. It never burns.
 _Avoid_: Roast fish, grilled fish
 
+**Fresh food**:
+Food that has not been preserved: berries, mushrooms, raw fish, and cooked fish. Fresh food spoils.
+
+**Spoil**:
+Said of fresh food that has kept for its full time. Spoiled food is gone. Food stays fully fresh until it spoils, and it spoils at the same rate wherever it is and in every season. The player always eats the oldest of a food first.
+_Avoid_: Rot, go off, go stale, decay
+
+**Preserve**:
+To turn fresh food into preserved food, so that it keeps.
+_Avoid_: Cure, store
+
+**Preserved food**:
+Food the player has preserved. It never spoils, and it fills the same hunger as the fresh food it was made from.
+
+**Drying rack**:
+Furniture of sticks and cord that the player hangs food on to preserve it. It holds up to 6 foods. Food on the rack keeps spoiling until it is preserved. Finished food can stay on the rack for as long as the player likes, and the player takes it off by hand.
+_Avoid_: Smoking rack, smokehouse
+
+**Dry**:
+To preserve berries or mushrooms by hanging them on a drying rack. Drying needs no fire.
+
+**Smoke**:
+To preserve raw fish by hanging it on a drying rack while a lit campfire or fireplace is close by. If the fire goes out, the fish keeps its progress. Cooked fish cannot be smoked.
+
+**Dried berries**:
+Berries the player has dried. Preserved food.
+
+**Dried mushroom**:
+A mushroom the player has dried. Preserved food.
+
+**Smoked fish**:
+Raw fish the player has smoked. Preserved food that fills hunger as much as cooked fish and does not make the player sick.
+
 **Snare**:
 A trap the player sets to catch rabbits.
 

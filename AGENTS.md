@@ -8,6 +8,8 @@ Issues live as local markdown files under `.scratch/<feature>/`. See `docs/agent
 
 Implement one ticket per session. Land each finished ticket on `main` with `make land`, which merges, checks, pushes, and deletes the branch. Once it has landed, stop work and name the next unblocked ticket for the owner to start in a fresh session. The owner closes the tab.
 
+`make land` names its merge commit after the branch's own commits. If you resolve a merge conflict by hand, name the merge the same way: `Land on main: <what the branch adds>`, never `Merge branch 'main' into <branch>`.
+
 Idea sessions and grilling sessions also end with `make land`. Run it as soon as the files are written. Do not ask the owner first.
 
 ### Ticket statuses

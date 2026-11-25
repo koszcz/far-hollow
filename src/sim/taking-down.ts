@@ -26,6 +26,7 @@ import {
   isPlacedStructure,
   isTaken,
   roofFrameOn,
+  roofFramesStayCarried,
   stageMaterials,
   standsOnFoundation,
   structureKindOf,
@@ -230,6 +231,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
  * Whether another structure stands on this one, so it cannot come down yet.
  * A log wall, door frame, floor, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
+ * A frame with no walls on its edges rests on the finished frames beside it, so a frame stays up while another needs it to reach the walls.
  * A door, finished or as a blueprint, hangs in its door frame. Shutters in a window and a chimney on a fireplace have refusals of their own:
  * see takeDownRefusal.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
@@ -247,7 +249,9 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
     );
   }
   if (kind === "roofFrame") {
-    return cabinRoofOn(entities, structure.position) !== undefined || blueprintsOf("roof").some((roof) => isOnGridSquare(structure.position, roof.position));
+    if (cabinRoofOn(entities, structure.position) !== undefined || blueprintsOf("roof").some((roof) => isOnGridSquare(structure.position, roof.position)))
+      return true;
+    return !roofFramesStayCarried(entities, structure.position);
   }
   return false;
 }

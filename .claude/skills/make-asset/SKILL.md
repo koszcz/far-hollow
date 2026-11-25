@@ -16,6 +16,7 @@ The owner may run several make-asset sessions at once, each in its own worktree.
 .claude/skills/make-asset/sessions.sh list                     # show running sessions; drops entries whose worktree is gone
 .claude/skills/make-asset/sessions.sh claim <id>               # claim an asset; fails if another session holds it
 .claude/skills/make-asset/sessions.sh step <id> "<n> <name>"   # record your current step, for example "5 build"
+.claude/skills/make-asset/sessions.sh wait <id>                # mark that you wait on the owner; the next step call clears it
 .claude/skills/make-asset/sessions.sh files <id> <file>...     # record the shared files you edit
 .claude/skills/make-asset/sessions.sh release <id>             # remove your entry
 .claude/skills/make-asset/sessions.sh packs                    # print the third-party packs folder and its packs
@@ -27,7 +28,9 @@ Record your step with `step` each time you start a new step. Other sessions see 
 
 `1 pick`, `2 branch`, `3 learn`, `4 options`, `5 build`, `6 show`, `7 decision`, `8 finish`
 
-When you go back to an earlier step, record that step again. At steps 4, 6, and 7 the card tells the owner it is their move while you wait.
+When you go back to an earlier step, record that step again.
+
+Each time you hand a decision to the owner, run `wait` first, as the last command before you ask. This covers picking a draft, picking an option, looking at the asset, and approving it. The card then tells the owner it is their move, even while a question dialog is open. The next `step` call clears the wait. When the owner answers, record your next step. If you stay on the same step, record it again.
 
 All worktrees share one local `main` branch. To get another session's finished asset, merge local `main`. You do not need to fetch from `origin`.
 

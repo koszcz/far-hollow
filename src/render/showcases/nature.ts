@@ -59,12 +59,14 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
     build() {},
   },
-  // The same stretch of river as "river", frozen as it is all winter.
+  // The same stretch of river as "river", frozen as it is all winter, with full snow cover on the ground around it.
   "frozen-river": {
     radius: 16,
     focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
-    build() {},
+    build({ place }) {
+      place(0, 0, { rain: { falling: false, changeAtMinutes: Infinity, changes: 0 }, snow: { fallsAsSnow: true, cover: { depth: 1 } } });
+    },
   },
   trees: {
     radius: 7,

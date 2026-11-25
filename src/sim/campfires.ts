@@ -39,6 +39,8 @@ export interface Campfires {
   addFuel(campfireId: number, fuel: CampfireFuel): void;
   /** Lights a campfire or fireplace within the player's reach with the steel and flint. It needs fuel. */
   light(campfireId: number): void;
+  /** Puts out a lit campfire or fireplace within the player's reach. The fuel left in it stays, so it can be lit again. */
+  putOut(campfireId: number): void;
   /** Why the player could not add this fuel to the campfire or fireplace, or light it, wherever they stand. */
   refusal(command: Extract<Command, { type: "addFuel" | "lightCampfire" }>): Refusal | undefined;
   /** The campfire or fireplace as the HUD shows it, or undefined if the entity is neither, finished. */
@@ -146,6 +148,11 @@ export function createCampfires(entities: EntityStore): Campfires {
       if (held === undefined || held.fire.lit || tenderOf(held) === undefined || lightRefusal(held) !== undefined) return;
       setFire(held, { ...held.fire, lit: true });
     },
+    putOut(campfireId) {
+      const held = fireById(campfireId);
+      if (held === undefined || !held.fire.lit || tenderOf(held) === undefined) return;
+      setFire(held, { ...held.fire, lit: false });
+    },
     nearestInReach(campfireId) {
       return nearbyFire() === campfireId ? fireById(campfireId) : undefined;
     },
@@ -171,8 +178,8 @@ export function isWarmedByCampfire(entities: EntityStore, at: GroundPoint): bool
   return room !== undefined && isRoomHeated(entities, room);
 }
 
-/** The rules for tending a campfire: coming to it, adding fuel, and lighting it. */
-export function campfireRules(campfires: Campfires, game: RuleGame): CommandRules<"tendCampfire" | "addFuel" | "lightCampfire"> {
+/** The rules for tending a campfire: coming to it, adding fuel, lighting it, and putting it out. */
+export function campfireRules(campfires: Campfires, game: RuleGame): CommandRules<"tendCampfire" | "addFuel" | "lightCampfire" | "putOutCampfire"> {
   const reach = (command: { campfireId: number }) => campfires.reach(command.campfireId);
   return {
     tendCampfire: {
@@ -197,6 +204,13 @@ export function campfireRules(campfires: Campfires, game: RuleGame): CommandRule
       refusal: (command) => campfires.refusal(command),
       approach: tendApproach(game, reach, (command) => {
         campfires.light(command.campfireId);
+        return undefined;
+      }),
+    },
+    putOutCampfire: {
+      start: "alongside",
+      approach: tendApproach(game, reach, (command) => {
+        campfires.putOut(command.campfireId);
         return undefined;
       }),
     },

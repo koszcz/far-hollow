@@ -41,7 +41,7 @@ export type ReachingFor = WildFood | "riverWater";
 
 export type TendTask =
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
-  | { type: "lightCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff" | "fireJug" | "takeJugOff"; campfireId: number }
+  | { type: "lightCampfire" | "putOutCampfire" | "putPotOnFire" | "takePotOffFire" | "cookFish" | "takeFishOff" | "fireJug" | "takeJugOff"; campfireId: number }
   | { type: "stackOnWoodpile"; woodpileId: number; wood: WoodpileWood; all: boolean }
   | { type: "takeFromWoodpile"; woodpileId: number; wood: WoodpileWood }
   | { type: "loadSled" | "tipOutSled" | "dragSled" | "loadPlanksOnSled" | "takePlanksFromSled"; sledId: number }

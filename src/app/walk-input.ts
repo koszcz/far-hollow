@@ -32,12 +32,13 @@ export function useKeyFor(
 
 /**
  * What a click on a thing in the world opens: its action menu, main action first, or undefined if it offers nothing to send.
- * Plain ground opens no menu when walking is all it offers, since a click there walks straight away.
+ * Ground opens no menu when walking is the only action the player can do there now, since a click there walks straight away.
+ * This holds even when the ground lists other actions the game refuses, such as gathering stone while dragging a sled.
  * With a log on the shoulder, ground opens a menu to walk there or drop the log there.
  */
 export function menuFor(pick: ScenePick, reader: ActionReader): readonly ThingAction[] | undefined {
   const actions = menuActions({ kind: "scene", pick }, reader);
-  if (pick.kind === "ground" && actions.length <= 1) return undefined;
+  if (pick.kind === "ground" && actions.filter(({ enabled }) => enabled).length <= 1) return undefined;
   return actions.length === 0 ? undefined : actions;
 }
 
@@ -127,7 +128,7 @@ export interface WalkInput {
 }
 
 /**
- * A click on plain ground walks there. With a log on the shoulder, it opens a menu to walk there or drop the log there instead. A click on a thing opens its action menu: a list of every action it offers, as `thing-actions.ts`
+ * A click on ground walks there when walking is the only action the player can do there now. With a log on the shoulder, it opens a menu to walk there or drop the log there instead. A click on a thing opens its action menu: a list of every action it offers, as `thing-actions.ts`
  * names them, with the main action on top. Picking one sends it, and the player walks to the thing first when needed.
  * A click on a finished structure opens its menu, which offers what is under it and taking it down.
  * Pressing Escape, or a click elsewhere, closes the menu. Escape also stops building.

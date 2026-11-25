@@ -93,6 +93,7 @@ export interface Building {
   /**
    * Places a blueprint of `structure` facing `turns` at the grid spot nearest to `at`. Placing costs nothing.
    * Returns the new blueprint's entity id. Does nothing, and returns undefined, if the structure's placement rule refuses the spot.
+   * With instant building, the blueprint is finished at once, and the id names the finished piece.
    */
   place(structure: StructureKind, at: GroundPoint, turns: QuarterTurns): number | undefined;
   /**
@@ -131,8 +132,16 @@ export interface Building {
 /**
  * Lets the player place blueprints, add materials to them, and turn them into finished building pieces.
  * With `freeBuilding`, building spends no materials, needs no tools, and fetches nothing. The playground uses it.
+ * With `instantBuilding`, a placed blueprint turns into the finished piece at once, so nobody builds it. The instant playground uses it.
  */
-export function createBuilding(entities: EntityStore, walking: Walking, valley: Valley, hand: Pick<HandReach, "start">, freeBuilding = false): Building {
+export function createBuilding(
+  entities: EntityStore,
+  walking: Walking,
+  valley: Valley,
+  hand: Pick<HandReach, "start">,
+  freeBuilding = false,
+  instantBuilding = false,
+): Building {
   const players = playerEntities(entities);
   const blueprints = blueprintEntities(entities);
   const builders = entities.with("buildTask", "position", "backpack");
@@ -429,7 +438,12 @@ export function createBuilding(entities: EntityStore, walking: Walking, valley: 
         position: { ...spot },
         ...(blocks === undefined ? {} : { blocksWalkingSpots: blocks }),
       });
-      return entities.id(added);
+      const id = entities.id(added);
+      if (instantBuilding && id !== undefined) {
+        const placed = placedBlueprint(id);
+        if (placed !== undefined) finish(placed);
+      }
+      return id;
     },
     canStartBuilding(blueprintId) {
       const target = entities.entity(blueprintId);

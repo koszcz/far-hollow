@@ -15,6 +15,10 @@ The value that decides how a valley is laid out. The same seed always produces t
 A test game for developers, opened by adding `?playground` to the address. Building there spends no materials and needs no tools. A playground game is never saved.
 _Avoid_: Sandbox, creative mode
 
+**Instant playground**:
+A playground opened with `?playground&instant`. Every blueprint is finished the moment it is placed, so nobody builds it. Build mode stays open after each piece on the building grid, and a Shift-drag places a row of them. Developers use it to put up a cabin fast.
+_Avoid_: Quick build, god mode
+
 **River**:
 The single source of fresh water and fish in a valley.
 _Avoid_: Stream, creek

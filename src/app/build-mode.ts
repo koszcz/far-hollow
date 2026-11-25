@@ -1,4 +1,4 @@
-import { isPlacedInRows, type BuildMenuEntry, type Command, type GameClient, type ScenePick, type StructureKind } from "../sim/api";
+import { type BuildMenuEntry, type Command, type GameClient, type ScenePick, type StructureKind } from "../sim/api";
 import { turnQuarters, type QuarterTurns } from "../sim/quarter-turns";
 
 /**
@@ -36,10 +36,10 @@ function isPlacingInRows(mode: BuildMode, buildMenu: readonly BuildMenuEntry[]):
   const placing = mode.placing;
   if (placing === null) return false;
   const entry = buildMenu.find(({ structure }) => structure === placing.structure);
-  return entry !== undefined && isPlacedInRows(entry.placement);
+  return entry?.inRows === true;
 }
 
-/** Build mode once a click has placed a blueprint. Placing a floor keeps it open on the floor, so the player can place the next. */
+/** Build mode once a click has placed a blueprint. Placing a piece placed in rows, such as a floor, keeps it open on that piece, so the player can place the next. */
 export function modeAfterPlacing(mode: BuildMode, buildMenu: readonly BuildMenuEntry[]): BuildMode {
   return isPlacingInRows(mode, buildMenu) ? mode : NOT_BUILDING;
 }

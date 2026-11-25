@@ -1,4 +1,4 @@
-import { isPlacedInRows, type BuildMenuEntry, type Plantable, type Refusal, type StructureKind } from "../sim/api";
+import { type BuildMenuEntry, type Plantable, type Refusal, type StructureKind } from "../sim/api";
 import { strings } from "../strings";
 import { refusalText } from "./refusal-text";
 
@@ -17,7 +17,7 @@ export function placingHint(entries: readonly BuildMenuEntry[], placing: Structu
   const entry = entries.find(({ structure }) => structure === placing);
   const placement = entry?.placement ?? "onGround";
   const { rotate, cancel, stop, join } = strings.hudLabels.placingKeys;
-  const end = isPlacedInRows(placement) ? stop : cancel;
+  const end = entry?.inRows === true ? stop : cancel;
   const name = strings.buildMenu.structures[placing];
   return {
     what: refusal === undefined ? strings.buildMenu.placing[placement](name) : strings.buildMenu.refusedHere(name, refusalText(refusal)),

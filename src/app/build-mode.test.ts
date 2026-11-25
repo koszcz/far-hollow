@@ -101,6 +101,15 @@ describe("placing floors", () => {
     expect(startSweep(NOT_BUILDING, game.client)).toBeUndefined();
   });
 
+  it("in the instant playground, keeps placing and sweeps every piece on the building grid, but not furniture", () => {
+    const game = createGame({ seed: 42, instantBuilding: true });
+    const { buildMenu } = game.client.getView();
+    expect(modeAfterPlacing(pickBuildEntry("logWall"), buildMenu)).toEqual(pickBuildEntry("logWall"));
+    expect(startSweep(pickBuildEntry("foundation"), game.client)).toBeDefined();
+    expect(startSweep(pickBuildEntry("logWall"), game.client)).toBeDefined();
+    expect(startSweep(pickBuildEntry("chest"), game.client)).toBeUndefined();
+  });
+
   it("places a floor blueprint on each foundation square a sweep crosses, once each, and skips a square that has a floor", () => {
     const game = createGame({ seed: 42, freeBuilding: true });
     const start = openSpotNear(game);

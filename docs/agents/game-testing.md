@@ -43,6 +43,7 @@ Open the game with these address options:
 
 - `?seed=42` starts a new, unsaved game in a fixed valley, so every run is the same.
 - `?playground` starts a game where building costs nothing.
+- `?playground&instant` starts the instant playground. Every blueprint is finished the moment it is placed. Build mode stays open after each piece, and a Shift-drag places a row of foundations, walls, or roof frames. Use it to put up a cabin fast.
 
 ## Check sound by reading it
 

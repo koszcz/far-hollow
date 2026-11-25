@@ -642,6 +642,11 @@ export interface BuildMenuEntry {
   readonly placement: Placement;
   /** Present when R does not turn its blueprint, as for a roof section, a door, or a floor. Missing if R turns it. */
   readonly fixedFacing?: true;
+  /**
+   * Present when the player places it in rows: build mode stays open after each blueprint, and a Shift-drag places a row.
+   * A floor always is. In the instant playground, every piece on the building grid is.
+   */
+  readonly inRows?: true;
 }
 
 /** The build menu's furniture rows, in order, from each piece's definition. The HUD showcase shows the full build menu with them. */

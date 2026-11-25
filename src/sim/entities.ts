@@ -10,7 +10,7 @@ import type { JugOnFire } from "./jug-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { FillLevel } from "./fill-level";
 import type { Rain } from "./rain";
-import type { SnowCover } from "./snow-cover";
+import type { Snow } from "./snow-cover";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
 import type { BurnTime } from "./burn-time";
@@ -626,13 +626,6 @@ export function groundChangeEntities(store: EntityStore) {
 /** The valley's weather. There is only ever one. */
 export function rainEntities(store: EntityStore) {
   return store.with("rain");
-}
-
-/** What winter does to the weather: see the `snow` component. */
-export interface Snow {
-  /** Whether rain falls as snow now, as it does all winter. */
-  readonly fallsAsSnow: boolean;
-  readonly cover: SnowCover;
 }
 
 /** Whether rain, not snow, falls in the valley now. False before the weather exists. */

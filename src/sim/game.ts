@@ -50,7 +50,16 @@ import {
   type ClockStart,
   timeRules,
 } from "./clock";
-import { firstDayOfSeason, isAfterFirstWinter, NEW_GAME_YEAR_START_DAY, nextSeasonStartDay, type Season, type SeasonDay, seasonDayOf } from "./season";
+import {
+  firstDayOfSeason,
+  isAfterFirstWinter,
+  NEW_GAME_YEAR_START_DAY,
+  nextSeasonStartDay,
+  nightHoursOf,
+  type Season,
+  type SeasonDay,
+  seasonDayOf,
+} from "./season";
 import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
 import {
@@ -65,9 +74,8 @@ import {
   type Entity,
   type EntityStore,
   type SavedEntity,
-  type Snow,
 } from "./entities";
-import { NO_SNOW_COVER, snowCoverOn, snowWalkingSpeed } from "./snow-cover";
+import { NO_SNOW_COVER, snowOn, snowWalkingSpeed } from "./snow-cover";
 import { finishedFloorOn } from "./floors";
 import { snapToGridSquare } from "./build-grid";
 import { standingHeightAt } from "./foundations";
@@ -142,23 +150,24 @@ export interface GameOptions {
    */
   journalFromCamp?: boolean;
   /**
-   * Starts a new game at PLAYGROUND_SEASON_START_HOUR on day 1 of this season, instead of at GAME_START.
+   * Starts a new game at the morning hour on day 1 of this season, instead of at GAME_START.
    * The playground's `&season=` sets it. It is ignored when carrying on a saved game.
    */
   startSeason?: Season;
 }
 
-/** A game started in a chosen season starts at this hour, on day 1 of that season. */
-export const PLAYGROUND_SEASON_START_HOUR = 6;
-/** What skipToSeason passes time to, on day 1 of the next season. */
-const SEASON_SKIP_HOUR = 6;
 /** How many game minutes the banner shows for when a season starts. One game minute is one real second. */
 export const SEASON_BANNER_MINUTES = 30;
+
+/** The morning of this day, which falls in this season: the season's morning hour, so winter mornings start at daylight. */
+function seasonMorning(season: Season, day: number): ClockStart {
+  return { day, hour: nightHoursOf(season).morningHour };
+}
 
 /** Where a new game's clock starts: at GAME_START, or on the morning of day 1 of `startSeason` if given. */
 export function newGameStart(startSeason: Season | undefined): ClockStart {
   if (startSeason === undefined) return GAME_START;
-  return { day: firstDayOfSeason(startSeason, NEW_GAME_YEAR_START_DAY), hour: PLAYGROUND_SEASON_START_HOUR };
+  return seasonMorning(startSeason, firstDayOfSeason(startSeason, NEW_GAME_YEAR_START_DAY));
 }
 
 /**
@@ -297,7 +306,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   // A save made before rain existed has no weather, so it starts dry from here.
   const weather = rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes, yearStartDay) });
   const rain = weather.rain;
-  entities.addComponent(weather, "snow", snowNow());
+  entities.addComponent(weather, "snow", snowOn(readClock(clock.minutes), yearStartDay));
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
   const firstMorning = nextMorning(gameStartMinutes, yearStartDay);
   /** Whether the first night has ended, by morning coming or by a collapse. */
@@ -346,6 +355,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       night: isNightAt(clock.minutes, yearStartDay),
       nightHours: nightHoursAt(clock.minutes, yearStartDay),
       season: Object.freeze(seasonNow()),
+      afterFirstWinter: isAfterFirstWinter(readClock(clock.minutes).day, yearStartDay),
       seasonBanner: seasonBanner !== null && clock.minutes < seasonBanner.untilMinutes ? seasonBanner.season : null,
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
@@ -554,7 +564,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       const winter = isWinter();
       clock.skip(minutes / MINUTES_PER_HOUR);
       passRainTime(rain, seed, clock.minutes);
-      weather.snow = snowNow();
+      weather.snow = snowOn(readClock(clock.minutes), yearStartDay);
       // Rain does not put out campfires.
       passWorldTime(minutes, winter);
       const underRoof = isUnderRoof(entities, player.position);
@@ -595,13 +605,6 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     }
   }
 
-  /** What winter does to the weather now. In winter, rain falls as snow. Snow cover follows the calendar. */
-  function snowNow(): Snow {
-    const { day, hourOfDay } = readClock(clock.minutes);
-    const seasonDay = seasonDayOf(day, yearStartDay);
-    return { fallsAsSnow: seasonDay.season === "winter", cover: snowCoverOn(seasonDay, hourOfDay, { afterWinter: isAfterFirstWinter(day, yearStartDay) }) };
-  }
-
   /** How fast the player walks where they stand: deep snow slows them outdoors, but not on a floor or inside a room. */
   function snowSpeedWhereStanding(): number {
     const square = snapToGridSquare(player.position);
@@ -625,11 +628,12 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   }
 
   /**
-   * Moves the clock on to SEASON_SKIP_HOUR on day 1 of the next season. A collapse on the way does not stop it:
+   * Moves the clock on to the morning hour on day 1 of the next season. A collapse on the way does not stop it:
    * the player wakes the next morning and time passes on, so the skip always gets there.
    */
   function skipToSeason(): void {
-    const target = clockStartMinutes({ day: nextSeasonStartDay(readClock(clock.minutes).day, yearStartDay), hour: SEASON_SKIP_HOUR });
+    const day = nextSeasonStartDay(readClock(clock.minutes).day, yearStartDay);
+    const target = clockStartMinutes(seasonMorning(seasonDayOf(day, yearStartDay).season, day));
     while (clock.minutes < target) passTime(target - clock.minutes);
   }
 

@@ -116,6 +116,7 @@ export interface SceneRenderer {
  * readNightHours returns today's night hours, which follow the season, from game logic.
  * readClockMinutes returns the game minutes since midnight at the start of day 1, from game logic.
  * readSeasonDay returns the season today and which day of it today is, from game logic.
+ * readAfterFirstWinter returns whether a winter has come before today, from game logic. A spring with none keeps green leaves.
  * Rendering only reads the clock and the season. It never changes them.
  * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
  * readLastEatOrDrink returns the player's last bite or drink, from game logic. A new one plays its motion once.
@@ -129,6 +130,7 @@ export function createSceneRenderer(
   readNightHours: () => NightHours,
   readClockMinutes: () => number,
   readSeasonDay: () => SeasonDay,
+  readAfterFirstWinter: () => boolean,
   readLastSleep: () => SleepView | null,
   readLastEatOrDrink: () => EatOrDrinkView | null,
   shapes: ModelShapes,
@@ -672,7 +674,7 @@ export function createSceneRenderer(
       const seasonDay = readSeasonDay();
       riverMeshes.setFrozen(seasonDay.season === "winter");
       riverMeshes.update(nowSeconds, daylight);
-      forestMeshes.setLeafTurn(leafTurnShare(seasonDay, readHourOfDay()));
+      forestMeshes.setLeafTurn(leafTurnShare(seasonDay, readHourOfDay(), { afterWinter: readAfterFirstWinter() }));
       blowWind(nowSeconds);
       forestMeshes.update(nowSeconds);
       forageMeshes.update();

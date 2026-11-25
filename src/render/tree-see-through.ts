@@ -3,6 +3,7 @@
 // transparency, and it works per instance inside the tree batches. Shadows still come from the whole tree.
 import * as THREE from "three";
 import type { Vec3 } from "../sim/entities";
+import { chainShaderPatch } from "./shader-patch";
 
 /** A tree fades fully when its trunk stands this close to the line from the camera to the player, in metres. */
 export const SEE_THROUGH_INNER_METRES = 2.5;
@@ -55,13 +56,13 @@ export interface TreeSeeThrough {
   clicksPassThrough(foot: Readonly<Vec3>, eye: Readonly<Vec3>): boolean;
 }
 
-/** Makes trees drawn with `materials` fade when they stand between the camera and the player. */
+/** Makes trees drawn with `materials` fade when they stand between the camera and the player. It keeps their other shader patches. */
 export function addTreeSeeThrough(materials: readonly THREE.Material[]): TreeSeeThrough {
   const playerUniform = { value: new THREE.Vector3() };
   /** 0 while there is no player, so no tree fades. */
   const enabledUniform = { value: 0 };
   for (const material of materials) {
-    material.onBeforeCompile = (shader) => {
+    chainShaderPatch(material, "see-through", (shader) => {
       shader.uniforms.seeThroughPlayer = playerUniform;
       shader.uniforms.seeThroughEnabled = enabledUniform;
       shader.vertexShader = shader.vertexShader
@@ -98,8 +99,7 @@ export function addTreeSeeThrough(materials: readonly THREE.Material[]): TreeSee
           `if ( seeThroughFade * ${(1 - SEE_THROUGH_LEFT_SHOWING).toFixed(2)} > seeThroughThreshold ) discard;`,
         ].join("\n"),
       );
-    };
-    material.needsUpdate = true;
+    });
   }
   return {
     setPlayer(player) {

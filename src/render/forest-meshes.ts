@@ -164,9 +164,10 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
   const seeThrough = addTreeSeeThrough(
     allMaterials.flatMap(({ trunk, crown, broadleafCrown }) => [...Object.values(trunk), ...Object.values(crown), ...Object.values(broadleafCrown)]),
   );
-  // After the see-through, so its shader patch does not replace the snow's.
   if (snow !== undefined) {
-    for (const { crown } of [fullMaterials, youngMaterials, saplingMaterials]) for (const material of Object.values(crown)) snow.cover(material, CROWN_SNOW);
+    for (const { crown, broadleafCrown } of allMaterials) {
+      for (const material of [...Object.values(crown), ...Object.values(broadleafCrown)]) snow.cover(material, CROWN_SNOW);
+    }
   }
   for (const shape of treeShapes) {
     track(shape.trunk);

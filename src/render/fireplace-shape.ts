@@ -1,5 +1,6 @@
 // The shape of the fireplace's stones: part of the approved "fireplace" asset in asset-manifest.json, built in code.
 // fireplace-meshes.ts draws these shapes, one mesh per construction stage.
+// chimney-shape.ts lays the chimney's stones with the same walls and stones. Added by chimney ticket 01.
 // The fireplace is hand-stacked rubble: lumpy river stones, made like the approved "stone" in stone-shape.ts, laid in
 // rough courses with dark mortar showing between them. Flagstones make the hearth floor, a back wall and two side walls
 // stand round it, a rough slab lies across their tops, and a chimney rises from the back, narrowing as it goes up,
@@ -19,14 +20,14 @@ export interface FireplaceStageShape {
 }
 
 /** A box in the fireplace, from its low corner to its high corner. */
-type Box = readonly [readonly [number, number, number], readonly [number, number, number]];
+export type Box = readonly [readonly [number, number, number], readonly [number, number, number]];
 
 /** Warm greys, like the stone in a pile, so the blue sky light does not turn them lilac. */
 const STONE_COLOURS = [0xa29f98, 0x93918b, 0xa8a297, 0x8c8983] as const;
 /** The dark mortar seen between the stones. */
 const MORTAR_COLOUR = 0x4d4945;
 /** The black of soot, and of the flue under the chimney's cap. */
-const SOOT_COLOUR = 0x1f1c1a;
+export const SOOT_COLOUR = 0x1f1c1a;
 /** How long the stones in a course are, in metres, at least and at most. */
 const SHORTEST_STONE = 0.15;
 const LONGEST_STONE = 0.29;
@@ -37,7 +38,7 @@ const STONE_PROUD = 0.025;
 /** How far the mortar core sits back from each face of a wall, in metres, so the stones hide most of it. */
 const MORTAR_INSET = 0.03;
 /** Wall stones bend their normals up less than pile stones, so the sides of the walls show shade. */
-const WALL_NORMAL_UP_BEND = 0.3;
+export const WALL_NORMAL_UP_BEND = 0.3;
 
 /** The fire box: the space round the fire that soot blackens. Faces inside it darken more the deeper and higher they sit. */
 const FIRE_BOX: Box = [
@@ -158,7 +159,7 @@ function hearthFloor(random: Random): THREE.BufferGeometry[] {
  * One course of wall: rows of stones of random lengths over a core of mortar. Each stone runs right through the wall,
  * standing a little proud of both faces. `along` is the axis the wall runs along.
  */
-function wall(box: Box, along: "x" | "z", rows: number, random: Random): THREE.BufferGeometry[] {
+export function wall(box: Box, along: "x" | "z", rows: number, random: Random): THREE.BufferGeometry[] {
   const [low, high] = box;
   const parts = [block(shrink(box, MORTAR_INSET), MORTAR_COLOUR)];
   const axis = along === "x" ? 0 : 2;
@@ -232,7 +233,7 @@ function chimneyCap(random: Random): THREE.BufferGeometry[] {
 }
 
 /** A lumpy stone filling `box`, in one of the warm greys. */
-function stone(
+export function stone(
   box: Box,
   random: Random,
   cut: { readonly lumpiness: number; readonly flatTop: number; readonly normalUpBend: number; readonly boxiness: number },
@@ -260,7 +261,7 @@ function shrink(box: Box, inset: number): Box {
 }
 
 /** A plain box of one colour filling `box`, with the same attributes as a stone so they merge. */
-function block(box: Box, colour: number): THREE.BufferGeometry {
+export function block(box: Box, colour: number): THREE.BufferGeometry {
   const [low, high] = box;
   const indexed = new THREE.BoxGeometry(high[0] - low[0], high[1] - low[1], high[2] - low[2]);
   const geometry = indexed.toNonIndexed();

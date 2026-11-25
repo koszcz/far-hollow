@@ -3,6 +3,7 @@
 import type { StructureKind } from "../sim/api";
 import { ShadedIcon } from "./backpack-icons";
 import { STRUCTURE_DRAWINGS } from "./build-icons";
+import { CHIMNEY_DRAWING } from "./chimney-icon";
 import { FIREPLACE_DRAWING } from "./fireplace-icon";
 import { DOOR_DRAWING, FLOOR_DRAWING } from "./floor-and-door-icons";
 import { FURNITURE_DRAWINGS } from "./furniture-icons";
@@ -11,13 +12,14 @@ import { SLED_DRAWING } from "./sled-icons";
 import { SHUTTERS_DRAWING, WINDOW_DRAWING } from "./window-icons";
 
 /**
- * Every structure's icon. The approved "build-icons" asset draws most of them. The sled's, the fireplace's, the floor's, the door's, the window's, the shutters',
+ * Every structure's icon. The approved "build-icons" asset draws most of them. The sled's, the fireplace's, the chimney's, the floor's, the door's, the window's, the shutters',
  * and each piece of furniture's come from their own icon assets. TypeScript reports a structure with no icon.
  */
 const STRUCTURE_ICONS: Readonly<Record<StructureKind, BackpackIconDrawing>> = {
   ...STRUCTURE_DRAWINGS,
   sled: SLED_DRAWING,
   fireplace: FIREPLACE_DRAWING,
+  chimney: CHIMNEY_DRAWING,
   floor: FLOOR_DRAWING,
   door: DOOR_DRAWING,
   window: WINDOW_DRAWING,

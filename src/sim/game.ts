@@ -50,10 +50,26 @@ import {
   type ClockStart,
   timeRules,
 } from "./clock";
-import { firstDayOfSeason, NEW_GAME_YEAR_START_DAY, nextSeasonStartDay, type Season, type SeasonDay, seasonDayOf } from "./season";
+import { firstDayOfSeason, isAfterFirstWinter, NEW_GAME_YEAR_START_DAY, nextSeasonStartDay, type Season, type SeasonDay, seasonDayOf } from "./season";
 import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
-import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
+import {
+  createEntityStore,
+  isRaining,
+  isSnowing,
+  movingEntities,
+  rainEntities,
+  restoreEntities,
+  saveEntities,
+  snowCoverDepth,
+  type Entity,
+  type EntityStore,
+  type SavedEntity,
+  type Snow,
+} from "./entities";
+import { NO_SNOW_COVER, snowCoverOn, snowWalkingSpeed } from "./snow-cover";
+import { finishedFloorOn } from "./floors";
+import { snapToGridSquare } from "./build-grid";
 import { standingHeightAt } from "./foundations";
 import { generateValley, terrainHeightAt, type Valley } from "./valley";
 import { copyToward } from "./ground-point";
@@ -70,7 +86,7 @@ import { createShutters, shuttersRules } from "./shutters";
 import { createFishTraps, fishTrapRules } from "./fish-traps";
 import { createRain, passRainTime } from "./rain";
 import { isUnderRoof } from "./roofs";
-import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug } from "./rooms";
+import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug, roomAround } from "./rooms";
 import { passSicknessTime } from "./sickness";
 import { createPot, potRules } from "./pot";
 import { createRainBarrels, rainBarrelRules } from "./rain-barrels";
@@ -279,7 +295,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   /** The season that has just started, with the game minute its banner stops showing at, or null. It is not saved. */
   let seasonBanner: { season: Season; untilMinutes: number } | null = null;
   // A save made before rain existed has no weather, so it starts dry from here.
-  const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes, yearStartDay) })).rain;
+  const weather = rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes, yearStartDay) });
+  const rain = weather.rain;
+  entities.addComponent(weather, "snow", snowNow());
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
   const firstMorning = nextMorning(gameStartMinutes, yearStartDay);
   /** Whether the first night has ended, by morning coming or by a collapse. */
@@ -348,7 +366,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       }),
       warmth: player.needs.warmth.level,
       sick: player.sickness !== undefined,
-      raining: rain.falling,
+      raining: isRaining(entities),
+      snowing: isSnowing(entities),
+      snowCover: snowCoverDepth(entities),
       notice: notice !== null && isNoticeOnScreen() ? noticeView(notice) : null,
       lastSleep,
       lastEatOrDrink,
@@ -534,6 +554,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       const winter = isWinter();
       clock.skip(minutes / MINUTES_PER_HOUR);
       passRainTime(rain, seed, clock.minutes);
+      weather.snow = snowNow();
       // Rain does not put out campfires.
       passWorldTime(minutes, winter);
       const underRoof = isUnderRoof(entities, player.position);
@@ -546,6 +567,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
         inBed: asleepIn === "bed",
         sitting: asleepIn === undefined && player.sitting !== undefined,
         sick: player.sickness !== undefined,
+        // Snow chills the player as rain does.
         inRain: rain.falling && !underRoof,
         underRoof,
         inSnugRoom: isInSnugRoom(entities, player.position),
@@ -571,6 +593,20 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     while (rain.falling === wasFalling) {
       if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
     }
+  }
+
+  /** What winter does to the weather now. In winter, rain falls as snow. Snow cover follows the calendar. */
+  function snowNow(): Snow {
+    const { day, hourOfDay } = readClock(clock.minutes);
+    const seasonDay = seasonDayOf(day, yearStartDay);
+    return { fallsAsSnow: seasonDay.season === "winter", cover: snowCoverOn(seasonDay, hourOfDay, { afterWinter: isAfterFirstWinter(day, yearStartDay) }) };
+  }
+
+  /** How fast the player walks where they stand: deep snow slows them outdoors, but not on a floor or inside a room. */
+  function snowSpeedWhereStanding(): number {
+    const square = snapToGridSquare(player.position);
+    if (finishedFloorOn(entities, square) !== undefined || roomAround(entities, square) !== undefined) return 1;
+    return snowWalkingSpeed(weather.snow?.cover ?? NO_SNOW_COVER);
   }
 
   /** The season today, from the day on the clock and the day the year started on. */
@@ -650,7 +686,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
    * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
   function passWorldTime(minutes: number, winter: boolean): void {
-    rainBarrels.catchRain(minutes, rain.falling);
+    // Snow does not fill rain barrels.
+    rainBarrels.catchRain(minutes, isRaining(entities));
     campfires.burn(minutes);
     torches.burn(minutes);
     foraging.grow(minutes, winter);
@@ -808,8 +845,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       }
       // A player with a low need moves and works more slowly, as if less time passed for them.
       const playerSeconds = (STEP_MS / 1000) * needsSpeed(player.needs);
-      // Dragging a sled slows walking further, but not other work.
-      walking.step(player.dragging === undefined ? playerSeconds : playerSeconds * DRAG_SPEED);
+      // Dragging a sled and deep snow slow walking further, but not other work.
+      const walkingSeconds = playerSeconds * snowSpeedWhereStanding();
+      walking.step(player.dragging === undefined ? walkingSeconds : walkingSeconds * DRAG_SPEED);
       sleds.follow();
       for (const activity of activities) refuseWith(activity.step(playerSeconds));
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);

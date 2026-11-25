@@ -189,6 +189,7 @@ export const strings = {
       door: "Door",
       shutters: "Shutters",
       fireplace: "Fireplace",
+      chimney: "Chimney",
       woodpile: "Woodpile",
       chest: "Chest",
       shelf: "Shelf",
@@ -225,6 +226,7 @@ export const strings = {
       onFrame: (structure: string) => `Placing: ${structure}. Point at a finished roof frame and click to place it. It slopes the way the frame does.`,
       inDoorFrame: (structure: string) => `Placing: ${structure}. Point at a finished door frame with no door, and click to hang it there.`,
       inWindow: (structure: string) => `Placing: ${structure}. Point at a finished window with no shutters, and click to hang them there.`,
+      onFireplace: (structure: string) => `Placing: ${structure}. Point at a finished fireplace with no chimney, and click to place it there.`,
     },
   },
   /** Labels that name the HUD's buttons and bars, and the keys that work them. */
@@ -294,6 +296,7 @@ export const strings = {
   needs: "Needs",
   hunger: "Hunger",
   raining: "It is raining. The rain chills you.",
+  snowing: "It is snowing. The snow chills you.",
   thirst: "Thirst",
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   /** The hint above the need gauges when one or more needs are low enough to slow the player. */
@@ -630,6 +633,9 @@ export const strings = {
     takeShuttersDownFirst: "take the shutters down first",
     nothingGrowsInWinter: "nothing grows in winter",
     riverFrozen: "the river is frozen",
+    chimneyNeedsFireplace: "a chimney goes only on a finished fireplace",
+    fireplaceHasChimney: "this fireplace already has a chimney",
+    takeChimneyDownFirst: "take down the chimney first",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },
@@ -653,7 +659,8 @@ export const strings = {
   debugRain: "Rain",
   debugRainFalling: "Falling",
   debugRainDry: "Dry",
-  debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
+  debugRainSnowing: "Snowing",
+  debugSkipToRainChange: (falling: boolean) => (falling ? "Skip to rain or snow stopping" : "Skip to rain or snow starting"),
   debugRooms: "Rooms",
   debugRoom: (squares: number, heated: boolean, snug: boolean) =>
     `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}, ${snug ? "snug" : "not snug"}`,

@@ -38,6 +38,7 @@ import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
 import { TREE_COLOURS, type TreeShape, type TreeTone } from "./tree-model";
 import { addTreeSeeThrough } from "./tree-see-through";
+import { CROWN_SNOW, type SnowCoverLook } from "./snow-cover-look";
 import { SAPLING_SWAY, TREE_SWAY, YOUNG_TREE_SWAY, type SwayLook, type WindSway } from "./wind-sway";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { BLUEPRINT_COLOUR, BLUEPRINT_OPACITY, NOT_ALLOWED_COLOUR, seeThrough as seeThroughMaterial } from "./structure-look";
@@ -121,8 +122,8 @@ interface TreeMaterials {
   readonly broadleafCrown: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
 }
 
-/** `windSway` sways the treetops, young trees, and saplings. */
-export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, windSway: WindSway): ForestMeshes {
+/** `windSway` sways the treetops, young trees, and saplings. `snow`, if given, lays snow on the tops of their crowns, near and far. */
+export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, windSway: WindSway, snow?: SnowCoverLook): ForestMeshes {
   const { trees: treeShapes, saplings: saplingModels, stump: stumpShape, log: logShape } = shapes;
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
@@ -163,6 +164,10 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
   const seeThrough = addTreeSeeThrough(
     allMaterials.flatMap(({ trunk, crown, broadleafCrown }) => [...Object.values(trunk), ...Object.values(crown), ...Object.values(broadleafCrown)]),
   );
+  // After the see-through, so its shader patch does not replace the snow's.
+  if (snow !== undefined) {
+    for (const { crown } of [fullMaterials, youngMaterials, saplingMaterials]) for (const material of Object.values(crown)) snow.cover(material, CROWN_SNOW);
+  }
   for (const shape of treeShapes) {
     track(shape.trunk);
     track(shape.crown);

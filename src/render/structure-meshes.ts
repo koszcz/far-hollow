@@ -7,6 +7,7 @@ import type { Entity, EntityStore, Vec3 } from "../sim/entities";
 import { byFurnitureKind, FURNITURE_KINDS, type FurnitureKind } from "../sim/structure-kind";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCampfireMeshes } from "./campfire-meshes";
+import { createChimneyMeshes } from "./chimney-meshes";
 import { createDoorMeshes } from "./door-meshes";
 import { createShuttersMeshes } from "./shutters-meshes";
 import { createEdgePieceMeshes } from "./edge-piece-meshes";
@@ -21,6 +22,7 @@ import { createLeanToMeshes } from "./lean-to-meshes";
 import type { LogShape } from "./log-shape";
 import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
+import type { SnowCoverLook } from "./snow-cover-look";
 import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createSledMeshes } from "./sled-meshes";
 import type { RopeHold } from "./sled-rope";
@@ -53,7 +55,7 @@ export interface StructureMeshes {
   update(frame: StructureFrame): void;
   /** What a ray from the camera hits first among blueprints and finished structures the player can act on, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: StructureHit; distance: number } | undefined;
-  /** The finished lean-to, foundation, floor, wall, door frame, window, roof frame, roof section, door, shutters, or fireplace a ray meets first. The action menu uses it. */
+  /** The finished lean-to, foundation, floor, wall, door frame, window, roof frame, roof section, door, shutters, fireplace, or chimney a ray meets first. The action menu uses it. */
   pickFinished(raycaster: THREE.Raycaster): { entity: Entity; distance: number } | undefined;
   /** The parts of what a click landed on, placed in the world. Empty once it is gone. */
   outlineOf(hit: StructureHit): OutlinePart[];
@@ -69,17 +71,24 @@ interface KindDrawing {
 }
 
 /** `groundAt` gives the height of the ground. `logShape` is the loaded log model, which woodpiles stack. */
-export function createStructureMeshes(entities: EntityStore, groundAt: (x: number, z: number) => number, logShape: LogShape): StructureMeshes {
+/** `snow`, if given, lays snow on the finished roofs. */
+export function createStructureMeshes(
+  entities: EntityStore,
+  groundAt: (x: number, z: number) => number,
+  logShape: LogShape,
+  snow?: SnowCoverLook,
+): StructureMeshes {
   const campfires = createCampfireMeshes(entities, groundAt);
   const leanTos = createLeanToMeshes(entities);
   const foundations = createFoundationMeshes(entities, groundAt);
   const floors = createFloorMeshes(entities);
   const edgePieces = createEdgePieceMeshes(entities);
   const roofFrames = createRoofFrameMeshes(entities);
-  const roofs = createRoofMeshes(entities);
+  const roofs = createRoofMeshes(entities, snow);
   const doors = createDoorMeshes(entities);
   const shutters = createShuttersMeshes(entities);
   const fireplaces = createFireplaceMeshes(entities);
+  const chimneys = createChimneyMeshes(entities);
   const woodpiles = createWoodpileMeshes(entities, logShape);
   const furniture = byFurnitureKind((kind) => FURNITURE_MESHES[kind](entities));
   const sawhorses = createSawhorseMeshes(entities);
@@ -101,12 +110,13 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
     doors,
     shutters,
     fireplaces,
+    chimneys,
     woodpiles,
     ...Object.values(furniture),
     sawhorses,
     sleds,
   ];
-  const withFinishedPicks = [leanTos, foundations, floors, edgePieces, roofFrames, roofs, doors, shutters, fireplaces];
+  const withFinishedPicks = [leanTos, foundations, floors, edgePieces, roofFrames, roofs, doors, shutters, fireplaces, chimneys];
 
   const group = new THREE.Group();
   group.add(...all.map((meshes) => meshes.group));
@@ -185,6 +195,12 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         fireplaces.showPlacingBlueprint(placing);
       },
     },
+    chimney: {
+      outlineBlueprint: (entity) => chimneys.outlineOf({ entity }),
+      showPlacing: (placing) => {
+        chimneys.showPlacingBlueprint(placing);
+      },
+    },
     woodpile: {
       outlineBlueprint: (entity) => woodpiles.outlineOf({ kind: "blueprint", entity }),
       showPlacing: (placing) => {
@@ -242,6 +258,8 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
       // Shutters swing when the player opens or closes them, and fade with their window.
       shutters.update({ nowSeconds, cutaway });
       fireplaces.update(nowSeconds);
+      // A chimney never hides, even when the roof it rises through does.
+      chimneys.update();
       woodpiles.update();
       for (const meshes of Object.values(furniture)) meshes.update();
       sawhorses.update();
@@ -259,6 +277,7 @@ export function createStructureMeshes(entities: EntityStore, groundAt: (x: numbe
         doors.pick(raycaster),
         shutters.pick(raycaster),
         fireplaces.pick(raycaster),
+        chimneys.pick(raycaster),
         woodpiles.pick(raycaster),
         ...FURNITURE_KINDS.map((kind) => furnitureHit(kind, raycaster)),
         sawhorses.pick(raycaster),

@@ -4,7 +4,7 @@ import { createGame, type Game, SEASON_BANNER_MINUTES, STEPS_PER_SECOND } from "
 import { clockStartMinutes, isNightAt, nextMorning } from "./clock";
 import { readSave, SEASONS_SAVE_VERSION, SAVE_VERSION, writeSave } from "./save";
 import { finishReach } from "./test-steps";
-import { firstDayOfSeason, isNightHour, nextSeasonStartDay, nightHoursOf, parseSeason, seasonDayOf } from "./season";
+import { firstDayOfSeason, isAfterFirstWinter, isNightHour, nextSeasonStartDay, nightHoursOf, parseSeason, seasonDayOf } from "./season";
 
 describe("the season of a day", () => {
   it("starts a new game's year on day 1 of spring", () => {
@@ -47,6 +47,15 @@ describe("the season of a day", () => {
     expect(parseSeason("autumn")).toBe("autumn");
     expect(parseSeason("Winter")).toBeUndefined();
     expect(parseSeason(null)).toBeUndefined();
+  });
+});
+
+describe("the first winter", () => {
+  it("has not come before the first year is over, and has from day 1 of the second spring on", () => {
+    expect(isAfterFirstWinter(1, 1)).toBe(false);
+    expect(isAfterFirstWinter(28, 1)).toBe(false);
+    expect(isAfterFirstWinter(29, 1)).toBe(true);
+    expect(isAfterFirstWinter(15, 10)).toBe(false);
   });
 });
 

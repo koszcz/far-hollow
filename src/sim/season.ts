@@ -75,3 +75,8 @@ export function nightHoursOf(season: Season): NightHours {
 export function isNightHour(hourOfDay: number, nightHours: NightHours): boolean {
   return hourOfDay >= nightHours.nightStartHour || hourOfDay < nightHours.morningHour;
 }
+
+/** Whether a winter came before this day, when the year started on `yearStartDay`. None has in the first year. */
+export function isAfterFirstWinter(day: number, yearStartDay: number): boolean {
+  return day - yearStartDay >= YEAR_DAYS;
+}

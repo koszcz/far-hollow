@@ -50,7 +50,7 @@ function DebugPanel({ client }: { client: GameClient }) {
         <dt>{strings.debugSeason}</dt>
         <dd>{strings.debugSeasonDay(strings.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays)}</dd>
         <dt>{strings.debugRain}</dt>
-        <dd>{view.raining ? strings.debugRainFalling : strings.debugRainDry}</dd>
+        <dd>{view.snowing ? strings.debugRainSnowing : view.raining ? strings.debugRainFalling : strings.debugRainDry}</dd>
         <dt>{strings.debugRooms}</dt>
         <dd>{rooms.length}</dd>
         {rooms.map((room, index) => (
@@ -77,7 +77,7 @@ function DebugPanel({ client }: { client: GameClient }) {
           client.send({ type: "skipToRainChange" });
         }}
       >
-        {strings.debugSkipToRainChange(view.raining)}
+        {strings.debugSkipToRainChange(view.raining || view.snowing)}
       </button>
       <button
         type="button"

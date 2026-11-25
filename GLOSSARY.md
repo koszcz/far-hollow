@@ -463,7 +463,15 @@ _Avoid_: Quest, objective, task, achievement
 ## Weather and time
 
 **Rain**:
-The only weather that affects the player. Being out in the rain without a roof overhead drains the player's warmth.
+Weather that falls outside winter. Being out in the rain without a roof overhead drains the player's warmth.
+
+**Snowfall**:
+Weather that falls only in winter, in place of rain.
+_Avoid_: Snowstorm, blizzard
+
+**Snow cover**:
+The snow lying on the ground, trees, and roofs. It builds up over winter and melts in early spring.
+_Avoid_: Snow (on its own, it is unclear whether it means the weather or the ground)
 
 **Wind**:
 The breeze that sways plants and treetops. It blows harder in the rain. It never affects the player or the camp.
@@ -471,6 +479,15 @@ _Avoid_: Breeze, gust
 
 **Day**:
 One full cycle of daylight and night in the valley.
+
+**Season**:
+One of the four parts of the year: spring, summer, autumn, and winter. All four last the same number of days. A new game starts on the first day of spring.
+
+**Year**:
+The four seasons in order. When winter ends, the next year starts with spring, and the cycle never stops.
+
+**Winter**:
+The hard season. A player who prepared shelter, firewood, and food gets through it. One who did not will collapse.
 
 ## Sound
 

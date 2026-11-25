@@ -2,7 +2,7 @@
 
 **What to build:** Fresh food goes bad after a while, so the player cannot stockpile raw fish for weeks. The player can preserve food to keep it for longer, for example by smoking fish, drying berries and mushrooms, or storing food in clay crocks. The clay spec left crocks and spoilage out on purpose. With seasons (`.scratch/seasons/`), this makes preparing for winter a real task.
 
-**Blocked by:** None, but grill it after `.scratch/seasons/issues/01-seasons-and-a-first-winter.md` so the two fit together.
+**Blocked by:** None, but grill it after `.scratch/seasons/spec.md` so the two fit together.
 
 **Status:** idea
 

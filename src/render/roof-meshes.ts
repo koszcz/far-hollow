@@ -39,6 +39,7 @@ import {
   raisedBy,
   ROOF_SEED,
   ROOF_SLOPE_RADIANS,
+  roofPickSurface,
   shapeHeight,
   WEATHERED_PLANK_COLOURS,
   type Section,
@@ -92,8 +93,6 @@ const VALLEY_BOARD_THICKNESS_METRES = 0.015;
 const VALLEY_BOARD_LIFT_METRES = RAFTER_RADIUS_METRES * (1 / Math.cos(Math.atan(Math.tan(ROOF_SLOPE_RADIANS) / Math.SQRT2)) - 1) + 0.002;
 /** The valley boards are darker than the roof planks, stained by the water that runs down them. */
 const VALLEY_BOARD_COLOUR = 0x5f5a52;
-/** How thick the invisible slab that catches clicks on a blueprint is, in metres. */
-const PICK_THICKNESS_METRES = 0.3;
 
 /** What a click on a roof blueprint landed on. Finished roofs are not clicked. */
 export type RoofHit = { kind: "blueprint"; entity: Entity };
@@ -330,14 +329,23 @@ function layoutOf(position: Vec3): number {
 /** `snow`, if given, lays snow on the finished roofs. */
 export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): RoofMeshes {
   const group = new THREE.Group();
-  const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
   const planks = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
   // The see-through copies made from it below keep no snow: they show only while a roof is built or faded.
   const plankFading = planks.clone();
   snow?.cover(planks, ROOF_SNOW);
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  // The surface that catches clicks is seen from above and below, so it is two-sided.
+  const pickMaterial = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
+  /** The surface that catches clicks on a section of each shape, along the tops of its planks, made once and shared. */
+  const pickSurfaces = new Map<RoofShape, THREE.BufferGeometry>();
+  function pickSurfaceOf(shape: RoofShape): THREE.BufferGeometry {
+    const known = pickSurfaces.get(shape);
+    if (known !== undefined) return known;
+    const made = roofPickSurface((x, z) => COVER_BASE_METRES + PLANK_THICKNESS_METRES + shapeHeight(shape, x, z));
+    pickSurfaces.set(shape, made);
+    return made;
+  }
 
   /** The rows of each shape, reach past its edges, and layout, made once and shared. */
   const rowsByKind = new Map<string, readonly THREE.BufferGeometry[]>();
@@ -387,8 +395,8 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
     if (existing !== undefined) return existing;
     const root = new THREE.Group();
     const parts = addParts(root);
-    const picker = new THREE.Mesh(pickGeometry, pickMaterial);
-    picker.position.y = COVER_BASE_METRES + PICK_THICKNESS_METRES / 2;
+    // The picker takes the section's shape each update.
+    const picker = new THREE.Mesh(pickSurfaceOf(ALONE.shape), pickMaterial);
     picker.userData.entity = entity;
     root.add(picker);
     pickers.push(picker);
@@ -453,6 +461,7 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
         item.root.rotation.y = quarterTurnsToRadians(place.drawTurns);
         const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
         setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "valley" ? 0 : layoutOf(entity.position));
+        item.picker.geometry = pickSurfaceOf(place.shape);
         showProgress(item, progress);
         showFade(item, fades.level(entity, hidden, nowSeconds));
         seen.add(entity);
@@ -494,7 +503,15 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
       placingBlueprint.rotation.y = quarterTurnsToRadians(place.drawTurns);
     },
     dispose() {
-      for (const item of [...[...rowsByKind.values()].flat(), pickGeometry, planks, plankFading, blueprintMaterial, notAllowedMaterial, pickMaterial])
+      for (const item of [
+        ...[...rowsByKind.values()].flat(),
+        ...pickSurfaces.values(),
+        planks,
+        plankFading,
+        blueprintMaterial,
+        notAllowedMaterial,
+        pickMaterial,
+      ])
         item.dispose();
       for (const item of drawn.values()) for (const { fading } of item.parts) fading.dispose();
       for (const { fading } of placingParts) fading.dispose();

@@ -238,6 +238,32 @@ function random01(jitter: (size: number) => number): number {
 }
 
 /**
+ * An invisible surface that catches clicks on a roof section or frame of `shape`, in its own frame, drawn unturned.
+ * It covers the section's square and follows the slope `height` gives, so a click on the high side of a roof or a frame lands on it.
+ * Every shape is flat between its creases: a ridge's along z = 0, and a valley's along x = z. So a 3 by 3 grid of points
+ * with each square split along that diagonal follows each shape exactly. Draw it with a material that is two-sided.
+ */
+export function roofPickSurface(height: (x: number, z: number) => number): THREE.BufferGeometry {
+  const half = BUILD_GRID_METRES / 2;
+  const steps = [-half, 0, half];
+  const points: number[] = [];
+  for (const z of steps) for (const x of steps) points.push(x, height(x, z), z);
+  const at = (column: number, row: number) => row * steps.length + column;
+  const triangles: number[] = [];
+  for (let row = 0; row < steps.length - 1; row += 1) {
+    for (let column = 0; column < steps.length - 1; column += 1) {
+      const [low, right, up, far] = [at(column, row), at(column + 1, row), at(column, row + 1), at(column + 1, row + 1)];
+      triangles.push(low, up, far, low, far, right);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+  geometry.setIndex(triangles);
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+/**
  * Hides a roof or frame drawn under `root` over the player, or shows it again. A hidden one is drawn only into the sun's
  * shadows, so the room under it stays in shade. Rays for clicks test only the default layer, so it cannot be picked either.
  */

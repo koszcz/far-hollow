@@ -31,7 +31,7 @@ import { SIDES, type EdgePieceKind } from "../sim/structure-kind";
 import { areOpposite, quarterTurnsToRadians, runsAlongX, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
 import { ROOF_FRAME_LOG_COST } from "../sim/structures";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
-import { CORNER_STAGGER_METRES, EDGE_PIECE_HEIGHT_METRES } from "./log-courses";
+import { CORNER_STAGGER_METRES } from "./log-courses";
 import type { OutlinePart } from "./hover-outline";
 import { seededRandom } from "./lean-to-meshes";
 import { gableEndFloors, gableEndLogs } from "./gable-end-shape";
@@ -53,6 +53,7 @@ import {
   raisedBy,
   ROOF_SEED,
   ROOF_SLOPE_RADIANS,
+  roofPickSurface,
   SECTION_RISE_METRES,
   shapeHeight,
   type FrameLayout,
@@ -88,8 +89,6 @@ const PEG_FROM_RIDGE_METRES = 0.11;
 const PEG_PROUD_METRES = 0.018;
 /** How many stages lay beams: the beams along x, then the beams along z. The rest lay rafters. */
 const BEAM_STAGES = 2;
-/** How thick the invisible slab that catches clicks on a blueprint is, in metres. */
-const PICK_THICKNESS_METRES = 0.3;
 
 /** What a click on a frame blueprint landed on. Finished frames are not clicked this way. */
 export type RoofFrameHit = { kind: "blueprint"; entity: Entity };
@@ -144,7 +143,6 @@ interface Drawn {
 
 export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const group = new THREE.Group();
-  const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
   const wood = new THREE.MeshStandardMaterial({ color: DEBARKED_LOG_COLOUR, flatShading: true, vertexColors: true });
   const beamWood = wood.clone();
   beamWood.color.multiplyScalar(BEAM_SHADE);
@@ -152,8 +150,18 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  // The surface that catches clicks is seen from above and below, so it is two-sided.
+  const pickMaterial = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
   const empty = new THREE.BufferGeometry();
+  /** The surface that catches clicks on a frame of each shape, along the tops of its rafters, made once and shared. */
+  const pickSurfaces = new Map<RoofShape, THREE.BufferGeometry>();
+  function pickSurfaceOf(shape: RoofShape): THREE.BufferGeometry {
+    const known = pickSurfaces.get(shape);
+    if (known !== undefined) return known;
+    const made = roofPickSurface(coverUnderside(shape));
+    pickSurfaces.set(shape, made);
+    return made;
+  }
 
   const rafterCount = ROOF_FRAME_LOG_COST - BEAM_STAGES;
   /**
@@ -445,10 +453,10 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     turned.add(ridge);
     const gablesFading = gableLogs.clone();
     gablesFading.transparent = true;
-    const picker = new THREE.Mesh(pickGeometry, pickMaterial);
-    picker.position.y = EDGE_PIECE_HEIGHT_METRES + PICK_THICKNESS_METRES / 2;
+    // The picker turns and rises with the rafters, and takes their shape each update.
+    const picker = new THREE.Mesh(pickSurfaceOf(ALONE.shape), pickMaterial);
     picker.userData.entity = entity;
-    root.add(picker);
+    turned.add(picker);
     pickers.push(picker);
     group.add(root);
     const result = { root, turned, parts, ridge, gables, gablesFading, picker };
@@ -530,6 +538,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         // The back and front edges, as drawn, are the first and second in EDGES order.
         const [back, front] = neighboursOf(layout, entity.position, place);
         setRafters(item.parts, place.shape, { front: front === undefined, back: back === undefined });
+        item.picker.geometry = pickSurfaceOf(place.shape);
         item.gables.geometry = gablesOf(layout, entity, place);
         const ridge = ridgeReach(layout, entity, place);
         item.ridge.geometry = ridge === undefined ? empty : ridgeOf(place.shape, ridge.start, ridge.end);
@@ -579,7 +588,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         ...gableGeometries.values(),
         ...ridgeGeometries.values(),
         empty,
-        pickGeometry,
+        ...pickSurfaces.values(),
         wood,
         beamWood,
         gableLogs,

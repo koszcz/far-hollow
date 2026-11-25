@@ -2186,6 +2186,18 @@
         "status": "draft",
         "ticket": ".scratch/sound/issues/01-sound.md"
       }
+    },
+    {
+      "id": "cutaway-button",
+      "kind": "code",
+      "code": ["src/ui/cutaway-button.tsx", "src/app/style.css", "src/render/showcases/interface.ts", "src/ui/cutaway-showcase.tsx"],
+      "description": "The cutaway button. On the HUD, a round button sits left of the sound button, in the same glass style. Its icon is a cabin in the HUD icons' line style, with its roof lifted off above it. It shows amber while the cutaway is on.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/cabin-cutaway/issues/01-manual-cutaway-toggle.md"
+      }
     }
   ]
 }

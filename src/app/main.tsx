@@ -15,6 +15,7 @@ import { ActionMenu } from "../ui/action-menu";
 import { Hud, type PlantingHintState } from "../ui/hud";
 import { StartScreen } from "../ui/start-screen";
 import { SoundButton } from "../ui/sound-button";
+import { CutawayButton } from "../ui/cutaway-button";
 import { createValleySound } from "../sound/valley-sound";
 import { startAutosave } from "./autosave";
 import { NOT_BUILDING, type BuildMode } from "./build-mode";
@@ -307,6 +308,8 @@ const uiState: {
   craftMenuOpen: boolean;
   journalOpen: boolean;
   menu: MenuRequest | undefined;
+  /** Whether the player has turned the cabin cutaway on with its HUD button. */
+  cutawayOn: boolean;
 } = {
   buildMode: NOT_BUILDING,
   placingRefusal: undefined,
@@ -314,7 +317,14 @@ const uiState: {
   craftMenuOpen: false,
   journalOpen: false,
   menu: undefined,
+  cutawayOn: false,
 };
+
+function toggleCutaway(): void {
+  uiState.cutawayOn = !uiState.cutawayOn;
+  sceneRenderer.setCutaway(uiState.cutawayOn);
+  renderUi();
+}
 
 function setJournalOpen(open: boolean): void {
   if (open === uiState.journalOpen) return;
@@ -390,6 +400,7 @@ function renderUi(): void {
           renderUi();
         }}
       />
+      <CutawayButton on={uiState.cutawayOn} onToggle={toggleCutaway} />
       <SoundButton control={volumeControl} />
       <DebugOverlay client={game.client} />
     </>,

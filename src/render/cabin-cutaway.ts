@@ -4,9 +4,11 @@
 // - Each outer side of the cabin whose outside faces the camera fades as one unit: every wall, door frame, window,
 //   door, and set of shutters on it. The sides facing away stay solid, so the room shows behind the player.
 // - Anywhere, a piece also fades while it stands between the camera and the player, as it does outside a cabin.
+// For now the player turns the cutaway on and off by hand, with the cutaway button on the HUD. On, every cabin's roof
+// hides and every cabin side facing the camera fades. Off, nothing hides. The rule above for being inside waits to be fixed.
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "../sim/build-grid";
 import { edgeMiddle, edgePieceOn, squaresBeside } from "../sim/edge-pieces";
-import type { Entity, EntityStore, Vec3 } from "../sim/entities";
+import { cabinRoofEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { subtractGroundPoints, type GroundPoint } from "../sim/ground-point";
 import { runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { roofAbove } from "../sim/roofs";
@@ -32,7 +34,24 @@ export const NO_CUTAWAY: CabinCutaway = { roof: [], fades: () => false };
 
 /** What hides and fades for a camera at `camera` looking at the player drawn at `player`. */
 export function cabinCutaway(entities: EntityStore, camera: Vec3, player: Vec3): CabinCutaway {
-  const roof = cabinAround(entities, player);
+  return cutawayOf(cabinAround(entities, player), camera, player);
+}
+
+/**
+ * What hides and fades when the player turns the cutaway on by hand: every cabin's roof sections and roof frames hide,
+ * and every cabin side whose outside faces the camera fades, wherever the player stands.
+ */
+export function everyCabinCutaway(entities: EntityStore, camera: Vec3, player: Vec3): CabinCutaway {
+  return cutawayOf([...cabinRoofEntities(entities), ...roofFrameEntities(entities)], camera, player);
+}
+
+/** What fades when the player turns the cutaway off by hand: only a piece between the camera and the player. No roof hides. */
+export function noCabinCutaway(camera: Vec3, player: Vec3): CabinCutaway {
+  return cutawayOf([], camera, player);
+}
+
+/** Hides `roof`, fades the sides of the cabin under it that face the camera, and fades any piece between the camera and the player. */
+function cutawayOf(roof: readonly Entity[], camera: Vec3, player: Vec3): CabinCutaway {
   const squares = roof.flatMap((section) => (section.position === undefined ? [] : [section.position]));
   const inCabin = (square: GroundPoint) => squares.some((middle) => isOnGridSquare(middle, square));
   /** Whether the edge is on the cabin's outline, with its outside towards the camera. */

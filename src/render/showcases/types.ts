@@ -73,10 +73,11 @@ export interface Showcase {
   readonly focus: Vec3;
   readonly shots: readonly Shot[];
   /**
-   * What the showcase page draws over the views: "hud" for the game's HUD (src/ui/hud-showcase.tsx), or "sound" for
-   * buttons that play the asset's sounds (src/ui/sound-showcase.tsx). Without it, the page draws only the labels.
+   * What the showcase page draws over the views: "hud" for the game's HUD (src/ui/hud-showcase.tsx), "sound" for
+   * buttons that play the asset's sounds (src/ui/sound-showcase.tsx), or "cutaway" for the cutaway button
+   * (src/ui/cutaway-showcase.tsx). Without it, the page draws only the labels.
    */
-  readonly overlay?: "hud" | "sound";
+  readonly overlay?: "hud" | "sound" | "cutaway";
   /** Whether fireflies glow over the stage. They fly over open ground everywhere, from a fixed seed, so stills stay the same. */
   readonly fireflies?: boolean;
   build(stage: Stage): void;

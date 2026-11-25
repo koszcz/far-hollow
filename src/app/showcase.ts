@@ -29,6 +29,10 @@ export async function startShowcase(id: string, options: ShowOptions = { play: f
       const { isHudShowcase, renderHudShowcase } = await import("../ui/hud-showcase");
       if (isHudShowcase(id)) renderHudShowcase(ui, id);
     }
+    if (overlay === "cutaway") {
+      const { renderCutawayShowcase } = await import("../ui/cutaway-showcase");
+      renderCutawayShowcase(ui);
+    }
     if (overlay === "sound") {
       const { isSoundShowcase, renderSoundShowcase } = await import("../ui/sound-showcase");
       if (isSoundShowcase(id)) renderSoundShowcase(ui, id);

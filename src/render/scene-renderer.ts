@@ -41,7 +41,7 @@ import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "./bed-sleep";
 import { seatedSpot, sitBodyAt, sitSinkAt, sitSpotFrom, standBodyAt, standSecondsAfter, standSinkAt, standSpotFrom } from "./sit-animation";
 import { darkenView, SLEEP_MORNING_AT, SLEEP_SECONDS, sleepDarknessAt, sleepSpotFrom, type SleepSpot } from "./sleep-animation";
 import { createStructureMeshes } from "./structure-meshes";
-import { cabinCutaway, NO_CUTAWAY } from "./cabin-cutaway";
+import { everyCabinCutaway, noCabinCutaway, NO_CUTAWAY } from "./cabin-cutaway";
 import type { ModelShapes } from "./model-shapes";
 import { drawnPixelRatio as pixelRatioWithinBudget } from "./pixel-budget";
 import { frustumOf } from "./culled-batch";
@@ -98,6 +98,8 @@ export interface SceneRenderer {
   showPlacingBlueprint(placing: PlacingBlueprint | undefined): void;
   /** Shows the see-through sapling or berry bush under the mouse while the player plants one, red where it is not allowed. Undefined hides it. */
   showPlanting(planting: { readonly plant: Plantable; readonly spot: GroundPoint; readonly allowed: boolean } | undefined): void;
+  /** Turns the cabin cutaway on or off. On, every cabin roof hides and every cabin side facing the camera fades. It starts off. */
+  setCutaway(on: boolean): void;
   /** Whether the sleep animation is playing. Game logic waits while it plays, so the player cannot act mid-sleep. */
   isPlayingSleep(): boolean;
   /** How dark the sleep animation has made the view in the last frame, from 0 (not at all) to 1 (black). Sound fades with it. */
@@ -285,6 +287,8 @@ export function createSceneRenderer(
   const players = playerEntities(entities);
   /** Whether the camera has looked at the player yet. */
   let cameraPlaced = false;
+  /** Whether the player has turned the cabin cutaway on with the HUD button. */
+  let cutawayOn = false;
   /**
    * The reach drawn now: when it began on the frame clock, in seconds, and the logic step's seconds it was last seen at.
    * Game logic moves a reach on once per step, so drawing runs its own clock from the start to keep the motion smooth.
@@ -706,8 +710,9 @@ export function createSceneRenderer(
       lightTorches(nowSeconds);
       // Trees between the camera and the player fade, so the player stays in view in a dense forest.
       forestMeshes.seeThroughTo(players.first === undefined ? null : playerDrawn);
-      // Inside a cabin, its roof hides and its sides facing the camera fade. Anywhere, walls between the camera and the player fade.
-      const cutaway = players.first === undefined ? NO_CUTAWAY : cabinCutaway(entities, cameraRig.view().eye, playerDrawn);
+      // With the cutaway on, every cabin roof hides and every cabin side facing the camera fades. Walls between the camera and the player always fade.
+      const eye = cameraRig.view().eye;
+      const cutaway = players.first === undefined ? NO_CUTAWAY : cutawayOn ? everyCabinCutaway(entities, eye, playerDrawn) : noCabinCutaway(eye, playerDrawn);
       structureMeshes.update({ nowSeconds, cutaway, player: playerDrawn, ropeHold: playerMesh.ropeHold() });
       outlineHovered();
       const changedGround = drawnGround.refresh();
@@ -755,6 +760,9 @@ export function createSceneRenderer(
     },
     showPlacingBlueprint(placing) {
       structureMeshes.showPlacingBlueprint(placing);
+    },
+    setCutaway(on) {
+      cutawayOn = on;
     },
     dispose() {
       hoverOutline.dispose();

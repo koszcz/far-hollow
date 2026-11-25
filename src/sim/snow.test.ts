@@ -55,7 +55,7 @@ describe("snow cover in the game", () => {
   it("shows in the view, deepening through winter and gone in summer", () => {
     const winter = createGame({ seed: 4, startSeason: "winter" });
     winter.step();
-    expect(winter.client.getView().snowCover).toBeCloseTo(0.25 / 3, 2);
+    expect(winter.client.getView().snowCover).toBeCloseTo(8 / 72, 2); // 8:00 on day 1: 8 of the 72 hours snow takes to lie deep.
     skipHoursKeepingWell(winter, 72);
     expect(winter.client.getView().snowCover).toBe(1);
 

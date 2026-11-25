@@ -1,7 +1,7 @@
 // How deep the snow cover lies: a value object with pure functions (ADR 0009).
 // Snow cover follows the calendar, not the snowfall. It grows over the first SNOW_GROWS_DAYS of winter and melts over the
 // first SNOW_MELTS_DAYS of spring. It is never saved, because the day on the clock decides it.
-import type { SeasonDay } from "./season";
+import { isAfterFirstWinter, type SeasonDay, seasonDayOf } from "./season";
 
 /** Snow cover reaches full depth by the end of this winter day. */
 const SNOW_GROWS_DAYS = 3;
@@ -28,6 +28,19 @@ export function snowCoverOn(day: SeasonDay, hourOfDay: number, { afterWinter }: 
   if (day.season === "winter") return { depth: clampShare(daysIn / SNOW_GROWS_DAYS) };
   if (day.season === "spring" && afterWinter) return { depth: clampShare(1 - daysIn / SNOW_MELTS_DAYS) };
   return NO_SNOW_COVER;
+}
+
+/** What winter does to the weather: see the `snow` component. */
+export interface Snow {
+  /** Whether rain falls as snow now, as it does all winter. */
+  readonly fallsAsSnow: boolean;
+  readonly cover: SnowCover;
+}
+
+/** The snow at this time on the clock, when the year started on `yearStartDay`. In winter, rain falls as snow. */
+export function snowOn({ day, hourOfDay }: { readonly day: number; readonly hourOfDay: number }, yearStartDay: number): Snow {
+  const seasonDay = seasonDayOf(day, yearStartDay);
+  return { fallsAsSnow: seasonDay.season === "winter", cover: snowCoverOn(seasonDay, hourOfDay, { afterWinter: isAfterFirstWinter(day, yearStartDay) }) };
 }
 
 /** How fast the player walks outdoors in this snow cover, as a fraction of their normal speed. Deeper snow slows them more. */

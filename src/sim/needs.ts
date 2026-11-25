@@ -11,12 +11,12 @@ export const FULL_NEED = 1;
  * How much warmth the cold drains per game hour away from a lit fire, in each season, by day and by night.
  * In spring and summer, full warmth lasts a 4-hour night. Autumn nights are colder. Winter drains warmth even by day.
  */
-export const WARMTH_DRAIN_PER_HOUR: Readonly<Record<Season, { readonly day: number; readonly night: number }>> = {
-  spring: { day: 0, night: 0.25 },
-  summer: { day: 0, night: 0.25 },
-  autumn: { day: 0, night: 0.375 },
-  winter: { day: 0.1, night: 0.5 },
-};
+export const WARMTH_DRAIN_PER_HOUR: Readonly<Record<Season, { readonly day: number; readonly night: number }>> = Object.freeze({
+  spring: Object.freeze({ day: 0, night: 0.25 }),
+  summer: Object.freeze({ day: 0, night: 0.25 }),
+  autumn: Object.freeze({ day: 0, night: 0.375 }),
+  winter: Object.freeze({ day: 0.1, night: 0.5 }),
+});
 /** In a snug room, the cold's warmth drain is this share of the usual rate, by day and by night. Rain does not fall indoors, so it does not change. */
 export const SNUG_ROOM_DRAIN_SHARE = 1 / 2;
 /** How much hunger the player loses per game hour, all day and night. Full hunger lasts two days. */
@@ -75,8 +75,8 @@ export function createNeeds(): Needs {
 export interface NeedConditions {
   /** Whether it is night. */
   night: boolean;
-  /** The season today, which sets how cold it is. Missing means spring. */
-  season?: Season;
+  /** The season today, which sets how cold it is. */
+  season: Season;
   /** Whether the player stands within a lit campfire's warmth range. */
   warmedByCampfire: boolean;
   /** Whether the player is doing timed work, such as chopping, splitting, or building. */
@@ -136,7 +136,7 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
 
 /** How much warmth the cold drains per game hour away from a fire, by the season and the time of day, and half as much in a snug room. */
 function coldWarmthDrainPerHour(conditions: NeedConditions): number {
-  const rates = WARMTH_DRAIN_PER_HOUR[conditions.season ?? "spring"];
+  const rates = WARMTH_DRAIN_PER_HOUR[conditions.season];
   return (conditions.night ? rates.night : rates.day) * (conditions.inSnugRoom === true ? SNUG_ROOM_DRAIN_SHARE : 1);
 }
 

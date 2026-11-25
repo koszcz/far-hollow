@@ -12,6 +12,7 @@
 
 - [x] In autumn, broadleaf tree crowns, near and far, shift to amber. Conifers keep their colour.
 - [x] The shift eases in over the first days of autumn. It stays through winter under the snow and returns to green over spring day 1 and 2.
+- [x] A spring that no winter came before, such as a new game's first spring, has green leaves from its first day. Leaves turn back to green only in a spring that follows a winter.
 
 ## A frozen river
 

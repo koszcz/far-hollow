@@ -89,6 +89,7 @@ Warmth drains at these rates, in warmth per game hour:
 - In winter, each seeded rain spell falls as snowfall instead. The schedule and the seed stay the same.
 - Snowfall does not fill rain barrels.
 - Snow cover follows the calendar, not the snowfall. It grows from none on winter day 1 to full by winter day 3. It melts over spring days 1 and 2. It is not saved.
+- A spring that no winter came before, such as a new game's first spring, has no snow and green leaves. Snow melts and leaves turn back to green only in a spring that follows a winter.
 - Full snow cover slows walking outdoors to 0.85×. The slowdown scales with the depth of the cover. It does not apply on floors or inside rooms. It stacks with the other slowdowns.
 
 ### HUD and the banner
@@ -99,8 +100,8 @@ Warmth drains at these rates, in warmth per game hour:
 
 ### Playground and debug
 
-- The playground accepts `&season=<spring|summer|autumn|winter>` and starts on day 1 of that season.
-- The debug overlay has a "Skip to next season" button. It sends a new `skipToSeason` command, which passes time to 6:00 on day 1 of the next season.
+- The playground accepts `&season=<spring|summer|autumn|winter>` and starts at that season's morning hour on day 1 of that season, such as 8:00 in winter.
+- The debug overlay has a "Skip to next season" button. It sends a new `skipToSeason` command, which passes time to the morning hour on day 1 of the next season, such as 8:00 in winter.
 
 ## Testing decisions
 

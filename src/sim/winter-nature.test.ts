@@ -18,6 +18,15 @@ describe("food in winter", () => {
     }
   });
 
+  it("refuses foraging a planted bush or a mushroom log in winter, even one full of food", () => {
+    const game = createGame({ seed: 42, startSeason: "winter" });
+    const planted: Entity = game.entities.add({ forageSpot: { food: "berries" }, position: { x: 3, y: 0, z: 3 } });
+    const mushroomLog: Entity = game.entities.add({ mushroomLog: { heading: 0 }, forageSpot: { food: "mushroom" }, position: { x: 5, y: 0, z: 5 } });
+    for (const spot of [planted, mushroomLog]) {
+      expect(game.client.refusal({ type: "forage", spotId: idOf(game, spot) })).toEqual({ kind: "nothingGrowsInWinter" });
+    }
+  });
+
   it("is lost when winter starts, so every spot starts growing back from the beginning, with no berries on the bushes", () => {
     const game = createGame({ seed: 42, startSeason: "autumn" });
     const spots = game.entities.with("forageSpot", "position").entities;

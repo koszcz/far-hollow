@@ -20,6 +20,7 @@
 ## Snow cover
 
 - [x] Snow cover follows the calendar, not the snowfall. It grows from none at the start of winter day 1 to full by the end of winter day 3. It melts over spring days 1 and 2. It is not saved.
+- [x] A spring that no winter came before, such as a new game's first spring, has no snow. Snow melts only in a spring that follows a winter.
 - [x] Snow cover shows on the ground, on tree crowns (near and far), and on roofs, in proportion to its depth.
 - [x] Full snow cover slows walking outdoors to 0.85×. The slowdown scales with the depth of the cover.
 - [x] Snow does not slow walking on floors or inside rooms.

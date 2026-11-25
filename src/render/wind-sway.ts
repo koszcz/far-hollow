@@ -3,6 +3,7 @@
 // across the valley downwind, and each plant flutters a little on its own. Shapes with a spread, such as ferns, also sway
 // and bob at their outer tips. Only the drawn shape sways. Shadows, clicks, and game logic never see it.
 import type * as THREE from "three";
+import { chainShaderPatch } from "./shader-patch";
 import type { Wind } from "./wind";
 
 /** How one kind of shape sways. */
@@ -60,7 +61,7 @@ const FLUTTER_SHARE = 0.25;
 const FLUTTER_WAVES_PER_SECOND = 0.6;
 
 export interface WindSway {
-  /** Makes shapes drawn with `material` sway like `look`, and returns the material. Patch its shader for anything else first. */
+  /** Makes shapes drawn with `material` sway like `look`, and returns the material. It keeps the material's other shader patches. */
   sway<M extends THREE.Material>(material: M, look: SwayLook): M;
   /** Sets the wind for this frame. `nowSeconds` is a steady real-time clock, for the gusts and flutter. */
   update(wind: Wind, nowSeconds: number): void;
@@ -79,10 +80,7 @@ export function createWindSway(): WindSway {
       const flutterSpeed = { value: look.flutterSpeed };
       const perSpread = { value: look.spreadMetres === undefined ? 0 : 1 / look.spreadMetres };
       const bob = { value: look.bobMetres ?? 0 };
-      const before = material.onBeforeCompile.bind(material);
-      const beforeKey = material.customProgramCacheKey();
-      material.onBeforeCompile = (shader, renderer) => {
-        before(shader, renderer);
+      return chainShaderPatch(material, "wind-sway", (shader) => {
         Object.assign(shader.uniforms, {
           windTime: time,
           windStrength: strength,
@@ -97,11 +95,7 @@ export function createWindSway(): WindSway {
         shader.vertexShader = shader.vertexShader
           .replace("#include <common>", `#include <common>\n${SWAY_UNIFORMS}`)
           .replace("#include <project_vertex>", `${SWAY_VERTEX}\n#include <project_vertex>`);
-      };
-      // three.js shares compiled shaders between materials with the same key, so the key must show the sway too.
-      material.customProgramCacheKey = () => `${beforeKey}|wind-sway`;
-      material.needsUpdate = true;
-      return material;
+      });
     },
     update(wind, nowSeconds) {
       time.value = nowSeconds;

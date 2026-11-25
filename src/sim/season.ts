@@ -3,7 +3,7 @@
 // The season comes from the day number and the day the year started on, `yearStartDay`. A new game's year starts on day 1.
 
 /** The seasons of the year, in order. */
-export const SEASONS = ["spring", "summer", "autumn", "winter"] as const;
+export const SEASONS = Object.freeze(["spring", "summer", "autumn", "winter"] as const);
 export type Season = (typeof SEASONS)[number];
 
 /** How many days each season lasts. */
@@ -58,13 +58,16 @@ export interface NightHours {
   readonly morningHour: number;
 }
 
-/** The night hours of each season. Summer nights are short and winter nights are long. */
-const NIGHT_HOURS: Readonly<Record<Season, NightHours>> = {
+/**
+ * The night hours of each season. Summer nights are short and winter nights are long.
+ * The season tables are frozen, entries and all. The view hands these entries out as they are, and drawing keys a cache on them.
+ */
+const NIGHT_HOURS: Readonly<Record<Season, NightHours>> = Object.freeze({
   spring: Object.freeze({ nightStartHour: 20, morningHour: 6 }),
   summer: Object.freeze({ nightStartHour: 21, morningHour: 5 }),
   autumn: Object.freeze({ nightStartHour: 20, morningHour: 6 }),
   winter: Object.freeze({ nightStartHour: 17, morningHour: 8 }),
-};
+});
 
 /** The night hours in this season. */
 export function nightHoursOf(season: Season): NightHours {

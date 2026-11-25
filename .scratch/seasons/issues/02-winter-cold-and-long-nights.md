@@ -49,3 +49,4 @@
 - The winter banner now reads "Winter has come. The nights are long and cold, and the river is frozen." The snug room notice no longer says "At night", since a snug room now halves the day's drain in winter too.
 - Winter has no "evening" on the HUD clock: evening starts at 17:00, when the winter night starts.
 - Owner to decide: the playground's `&season=winter` and `skipToSeason` start at 6:00, which is now two hours before the winter morning. A player starting the winter playground with no fire collapses at about 9:00. A collapse on the last autumn night wakes the player at 8:00 on winter day 1, past `skipToSeason`'s 6:00.
+- 2026-11-25, review fix: The owner decided that `&season=` and `skipToSeason` start at the season's morning hour, such as 8:00 in winter.

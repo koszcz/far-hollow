@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { NO_SNOW_COVER, snowCoverOn, snowWalkingSpeed } from "./snow-cover";
+import { NO_SNOW_COVER, snowCoverOn, snowOn, snowWalkingSpeed } from "./snow-cover";
 import type { Season } from "./season";
 
 /** The snow cover at this hour of this day of a season. */
@@ -43,5 +43,17 @@ describe("walking in snow", () => {
     expect(snowWalkingSpeed({ depth: 1 })).toBeCloseTo(0.85, 5);
     expect(snowWalkingSpeed({ depth: 0.5 })).toBeCloseTo(0.925, 5);
     expect(snowWalkingSpeed(NO_SNOW_COVER)).toBe(1);
+  });
+});
+
+describe("the snow on a day of the game", () => {
+  it("falls in place of rain in winter, with the cover for that hour", () => {
+    // With the year starting on day 1, day 22 is winter day 1.
+    expect(snowOn({ day: 22, hourOfDay: 12 }, 1)).toEqual({ fallsAsSnow: true, cover: { depth: 1 / 6 } });
+  });
+
+  it("does not fall outside winter, and lies only in a spring that follows a winter", () => {
+    expect(snowOn({ day: 1, hourOfDay: 0 }, 1)).toEqual({ fallsAsSnow: false, cover: NO_SNOW_COVER });
+    expect(snowOn({ day: 29, hourOfDay: 0 }, 1)).toEqual({ fallsAsSnow: false, cover: { depth: 1 } });
   });
 });

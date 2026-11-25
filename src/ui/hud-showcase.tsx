@@ -21,6 +21,7 @@ const BASE_VIEW: GameView = {
   nightHours: nightHoursOf("spring"),
   season: { season: "spring", dayOfSeason: 1, seasonDays: 7 },
   seasonBanner: null,
+  afterFirstWinter: false,
   backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 3 },
   backpackWeight: 4.2,
   backpackWeightLimit: 20,

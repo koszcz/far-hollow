@@ -69,6 +69,7 @@ describe("the icon and name of a queued action", () => {
     });
     expect(shown(game, { type: "sitOnStool", stoolId: 1 })).toEqual({ icon: { structure: "stool" }, name: "Sit" });
     expect(shown(game, { type: "tipOutSled", sledId: 1 })).toEqual({ icon: { structure: "sled" }, name: "Tip out everything" });
+    expect(shown(game, { type: "fillSled", sledId: 1 })).toEqual({ icon: { structure: "sled" }, name: "Fill with nearby logs" });
   });
 
   it("falls back to a plain icon when the thing is gone", () => {

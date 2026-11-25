@@ -37,6 +37,7 @@ export type ActionId =
   | "tipOut"
   | "drag"
   | "letGo"
+  | "fillSled"
   | "open"
   | "sleep"
   | "layBedroll"

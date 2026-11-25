@@ -305,6 +305,7 @@ describe("a sled's actions", () => {
     expect(summary(actions)).toEqual([
       "load:debarkedLog main",
       "drag",
+      "fillSled",
       "take:log off: your shoulder is full",
       "take:debarkedLog off: your shoulder is full",
       "tipOut",
@@ -317,12 +318,13 @@ describe("a sled's actions", () => {
   it("drags the sled when the player carries nothing, then takes one log, offering only the kinds the sled holds", () => {
     const logsOnly = worldWith({ sled: { log: 2 } });
     const logsOnlyActions = actionsFor(scene("sled", logsOnly.sled), logsOnly.reader);
-    expect(summary(logsOnlyActions)).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+    expect(summary(logsOnlyActions)).toEqual(["drag main", "fillSled off: no logs within 10 m", "take:log", "tipOut", "takeDown"]);
     expect(find(logsOnlyActions, "drag")).toMatchObject({ label: "Drag the sled", command: { type: "dragSled", sledId: logsOnly.sled } });
 
     const empty = worldWith({ sled: {} });
     expect(summary(actionsFor(scene("sled", empty.sled), empty.reader))).toEqual([
       "drag main",
+      "fillSled off: no logs within 10 m",
       "take:log off: nothing to take",
       "tipOut off: nothing to take",
       "takeDown",
@@ -330,7 +332,7 @@ describe("a sled's actions", () => {
 
     const mixed = worldWith({ sled: { log: 1, debarkedLog: 1 } });
     const mixedActions = actionsFor(scene("sled", mixed.sled), mixed.reader);
-    expect(summary(mixedActions).slice(0, 3)).toEqual(["drag main", "take:log", "take:debarkedLog"]);
+    expect(summary(mixedActions).slice(0, 4)).toEqual(["drag main", "fillSled off: no logs within 10 m", "take:log", "take:debarkedLog"]);
     expect(find(mixedActions, "take:debarkedLog")?.command).toEqual({ type: "takeFromSled", sledId: mixed.sled, log: "debarkedLog" });
   });
 
@@ -345,7 +347,7 @@ describe("a sled's actions", () => {
 
     const actions = actionsFor(scene("sled", world.sled), world.reader);
 
-    expect(summary(actions)).toEqual(["drag main", "load:plank", "take:log", "take:plank", "tipOut", "takeDown"]);
+    expect(summary(actions)).toEqual(["drag main", "load:plank", "fillSled off: no logs within 10 m", "take:log", "take:plank", "tipOut", "takeDown"]);
     expect(find(actions, "load:plank")).toMatchObject({ label: "Load planks", command: { type: "loadPlanksOnSled", sledId: world.sled } });
     expect(find(actions, "take:plank")).toMatchObject({ label: "Take planks", command: { type: "takePlanksFromSled", sledId: world.sled } });
   });
@@ -353,13 +355,25 @@ describe("a sled's actions", () => {
   it("offers nothing for stone, because a sled does not take stone", () => {
     const world = worldWith({ backpack: { stone: 3 }, sled: { log: 1 } });
 
-    expect(summary(actionsFor(scene("sled", world.sled), world.reader))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+    expect(summary(actionsFor(scene("sled", world.sled), world.reader))).toEqual([
+      "drag main",
+      "fillSled off: no logs within 10 m",
+      "take:log",
+      "tipOut",
+      "takeDown",
+    ]);
   });
 
   it("offers no plank actions when neither the backpack nor the sled holds planks", () => {
     const world = worldWith({ sled: { log: 1 } });
 
-    expect(summary(actionsFor(scene("sled", world.sled), world.reader))).toEqual(["drag main", "take:log", "tipOut", "takeDown"]);
+    expect(summary(actionsFor(scene("sled", world.sled), world.reader))).toEqual([
+      "drag main",
+      "fillSled off: no logs within 10 m",
+      "take:log",
+      "tipOut",
+      "takeDown",
+    ]);
   });
 
   it("says the sled is full of planks, and refuses a log when no whole log space is free", () => {

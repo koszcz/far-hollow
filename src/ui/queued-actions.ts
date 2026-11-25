@@ -132,6 +132,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: "sled" }, name: actions.tipOut };
     case "dragSled":
       return { icon: { structure: "sled" }, name: actions.drag };
+    case "fillSled":
+      return { icon: { structure: "sled" }, name: actions.fillSled };
     case "letGoOfSled":
       return { icon: { structure: "sled" }, name: actions.letGo };
     case "openChest":

@@ -468,8 +468,8 @@ function woodpileMainWithoutLog(choices: readonly (Offer | undefined)[]): Action
 }
 
 /**
- * Put the log on the shoulder on the sled, load planks, drag it, take one of each kind of log the sled holds, take planks,
- * tip out everything, then take it down.
+ * Put the log on the shoulder on the sled, load planks, drag it, fill it with nearby logs, take one of each kind of log
+ * the sled holds, take planks, tip out everything, then take it down.
  * Loading planks shows only when the backpack holds planks. Taking planks shows only when the sled holds planks.
  * Main: put the log on the shoulder on the sled, or drag it if the player carries nothing.
  * While the player drags this sled, they can only let go of it.
@@ -489,9 +489,10 @@ function sledActions(sled: SledView, context: Context): readonly ThingAction[] {
   const loadPlanks = has(view, "plank") ? [offer("load:plank", strings.actions.loadPlanks, { content: "plank" }, { type: "loadPlanksOnSled", sledId })] : [];
   const takePlanks =
     sled.contents.plank > 0 ? [offer("take:plank", strings.actions.takePlanks, { content: "plank" }, { type: "takePlanksFromSled", sledId })] : [];
+  const fill = offer("fillSled", strings.actions.fillSled, { hud: "log" }, { type: "fillSled", sledId });
   const tipOut = offer("tipOut", strings.actions.tipOut, { hud: "log" }, { type: "tipOutSled", sledId });
   // A loaded sled can be taken down. Its logs are laid on the ground beside it first, and its planks drop in a pile.
-  const offers = [...load, ...loadPlanks, drag, ...take, ...takePlanks, tipOut, takeDown(context, sledId)];
+  const offers = [...load, ...loadPlanks, drag, fill, ...take, ...takePlanks, tipOut, takeDown(context, sledId)];
   return withMain(offers, shouldered === null ? "drag" : `load:${shouldered}`);
 }
 

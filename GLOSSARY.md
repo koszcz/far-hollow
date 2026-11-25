@@ -171,6 +171,10 @@ _Avoid_: Stopped, idle, left
 To unload every log and debarked log from a parked sled at once. If a woodpile is next to the sled, the logs go on the woodpile as far as it has room. The rest lie on the ground beside the sled. Planks drop in one pile beside the sled.
 _Avoid_: Unload, empty, dump
 
+**Fill**:
+To load a parked sled with the logs and debarked logs lying within 10 m of it, measured along the walking path. The player fetches them one at a time, nearest first, until the sled is full or none are left.
+_Avoid_: Auto-load, gather logs
+
 ## Acting
 
 **Main action**:

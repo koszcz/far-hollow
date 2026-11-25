@@ -106,6 +106,7 @@ import { createJugs, jugRules } from "./jugs";
 import { NOTICE_MINUTES, refusedNotice } from "./notices";
 import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
+import { createSledFilling, sledFillingRules } from "./sled-filling";
 import { createWoodpiles, woodpileRules } from "./woodpiles";
 import { createChests, chestRules } from "./chests";
 import { nearestInReach } from "./reach";
@@ -238,6 +239,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const beds = createBeds(entities, sleepIn);
   const woodpiles = createWoodpiles(entities);
   const sleds = createSleds(entities, valley);
+  const sledFilling = createSledFilling(entities, walking, handReach);
   const chests = createChests(entities);
   // The player puts down what they hold to sit, as they do to sleep.
   const stools = createStools(entities, () => {
@@ -285,6 +287,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     crafting,
     gathering,
     building,
+    sledFilling,
     takingDown,
     stools,
     fishing,
@@ -538,6 +541,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     }),
     ...woodpileRules(woodpiles, ruleGame),
     ...sledRules(sleds, ruleGame),
+    ...sledFillingRules(sledFilling),
     ...chestRules(chests, ruleGame),
     ...bedrollRules(bedrolls, ruleGame),
     ...bedRules(beds, ruleGame),

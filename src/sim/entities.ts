@@ -145,6 +145,11 @@ export interface Entity {
    */
   buildTask?: { blueprintId: number; fetchFrom?: number };
   /**
+   * The player fills a parked sled with the logs lying near it, one at a time.
+   * `fetchFrom` is the log or debarked log on the ground they are on their way to pick up.
+   */
+  fillSledTask?: { sledId: number; fetchFrom?: number };
+  /**
    * The taking down in progress: the blueprint or finished structure the player is taking down, given by its entity id,
    * and how long they have worked at it.
    */

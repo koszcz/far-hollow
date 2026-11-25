@@ -193,6 +193,11 @@ export type Command =
   | { type: "dragSled"; sledId: number }
   /** Let go of the sled the player drags. It stays where it is, with its load. */
   | { type: "letGoOfSled" }
+  /**
+   * Fill a parked sled with the logs and debarked logs lying within 10 m of it, measured along the walking path.
+   * The player fetches them one at a time, nearest first, until the sled is full or none are left.
+   */
+  | { type: "fillSled"; sledId: number }
   /** Walk the player beside a finished chest, given by its entity id, and open it. It stays open until the player walks away or does something else. */
   | { type: "openChest"; chestId: number }
   /** Move one of a kind from the backpack into the open chest, or with `all` as many of that kind as fit. Logs never go in a chest. */
@@ -701,6 +706,7 @@ export type Refusal =
  * - `noWaterInJug`: the backpack holds no jug with water in it.
  * - `fireHoldsJug`: the campfire already holds a jug, and fires one at a time.
  * - `woodpileFull`, `sledFull`: it has no room left.
+ * - `noLogsNearSled`: no log or debarked log lies within reach of the sled to fill it with.
  * - `letGoFirst`: the player drags a sled, so their hands are busy.
  * - `shoulderFull`: the player already carries a log.
  * - `handsFull`: the player carries something the next building stage does not need, so they cannot build it.
@@ -761,6 +767,7 @@ export type PlainRefusal =
   | "fireHoldsJug"
   | "woodpileFull"
   | "sledFull"
+  | "noLogsNearSled"
   | "letGoFirst"
   | "shoulderFull"
   | "handsFull"

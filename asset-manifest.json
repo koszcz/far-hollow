@@ -46,8 +46,9 @@
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
-        "status": "draft",
-        "ticket": ".scratch/seasons/issues/05-autumn-colours-and-a-frozen-river.md"
+        "status": "approved",
+        "by": "owner",
+        "date": "2026-11-25"
       }
     },
     {

@@ -19,7 +19,7 @@
 // Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The gable
 // ends go up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
-// While the player is in a cabin, the frames under its roof hide with it, so the player stays in view.
+// While the player is in a cabin, the frames under its roof fade away with it, so the player stays in view.
 // A hidden frame still casts its shadow, as the roof does.
 // While the player places a frame from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
@@ -59,6 +59,7 @@ import {
   type Section,
 } from "./roof-parts";
 import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { createCutawayFades, showFading } from "./cutaway-fade";
 import { addGroundPoints, scaleGroundPoint } from "../sim/ground-point";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
@@ -97,9 +98,10 @@ export interface RoofFrameMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every roof frame and frame blueprint up to date with game state.
-   * Finished frames under the roof sections in `hiddenRoofs` hide, but still cast their shadows.
+   * Finished frames under the roof sections in `hiddenRoofs`, or among them, fade away, but still cast their shadows.
+   * `nowSeconds` is the time of this frame. Without it, a frame hides or shows at once.
    */
-  update(hiddenRoofs?: readonly Entity[]): void;
+  update(hiddenRoofs?: readonly Entity[], nowSeconds?: number): void;
   /** What a ray from the camera hits first among frame blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: RoofFrameHit; distance: number } | undefined;
   /** The finished frame the ray meets first, with how far away it is, or undefined if it meets none. The action menu uses it. */
@@ -423,6 +425,7 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
   group.add(placingBlueprint);
 
   const drawn = new Map<Entity, Drawn>();
+  const fades = createCutawayFades();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const finished = roofFrameEntities(entities);
@@ -479,6 +482,23 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     });
   }
 
+  /**
+   * Shows a frame at fade `level`, from 0, as built, to 1, gone. A fully faded frame is drawn only into shadows.
+   * While it fades, every part shows see-through: the beams, rafters, ridge pole, and gable ends.
+   */
+  function showFade(item: Drawn, level: number): void {
+    hideKeepingShadow(item.root, level >= 1);
+    if (level <= 0 || level >= 1) return;
+    for (const { mesh, fading } of item.parts) {
+      showFading(fading, 1 - level);
+      mesh.material = fading;
+    }
+    const last = item.parts[item.parts.length - 1];
+    if (last !== undefined) item.ridge.material = last.fading;
+    showFading(item.gablesFading, 1 - level);
+    item.gables.material = item.gablesFading;
+  }
+
   function forget(entity: Entity): void {
     const item = drawn.get(entity);
     if (item === undefined) return;
@@ -487,23 +507,20 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
     item.gablesFading.dispose();
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
+    fades.forget(entity);
   }
 
   const hits: THREE.Intersection[] = [];
 
   return {
     group,
-    update(hiddenRoofs = []) {
+    update(hiddenRoofs = [], nowSeconds) {
       const layout = frameLayout(entities);
       const seen = new Set<Entity>();
       const show = (entity: Section, progress: number, delivered: number) => {
         const place = layout.placeAt(entity.position);
         const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y, entity.position.z);
-        hideKeepingShadow(
-          item.root,
-          entity.blueprint === undefined && hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position)),
-        );
         item.turned.position.y = raisedBy(place);
         item.turned.rotation.y = quarterTurnsToRadians(place.drawTurns);
         const beams = beamPlans(layout, entity);
@@ -517,6 +534,9 @@ export function createRoofFrameMeshes(entities: EntityStore): RoofFrameMeshes {
         const ridge = ridgeReach(layout, entity, place);
         item.ridge.geometry = ridge === undefined ? empty : ridgeOf(place.shape, ridge.start, ridge.end);
         showProgress(item, progress, delivered);
+        const hidden =
+          entity.blueprint === undefined && hiddenRoofs.some((roof) => roof.position !== undefined && isOnGridSquare(entity.position, roof.position));
+        showFade(item, fades.level(entity, hidden, nowSeconds));
         seen.add(entity);
       };
       for (const entity of blueprints) {

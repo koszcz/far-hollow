@@ -355,7 +355,7 @@ export type Command =
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
   | { type: "skipToRainChange" }
   /**
-   * Jumps the valley's clock forward to 6:00 on day 1 of the next season, the same way skipTime does.
+   * Jumps the valley's clock forward to the morning hour on day 1 of the next season, the same way skipTime does.
    * A collapse does not cut it short: the player wakes the next morning and time passes on. The debug overlay sends it.
    */
   | { type: "skipToSeason" }
@@ -400,6 +400,8 @@ export interface GameView {
   readonly nightHours: NightHours;
   /** The season today, which day of it today is, and how many days it lasts. */
   readonly season: SeasonDay;
+  /** Whether a winter has come before today. A new game's first spring has none, so it has no snow to melt and its leaves are green. */
+  readonly afterFirstWinter: boolean;
   /** The season that has just started, while the HUD's banner says so, or else null. It is not saved. */
   readonly seasonBanner: Season | null;
   /** How many of each tool and material the player's backpack holds. */

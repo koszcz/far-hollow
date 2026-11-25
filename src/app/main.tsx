@@ -60,7 +60,7 @@ function isPlaygroundAddress(): boolean {
 }
 
 /**
- * The season given as `&season=winter` in a playground address, if any. The playground then starts at 6:00 on day 1 of it.
+ * The season given as `&season=winter` in a playground address, if any. The playground then starts at the morning hour on day 1 of it.
  * Without it, the playground starts in spring.
  */
 function playgroundSeason(): { startSeason?: Season } {
@@ -195,6 +195,7 @@ const sceneRenderer = createSceneRenderer(
   () => game.client.getView().nightHours,
   () => clockMinutesOf(game.client.getView().time),
   () => game.client.getView().season,
+  () => game.client.getView().afterFirstWinter,
   () => game.client.getView().lastSleep,
   () => game.client.getView().lastEatOrDrink,
   await loadModelShapes(),

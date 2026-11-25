@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import { createGame, type Game } from "./game";
 import { createNeeds, hasCollapsed, type NeedConditions, needsSpeed, passNeedsTime, quenchThirst, wakeFromCollapse } from "./needs";
 
-const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, working: false, asleep: false, sick: false };
+const DAYTIME_AWAY_FROM_FIRE: NeedConditions = { season: "spring", night: false, warmedByCampfire: false, working: false, asleep: false, sick: false };
 
 describe("needs", () => {
   it("start full for all four needs", () => {
@@ -43,8 +43,8 @@ describe("needs", () => {
     const well = createNeeds();
     const sick = createNeeds();
 
-    passNeedsTime(well, 60, { night: true, warmedByCampfire: false, working: false, asleep: false, sick: false });
-    passNeedsTime(sick, 60, { night: true, warmedByCampfire: false, working: false, asleep: false, sick: true });
+    passNeedsTime(well, 60, { season: "spring", night: true, warmedByCampfire: false, working: false, asleep: false, sick: false });
+    passNeedsTime(sick, 60, { season: "spring", night: true, warmedByCampfire: false, working: false, asleep: false, sick: true });
 
     expect(1 - sick.thirst.level).toBeCloseTo(2 / 24, 5);
     expect(1 - sick.warmth.level).toBeCloseTo(0.5, 5);
@@ -55,7 +55,7 @@ describe("needs", () => {
     const needs = createNeeds();
     needs.warmth.level = 0.2;
 
-    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, working: false, asleep: false, sick: true });
+    passNeedsTime(needs, 30, { season: "spring", night: true, warmedByCampfire: true, working: false, asleep: false, sick: true });
 
     expect(needs.warmth.level).toBeCloseTo(0.7, 5);
   });
@@ -125,15 +125,15 @@ describe("needs", () => {
 describe("warmth in the rain", () => {
   it("drains during the day", () => {
     const needs = createNeeds();
-    passNeedsTime(needs, 60, { night: false, warmedByCampfire: false, working: false, asleep: false, sick: false, inRain: true });
+    passNeedsTime(needs, 60, { season: "spring", night: false, warmedByCampfire: false, working: false, asleep: false, sick: false, inRain: true });
     expect(needs.warmth.level).toBeCloseTo(0.75, 5);
   });
 
   it("drains faster at night than night alone", () => {
     const dry = createNeeds();
     const wet = createNeeds();
-    passNeedsTime(dry, 60, { night: true, warmedByCampfire: false, working: false, asleep: false, sick: false, inRain: false });
-    passNeedsTime(wet, 60, { night: true, warmedByCampfire: false, working: false, asleep: false, sick: false, inRain: true });
+    passNeedsTime(dry, 60, { season: "spring", night: true, warmedByCampfire: false, working: false, asleep: false, sick: false, inRain: false });
+    passNeedsTime(wet, 60, { season: "spring", night: true, warmedByCampfire: false, working: false, asleep: false, sick: false, inRain: true });
     expect(dry.warmth.level).toBeCloseTo(0.75, 5);
     expect(wet.warmth.level).toBeCloseTo(0.5, 5);
   });
@@ -141,13 +141,13 @@ describe("warmth in the rain", () => {
   it("still recovers within a lit campfire's warmth range", () => {
     const needs = createNeeds();
     needs.warmth.level = 0.2;
-    passNeedsTime(needs, 30, { night: true, warmedByCampfire: true, working: false, asleep: false, sick: false, inRain: true });
+    passNeedsTime(needs, 30, { season: "spring", night: true, warmedByCampfire: true, working: false, asleep: false, sick: false, inRain: true });
     expect(needs.warmth.level).toBeCloseTo(0.7, 5);
   });
 });
 
 describe("warmth in a snug room", () => {
-  const NIGHT_AWAY_FROM_FIRE = { night: true, warmedByCampfire: false, working: false, asleep: false, sick: false };
+  const NIGHT_AWAY_FROM_FIRE: NeedConditions = { season: "spring", night: true, warmedByCampfire: false, working: false, asleep: false, sick: false };
 
   it("drains at half the usual rate at night", () => {
     const needs = createNeeds();
@@ -164,7 +164,7 @@ describe("warmth in a snug room", () => {
 });
 
 describe("warmth by season", () => {
-  const AWAY_FROM_FIRE = { warmedByCampfire: false, working: false, asleep: false, sick: false };
+  const AWAY_FROM_FIRE = { season: "spring", warmedByCampfire: false, working: false, asleep: false, sick: false } as const;
 
   /** How much warmth one game hour drains away from a fire in these conditions. */
   function drainInOneHour(conditions: Partial<NeedConditions>): number {

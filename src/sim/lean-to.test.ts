@@ -223,7 +223,7 @@ describe("rain and the lean-to", () => {
 
 describe("sleeping under a roof", () => {
   it("restores fatigue faster than in the open", () => {
-    const sleep: NeedConditions = { night: false, warmedByCampfire: true, working: false, asleep: true, sick: false };
+    const sleep: NeedConditions = { season: "spring", night: false, warmedByCampfire: true, working: false, asleep: true, sick: false };
     const open = createNeeds();
     const roofed = createNeeds();
     open.fatigue.level = 0.2;

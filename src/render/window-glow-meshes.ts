@@ -12,7 +12,7 @@ import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { firelitWindows, type FirelitWindow } from "../sim/window-glow";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { COURSE_RADIUS_METRES } from "./log-courses";
-import { FADED_OPACITY } from "./structure-look";
+import { createCutawayFades, cutawayOpacity } from "./cutaway-fade";
 import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
 
 /** The warm colour of firelight seen through a window. */
@@ -94,6 +94,7 @@ export function createWindowGlowMeshes(
   );
 
   const drawn = new Map<Entity, Drawn>();
+  const fades = createCutawayFades();
   function draw(window: Entity & { position: { x: number; z: number } }): Drawn {
     const existing = drawn.get(window);
     if (existing !== undefined) return existing;
@@ -109,6 +110,7 @@ export function createWindowGlowMeshes(
     item.panel.dispose();
     item.halo.dispose();
     drawn.delete(window);
+    fades.forget(window);
   }
 
   return {
@@ -123,7 +125,7 @@ export function createWindowGlowMeshes(
           item.root.position.set(window.position.x, window.position.y, window.position.z);
           item.root.rotation.y = quarterTurnsToRadians(outward);
           const turns = window.facing?.turns ?? 0;
-          const fade = cutaway.fades(window.position, turns) ? FADED_OPACITY : 1;
+          const fade = cutawayOpacity(fades.level(window, cutaway.fades(window.position, turns), nowSeconds));
           const share = strength * fade * windowGlowFlicker(nowSeconds, item.seed);
           item.panel.opacity = Math.min(1, PANEL_OPACITY * share);
           item.halo.opacity = Math.min(1, HALO_OPACITY * share);

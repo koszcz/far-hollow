@@ -76,16 +76,6 @@ export function pickFinished(raycaster: THREE.Raycaster, pickers: readonly THREE
 /** A finished wall, door frame, window, door, or shutters between the camera and the player is this solid, from 0 (invisible) to 1 (solid). */
 export const FADED_OPACITY = 0.2;
 
-/**
- * A see-through material for a finished piece faded out between the camera and the player, of `color`, from 0 (invisible)
- * to 1 (solid) `opacity`. It still casts its shadow, so the room behind a faded wall stays in shade.
- */
-export function fadedOut(color: number, opacity: number): THREE.MeshStandardMaterial {
-  const material = seeThrough(color, opacity);
-  material.userData.castsShadow = true;
-  return material;
-}
-
 /** A see-through material for a blueprint, of `color`, from 0 (invisible) to 1 (solid) `opacity`. It hides nothing behind it. */
 export function seeThrough(color: number, opacity: number): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });

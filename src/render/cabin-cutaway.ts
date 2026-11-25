@@ -1,5 +1,5 @@
 // What hides while the player is inside a cabin, so the player and the room stay in view.
-// - Inside means under a cabin roof, or standing in a cabin's doorway, just outside its door frame.
+// - Inside means under a cabin roof or a roof frame still waiting for its roof, or standing in a cabin's doorway, just outside its door frame.
 // - The cabin's roof hides as one unit: every roof section joined to the one over the player.
 // - Each outer side of the cabin whose outside faces the camera fades as one unit: every wall, door frame, window,
 //   door, and set of shutters on it. The sides facing away stay solid, so the room shows behind the player.
@@ -21,7 +21,7 @@ const FADE_MARGIN_METRES = 0.3;
 const DOORWAY_REACH_METRES = 0.6;
 
 export interface CabinCutaway {
-  /** The cabin roof sections that hide. Empty outside a cabin. */
+  /** The cabin roof sections and roof frames that hide. A cabin with only its frames up counts. Empty outside a cabin. */
   readonly roof: readonly Entity[];
   /** Whether a finished piece on the edge with this middle, facing `turns`, fades: a wall, door frame, window, door, or shutters. */
   fades(middle: Vec3, turns: QuarterTurns): boolean;

@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { blueprintEntities, shuttersEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
+import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
 import { SHUTTERS_PLANK_COST } from "../sim/structures";
 import { COURSE_RADIUS_METRES } from "./log-courses";
 import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
@@ -24,10 +25,8 @@ import {
   NOT_ALLOWED_COLOUR,
   pickBlueprint,
   pickFinished,
-  fadedOut,
   seeThrough,
   type BuildingPieceMeshes,
-  FADED_OPACITY,
 } from "./structure-look";
 
 /** The shutters' boards are plank wood weathered darker by sun and rain, so they stand off the pale logs round them. Each board's own shade. */
@@ -187,10 +186,10 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(PLANK_WOOD_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const fadedMaterial = fadedOut(PLANK_WOOD_COLOUR, FADED_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const drawn = new Map<Entity, Drawn>();
+  const fades = createCutawayFades();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const finished = shuttersEntities(entities);
@@ -286,8 +285,12 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
     turnLeaves(item.leaves, leafRadians);
   }
 
-  function fade(item: Drawn, faded: boolean): void {
-    for (const { mesh, solid } of item.stages.flat()) mesh.material = faded ? fadedMaterial : solid;
+  /** Shows a finished piece at fade `level`, from 0, solid, to 1, see-through. */
+  function fade(item: Drawn, level: number): void {
+    for (const { mesh, solid, fading } of item.stages.flat()) {
+      if (level > 0) showFading(fading, cutawayOpacity(level));
+      mesh.material = level > 0 ? fading : solid;
+    }
   }
 
   function disposeFading(stages: readonly Part[][]): void {
@@ -301,6 +304,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
     disposeFading(item.stages);
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
+    fades.forget(entity);
   }
 
   return {
@@ -321,7 +325,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
         place(item.root, entity.position, turns);
         showProgress(item, 1, SHUTTERS_PLANK_COST);
         swing(item, entity.shutters.open, nowSeconds);
-        fade(item, cutaway.fades(entity.position, turns));
+        fade(item, fades.level(entity, cutaway.fades(entity.position, turns), nowSeconds));
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -349,16 +353,7 @@ export function createShuttersMeshes(entities: EntityStore): ShuttersMeshes {
       place(placing, shown.spot, shown.turns);
     },
     dispose() {
-      for (const item of [
-        ...geometries.values(),
-        pickGeometry,
-        ...solids.values(),
-        blueprintMaterial,
-        deliveredMaterial,
-        notAllowedMaterial,
-        fadedMaterial,
-        pickMaterial,
-      ]) {
+      for (const item of [...geometries.values(), pickGeometry, ...solids.values(), blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
         item.dispose();
       }
       disposeFading(placingLeaves.stages);

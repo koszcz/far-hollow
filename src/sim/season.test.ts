@@ -117,19 +117,20 @@ describe("cold by season in the game", () => {
     expect(autumn.client.getView().needs.warmth).toBeCloseTo(0.625, 1);
   });
 
-  it("keeps the winter night until 8:00, draining warmth", () => {
+  it("starts the winter night at 17:00, draining warmth", () => {
     const game = createGame({ seed: 42, freeBuilding: true, startSeason: "winter" });
     game.step();
-    expect(game.client.getView().night).toBe(true);
-    expect(game.client.getView().nightHours).toEqual({ nightStartHour: 17, morningHour: 8 });
-    send(game, { type: "skipTime", hours: 1 });
-    expect(game.client.getView().needs.warmth).toBeCloseTo(0.5, 2);
-    send(game, { type: "skipTime", hours: 1 });
     expect(game.client.getView().night).toBe(false);
+    expect(game.client.getView().nightHours).toEqual({ nightStartHour: 17, morningHour: 8 });
+    const warmthAtMorning = game.client.getView().needs.warmth;
+    send(game, { type: "skipTime", hours: 9 }); // 17:00.
+    expect(game.client.getView().night).toBe(true);
+    expect(game.client.getView().needs.warmth).toBeLessThan(warmthAtMorning);
   });
 
   it("collapses a player without a heated room on a winter night", () => {
     const game = createGame({ seed: 42, freeBuilding: true, startSeason: "winter" });
+    send(game, { type: "skipTime", hours: 9 }); // 17:00.
     send(game, { type: "skipTime", hours: 4 });
     expect(game.client.getView().notice?.kind).toBe("collapsed");
   });
@@ -161,11 +162,11 @@ describe("the season in the game", () => {
     expect(game.client.getView().season).toEqual({ season: "spring", dayOfSeason: 1, seasonDays: 7 });
   });
 
-  it("skips to 6:00 on day 1 of the next season and shows its banner", () => {
+  it("skips to the morning hour on day 1 of the next season and shows its banner", () => {
     const game = createGame({ seed: 42 });
     send(game, { type: "skipToSeason" });
     const view = game.client.getView();
-    expect(view.time).toMatchObject({ day: 8, hour: 6, minute: 0 });
+    expect(view.time).toMatchObject({ day: 8, hour: 5, minute: 0 });
     expect(view.season).toMatchObject({ season: "summer", dayOfSeason: 1 });
     expect(view.seasonBanner).toBe("summer");
   });
@@ -173,8 +174,7 @@ describe("the season in the game", () => {
   it("gets to the next season even when the player collapses on the way", () => {
     const game = createGame({ seed: 42 });
     for (let skip = 0; skip < 3; skip += 1) send(game, { type: "skipToSeason" });
-    // A collapse on the last autumn night wakes the player on the winter morning at 8:00, past the skip's 6:00.
-    expect(game.client.getView().time.day).toBe(22);
+    expect(game.client.getView().time).toMatchObject({ day: 22, hour: 8, minute: 0 });
     expect(game.client.getView().season.season).toBe("winter");
   });
 
@@ -186,6 +186,15 @@ describe("the season in the game", () => {
     expect(game.client.getView().seasonBanner).toBeNull();
   });
 
+  it("tells the view whether a winter has come before today", () => {
+    const game = createGame({ seed: 42 });
+    game.step();
+    expect(game.client.getView().afterFirstWinter).toBe(false);
+    for (let skip = 0; skip < 4; skip += 1) send(game, { type: "skipToSeason" });
+    expect(game.client.getView().season.season).toBe("spring");
+    expect(game.client.getView().afterFirstWinter).toBe(true);
+  });
+
   it("shows no banner when a game starts", () => {
     const game = createGame({ seed: 42 });
     game.step();
@@ -194,11 +203,11 @@ describe("the season in the game", () => {
 });
 
 describe("the playground season", () => {
-  it("starts at 6:00 on day 1 of the season asked for", () => {
+  it("starts at the morning hour on day 1 of the season asked for", () => {
     const game = createGame({ seed: 42, freeBuilding: true, startSeason: "winter" });
     game.step();
     const view = game.client.getView();
-    expect(view.time).toMatchObject({ day: 22, hour: 6 });
+    expect(view.time).toMatchObject({ day: 22, hour: 8 });
     expect(view.season).toMatchObject({ season: "winter", dayOfSeason: 1 });
     expect(view.seasonBanner).toBeNull();
     expect(view.notice).toBeNull();

@@ -15,6 +15,7 @@ import { isDoorOpen } from "../sim/doors";
 import { blueprintEntities, doorEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
+import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
 import { DOOR_PLANK_COST } from "../sim/structures";
 import { DOORWAY_HEIGHT_METRES, DOORWAY_WIDTH_METRES } from "./edge-piece-meshes";
 import { DOOR_OPEN_RADIANS, doorSwingRadians, latchRingRadians } from "./door-swing";
@@ -28,10 +29,8 @@ import {
   NOT_ALLOWED_COLOUR,
   pickBlueprint,
   pickFinished,
-  fadedOut,
   seeThrough,
   type BuildingPieceMeshes,
-  FADED_OPACITY,
 } from "./structure-look";
 
 /**
@@ -270,10 +269,10 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(PLANK_WOOD_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const fadedMaterial = fadedOut(PLANK_WOOD_COLOUR, FADED_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   const drawn = new Map<Entity, Drawn>();
+  const fades = createCutawayFades();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const doors = doorEntities(entities);
@@ -383,8 +382,12 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
     if (item.ring !== undefined) item.ring.rotation.x = -latchRingRadians(state.fromRadians, state.open, since, state.ringFromRadians);
   }
 
-  function fade(item: Drawn, faded: boolean): void {
-    for (const { mesh, solid } of item.stages.flat()) mesh.material = faded ? fadedMaterial : solid;
+  /** Shows a finished piece at fade `level`, from 0, solid, to 1, see-through. */
+  function fade(item: Drawn, level: number): void {
+    for (const { mesh, solid, fading } of item.stages.flat()) {
+      if (level > 0) showFading(fading, cutawayOpacity(level));
+      mesh.material = level > 0 ? fading : solid;
+    }
   }
 
   function disposeFading(stages: readonly Part[][]): void {
@@ -398,6 +401,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
     disposeFading(item.stages);
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
+    fades.forget(entity);
   }
 
   return {
@@ -421,7 +425,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
         place(item, entity.position, turns);
         showProgress(item, 1, DOOR_PLANK_COST);
         swing(item, entity, near, nowSeconds);
-        fade(item, cutaway.fades(entity.position, turns));
+        fade(item, fades.level(entity, cutaway.fades(entity.position, turns), nowSeconds));
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -449,16 +453,7 @@ export function createDoorMeshes(entities: EntityStore): DoorMeshes {
       place({ root: placing }, shown.spot, shown.turns);
     },
     dispose() {
-      for (const item of [
-        ...geometries.values(),
-        pickGeometry,
-        ...solids.values(),
-        blueprintMaterial,
-        deliveredMaterial,
-        notAllowedMaterial,
-        fadedMaterial,
-        pickMaterial,
-      ]) {
+      for (const item of [...geometries.values(), pickGeometry, ...solids.values(), blueprintMaterial, deliveredMaterial, notAllowedMaterial, pickMaterial]) {
         item.dispose();
       }
       disposeFading(placingLeaf.stages);

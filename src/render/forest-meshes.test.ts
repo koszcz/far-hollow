@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
 import { AUTUMN_CROWN_COLOURS } from "./autumn-leaves";
 import { createForestMeshes, TREE_COLOURS, type ForestShapes } from "./forest-meshes";
+import { createSnowCoverLook, type SnowCoverLook } from "./snow-cover-look";
 import { createWindSway } from "./wind-sway";
 
 const noTree = { name: "none", trunk: new THREE.BoxGeometry(), crown: new THREE.BoxGeometry(), trunkTone: "light", crownTone: "light" } as const;
@@ -124,20 +125,27 @@ describe("the debarked log the player saws", () => {
 
 describe("autumn leaves", () => {
   /** A forest with an oak type and a pine type, and the colours each type's crowns are drawn in, near and far. */
-  function oakAndPine() {
+  function oakAndPine(snow?: SnowCoverLook) {
     const treeType = (name: string) =>
       ({ name, trunk: new THREE.BoxGeometry(), crown: new THREE.BoxGeometry(), trunkTone: "light", crownTone: "light" }) as const;
     const oak = treeType("tree_oak");
     const pine = treeType("tree_pineDefaultA");
-    const forest = createForestMeshes(createEntityStore(), { ...testShapes(), trees: [oak, pine] }, createWindSway());
-    const crownColours = (crown: THREE.BufferGeometry): number[] => {
-      const colours: number[] = [];
+    const forest = createForestMeshes(createEntityStore(), { ...testShapes(), trees: [oak, pine] }, createWindSway(), snow);
+    const crownMaterials = (crown: THREE.BufferGeometry): THREE.MeshStandardMaterial[] => {
+      const materials: THREE.MeshStandardMaterial[] = [];
       forest.group.traverse((object) => {
-        if (object instanceof THREE.Mesh && object.geometry === crown) colours.push((object.material as THREE.MeshStandardMaterial).color.getHex());
+        if (object instanceof THREE.Mesh && object.geometry === crown) materials.push(object.material as THREE.MeshStandardMaterial);
       });
-      return colours;
+      return materials;
     };
-    return { forest, oakCrowns: () => crownColours(oak.crown), pineCrowns: () => crownColours(pine.crown) };
+    const crownColours = (crown: THREE.BufferGeometry): number[] => crownMaterials(crown).map((material) => material.color.getHex());
+    return {
+      forest,
+      oakCrowns: () => crownColours(oak.crown),
+      pineCrowns: () => crownColours(pine.crown),
+      oakCrownMaterials: () => crownMaterials(oak.crown),
+      pineCrownMaterials: () => crownMaterials(pine.crown),
+    };
   }
 
   it("turns broadleaf crowns amber and leaves the pines green", () => {
@@ -149,6 +157,14 @@ describe("autumn leaves", () => {
     for (const colour of pineCrowns()) expect(colour).toBe(TREE_COLOURS.crown.light);
     forest.setLeafTurn(0);
     for (const colour of oakCrowns()) expect(colour).toBe(TREE_COLOURS.crown.light);
+    forest.dispose();
+  });
+
+  it("lays snow on broadleaf crowns as well as on the pines", () => {
+    const { forest, oakCrownMaterials, pineCrownMaterials } = oakAndPine(createSnowCoverLook());
+    const materials = [...oakCrownMaterials(), ...pineCrownMaterials()];
+    expect(oakCrownMaterials().length).toBeGreaterThan(0);
+    for (const material of materials) expect(material.customProgramCacheKey()).toContain("|snow-");
     forest.dispose();
   });
 });

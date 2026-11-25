@@ -19,6 +19,7 @@
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
 // A finished wall, door frame, or window fades out where the cabin cutaway says (cabin-cutaway.ts), so the player never disappears behind it.
+// It eases out and back in over a moment (cutaway-fade.ts), in its own wood, see-through.
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
@@ -28,8 +29,9 @@ import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
+import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
 import type { OutlinePart } from "./hover-outline";
-import { deliveredOpacity, FADED_OPACITY, fadedOut, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
 import { isEdgePiece, isLaidInCourses } from "../sim/edge-pieces";
@@ -86,9 +88,10 @@ export interface EdgePieceMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every wall, door frame, and their blueprints up to date with game state.
-   * Finished pieces fade where `cutaway` says. Without it, nothing fades.
+   * Finished pieces fade where `cutaway` says, easing in and out over time. `nowSeconds` is the time of this frame.
+   * Without `cutaway`, nothing fades. Without `nowSeconds`, a fade shows at once.
    */
-  update(cutaway?: CabinCutaway): void;
+  update(cutaway?: CabinCutaway, nowSeconds?: number): void;
   /** What a ray from the camera hits first among wall and door frame blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: EdgePieceHit; distance: number } | undefined;
   /** The parts of a wall or door frame blueprint, placed in the world. Empty once it is gone. */
@@ -215,7 +218,6 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const deliveredMaterial = seeThrough(DEBARKED_LOG_COLOUR, DELIVERED_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
-  const fadedMaterial = fadedOut(DEBARKED_LOG_COLOUR, FADED_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
   /** The parts each stage adds, for each kind of piece. */
@@ -280,6 +282,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
   const LOG_COST: Readonly<Record<EdgePieceKind, number>> = { logWall: LOG_WALL_LOG_COST, doorFrame: DOOR_FRAME_LOG_COST, window: WINDOW_LOG_COST };
 
   const drawn = new Map<Entity, Drawn>();
+  const fades = createCutawayFades();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const finished = edgePieceEntities(entities);
@@ -375,8 +378,16 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
     });
   }
 
-  function fade(item: Drawn, faded: boolean): void {
-    for (const parts of item.stages) for (const { mesh, solid } of parts) mesh.material = faded ? fadedMaterial : solid;
+  /** Shows a finished piece at fade `level`, from 0, solid, to 1, see-through. */
+  function fade(item: Drawn, level: number): void {
+    for (const { mesh, solid, fading } of item.stages.flat()) {
+      if (level <= 0) {
+        mesh.material = solid;
+        continue;
+      }
+      for (const material of fading) showFading(material, cutawayOpacity(level));
+      mesh.material = fading;
+    }
   }
 
   function forget(entity: Entity): void {
@@ -386,6 +397,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
     disposeFading(item.stages);
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
+    fades.forget(entity);
   }
 
   function disposeFading(stages: Drawn["stages"]): void {
@@ -396,7 +408,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
 
   return {
     group,
-    update(cutaway = NO_CUTAWAY) {
+    update(cutaway = NO_CUTAWAY, nowSeconds) {
       const seen = new Set<Entity>();
       walls = [];
       for (const entity of blueprints) {
@@ -418,7 +430,7 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
         place(item.root, entity.edgePiece, entity.position, turns);
         if (entity.edgePiece === "logWall") reachCorners(item.stages, wallEnds({ middle: entity.position, turns }, walls));
         showProgress(item, 1, LOG_COST[entity.edgePiece]);
-        fade(item, cutaway.fades(entity.position, turns));
+        fade(item, fades.level(entity, cutaway.fades(entity.position, turns), nowSeconds));
         seen.add(entity);
       }
       for (const entity of [...drawn.keys()]) if (!seen.has(entity)) forget(entity);
@@ -469,7 +481,6 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
         blueprintMaterial,
         deliveredMaterial,
         notAllowedMaterial,
-        fadedMaterial,
         pickMaterial,
       ]) {
         item.dispose();

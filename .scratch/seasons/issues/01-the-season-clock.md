@@ -25,8 +25,8 @@
 
 ## Playground and debug
 
-- [x] The playground accepts `&season=<spring|summer|autumn|winter>` and starts at 6:00 on day 1 of that season. Without it, the playground starts in spring.
-- [x] The debug overlay has a "Skip to next season" button. It sends a new `skipToSeason` command, which passes time to 6:00 on day 1 of the next season. The world moves on as it does with the other skip commands.
+- [x] The playground accepts `&season=<spring|summer|autumn|winter>` and starts at that season's morning hour on day 1 of that season, such as 8:00 in winter. Without it, the playground starts in spring.
+- [x] The debug overlay has a "Skip to next season" button. It sends a new `skipToSeason` command, which passes time to the morning hour on day 1 of the next season, such as 8:00 in winter. The world moves on as it does with the other skip commands.
 
 ## Saving
 

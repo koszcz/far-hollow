@@ -15,7 +15,7 @@
 // has none, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed.
 // Construction has one stage per plank, and lays one row each stage. A blueprint shows see-through. The row being laid fades
 // in above its place, is lowered, and set down, like the logs of a foundation.
-// While the player is in a cabin, its whole roof hides, so the player stays in view (cabin-cutaway.ts).
+// While the player is in a cabin, its whole roof fades away over a moment, so the player stays in view (cabin-cutaway.ts, cutaway-fade.ts).
 // A hidden roof still casts its shadow, so the room under it stays dark except where daylight comes in through a window or doorway.
 // While the player places a roof from the build menu, a see-through copy follows the mouse, sloping the way the frame under it
 // does. It turns red where it is not allowed.
@@ -45,6 +45,7 @@ import {
 } from "./roof-parts";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
 import { ROOF_SNOW, type SnowCoverLook } from "./snow-cover-look";
+import { createCutawayFades, showFading } from "./cutaway-fade";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -101,9 +102,10 @@ export interface RoofMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every roof section and roof blueprint up to date with game state.
-   * Finished sections in `hidden` hide, but still cast their shadows: the roof of the cabin the player is in.
+   * Finished sections in `hidden` fade away, but still cast their shadows: the roof of the cabin the player is in.
+   * `nowSeconds` is the time of this frame. Without it, a section hides or shows at once.
    */
-  update(hidden?: readonly Entity[]): void;
+  update(hidden?: readonly Entity[], nowSeconds?: number): void;
   /** What a ray from the camera hits first among roof blueprints, and how far away. */
   pick(raycaster: THREE.Raycaster): { hit: RoofHit; distance: number } | undefined;
   /** The finished piece the ray meets first, with how far away it is, or undefined if it meets none. The action menu uses it. */
@@ -375,6 +377,7 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
   group.add(placingBlueprint);
 
   const drawn = new Map<Entity, Drawn>();
+  const fades = createCutawayFades();
   const pickers: THREE.Mesh[] = [];
   const blueprints = blueprintEntities(entities);
   const finished = cabinRoofEntities(entities);
@@ -411,6 +414,19 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
     });
   }
 
+  /**
+   * Shows a section at fade `level`, from 0, as built, to 1, gone. A fully faded section is drawn only into shadows.
+   * While it fades, every row shows see-through.
+   */
+  function showFade(item: Drawn, level: number): void {
+    hideKeepingShadow(item.root, level >= 1);
+    if (level <= 0 || level >= 1) return;
+    for (const { mesh, fading } of item.parts) {
+      showFading(fading, 1 - level);
+      mesh.material = fading;
+    }
+  }
+
   function forget(entity: Entity): void {
     const item = drawn.get(entity);
     if (item === undefined) return;
@@ -418,13 +434,14 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
     for (const { fading } of item.parts) fading.dispose();
     pickers.splice(pickers.indexOf(item.picker), 1);
     drawn.delete(entity);
+    fades.forget(entity);
   }
 
   const hits: THREE.Intersection[] = [];
 
   return {
     group,
-    update(hiddenRoof = []) {
+    update(hiddenRoof = [], nowSeconds) {
       const layout = frameLayout(entities);
       const seen = new Set<Entity>();
       const hidden = new Set(hiddenRoof);
@@ -434,10 +451,10 @@ export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): R
         const item = draw(entity);
         item.root.position.set(entity.position.x, entity.position.y + raisedBy(place), entity.position.z);
         item.root.rotation.y = quarterTurnsToRadians(place.drawTurns);
-        hideKeepingShadow(item.root, hidden);
         const beside = neighboursOf(layout, entity.position, place).map((one) => (one === undefined ? undefined : layout.placeAt(one.position)));
         setRows(item.parts, place.shape, plankReach(place, beside), place.shape === "valley" ? 0 : layoutOf(entity.position));
         showProgress(item, progress);
+        showFade(item, fades.level(entity, hidden, nowSeconds));
         seen.add(entity);
       };
       for (const entity of blueprints) if (entity.blueprint.structure === "roof") show(entity, entity.blueprint.progress, false);

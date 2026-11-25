@@ -5,6 +5,7 @@
 // - Roofs ("roof") get a white tint on their sloping planks. The undersides, seen from inside, stay bare.
 // Every material shows the same depth of snow, from game logic, so the whole valley whitens and melts together.
 import * as THREE from "three";
+import { chainShaderPatch } from "./shader-patch";
 
 /** The colour of lying snow. It is a little blue, so it reads as cold even in full sun. */
 const SNOW_COLOUR = new THREE.Color(0xeef3f8);
@@ -28,7 +29,7 @@ export const CROWN_SNOW: SnowFaces = { bareBelow: 0.2, fullFrom: 0.55, share: 0.
 export const ROOF_SNOW: SnowFaces = { bareBelow: 0.3, fullFrom: 0.6, share: 0.85 };
 
 export interface SnowCoverLook {
-  /** Makes `material` show snow on the faces `faces` says, and returns it. Patch its shader for anything else first. */
+  /** Makes `material` show snow on the faces `faces` says, and returns it. It keeps the material's other shader patches. */
   cover<M extends THREE.Material>(material: M, faces: SnowFaces): M;
   /** Sets how deep the snow lies for this frame, from 0 (none) to 1 (full). */
   update(depth: number): void;
@@ -39,10 +40,7 @@ export function createSnowCoverLook(): SnowCoverLook {
   const depth = { value: 0 };
   return {
     cover(material, faces) {
-      const before = material.onBeforeCompile.bind(material);
-      const beforeKey = material.customProgramCacheKey();
-      material.onBeforeCompile = (shader, renderer) => {
-        before(shader, renderer);
+      return chainShaderPatch(material, `snow-${faces.bareBelow}-${faces.fullFrom}-${faces.share}`, (shader) => {
         shader.uniforms.snowDepth = depth;
         shader.vertexShader = shader.vertexShader
           .replace("#include <common>", "#include <common>\nvarying vec3 vSnowWorld;")
@@ -69,11 +67,7 @@ export function createSnowCoverLook(): SnowCoverLook {
               `diffuseColor.rgb = mix( diffuseColor.rgb, vec3( ${SNOW_COLOUR.r.toFixed(3)}, ${SNOW_COLOUR.g.toFixed(3)}, ${SNOW_COLOUR.b.toFixed(3)} ), snowShare );`,
             ].join("\n"),
           );
-      };
-      // three.js shares compiled shaders between materials with the same key, so the key must show the snow too.
-      material.customProgramCacheKey = () => `${beforeKey}|snow-${faces.bareBelow}-${faces.fullFrom}-${faces.share}`;
-      material.needsUpdate = true;
-      return material;
+      });
     },
     update(value) {
       depth.value = value;

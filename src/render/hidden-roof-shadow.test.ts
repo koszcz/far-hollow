@@ -20,9 +20,13 @@ function roofedSquare(): EntityStore {
   return entities;
 }
 
+/** The time of the last frame drawn, in seconds. Each frame comes a second after the one before, long enough for any fade to finish. */
+let clock = 0;
+
 /** One frame of drawing with the player at `player` and the camera up and away to one side. */
 function frameAt(entities: EntityStore, player: Vec3): StructureFrame {
-  return { nowSeconds: 0, player, cutaway: cabinCutaway(entities, { x: 10, y: 10, z: 10 }, player) };
+  clock += 1;
+  return { nowSeconds: clock, player, cutaway: cabinCutaway(entities, { x: 10, y: 10, z: 10 }, player) };
 }
 
 /** The meshes in `group` that the main camera draws, and the ones that only the sun's shadow camera draws. */

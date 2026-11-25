@@ -249,10 +249,10 @@ export function createStructureMeshes(
       leanTos.update();
       foundations.update();
       floors.update();
-      edgePieces.update(cutaway);
+      edgePieces.update(cutaway, nowSeconds);
       // The roof of the cabin the player is in, and the frames under it, hide.
-      roofFrames.update(cutaway.roof);
-      roofs.update(cutaway.roof);
+      roofFrames.update(cutaway.roof, nowSeconds);
+      roofs.update(cutaway.roof, nowSeconds);
       // A door swings open while the player is near it, and fades with its frame.
       doors.update({ nowSeconds, cutaway, player });
       // Shutters swing when the player opens or closes them, and fade with their window.

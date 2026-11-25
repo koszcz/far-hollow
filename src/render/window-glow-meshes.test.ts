@@ -59,10 +59,14 @@ describe("drawing the glow", () => {
     const meshes = createWindowGlowMeshes(entities, () => [{ window, outward: 0 }]);
     const outside = { x: 0, y: 1, z: 5 };
     const inside = { x: 0, y: 0, z: -2 };
+    // The glow flickers with time, so both are read at the same time. The second fade has run its course by then.
+    const at = 2;
 
     meshes.update({ daylight: 0, nowSeconds: 0, cutaway: cabinCutaway(entities, outside, outside) });
+    meshes.update({ daylight: 0, nowSeconds: at, cutaway: cabinCutaway(entities, outside, outside) });
     const clear = glowOpacities(meshes.group);
-    meshes.update({ daylight: 0, nowSeconds: 0, cutaway: cabinCutaway(entities, outside, inside) });
+    meshes.update({ daylight: 0, nowSeconds: 1, cutaway: cabinCutaway(entities, outside, inside) });
+    meshes.update({ daylight: 0, nowSeconds: at, cutaway: cabinCutaway(entities, outside, inside) });
     const faded = glowOpacities(meshes.group);
 
     expect(clear.length).toBeGreaterThan(0);

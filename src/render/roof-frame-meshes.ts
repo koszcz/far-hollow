@@ -19,7 +19,7 @@
 // Construction has one stage per debarked log: the beams along x, then the beams along z, then the three rafters. The gable
 // ends go up with the last rafter. A blueprint shows see-through. Each delivered log shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
-// While the player is in a cabin, the frames under its roof fade away with it, so the player stays in view.
+// In the cutaway and walls down wall modes, the roof frames fade away with the roofs, so the player sees inside (cabin-cutaway.ts).
 // A hidden frame still casts its shadow, as the roof does.
 // While the player places a frame from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";

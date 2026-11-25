@@ -95,10 +95,16 @@ export const strings = {
     unmute: "Unmute",
     muteKey: "M",
   },
-  /** The HUD button that hides cabin roofs and fades the cabin walls facing the camera, so the player can see inside. */
-  cutaway: {
-    show: "See inside cabins",
-    hide: "Show cabin roofs",
+  /**
+   * The wall mode button on the HUD. Its label names the wall mode the next click switches to.
+   * Walls up shows every cabin whole. Cutaway hides the roofs and fades the cabin sides facing the camera. Walls down hides the roofs and fades every cabin side.
+   */
+  wallMode: {
+    show: {
+      wallsUp: "Show walls up",
+      cutaway: "Show cutaway",
+      wallsDown: "Show walls down",
+    },
   },
   pause: "Pause",
   resume: "Resume",

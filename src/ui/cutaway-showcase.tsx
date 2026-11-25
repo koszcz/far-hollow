@@ -1,13 +1,17 @@
-// Draws the cutaway button over the views of its showcase: off in the first and third views, on in the second and fourth.
+// Draws the wall mode button over the views of its showcase, one wall mode per view: walls up, cutaway, and walls down, then cutaway at dusk.
 import { render } from "preact";
-import { CutawayButton } from "./cutaway-button";
+import type { WallMode } from "../wall-mode";
+import { WallModeButton } from "./cutaway-button";
 
-/** Draws the cutaway button over each of the four views. */
+/** The wall mode the button shows in each of the four views. */
+const VIEW_WALL_MODES: readonly WallMode[] = ["wallsUp", "cutaway", "wallsDown", "cutaway"];
+
+/** Draws the wall mode button over each of the four views. */
 export function renderCutawayShowcase(ui: HTMLElement): void {
-  for (let index = 0; index < 4; index += 1) {
+  VIEW_WALL_MODES.forEach((mode, index) => {
     const quarter = document.createElement("div");
     quarter.className = `showcase-hud showcase-hud-${index}`;
     ui.append(quarter);
-    render(<CutawayButton on={index % 2 === 1} onToggle={() => {}} />, quarter);
-  }
+    render(<WallModeButton mode={mode} onNext={() => {}} />, quarter);
+  });
 }

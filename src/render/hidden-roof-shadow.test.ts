@@ -1,10 +1,11 @@
-// Checks that a roof hidden over the player still casts its shadow, and still cannot be picked, without a browser.
+// Checks that a roof hidden by the wall mode still casts its shadow, and still cannot be picked, without a browser.
 import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
 import { createEntityStore, type EntityStore, type Vec3 } from "../sim/entities";
 import { structureOf } from "../sim/structures";
 import { SHADOW_ONLY_LAYER } from "./culled-batch";
 import { cabinCutaway } from "./cabin-cutaway";
+import type { WallMode } from "../wall-mode";
 import { createStructureMeshes, type StructureFrame } from "./structure-meshes";
 
 const LOG_SHAPE = { geometry: new THREE.BoxGeometry(0.3, 0.3, 1), restHeight: 0.15 };
@@ -23,10 +24,13 @@ function roofedSquare(): EntityStore {
 /** The time of the last frame drawn, in seconds. Each frame comes a second after the one before, long enough for any fade to finish. */
 let clock = 0;
 
-/** One frame of drawing with the player at `player` and the camera up and away to one side. */
-function frameAt(entities: EntityStore, player: Vec3): StructureFrame {
+/** The player, standing inside the cabin. */
+const PLAYER: Vec3 = { x: SQUARE.x, y: 0, z: SQUARE.z };
+
+/** One frame of drawing in wall mode `mode`, with the camera up and away to one side. */
+function frameIn(entities: EntityStore, mode: WallMode): StructureFrame {
   clock += 1;
-  return { nowSeconds: clock, player, cutaway: cabinCutaway(entities, { x: 10, y: 10, z: 10 }, player) };
+  return { nowSeconds: clock, player: PLAYER, cutaway: cabinCutaway(entities, mode, { x: 10, y: 10, z: 10 }, PLAYER) };
 }
 
 /** The meshes in `group` that the main camera draws, and the ones that only the sun's shadow camera draws. */
@@ -54,30 +58,30 @@ function rayDown(group: THREE.Object3D): THREE.Raycaster {
   return new THREE.Raycaster(new THREE.Vector3(SQUARE.x, 20, SQUARE.z), new THREE.Vector3(0, -1, 0));
 }
 
-describe("a roof hidden over the player", () => {
-  it("is drawn only into the sun's shadows, with its frame, and shows again once the player walks out", () => {
+describe("a roof hidden by the wall mode", () => {
+  it("is drawn only into the sun's shadows, with its frame, and shows again in walls up", () => {
     const entities = roofedSquare();
     const meshes = createStructureMeshes(entities, () => 0, LOG_SHAPE);
-    meshes.update(frameAt(entities, { x: 20, y: 0, z: 20 }));
-    const outside = drawnMeshes(meshes.group);
+    meshes.update(frameIn(entities, "wallsUp"));
+    const shown = drawnMeshes(meshes.group);
 
-    meshes.update(frameAt(entities, { x: SQUARE.x, y: 0, z: SQUARE.z }));
-    const inside = drawnMeshes(meshes.group);
-    expect(inside.shadowOnly).toBeGreaterThan(0);
-    expect(inside.onScreen + inside.shadowOnly).toBe(outside.onScreen);
+    meshes.update(frameIn(entities, "cutaway"));
+    const hidden = drawnMeshes(meshes.group);
+    expect(hidden.shadowOnly).toBeGreaterThan(0);
+    expect(hidden.onScreen + hidden.shadowOnly).toBe(shown.onScreen);
 
-    meshes.update(frameAt(entities, { x: 20, y: 0, z: 20 }));
-    expect(drawnMeshes(meshes.group)).toEqual(outside);
+    meshes.update(frameIn(entities, "wallsUp"));
+    expect(drawnMeshes(meshes.group)).toEqual(shown);
     meshes.dispose();
   });
 
   it("cannot be picked, and its frame neither", () => {
     const entities = roofedSquare();
     const meshes = createStructureMeshes(entities, () => 0, LOG_SHAPE);
-    meshes.update(frameAt(entities, { x: 20, y: 0, z: 20 }));
+    meshes.update(frameIn(entities, "wallsUp"));
     expect(meshes.pickFinished(rayDown(meshes.group))?.entity.cabinRoof).toBe(true);
 
-    meshes.update(frameAt(entities, { x: SQUARE.x, y: 0, z: SQUARE.z }));
+    meshes.update(frameIn(entities, "cutaway"));
     const picked = meshes.pickFinished(rayDown(meshes.group))?.entity;
     expect(picked?.cabinRoof).toBeUndefined();
     expect(picked?.roofFrame).toBeUndefined();

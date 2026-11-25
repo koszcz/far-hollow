@@ -74,7 +74,7 @@ export interface Showcase {
   readonly shots: readonly Shot[];
   /**
    * What the showcase page draws over the views: "hud" for the game's HUD (src/ui/hud-showcase.tsx), "sound" for
-   * buttons that play the asset's sounds (src/ui/sound-showcase.tsx), or "cutaway" for the cutaway button
+   * buttons that play the asset's sounds (src/ui/sound-showcase.tsx), or "cutaway" for the wall mode button
    * (src/ui/cutaway-showcase.tsx). Without it, the page draws only the labels.
    */
   readonly overlay?: "hud" | "sound" | "cutaway";

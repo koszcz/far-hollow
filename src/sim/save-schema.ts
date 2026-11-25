@@ -304,6 +304,7 @@ const saveShape = shape({
   version: count,
   seed: (value) => Number.isSafeInteger(value) && (value as number) >= 0 && (value as number) < 2 ** 32,
   clockMinutes: (value) => finite(value) && (value as number) >= 0,
+  yearStartDay: (value) => Number.isSafeInteger(value) && (value as number) >= 1,
   stepCount: count,
   firstNightOver: boolean,
   snugRoomNoticeShown: boolean,

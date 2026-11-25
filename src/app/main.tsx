@@ -8,6 +8,7 @@ import { createGame, STEP_MS, type Game } from "../sim/game";
 import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";
 import { clockMinutesOf } from "../sim/clock";
+import { parseSeason, type Season } from "../sim/season";
 import { strings } from "../strings";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { ActionMenu } from "../ui/action-menu";
@@ -56,6 +57,16 @@ function seedFromAddress(): number | undefined {
  */
 function isPlaygroundAddress(): boolean {
   return new URLSearchParams(window.location.search).has("playground");
+}
+
+/**
+ * The season given as `&season=winter` in a playground address, if any. The playground then starts at 6:00 on day 1 of it.
+ * Without it, the playground starts in spring.
+ */
+function playgroundSeason(): { startSeason?: Season } {
+  if (!isPlaygroundAddress()) return {};
+  const startSeason = parseSeason(new URLSearchParams(window.location.search).get("season"));
+  return startSeason === undefined ? {} : { startSeason };
 }
 
 /** How often the game saves itself while it runs, in real milliseconds. */
@@ -161,7 +172,10 @@ const playground = isPlaygroundAddress();
 const { game, slot } =
   addressSeed === undefined && !playground
     ? await chooseGame(saveStorage)
-    : { game: createGame({ seed: addressSeed ?? randomSeed(), freeBuilding: playground }), slot: undefined };
+    : {
+        game: createGame({ seed: addressSeed ?? randomSeed(), freeBuilding: playground, ...playgroundSeason() }),
+        slot: undefined,
+      };
 if (saveStorage !== undefined && slot !== undefined) {
   startAutosave({
     save: () => {

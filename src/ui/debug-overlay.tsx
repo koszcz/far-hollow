@@ -1,4 +1,4 @@
-// Developer tools: the frame rate, the clock, the rain, and the rooms the game has found. Off by default. The backquote key (`) shows and hides it.
+// Developer tools: the frame rate, the clock, the season, the rain, and the rooms the game has found. Off by default. The backquote key (`) shows and hides it.
 import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { GameClient, GameView } from "../sim/api";
@@ -47,6 +47,8 @@ function DebugPanel({ client }: { client: GameClient }) {
         <dd>{view.seed}</dd>
         <dt>{strings.debugTime}</dt>
         <dd>{formatTime(view.time)}</dd>
+        <dt>{strings.debugSeason}</dt>
+        <dd>{strings.debugSeasonDay(strings.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays)}</dd>
         <dt>{strings.debugRain}</dt>
         <dd>{view.raining ? strings.debugRainFalling : strings.debugRainDry}</dd>
         <dt>{strings.debugRooms}</dt>
@@ -76,6 +78,14 @@ function DebugPanel({ client }: { client: GameClient }) {
         }}
       >
         {strings.debugSkipToRainChange(view.raining)}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          client.send({ type: "skipToSeason" });
+        }}
+      >
+        {strings.debugSkipToSeason}
       </button>
     </div>
   );

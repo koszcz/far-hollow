@@ -48,6 +48,7 @@ import {
   type ClockStart,
   timeRules,
 } from "./clock";
+import { firstDayOfSeason, NEW_GAME_YEAR_START_DAY, nextSeasonStartDay, type Season, type SeasonDay, seasonDayOf } from "./season";
 import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
 import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
@@ -122,6 +123,24 @@ export interface GameOptions {
    * Loading a save made before the journal existed turns it on. It is never saved, so it runs only once for each save.
    */
   journalFromCamp?: boolean;
+  /**
+   * Starts a new game at PLAYGROUND_SEASON_START_HOUR on day 1 of this season, instead of at GAME_START.
+   * The playground's `&season=` sets it. It is ignored when carrying on a saved game.
+   */
+  startSeason?: Season;
+}
+
+/** A game started in a chosen season starts at this hour, on day 1 of that season. */
+export const PLAYGROUND_SEASON_START_HOUR = 6;
+/** What skipToSeason passes time to, on day 1 of the next season. */
+const SEASON_SKIP_HOUR = 6;
+/** How many game minutes the banner shows for when a season starts. One game minute is one real second. */
+export const SEASON_BANNER_MINUTES = 30;
+
+/** Where a new game's clock starts: at GAME_START, or on the morning of day 1 of `startSeason` if given. */
+export function newGameStart(startSeason: Season | undefined): ClockStart {
+  if (startSeason === undefined) return GAME_START;
+  return { day: firstDayOfSeason(startSeason, NEW_GAME_YEAR_START_DAY), hour: PLAYGROUND_SEASON_START_HOUR };
 }
 
 /**
@@ -131,6 +150,8 @@ export interface GameOptions {
 export interface GameProgress {
   /** Game minutes since midnight at the start of day 1. */
   clockMinutes: number;
+  /** The day the year started on, which day 1 of spring falls on. The season follows from it and the day (see season.ts). */
+  yearStartDay: number;
   stepCount: number;
   firstNightOver: boolean;
   /** Whether the banner saying a snug room keeps out the cold has shown. It shows once in each game. */
@@ -165,7 +186,7 @@ export interface Game {
   groundMap(): GroundMap;
 }
 
-export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false, startSeason }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -248,8 +269,13 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
-  const gameStartMinutes = clockStartMinutes(GAME_START);
+  const gameStartMinutes = clockStartMinutes(newGameStart(progress === undefined ? startSeason : undefined));
   const clock = createClock(progress?.clockMinutes ?? gameStartMinutes);
+  const yearStartDay = progress?.yearStartDay ?? NEW_GAME_YEAR_START_DAY;
+  /** The season the banner last said had started, or the season the game began in. It is not saved. */
+  let announcedSeason = seasonNow().season;
+  /** The season that has just started, with the game minute its banner stops showing at, or null. It is not saved. */
+  let seasonBanner: { season: Season; untilMinutes: number } | null = null;
   // A save made before rain existed has no weather, so it starts dry from here.
   const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes) })).rain;
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
@@ -298,6 +324,8 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
       night: isNightAt(clock.minutes),
+      season: Object.freeze(seasonNow()),
+      seasonBanner: seasonBanner !== null && clock.minutes < seasonBanner.untilMinutes ? seasonBanner.season : null,
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
@@ -442,6 +470,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
         passTime(gameMinutes);
       },
       skipToRainChange,
+      skipToSeason,
     }),
     ...walkingRules(walking),
     ...choppingRules(chopping),
@@ -537,6 +566,28 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     while (rain.falling === wasFalling) {
       if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
     }
+  }
+
+  /** The season today, from the day on the clock and the day the year started on. */
+  function seasonNow(): SeasonDay {
+    return seasonDayOf(readClock(clock.minutes).day, yearStartDay);
+  }
+
+  /**
+   * Moves the clock on to SEASON_SKIP_HOUR on day 1 of the next season. A collapse on the way does not stop it:
+   * the player wakes the next morning and time passes on, so the skip always gets there.
+   */
+  function skipToSeason(): void {
+    const target = clockStartMinutes({ day: nextSeasonStartDay(readClock(clock.minutes).day, yearStartDay), hour: SEASON_SKIP_HOUR });
+    while (clock.minutes < target) passTime(target - clock.minutes);
+  }
+
+  /** Shows the banner for a season that has started since the last one shown. The step calls it once time has passed. */
+  function noticeSeasonStart(): void {
+    const { season } = seasonNow();
+    if (season === announcedSeason) return;
+    announcedSeason = season;
+    seasonBanner = { season, untilMinutes: clock.minutes + SEASON_BANNER_MINUTES };
   }
 
   /**
@@ -743,6 +794,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       actionQueue.moveOn();
       noteGoals();
       noticeSnugRoom();
+      noticeSeasonStart();
       stepCount += 1;
     }
 
@@ -782,6 +834,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   function readProgress(): GameProgress {
     return structuredClone({
       clockMinutes: clock.minutes,
+      yearStartDay,
       stepCount,
       firstNightOver,
       snugRoomNoticeShown,

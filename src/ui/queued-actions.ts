@@ -202,6 +202,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { hud: "moon" }, name: strings.debugSkipHours(command.hours) };
     case "skipToRainChange":
       return { icon: { hud: "droplet" }, name: strings.debugSkipToRainChange(view.raining) };
+    case "skipToSeason":
+      return { icon: { hud: "sun" }, name: strings.debugSkipToSeason };
   }
 }
 

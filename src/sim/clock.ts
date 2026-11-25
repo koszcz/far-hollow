@@ -106,10 +106,12 @@ export interface TimeControls {
   readonly passTime: (gameMinutes: number) => void;
   /** Moves the clock on until rain starts or stops, or the player collapses. */
   readonly skipToRainChange: () => void;
+  /** Moves the clock on to 6:00 on day 1 of the next season. A collapse does not stop it. */
+  readonly skipToSeason: () => void;
 }
 
 /** The rules for pausing and skipping time. None of them is the player acting, so a player on a stool stays sitting. */
-export function timeRules(time: TimeControls): CommandRules<"setPaused" | "skipTime" | "skipToRainChange"> {
+export function timeRules(time: TimeControls): CommandRules<"setPaused" | "skipTime" | "skipToRainChange" | "skipToSeason"> {
   return {
     setPaused: {
       start: "alongside",
@@ -135,6 +137,14 @@ export function timeRules(time: TimeControls): CommandRules<"setPaused" | "skipT
       queue: "apart",
       run: () => {
         time.skipToRainChange();
+      },
+    },
+    skipToSeason: {
+      start: "alongside",
+      keepsPlayerSitting: true,
+      queue: "apart",
+      run: () => {
+        time.skipToSeason();
       },
     },
   };

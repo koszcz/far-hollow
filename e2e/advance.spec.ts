@@ -35,6 +35,6 @@ test("advance runs play time at once: a clicked walk finishes and the HUD clock 
   expect(result.ran).toBe(60);
   expect(Math.hypot(result.position.x - start.x, result.position.z - start.z)).toBeGreaterThan(2);
   expect(result.time).toMatchObject({ hour: 9 });
-  await expect(page.locator(".hud-clock")).toContainText("Day 1 · 09:");
+  await expect(page.locator(".hud-clock")).toContainText("Spring · day 1 of 7 · 09:");
   expect(errors).toEqual([]);
 });

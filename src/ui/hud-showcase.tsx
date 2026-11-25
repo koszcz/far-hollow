@@ -18,6 +18,8 @@ const BASE_VIEW: GameView = {
   playerPosition: { x: 0, y: 0, z: 0 },
   time: { day: 1, hour: 12, minute: 0, hourOfDay: 12 },
   night: false,
+  season: { season: "spring", dayOfSeason: 1, seasonDays: 7 },
+  seasonBanner: null,
   backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 3 },
   backpackWeight: 4.2,
   backpackWeightLimit: 20,

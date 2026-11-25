@@ -81,6 +81,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   matchGroundToTrees,
   addWindows,
   addJournal,
+  startTheYear,
 ];
 
 /** The version of the save format this code writes. */
@@ -192,6 +193,8 @@ export const GROUND_CHANGES_SAVE_VERSION = SAVE_UPGRADES.indexOf(matchGroundToTr
 export const WINDOWS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWindows) + 2;
 /** The first save version that records the journal's goals done and whether it is hidden. */
 export const JOURNAL_SAVE_VERSION = SAVE_UPGRADES.indexOf(addJournal) + 2;
+/** The first save version that records the day the year started on, which the season follows from. */
+export const SEASONS_SAVE_VERSION = SAVE_UPGRADES.indexOf(startTheYear) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -262,11 +265,15 @@ export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_
   const journalFromCamp = addsJournal(data, upgrades);
   const save = upgradeSave(data, upgrades);
   if (!isValidSave(save)) return { ok: false, reason: "notASave" };
-  const { seed, clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } = save as unknown as SaveFile;
+  const { seed, clockMinutes, yearStartDay, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } = save as unknown as SaveFile;
   try {
     return {
       ok: true,
-      game: createGame({ seed, journalFromCamp, progress: { clockMinutes, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } }),
+      game: createGame({
+        seed,
+        journalFromCamp,
+        progress: { clockMinutes, yearStartDay, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities },
+      }),
     };
   } catch {
     // The save had the right shape but still could not be loaded.
@@ -1019,4 +1026,17 @@ function addWindows(save: Readonly<Record<string, unknown>>): Record<string, unk
  */
 function addJournal(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return { ...save, journal: { done: [], hidden: false } };
+}
+
+/**
+ * Version 59 to 60: the valley turns through the seasons, which follow from the day the year started on.
+ * A save from before then starts its year on the day it was saved, so it resumes on day 1 of spring.
+ * A save with a broken clock is passed on unchanged, so the shape check turns it away.
+ */
+function startTheYear(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  // This copies MINUTES_PER_DAY in clock.ts on purpose. An upgrade keeps its own fixed values (see SAVE_UPGRADES).
+  const MINUTES_PER_DAY = 24 * 60;
+  const { clockMinutes } = save;
+  if (typeof clockMinutes !== "number" || !Number.isFinite(clockMinutes) || clockMinutes < 0) return { ...save };
+  return { ...save, yearStartDay: Math.floor(clockMinutes / MINUTES_PER_DAY) + 1 };
 }

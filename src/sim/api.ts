@@ -15,6 +15,10 @@ import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */
 export { HOURS_PER_DAY, MORNING_HOUR, NIGHT_START_HOUR, type TimeOfDay } from "./clock";
+import type { Season, SeasonDay } from "./season";
+
+/** The HUD names the season and tints the clock by it. */
+export { SEASONS, type Season, type SeasonDay } from "./season";
 import type { Vec3 } from "./entities";
 import type { BurnTime } from "./burn-time";
 
@@ -351,6 +355,11 @@ export type Command =
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
   | { type: "skipToRainChange" }
   /**
+   * Jumps the valley's clock forward to 6:00 on day 1 of the next season, the same way skipTime does.
+   * A collapse does not cut it short: the player wakes the next morning and time passes on. The debug overlay sends it.
+   */
+  | { type: "skipToSeason" }
+  /**
    * Add an action to the end of the action queue. With an empty queue, it starts at once, as if sent on its own.
    * The queue holds at most ACTION_QUEUE_LIMIT actions, counting the one under way. When it is full, or when the game
    * would refuse the action now, nothing is added and a notice says why. A command that is never queued, such as pausing,
@@ -387,6 +396,10 @@ export interface GameView {
   readonly time: TimeOfDay;
   /** Whether it is night now, by the game's own hours. The HUD shows the moon instead of the sun. */
   readonly night: boolean;
+  /** The season today, which day of it today is, and how many days it lasts. */
+  readonly season: SeasonDay;
+  /** The season that has just started, while the HUD's banner says so, or else null. It is not saved. */
+  readonly seasonBanner: Season | null;
   /** How many of each tool and material the player's backpack holds. */
   readonly backpack: Readonly<BackpackContents>;
   /** How much the backpack's contents weigh, in kilograms. */

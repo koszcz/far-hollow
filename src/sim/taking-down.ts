@@ -13,6 +13,7 @@ import { blueprintEntities, lyingThings, playerEntities, setComponent, type Enti
 import { hasDoor } from "./doors";
 import { hasShutters } from "./windows";
 import { hasChimney } from "./chimneys";
+import { swapBlueprintOn } from "./wall-swaps";
 import { isColdAndEmpty } from "./fire";
 import { refusedNotice } from "./notices";
 import { standingHeightAt } from "./foundations";
@@ -40,19 +41,12 @@ import {
 } from "./structures";
 import type { Valley } from "./valley";
 import type { GroundPoint } from "./ground-point";
-import { cellCentre, reachableCells } from "./walk-map";
+import { laySpots } from "./walk-map";
 import type { Walking } from "./walking";
 import type { CommandRules } from "./command-rule";
 
 /** Taking a finished structure down takes this share of the time building it took. */
 const TAKE_DOWN_SHARE_OF_BUILD = 0.5;
-/**
- * Materials given back on the ground are laid on the walk-map squares nearest the player, up to three on each,
- * side by side at these offsets across x from the square's middle, in metres. A debarked log lies along z, as long as a square,
- * so it never reaches across a square's edge, and so never through a wall.
- */
-const LAY_OFFSETS_METRES = [0, -0.3, 0.3];
-
 /** The player while taking a structure down. */
 type Worker = Entity & Required<Pick<Entity, "position" | "backpack">>;
 
@@ -108,19 +102,10 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
       if (count > 0) onGround.push({ pile: { content, count } });
     }
     for (const material of delivered) onGround.push({ [material]: { heading: 0 } });
-    const spots = laySpots(worker.position, onGround.length);
+    const spots = laySpots(walking.walkMap, worker.position, onGround.length);
     onGround.forEach((components, i) => {
       const { x, z } = spots[i] ?? worker.position;
       entities.add({ ...components, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
-    });
-  }
-
-  /** Where to lay `count` things near `from`: on the walk-map squares nearest it that the player can walk to, without crossing a wall. */
-  function laySpots(from: GroundPoint, count: number): GroundPoint[] {
-    const cells = reachableCells(walking.walkMap, from, Math.ceil(count / LAY_OFFSETS_METRES.length));
-    return cells.flatMap((cell) => {
-      const middle = cellCentre(walking.walkMap, cell);
-      return LAY_OFFSETS_METRES.map((offset) => ({ x: middle.x + offset, z: middle.z }));
     });
   }
 
@@ -232,7 +217,7 @@ type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
  * A log wall, door frame, floor, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
  * A roof frame, finished or as a blueprint, rests on every wall and door frame on the edges of its square.
  * A frame with no walls on its edges rests on the finished frames beside it, so a frame stays up while another needs it to reach the walls.
- * A door, finished or as a blueprint, hangs in its door frame. Shutters in a window and a chimney on a fireplace have refusals of their own:
+ * A door, finished or as a blueprint, hangs in its door frame. A swap blueprint stands on the log wall it will replace. Shutters in a window and a chimney on a fireplace have refusals of their own:
  * see takeDownRefusal.
  * A roof section, finished or as a blueprint, rests on the roof frame under it.
  * Only finished structures hold anything up, since nothing can be placed on a blueprint.
@@ -243,6 +228,8 @@ export function holdsUpAnother(entities: EntityStore, structure: PlacedStructure
   const blueprintsOf = (structureKind: StructureKind) => blueprintEntities(entities).entities.filter(({ blueprint }) => blueprint.structure === structureKind);
   if (isEdgePiece(kind)) {
     if (kind === "doorFrame" && hasDoor(entities, structure.position)) return true;
+    // A swap blueprint stands on the wall it will replace.
+    if (kind === "logWall" && swapBlueprintOn(entities, structure.position) !== undefined) return true;
     const frameBlueprints = blueprintsOf("roofFrame");
     return squaresBeside(structure.position, structure.facing?.turns ?? 0).some(
       (square) => roofFrameOn(entities, square) !== undefined || frameBlueprints.some((frame) => isOnGridSquare(square, frame.position)),

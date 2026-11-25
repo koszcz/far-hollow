@@ -6,6 +6,7 @@ import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { blocksWalking, edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";
 import { hasShutters, nearestBareWindow, windowOn } from "./windows";
+import { canSwapForWall, swappableWallOn } from "./wall-swaps";
 import { fireplaceOn, hasChimney, nearestBareFireplace } from "./chimneys";
 import {
   blueprintEntities,
@@ -156,6 +157,8 @@ export interface StructureDefinition {
   clearSite?(site: PlacementSite, spot: GroundPoint): void;
   /** The spots whose walk-map squares a blueprint at `spot` blocks, for a structure whose blueprint blocks walking. Without this, a blueprint blocks nothing. */
   blueprintBlocksWalkingSpots?(spot: GroundPoint): GroundPoint[];
+  /** The components a blueprint placed at `spot` gets besides its blueprint, such as the mark of a swap. Without this, it gets none. */
+  blueprintParts?(site: PlacementSite, spot: GroundPoint): Entity;
 }
 
 /**
@@ -400,9 +403,14 @@ export const WINDOW_BUILD_SECONDS = 10;
  * R picks the edge: facing `turns`, it snaps to the edge that `edgeMiddle` gives for the square under the mouse.
  * Its ground is that line, so it never overlaps the squares on either side, and foundations can sit right beside it.
  * A log wall and a window block walking across their edge. A door frame leaves the doorway open.
+ * A window or door frame may also go on a finished log wall, as a swap (see wall-swaps.ts). Its other placement rules still apply.
  */
 function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buildSeconds: number): StructureDefinition & { readonly kind: Kind } {
   const footprint = (spot: GroundPoint, turns: QuarterTurns) => turnedRect(spot, BUILD_GRID_METRES / 2, 0, turns);
+  /** Whether a blueprint at `spot` would be a swap: this piece on a finished log wall that has no swap on it yet. */
+  const isSwap = (entities: EntityStore, spot: GroundPoint) => canSwapForWall(kind) && swappableWallOn(entities, spot) !== undefined;
+  /** Whether the edge holds a piece or blueprint this one may not go on. A log wall it would swap does not count. */
+  const isTaken = (entities: EntityStore, spot: GroundPoint) => isEdgeTaken(entities, spot) && !isSwap(entities, spot);
   return {
     kind,
     cost: [{ material: "debarkedLog", count: logCost }],
@@ -418,16 +426,17 @@ function edgePiece<Kind extends EdgePieceKind>(kind: Kind, logCost: number, buil
     },
     canPlace({ entities }, spot, turns) {
       if (foundationsBeside(entities, spot, turns).length === 0) return false;
-      if (isEdgeTaken(entities, spot)) return false;
+      if (isTaken(entities, spot)) return false;
       if (meetsOpeningAtCorner(entities, kind, spot, turns)) return false;
       if (overlapsOpenGroundCampfire(entities, footprint(spot, turns))) return false;
       return isClearOfTreesAndStructures(entities, footprint(spot, turns));
     },
     placementRefusal({ entities }, spot, turns) {
       // Only an edge the piece could otherwise take says why, so a taken edge or open ground does not blame the corner.
-      if (foundationsBeside(entities, spot, turns).length === 0 || isEdgeTaken(entities, spot)) return undefined;
+      if (foundationsBeside(entities, spot, turns).length === 0 || isTaken(entities, spot)) return undefined;
       return meetsOpeningAtCorner(entities, kind, spot, turns) ? { kind: "atCorner" } : undefined;
     },
+    blueprintParts: ({ entities }, spot) => (isSwap(entities, spot) ? { swapsWall: true } : {}),
     finish(spot, turns) {
       const [inside, beyond] = squaresBeside(spot, turns);
       // A door frame leaves the doorway open, so it blocks nothing.
@@ -1031,9 +1040,10 @@ export function isTaken(material: BuildMaterial): material is TakenMaterial {
 
 /**
  * What a blueprint or finished structure of `kind` costs: the cost it was placed with, if that differs from its structure's cost now,
- * or else its structure's cost.
+ * or else its structure's cost. A swap blueprint costs nothing, because the logs of the wall it replaces pay for it.
  */
 export function costOf(entity: Entity, kind: StructureKind): readonly MaterialCost[] {
+  if (entity.swapsWall === true) return [];
   return entity.builtCost ?? structureOf(kind).cost;
 }
 

@@ -14,7 +14,7 @@ A room today is a log box with a door. This feature adds the **window**, an edge
 - It blocks walking like a log wall. It counts as a closed side of a room, and it holds up a roof frame like a log wall.
 - The door frame's corner rule applies: a window cannot meet a log wall, door frame, or window at a right angle at a corner.
 - The player can build a window wherever a log wall can go.
-- A window cannot replace a finished log wall in this feature. Ticket 03 later lets the player swap a finished wall for a window or door frame.
+- The player can swap a finished log wall for a window or door frame. The wall stands until the swap finishes, and its logs pay for the new piece (ticket 03).
 
 ## Shutters
 
@@ -70,7 +70,6 @@ A room today is a log box with a door. This feature adds the **window**, an edge
 ## Not in this feature
 
 - Glass
-- Turning a finished log wall into a window or door frame without taking it down
 - Shutters that open or close on their own
 - Rain or cold coming in through an open window
 - A journal goal for windows

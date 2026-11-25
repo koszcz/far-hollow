@@ -114,8 +114,10 @@ describe("one piece on each edge", () => {
 
     finishedPieceAt(game, "logWall", square, 0);
 
-    expect(game.client.checkPlacement("doorFrame", beside, 2).allowed).toBe(false);
+    expect(game.client.checkPlacement("logWall", beside, 2).allowed).toBe(false);
     expect(game.client.checkPlacement("doorFrame", beside, 0).allowed).toBe(true);
+    // A door frame may still go on the finished wall, as a swap (see wall-swap.test.ts).
+    expect(game.client.checkPlacement("doorFrame", beside, 2).allowed).toBe(true);
   });
 });
 

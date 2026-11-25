@@ -83,6 +83,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addJournal,
   startTheYear,
   addChimneys,
+  addWallSwaps,
   spoilFreshFood,
 ];
 
@@ -199,6 +200,8 @@ export const JOURNAL_SAVE_VERSION = SAVE_UPGRADES.indexOf(addJournal) + 2;
 export const SEASONS_SAVE_VERSION = SAVE_UPGRADES.indexOf(startTheYear) + 2;
 /** The first save version that can hold chimneys. */
 export const CHIMNEYS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addChimneys) + 2;
+/** The first save version that can hold a swap blueprint: a window or door frame blueprint on a finished log wall. */
+export const WALL_SWAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWallSwaps) + 2;
 /** The first save version in which fresh food spoils, and the backpack, chests, shelves, and piles save when each food spoils. */
 export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
 
@@ -1053,7 +1056,15 @@ function addChimneys(save: Readonly<Record<string, unknown>>): Record<string, un
 }
 
 /**
- * Version 61 to 62: fresh food spoils, and the backpack, chests, shelves, and piles save when each fresh food in them spoils.
+ * Version 61 to 62: the player can swap a finished log wall for a window or door frame, and a swap blueprint is saved with
+ * its progress. A save from before then holds no swap, so it carries over unchanged.
+ */
+function addWallSwaps(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 62 to 63: fresh food spoils, and the backpack, chests, shelves, and piles save when each fresh food in them spoils.
  * A save from before then gives every fresh food its full keeping time from the moment the save loads, so the update costs
  * the player nothing (ADR 0011). A fish in a fish trap or on a fire does not spoil, so it needs nothing.
  * A save with a broken clock is passed on unchanged, so the shape check turns it away.

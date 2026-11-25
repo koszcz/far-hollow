@@ -189,6 +189,22 @@ export function reachableCells(map: WalkMap, from: GroundPoint, limit: number): 
   return found;
 }
 
+/**
+ * Materials laid on the ground are laid on the walk-map squares nearest the player, up to three on each,
+ * side by side at these offsets across x from the square's middle, in metres. A debarked log lies along z, as long as a square,
+ * so it never reaches across a square's edge, and so never through a wall.
+ */
+const LAY_OFFSETS_METRES = [0, -0.3, 0.3];
+
+/** Where to lay `count` things near `from`: on the walk-map squares nearest it that the player can walk to, without crossing a wall. */
+export function laySpots(map: WalkMap, from: GroundPoint, count: number): GroundPoint[] {
+  const cells = reachableCells(map, from, Math.ceil(count / LAY_OFFSETS_METRES.length));
+  return cells.flatMap((cell) => {
+    const middle = cellCentre(map, cell);
+    return LAY_OFFSETS_METRES.map((offset) => ({ x: middle.x + offset, z: middle.z }));
+  });
+}
+
 function changeCircle(map: WalkMap, centre: GroundPoint, radius: number, change: 1 | -1): void {
   const min = { x: centre.x - radius, z: centre.z - radius };
   const max = { x: centre.x + radius, z: centre.z + radius };

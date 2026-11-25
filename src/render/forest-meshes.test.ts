@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
-import { createForestMeshes, type ForestShapes } from "./forest-meshes";
+import { AUTUMN_CROWN_COLOURS } from "./autumn-leaves";
+import { createForestMeshes, TREE_COLOURS, type ForestShapes } from "./forest-meshes";
 import { createWindSway } from "./wind-sway";
 
 const noTree = { name: "none", trunk: new THREE.BoxGeometry(), crown: new THREE.BoxGeometry(), trunkTone: "light", crownTone: "light" } as const;
@@ -117,6 +118,37 @@ describe("the debarked log the player saws", () => {
     walkToSaw();
     forest.update(0);
     expect(drawnLog(forest, log).middle.y).toBeCloseTo(0.4 + 0.15);
+    forest.dispose();
+  });
+});
+
+describe("autumn leaves", () => {
+  /** A forest with an oak type and a pine type, and the colours each type's crowns are drawn in, near and far. */
+  function oakAndPine() {
+    const treeType = (name: string) =>
+      ({ name, trunk: new THREE.BoxGeometry(), crown: new THREE.BoxGeometry(), trunkTone: "light", crownTone: "light" }) as const;
+    const oak = treeType("tree_oak");
+    const pine = treeType("tree_pineDefaultA");
+    const forest = createForestMeshes(createEntityStore(), { ...testShapes(), trees: [oak, pine] }, createWindSway());
+    const crownColours = (crown: THREE.BufferGeometry): number[] => {
+      const colours: number[] = [];
+      forest.group.traverse((object) => {
+        if (object instanceof THREE.Mesh && object.geometry === crown) colours.push((object.material as THREE.MeshStandardMaterial).color.getHex());
+      });
+      return colours;
+    };
+    return { forest, oakCrowns: () => crownColours(oak.crown), pineCrowns: () => crownColours(pine.crown) };
+  }
+
+  it("turns broadleaf crowns amber and leaves the pines green", () => {
+    const { forest, oakCrowns, pineCrowns } = oakAndPine();
+    forest.setLeafTurn(1);
+    expect(oakCrowns().length).toBeGreaterThan(0);
+    expect(pineCrowns().length).toBeGreaterThan(0);
+    for (const colour of oakCrowns()) expect(colour).toBe(AUTUMN_CROWN_COLOURS.light);
+    for (const colour of pineCrowns()) expect(colour).toBe(TREE_COLOURS.crown.light);
+    forest.setLeafTurn(0);
+    for (const colour of oakCrowns()) expect(colour).toBe(TREE_COLOURS.crown.light);
     forest.dispose();
   });
 });

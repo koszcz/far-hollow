@@ -66,9 +66,9 @@ export function showAsset(
 ): AssetShowcase | undefined {
   const showcase = SHOWCASES[id];
   if (showcase === undefined) return undefined;
-  // The valley's ground and river are the subject only for "terrain" and "river". Everything else stands on flat ground
-  // with the same painted texture, because the valley floor slopes and would tilt every view.
-  const onValley = id === "terrain" || id === "river";
+  // The valley's ground and river are the subject only for "terrain", "river", and "frozen-river". Everything else stands
+  // on flat ground with the same painted texture, because the valley floor slopes and would tilt every view.
+  const onValley = id === "terrain" || id === "river" || id === "frozen-river";
   const valley = generateValley(SHOWCASE_SEED);
   const middle = onValley ? stageMiddle(valley) : { x: 0, y: 0, z: 0 };
   const groundAt = (x: number, z: number): number => (onValley ? terrainHeightAt(valley.terrain, x, z) : 0);
@@ -92,6 +92,7 @@ export function showAsset(
   scene.add(ground.group);
   const river: RiverMeshes | undefined = onValley ? createRiverMeshes(valley) : undefined;
   if (river !== undefined) scene.add(river.group);
+  river?.setFrozen(id === "frozen-river");
 
   const store = createEntityStore();
   const player = createPlayerMesh(shapes.player, shapes.log);

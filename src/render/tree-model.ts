@@ -11,6 +11,12 @@ const METRES_PER_MODEL_UNIT = 5.5;
 /** Which of the game's colours a part is drawn in. Kenney's material names say whether a part is the dark kind. */
 export type TreeTone = "dark" | "light";
 
+/** The colour of each tree part in each tone. Trees are drawn in these, whatever colours the model file holds. */
+export const TREE_COLOURS: Readonly<Record<"trunk" | "crown", Readonly<Record<TreeTone, number>>>> = {
+  trunk: { dark: 0x6b4a2b, light: 0x7d5634 },
+  crown: { dark: 0x2f5a2a, light: 0x4a7a2e },
+};
+
 /** One type of tree, in metres, with the pivot at the foot of the trunk. */
 export interface TreeShape {
   /** The model's name in trees.glb, such as "tree_oak". */

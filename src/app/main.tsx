@@ -194,7 +194,7 @@ const sceneRenderer = createSceneRenderer(
   () => game.client.getView().time.hourOfDay,
   () => game.client.getView().nightHours,
   () => clockMinutesOf(game.client.getView().time),
-  () => game.client.getView().season.season,
+  () => game.client.getView().season,
   () => game.client.getView().lastSleep,
   () => game.client.getView().lastEatOrDrink,
   await loadModelShapes(),

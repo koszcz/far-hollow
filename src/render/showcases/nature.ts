@@ -1,4 +1,5 @@
 // Showcases for the land and what grows on it: ground, river, trees, undergrowth, and logs. The registry is src/render/showcases/index.ts.
+import { crownColour, isBroadleaf } from "../autumn-leaves";
 import { createTreeMaterial, TREE_COLOURS } from "../forest-meshes";
 import { createSaplingShapes } from "../sapling-shape";
 import { createFarTreeShape } from "../tree-far-shape";
@@ -58,6 +59,13 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
     build() {},
   },
+  // The same stretch of river as "river", frozen as it is all winter.
+  "frozen-river": {
+    radius: 16,
+    focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },
+    shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
+    build() {},
+  },
   trees: {
     radius: 7,
     focus: { x: 0, y: 3, z: 0 },
@@ -83,6 +91,25 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
         const far = createFarTreeShape(shape);
         addProp(far.trunk, createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
         addProp(far.crown, createTreeMaterial(TREE_COLOURS.crown[shape.crownTone]), x, 0);
+      });
+    },
+  },
+  // Every broadleaf tree type fully turned for autumn: its real shape in the front row and its far shape behind.
+  // Pines keep their green, so they are left out.
+  "autumn-trees": {
+    radius: 12,
+    focus: { x: 0, y: 3, z: -2 },
+    shots: FOUR_ANGLES,
+    build({ addProp, treeShapes }) {
+      const broadleaf = treeShapes.filter((shape) => isBroadleaf(shape.name));
+      broadleaf.forEach((shape, index) => {
+        const x = (index - (broadleaf.length - 1) / 2) * FAR_TREE_SPACING_METRES;
+        const far = createFarTreeShape(shape);
+        const amber = crownColour(shape.crownTone, 1).getHex();
+        addProp(shape.trunk.clone(), createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
+        addProp(shape.crown.clone(), createTreeMaterial(amber), x, 0);
+        addProp(far.trunk, createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, -FAR_TREE_SPACING_METRES);
+        addProp(far.crown, createTreeMaterial(amber), x, -FAR_TREE_SPACING_METRES);
       });
     },
   },

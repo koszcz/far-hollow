@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, Plantable, ScenePick, Season, SleepView } from "../sim/api";
+import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, Plantable, ScenePick, SeasonDay, SleepView } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { diggingClayNow } from "../sim/clay";
 import { gatheringStoneNow } from "../sim/stone";
@@ -20,6 +20,7 @@ import { blendPosition } from "./blend";
 import { createCameraRig, type CameraRig } from "./camera-rig";
 import { createForageMeshes } from "./forage-meshes";
 import { createMushroomLogMeshes } from "./mushroom-log-meshes";
+import { leafTurnShare } from "./autumn-leaves";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
 import type { NightHours } from "../sim/season";
@@ -112,7 +113,7 @@ export interface SceneRenderer {
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * readNightHours returns today's night hours, which follow the season, from game logic.
  * readClockMinutes returns the game minutes since midnight at the start of day 1, from game logic.
- * readSeason returns the season today, from game logic.
+ * readSeasonDay returns the season today and which day of it today is, from game logic.
  * Rendering only reads the clock and the season. It never changes them.
  * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
  * readLastEatOrDrink returns the player's last bite or drink, from game logic. A new one plays its motion once.
@@ -125,7 +126,7 @@ export function createSceneRenderer(
   readHourOfDay: () => number,
   readNightHours: () => NightHours,
   readClockMinutes: () => number,
-  readSeason: () => Season,
+  readSeasonDay: () => SeasonDay,
   readLastSleep: () => SleepView | null,
   readLastEatOrDrink: () => EatOrDrinkView | null,
   shapes: ModelShapes,
@@ -662,7 +663,10 @@ export function createSceneRenderer(
       darkness = sleepSeconds === undefined ? 0 : sleepDarknessAt(sleepSeconds);
       darkenView(canvas, darkness);
       const daylight = daylightAt(hourOfDay, nightHours);
+      const seasonDay = readSeasonDay();
+      riverMeshes.setFrozen(seasonDay.season === "winter");
       riverMeshes.update(nowSeconds, daylight);
+      forestMeshes.setLeafTurn(leafTurnShare(seasonDay, readHourOfDay()));
       blowWind(nowSeconds);
       forestMeshes.update(nowSeconds);
       forageMeshes.update();
@@ -704,7 +708,7 @@ export function createSceneRenderer(
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
-      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight, readSeason() === "summer");
+      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight, seasonDay.season === "summer");
       windowGlowMeshes.update({ daylight, nowSeconds, cutaway });
       skyLighting.update(hourOfDay, nightHours, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.

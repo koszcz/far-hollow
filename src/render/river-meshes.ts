@@ -2,11 +2,18 @@
 // It has two parts:
 // - Clear, rippling low-poly water, with faint sparkles and flow streaks that show the current.
 // - A sandy pebble bank along each side, which runs from under the shallows out onto the grass.
+// In winter the water is drawn as the draft "frozen-river" asset: pale, solid-looking ice that lies still, with no ripples,
+// streaks, or sparkles.
 import * as THREE from "three";
 import type { Terrain, Valley } from "../sim/valley";
 
 /** The water's one colour. The riverbed shows through it. */
 const WATER_COLOUR = 0x3f8f9c;
+/** The frozen river's colour: a pale blue-white ice. */
+const ICE_COLOUR = 0xcfe3ea;
+/** How rough the water's surface is, and how rough the ice's is. Ice gives a softer shine than water. */
+const WATER_ROUGHNESS = 0.12;
+const ICE_ROUGHNESS = 0.45;
 /** How solid the water looks where it is deepest. */
 const DEEP_WATER_OPACITY = 0.85;
 /** How solid the water looks at the bank, where it is only a film. */
@@ -60,6 +67,8 @@ export interface RiverMeshes {
   readonly group: THREE.Group;
   /** Moves the ripples, streaks, and sparkles. Daylight runs from 0 (night) to 1 (full day). */
   update(nowSeconds: number, daylight: number): void;
+  /** Draws the water as still, pale ice while `frozen`, or as flowing water. */
+  setFrozen(frozen: boolean): void;
   dispose(): void;
 }
 
@@ -80,6 +89,8 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     riverSandColours: { value: SAND_COLOURS.map((hex) => new THREE.Color(hex)) },
     riverPebbleColours: { value: PEBBLE_COLOURS.map((hex) => new THREE.Color(hex)) },
     riverPebbleSpacing: { value: PEBBLE_SPACING_METRES },
+    /** 1 while the river is frozen, else 0. It hides the streaks and sparkles and makes the ice look solid. */
+    riverFrozen: { value: 0 },
   };
   const addRiverCoord = (shader: THREE.WebGLProgramParametersWithUniforms) => {
     Object.assign(shader.uniforms, uniforms);
@@ -93,7 +104,7 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     vertexColors: true,
     transparent: true,
     flatShading: true,
-    roughness: 0.12,
+    roughness: WATER_ROUGHNESS,
     metalness: 0.1,
     side: THREE.DoubleSide,
   });
@@ -126,12 +137,19 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
   group.add(new THREE.Mesh(bankGeometry, bankMaterial));
   group.add(new THREE.Mesh(water.geometry, waterMaterial));
 
+  let frozen = false;
   return {
     group,
     update(nowSeconds, daylight) {
-      water.placeCorners(nowSeconds);
+      water.placeCorners(nowSeconds, frozen ? 0 : 1);
       uniforms.riverTime.value = nowSeconds;
       uniforms.riverDaylight.value = daylight;
+    },
+    setFrozen(nowFrozen) {
+      frozen = nowFrozen;
+      uniforms.riverFrozen.value = frozen ? 1 : 0;
+      waterMaterial.color.set(frozen ? ICE_COLOUR : WATER_COLOUR);
+      waterMaterial.roughness = frozen ? ICE_ROUGHNESS : WATER_ROUGHNESS;
     },
     dispose() {
       water.geometry.dispose();
@@ -180,7 +198,7 @@ function sampleRiver(valley: Valley, stepMetres: number, halfWidth: number): Riv
 interface WaterGeometry {
   readonly geometry: THREE.BufferGeometry;
   /** Raises and lowers the ripples for this moment. */
-  placeCorners(nowSeconds: number): void;
+  placeCorners(nowSeconds: number, rippleScale: number): void;
 }
 
 /**
@@ -263,7 +281,7 @@ function createWaterGeometry(frames: readonly RiverFrame[], halfWidth: number): 
 
   const heights = new Float32Array(restHeights.length);
   const waveNumber = (Math.PI * 2) / RIPPLE_LENGTH_METRES;
-  function placeCorners(nowSeconds: number): void {
+  function placeCorners(nowSeconds: number, rippleScale: number): void {
     const drift = nowSeconds * FLOW_SPEED_METRES_PER_SECOND;
     for (let point = 0; point < heights.length; point += 1) {
       const along = (alongRiver[point] ?? 0) - drift;
@@ -271,7 +289,7 @@ function createWaterGeometry(frames: readonly RiverFrame[], halfWidth: number): 
       const z = gridZ[point] ?? 0;
       // Two crossing waves, so the facets catch the light unevenly instead of in neat stripes.
       const ripple = Math.sin(along * waveNumber + x * 0.9) * 0.6 + Math.sin(along * waveNumber * 0.57 - z * 0.7 - x * 1.3) * 0.4;
-      heights[point] = (restHeights[point] ?? 0) + ripple * RIPPLE_HEIGHT_METRES * (rippleStrength[point] ?? 0);
+      heights[point] = (restHeights[point] ?? 0) + ripple * RIPPLE_HEIGHT_METRES * rippleScale * (rippleStrength[point] ?? 0);
     }
     cornerPoints.forEach((point, corner) => {
       positions[corner * 3] = gridX[point] ?? 0;
@@ -280,7 +298,7 @@ function createWaterGeometry(frames: readonly RiverFrame[], halfWidth: number): 
     });
     positionAttribute.needsUpdate = true;
   }
-  placeCorners(0);
+  placeCorners(0, 1);
   geometry.computeBoundingSphere();
 
   return { geometry, placeCorners };
@@ -358,6 +376,7 @@ const RIVER_FRAGMENT_HEAD = /* glsl */ `
 varying vec2 vRiverCoord;
 uniform float riverTime;
 uniform float riverDaylight;
+uniform float riverFrozen;
 uniform float riverHalfWidth;
 uniform float riverFlowSpeed;
 uniform vec3 riverStreakColour;
@@ -401,8 +420,11 @@ const WATER_STREAK_CHUNK = /* glsl */ `
   float fast = riverStreaks(vRiverCoord.x, vRiverCoord.y, riverFlowSpeed, 0.0);
   float slow = riverStreaks(vRiverCoord.x, vRiverCoord.y, riverFlowSpeed * 0.45, 17.0);
   float streak = mix(fast, slow, smoothstep(0.3, 0.8, share)) * (1.0 - smoothstep(0.6, 0.85, share));
+  streak *= 1.0 - riverFrozen;
   diffuseColor.rgb = mix(diffuseColor.rgb, riverStreakColour, streak * 0.35);
   diffuseColor.a = max(diffuseColor.a, streak * 0.5);
+  // Ice looks solid, though thin ice at the edges still shows a little of the bank.
+  diffuseColor.a = mix(diffuseColor.a, 0.55 + 0.45 * diffuseColor.a, riverFrozen);
 }
 `;
 
@@ -416,7 +438,7 @@ const WATER_SPARKLE_CHUNK = /* glsl */ `
     vec2 centreOffset = fract(spot) - (0.3 + 0.4 * vec2(riverHash(cell + 3.1), riverHash(cell + 7.7)));
     float fleck = 1.0 - smoothstep(0.03, 0.09, length(centreOffset));
     float twinkle = pow(max(0.0, sin(riverTime * 1.8 + chance * 40.0)), 40.0);
-    float sparkle = fleck * twinkle * step(1.0 - riverSparkleShare, chance) * riverDaylight;
+    float sparkle = fleck * twinkle * step(1.0 - riverSparkleShare, chance) * riverDaylight * (1.0 - riverFrozen);
     totalEmissiveRadiance += vec3(sparkle * riverSparkleBrightness);
   }
 }

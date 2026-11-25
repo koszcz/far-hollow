@@ -35,6 +35,38 @@
       }
     },
     {
+      "id": "frozen-river",
+      "kind": "code",
+      "code": [
+        "src/render/river-meshes.ts",
+        "src/render/scene-renderer.ts",
+        "src/render/showcases/nature.ts"
+      ],
+      "description": "The river as it looks all winter: the river asset's water drawn as pale blue-white ice that lies still. It has no ripples, flow streaks, or sparkles, and a softer shine than water. The ice looks nearly solid, though thin ice at the edges shows a little of the bank. It flows again on day 1 of spring.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/seasons/issues/05-autumn-colours-and-a-frozen-river.md"
+      }
+    },
+    {
+      "id": "autumn-trees",
+      "kind": "code",
+      "code": [
+        "src/render/autumn-leaves.ts",
+        "src/render/forest-meshes.ts",
+        "src/render/showcases/nature.ts"
+      ],
+      "description": "Broadleaf tree crowns turn amber in autumn, near and far, on full trees, young trees, and saplings. Pines keep their green. The turn eases in over autumn days 1 to 3, stays through winter, and eases back to green over spring days 1 and 2. It is a colour shift on the trees and far-trees assets, built in code.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/seasons/issues/05-autumn-colours-and-a-frozen-river.md"
+      }
+    },
+    {
       "id": "far-trees",
       "kind": "code",
       "code": [

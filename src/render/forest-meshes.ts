@@ -25,6 +25,7 @@ import {
   type EntityStore,
   type Vec3,
 } from "../sim/entities";
+import { crownColour, isBroadleaf } from "./autumn-leaves";
 import { createCulledBatch, type CulledBatch, type CullViews } from "./culled-batch";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
 import { BEAM_TOP_METRES } from "./sawhorse-meshes";
@@ -35,17 +36,13 @@ import { createSaplingShapes, type SaplingModels } from "./sapling-shape";
 import { createGroundStickGeometry, GROUND_STICK_SHAPE_COUNT, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import type { StumpShape } from "./stump-model";
 import { tiltForFall } from "./tree-fall";
-import type { TreeShape, TreeTone } from "./tree-model";
+import { TREE_COLOURS, type TreeShape, type TreeTone } from "./tree-model";
 import { addTreeSeeThrough } from "./tree-see-through";
 import { SAPLING_SWAY, TREE_SWAY, YOUNG_TREE_SWAY, type SwayLook, type WindSway } from "./wind-sway";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { BLUEPRINT_COLOUR, BLUEPRINT_OPACITY, NOT_ALLOWED_COLOUR, seeThrough as seeThroughMaterial } from "./structure-look";
 
-/** The colour of each tree part in each tone. Trees are drawn in these, whatever colours the model file holds. */
-export const TREE_COLOURS: Readonly<Record<"trunk" | "crown", Readonly<Record<TreeTone, number>>>> = {
-  trunk: { dark: 0x6b4a2b, light: 0x7d5634 },
-  crown: { dark: 0x2f5a2a, light: 0x4a7a2e },
-};
+export { TREE_COLOURS } from "./tree-model";
 /** How often each tree type grows, relative to the others. Pines fill most of the valley. Unlisted types get 1. */
 const TREE_TYPE_WEIGHTS: Readonly<Record<string, number>> = {
   tree_pineDefaultA: 4,
@@ -83,6 +80,8 @@ export interface ForestMeshes {
   update(nowSeconds: number): void;
   /** Fades the trees between the camera and the player drawn at `player`. Pass null to fade none. */
   seeThroughTo(player: Readonly<Vec3> | null): void;
+  /** Draws the broadleaf crowns, near and far, `share` of the way from summer green (0) to autumn amber (1). Pines keep their green. */
+  setLeafTurn(share: number): void;
   /** Draws only the standing and growing trees each camera can see. Call it once the cameras have moved for this frame. */
   cull(views: CullViews): void;
   /**
@@ -115,10 +114,11 @@ export function createTreeMaterial(colour: number): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
 }
 
-/** A tree's trunk and crown materials, one of each for each tone. */
+/** A tree's trunk and crown materials, one of each for each tone. Conifer crowns and broadleaf crowns each have their own. */
 interface TreeMaterials {
   readonly trunk: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
   readonly crown: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
+  readonly broadleafCrown: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
 }
 
 /** `windSway` sways the treetops, young trees, and saplings. */
@@ -146,17 +146,22 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
     return { dark: made(TREE_COLOURS[part].dark), light: made(TREE_COLOURS[part].light) };
   };
   // Full trees sway only in their crowns. Young trees and saplings sway whole, each by their own height.
+  // Broadleaf crowns get their own materials, so they can turn amber in autumn while the pines stay green.
   const treeMaterials = (trunkLook: SwayLook | undefined, crownLook: SwayLook): TreeMaterials => ({
     trunk: toneMaterials("trunk", trunkLook),
     crown: toneMaterials("crown", crownLook),
+    broadleafCrown: toneMaterials("crown", crownLook),
   });
   const fullMaterials = treeMaterials(undefined, TREE_SWAY);
   const youngMaterials = treeMaterials(YOUNG_TREE_SWAY, YOUNG_TREE_SWAY);
   const saplingMaterials = treeMaterials(SAPLING_SWAY, SAPLING_SWAY);
+  const allMaterials = [fullMaterials, youngMaterials, saplingMaterials];
   const trunkMaterials = fullMaterials.trunk;
-  const crownMaterials = fullMaterials.crown;
+  /** The crown material for a tree type in this stage's materials: a broadleaf one, or a conifer one. */
+  const crownOf = (materials: TreeMaterials, shape: TreeShape): THREE.MeshStandardMaterial =>
+    (isBroadleaf(shape.name) ? materials.broadleafCrown : materials.crown)[shape.crownTone];
   const seeThrough = addTreeSeeThrough(
-    [fullMaterials, youngMaterials, saplingMaterials].flatMap(({ trunk, crown }) => [...Object.values(trunk), ...Object.values(crown)]),
+    allMaterials.flatMap(({ trunk, crown, broadleafCrown }) => [...Object.values(trunk), ...Object.values(crown), ...Object.values(broadleafCrown)]),
   );
   for (const shape of treeShapes) {
     track(shape.trunk);
@@ -184,7 +189,7 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
     };
     const crown = {
       geometry: shape.crown,
-      material: crownMaterials[shape.crownTone],
+      material: crownOf(fullMaterials, shape),
     };
     const farShape = createFarTreeShape(shape);
     track(farShape.trunk);
@@ -217,7 +222,7 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
     track(youngFarShape.crown);
     const young = {
       trunk: { geometry: growing.youngTree.trunk, material: youngMaterials.trunk[shape.trunkTone] },
-      crown: { geometry: growing.youngTree.crown, material: youngMaterials.crown[shape.crownTone] },
+      crown: { geometry: growing.youngTree.crown, material: crownOf(youngMaterials, shape) },
     };
     const youngNear = track(createCulledBatch([young.trunk, young.crown], capacity, true, { to: FAR_TREE_METRES }));
     const youngFar = track(
@@ -236,7 +241,7 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
       createCulledBatch(
         [
           { geometry: growing.sapling.trunk, material: saplingMaterials.trunk[shape.trunkTone] },
-          { geometry: growing.sapling.crown, material: saplingMaterials.crown[shape.crownTone] },
+          { geometry: growing.sapling.crown, material: crownOf(saplingMaterials, shape) },
         ],
         capacity,
         false,
@@ -669,6 +674,11 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
     group,
     seeThroughTo(player) {
       seeThrough.setPlayer(player);
+    },
+    setLeafTurn(share) {
+      for (const { broadleafCrown } of allMaterials) {
+        for (const tone of ["dark", "light"] as const) crownColour(tone, share, broadleafCrown[tone].color);
+      }
     },
     update(nowSeconds) {
       updateWorkedLog();

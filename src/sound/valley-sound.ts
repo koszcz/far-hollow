@@ -1,6 +1,6 @@
 // The sound layer of a running game. Each frame it reads the game state and the drawn player, as the drawing does, works
 // out the ambience and action sounds the player hears, and hands them to the sound engine. It never changes game state (ADR 0001).
-import { campfireEntities, fireplaceEntities, playerEntities, rainEntities, type EntityStore } from "../sim/entities";
+import { campfireEntities, fireplaceEntities, isRaining, playerEntities, type EntityStore } from "../sim/entities";
 import { isUnderRoof } from "../sim/roofs";
 import type { Valley } from "../sim/valley";
 import { daylightAt } from "../render/daylight";
@@ -36,7 +36,6 @@ export interface ValleySound {
 
 export function createValleySound(engine: SoundEngine, valley: Valley, entities: EntityStore): ValleySound {
   const players = playerEntities(entities);
-  const weather = rainEntities(entities);
   const campfires = campfireEntities(entities);
   const fireplaces = fireplaceEntities(entities);
   const actionSounds = createActionSounds();
@@ -61,7 +60,8 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
   return {
     update(nowSeconds, { camera, hourOfDay, silence, drawnPlayer, asleep }) {
       const began = performance.now();
-      const raining = weather.first?.rain.falling === true;
+      // Snow falls silently, so only rain is heard.
+      const raining = isRaining(entities);
       const player = players.first?.position ?? camera.focus;
       // The same rule as the player's shelter from rain.
       const underRoof = isUnderRoof(entities, player);

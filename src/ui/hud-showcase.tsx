@@ -45,6 +45,8 @@ const BASE_VIEW: GameView = {
   needs: { hunger: 1, thirst: 0.8, warmth: 0.9, fatigue: 1 },
   sick: false,
   raining: false,
+  snowing: false,
+  snowCover: 0,
   notice: null,
   lastSleep: null,
   lastEatOrDrink: null,

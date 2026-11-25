@@ -5,7 +5,7 @@ import { diggingClayNow } from "../sim/clay";
 import { gatheringStoneNow } from "../sim/stone";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { MINUTES_PER_HOUR, REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
-import { isRaining, movingEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
+import { isRaining, movingEntities, snowCoverDepth, playerEntities, type Entity, type EntityStore } from "../sim/entities";
 import { structureKindOf } from "../sim/structures";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/river-bank-work";
@@ -27,6 +27,8 @@ import { createPlayerMesh } from "./player-mesh";
 import type { Fishing } from "./player-motions/fishing-animation";
 import { craftMotionOf } from "./player-hand-craft-pose";
 import { createRainEffect } from "./rain-effect";
+import { createSnowfallEffect } from "./snowfall-effect";
+import { createSnowCoverLook } from "./snow-cover-look";
 import { createFireflyEffect } from "./firefly-effect";
 import { fireflyOpenGround } from "./fireflies";
 import { createRiverMeshes } from "./river-meshes";
@@ -140,7 +142,9 @@ export function createSceneRenderer(
 
   // The ground follows the trees that stand for good. The terrain and the undergrowth both draw it.
   const drawnGround = createDrawnGround(valley, entities, readClockMinutes);
-  const valleyMeshes = createValleyMeshes(valley, drawnGround);
+  // Snow cover lies on the ground, the tree crowns, and the roofs, as deep as game logic says. It is only for looks.
+  const snowCoverLook = createSnowCoverLook();
+  const valleyMeshes = createValleyMeshes(valley, drawnGround, snowCoverLook);
   scene.add(valleyMeshes.group);
   const riverMeshes = createRiverMeshes(valley);
   scene.add(riverMeshes.group);
@@ -155,9 +159,9 @@ export function createSceneRenderer(
   // Undergrowth is only for looks: it is never picked, and it casts no shadows. It hides under anything the player places.
   const undergrowthMeshes = createUndergrowthMeshes(valley, shapes.undergrowth, entities, drawnGround, windSway);
   scene.add(undergrowthMeshes.group);
-  const forestMeshes = createForestMeshes(entities, shapes, windSway);
+  const forestMeshes = createForestMeshes(entities, shapes, windSway, snowCoverLook);
   scene.add(forestMeshes.group);
-  const structureMeshes = createStructureMeshes(entities, groundHeightAt, shapes.log);
+  const structureMeshes = createStructureMeshes(entities, groundHeightAt, shapes.log, snowCoverLook);
   scene.add(structureMeshes.group);
   const forageMeshes = createForageMeshes(entities, shapes.berryBush, shapes.mushrooms);
   scene.add(forageMeshes.group);
@@ -175,6 +179,8 @@ export function createSceneRenderer(
   scene.add(barkMeshes.group);
   const rainEffect = createRainEffect(entities, groundHeightAt);
   scene.add(rainEffect.group);
+  const snowfallEffect = createSnowfallEffect(entities);
+  scene.add(snowfallEffect.group);
   // Birds are only for looks: they are never picked, and they cast no shadows.
   const birdMeshes = createBirdMeshes(entities, { map: groundMap, heightAt: groundHeightAt });
   scene.add(birdMeshes.group);
@@ -687,6 +693,8 @@ export function createSceneRenderer(
       undergrowthMeshes.regrow(changedGround);
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
+      snowfallEffect.update(nowSeconds, cameraRig.view().focus, daylight);
+      snowCoverLook.update(snowCoverDepth(entities));
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
       fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
       windowGlowMeshes.update({ daylight, nowSeconds, cutaway });
@@ -742,6 +750,7 @@ export function createSceneRenderer(
       plantedTorchMeshes.dispose();
       fishTrapMeshes.dispose();
       rainEffect.dispose();
+      snowfallEffect.dispose();
       birdMeshes.dispose();
       fireflyEffect.dispose();
       playerMesh.dispose();

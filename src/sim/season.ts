@@ -49,3 +49,8 @@ export function firstDayOfSeason(season: Season, yearStartDay: number = NEW_GAME
 export function parseSeason(text: string | null | undefined): Season | undefined {
   return SEASONS.find((season) => season === text);
 }
+
+/** Whether a winter came before this day, when the year started on `yearStartDay`. None has in the first year. */
+export function isAfterFirstWinter(day: number, yearStartDay: number): boolean {
+  return day - yearStartDay >= YEAR_DAYS;
+}

@@ -4,7 +4,7 @@
 // plays live in one full view instead, so the owner can judge its timing. &speed=0.25 slows it down.
 // Each asset's views live in src/render/showcases/, one file per family of assets.
 import * as THREE from "three";
-import { createEntityStore, isRaining, type Vec3 } from "../sim/entities";
+import { createEntityStore, isRaining, snowCoverDepth, type Vec3 } from "../sim/entities";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";
@@ -17,6 +17,8 @@ import { createForestMeshes, type ForestMeshes } from "./forest-meshes";
 import { createPlayerMesh } from "./player-mesh";
 import { createGroundTexture, GROUND_TEXTURE_TILE_METRES } from "./ground-texture";
 import { createRainEffect, type RainEffect } from "./rain-effect";
+import { createSnowfallEffect, type SnowfallEffect } from "./snowfall-effect";
+import { createSnowCoverLook, GROUND_SNOW, type SnowCoverLook } from "./snow-cover-look";
 import { createFireflyEffect, type FireflyEffect } from "./firefly-effect";
 import { createRandom } from "../sim/random";
 import { createSkyLighting } from "./sky-lighting";
@@ -82,13 +84,16 @@ export function showAsset(
   renderer.setScissorTest(true);
   const scene = new THREE.Scene();
   const sky = createSkyLighting(scene, renderer);
+  // Snow lies on the ground, trees, and roofs only where the stage's weather has snow cover.
+  const snowCover = createSnowCoverLook();
   // The showcase's valley has its starting ground: no tree has gone or come for good.
   const ground = onValley
     ? createValleyMeshes(
         valley,
         createDrawnGround(valley, createEntityStore(), () => 0),
+        snowCover,
       )
-    : createFlatGround();
+    : createFlatGround(snowCover);
   scene.add(ground.group);
   const river: RiverMeshes | undefined = onValley ? createRiverMeshes(valley) : undefined;
   if (river !== undefined) scene.add(river.group);
@@ -172,8 +177,8 @@ export function showAsset(
   stage.movePlayer(0, 0, 0);
   showcase.build(stage);
 
-  const forest: ForestMeshes = createForestMeshes(store, shapes, windSway);
-  const structures = createStructureMeshes(store, groundAt, shapes.log);
+  const forest: ForestMeshes = createForestMeshes(store, shapes, windSway, snowCover);
+  const structures = createStructureMeshes(store, groundAt, shapes.log, snowCover);
   const forage = createForageMeshes(store, shapes.berryBush, shapes.mushrooms);
   forage.update();
   const mushroomLogs = createMushroomLogMeshes(store, shapes.log, shapes.mushrooms);
@@ -187,6 +192,8 @@ export function showAsset(
   const windowGlow = createWindowGlowMeshes(store);
   // Rain shows only where the stage has rain falling.
   const rain: RainEffect = createRainEffect(store, groundAt);
+  // Snow falls only where the stage has snow falling.
+  const snowfall: SnowfallEffect = createSnowfallEffect(store);
   // Fireflies show only where the showcase asks for them, over open ground everywhere. A fixed seed keeps their stills the same.
   const fireflies: FireflyEffect | undefined =
     showcase.fireflies === true ? createFireflyEffect(store, { isOpen: () => true, heightAt: groundAt }, createRandom(SHOWCASE_SEED)) : undefined;
@@ -202,6 +209,7 @@ export function showAsset(
     plantedTorches.group,
     fishTraps.group,
     rain.group,
+    snowfall.group,
     windowGlow.group,
   );
   sky.addShadowReceivers(ground.group);
@@ -242,6 +250,8 @@ export function showAsset(
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
     rain.update(seconds, focus, daylightAt(shot.hour ?? NOON));
+    snowfall.update(seconds, focus, daylightAt(shot.hour ?? NOON));
+    snowCover.update(snowCoverDepth(store));
     fireflies?.update(seconds, focus, daylightAt(shot.hour ?? NOON));
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
@@ -305,6 +315,7 @@ export function showAsset(
       windowGlow.dispose();
       bark.dispose();
       rain.dispose();
+      snowfall.dispose();
       fireflies?.dispose();
       player.dispose();
       for (const resource of propResources) resource.dispose();
@@ -327,11 +338,11 @@ function stageMiddle(valley: Valley): Vec3 {
 const FLAT_GROUND_METRES = 400;
 
 /** Flat ground with the valley's painted texture, at y = 0. */
-function createFlatGround(): { group: THREE.Group; dispose(): void } {
+function createFlatGround(snowCover: SnowCoverLook): { group: THREE.Group; dispose(): void } {
   const geometry = new THREE.PlaneGeometry(FLAT_GROUND_METRES, FLAT_GROUND_METRES).rotateX(-Math.PI / 2);
   const texture = createGroundTexture();
   texture.repeat.set(FLAT_GROUND_METRES / GROUND_TEXTURE_TILE_METRES, FLAT_GROUND_METRES / GROUND_TEXTURE_TILE_METRES);
-  const material = new THREE.MeshStandardMaterial({ map: texture, flatShading: true });
+  const material = snowCover.cover(new THREE.MeshStandardMaterial({ map: texture, flatShading: true }), GROUND_SNOW);
   const group = new THREE.Group();
   group.add(new THREE.Mesh(geometry, material));
   return {

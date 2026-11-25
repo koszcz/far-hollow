@@ -748,7 +748,7 @@ export function Hud({
 
   return (
     <>
-      {(view.paused || view.raining || view.seasonBanner !== null || view.notice !== null || justDone !== null) && (
+      {(view.paused || view.raining || view.snowing || view.seasonBanner !== null || view.notice !== null || justDone !== null) && (
         <div class="hud-banners">
           {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
           {view.seasonBanner !== null && (
@@ -757,6 +757,7 @@ export function Hud({
             </p>
           )}
           {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
+          {view.snowing && <p class="hud-banner hud-snowing">{strings.snowing}</p>}
           {view.notice !== null && (
             <p class="hud-banner hud-notice" role="status">
               {noticeText(view.notice)}

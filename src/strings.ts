@@ -294,6 +294,7 @@ export const strings = {
   needs: "Needs",
   hunger: "Hunger",
   raining: "It is raining. The rain chills you.",
+  snowing: "It is snowing. The snow chills you.",
   thirst: "Thirst",
   sick: "Sick: your needs drain faster. Rest to recover sooner.",
   /** The hint above the need gauges when one or more needs are low enough to slow the player. */
@@ -651,7 +652,8 @@ export const strings = {
   debugRain: "Rain",
   debugRainFalling: "Falling",
   debugRainDry: "Dry",
-  debugSkipToRainChange: (raining: boolean) => (raining ? "Skip to rain stopping" : "Skip to rain starting"),
+  debugRainSnowing: "Snowing",
+  debugSkipToRainChange: (falling: boolean) => (falling ? "Skip to rain or snow stopping" : "Skip to rain or snow starting"),
   debugRooms: "Rooms",
   debugRoom: (squares: number, heated: boolean, snug: boolean) =>
     `${squares} ${squares === 1 ? "square" : "squares"}, ${heated ? "heated" : "not heated"}, ${snug ? "snug" : "not snug"}`,

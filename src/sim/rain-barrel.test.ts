@@ -96,6 +96,17 @@ describe("catching rain", () => {
     expect(barrel.rainBarrel?.held).toBe(1);
   });
 
+  it("gains nothing while snow falls in winter", () => {
+    const game = createGame({ seed: 42, startSeason: "winter" });
+    const barrel = finishedBarrelNearPlayer(game);
+    letRainFall(game);
+
+    send(game, { type: "skipTime", hours: 5 });
+
+    expect(game.client.getView().snowing).toBe(true);
+    expect(barrel.rainBarrel).toEqual({ held: 0, progress: 0 });
+  });
+
   it("gains nothing while no rain falls", () => {
     const game = createGame({ seed: 42 });
     const barrel = finishedBarrelNearPlayer(game);

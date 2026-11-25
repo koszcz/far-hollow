@@ -129,6 +129,8 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   handReach: () => false,
   // Nor is sitting on a stool.
   sitting: () => false,
+  // Nor is the snow, which follows the calendar.
+  snow: () => false,
   blueprint: shape({ structure: exactly(...STRUCTURES.map(({ kind }) => kind)), progress: finite, materialsSpent: count, delivered: deliveredCounts }),
   builtCost: list(shape({ material: exactly(...CARRIED_MATERIALS), count: (value) => count(value) && (value as number) > 0 })),
   facing: shape({ turns: exactly(0, 1, 2, 3) }),

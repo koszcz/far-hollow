@@ -44,6 +44,7 @@ import {
   type Section,
 } from "./roof-parts";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
+import { ROOF_SNOW, type SnowCoverLook } from "./snow-cover-look";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -324,10 +325,14 @@ function layoutOf(position: Vec3): number {
   return (((column * 3 + row * 2) % LAYOUTS) + LAYOUTS) % LAYOUTS;
 }
 
-export function createRoofMeshes(entities: EntityStore): RoofMeshes {
+/** `snow`, if given, lays snow on the finished roofs. */
+export function createRoofMeshes(entities: EntityStore, snow?: SnowCoverLook): RoofMeshes {
   const group = new THREE.Group();
   const pickGeometry = new THREE.BoxGeometry(BUILD_GRID_METRES, PICK_THICKNESS_METRES, BUILD_GRID_METRES);
   const planks = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, vertexColors: true });
+  // The see-through copies made from it below keep no snow: they show only while a roof is built or faded.
+  const plankFading = planks.clone();
+  snow?.cover(planks, ROOF_SNOW);
   const blueprintMaterial = seeThrough(BLUEPRINT_COLOUR, BLUEPRINT_OPACITY);
   const notAllowedMaterial = seeThrough(NOT_ALLOWED_COLOUR, BLUEPRINT_OPACITY);
   const pickMaterial = new THREE.MeshBasicMaterial({ visible: false });
@@ -349,7 +354,7 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       const mesh = new THREE.Mesh(undefined, blueprintMaterial);
       mesh.castShadow = true;
       root.add(mesh);
-      const fading = planks.clone();
+      const fading = plankFading.clone();
       fading.transparent = true;
       return { mesh, fading };
     });
@@ -467,7 +472,8 @@ export function createRoofMeshes(entities: EntityStore): RoofMeshes {
       placingBlueprint.rotation.y = quarterTurnsToRadians(shown.turns);
     },
     dispose() {
-      for (const item of [...[...rowsByKind.values()].flat(), pickGeometry, planks, blueprintMaterial, notAllowedMaterial, pickMaterial]) item.dispose();
+      for (const item of [...[...rowsByKind.values()].flat(), pickGeometry, planks, plankFading, blueprintMaterial, notAllowedMaterial, pickMaterial])
+        item.dispose();
       for (const item of drawn.values()) for (const { fading } of item.parts) fading.dispose();
       for (const { fading } of placingParts) fading.dispose();
     },

@@ -815,6 +815,41 @@
       }
     },
     {
+      "id": "snowfall",
+      "kind": "code",
+      "code": [
+        "src/render/snowfall-effect.ts",
+        "src/render/scene-renderer.ts",
+        "src/render/showcases/weather.ts"
+      ],
+      "description": "Falling snow in winter, in place of rain: slow, soft white flakes of varied size and speed around where the camera looks, each drifting from side to side as it falls. It eases in and out as snow starts and stops, and dims at night.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/seasons/issues/04-snowfall-and-snow-cover.md"
+      }
+    },
+    {
+      "id": "snow-cover",
+      "kind": "code",
+      "code": [
+        "src/render/snow-cover-look.ts",
+        "src/render/valley-meshes.ts",
+        "src/render/forest-meshes.ts",
+        "src/render/roof-meshes.ts",
+        "src/render/scene-renderer.ts",
+        "src/render/showcases/weather.ts"
+      ],
+      "description": "Snow lying in the valley in winter: the ground blends to a cold white, a little less on steep banks; tree crowns, near and far, get white tops on the faces that look up; and finished roofs get a white tint on their planks. It is as deep as the snow cover: it builds up over the first 3 days of winter and melts over the first 2 days of spring.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/seasons/issues/04-snowfall-and-snow-cover.md"
+      }
+    },
+    {
       "id": "bedroll",
       "kind": "code",
       "code": [

@@ -7,6 +7,7 @@ import type { Valley } from "../sim/valley";
 import { bakeGroundTypeWeights, createGroundTypeTextures, GROUND_TEXTURE_TILE_METRES, rebakeGroundTypeWeights, texelsCovering } from "./ground-texture";
 import type { GroundRect } from "../sim/structure-kind";
 import type { DrawnGround } from "./drawn-ground";
+import { GROUND_SNOW, type SnowCoverLook } from "./snow-cover-look";
 
 /** Spots across each side of the baked ground-type map. About 1 m apart in a 1 km valley, close enough to ring each tree. */
 const GROUND_TYPE_MAP_TEXELS = 1024;
@@ -25,8 +26,8 @@ export interface ValleyMeshes {
   dispose(): void;
 }
 
-/** The ground's types come from `drawnGround`, so they follow the trees that stand for good. */
-export function createValleyMeshes(valley: Valley, drawnGround: DrawnGround): ValleyMeshes {
+/** The ground's types come from `drawnGround`, so they follow the trees that stand for good. `snow`, if given, lays snow on it. */
+export function createValleyMeshes(valley: Valley, drawnGround: DrawnGround, snow?: SnowCoverLook): ValleyMeshes {
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   function track<T extends { dispose(): void }>(item: T): T {
@@ -46,6 +47,7 @@ export function createValleyMeshes(valley: Valley, drawnGround: DrawnGround): Va
   groundGeometry.computeVertexNormals();
   const { material: groundMaterial, weights } = createGroundMaterial(valley, drawnGround, track);
   track(groundMaterial);
+  snow?.cover(groundMaterial, GROUND_SNOW);
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   group.add(ground);
   /** Whether the baked map has gone to the graphics card once. Until then, the whole map goes, not only the rows that changed. */

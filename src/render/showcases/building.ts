@@ -48,7 +48,7 @@ const COOKING_FIREPLACE_SHOT = 3;
  * front and the back row to the back, so they meet at a ridge, with a gable end at each side.
  * Returns a placer that puts an entity on the deck of a square, for the showcase to add the front right square's pieces.
  */
-function squareCabin({ place }: Stage, { roofs }: { roofs: boolean }): (x: number, z: number, entity: Entity) => Entity {
+export function squareCabin({ place }: Stage, { roofs }: { roofs: boolean }): (x: number, z: number, entity: Entity) => Entity {
   const onDeck = (x: number, z: number, entity: Entity) => {
     const placed = place(x, z, entity);
     if (placed.position !== undefined) placed.position.y += FOUNDATION_DECK_LIFT_METRES;

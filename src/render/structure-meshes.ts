@@ -21,6 +21,7 @@ import { createLeanToMeshes } from "./lean-to-meshes";
 import type { LogShape } from "./log-shape";
 import { createRoofFrameMeshes } from "./roof-frame-meshes";
 import { createRoofMeshes } from "./roof-meshes";
+import type { SnowCoverLook } from "./snow-cover-look";
 import { createSawhorseMeshes } from "./sawhorse-meshes";
 import { createSledMeshes } from "./sled-meshes";
 import type { RopeHold } from "./sled-rope";
@@ -69,14 +70,20 @@ interface KindDrawing {
 }
 
 /** `groundAt` gives the height of the ground. `logShape` is the loaded log model, which woodpiles stack. */
-export function createStructureMeshes(entities: EntityStore, groundAt: (x: number, z: number) => number, logShape: LogShape): StructureMeshes {
+/** `snow`, if given, lays snow on the finished roofs. */
+export function createStructureMeshes(
+  entities: EntityStore,
+  groundAt: (x: number, z: number) => number,
+  logShape: LogShape,
+  snow?: SnowCoverLook,
+): StructureMeshes {
   const campfires = createCampfireMeshes(entities, groundAt);
   const leanTos = createLeanToMeshes(entities);
   const foundations = createFoundationMeshes(entities, groundAt);
   const floors = createFloorMeshes(entities);
   const edgePieces = createEdgePieceMeshes(entities);
   const roofFrames = createRoofFrameMeshes(entities);
-  const roofs = createRoofMeshes(entities);
+  const roofs = createRoofMeshes(entities, snow);
   const doors = createDoorMeshes(entities);
   const shutters = createShuttersMeshes(entities);
   const fireplaces = createFireplaceMeshes(entities);

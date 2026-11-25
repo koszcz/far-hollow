@@ -10,6 +10,7 @@ import type { JugOnFire } from "./jug-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { FillLevel } from "./fill-level";
 import type { Rain } from "./rain";
+import type { SnowCover } from "./snow-cover";
 import type { StickFallState } from "./stick-fall";
 import type { Sickness } from "./sickness";
 import type { BurnTime } from "./burn-time";
@@ -310,6 +311,11 @@ export interface Entity {
   jugOnFire?: JugOnFire;
   /** Whether rain is falling in the valley, and until when. Only one entity, the valley's weather, has it. */
   rain?: Rain;
+  /**
+   * What winter does to the valley's weather now: whether rain falls as snow, and how deep the snow cover lies.
+   * Only the valley's weather has it. Game logic sets it from the calendar as time passes. It is not saved.
+   */
+  snow?: Snow;
   /** When the next sticks fall from the trees. Only one entity, the valley's stick fall, has it. */
   stickFall?: StickFallState;
   /**
@@ -346,7 +352,7 @@ export function saveEntities(store: EntityStore): SavedEntity[] {
   for (const entity of store.entities) {
     const id = store.id(entity);
     if (id === undefined) continue;
-    if (entity.craftTask === undefined && entity.handReach === undefined && entity.sitting === undefined) {
+    if (entity.craftTask === undefined && entity.handReach === undefined && entity.sitting === undefined && entity.snow === undefined) {
       saved.push({ id, components: entity });
       continue;
     }
@@ -354,6 +360,7 @@ export function saveEntities(store: EntityStore): SavedEntity[] {
     delete components.craftTask;
     delete components.handReach;
     delete components.sitting;
+    delete components.snow;
     saved.push({ id, components });
   }
   return saved.sort((a, b) => a.id - b.id);
@@ -611,7 +618,26 @@ export function rainEntities(store: EntityStore) {
   return store.with("rain");
 }
 
-/** Whether rain falls in the valley now. False before the weather exists. */
+/** What winter does to the weather: see the `snow` component. */
+export interface Snow {
+  /** Whether rain falls as snow now, as it does all winter. */
+  readonly fallsAsSnow: boolean;
+  readonly cover: SnowCover;
+}
+
+/** Whether rain, not snow, falls in the valley now. False before the weather exists. */
 export function isRaining(store: EntityStore): boolean {
-  return rainEntities(store).first?.rain.falling === true;
+  const weather = rainEntities(store).first;
+  return weather?.rain.falling === true && weather.snow?.fallsAsSnow !== true;
+}
+
+/** Whether snow falls in the valley now, in place of rain. False before the weather exists. */
+export function isSnowing(store: EntityStore): boolean {
+  const weather = rainEntities(store).first;
+  return weather?.rain.falling === true && weather.snow?.fallsAsSnow === true;
+}
+
+/** How deep the snow cover lies in the valley now, from 0 (none) to 1 (full). 0 before the weather exists. */
+export function snowCoverDepth(store: EntityStore): number {
+  return rainEntities(store).first?.snow?.cover.depth ?? 0;
 }

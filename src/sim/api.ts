@@ -434,8 +434,12 @@ export interface GameView {
   readonly warmth: number;
   /** Whether the player is sick, so their needs drain faster. */
   readonly sick: boolean;
-  /** Whether rain is falling in the valley. */
+  /** Whether rain is falling in the valley. False while snow falls in its place. */
   readonly raining: boolean;
+  /** Whether snow is falling in the valley, as rain does in every other season. */
+  readonly snowing: boolean;
+  /** How deep the snow cover lies, from 0 (none) to 1 (full). It follows the calendar, not the snowfall. */
+  readonly snowCover: number;
   /** A short message to show the player about something that just happened, or null if there is none. */
   readonly notice: Notice | null;
   /**

@@ -14,7 +14,11 @@ export { hasRoom, holdsWater, isJug, JUG_CONTENTS, jugToDrinkFrom, jugToPourInto
 import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */
-export { HOURS_PER_DAY, MORNING_HOUR, NIGHT_START_HOUR, type TimeOfDay } from "./clock";
+export { HOURS_PER_DAY, type TimeOfDay } from "./clock";
+import type { NightHours, Season, SeasonDay } from "./season";
+
+/** The HUD names the season and tints the clock by it. */
+export { isNightHour, type NightHours, nightHoursOf, SEASONS, type Season, type SeasonDay } from "./season";
 import type { Vec3 } from "./entities";
 import type { BurnTime } from "./burn-time";
 
@@ -351,6 +355,11 @@ export type Command =
   /** Jumps the valley's clock forward to when rain next starts or stops, the same way skipTime does. The debug overlay sends it. */
   | { type: "skipToRainChange" }
   /**
+   * Jumps the valley's clock forward to 6:00 on day 1 of the next season, the same way skipTime does.
+   * A collapse does not cut it short: the player wakes the next morning and time passes on. The debug overlay sends it.
+   */
+  | { type: "skipToSeason" }
+  /**
    * Add an action to the end of the action queue. With an empty queue, it starts at once, as if sent on its own.
    * The queue holds at most ACTION_QUEUE_LIMIT actions, counting the one under way. When it is full, or when the game
    * would refuse the action now, nothing is added and a notice says why. A command that is never queued, such as pausing,
@@ -387,6 +396,12 @@ export interface GameView {
   readonly time: TimeOfDay;
   /** Whether it is night now, by the game's own hours. The HUD shows the moon instead of the sun. */
   readonly night: boolean;
+  /** When night starts and morning arrives today. They follow today's season. The sky, daylight, and HUD words follow them. */
+  readonly nightHours: NightHours;
+  /** The season today, which day of it today is, and how many days it lasts. */
+  readonly season: SeasonDay;
+  /** The season that has just started, while the HUD's banner says so, or else null. It is not saved. */
+  readonly seasonBanner: Season | null;
   /** How many of each tool and material the player's backpack holds. */
   readonly backpack: Readonly<BackpackContents>;
   /** How much the backpack's contents weigh, in kilograms. */
@@ -708,6 +723,8 @@ export type Refusal =
  * - `takeFishFirst`: the fish trap holds a fish, so it cannot be picked up.
  * - `atCorner`: a door frame or window would meet another edge piece at a right angle at a corner, where a log cabin needs crossed logs.
  * - `takeShuttersDownFirst`: shutters hang in the window, finished or as a blueprint, so it cannot come down.
+ * - `nothingGrowsInWinter`: it is winter, so a bush, mushroom patch, or mushroom log has no food.
+ * - `riverFrozen`: it is winter, so the river is frozen and nobody can fish in it or set a trap.
  * - `chimneyNeedsFireplace`: a chimney goes only on a finished fireplace.
  * - `fireplaceHasChimney`: the fireplace already has a chimney, finished or as a blueprint.
  * - `takeChimneyDownFirst`: a chimney stands on the fireplace, finished or as a blueprint, so it cannot come down.
@@ -766,6 +783,8 @@ export type PlainRefusal =
   | "takeFishFirst"
   | "atCorner"
   | "takeShuttersDownFirst"
+  | "nothingGrowsInWinter"
+  | "riverFrozen"
   | "chimneyNeedsFireplace"
   | "fireplaceHasChimney"
   | "takeChimneyDownFirst";

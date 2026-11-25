@@ -6,6 +6,7 @@
 //   seconds of dark. While lit it climbs in a short upward stroke, then sinks back slowly in the dark.
 // - When the player walks away, a firefly left too far behind finds a new home near the player while it is dark.
 // - Fireflies fade in at dusk and out at dawn, following daylight. They fade out when rain starts and back in after.
+// - Fireflies come out only in summer. They fade out when summer ends, as they do when rain starts.
 import { addGroundPoints, groundDistance, randomPointAround, type GroundPoint } from "../sim/ground-point";
 import { groundTypeAt, type GroundMap } from "../sim/ground-types";
 import { randomBetween, type Random } from "../sim/random";
@@ -34,7 +35,7 @@ const FLASH_FADE_SECONDS = 0.9;
 const FLASH_LIFT_METRES = 0.22;
 /** How many spots a firefly with no home tries each frame. Deep in the forest, few spots are open. */
 const HOME_TRIES_PER_FRAME = 4;
-/** How long the fireflies take to fade out when rain starts, and back in when it stops, in seconds. */
+/** How long the fireflies take to fade out when rain starts or summer ends, and back in after, in seconds. */
 const RAIN_FADE_SECONDS = 4;
 /** The four corners of a firefly's drift, as steps from its home. Its whole drift stays inside them. */
 const DRIFT_CORNERS: readonly GroundPoint[] = [-1, 1].flatMap((x) => [-1, 1].map((z) => ({ x: x * FIREFLY_DRIFT_METRES, z: z * FIREFLY_DRIFT_METRES })));
@@ -58,9 +59,9 @@ export interface FireflyGlow {
 export interface FireflySwarm {
   /**
    * Moves every firefly to where it is at `nowSeconds`, near `player`, and returns the fireflies that have a home.
-   * `daylight` runs from 0 (night) to 1 (full day).
+   * `daylight` runs from 0 (night) to 1 (full day). `summer` says whether it is summer, the only season fireflies come out.
    */
-  update(nowSeconds: number, player: GroundPoint, daylight: number, raining: boolean): readonly FireflyGlow[];
+  update(nowSeconds: number, player: GroundPoint, daylight: number, raining: boolean, summer: boolean): readonly FireflyGlow[];
 }
 
 /** Where a firefly drifts around: a spot on the ground, and how high above it the firefly flies, in metres. */
@@ -95,8 +96,8 @@ export function createFireflySwarm(ground: FireflyGround, random: Random = Math.
     blinkSeconds: randomBetween(random, BLINK_SECONDS),
     blinkPhase: random(),
   }));
-  // How much the rain lets the fireflies show, from 0 (raining) to 1 (dry). It eases towards the weather.
-  const dryWeather = createEasedShare({ riseSeconds: RAIN_FADE_SECONDS, fallSeconds: RAIN_FADE_SECONDS });
+  // How much the rain and the season let the fireflies show, from 0 (raining, or not summer) to 1 (a dry summer). It eases towards them.
+  const fireflyWeather = createEasedShare({ riseSeconds: RAIN_FADE_SECONDS, fallSeconds: RAIN_FADE_SECONDS });
   let lastSeconds = 0;
 
   /** A home over open ground near the player, so the whole drift stays over open ground, or undefined if none was found. */
@@ -114,12 +115,12 @@ export function createFireflySwarm(ground: FireflyGround, random: Random = Math.
   }
 
   return {
-    update(nowSeconds, player, daylight, raining) {
-      // The first frame shows the weather as it is, so a game loaded in the rain does not fade.
-      const dry = dryWeather.toward(raining ? 0 : 1, Math.abs(nowSeconds - lastSeconds));
+    update(nowSeconds, player, daylight, raining, summer) {
+      // The first frame shows the weather as it is, so a game loaded in the rain or in winter does not fade.
+      const weather = fireflyWeather.toward(raining || !summer ? 0 : 1, Math.abs(nowSeconds - lastSeconds));
       lastSeconds = nowSeconds;
-      // How strongly the fireflies show, from 0 (none) to 1 (full): the dark of night, dimmed by the rain.
-      const strength = (1 - daylight) * dry;
+      // How strongly the fireflies show, from 0 (none) to 1 (full): the dark of night, dimmed by the rain and the season.
+      const strength = (1 - daylight) * weather;
       if (strength <= 0) return [];
 
       const glows: FireflyGlow[] = [];

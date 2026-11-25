@@ -26,8 +26,7 @@ import { SHUTTER_FIRST_BOUNCE_SHARE, SHUTTER_KNOCK_SECONDS, SHUTTER_SWING_SECOND
 import { FUEL_LIMIT_MINUTES } from "../../sim/fire";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
-import { NIGHT_START_HOUR } from "../../sim/clock";
-import { NIGHT, NOON, type Stage, type Showcase } from "./types";
+import { DUSK, NIGHT, NOON, type Stage, type Showcase } from "./types";
 import { FURNITURE_SHOWCASES } from "./furniture";
 
 /** A sled is built in one stage per log and one per stick. */
@@ -515,7 +514,7 @@ export const BUILDING_SHOWCASES: Readonly<Record<string, Showcase>> = {
     // from outside at night, fainter at dusk. Closed shutters, or daylight, show no glow.
     shots: [
       { label: "night, open window", yaw: 20, pitch: 12, hour: NIGHT },
-      { label: "dusk, open window", yaw: 20, pitch: 12, hour: NIGHT_START_HOUR - 1 },
+      { label: "dusk, open window", yaw: 20, pitch: 12, hour: DUSK },
       { label: "night, shutters closed", yaw: 20, pitch: 12, hour: NIGHT, seconds: 1 },
       { label: "noon, open window", yaw: 20, pitch: 12, hour: NOON },
     ],

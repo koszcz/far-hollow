@@ -748,9 +748,14 @@ export function Hud({
 
   return (
     <>
-      {(view.paused || view.raining || view.notice !== null || justDone !== null) && (
+      {(view.paused || view.raining || view.seasonBanner !== null || view.notice !== null || justDone !== null) && (
         <div class="hud-banners">
           {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
+          {view.seasonBanner !== null && (
+            <p class="hud-banner hud-season" role="status">
+              {strings.seasonStarted[view.seasonBanner]}
+            </p>
+          )}
           {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
           {view.notice !== null && (
             <p class="hud-banner hud-notice" role="status">
@@ -766,11 +771,11 @@ export function Hud({
       )}
       <div class="hud hud-clock">
         <p class="hud-panel">
-          <span class="hud-clock-ring" style={{ "--hud-day": dayShare(view.time.hourOfDay) }}>
+          <span class={`hud-clock-ring hud-clock-ring-${view.season.season}`} style={{ "--hud-day": dayShare(view.time.hourOfDay) }}>
             <HudIcon name={view.night ? "moon" : "sun"} />
           </span>
-          {strings.clock(view.time.day, view.time.hour, view.time.minute)}
-          <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay)]}</small>
+          {strings.clock(strings.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays, view.time.hour, view.time.minute)}
+          <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay, view.nightHours)]}</small>
         </p>
         <ActionQueueRow client={client} view={view} />
       </div>

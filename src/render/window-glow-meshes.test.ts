@@ -1,23 +1,27 @@
 import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
-import { MORNING_HOUR, NIGHT_START_HOUR } from "../sim/clock";
+import { nightHoursOf } from "../sim/season";
 import { createEntityStore } from "../sim/entities";
 import { cabinCutaway } from "./cabin-cutaway";
 import { daylightAt } from "./daylight";
 import { FADED_OPACITY } from "./structure-look";
 import { createWindowGlowMeshes, windowGlowFlicker, windowGlowStrength } from "./window-glow-meshes";
 
+const SPRING = nightHoursOf("spring");
+const NIGHT_START_HOUR = SPRING.nightStartHour;
+const MORNING_HOUR = SPRING.morningHour;
+
 describe("how strongly a firelit window glows", () => {
   it("is off by day, full at night, and fades in at dusk and out at dawn with the daylight", () => {
-    expect(windowGlowStrength(daylightAt(12))).toBe(0);
-    expect(windowGlowStrength(daylightAt(0))).toBe(1);
-    const dusk = windowGlowStrength(daylightAt(NIGHT_START_HOUR - 1));
-    const dawn = windowGlowStrength(daylightAt(MORNING_HOUR + 1));
+    expect(windowGlowStrength(daylightAt(12, SPRING))).toBe(0);
+    expect(windowGlowStrength(daylightAt(0, SPRING))).toBe(1);
+    const dusk = windowGlowStrength(daylightAt(NIGHT_START_HOUR - 1, SPRING));
+    const dawn = windowGlowStrength(daylightAt(MORNING_HOUR + 1, SPRING));
     for (const twilight of [dusk, dawn]) {
       expect(twilight).toBeGreaterThan(0);
       expect(twilight).toBeLessThan(1);
     }
-    expect(windowGlowStrength(daylightAt(NIGHT_START_HOUR - 0.5))).toBeGreaterThan(dusk);
+    expect(windowGlowStrength(daylightAt(NIGHT_START_HOUR - 0.5, SPRING))).toBeGreaterThan(dusk);
   });
 });
 

@@ -1,12 +1,12 @@
 // Draws the "sky-lighting" asset listed in asset-manifest.json (approved): sun, moon, sky, shadows, and haze
 // over the valley, following the valley's clock. Everything here is built in code with three.js.
 //
-// - The sun crosses the sky from east to west between morning and nightfall. It turns orange near dawn and dusk.
+// - The sun crosses the sky from east to west between morning and nightfall, by the season's night hours. It turns orange near dawn and dusk.
 // - The sun casts soft shadows in a box that follows what the camera looks at.
 // - A sky dome shades from the horizon colour up to the zenith colour, with a glow on the sun's side and stars at night.
 // - Haze thickens and changes colour with the hour: morning mist, clear midday, golden dusk, blue night.
 import * as THREE from "three";
-import { MORNING_HOUR, NIGHT_START_HOUR } from "../sim/clock";
+import type { NightHours } from "../sim/season";
 import { SHADOW_ONLY_LAYER } from "./culled-batch";
 import { daylightAt } from "./daylight";
 import { GROUND_COLOUR } from "./valley-meshes";
@@ -49,19 +49,34 @@ interface SkyKey {
   readonly haze: number;
 }
 
-/** The sky through one day, in hour order from midnight. Hours between two keys blend them. */
-const SKY_KEYS: readonly SkyKey[] = [
-  { hour: 0, zenith: 0x050a18, horizon: 0x111c33, haze: 0.0009 },
-  { hour: MORNING_HOUR - 0.5, zenith: 0x0b1428, horizon: 0x24264a, haze: 0.0011 },
-  { hour: MORNING_HOUR + 0.5, zenith: 0x2f4475, horizon: 0xe8a27a, haze: 0.0018 },
-  { hour: MORNING_HOUR + 2, zenith: 0x5a8fcb, horizon: 0xcfe0ea, haze: 0.0011 },
-  { hour: 12, zenith: 0x4a88d0, horizon: 0xb8d6ec, haze: 0.0005 },
-  { hour: NIGHT_START_HOUR - 3, zenith: 0x4a88d0, horizon: 0xbcd6e8, haze: 0.0005 },
-  { hour: NIGHT_START_HOUR - 1, zenith: 0x40609c, horizon: 0xf09858, haze: 0.0007 },
-  { hour: NIGHT_START_HOUR + 0.5, zenith: 0x121a36, horizon: 0x3d2c48, haze: 0.0008 },
-  { hour: NIGHT_START_HOUR + 1.5, zenith: 0x050a18, horizon: 0x111c33, haze: 0.0009 },
-  { hour: 24, zenith: 0x050a18, horizon: 0x111c33, haze: 0.0009 },
-];
+/** The sky through one day with these night hours, in hour order from midnight. Hours between two keys blend them. */
+function skyKeys({ morningHour, nightStartHour }: NightHours): readonly SkyKey[] {
+  return [
+    { hour: 0, zenith: 0x050a18, horizon: 0x111c33, haze: 0.0009 },
+    { hour: morningHour - 0.5, zenith: 0x0b1428, horizon: 0x24264a, haze: 0.0011 },
+    { hour: morningHour + 0.5, zenith: 0x2f4475, horizon: 0xe8a27a, haze: 0.0018 },
+    { hour: morningHour + 2, zenith: 0x5a8fcb, horizon: 0xcfe0ea, haze: 0.0011 },
+    { hour: 12, zenith: 0x4a88d0, horizon: 0xb8d6ec, haze: 0.0005 },
+    { hour: nightStartHour - 3, zenith: 0x4a88d0, horizon: 0xbcd6e8, haze: 0.0005 },
+    { hour: nightStartHour - 1, zenith: 0x40609c, horizon: 0xf09858, haze: 0.0007 },
+    { hour: nightStartHour + 0.5, zenith: 0x121a36, horizon: 0x3d2c48, haze: 0.0008 },
+    { hour: nightStartHour + 1.5, zenith: 0x050a18, horizon: 0x111c33, haze: 0.0009 },
+    { hour: 24, zenith: 0x050a18, horizon: 0x111c33, haze: 0.0009 },
+  ];
+}
+
+/** The sky keys made so far, by the night hours they were made for. There is one set per season's night hours. */
+const skyKeysByNightHours = new Map<NightHours, readonly SkyKey[]>();
+
+/** The sky keys for these night hours, made once. */
+function skyKeysFor(nightHours: NightHours): readonly SkyKey[] {
+  let keys = skyKeysByNightHours.get(nightHours);
+  if (keys === undefined) {
+    keys = skyKeys(nightHours);
+    skyKeysByNightHours.set(nightHours, keys);
+  }
+  return keys;
+}
 
 /** Where the camera looks, so the sun's shadows can cover it. */
 export interface SkyView {
@@ -71,8 +86,11 @@ export interface SkyView {
 }
 
 export interface SkyLighting {
-  /** Sets the light, sky, and haze for this hour of the day, with its fraction, and centres the shadows on the view. */
-  update(hourOfDay: number, view: SkyView): void;
+  /**
+   * Sets the light, sky, and haze for this hour of the day, with its fraction, and the season's night hours.
+   * Centres the shadows on the view.
+   */
+  update(hourOfDay: number, nightHours: NightHours, view: SkyView): void;
   /**
    * Things that cast shadows and catch them. Solid meshes inside these groups, including ones added later, cast
    * shadows. See-through meshes, such as flames and blueprints, do not.
@@ -145,16 +163,16 @@ export function createSkyLighting(scene: THREE.Scene, renderer: THREE.WebGLRende
   }
 
   return {
-    update(hourOfDay, view) {
-      const daylight = daylightAt(hourOfDay);
-      skyAt(hourOfDay, zenith, horizon);
+    update(hourOfDay, nightHours, view) {
+      const daylight = daylightAt(hourOfDay, nightHours);
+      skyAt(hourOfDay, nightHours, zenith, horizon);
       fog.color.copy(horizon);
-      fog.density = hazeAt(hourOfDay);
+      fog.density = hazeAt(hourOfDay, nightHours);
 
       skyLight.color.lerpColors(nightSkyLight, daySkyLight, daylight);
       skyLight.intensity = THREE.MathUtils.lerp(NIGHT_SKY_LIGHT_STRENGTH, DAY_SKY_LIGHT_STRENGTH, daylight);
 
-      sunDirectionAt(hourOfDay, sunDirection);
+      sunDirectionAt(hourOfDay, nightHours, sunDirection);
       // Lowness is 1 with the sun on the horizon and 0 once it is halfway up to its highest point.
       const lowness = 1 - THREE.MathUtils.smoothstep(sunDirection.y, 0, highestSunHeight / 2);
       sun.color.lerpColors(noonSun, lowSun, lowness);
@@ -210,10 +228,10 @@ export function createSkyLighting(scene: THREE.Scene, renderer: THREE.WebGLRende
   };
 }
 
-/** Where the sun is at this hour, as a direction from the ground. Below the horizon at night. */
-export function sunDirectionAt(hourOfDay: number, out: THREE.Vector3): THREE.Vector3 {
+/** Where the sun is at this hour, with these night hours, as a direction from the ground. Below the horizon at night. */
+export function sunDirectionAt(hourOfDay: number, nightHours: NightHours, out: THREE.Vector3): THREE.Vector3 {
   // 0 at morning, 1 at nightfall. Night continues the circle below the horizon.
-  const dayFraction = (hourOfDay - MORNING_HOUR) / (NIGHT_START_HOUR - MORNING_HOUR);
+  const dayFraction = (hourOfDay - nightHours.morningHour) / (nightHours.nightStartHour - nightHours.morningHour);
   const angle = dayFraction * Math.PI;
   const highest = THREE.MathUtils.degToRad(SUN_HIGHEST_DEGREES);
   const lean = THREE.MathUtils.degToRad(SUN_PATH_LEAN_DEGREES);
@@ -221,26 +239,27 @@ export function sunDirectionAt(hourOfDay: number, out: THREE.Vector3): THREE.Vec
   return out.set(Math.cos(angle), Math.sin(angle) * Math.sin(highest), Math.sin(angle) * Math.cos(highest) * Math.sin(lean)).normalize();
 }
 
-/** The haze's thickness at this hour, as the fog's thickness per metre. */
-export function hazeAt(hourOfDay: number): number {
-  const [before, after, t] = keysAround(hourOfDay);
+/** The haze's thickness at this hour, with these night hours, as the fog's thickness per metre. */
+export function hazeAt(hourOfDay: number, nightHours: NightHours): number {
+  const [before, after, t] = keysAround(hourOfDay, nightHours);
   return THREE.MathUtils.lerp(before.haze, after.haze, t);
 }
 
-/** Sets the sky's zenith and horizon colours for this hour. */
-function skyAt(hourOfDay: number, zenith: THREE.Color, horizon: THREE.Color): void {
-  const [before, after, t] = keysAround(hourOfDay);
+/** Sets the sky's zenith and horizon colours for this hour, with these night hours. */
+function skyAt(hourOfDay: number, nightHours: NightHours, zenith: THREE.Color, horizon: THREE.Color): void {
+  const [before, after, t] = keysAround(hourOfDay, nightHours);
   zenith.setHex(before.zenith).lerp(scratch.setHex(after.zenith), t);
   horizon.setHex(before.horizon).lerp(scratch.setHex(after.horizon), t);
 }
 
 const scratch = new THREE.Color();
 
-/** The two sky keys on either side of this hour, and how far the hour is from the first to the second. */
-function keysAround(hourOfDay: number): [SkyKey, SkyKey, number] {
+/** The two sky keys on either side of this hour, with these night hours, and how far the hour is from the first to the second. */
+function keysAround(hourOfDay: number, nightHours: NightHours): [SkyKey, SkyKey, number] {
   const hour = ((hourOfDay % 24) + 24) % 24;
-  let before = SKY_KEYS[0] as SkyKey;
-  for (const after of SKY_KEYS) {
+  const keys = skyKeysFor(nightHours);
+  let before = keys[0] as SkyKey;
+  for (const after of keys) {
     if (hour <= after.hour) {
       const span = after.hour - before.hour;
       return [before, after, span > 0 ? (hour - before.hour) / span : 0];

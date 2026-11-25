@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
 import { createGame, type Game } from "./game";
-import { createNeeds, hasCollapsed, needsSpeed, passNeedsTime, quenchThirst, wakeFromCollapse } from "./needs";
+import { createNeeds, hasCollapsed, type NeedConditions, needsSpeed, passNeedsTime, quenchThirst, wakeFromCollapse } from "./needs";
 
 const DAYTIME_AWAY_FROM_FIRE = { night: false, warmedByCampfire: false, working: false, asleep: false, sick: false };
 
@@ -159,6 +159,50 @@ describe("warmth in a snug room", () => {
     const needs = createNeeds();
     needs.warmth.level = 0.2;
     passNeedsTime(needs, 30, { ...NIGHT_AWAY_FROM_FIRE, warmedByCampfire: true, inSnugRoom: true });
+    expect(needs.warmth.level).toBeCloseTo(0.7, 5);
+  });
+});
+
+describe("warmth by season", () => {
+  const AWAY_FROM_FIRE = { warmedByCampfire: false, working: false, asleep: false, sick: false };
+
+  /** How much warmth one game hour drains away from a fire in these conditions. */
+  function drainInOneHour(conditions: Partial<NeedConditions>): number {
+    const needs = createNeeds();
+    passNeedsTime(needs, 60, { ...AWAY_FROM_FIRE, night: false, ...conditions });
+    return 1 - needs.warmth.level;
+  }
+
+  it.each([
+    ["spring", 0, 0.25],
+    ["summer", 0, 0.25],
+    ["autumn", 0, 0.375],
+    ["winter", 0.1, 0.5],
+  ] as const)("drains in %s by day and by night, in warmth per hour", (season, day, night) => {
+    expect(drainInOneHour({ season, night: false })).toBeCloseTo(day, 5);
+    expect(drainInOneHour({ season, night: true })).toBeCloseTo(night, 5);
+  });
+
+  it.each([
+    ["spring", 0, 0.125],
+    ["summer", 0, 0.125],
+    ["autumn", 0, 0.1875],
+    ["winter", 0.05, 0.25],
+  ] as const)("drains in %s at half the rate in a snug room, by day and by night", (season, day, night) => {
+    expect(drainInOneHour({ season, night: false, inSnugRoom: true })).toBeCloseTo(day, 5);
+    expect(drainInOneHour({ season, night: true, inSnugRoom: true })).toBeCloseTo(night, 5);
+  });
+
+  it("adds the rain's chill outdoors and doubles every drain while sick", () => {
+    expect(drainInOneHour({ season: "winter", night: false, inRain: true })).toBeCloseTo(0.35, 5);
+    expect(drainInOneHour({ season: "winter", night: false, sick: true })).toBeCloseTo(0.2, 5);
+    expect(drainInOneHour({ season: "winter", night: true, inRain: true, sick: true })).toBeCloseTo(1, 5);
+  });
+
+  it("still recovers by a lit fire in winter", () => {
+    const needs = createNeeds();
+    needs.warmth.level = 0.2;
+    passNeedsTime(needs, 30, { ...AWAY_FROM_FIRE, night: true, season: "winter", warmedByCampfire: true });
     expect(needs.warmth.level).toBeCloseTo(0.7, 5);
   });
 });

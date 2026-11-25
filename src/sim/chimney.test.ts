@@ -8,7 +8,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
-import { CHIMNEYS_SAVE_VERSION, JOURNAL_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { CHIMNEYS_SAVE_VERSION, SEASONS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
 import { CHIMNEY_BUILD_SECONDS, CHIMNEY_STONE_COST, structureOf, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 
@@ -301,7 +301,7 @@ describe("saving chimneys", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     finishedFireplaceAt(game, square, 0);
-    expect(CHIMNEYS_SAVE_VERSION).toBeGreaterThan(JOURNAL_SAVE_VERSION);
+    expect(CHIMNEYS_SAVE_VERSION).toBeGreaterThan(SEASONS_SAVE_VERSION);
     expect(CHIMNEYS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const old = { ...writeSave(game), version: CHIMNEYS_SAVE_VERSION - 1 };
 

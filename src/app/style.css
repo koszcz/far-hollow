@@ -81,20 +81,28 @@ body {
   border-radius: 999px;
 }
 .hud-clock-ring {
+  --hud-ring-colour: var(--hud-amber);
   display: grid;
   place-items: center;
   width: 30px;
   height: 30px;
   flex: none;
   border-radius: 50%;
-  background: conic-gradient(var(--hud-amber) calc(var(--hud-day) * 1turn), rgb(255 255 255 / 0.1) 0);
+  background: conic-gradient(var(--hud-ring-colour) calc(var(--hud-day) * 1turn), rgb(255 255 255 / 0.1) 0);
+}
+/* The ring and its icon take the season's tint: a deeper amber in autumn and pale blue in winter. Spring and summer keep the HUD amber. */
+.hud-clock-ring-autumn {
+  --hud-ring-colour: #e0782c;
+}
+.hud-clock-ring-winter {
+  --hud-ring-colour: #a9d4f2;
 }
 .hud-clock-ring .hud-icon {
   width: 18px;
   height: 18px;
   padding: 2px;
   box-sizing: content-box;
-  color: var(--hud-amber);
+  color: var(--hud-ring-colour);
   background: #2b1c12;
   border-radius: 50%;
 }

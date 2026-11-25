@@ -149,8 +149,23 @@ export const strings = {
     /** What the craft menu says a recipe lacks, such as "needs the saw and a sawhorse". */
     needs: (lacking: readonly string[]) => `needs ${lacking.join(" and ")}`,
   },
-  /** The HUD clock in the top left corner, such as "Day 2 · 14:20". */
-  clock: (day: number, hour: number, minute: number) => `Day ${day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  /** The HUD clock in the top left corner, such as "Spring · day 3 of 7 · 14:20". */
+  clock: (season: string, dayOfSeason: number, seasonDays: number, hour: number, minute: number) =>
+    `${season} · day ${dayOfSeason} of ${seasonDays} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  /** Each season's name, as the HUD clock and the debug overlay show it. */
+  seasons: {
+    spring: "Spring",
+    summer: "Summer",
+    autumn: "Autumn",
+    winter: "Winter",
+  },
+  /** The banner when a season starts. It says in one line what changes. */
+  seasonStarted: {
+    spring: "Spring. The snow melts and the river thaws.",
+    summer: "Summer.",
+    autumn: "Autumn. The nights grow colder.",
+    winter: "Winter has come. The nights are long and cold, and the river is frozen.",
+  },
   /** The time of day the HUD clock names after the time, in secondary text. */
   timeOfDay: {
     morning: "morning",
@@ -298,7 +313,7 @@ export const strings = {
   fatigue: "Rest",
   notices: {
     survivedFirstNight: "You survived the night.",
-    snugRoomKeepsOutCold: "This room now keeps out the cold. At night, you lose warmth here at half the rate.",
+    snugRoomKeepsOutCold: "This room now keeps out the cold. You lose warmth here at half the rate.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",
@@ -615,6 +630,8 @@ export const strings = {
     takeFishFirst: "take the fish first",
     atCorner: "a door frame or window cannot stand at a corner, which needs crossed logs",
     takeShuttersDownFirst: "take the shutters down first",
+    nothingGrowsInWinter: "nothing grows in winter",
+    riverFrozen: "the river is frozen",
     chimneyNeedsFireplace: "a chimney goes only on a finished fireplace",
     fireplaceHasChimney: "this fireplace already has a chimney",
     takeChimneyDownFirst: "take down the chimney first",
@@ -634,6 +651,10 @@ export const strings = {
   debugTime: "Time",
   debugDayAndTime: (day: number, clock: string) => `Day ${day}, ${clock}`,
   debugSkipHours: (hours: number) => `Skip ${hours} h`,
+  debugSeason: "Season",
+  /** The season and the day within it, such as "Winter, day 3 of 7". */
+  debugSeasonDay: (season: string, dayOfSeason: number, seasonDays: number) => `${season}, day ${dayOfSeason} of ${seasonDays}`,
+  debugSkipToSeason: "Skip to next season",
   debugRain: "Rain",
   debugRainFalling: "Falling",
   debugRainDry: "Dry",

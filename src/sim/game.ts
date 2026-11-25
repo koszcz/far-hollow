@@ -41,6 +41,8 @@ import {
   clockStartMinutes,
   createClock,
   isNightAt,
+  MINUTES_PER_DAY,
+  nightHoursAt,
   MINUTES_PER_HOUR,
   nextMorning,
   readClock,
@@ -48,6 +50,7 @@ import {
   type ClockStart,
   timeRules,
 } from "./clock";
+import { firstDayOfSeason, NEW_GAME_YEAR_START_DAY, nextSeasonStartDay, type Season, type SeasonDay, seasonDayOf } from "./season";
 import { createForaging, valleyForageSpots, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
 import { createEntityStore, movingEntities, rainEntities, restoreEntities, saveEntities, type Entity, type EntityStore, type SavedEntity } from "./entities";
@@ -122,6 +125,24 @@ export interface GameOptions {
    * Loading a save made before the journal existed turns it on. It is never saved, so it runs only once for each save.
    */
   journalFromCamp?: boolean;
+  /**
+   * Starts a new game at PLAYGROUND_SEASON_START_HOUR on day 1 of this season, instead of at GAME_START.
+   * The playground's `&season=` sets it. It is ignored when carrying on a saved game.
+   */
+  startSeason?: Season;
+}
+
+/** A game started in a chosen season starts at this hour, on day 1 of that season. */
+export const PLAYGROUND_SEASON_START_HOUR = 6;
+/** What skipToSeason passes time to, on day 1 of the next season. */
+const SEASON_SKIP_HOUR = 6;
+/** How many game minutes the banner shows for when a season starts. One game minute is one real second. */
+export const SEASON_BANNER_MINUTES = 30;
+
+/** Where a new game's clock starts: at GAME_START, or on the morning of day 1 of `startSeason` if given. */
+export function newGameStart(startSeason: Season | undefined): ClockStart {
+  if (startSeason === undefined) return GAME_START;
+  return { day: firstDayOfSeason(startSeason, NEW_GAME_YEAR_START_DAY), hour: PLAYGROUND_SEASON_START_HOUR };
 }
 
 /**
@@ -131,6 +152,8 @@ export interface GameOptions {
 export interface GameProgress {
   /** Game minutes since midnight at the start of day 1. */
   clockMinutes: number;
+  /** The day the year started on, which day 1 of spring falls on. The season follows from it and the day (see season.ts). */
+  yearStartDay: number;
   stepCount: number;
   firstNightOver: boolean;
   /** Whether the banner saying a snug room keeps out the cold has shown. It shows once in each game. */
@@ -165,7 +188,7 @@ export interface Game {
   groundMap(): GroundMap;
 }
 
-export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false }: GameOptions): Game {
+export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false, startSeason }: GameOptions): Game {
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -178,7 +201,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const debarking = createDebarking(entities);
   const crafting = createCrafting(entities, valley.terrain);
   const gathering = createGathering(entities, handReach);
-  const foraging = createForaging(entities, handReach);
+  const foraging = createForaging(entities, handReach, isWinter);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities);
@@ -195,10 +218,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const drinking = createDrinking(entities, walking.walkMap, valley, (river) => {
     reportEatOrDrink("drinkFromRiver", river);
   });
-  const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
+  const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE, isWinter);
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const clayDigging = createClayDigging(entities, walking.walkMap, valley);
-  const fishTraps = createFishTraps(entities, walking.walkMap, valley, seed);
+  const fishTraps = createFishTraps(entities, walking.walkMap, valley, seed, isWinter);
   // The ground follows the trees that stand for good. The clock is read only once the game runs.
   const groundChanges = createGroundChanges(entities, valley, () => clock.minutes);
   const diggingUp = createDiggingUp(entities, (spot) => {
@@ -248,12 +271,17 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const moving = movingEntities(entities);
   const pendingCommands: Command[] = [];
   const listeners = new Set<() => void>();
-  const gameStartMinutes = clockStartMinutes(GAME_START);
+  const gameStartMinutes = clockStartMinutes(newGameStart(progress === undefined ? startSeason : undefined));
   const clock = createClock(progress?.clockMinutes ?? gameStartMinutes);
+  const yearStartDay = progress?.yearStartDay ?? NEW_GAME_YEAR_START_DAY;
+  /** The season the banner last said had started, or the season the game began in. It is not saved. */
+  let announcedSeason = seasonNow().season;
+  /** The season that has just started, with the game minute its banner stops showing at, or null. It is not saved. */
+  let seasonBanner: { season: Season; untilMinutes: number } | null = null;
   // A save made before rain existed has no weather, so it starts dry from here.
-  const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes) })).rain;
+  const rain = (rainEntities(entities).first ?? entities.add({ rain: createRain(seed, clock.minutes, yearStartDay) })).rain;
   /** When the first night ends. Reaching it without a collapse counts as surviving the night. */
-  const firstMorning = nextMorning(gameStartMinutes);
+  const firstMorning = nextMorning(gameStartMinutes, yearStartDay);
   /** Whether the first night has ended, by morning coming or by a collapse. */
   let firstNightOver = progress?.firstNightOver ?? false;
   let snugRoomNoticeShown = progress?.snugRoomNoticeShown ?? false;
@@ -297,7 +325,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       entityCount: entities.entities.length,
       playerPosition: Object.freeze({ ...player.position }),
       time: readClock(clock.minutes),
-      night: isNightAt(clock.minutes),
+      night: isNightAt(clock.minutes, yearStartDay),
+      nightHours: nightHoursAt(clock.minutes, yearStartDay),
+      season: Object.freeze(seasonNow()),
+      seasonBanner: seasonBanner !== null && clock.minutes < seasonBanner.untilMinutes ? seasonBanner.season : null,
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
@@ -442,6 +473,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
         passTime(gameMinutes);
       },
       skipToRainChange,
+      skipToSeason,
     }),
     ...walkingRules(walking),
     ...choppingRules(chopping),
@@ -499,13 +531,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   function passTime(gameMinutes: number, asleepIn?: SleepPlace): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
+      const winter = isWinter();
       clock.skip(minutes / MINUTES_PER_HOUR);
       passRainTime(rain, seed, clock.minutes);
       // Rain does not put out campfires.
-      passWorldTime(minutes);
+      passWorldTime(minutes, winter);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
-        night: isNightAt(clock.minutes),
+        night: isNightAt(clock.minutes, yearStartDay),
+        season: seasonNow().season,
         warmedByCampfire: isWarmedByCampfire(entities, player.position),
         working: currentAction() !== null,
         asleep: asleepIn !== undefined,
@@ -537,6 +571,38 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     while (rain.falling === wasFalling) {
       if (!passTime(PASS_TIME_SLICE_MINUTES)) return;
     }
+  }
+
+  /** The season today, from the day on the clock and the day the year started on. */
+  function seasonNow(): SeasonDay {
+    return seasonDayOf(readClock(clock.minutes).day, yearStartDay);
+  }
+
+  /** Whether it is winter now, when nature rests: nothing grows and the river is frozen. */
+  function isWinter(): boolean {
+    return isWinterAt(clock.minutes);
+  }
+
+  /** Whether it is winter at this game minute, counted from midnight at the start of day 1. */
+  function isWinterAt(minutes: number): boolean {
+    return seasonDayOf(readClock(minutes).day, yearStartDay).season === "winter";
+  }
+
+  /**
+   * Moves the clock on to SEASON_SKIP_HOUR on day 1 of the next season. A collapse on the way does not stop it:
+   * the player wakes the next morning and time passes on, so the skip always gets there.
+   */
+  function skipToSeason(): void {
+    const target = clockStartMinutes({ day: nextSeasonStartDay(readClock(clock.minutes).day, yearStartDay), hour: SEASON_SKIP_HOUR });
+    while (clock.minutes < target) passTime(target - clock.minutes);
+  }
+
+  /** Shows the banner for a season that has started since the last one shown. The step calls it once time has passed. */
+  function noticeSeasonStart(): void {
+    const { season } = seasonNow();
+    if (season === announcedSeason) return;
+    announcedSeason = season;
+    seasonBanner = { season, untilMinutes: clock.minutes + SEASON_BANNER_MINUTES };
   }
 
   /**
@@ -581,18 +647,19 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
    * sticks fall, pots and fish heat, rain barrels catch the rain falling now, and set fish traps catch fish.
+   * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
-  function passWorldTime(minutes: number): void {
+  function passWorldTime(minutes: number, winter: boolean): void {
     rainBarrels.catchRain(minutes, rain.falling);
     campfires.burn(minutes);
     torches.burn(minutes);
-    foraging.grow(minutes);
-    regrowth.grow(minutes);
+    foraging.grow(minutes, winter);
+    if (!winter) regrowth.grow(minutes);
     stickFall.pass(minutes);
     pot.heat(minutes);
     cooking.cook(minutes);
     firing.fire(minutes);
-    fishTraps.pass(minutes);
+    fishTraps.pass(minutes, winter);
   }
 
   /**
@@ -611,9 +678,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     // The sled stays where the player fell, with its load.
     sleds.letGo();
     entities.removeComponent(player, "walkPath");
-    const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
-    clock.skip(asleepMinutes / MINUTES_PER_HOUR);
-    passWorldTime(asleepMinutes);
+    // The valley moves on in two parts when midnight falls before morning, so a season that starts at midnight counts from then.
+    const morning = nextMorning(clock.minutes, yearStartDay);
+    const midnight = (Math.floor(clock.minutes / MINUTES_PER_DAY) + 1) * MINUTES_PER_DAY;
+    let from = clock.minutes;
+    for (const until of midnight < morning ? [midnight, morning] : [morning]) {
+      clock.skip((until - from) / MINUTES_PER_HOUR);
+      passWorldTime(until - from, isWinterAt(from));
+      from = until;
+    }
     // A bed blocks walking, so a player whose respawn point is a bed wakes on the open ground nearest it.
     const { x, z } = isWalkable(walking.walkMap, player.respawnPoint)
       ? player.respawnPoint
@@ -690,9 +763,9 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
    * Returns false if a collapse cut sleep short.
    */
   function sleep(asleepIn: SleepPlace): boolean {
-    const untilMorning = nextMorning(clock.minutes) - clock.minutes;
+    const untilMorning = nextMorning(clock.minutes, yearStartDay) - clock.minutes;
     const toRestFully = minutesToRestFully(player.needs, isUnderRoof(entities, player.position), asleepIn === "bed");
-    const wakesAtNight = isNightAt(clock.minutes + toRestFully);
+    const wakesAtNight = isNightAt(clock.minutes + toRestFully, yearStartDay);
     return passTime(wakesAtNight ? untilMorning : Math.min(untilMorning, toRestFully), asleepIn);
   }
 
@@ -743,6 +816,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       actionQueue.moveOn();
       noteGoals();
       noticeSnugRoom();
+      noticeSeasonStart();
       stepCount += 1;
     }
 
@@ -782,6 +856,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   function readProgress(): GameProgress {
     return structuredClone({
       clockMinutes: clock.minutes,
+      yearStartDay,
       stepCount,
       firstNightOver,
       snugRoomNoticeShown,

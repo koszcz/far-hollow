@@ -13,7 +13,7 @@ function fireflySpots(entities: EntityStore): number[] {
   if (points === undefined) throw new Error("no firefly points");
   const spots: number[] = [];
   for (let frame = 0; frame < 120; frame += 1) {
-    effect.update(frame / 2, { x: 0, z: 0 }, NIGHT);
+    effect.update(frame / 2, { x: 0, z: 0 }, NIGHT, true);
     const positions = points.geometry.getAttribute("position");
     const shown = points.geometry.drawRange.count;
     for (let index = 0; index < shown; index += 1) spots.push(positions.getX(index), positions.getY(index), positions.getZ(index));

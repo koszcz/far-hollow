@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { createClock, isNight, readClock } from "./clock";
+import { createClock, readClock } from "./clock";
 
 const REAL_MINUTE_MS = 60_000;
 
@@ -41,14 +41,5 @@ describe("clock", () => {
     clock.skip(-5);
     clock.skip(Number.NaN);
     expect(readClock(clock.minutes)).toMatchObject({ day: 1, hour: 22, minute: 0 });
-  });
-
-  it("calls it night from 20:00 until morning arrives at 06:00", () => {
-    expect(isNight(19.99)).toBe(false);
-    expect(isNight(20)).toBe(true);
-    expect(isNight(0)).toBe(true);
-    expect(isNight(5.99)).toBe(true);
-    expect(isNight(6)).toBe(false);
-    expect(isNight(12)).toBe(false);
   });
 });

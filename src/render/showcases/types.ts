@@ -1,6 +1,7 @@
 // The shapes every showcase shares: its views, the stage it builds on, and the common framings.
 import * as THREE from "three";
 import { type Entity, type EntityStore, type Vec3 } from "../../sim/entities";
+import { nightHoursOf } from "../../sim/season";
 import { type PotMesh } from "../pot-shape";
 import type { SaplingModels } from "../sapling-shape";
 import type { TreeShape } from "../tree-model";
@@ -11,6 +12,10 @@ import type { WindSway } from "../wind-sway";
 /** Midday, so colours show as they do in daylight. */
 export const NOON = 12;
 export const NIGHT = 22;
+/** Showcases draw the sky with spring's night hours. */
+export const SHOWCASE_NIGHT_HOURS = nightHoursOf("spring");
+/** The hour an hour before night starts in a showcase. */
+export const DUSK = SHOWCASE_NIGHT_HOURS.nightStartHour - 1;
 /** Props stand this far east of the river's middle, on the flat valley floor. */
 export const STAGE_FROM_RIVER_METRES = 25;
 

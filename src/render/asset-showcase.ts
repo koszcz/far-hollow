@@ -33,7 +33,7 @@ import { createWindowGlowMeshes } from "./window-glow-meshes";
 import { SHOWCASES } from "./showcases";
 import { windAt } from "./wind";
 import { createWindSway } from "./wind-sway";
-import { NOON, STAGE_FROM_RIVER_METRES, type Shot, type Stage } from "./showcases/types";
+import { NOON, SHOWCASE_NIGHT_HOURS, STAGE_FROM_RIVER_METRES, type Shot, type Stage } from "./showcases/types";
 
 /** Every showcase uses the same valley, so screenshots of one asset compare across sessions. */
 const SHOWCASE_SEED = 42;
@@ -235,16 +235,16 @@ export function showAsset(
     piles.update();
     bark.update();
     plantedTorches.update(seconds);
-    river?.update(seconds, daylightAt(shot.hour ?? NOON));
-    windowGlow.update({ daylight: daylightAt(shot.hour ?? NOON), nowSeconds: seconds });
+    river?.update(seconds, daylightAt(shot.hour ?? NOON, SHOWCASE_NIGHT_HOURS));
+    windowGlow.update({ daylight: daylightAt(shot.hour ?? NOON, SHOWCASE_NIGHT_HOURS), nowSeconds: seconds });
     const focusOffset = { ...showcase.focus, ...shot.focus };
     const x = middle.x + focusOffset.x + (follow.x ?? 0);
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
-    rain.update(seconds, focus, daylightAt(shot.hour ?? NOON));
-    fireflies?.update(seconds, focus, daylightAt(shot.hour ?? NOON), true);
+    rain.update(seconds, focus, daylightAt(shot.hour ?? NOON, SHOWCASE_NIGHT_HOURS));
+    fireflies?.update(seconds, focus, daylightAt(shot.hour ?? NOON, SHOWCASE_NIGHT_HOURS), true);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
-    sky.update(shot.hour ?? NOON, { focus, distance });
+    sky.update(shot.hour ?? NOON, SHOWCASE_NIGHT_HOURS, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);
     const pitch = THREE.MathUtils.degToRad(shot.pitch);
     camera.position.set(

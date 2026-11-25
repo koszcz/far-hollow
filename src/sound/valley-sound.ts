@@ -4,6 +4,7 @@ import { campfireEntities, fireplaceEntities, playerEntities, rainEntities, type
 import { isUnderRoof } from "../sim/roofs";
 import type { Valley } from "../sim/valley";
 import { daylightAt } from "../render/daylight";
+import type { NightHours } from "../sim/season";
 import { flameSize } from "../render/flame-size";
 import { windStrength } from "../render/wind";
 import type { DrawnPlayer } from "../render/scene-renderer";
@@ -21,6 +22,8 @@ export interface SoundFrame {
   readonly camera: CameraOnGround;
   /** The hour of the day the sky shows, with its fraction. Birds and crickets follow its daylight. */
   readonly hourOfDay: number;
+  /** The night hours the sky follows, which set its daylight. */
+  readonly nightHours: NightHours;
   /** Silences all sound, from 0 to 1, such as while the sleep animation fades to black. */
   readonly silence: number;
   /** What the drawn player did this frame, for the action sounds. */
@@ -59,7 +62,7 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
   }
 
   return {
-    update(nowSeconds, { camera, hourOfDay, silence, drawnPlayer, asleep }) {
+    update(nowSeconds, { camera, hourOfDay, nightHours, silence, drawnPlayer, asleep }) {
       const began = performance.now();
       const raining = weather.first?.rain.falling === true;
       const player = players.first?.position ?? camera.focus;
@@ -68,7 +71,7 @@ export function createValleySound(engine: SoundEngine, valley: Valley, entities:
       const elapsed = nowSeconds - (lastSeconds ?? nowSeconds);
       // The first frame takes the weather and the time of day as they are, so a loaded game does not fade them in.
       rain = easeRainHearing(rain, raining, underRoof, nowSeconds);
-      daylight = daylight === undefined ? daylightAt(hourOfDay) : easeHeardDaylight(daylight, daylightAt(hourOfDay), elapsed);
+      daylight = daylight === undefined ? daylightAt(hourOfDay, nightHours) : easeHeardDaylight(daylight, daylightAt(hourOfDay, nightHours), elapsed);
       lastSeconds = nowSeconds;
       const listener = listenerFrom(player, camera);
       const wishes = ambienceWishes(listener, {

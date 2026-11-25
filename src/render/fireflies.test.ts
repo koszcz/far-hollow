@@ -3,6 +3,9 @@ import { createGroundMap, groundTypeAt } from "../sim/ground-types";
 import { createRandom } from "../sim/random";
 import { distanceToRiver, generateValley } from "../sim/valley";
 import { daylightAt } from "./daylight";
+import { nightHoursOf } from "../sim/season";
+
+const SPRING = nightHoursOf("spring");
 import { createFireflySwarm, FIREFLY_COUNT, FIREFLY_DRIFT_METRES, FIREFLY_RADIUS_METRES, fireflyOpenGround, type FireflyGround } from "./fireflies";
 
 const OPEN_EVERYWHERE: FireflyGround = { isOpen: () => true, heightAt: () => 0 };
@@ -29,11 +32,11 @@ describe("fireflies", () => {
 
   it("follow daylight: none by day, fading in through the dusk", () => {
     const swarm = createFireflySwarm(OPEN_EVERYWHERE, createRandom(2));
-    expect(mostGlowing(swarm, daylightAt(12))).toBe(0);
+    expect(mostGlowing(swarm, daylightAt(12, SPRING))).toBe(0);
     const brightest = (hour: number): number => {
       let most = 0;
       for (let frame = 0; frame < 30 * 10; frame += 1)
-        for (const firefly of swarm.update(frame / 30, PLAYER, daylightAt(hour), false, true)) most = Math.max(most, firefly.glow);
+        for (const firefly of swarm.update(frame / 30, PLAYER, daylightAt(hour, SPRING), false, true)) most = Math.max(most, firefly.glow);
       return most;
     };
     const dusk = brightest(19);

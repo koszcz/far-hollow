@@ -319,8 +319,12 @@ Said of a room with a finished floor on every square, a finished door in every d
 _Avoid_: Sealed, insulated, finished room
 
 **Build menu**:
-The menu, opened with B, of every structure the player can build and what it costs. It shows as a wheel in the middle of the screen.
+The menu, opened with B, of every structure the player can build and what it costs, except add-ons. It shows as a list above the build button, split into the tabs Camp, Shelter, and Furniture.
 _Avoid_: Build bar, build wheel, construction menu
+
+**Add-on**:
+A building piece the player builds from the finished piece it goes on, called its host, not from the build menu. The add-ons are the door, built from a door frame, the shutters, from a window, the chimney, from a fireplace, and the roof section, from a roof frame.
+_Avoid_: Attachment, extension, upgrade
 
 **Blueprint**:
 A see-through outline of a building piece the player has placed but not finished. It shows where the piece will go and how far along it is.
@@ -353,7 +357,7 @@ A recipe the player can follow anywhere, using only what is in their backpack.
 A recipe the player follows while standing at a work station. Besides what is in the backpack, it can use logs lying next to the station or on a sled parked next to it.
 
 **Craft menu**:
-The menu, opened with C, of every recipe in the game. It shows as a wheel in the middle of the screen. Recipes the player cannot follow yet show the tool or work station they are missing.
+The menu, opened with C, of every recipe in the game. It shows as a list above the craft button. Recipes the player cannot follow yet show the tool or work station they are missing.
 _Avoid_: Crafting window, craft wheel, recipe book
 
 **Work station**:

@@ -1,36 +1,44 @@
-# 01: A less crowded build wheel
+# 01: A less crowded build menu
 
-**What to build:** The build menu shows one wheel segment for each of its 22 structures. With that many segments, the player struggles to read the wheel and to find a structure. Each new spec adds more segments. The build menu needs a layout that stays readable as the list grows.
+**What to build:** The build menu lists all 22 structures in one list that scrolls. Each new spec adds more rows, so the player struggles to find a structure. Two changes fix this. Add-ons leave the build menu and become actions on the finished piece they go on. The remaining 18 structures split into three tabs: Camp, Shelter, and Furniture.
 
-**Status:** idea
+**Status:** ready-for-agent
 
-**Assets:** Probably changes the approved `hud`, which needs the owner's approval in chat. It may need category icons. Settle this during grilling.
+**Assets:** Changes the approved `hud`. The owner approved this change in chat on 2026-11-25. Adds no new asset and no category icons. Reuses `build-icons` for the rows.
 
-Today the build menu lists these structures (`src/sim/structure-kind.ts`):
+## Add-ons move onto their host
 
-- Camp: campfire, lean-to, woodpile, sled, sawhorse.
-- Shelter: foundation, floor, log wall, door frame, window, roof frame, roof.
-- Fittings: door, shutters, fireplace, chimney.
-- Furniture: chest, shelf, bed, table, stool, rain barrel.
+An add-on is a building piece built from the finished piece it goes on, its host (see `GLOSSARY.md`).
 
-Four ideas, which can be combined:
+- [ ] The door, shutters, chimney, and roof section no longer show in the build menu. The floor stays.
+- [ ] A finished door frame with no door or door blueprint offers "Hang a door".
+- [ ] A finished window with no shutters or shutters blueprint offers "Hang shutters".
+- [ ] A finished roof frame with no roof section or roof section blueprint offers "Lay the roof".
+- [ ] A finished fireplace with no chimney or chimney blueprint offers "Build a chimney".
+- [ ] On the door frame, window, and roof frame, the add-on is the main action, so a left-click does it.
+- [ ] On the fireplace, the fire keeps the main action. "Build a chimney" is only in the right-click menu.
+- [ ] One click on the add-on action places the add-on's blueprint on that host and starts building it, as clicking "Build" on a blueprint does. Fetching works as it does today.
+- [ ] If the game would refuse to place the blueprint, the action shows greyed with the reason (ADR 0008). If the blueprint is placed but building cannot start, the blueprint stays and the game shows why, as "Build" does today.
+- [ ] Once the add-on's blueprint exists, the host stops offering the add-on action. The blueprint offers its usual actions.
+- [ ] A host that is still a blueprint offers no add-on action.
 
-1. **Build add-ons from the thing they attach to.** Door, shutters, chimney, and roof each need a finished piece to go on: a door frame, a window, a fireplace, or a roof frame. They could leave the build menu and become actions on that piece, such as "Hang a door" on a door frame. This removes 4 segments. It follows `.scratch/hud-redesign/issues/04-actions-move-onto-things.md`.
-2. **Group structures into categories.** The wheel first shows 4 or 5 categories, such as Camp, Shelter, Furniture, and Work. A click on a category shows a second wheel with its structures. Each wheel then has 8 segments or fewer. Building anything takes one more click.
-3. **Merge variants into one segment.** Log wall, door frame, and window become one "Wall" segment. The player picks the variant while placing the blueprint.
-4. **Hide or dim structures the player cannot place yet.** For example, the roof frame shows only after the first wall stands.
+## Tabs in the build menu
 
-The session that wrote this ticket recommends ideas 1 and 2 together.
+- [ ] The build menu shows three text tabs above its rows: Camp, Shelter, and Furniture. It shows the rows of one tab at a time.
+- [ ] Camp holds the campfire, lean-to, woodpile, sawhorse, and sled.
+- [ ] Shelter holds the foundation, floor, log wall, door frame, window, roof frame, and fireplace.
+- [ ] Furniture holds the chest, shelf, bed, table, stool, and rain barrel.
+- [ ] The player switches tabs by clicking them. Escape and B still close the menu.
+- [ ] The menu opens on Camp the first time. After that, it opens on the tab used last. This memory lasts until the page reloads and is not saved with the game.
+- [ ] No tab scrolls on a 1280 by 720 screen.
+- [ ] The door frame, window, roof frame, and fireplace rows each show a short detail line that names their add-on, such as "Hang a door in it once it is built."
 
-Questions for grilling:
+## The rest
 
-- Which of the four ideas do we use?
-- If add-ons move onto their host pieces, which ones move? Door, shutters, chimney, roof, others?
-- Does an add-on still show anywhere in the build menu, so the player learns it exists?
-- If we use categories, which ones, and which structure goes in each? Where do the sawhorse and the sled go?
-- Does the wheel remember the last category opened?
-- Does the second wheel replace the first in place, or open as an outer ring around it?
-- How does the player go back from a category to the first wheel? Right-click, Escape, or a centre button?
-- If variants merge, how does the player switch variant while placing, and how does the HUD show that variants exist?
-- Does the craft wheel get the same treatment now, or in a later ticket?
-- Does the HUD showcase at `/?asset=hud` need to show the new layout?
+- [ ] The two journal hints that tell the player to press B for roofs and doors say instead to click the finished roof frame, door frame, and window. See `src/strings.ts`, the hints near line 393 and line 398.
+- [ ] The HUD showcase at `/?asset=hud` shows the build menu open on one tab.
+- [ ] The `hud` entry in `asset-manifest.json` describes the tabs and records the owner's approval of 2026-11-25.
+- [ ] The craft menu does not change.
+- [ ] Saves do not change. Add-ons placed before this ticket stay as they are.
+- [ ] Tests cover the add-on actions on each host, greyed and not, and which structures each tab lists.
+- [ ] `GLOSSARY.md` defines the add-on and describes the build menu tabs. This is done already.

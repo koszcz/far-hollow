@@ -137,6 +137,12 @@ export interface Entity {
    * A chest from a save made before chests cost planks keeps its 2 debarked logs. Without this, the structure's cost applies.
    */
   builtCost?: { material: DeliveredMaterial; count: number }[];
+  /**
+   * Marks a swap blueprint: a window or door frame blueprint placed on a finished log wall, to be built from the wall's own logs.
+   * The wall stands until the swap finishes. Then the wall goes, and the blueprint turns into the finished piece.
+   * A swap costs nothing to build, and the finished piece no longer has this.
+   */
+  swapsWall?: true;
   /** Which way a blueprint, or the structure built from it, faces. A bedroll laid in a lean-to has it too. A bedroll without it lies along z. */
   facing?: { turns: QuarterTurns };
   /**

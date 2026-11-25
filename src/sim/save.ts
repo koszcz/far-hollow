@@ -83,6 +83,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addJournal,
   startTheYear,
   addChimneys,
+  addWallSwaps,
 ];
 
 /** The version of the save format this code writes. */
@@ -198,6 +199,8 @@ export const JOURNAL_SAVE_VERSION = SAVE_UPGRADES.indexOf(addJournal) + 2;
 export const SEASONS_SAVE_VERSION = SAVE_UPGRADES.indexOf(startTheYear) + 2;
 /** The first save version that can hold chimneys. */
 export const CHIMNEYS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addChimneys) + 2;
+/** The first save version that can hold a swap blueprint: a window or door frame blueprint on a finished log wall. */
+export const WALL_SWAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWallSwaps) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1046,5 +1049,13 @@ function startTheYear(save: Readonly<Record<string, unknown>>): Record<string, u
 
 /** Version 60 to 61: the player can build a chimney on a fireplace. A save from before then holds none, so it carries over unchanged. */
 function addChimneys(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/**
+ * Version 61 to 62: the player can swap a finished log wall for a window or door frame, and a swap blueprint is saved with
+ * its progress. A save from before then holds no swap, so it carries over unchanged.
+ */
+function addWallSwaps(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

@@ -4,37 +4,37 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuse `log-wall`, `window`, `door-frame`, and `debarked-log`. Add nothing new. The swap blueprint is the usual see-through blueprint of the new piece, drawn over the standing wall. Decided with the owner on 2026-11-25.
 
 ## Placing a swap
 
-- [ ] With the window or the door frame chosen in the build menu, the player can place it on an edge that holds a finished log wall. This places a swap blueprint on the wall.
-- [ ] A swap follows the new piece's placement rules, apart from the taken edge. The opening corner rule still refuses a swap at a corner, with its usual reason (ADR 0008).
-- [ ] A swap can go only on a finished log wall. A wall blueprint, a window, a door frame, or a wall that already has a swap blueprint takes none.
-- [ ] A finished roof frame, roof section, or chimney on the wall does not stop a swap. They all stay up.
+- [x] With the window or the door frame chosen in the build menu, the player can place it on an edge that holds a finished log wall. This places a swap blueprint on the wall.
+- [x] A swap follows the new piece's placement rules, apart from the taken edge. The opening corner rule still refuses a swap at a corner, with its usual reason (ADR 0008).
+- [x] A swap can go only on a finished log wall. A wall blueprint, a window, a door frame, or a wall that already has a swap blueprint takes none.
+- [x] A finished roof frame, roof section, or chimney on the wall does not stop a swap. They all stay up.
 
 ## Building a swap
 
-- [ ] A swap is one construction job. It takes the new piece's build time, 10 seconds, and needs no fetching, because the wall's logs pay for it.
-- [ ] The player can stop a swap partway and come back later, as with any construction.
-- [ ] Until the swap finishes, the wall stands whole. It still blocks walking, closes the room, and holds up the roof frame.
-- [ ] When the swap finishes, the wall turns into the new piece at once. The new piece then works like any other finished window or door frame.
-- [ ] The wall's 4 debarked logs pay for the new piece's 3. The spare log goes on the ground near the player, on their side of the wall, as when a piece is taken down.
-- [ ] In the instant playground (`?playground&instant`), a swap finishes the moment it is placed.
+- [x] A swap is one construction job. It takes the new piece's build time, 10 seconds, and needs no fetching, because the wall's logs pay for it.
+- [x] The player can stop a swap partway and come back later, as with any construction.
+- [x] Until the swap finishes, the wall stands whole. It still blocks walking, closes the room, and holds up the roof frame.
+- [x] When the swap finishes, the wall turns into the new piece at once. The new piece then works like any other finished window or door frame.
+- [x] The wall's 4 debarked logs pay for the new piece's 3. The spare log goes on the ground near the player, on their side of the wall, as when a piece is taken down.
+- [x] In the instant playground (`?playground&instant`), a swap finishes the moment it is placed.
 
 ## Taking down
 
-- [ ] Taking down a swap blueprint leaves the wall as it was. Nothing is lost.
-- [ ] A wall with a swap blueprint on it cannot come down. The refusal is the usual "take down what stands on it first".
+- [x] Taking down a swap blueprint leaves the wall as it was. Nothing is lost.
+- [x] A wall with a swap blueprint on it cannot come down. The refusal is the usual "take down what stands on it first".
 
 ## Saving and the rest
 
-- [ ] A swap blueprint and its progress are saved. The save version goes up, and older saves are upgraded when loaded (ADR 0011).
-- [ ] All player-facing text is in the strings file.
-- [ ] Unit tests cover placing a swap, the corner refusal, the spare log, a swap under a roof, cancelling, and the wall's take-down refusal.
-- [ ] `GLOSSARY.md` defines the swap. This is done already.
+- [x] A swap blueprint and its progress are saved. The save version goes up, and older saves are upgraded when loaded (ADR 0011).
+- [x] All player-facing text is in the strings file.
+- [x] Unit tests cover placing a swap, the corner refusal, the spare log, a swap under a roof, cancelling, and the wall's take-down refusal.
+- [x] `GLOSSARY.md` defines the swap. This is done already.
 
 ## Not in this ticket
 

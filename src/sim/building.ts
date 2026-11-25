@@ -38,7 +38,9 @@ import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-po
 import type { HandReach } from "./hand-reach";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 import { distanceToTarget, walkingDistancesFrom, type WalkTarget } from "./pathfinding";
-import { isWalkable } from "./walk-map";
+import { isWalkable, laySpots } from "./walk-map";
+import { standingHeightAt } from "./foundations";
+import { wallOn } from "./wall-swaps";
 import { refusedNotice } from "./notices";
 import type { CommandRules, RuleGame } from "./command-rule";
 
@@ -416,8 +418,28 @@ export function createBuilding(
     return undefined;
   }
 
-  /** Turns a blueprint whose progress has reached 1 into the finished structure. */
-  function finish({ target, blueprint, position }: Placed): void {
+  /**
+   * Takes down the log wall under a swap blueprint that has just finished. The logs the new piece does not need go on the ground
+   * near `near`, on that side of the wall. They are laid while the wall still stands, so none lands beyond it.
+   */
+  function replaceWall(swap: Placed, near: GroundPoint): void {
+    const wall = wallOn(entities, swap.position);
+    entities.removeComponent(swap.target, "swapsWall");
+    if (wall === undefined) return;
+    const logsIn = (cost: readonly MaterialCost[]) => cost.filter(({ material }) => material === "debarkedLog").reduce((sum, { count }) => sum + count, 0);
+    const spare = Math.max(0, logsIn(costOf(wall, "logWall")) - logsIn(costOf(swap.target, swap.blueprint.structure)));
+    const spots = laySpots(walking.walkMap, near, spare);
+    for (let i = 0; i < spare; i += 1) {
+      const { x, z } = spots[i] ?? near;
+      entities.add({ debarkedLog: { heading: 0 }, position: { x, y: standingHeightAt(entities, valley.terrain, { x, z }), z } });
+    }
+    entities.remove(wall);
+  }
+
+  /** Turns a blueprint whose progress has reached 1 into the finished structure. `near` is where the player stands. */
+  function finish(placed: Placed, near: GroundPoint): void {
+    const { target, blueprint, position } = placed;
+    if (target.swapsWall === true) replaceWall(placed, near);
     entities.removeComponent(target, "blueprint");
     const finished = structureOf(blueprint.structure).finish({ x: position.x, z: position.z }, target.facing?.turns ?? 0, entities);
     for (const key of Object.keys(finished) as (keyof Entity)[]) entities.addComponent(target, key, finished[key]);
@@ -430,9 +452,11 @@ export function createBuilding(
       const { spot, turns: facing, allowed } = checkPlacement(structure, at, turns);
       if (!allowed) return undefined;
       const definition = structureOf(structure);
-      definition.clearSite?.({ entities, walkMap: walking.walkMap, valley }, spot);
+      const site = { entities, walkMap: walking.walkMap, valley };
+      definition.clearSite?.(site, spot);
       const blocks = definition.blueprintBlocksWalkingSpots?.(spot);
       const added = entities.add({
+        ...definition.blueprintParts?.(site, spot),
         blueprint: { structure, progress: 0, materialsSpent: 0, delivered: {} },
         facing: { turns: facing },
         position: { ...spot },
@@ -441,7 +465,7 @@ export function createBuilding(
       const id = entities.id(added);
       if (instantBuilding && id !== undefined) {
         const placed = placedBlueprint(id);
-        if (placed !== undefined) finish(placed);
+        if (placed !== undefined) finish(placed, players.first?.position ?? placed.position);
       }
       return id;
     },
@@ -517,7 +541,7 @@ export function createBuilding(
         }
         if (placed.blueprint.progress < 1) continue;
         entities.removeComponent(builder, "buildTask");
-        finish(placed);
+        finish(placed, builder.position);
       }
       return notice;
     },

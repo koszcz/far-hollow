@@ -112,7 +112,7 @@ The camera looks down at the player from above at an angle, like an isometric ga
 ## Building
 
 - The first shelter is a **lean-to**: one quick structure of sticks and bark. It is not built from building pieces.
-- Building pieces snap to a grid. They include foundations, log walls, door frames, windows, floors, stairs, and roof sections.
+- Building pieces snap to a grid. They include foundations, log walls, door frames, windows, floors, and roof sections.
 - To build, the player places a **blueprint**, then holds the build action. The piece grows in stages with an animation.
 - Materials are spent as **construction** goes on.
 - The player can stop partway and come back later. Progress is saved.
@@ -121,8 +121,8 @@ The camera looks down at the player from above at an angle, like an isometric ga
 - A blueprint cannot overlap a standing tree. Placing a foundation removes any stump under it for good.
 - The player can take down any blueprint or building piece and get back every material in it. A piece cannot be taken down while another piece stands on it.
 - A roof overhead stops rain from draining warmth. Sleeping under a roof restores fatigue faster.
-- A building can have up to two **storeys**.
-- There is no limit on a building's size. A large single-storey house is allowed.
+- A building has one storey. There are no stairs.
+- There is no limit on a building's size. A large house is allowed.
 - Windows have wooden shutters. There is no glass.
 - There is no tech tree. A **recipe** becomes available as soon as the player has the tool or **work station** it needs.
 

@@ -2,7 +2,7 @@
 
 **What to build:** The player can build stairs and a second storey on a cabin. The design spec already allows up to two storeys. A loft over the fireplace is the kind of home this makes possible.
 
-**Status:** idea
+**Status:** wontfix
 
 **Assets:** None yet. Decide during grilling.
 
@@ -16,3 +16,7 @@ Questions for grilling:
 - Does a fireplace on the lower storey warm the upper storey?
 - When is a two-storey room snug?
 - What happens to a roof the player already built, if they want to add a storey under it?
+
+## Comments
+
+2026-11-25: The owner dropped this feature in a grilling session as not worth the work. Buildings have one storey, and there are no stairs.

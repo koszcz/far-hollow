@@ -13,7 +13,7 @@ A room today is a log box with a door. This feature adds the **window**, an edge
 - It costs 3 debarked logs and takes 10 seconds to build, like a door frame. It needs no tool beyond what a log wall needs.
 - It blocks walking like a log wall. It counts as a closed side of a room, and it holds up a roof frame like a log wall.
 - The door frame's corner rule applies: a window cannot meet a log wall, door frame, or window at a right angle at a corner.
-- The player can build a window wherever a log wall can go, the second storey included.
+- The player can build a window wherever a log wall can go.
 - A window cannot replace a finished log wall. To put a window where a wall stands, the player takes the wall down first.
 
 ## Shutters

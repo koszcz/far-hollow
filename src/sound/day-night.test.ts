@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { daylightAt } from "../render/daylight";
+import { nightHoursOf } from "../sim/season";
+
+const SPRING = nightHoursOf("spring");
 import { dayNightMix, easeHeardDaylight } from "./day-night";
 
 describe("the day and night crossfade", () => {
@@ -16,7 +19,7 @@ describe("the day and night crossfade", () => {
   });
 
   it("plays both, part loud, at dawn and dusk", () => {
-    const dawn = dayNightMix(daylightAt(7));
+    const dawn = dayNightMix(daylightAt(7, SPRING));
     expect(dawn.birds).toBeGreaterThan(0);
     expect(dawn.crickets).toBeGreaterThan(0);
     expect(dawn.birds).toBeLessThan(dayNightMix(1).birds);
@@ -24,8 +27,8 @@ describe("the day and night crossfade", () => {
   });
 
   it("follows the daylight's clock: birds grow through dawn and fade through dusk", () => {
-    const birdsAt = (hour: number): number => dayNightMix(daylightAt(hour)).birds;
-    const cricketsAt = (hour: number): number => dayNightMix(daylightAt(hour)).crickets;
+    const birdsAt = (hour: number): number => dayNightMix(daylightAt(hour, SPRING)).birds;
+    const cricketsAt = (hour: number): number => dayNightMix(daylightAt(hour, SPRING)).crickets;
     expect(birdsAt(6.5)).toBeLessThan(birdsAt(7.5));
     expect(birdsAt(12)).toBe(dayNightMix(1).birds);
     expect(cricketsAt(18.5)).toBeLessThan(cricketsAt(19.5));

@@ -38,7 +38,7 @@ export interface Fishing {
    * The approach runs it once they arrive. The game calls it only once `refusal` passes.
    */
   fish(spot: GroundPoint): void;
-  /** Why the player could not fish now: without the fishing rod, or while they carry a log. */
+  /** Why the player could not fish now: without the fishing rod, while they carry a log, or while the river is frozen. */
   refusal(): Refusal | undefined;
   /** Stops the player fishing. */
   cancel(): void;
@@ -57,15 +57,24 @@ export interface Fishing {
 /**
  * Lets the player fish at the river. `seed` decides how long each cast waits for a fish.
  * Fish bite after a wait in game time, `stepGameMinutes` for each logic step, which a player slowed by a low need does not stretch.
+ * `isRiverFrozen` says whether the river is frozen now, in winter. Nobody fishes then, and a player fishing when it freezes stops.
  */
-export function createFishing(entities: EntityStore, walkMap: WalkMap, valley: Valley, seed: number, stepGameMinutes: number): Fishing {
+export function createFishing(
+  entities: EntityStore,
+  walkMap: WalkMap,
+  valley: Valley,
+  seed: number,
+  stepGameMinutes: number,
+  isRiverFrozen: () => boolean,
+): Fishing {
   const players = playerEntities(entities);
   const fishers = entities.with("player", "fishTask", "position", "backpack");
   /** How many casts each player had made once they cast at the start of their latest fishing trip. It is not saved. */
   const castsWhenTripBegan = new Map<Entity, number>();
 
-  /** Why this player could not fish now: without the fishing rod, or while they carry a log. */
+  /** Why this player could not fish now: while the river is frozen, without the fishing rod, or while they carry a log. */
   function refusalFor(player: Entity | undefined): Refusal | undefined {
+    if (isRiverFrozen()) return { kind: "riverFrozen" };
     return toolRefusal(player, "fishingRod") ?? (player?.carrying === undefined ? undefined : { kind: "putLogDownFirst" });
   }
 

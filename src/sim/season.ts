@@ -50,6 +50,32 @@ export function parseSeason(text: string | null | undefined): Season | undefined
   return SEASONS.find((season) => season === text);
 }
 
+/** When night starts and when morning arrives, as hours of the day. Night runs from its start, past midnight, until morning. */
+export interface NightHours {
+  /** Night starts at this hour of the day. */
+  readonly nightStartHour: number;
+  /** Morning arrives, and night ends, at this hour of the day. */
+  readonly morningHour: number;
+}
+
+/** The night hours of each season. Summer nights are short and winter nights are long. */
+const NIGHT_HOURS: Readonly<Record<Season, NightHours>> = {
+  spring: Object.freeze({ nightStartHour: 20, morningHour: 6 }),
+  summer: Object.freeze({ nightStartHour: 21, morningHour: 5 }),
+  autumn: Object.freeze({ nightStartHour: 20, morningHour: 6 }),
+  winter: Object.freeze({ nightStartHour: 17, morningHour: 8 }),
+};
+
+/** The night hours in this season. */
+export function nightHoursOf(season: Season): NightHours {
+  return NIGHT_HOURS[season];
+}
+
+/** Whether this hour of the day, with its fraction, falls in the night with these night hours. */
+export function isNightHour(hourOfDay: number, nightHours: NightHours): boolean {
+  return hourOfDay >= nightHours.nightStartHour || hourOfDay < nightHours.morningHour;
+}
+
 /** Whether a winter came before this day, when the year started on `yearStartDay`. None has in the first year. */
 export function isAfterFirstWinter(day: number, yearStartDay: number): boolean {
   return day - yearStartDay >= YEAR_DAYS;

@@ -24,9 +24,10 @@ export interface Rain {
 /**
  * Starts the weather dry at this moment, in game minutes since the start of day 1.
  * The first rain never falls before the next morning, so a new player gets a dry first day and night.
+ * The year started on `yearStartDay`, which sets when that morning comes.
  */
-export function createRain(seed: number, nowMinutes: number): Rain {
-  return { falling: false, changeAtMinutes: nextMorning(nowMinutes) + spellMinutes(seed, 0, false), changes: 0 };
+export function createRain(seed: number, nowMinutes: number, yearStartDay: number): Rain {
+  return { falling: false, changeAtMinutes: nextMorning(nowMinutes, yearStartDay) + spellMinutes(seed, 0, false), changes: 0 };
 }
 
 /** Moves the rain on to this moment, starting and stopping it as many times as the time passed calls for. */

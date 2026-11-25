@@ -315,7 +315,7 @@ A set of foundation squares closed in on every side by log walls, door frames, o
 _Avoid_: Interior, enclosure
 
 **Snug**:
-Said of a room with a finished floor on every square, a finished door in every door frame, and closed shutters in every window. A room with no door frame or window is snug once every square has a floor. At night, the player loses warmth in a snug room at half the usual rate.
+Said of a room with a finished floor on every square, a finished door in every door frame, and closed shutters in every window. A room with no door frame or window is snug once every square has a floor. The player loses warmth to the cold in a snug room at half the usual rate, by day and by night.
 _Avoid_: Sealed, insulated, finished room
 
 **Build menu**:

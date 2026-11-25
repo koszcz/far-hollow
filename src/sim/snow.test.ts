@@ -28,7 +28,9 @@ describe("snowfall in place of rain", () => {
     send(game, { type: "skipToRainChange" });
     expect(game.client.getView()).toMatchObject({ snowing: true, raining: false });
 
+    // The snow stops in 2 hours too, before the winter cold can make the player collapse.
     keepPlayerWell(game);
+    weatherOf(game).changeAtMinutes = game.progress().clockMinutes + 120;
     send(game, { type: "skipToRainChange" });
     expect(game.client.getView()).toMatchObject({ snowing: false, raining: false });
   });

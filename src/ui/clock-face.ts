@@ -1,9 +1,9 @@
 // What the HUD clock shows besides the time: how much of the day has passed, for the ring round its icon, and the time of day as a word.
-import { HOURS_PER_DAY, MORNING_HOUR, NIGHT_START_HOUR } from "../sim/api";
+import { HOURS_PER_DAY, isNightHour, type NightHours } from "../sim/api";
 
 /** Afternoon starts at noon. */
 const AFTERNOON_HOUR = 12;
-/** Evening starts at this hour and lasts until night. */
+/** Evening starts at this hour and lasts until night. A winter night starts at this hour, so winter has no evening. */
 const EVENING_HOUR = 17;
 
 export type TimeOfDayWord = "morning" | "afternoon" | "evening" | "night";
@@ -13,9 +13,9 @@ export function dayShare(hourOfDay: number): number {
   return Math.min(1, Math.max(0, hourOfDay / HOURS_PER_DAY));
 }
 
-/** The time of day at this hour of the day. Night matches the game's night, from 20:00 until morning at 06:00. */
-export function timeOfDayWord(hourOfDay: number): TimeOfDayWord {
-  if (hourOfDay < MORNING_HOUR || hourOfDay >= NIGHT_START_HOUR) return "night";
+/** The time of day at this hour of the day. Night matches the game's night, by the season's night hours. */
+export function timeOfDayWord(hourOfDay: number, nightHours: NightHours): TimeOfDayWord {
+  if (isNightHour(hourOfDay, nightHours)) return "night";
   if (hourOfDay < AFTERNOON_HOUR) return "morning";
   if (hourOfDay < EVENING_HOUR) return "afternoon";
   return "evening";

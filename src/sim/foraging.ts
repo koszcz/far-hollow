@@ -38,20 +38,27 @@ export interface Foraging {
    * once they arrive. If the backpack has no room for all its food when the hand gets there, the food stays and the reach gives "backpackFull".
    */
   forage(spotId: number): void;
-  /** Why the player could not forage a spot now: it is gone, or it is growing back, so it has no food. */
+  /** Why the player could not forage a spot now: it is gone, it is winter, or it is growing back, so it has no food. */
   refusal(spotId: number): Refusal | undefined;
   /**
    * Eats one of this food from the backpack, which fills hunger, more so within reach of a finished table. Raw fish makes
    * the player sick. Does nothing if the backpack holds none. Returns whether the player ate.
    */
   eat(food: Food): boolean;
-  /** Grows foraged spots back by this many game minutes. */
-  grow(gameMinutes: number): void;
+  /**
+   * Grows foraged spots back by this many game minutes, which fall in winter if `winter` says so. In winter nothing grows: the time left to grow back stays as it is,
+   * and food still on a spot is lost, so the spot starts to grow back from the beginning once winter ends.
+   */
+  grow(gameMinutes: number, winter: boolean): void;
 }
 
-/** Lets the player forage wild food into the backpack and eat it. Foraged spots grow back over a few days. */
-export function createForaging(entities: EntityStore, hand: Pick<HandReach, "start">): Foraging {
+/**
+ * Lets the player forage wild food into the backpack and eat it. Foraged spots grow back over a few days.
+ * `isWinter` says whether it is winter now, when nothing grows.
+ */
+export function createForaging(entities: EntityStore, hand: Pick<HandReach, "start">, isWinter: () => boolean): Foraging {
   const players = playerEntities(entities);
+  const spots = entities.with("forageSpot");
   const regrowing = entities.with("forageSpot", "regrowing");
 
   /** The forage spot with this id, if it has food and is within the player's reach. */
@@ -62,7 +69,10 @@ export function createForaging(entities: EntityStore, hand: Pick<HandReach, "sta
   }
 
   function refusal(spotId: number): Refusal | undefined {
-    return goneRefusal(entities, spotId) ?? (entities.entity(spotId)?.regrowing === undefined ? undefined : { kind: "nothingToTake" });
+    const gone = goneRefusal(entities, spotId);
+    if (gone !== undefined) return gone;
+    if (isWinter()) return { kind: "nothingGrowsInWinter" };
+    return entities.entity(spotId)?.regrowing === undefined ? undefined : { kind: "nothingToTake" };
   }
 
   return {
@@ -104,7 +114,12 @@ export function createForaging(entities: EntityStore, hand: Pick<HandReach, "sta
       }
       return ate;
     },
-    grow(gameMinutes) {
+    grow(gameMinutes, winter) {
+      if (winter) {
+        // Food still on a spot is lost. Copy the list first, because spots leave the query as they start to grow back.
+        for (const spot of [...spots]) if (spot.regrowing === undefined) entities.addComponent(spot, "regrowing", { minutesLeft: REGROW_MINUTES });
+        return;
+      }
       // Copy the list first, because spots that have grown back leave the query while it is being walked.
       for (const spot of [...regrowing]) {
         spot.regrowing.minutesLeft -= gameMinutes;

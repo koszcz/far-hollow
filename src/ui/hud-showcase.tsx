@@ -1,7 +1,7 @@
 // Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=stone, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/showcases/interface.ts and src/render/showcases/camp.ts. Development builds only.
 import { render } from "preact";
-import { FURNITURE_BUILD_MENU, type BackpackContent, type GameClient, type GameView, type StructureKind, type ThingView } from "../sim/api";
+import { FURNITURE_BUILD_MENU, nightHoursOf, type BackpackContent, type GameClient, type GameView, type StructureKind, type ThingView } from "../sim/api";
 import { QUEUE_THING_DRAWINGS, type QueueThing } from "./action-queue-icons";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { MaterialIcon } from "./build-icons";
@@ -18,6 +18,7 @@ const BASE_VIEW: GameView = {
   playerPosition: { x: 0, y: 0, z: 0 },
   time: { day: 1, hour: 12, minute: 0, hourOfDay: 12 },
   night: false,
+  nightHours: nightHoursOf("spring"),
   season: { season: "spring", dayOfSeason: 1, seasonDays: 7 },
   seasonBanner: null,
   backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 3 },

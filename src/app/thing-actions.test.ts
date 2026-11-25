@@ -64,6 +64,16 @@ describe("a campfire's actions", () => {
     expect(actionsFor(scene("campfire", world.campfire), world.reader).some(({ id }) => id === "light")).toBe(false);
   });
 
+  it("offers to put out a lit fire, just before taking it down, and not an unlit one", () => {
+    const world = worldWith({ campfire: { lit: true, fuelMinutes: 60 } });
+    const actions = actionsFor(scene("campfire", world.campfire), world.reader);
+
+    expect(summary(actions).slice(-2)).toEqual(["putOut", "takeDown"]);
+    expect(find(actions, "putOut")).toMatchObject({ label: "Put out", command: { type: "putOutCampfire", campfireId: world.campfire } });
+    const unlit = worldWith({ campfire: { fuelMinutes: 60 } });
+    expect(actionsFor(scene("campfire", unlit.campfire), unlit.reader).some(({ id }) => id === "putOut")).toBe(false);
+  });
+
   it("says the fire is full for fuel that no longer fits, and skips to fuel that does", () => {
     // 7 hours 40 minutes of fuel: 20 more minutes of a stick still fit, but not 90 minutes of firewood.
     const world = worldWith({ backpack: { firewood: 1, stick: 1 }, campfire: { lit: true, fuelMinutes: 460 } });
@@ -141,10 +151,11 @@ describe("a campfire's actions", () => {
     const jugOn = worldWith({ backpack: { unfiredJug: 1 }, campfire: { ...lit, jug: true } });
     const actions = actionsFor(scene("campfire", jugOn.campfire), jugOn.reader);
 
-    expect(summary(actions).slice(-4)).toEqual([
+    expect(summary(actions).slice(-5)).toEqual([
       "cookFish off: no raw fish",
       "fireJug off: the fire holds a jug",
       "takeJugOff",
+      "putOut",
       "takeDown off: take the jug off first",
     ]);
     expect(find(actions, "takeJugOff")).toMatchObject({
@@ -189,6 +200,7 @@ describe("a campfire's actions", () => {
       "takePotOff",
       "cookFish",
       "takeFishOff",
+      "putOut",
       "addOn",
       "takeDown off: take the pot off first",
     ]);

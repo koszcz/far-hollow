@@ -72,6 +72,43 @@ describe("lighting a campfire", () => {
     expect(nearbyOf(game.client.getView(), "campfire")?.lit).toBe(true);
   });
 
+  it("puts out a lit campfire, keeps its fuel, and lights it again", () => {
+    const { game, campfire } = gameWithCampfire();
+    const campfireId = idOf(game, campfire);
+    give(game, "firewood", 1);
+    tend(game, campfire);
+    send(game, { type: "addFuel", campfireId, fuel: "firewood" });
+    send(game, { type: "lightCampfire", campfireId });
+    send(game, { type: "setPaused", paused: true });
+    send(game, { type: "skipTime", hours: 0.5 });
+    send(game, { type: "setPaused", paused: false });
+
+    send(game, { type: "putOutCampfire", campfireId });
+
+    expect(campfire.campfire.lit).toBe(false);
+    const fuelLeft = campfire.campfire.fuelMinutes;
+    expect(fuelLeft).toBeCloseTo(60, 0);
+    send(game, { type: "skipTime", hours: 0.5 });
+    expect(campfire.campfire.fuelMinutes).toBe(fuelLeft);
+    send(game, { type: "lightCampfire", campfireId });
+    expect(campfire.campfire.lit).toBe(true);
+  });
+
+  it("walks the player to a campfire to put it out", () => {
+    const { game, campfire } = gameWithCampfire();
+    const campfireId = idOf(game, campfire);
+    campfire.campfire.lit = true;
+    campfire.campfire.fuelMinutes = 60;
+    walkAway(game);
+
+    game.client.send({ type: "putOutCampfire", campfireId });
+    game.step();
+    stepUntil(game, () => !campfire.campfire.lit);
+
+    // The fire burns on while the player walks over, then keeps what is left.
+    expect(campfire.campfire.fuelMinutes).toBeGreaterThan(30);
+  });
+
   it("refuses fuel the backpack lacks, and fuel that would not fit", () => {
     const { game, campfire } = gameWithCampfire();
     const campfireId = idOf(game, campfire);

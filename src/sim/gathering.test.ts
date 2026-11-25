@@ -63,7 +63,7 @@ describe("picking up sticks", () => {
 describe("splitting a log into firewood", () => {
   it("splits the log on the player's shoulder with the axe, and puts the firewood in the backpack", () => {
     const game = createGame({ seed: 42 });
-    fellNearestTree(game);
+    fellNearestTreeAndShoulderLog(game);
     expect(game.client.getView().carrying).toBe("log");
 
     game.client.send({ type: "splitLog" });
@@ -82,7 +82,7 @@ describe("splitting a log into firewood", () => {
   it("walks to a log on the ground, shoulders it, then splits it", () => {
     const game = createGame({ seed: 42 });
     fellNearestTree(game);
-    const log = dropCarriedLog(game);
+    const log = nearestLog(game);
 
     game.client.send({ type: "splitLog", logId: idOf(game, log) });
     stepUntil(game, () => game.client.getView().action?.kind === "split");
@@ -96,7 +96,7 @@ describe("splitting a log into firewood", () => {
   it("leaves a log on the ground when the backpack has no room for its firewood", () => {
     const game = createGame({ seed: 42 });
     fellNearestTree(game);
-    const log = dropCarriedLog(game);
+    const log = nearestLog(game);
     const backpack = onlyPlayer(game).backpack;
     if (backpack === undefined) throw new Error("No backpack");
     backpack.contents.stick = 28;
@@ -120,7 +120,7 @@ describe("splitting a log into firewood", () => {
 
   it("does nothing when the player has no axe", () => {
     const game = createGame({ seed: 42 });
-    fellNearestTree(game);
+    fellNearestTreeAndShoulderLog(game);
     delete onlyPlayer(game).backpack?.contents.axe;
 
     game.client.send({ type: "splitLog" });
@@ -132,7 +132,7 @@ describe("splitting a log into firewood", () => {
 
   it("keeps the log whole when the backpack has no room for its firewood", () => {
     const game = createGame({ seed: 42 });
-    fellNearestTree(game);
+    fellNearestTreeAndShoulderLog(game);
     // 28 sticks weigh 14 kg, which with the 4.4 kg of tools, bedroll, and pot leaves room for only 1 of the 4 pieces of firewood.
     const backpack = onlyPlayer(game).backpack;
     if (backpack === undefined) throw new Error("No backpack");
@@ -150,7 +150,7 @@ describe("splitting a log into firewood", () => {
 
   it("stops splitting when the player is sent to walk somewhere else", () => {
     const game = createGame({ seed: 42 });
-    fellNearestTree(game);
+    fellNearestTreeAndShoulderLog(game);
     game.client.send({ type: "splitLog" });
     runSeconds(game, SPLIT_SECONDS / 2);
 
@@ -168,6 +168,13 @@ function fellNearestTree(game: Game): void {
   const tree = nearestToPlayer(game, "tree");
   game.client.send({ type: "chopTree", treeId: idOf(game, tree) });
   stepUntil(game, () => tree.stump === true);
+}
+
+/** Fells the tree nearest the player, then picks up the felled log nearest them, so it is on their shoulder. */
+function fellNearestTreeAndShoulderLog(game: Game): void {
+  fellNearestTree(game);
+  game.client.send({ type: "pickUpLog", logId: idOf(game, nearestToPlayer(game, "log")) });
+  stepUntil(game, () => game.client.getView().carrying === "log");
 }
 
 /** Packs the backpack so full that not even one stick fits. */
@@ -198,10 +205,8 @@ function onlyPlayer(game: Game) {
   return player;
 }
 
-/** Lays the carried log at the player's feet, and returns it. */
-function dropCarriedLog(game: Game): Entity {
-  game.client.send({ type: "dropLog" });
-  stepUntil(game, () => game.client.getView().carrying === null);
+/** The log lying nearest the player. */
+function nearestLog(game: Game): Entity {
   return nearestToPlayer(game, "log");
 }
 

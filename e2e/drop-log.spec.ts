@@ -30,6 +30,32 @@ async function findClickableThing(page: Page): Promise<{ x: number; y: number }>
   throw new Error("Found nothing to click in the scene");
 }
 
+/** The parts of the game client that `pickUpAFelledLog` uses. */
+interface Client {
+  nearestInReach(): { kind: string; id: number } | null;
+  describeThing(id: number): { kind: string } | null;
+  send(command: Record<string, unknown>): void;
+}
+
+/**
+ * Sends the player to pick up one of the logs they just felled.
+ * Entities get their ids only when the game first asks for them. `nearestInReach` asks for the id of everything within a few metres
+ * of the player, which includes the felled logs, so the logs can then be found by id.
+ */
+async function pickUpAFelledLog(page: Page): Promise<void> {
+  const sent = await page.evaluate(() => {
+    const { client } = (window as unknown as { farHollow: { client: Client } }).farHollow;
+    client.nearestInReach();
+    for (let id = 0; id < 10_000; id += 1) {
+      if (client.describeThing(id)?.kind !== "log") continue;
+      client.send({ type: "pickUpLog", logId: id });
+      return true;
+    }
+    return false;
+  });
+  if (!sent) throw new Error("Found no felled log near the player");
+}
+
 test("a click on the ground while carrying a log opens a menu to walk there or drop the log there", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -39,10 +65,15 @@ test("a click on the ground while carrying a log opens a menu to walk there or d
   await expect(page.locator("#loading")).toHaveCount(0);
   const menu = page.getByRole("navigation", { name: "Actions" });
 
-  // Chop the first tree on screen. Felling it puts a log on the player's shoulder.
+  // Chop the first tree on screen. Its logs all land on the ground, and the player carries none.
   const tree = await findClickableThing(page);
   await page.mouse.click(tree.x, tree.y);
   await menu.getByRole("button", { name: "Chop" }).click();
+  await expect.poll(async () => (await view(page)).action?.kind ?? null, { timeout: 30_000 }).toBe("chop");
+  await expect.poll(async () => (await view(page)).action, { timeout: 30_000 }).toBeNull();
+  expect((await view(page)).carrying).toBeNull();
+
+  await pickUpAFelledLog(page);
   await expect.poll(async () => (await view(page)).carrying, { timeout: 30_000 }).toBe("log");
 
   // Plain ground now opens a menu instead of walking at once. Felled logs may lie near the player, so try spots until one is plain ground.

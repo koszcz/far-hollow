@@ -53,7 +53,10 @@ const wood = exactly(...WOODPILE_WOODS);
 /** A campfire, woodpile, or sled command the player is walking to carry out. */
 const tendCommand: Check = (value) =>
   shape({ type: exactly("addFuel"), campfireId: count, fuel })(value) ||
-  shape({ type: exactly("lightCampfire", "putPotOnFire", "takePotOffFire", "cookFish", "takeFishOff", "fireJug", "takeJugOff"), campfireId: count })(value) ||
+  shape({
+    type: exactly("lightCampfire", "putOutCampfire", "putPotOnFire", "takePotOffFire", "cookFish", "takeFishOff", "fireJug", "takeJugOff"),
+    campfireId: count,
+  })(value) ||
   shape({ type: exactly("stackOnWoodpile"), woodpileId: count, wood, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodpile"), woodpileId: count, wood })(value) ||
   shape({ type: exactly("loadSled", "tipOutSled", "dragSled", "loadPlanksOnSled", "takePlanksFromSled"), sledId: count })(value) ||

@@ -201,6 +201,8 @@ export type Command =
   | { type: "takeFromChest"; chestId: number; content: BackpackContent; all: boolean }
   /** Light a campfire with the steel and flint. The campfire needs fuel. The player walks beside it first if needed. */
   | { type: "lightCampfire"; campfireId: number }
+  /** Put out a lit campfire or fireplace. The fuel left in it stays, so it can be lit again. The player walks beside it first if needed. */
+  | { type: "putOutCampfire"; campfireId: number }
   /** Take the bedroll out of the backpack and lay it on the ground at the player's feet. */
   | { type: "layBedroll" }
   /** Walk the player into a finished lean-to, given by its entity id, and lay the bedroll from the backpack across its open front, under the roof. */

@@ -83,12 +83,10 @@ describe("a felled tree growing back", () => {
     passHours(game, 6 * 24);
     expect(tree.position).toMatchObject(spot);
 
-    send(game, { type: "dropLog" });
     const logsBefore = game.entities.with("log").size;
     fell(game, tree);
-    const onShoulder = game.client.getView().carrying === "log" ? 1 : 0;
 
-    expect(game.entities.with("log").size - logsBefore + onShoulder).toBe(logsForTreeSize(treeSizeAt(spot.x, spot.z)));
+    expect(game.entities.with("log").size - logsBefore).toBe(logsForTreeSize(treeSizeAt(spot.x, spot.z)));
     expect(tree.growth?.stage).toBe("stump");
   });
 
@@ -130,19 +128,18 @@ describe("a felled tree growing back", () => {
 describe("chopping a growing tree", () => {
   it("does not chop a stump or a sapling", () => {
     const { game, tree } = felledTree();
-    send(game, { type: "dropLog" });
     for (const hours of [0, 30]) {
       passHours(game, hours);
       send(game, { type: "chopTree", treeId: idOf(game, tree) });
       for (let step = 0; step < 30; step += 1) game.step();
       expect(game.client.getView().action).toBeNull();
-      expect(game.client.nearestInReach()?.id).not.toBe(idOf(game, tree));
+      // A sapling is offered so its menu can say why, but never as a tree to chop.
+      expect(game.client.nearestInReach()?.kind).not.toBe("tree");
     }
   });
 
   it("refuses to chop a young tree, saying it is too young", () => {
     const { game, tree } = felledTree();
-    send(game, { type: "dropLog" });
     passHours(game, 3 * 24);
     expect(tree.growth?.stage).toBe("youngTree");
     const treeId = idOf(game, tree);
@@ -157,7 +154,6 @@ describe("chopping a growing tree", () => {
 
   it("offers a young tree in reach of E, so its menu can say why it cannot be chopped", () => {
     const { game, tree } = felledTree();
-    send(game, { type: "dropLog" });
     // Clear away the logs, so the young tree is the nearest thing.
     for (const log of [...game.entities.with("log")]) game.entities.remove(log);
     passHours(game, 3 * 24);

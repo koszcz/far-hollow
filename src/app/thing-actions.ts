@@ -403,7 +403,8 @@ function campfireJugOffers(campfire: CampfireView, { view, offer }: Context): re
 }
 
 /**
- * Light, each fuel, the pot, the fish, the jug, then Take down. Lighting shows only while the fire is out.
+ * Light, each fuel, the pot, the fish, the jug, Put out, then Take down. Lighting shows only while the fire is out.
+ * Putting out shows only while it burns.
  * See campfireJugOffers for when the jug's actions show.
  * A campfire and a fireplace offer the same actions.
  * Main: an unlit fire with fuel is lit. Otherwise the first fuel the player can add goes on, firewood first.
@@ -421,7 +422,8 @@ function campfireActions(campfire: CampfireView, context: Context): readonly Thi
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
   const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
   const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, ...campfireJugOffers(campfire, context), takeDown(context, campfireId)];
+  const putOut = campfire.lit ? [offer("putOut", strings.actions.putOut, { hud: "flame" }, { type: "putOutCampfire", campfireId })] : [];
+  const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, ...campfireJugOffers(campfire, context), ...putOut, takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
   return withMain(offers, main);

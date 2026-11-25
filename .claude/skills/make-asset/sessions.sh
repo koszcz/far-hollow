@@ -9,7 +9,8 @@
 # Usage:
 #   sessions.sh list                    Show running sessions. Drops stale ones.
 #   sessions.sh claim <id>              Claim an asset. Fails if another session has it.
-#   sessions.sh step <id> <text>        Record the step this session is on.
+#   sessions.sh step <id> <text>        Record the step this session is on. Clears a wait.
+#   sessions.sh wait <id>               Mark that this session waits on the owner.
 #   sessions.sh files <id> <file>...    Record the shared files this session edits.
 #   sessions.sh release <id>            Remove this session's entry.
 #   sessions.sh packs                   Print the third-party packs folder and list its packs.
@@ -30,6 +31,12 @@ set_field() {
   grep -v "^updated:" "$tmp" > "$2"
   printf 'updated: %s\n' "$now" >> "$2"
   rm -f "$tmp"
+}
+
+clear_field() {
+  tmp="$2.tmp"
+  grep -v "^$1:" "$2" > "$tmp" || true
+  mv "$tmp" "$2"
 }
 
 need_own() {
@@ -83,7 +90,13 @@ case "$cmd" in
   step)
     id="$1"; shift
     need_own "$id"
+    clear_field waiting "$board/$id"
     set_field step "$board/$id" "$*"
+    ;;
+  wait)
+    id="$1"
+    need_own "$id"
+    set_field waiting "$board/$id" "$now"
     ;;
   files)
     id="$1"; shift
@@ -103,7 +116,7 @@ case "$cmd" in
     ls "$packs" 2>/dev/null || echo "(the folder is missing or empty)"
     ;;
   *)
-    sed -n '10,16p' "$0" >&2
+    sed -n '10,17p' "$0" >&2
     exit 1
     ;;
 esac

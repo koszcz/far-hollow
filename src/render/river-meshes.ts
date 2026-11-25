@@ -2,15 +2,21 @@
 // It has two parts:
 // - Clear, rippling low-poly water, with faint sparkles and flow streaks that show the current.
 // - A sandy pebble bank along each side, which runs from under the shallows out onto the grass.
-// In winter the water is drawn as the draft "frozen-river" asset: pale, solid-looking ice that lies still, with no ripples,
-// streaks, or sparkles.
+// In winter the water is drawn as the "frozen-river" asset, which the owner approved: blue-tinted ice that lies still, with no ripples,
+// streaks, or sparkles. It is darker blue in the deep middle and paler towards the banks, with soft white frost patches,
+// a thin network of white cracks, a few trapped bubbles, and a frost rim where it meets the bank.
 import * as THREE from "three";
 import type { Terrain, Valley } from "../sim/valley";
 
 /** The water's one colour. The riverbed shows through it. */
 const WATER_COLOUR = 0x3f8f9c;
-/** The frozen river's colour: a pale blue-white ice. */
-const ICE_COLOUR = 0xcfe3ea;
+/** The frozen river's colours: blue ice in the deep middle, paler ice at the banks, and white frost, cracks, and rim. */
+const ICE_DEEP_COLOUR = 0x8fb8c8;
+const ICE_EDGE_COLOUR = 0xcfe3ea;
+const FROST_COLOUR = 0xf2f7fa;
+/** The ice's cracks split it into pieces about this wide, in metres, with a few long cracks across pieces this wide. */
+const ICE_CRACK_PIECE_METRES = 1.8;
+const ICE_LONG_CRACK_PIECE_METRES = 6;
 /** How rough the water's surface is, and how rough the ice's is. Ice gives a softer shine than water. */
 const WATER_ROUGHNESS = 0.12;
 const ICE_ROUGHNESS = 0.45;
@@ -91,6 +97,11 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     riverPebbleSpacing: { value: PEBBLE_SPACING_METRES },
     /** 1 while the river is frozen, else 0. It hides the streaks and sparkles and makes the ice look solid. */
     riverFrozen: { value: 0 },
+    riverIceDeep: { value: new THREE.Color(ICE_DEEP_COLOUR) },
+    riverIceEdge: { value: new THREE.Color(ICE_EDGE_COLOUR) },
+    riverFrost: { value: new THREE.Color(FROST_COLOUR) },
+    riverCrackPiece: { value: ICE_CRACK_PIECE_METRES },
+    riverLongCrackPiece: { value: ICE_LONG_CRACK_PIECE_METRES },
   };
   const addRiverCoord = (shader: THREE.WebGLProgramParametersWithUniforms) => {
     Object.assign(shader.uniforms, uniforms);
@@ -112,7 +123,7 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     addRiverCoord(shader);
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${RIVER_FRAGMENT_HEAD}`)
-      .replace("#include <color_fragment>", `#include <color_fragment>\n${WATER_STREAK_CHUNK}`)
+      .replace("#include <color_fragment>", `#include <color_fragment>\n${WATER_STREAK_CHUNK}\n${ICE_CHUNK}`)
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n${WATER_SPARKLE_CHUNK}`);
   };
 
@@ -148,7 +159,8 @@ export function createRiverMeshes(valley: Valley): RiverMeshes {
     setFrozen(nowFrozen) {
       frozen = nowFrozen;
       uniforms.riverFrozen.value = frozen ? 1 : 0;
-      waterMaterial.color.set(frozen ? ICE_COLOUR : WATER_COLOUR);
+      // The shader paints the ice's own colours, so the material's colour is plain white while frozen.
+      waterMaterial.color.set(frozen ? 0xffffff : WATER_COLOUR);
       waterMaterial.roughness = frozen ? ICE_ROUGHNESS : WATER_ROUGHNESS;
     },
     dispose() {
@@ -377,6 +389,11 @@ varying vec2 vRiverCoord;
 uniform float riverTime;
 uniform float riverDaylight;
 uniform float riverFrozen;
+uniform vec3 riverIceDeep;
+uniform vec3 riverIceEdge;
+uniform vec3 riverFrost;
+uniform float riverCrackPiece;
+uniform float riverLongCrackPiece;
 uniform float riverHalfWidth;
 uniform float riverFlowSpeed;
 uniform vec3 riverStreakColour;
@@ -403,6 +420,28 @@ float riverNoise(vec2 p) {
   );
 }
 
+// How far this point is from the nearest edge between random pieces, in units of one piece. 0 on an edge.
+float riverPieceEdge(vec2 p) {
+  vec2 cell = floor(p);
+  vec2 f = fract(p);
+  float nearest = 8.0;
+  float second = 8.0;
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 neighbour = vec2(float(x), float(y));
+      vec2 seed = neighbour + vec2(riverHash(cell + neighbour), riverHash(cell + neighbour + 19.3)) - f;
+      float distance = dot(seed, seed);
+      if (distance < nearest) {
+        second = nearest;
+        nearest = distance;
+      } else if (distance < second) {
+        second = distance;
+      }
+    }
+  }
+  return sqrt(second) - sqrt(nearest);
+}
+
 // Thin streaks running along the river, carried downstream at this speed.
 float riverStreaks(float along, float across, float speed, float seed) {
   float carried = along - riverTime * speed;
@@ -425,6 +464,38 @@ const WATER_STREAK_CHUNK = /* glsl */ `
   diffuseColor.a = max(diffuseColor.a, streak * 0.5);
   // Ice looks solid, though thin ice at the edges still shows a little of the bank.
   diffuseColor.a = mix(diffuseColor.a, 0.55 + 0.45 * diffuseColor.a, riverFrozen);
+}
+`;
+
+// Runs after the streaks. Paints the ice while the river is frozen: blue to pale across, frost, cracks, bubbles, and a rim.
+const ICE_CHUNK = /* glsl */ `
+if (riverFrozen > 0.5) {
+  vec2 spot = vRiverCoord;
+  float share = abs(spot.y) / riverHalfWidth;
+  // Deeper blue in the middle, paler towards the banks, with a broad wander so the line is not straight.
+  float paleness = smoothstep(0.15, 0.85, share + (riverNoise(spot * 0.12) - 0.5) * 0.35);
+  vec3 ice = mix(riverIceDeep, riverIceEdge, paleness);
+  // Soft frost patches, large and small.
+  float frost = riverNoise(spot * 0.35) * 0.65 + riverNoise(spot * 1.3 + 5.0) * 0.35;
+  ice = mix(ice, riverFrost, smoothstep(0.5, 0.85, frost) * 0.55);
+  // A thin network of cracks, plus a few long ones. Their lines wobble a little.
+  vec2 wobble = vec2(riverNoise(spot * 0.9), riverNoise(spot * 0.9 + 9.0)) * 0.25;
+  float crack = 1.0 - smoothstep(0.02, 0.06, riverPieceEdge(spot / riverCrackPiece + wobble));
+  crack *= smoothstep(0.35, 0.6, riverNoise(spot * 0.25 + 3.0));
+  float longCrack = 1.0 - smoothstep(0.01, 0.03, riverPieceEdge(spot / riverLongCrackPiece + wobble * 0.5));
+  ice = mix(ice, riverFrost, max(crack * 0.6, longCrack * 0.8));
+  // A few small bubbles caught in the ice.
+  vec2 bubbleSpot = spot / 0.45;
+  vec2 bubbleCell = floor(bubbleSpot);
+  vec2 bubbleOffset = fract(bubbleSpot) - (0.3 + 0.4 * vec2(riverHash(bubbleCell + 2.3), riverHash(bubbleCell + 8.1)));
+  float bubble = (1.0 - smoothstep(0.05, 0.09, length(bubbleOffset))) * step(0.93, riverHash(bubbleCell + 4.7));
+  ice = mix(ice, riverFrost, bubble * 0.7 * (1.0 - paleness * 0.6));
+  // A bright frost rim where the ice meets the bank. Its inner edge wanders.
+  float rim = smoothstep(0.84, 0.94, share + (riverNoise(spot * 0.6 + 11.0) - 0.5) * 0.12);
+  ice = mix(ice, riverFrost, rim * 0.85);
+  diffuseColor.rgb = ice;
+  // Frost is opaque, so the rim hides the bank beneath it.
+  diffuseColor.a = max(diffuseColor.a, rim * 0.9);
 }
 `;
 

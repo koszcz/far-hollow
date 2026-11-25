@@ -59,12 +59,14 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
     build() {},
   },
-  // The same stretch of river as "river", frozen as it is all winter.
+  // The same stretch of river as "river", frozen as it is all winter, with full snow cover on the ground around it.
   "frozen-river": {
     radius: 16,
     focus: { x: -STAGE_FROM_RIVER_METRES, y: 0, z: 0 },
     shots: FOUR_ANGLES.map((shot) => ({ ...shot, pitch: shot.pitch + 15 })),
-    build() {},
+    build({ place }) {
+      place(0, 0, { rain: { falling: false, changeAtMinutes: Infinity, changes: 0 }, snow: { fallsAsSnow: true, cover: { depth: 1 } } });
+    },
   },
   trees: {
     radius: 7,
@@ -94,7 +96,7 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       });
     },
   },
-  // Every broadleaf tree type fully turned for autumn: its real shape in the front row and its far shape behind.
+  // Every broadleaf tree type fully turned to its own autumn colour: its real shape in the front row and its far shape behind.
   // Pines keep their green, so they are left out.
   "autumn-trees": {
     radius: 12,
@@ -105,11 +107,11 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       broadleaf.forEach((shape, index) => {
         const x = (index - (broadleaf.length - 1) / 2) * FAR_TREE_SPACING_METRES;
         const far = createFarTreeShape(shape);
-        const amber = crownColour(shape.crownTone, 1).getHex();
+        const autumn = crownColour(shape, 1).getHex();
         addProp(shape.trunk.clone(), createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
-        addProp(shape.crown.clone(), createTreeMaterial(amber), x, 0);
+        addProp(shape.crown.clone(), createTreeMaterial(autumn), x, 0);
         addProp(far.trunk, createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, -FAR_TREE_SPACING_METRES);
-        addProp(far.crown, createTreeMaterial(amber), x, -FAR_TREE_SPACING_METRES);
+        addProp(far.crown, createTreeMaterial(autumn), x, -FAR_TREE_SPACING_METRES);
       });
     },
   },

@@ -267,10 +267,6 @@ _Avoid_: Base, settlement, home zone
 One structural part of a building, such as a foundation, log wall, door frame, roof frame, or roof section. Building pieces snap to a grid and cost materials.
 _Avoid_: Block, part, module
 
-**Storey**:
-One level of a building. A building can have up to two storeys, with stairs between them.
-_Avoid_: Floor, level
-
 **Floor**:
 A building piece of 2 planks that covers one finished foundation square. The player walks on it as on the bare deck. Furniture, a campfire, or a fireplace can stand on it. A square holds one floor.
 _Avoid_: Floorboards, deck

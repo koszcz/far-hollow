@@ -22,8 +22,19 @@ fail() { echo "land: $1" >&2; exit 1; }
 try=1
 while [ "$try" -le "$tries" ]; do
   echo "land: try $try of $tries"
+  # Name the merge after what the branch brings, so main's history says what landed.
+  # The subject is the branch's first own commit. The body lists all of them.
+  own="$(git log --reverse --no-merges --format=%s main..HEAD)"
+  count="$(printf '%s\n' "$own" | grep -c .)" || true
+  first="$(printf '%s\n' "$own" | head -n 1)"
+  if [ "$count" -gt 1 ]; then
+    subject="Land on main: $first (and $((count - 1)) more)"
+  else
+    subject="Land on main: ${first:-$branch}"
+  fi
+  body="$(printf '%s\n' "$own" | sed '/^$/d; s/^/- /')"
   # The checks run once below, so skip the pre-merge-commit hook here.
-  git merge --no-verify --no-edit main || fail "merge conflict. Resolve it, commit, and run make land again."
+  git merge --no-verify --no-edit -m "$subject" -m "${body:-Branch $branch}" main || fail "merge conflict. Resolve it, commit, and run make land again."
   make check || fail "make check failed. Fix it, commit, and run make land again."
 
   if git -C "$main_checkout" merge --ff-only --quiet "$branch"; then

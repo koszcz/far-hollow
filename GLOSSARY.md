@@ -425,6 +425,20 @@ _Avoid_: Water butt, cistern, tank
 A structure the player builds to stack logs, debarked logs, and firewood. It holds a fixed number of them.
 _Avoid_: Log pile, log rack, stockpile
 
+**Wall mode**:
+How much of every cabin the player sees through, chosen with a button on the HUD. There are three: walls up, cutaway, and walls down. It depends on the camera, never on where the player stands. In every wall mode, a wall between the camera and the player fades.
+_Avoid_: View mode, x-ray
+
+**Walls up**:
+The wall mode where every cabin shows whole, with its roof.
+
+**Cutaway**:
+The wall mode where every cabin roof and roof frame hides, and every cabin side facing the camera fades. The game starts in it.
+_Avoid_: Cutaway view, see-through mode
+
+**Walls down**:
+The wall mode where every cabin roof and roof frame hides, and every cabin wall fades, on all sides.
+
 ## Fire
 
 **Fuel**:

@@ -4,7 +4,7 @@ import { placingHint, plantingHint } from "./placing-hint";
 
 const MENU: readonly BuildMenuEntry[] = [
   { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
-  { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true },
+  { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true, inRows: true },
 ];
 
 describe("the placing hint", () => {

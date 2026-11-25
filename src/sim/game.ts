@@ -30,7 +30,7 @@ import { createBuilding, buildingRules } from "./building";
 import { addOnRules } from "./add-ons";
 import { createTakingDown, takingDownRules } from "./taking-down";
 import { STRUCTURES } from "./structures";
-import { isAddOn } from "./structure-kind";
+import { isAddOn, isPlacedInRows } from "./structure-kind";
 import { createCarrying, carryingRules } from "./carrying";
 import { createCampfires, isWarmedByCampfire, campfireRules } from "./campfires";
 import { createChopping, choppingRules } from "./chopping";
@@ -116,20 +116,29 @@ import { createHandReach } from "./hand-reach";
 import { GOAL_NOTICE_MINUTES, goalsProvenByCamp, journalRules, markGoalDone, newJournal, newlyShownGoals, type Goal, type Journal } from "./journal";
 import type { GroundPoint } from "./ground-point";
 
-/** The build menu never changes, so every view shares one frozen copy. It lists every structure but the add-ons, which the player builds from their host. */
-const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
-  STRUCTURES.flatMap(({ kind, cost, tool, placement, fixedFacing }) =>
-    isAddOn(kind)
-      ? []
-      : Object.freeze({
-          structure: kind,
-          cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))),
-          ...(tool === undefined ? {} : { tool }),
-          placement,
-          ...(fixedFacing === true ? { fixedFacing } : {}),
-        }),
-  ),
-);
+/**
+ * The build menu. It lists every structure but the add-ons, which the player builds from their host.
+ * It never changes during a game, so every view shares one frozen copy. With instant building, every piece on the building grid is placed in rows.
+ */
+function buildMenuOf(instantBuilding: boolean): GameView["buildMenu"] {
+  return Object.freeze(
+    STRUCTURES.flatMap(({ kind, cost, tool, placement, fixedFacing }) =>
+      isAddOn(kind)
+        ? []
+        : Object.freeze({
+            structure: kind,
+            cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))),
+            ...(tool === undefined ? {} : { tool }),
+            placement,
+            ...(fixedFacing === true ? { fixedFacing } : {}),
+            ...(isPlacedInRows(placement) || (instantBuilding && placement !== "anywhere") ? { inRows: true as const } : {}),
+          }),
+    ),
+  );
+}
+
+const BUILD_MENU = buildMenuOf(false);
+const INSTANT_BUILD_MENU = buildMenuOf(true);
 
 /** Logic steps per second. Rendering blends between steps, so this can stay low. */
 export const STEPS_PER_SECOND = 30;
@@ -149,6 +158,11 @@ export interface GameOptions {
   startNotice?: PlainNotice;
   /** Lets the player build anything without spending materials or needing tools. The playground turns it on. It is never saved. */
   freeBuilding?: boolean;
+  /**
+   * Finishes every blueprint the moment it is placed, so nobody builds it. It also turns on free building.
+   * The instant playground, `?playground&instant`, turns it on, so developers can put up a cabin fast. It is never saved.
+   */
+  instantBuilding?: boolean;
   /**
    * Marks done, with no notice, every journal goal the saved camp proves the player once did.
    * Loading a save made before the journal existed turns it on. It is never saved, so it runs only once for each save.
@@ -218,7 +232,16 @@ export interface Game {
   groundMap(): GroundMap;
 }
 
-export function createGame({ seed, progress, startNotice, freeBuilding = false, journalFromCamp = false, startSeason }: GameOptions): Game {
+export function createGame({
+  seed,
+  progress,
+  startNotice,
+  freeBuilding: freeOption = false,
+  instantBuilding = false,
+  journalFromCamp = false,
+  startSeason,
+}: GameOptions): Game {
+  const freeBuilding = freeOption || instantBuilding;
   const entities = createEntityStore();
   const valley = generateValley(seed);
   if (progress === undefined) addValleyEntities(entities, valley);
@@ -232,7 +255,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const crafting = createCrafting(entities, valley.terrain);
   const gathering = createGathering(entities, handReach);
   const foraging = createForaging(entities, handReach, isWinter);
-  const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
+  const building = createBuilding(entities, walking, valley, handReach, freeBuilding, instantBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities);
   const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
@@ -367,7 +390,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
       backpack: Object.freeze({ ...player.backpack.contents }),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
-      buildMenu: BUILD_MENU,
+      buildMenu: instantBuilding ? INSTANT_BUILD_MENU : BUILD_MENU,
       craftMenu: craftMenu(),
       action: currentAction(),
       carrying: player.carrying ?? null,

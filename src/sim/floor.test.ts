@@ -19,6 +19,7 @@ describe("the floor in the build menu", () => {
       cost: [{ material: "plank", count: 2 }],
       placement: "underfoot",
       fixedFacing: true,
+      inRows: true,
     });
   });
 });

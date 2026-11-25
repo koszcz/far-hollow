@@ -58,7 +58,16 @@ function seedFromAddress(): number | undefined {
  * Developers use it to try out building. Add `&seed=123` to pick the valley. A playground game is never saved.
  */
 function isPlaygroundAddress(): boolean {
-  return new URLSearchParams(window.location.search).has("playground");
+  return new URLSearchParams(window.location.search).has("playground") || isInstantAddress();
+}
+
+/**
+ * True if the address has `&instant`, as in `?playground&instant`. It starts the instant playground: every blueprint is finished
+ * the moment it is placed, and every piece on the building grid is placed in rows, so a Shift-drag lays a row of foundations or walls.
+ * Developers use it to put up a cabin fast. `?instant` on its own starts it too.
+ */
+function isInstantAddress(): boolean {
+  return new URLSearchParams(window.location.search).has("instant");
 }
 
 /**
@@ -175,7 +184,7 @@ const { game, slot } =
   addressSeed === undefined && !playground
     ? await chooseGame(saveStorage)
     : {
-        game: createGame({ seed: addressSeed ?? randomSeed(), freeBuilding: playground, ...playgroundSeason() }),
+        game: createGame({ seed: addressSeed ?? randomSeed(), freeBuilding: playground, instantBuilding: isInstantAddress(), ...playgroundSeason() }),
         slot: undefined,
       };
 if (saveStorage !== undefined && slot !== undefined) {

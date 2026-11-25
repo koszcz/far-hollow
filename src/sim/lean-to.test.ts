@@ -29,7 +29,7 @@ describe("the lean-to in the build menu", () => {
         placement: "onGround",
       },
       { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
-      { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true },
+      { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true, inRows: true },
       { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
       { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
       { structure: "window", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },

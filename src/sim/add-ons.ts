@@ -71,6 +71,8 @@ export function addOnRules(building: Building, { entities, startApproach, stopOt
         if (checked.refusal !== undefined) return refusedNotice(checked.refusal);
         const id = building.place(checked.addOn, checked.at, checked.turns);
         if (id === undefined) return refusedNotice({ kind: "addOnInTheWay" });
+        // With instant building, the add-on is finished already, so there is nothing left to build.
+        if (building.describe(id) === undefined) return undefined;
         // The blueprint stays even when the player cannot start building it, and the game says why, as it does for build.
         const refusal = building.refusal(id);
         if (refusal !== undefined) return refusedNotice(refusal);

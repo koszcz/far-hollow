@@ -14,11 +14,11 @@ export { hasRoom, holdsWater, isJug, JUG_CONTENTS, jugToDrinkFrom, jugToPourInto
 import type { TimeOfDay } from "./clock";
 
 /** The HUD clock uses these to name the time of day. */
-export { HOURS_PER_DAY, MORNING_HOUR, NIGHT_START_HOUR, type TimeOfDay } from "./clock";
-import type { Season, SeasonDay } from "./season";
+export { HOURS_PER_DAY, type TimeOfDay } from "./clock";
+import type { NightHours, Season, SeasonDay } from "./season";
 
 /** The HUD names the season and tints the clock by it. */
-export { SEASONS, type Season, type SeasonDay } from "./season";
+export { isNightHour, type NightHours, nightHoursOf, SEASONS, type Season, type SeasonDay } from "./season";
 import type { Vec3 } from "./entities";
 import type { BurnTime } from "./burn-time";
 
@@ -396,6 +396,8 @@ export interface GameView {
   readonly time: TimeOfDay;
   /** Whether it is night now, by the game's own hours. The HUD shows the moon instead of the sun. */
   readonly night: boolean;
+  /** When night starts and morning arrives today. They follow today's season. The sky, daylight, and HUD words follow them. */
+  readonly nightHours: NightHours;
   /** The season today, which day of it today is, and how many days it lasts. */
   readonly season: SeasonDay;
   /** The season that has just started, while the HUD's banner says so, or else null. It is not saved. */

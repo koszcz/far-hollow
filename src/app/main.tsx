@@ -192,6 +192,7 @@ const sceneRenderer = createSceneRenderer(
   game.valley,
   game.entities,
   () => game.client.getView().time.hourOfDay,
+  () => game.client.getView().nightHours,
   () => clockMinutesOf(game.client.getView().time),
   () => game.client.getView().lastSleep,
   () => game.client.getView().lastEatOrDrink,
@@ -422,6 +423,7 @@ function frame(nowMs: number): void {
   valleySound.update(nowMs / 1000, {
     camera: sceneRenderer.cameraRig.view(),
     hourOfDay: sceneRenderer.drawnHourOfDay(),
+    nightHours: sceneRenderer.drawnNightHours(),
     silence: sceneRenderer.sleepDarkness(),
     drawnPlayer: sceneRenderer.drawnPlayer(),
     asleep: sceneRenderer.isPlayingSleep(),

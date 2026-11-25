@@ -775,7 +775,7 @@ export function Hud({
             <HudIcon name={view.night ? "moon" : "sun"} />
           </span>
           {strings.clock(strings.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays, view.time.hour, view.time.minute)}
-          <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay)]}</small>
+          <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay, view.nightHours)]}</small>
         </p>
         <ActionQueueRow client={client} view={view} />
       </div>

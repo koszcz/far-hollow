@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
-import { clockStartMinutes, isNight, MINUTES_PER_HOUR } from "./clock";
+import { clockStartMinutes, MINUTES_PER_HOUR } from "./clock";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createRain, passRainTime, type Rain } from "./rain";
 import { readSave, writeSave } from "./save";
@@ -11,7 +11,7 @@ const TEN_DAYS_MINUTES = 10 * 24 * MINUTES_PER_HOUR;
 
 /** Runs the rain minute by minute and lists each spell of rain as [start, end] in game minutes. */
 function rainSpells(seed: number, fromMinutes: number, forMinutes: number): [number, number][] {
-  const rain = createRain(seed, fromMinutes);
+  const rain = createRain(seed, fromMinutes, 1);
   const spells: [number, number][] = [];
   let startedAt: number | undefined;
   for (let minutes = fromMinutes + 1; minutes <= fromMinutes + forMinutes; minutes += 1) {
@@ -27,7 +27,7 @@ function rainSpells(seed: number, fromMinutes: number, forMinutes: number): [num
 
 describe("rain", () => {
   it("starts dry", () => {
-    expect(createRain(42, GAME_START_MINUTES).falling).toBe(false);
+    expect(createRain(42, GAME_START_MINUTES, 1).falling).toBe(false);
   });
 
   it("starts and stops several times over ten days", () => {
@@ -55,11 +55,11 @@ describe("rain", () => {
   });
 
   it("catches up on a long jump in time the same as minute by minute", () => {
-    const stepped = createRain(42, GAME_START_MINUTES);
+    const stepped = createRain(42, GAME_START_MINUTES, 1);
     for (let minutes = GAME_START_MINUTES; minutes <= GAME_START_MINUTES + TEN_DAYS_MINUTES; minutes += 1) {
       passRainTime(stepped, 42, minutes);
     }
-    const jumped: Rain = createRain(42, GAME_START_MINUTES);
+    const jumped: Rain = createRain(42, GAME_START_MINUTES, 1);
     passRainTime(jumped, 42, GAME_START_MINUTES + TEN_DAYS_MINUTES);
     expect(jumped).toEqual(stepped);
   });
@@ -91,7 +91,7 @@ describe("rain in the game", () => {
 
   it("drains the player's warmth during the day", () => {
     const game = rainingGame();
-    expect(isNight(game.client.getView().time.hourOfDay)).toBe(false);
+    expect(game.client.getView().night).toBe(false);
     expect(onlyPlayer(game).needs.warmth.level).toBe(1);
 
     runGameMinutes(game, 20);

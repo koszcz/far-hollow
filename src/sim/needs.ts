@@ -1,4 +1,5 @@
 // The player's four needs: hunger, thirst, warmth, and fatigue.
+import type { Season } from "./season";
 
 /** The four body states the player must keep up. */
 export const NEED_KINDS = ["hunger", "thirst", "warmth", "fatigue"] as const;
@@ -6,14 +7,22 @@ export type NeedKind = (typeof NEED_KINDS)[number];
 
 /** Each need runs from 0 (empty) to 1 (full). A new game starts with every need full. */
 export const FULL_NEED = 1;
-/** How much warmth the player loses per game hour at night, away from a lit campfire. Full warmth lasts 4 hours. */
-export const WARMTH_DRAIN_PER_HOUR = 0.25;
-/** In a snug room, the night's warmth drain is this share of the usual rate. Rain does not fall indoors, so it does not change. */
-export const SNUG_ROOM_NIGHT_DRAIN_SHARE = 1 / 2;
+/**
+ * How much warmth the cold drains per game hour away from a lit fire, in each season, by day and by night.
+ * In spring and summer, full warmth lasts a 4-hour night. Autumn nights are colder. Winter drains warmth even by day.
+ */
+export const WARMTH_DRAIN_PER_HOUR: Readonly<Record<Season, { readonly day: number; readonly night: number }>> = {
+  spring: { day: 0, night: 0.25 },
+  summer: { day: 0, night: 0.25 },
+  autumn: { day: 0, night: 0.375 },
+  winter: { day: 0.1, night: 0.5 },
+};
+/** In a snug room, the cold's warmth drain is this share of the usual rate, by day and by night. Rain does not fall indoors, so it does not change. */
+export const SNUG_ROOM_DRAIN_SHARE = 1 / 2;
 /** How much hunger the player loses per game hour, all day and night. Full hunger lasts two days. */
 export const HUNGER_DRAIN_PER_HOUR = 1 / 48;
 
-/** How much warmth the player loses per game hour out in the rain, away from a lit campfire. It adds to the night's drain. */
+/** How much warmth the player loses per game hour out in the rain, away from a lit campfire. It adds to the cold's drain. */
 export const RAIN_WARMTH_DRAIN_PER_HOUR = 0.25;
 /** How much warmth the player gains per game hour within a lit campfire's warmth range. */
 export const WARMTH_RECOVERY_PER_HOUR = 1;
@@ -66,6 +75,8 @@ export function createNeeds(): Needs {
 export interface NeedConditions {
   /** Whether it is night. */
   night: boolean;
+  /** The season today, which sets how cold it is. Missing means spring. */
+  season?: Season;
   /** Whether the player stands within a lit campfire's warmth range. */
   warmedByCampfire: boolean;
   /** Whether the player is doing timed work, such as chopping, splitting, or building. */
@@ -78,7 +89,7 @@ export interface NeedConditions {
   inRain?: boolean;
   /** Whether the player is under a roof, so sleep restores fatigue faster. Missing means in the open. */
   underRoof?: boolean;
-  /** Whether the player stands in a snug room, so the night's cold drains warmth more slowly. Missing means not in one. */
+  /** Whether the player stands in a snug room, so the cold drains warmth more slowly. Missing means not in one. */
   inSnugRoom?: boolean;
   /** Whether the player sleeps in a bed rather than on a bedroll, so sleep restores fatigue faster. Missing means not in a bed. */
   inBed?: boolean;
@@ -110,8 +121,8 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
   switch (kind) {
     case "warmth":
       if (conditions.warmedByCampfire) return WARMTH_RECOVERY_PER_HOUR;
-      // Rain chills the player on top of the night's cold. A snug room keeps out half the night's cold.
-      return -(nightWarmthDrainPerHour(conditions) + (conditions.inRain === true ? RAIN_WARMTH_DRAIN_PER_HOUR : 0));
+      // Rain chills the player on top of the cold. A snug room keeps out half the cold.
+      return -(coldWarmthDrainPerHour(conditions) + (conditions.inRain === true ? RAIN_WARMTH_DRAIN_PER_HOUR : 0));
     case "thirst":
       return -THIRST_DRAIN_PER_HOUR;
     case "hunger":
@@ -123,10 +134,10 @@ function needChangePerHour(kind: NeedKind, conditions: NeedConditions): number {
   }
 }
 
-/** How much warmth the night's cold drains per game hour away from a fire: none by day, and half as much in a snug room. */
-function nightWarmthDrainPerHour(conditions: NeedConditions): number {
-  if (!conditions.night) return 0;
-  return WARMTH_DRAIN_PER_HOUR * (conditions.inSnugRoom === true ? SNUG_ROOM_NIGHT_DRAIN_SHARE : 1);
+/** How much warmth the cold drains per game hour away from a fire, by the season and the time of day, and half as much in a snug room. */
+function coldWarmthDrainPerHour(conditions: NeedConditions): number {
+  const rates = WARMTH_DRAIN_PER_HOUR[conditions.season ?? "spring"];
+  return (conditions.night ? rates.night : rates.day) * (conditions.inSnugRoom === true ? SNUG_ROOM_DRAIN_SHARE : 1);
 }
 
 /** How much fatigue the player regains per game hour asleep, under a roof or in the open, in a bed or on a bedroll. */

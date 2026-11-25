@@ -1,5 +1,6 @@
 // The valley's clock. Game logic owns it. Rendering and the UI only read it.
 import type { CommandRules } from "./command-rule";
+import { isNightHour, type NightHours, nightHoursOf, seasonDayOf } from "./season";
 
 /** One game hour passes in one real minute, so a day lasts 24 real minutes. */
 export const REAL_MS_PER_GAME_MINUTE = 1000;
@@ -77,25 +78,30 @@ export function readClock(rawMinutes: number): TimeOfDay {
   return { day, hour, minute, hourOfDay: minuteOfDay / MINUTES_PER_HOUR };
 }
 
-/** Night starts at this hour of the day. */
-export const NIGHT_START_HOUR = 20;
-/** Morning arrives, and night ends, at this hour of the day. */
-export const MORNING_HOUR = 6;
-
-/** Whether this hour of the day, with its fraction, falls in the night. */
-export function isNight(hourOfDay: number): boolean {
-  return hourOfDay >= NIGHT_START_HOUR || hourOfDay < MORNING_HOUR;
+/** The night hours on this day, which follow its season. The year started on `yearStartDay`. */
+export function nightHoursOnDay(day: number, yearStartDay: number): NightHours {
+  return nightHoursOf(seasonDayOf(day, yearStartDay).season);
 }
 
-/** Whether this moment, in game minutes since the start of day 1, falls in the night. */
-export function isNightAt(minutes: number): boolean {
-  return isNight(readClock(minutes).hourOfDay);
+/** The night hours at this moment, in game minutes since the start of day 1. They follow the season of the current day. */
+export function nightHoursAt(minutes: number, yearStartDay: number): NightHours {
+  return nightHoursOnDay(readClock(minutes).day, yearStartDay);
 }
 
-/** Game minutes since the start of day 1 at the next morning after this moment. */
-export function nextMorning(minutes: number): number {
-  const morningOfThisDay = Math.floor(minutes / MINUTES_PER_DAY) * MINUTES_PER_DAY + MORNING_HOUR * MINUTES_PER_HOUR;
-  return morningOfThisDay > minutes ? morningOfThisDay : morningOfThisDay + MINUTES_PER_DAY;
+/**
+ * Whether this moment, in game minutes since the start of day 1, falls in the night. The year started on `yearStartDay`.
+ * The night hours follow the season of the current day, so a night that starts in autumn ends on a winter morning.
+ */
+export function isNightAt(minutes: number, yearStartDay: number): boolean {
+  return isNightHour(readClock(minutes).hourOfDay, nightHoursAt(minutes, yearStartDay));
+}
+
+/** Game minutes since the start of day 1 at the next morning after this moment. The year started on `yearStartDay`. */
+export function nextMorning(minutes: number, yearStartDay: number): number {
+  const { day } = readClock(minutes);
+  const morningOn = (morningDay: number) => clockStartMinutes({ day: morningDay, hour: nightHoursOnDay(morningDay, yearStartDay).morningHour });
+  const morningOfThisDay = morningOn(day);
+  return morningOfThisDay > minutes ? morningOfThisDay : morningOn(day + 1);
 }
 
 /** What the commands that pause the game or skip time change in it. */

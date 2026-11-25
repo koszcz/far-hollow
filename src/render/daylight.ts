@@ -1,15 +1,15 @@
-import { MORNING_HOUR, NIGHT_START_HOUR } from "../sim/clock";
+import type { NightHours } from "../sim/season";
 
 /** Dawn runs from morning until this many hours later. Dusk ends at nightfall and starts this many hours before it. */
 const TWILIGHT_HOURS = 2;
 
 /**
- * How much daylight there is at this hour of the day, from 0 (night) to 1 (full day).
+ * How much daylight there is at this hour of the day, from 0 (night) to 1 (full day), with the season's night hours.
  * Daylight grows through the dawn after morning arrives and fades through the dusk before night starts.
  */
-export function daylightAt(hourOfDay: number): number {
-  const dawn = smoothStep((hourOfDay - MORNING_HOUR) / TWILIGHT_HOURS);
-  const dusk = smoothStep((NIGHT_START_HOUR - hourOfDay) / TWILIGHT_HOURS);
+export function daylightAt(hourOfDay: number, nightHours: NightHours): number {
+  const dawn = smoothStep((hourOfDay - nightHours.morningHour) / TWILIGHT_HOURS);
+  const dusk = smoothStep((nightHours.nightStartHour - hourOfDay) / TWILIGHT_HOURS);
   return Math.min(dawn, dusk);
 }
 

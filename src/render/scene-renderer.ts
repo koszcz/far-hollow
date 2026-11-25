@@ -22,6 +22,7 @@ import { createForageMeshes } from "./forage-meshes";
 import { createMushroomLogMeshes } from "./mushroom-log-meshes";
 import { createForestMeshes } from "./forest-meshes";
 import { daylightAt } from "./daylight";
+import type { NightHours } from "../sim/season";
 import { createHoverOutline, type OutlinePart } from "./hover-outline";
 import { createPlayerMesh } from "./player-mesh";
 import type { Fishing } from "./player-motions/fishing-animation";
@@ -102,11 +103,14 @@ export interface SceneRenderer {
   drawnPlayer(): DrawnPlayer;
   /** The hour of the day the sky showed in the last frame, with its fraction. It holds bedtime while the sleep animation darkens the view. Sound follows it. */
   drawnHourOfDay(): number;
+  /** The night hours the sky followed in the last frame. They hold bedtime's while the sleep animation darkens the view. Sound follows them. */
+  drawnNightHours(): NightHours;
   dispose(): void;
 }
 
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
+ * readNightHours returns today's night hours, which follow the season, from game logic.
  * readClockMinutes returns the game minutes since midnight at the start of day 1, from game logic.
  * Rendering only reads the clock. It never changes it.
  * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
@@ -118,6 +122,7 @@ export function createSceneRenderer(
   valley: Valley,
   entities: EntityStore,
   readHourOfDay: () => number,
+  readNightHours: () => NightHours,
   readClockMinutes: () => number,
   readLastSleep: () => SleepView | null,
   readLastEatOrDrink: () => EatOrDrinkView | null,
@@ -283,13 +288,17 @@ export function createSceneRenderer(
   let drawnWork: DrawnPlayer["work"];
   /** The hour of the day the sky showed last frame. */
   let drawnHour = readHourOfDay();
+  /** The night hours the sky followed last frame. */
+  let drawnNightHours = readNightHours();
   /** How many sleeps the player had when the last sleep animation began. */
   let sleepsSeen = readLastSleep()?.count ?? 0;
   /**
    * The sleep animation, while it plays: when it began, on the performance clock in seconds, where the player stood and
    * faced then, the middle of the bedroll or bed, the hour the sky keeps showing until the view is dark, and which way a bed or turned bedroll faces.
    */
-  let sleeping: { since: number; from: SleepSpot; at: GroundPoint; hour: number; bed?: SleepView["bed"]; bedroll?: SleepView["bedroll"] } | undefined;
+  let sleeping:
+    | { since: number; from: SleepSpot; at: GroundPoint; hour: number; nightHours: NightHours; bed?: SleepView["bed"]; bedroll?: SleepView["bedroll"] }
+    | undefined;
 
   /** Sitting on a stool, while drawn: when the player reached it, on the performance clock in seconds, where they stood and faced then, and where and how high they sit. */
   let seated: { since: number; from: SleepSpot; seat: SleepSpot; y: number } | undefined;
@@ -610,6 +619,7 @@ export function createSceneRenderer(
       from,
       at: last.at,
       hour: drawnHour,
+      nightHours: drawnNightHours,
       ...(last.bed === undefined ? {} : { bed: { turns: last.bed.turns } }),
       ...(last.bedroll === undefined ? {} : { bedroll: { turns: last.bedroll.turns } }),
     };
@@ -634,6 +644,7 @@ export function createSceneRenderer(
     sleepDarkness: () => darkness,
     drawnPlayer: () => ({ work: drawnWork, walkedMetres: walkedMetresThisFrame }),
     drawnHourOfDay: () => drawnHour,
+    drawnNightHours: () => drawnNightHours,
     render(alpha) {
       const nowSeconds = performance.now() / 1000;
       matchCanvasSize();
@@ -641,11 +652,14 @@ export function createSceneRenderer(
       if (sleeping !== undefined && nowSeconds - sleeping.since >= (sleeping.bed === undefined ? SLEEP_SECONDS : BED_SLEEP_SECONDS)) sleeping = undefined;
       const sleepSeconds = sleeping === undefined ? undefined : nowSeconds - sleeping.since;
       // The sky keeps the bedtime hour until the view is dark, then shows the morning game logic has already reached.
-      const hourOfDay = sleeping !== undefined && sleepSeconds !== undefined && sleepSeconds < SLEEP_MORNING_AT ? sleeping.hour : readHourOfDay();
+      const atBedtime = sleeping !== undefined && sleepSeconds !== undefined && sleepSeconds < SLEEP_MORNING_AT ? sleeping : undefined;
+      const hourOfDay = atBedtime?.hour ?? readHourOfDay();
+      const nightHours = atBedtime?.nightHours ?? readNightHours();
       drawnHour = hourOfDay;
+      drawnNightHours = nightHours;
       darkness = sleepSeconds === undefined ? 0 : sleepDarknessAt(sleepSeconds);
       darkenView(canvas, darkness);
-      const daylight = daylightAt(hourOfDay);
+      const daylight = daylightAt(hourOfDay, nightHours);
       riverMeshes.update(nowSeconds, daylight);
       blowWind(nowSeconds);
       forestMeshes.update(nowSeconds);
@@ -690,7 +704,7 @@ export function createSceneRenderer(
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
       fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
       windowGlowMeshes.update({ daylight, nowSeconds, cutaway });
-      skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
+      skyLighting.update(hourOfDay, nightHours, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.
       const views = { view: frustumOf(camera, viewFrustum), eye: camera.position, shadow: skyLighting.shadowFrustum() };
       forestMeshes.cull(views);

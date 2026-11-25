@@ -164,7 +164,7 @@ export const strings = {
     spring: "Spring. The snow melts and the river thaws.",
     summer: "Summer.",
     autumn: "Autumn. The nights grow colder.",
-    winter: "Winter has come. The river is frozen.",
+    winter: "Winter has come. The nights are long and cold, and the river is frozen.",
   },
   /** The time of day the HUD clock names after the time, in secondary text. */
   timeOfDay: {
@@ -311,7 +311,7 @@ export const strings = {
   fatigue: "Rest",
   notices: {
     survivedFirstNight: "You survived the night.",
-    snugRoomKeepsOutCold: "This room now keeps out the cold. At night, you lose warmth here at half the rate.",
+    snugRoomKeepsOutCold: "This room now keeps out the cold. You lose warmth here at half the rate.",
     collapsed: "You collapsed. You woke the next morning.",
     backpackFull: "Your backpack is full.",
     chestFull: "The chest is full.",

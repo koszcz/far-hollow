@@ -4,7 +4,7 @@
 // Construction has one stage per stone a chimney costs. Each stage fades in above its place and is set down, like the
 // fireplace's stones. A blueprint shows the stones see-through, and a stone the blueprint already has shows pale and half solid.
 // While the player places a chimney from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
-// A chimney never hides or fades, even when the roof over the player hides.
+// A chimney never hides or fades, even when the wall mode hides the roof around it.
 import * as THREE from "three";
 import { blueprintEntities, chimneyEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";

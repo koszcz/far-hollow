@@ -3,16 +3,16 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { NIGHT, type Showcase } from "./types";
 
 export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
-  // The cutaway button, off and on. src/ui/cutaway-showcase.tsx draws it over each view.
+  // The wall mode button in each wall mode. src/ui/cutaway-showcase.tsx draws it over each view.
   "cutaway-button": {
     overlay: "cutaway",
     radius: 6,
     focus: { x: 0, y: 1, z: 0 },
     shots: [
-      { label: "HUD: cutaway off", yaw: 20, pitch: 35 },
-      { label: "HUD: cutaway on", yaw: -20, pitch: 35 },
-      { label: "HUD: cutaway off, at dusk", yaw: 40, pitch: 35, hour: 18 },
-      { label: "HUD: cutaway on, at dusk", yaw: 20, pitch: 35, hour: 18 },
+      { label: "HUD: walls up", yaw: 20, pitch: 35 },
+      { label: "HUD: cutaway", yaw: -20, pitch: 35 },
+      { label: "HUD: walls down", yaw: 40, pitch: 35 },
+      { label: "HUD: cutaway, at dusk", yaw: 20, pitch: 35, hour: 18 },
     ],
     build({ movePlayer }) {
       movePlayer(0, 0, 0);

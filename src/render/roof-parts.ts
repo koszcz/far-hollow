@@ -266,7 +266,7 @@ export function roofPickSurface(height: (x: number, z: number) => number): THREE
 }
 
 /**
- * Hides a roof or frame drawn under `root` over the player, or shows it again. A hidden one is drawn only into the sun's
+ * Hides a roof or frame drawn under `root`, as the wall mode says, or shows it again. A hidden one is drawn only into the sun's
  * shadows, so the room under it stays in shade. Rays for clicks test only the default layer, so it cannot be picked either.
  */
 export function hideKeepingShadow(root: THREE.Object3D, hidden: boolean): void {

@@ -250,7 +250,7 @@ export function createStructureMeshes(
       foundations.update();
       floors.update();
       edgePieces.update(cutaway, nowSeconds);
-      // The roof of the cabin the player is in, and the frames under it, hide.
+      // The cabin roofs and roof frames hide as the wall mode says.
       roofFrames.update(cutaway.roof, nowSeconds);
       roofs.update(cutaway.roof, nowSeconds);
       // A door swings open while the player is near it, and fades with its frame.

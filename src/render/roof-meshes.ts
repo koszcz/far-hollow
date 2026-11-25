@@ -15,7 +15,7 @@
 // has none, the planks reach 0.5 m past the outside of the wall, over the eaves, the gable ends, and the high side of a shed.
 // Construction has one stage per plank, and lays one row each stage. A blueprint shows see-through. The row being laid fades
 // in above its place, is lowered, and set down, like the logs of a foundation.
-// While the player is in a cabin, its whole roof fades away over a moment, so the player stays in view (cabin-cutaway.ts, cutaway-fade.ts).
+// In the cutaway and walls down wall modes, every cabin roof fades away over a moment, so the player sees inside (cabin-cutaway.ts, cutaway-fade.ts).
 // A hidden roof still casts its shadow, so the room under it stays dark except where daylight comes in through a window or doorway.
 // While the player places a roof from the build menu, a see-through copy follows the mouse, sloping the way the frame under it
 // does. It turns red where it is not allowed.
@@ -101,7 +101,7 @@ export interface RoofMeshes {
   readonly group: THREE.Group;
   /**
    * Brings every roof section and roof blueprint up to date with game state.
-   * Finished sections in `hidden` fade away, but still cast their shadows: the roof of the cabin the player is in.
+   * Finished sections in `hidden` fade away, but still cast their shadows: the roofs the wall mode hides.
    * `nowSeconds` is the time of this frame. Without it, a section hides or shows at once.
    */
   update(hidden?: readonly Entity[], nowSeconds?: number): void;

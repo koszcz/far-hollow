@@ -18,7 +18,7 @@
 //   little, and the lintel sits in notches on their tops and reaches past them. Their cut ends show the paler cut wood.
 // A blueprint shows see-through. Each debarked log the player has delivered shows pale and half solid in its place.
 // The part being built stays in its place and turns from half solid to solid, like the logs of a foundation.
-// A finished wall, door frame, or window fades out where the cabin cutaway says (cabin-cutaway.ts), so the player never disappears behind it.
+// A finished wall, door frame, or window fades out where the wall mode says (cabin-cutaway.ts), and whenever the player would disappear behind it.
 // It eases out and back in over a moment (cutaway-fade.ts), in its own wood, see-through.
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api";
-import { createEntityStore, type Entity, type EntityStore } from "./entities";
+import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_BUILD_SECONDS, ROOF_FRAME_LOG_COST, type StructureKind } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
-import { cabinRoofOn, isUnderRoof, roofAbove } from "./roofs";
+import { cabinRoofOn, isUnderRoof } from "./roofs";
 import {
   LARGE_VALLEY_UPGRADES,
   PLANK_CHESTS_SAVE_VERSION,
@@ -126,34 +126,6 @@ describe("a finished cabin roof", () => {
     expect(sheltered.client.getView().raining).toBe(true);
     expect(sheltered.client.getView().needs.warmth).toBe(1);
     expect(exposed.client.getView().needs.warmth).toBeLessThan(0.9);
-  });
-});
-
-describe("the roof above the player", () => {
-  /** A finished cabin roof section over the square with this middle. */
-  const sectionAt = (entities: EntityStore, x: number, z: number) =>
-    entities.add({ cabinRoof: true, position: { x, y: 0, z }, roof: { min: { x: x - 0.5, z: z - 0.5 }, max: { x: x + 0.5, z: z + 0.5 } } });
-
-  it("is every cabin roof section joined to the one over the player, side by side", () => {
-    const entities = createEntityStore();
-    const over = sectionAt(entities, 0.5, 0.5);
-    const east = sectionAt(entities, 1.5, 0.5);
-    const southOfEast = sectionAt(entities, 1.5, -0.5);
-    // Only a corner touches, so it is a different roof.
-    sectionAt(entities, -0.5, 1.5);
-    // Far away.
-    sectionAt(entities, 10.5, 10.5);
-
-    expect(new Set(roofAbove(entities, { x: 0.4, z: 0.7 }))).toEqual(new Set([over, east, southOfEast]));
-  });
-
-  it("is nothing when the player stands in the open or under a lean-to", () => {
-    const entities = createEntityStore();
-    sectionAt(entities, 0.5, 0.5);
-    entities.add({ leanTo: true, position: { x: 5, y: 0, z: 5 }, roof: { min: { x: 3, z: 4 }, max: { x: 7, z: 6 } } });
-
-    expect(roofAbove(entities, { x: 2.5, z: 0.5 })).toEqual([]);
-    expect(roofAbove(entities, { x: 5, z: 5 })).toEqual([]);
   });
 });
 

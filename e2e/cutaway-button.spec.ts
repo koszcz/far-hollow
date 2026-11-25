@@ -9,15 +9,21 @@ async function openGame(page: Page): Promise<void> {
 
 test.use({ viewport: { width: 1280, height: 720 } });
 
-test("the cutaway button turns the cabin cutaway on and off", async ({ page }) => {
+test("the wall mode button steps from cutaway to walls down to walls up, and back to cutaway", async ({ page }) => {
   await openGame(page);
-  const off = page.getByRole("button", { name: "See inside cabins" });
-  await expect(off).toHaveAttribute("aria-pressed", "false");
-
-  await off.click();
-  const on = page.getByRole("button", { name: "Show cabin roofs" });
-  await expect(on).toHaveAttribute("aria-pressed", "true");
-
-  await on.click();
-  await expect(page.getByRole("button", { name: "See inside cabins" })).toHaveAttribute("aria-pressed", "false");
+  const button = page.locator(".hud-cutaway button");
+  // The game starts in cutaway. Each label names the wall mode the next click switches to.
+  for (const [index, [mode, label]] of (
+    [
+      ["cutaway", "Show walls down"],
+      ["wallsDown", "Show walls up"],
+      ["wallsUp", "Show cutaway"],
+      ["cutaway", "Show walls down"],
+    ] as const
+  ).entries()) {
+    if (index > 0) await button.click();
+    await expect(button).toHaveAttribute("data-wall-mode", mode);
+    await expect(button).toHaveAccessibleName(label);
+    await expect(button).toHaveAttribute("data-tip", label);
+  }
 });

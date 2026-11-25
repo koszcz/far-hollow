@@ -7,17 +7,14 @@ import { isDoorOpen } from "./doors";
 import { findPath } from "./pathfinding";
 import { type QuarterTurns } from "./quarter-turns";
 import { DOORS_SAVE_VERSION, FLOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { DOOR_BUILD_SECONDS, DOOR_FRAME_LOG_COST, DOOR_PLANK_COST, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
+import { DOOR_BUILD_SECONDS, DOOR_FRAME_LOG_COST, DOOR_PLANK_COST, LOG_WALL_LOG_COST, structureOf, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 
-describe("the door in the build menu", () => {
-  it("lists the door with its cost of 3 planks and no tool, after the roof", () => {
-    const game = createGame({ seed: 42 });
-
+describe("the door's cost", () => {
+  it("costs 3 planks and no tool", () => {
     expect(DOOR_PLANK_COST).toBe(3);
-    const menu = game.client.getView().buildMenu;
-    const roof = menu.findIndex(({ structure }) => structure === "roof");
-    expect(menu[roof + 1]).toEqual({ structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true });
+    expect(structureOf("door").cost).toEqual([{ material: "plank", count: 3 }]);
+    expect(structureOf("door").tool).toBeUndefined();
   });
 });
 

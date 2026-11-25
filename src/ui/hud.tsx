@@ -24,7 +24,8 @@ import type {
   WoodpileView,
   WoodpileWood,
 } from "../sim/api";
-import { isCarriedLog, nearbyOf } from "../sim/api";
+import { isCarriedLog, isHost, nearbyOf } from "../sim/api";
+import { BUILD_TABS, entriesInTab, FIRST_BUILD_TAB, type BuildTab } from "./build-tabs";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { ActionQueueRow } from "./action-queue-row";
@@ -271,7 +272,7 @@ function noticeText(notice: Notice): string {
  * A list of choices that opens above the build and craft buttons, used for the build and craft menus. A click on a row
  * picks it. A click outside the list closes it.
  */
-function ListMenu({ title, entries, onClose }: { title: string; entries: readonly MenuEntry[]; onClose: () => void }) {
+function ListMenu({ title, tabs, entries, onClose }: { title: string; tabs?: ComponentChildren; entries: readonly MenuEntry[]; onClose: () => void }) {
   return (
     <>
       <div class="hud-menu-backdrop" onClick={onClose} />
@@ -279,6 +280,7 @@ function ListMenu({ title, entries, onClose }: { title: string; entries: readonl
         <h3 class="hud-menu-title" aria-hidden="true">
           {title}
         </h3>
+        {tabs}
         <ul>
           {entries.map((entry) => (
             <li key={entry.key}>
@@ -361,12 +363,44 @@ function CraftMenu({
 }
 
 /**
- * The build menu: one row per structure the player can build, with its icon, its name, the materials it costs as icons
- * with counts, and the tool it needs. Picking one puts its blueprint under the mouse.
+ * The build menu: text tabs for Camp, Shelter, and Furniture, then one row per structure in the chosen tab, with its icon, its name,
+ * the materials it costs as icons with counts, and the tool it needs. A host's row names the add-on the player builds from it.
+ * Picking a row puts its blueprint under the mouse.
  */
-function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"]; onPick: (structure: StructureKind) => void; onClose: () => void }) {
-  const menuEntries = entries.map(({ structure, cost, tool }): MenuEntry => {
+function BuildMenu({
+  entries,
+  tab,
+  onChooseTab,
+  onPick,
+  onClose,
+}: {
+  entries: GameView["buildMenu"];
+  tab: BuildTab;
+  onChooseTab: (tab: BuildTab) => void;
+  onPick: (structure: StructureKind) => void;
+  onClose: () => void;
+}) {
+  const tabs = (
+    <div class="hud-menu-tabs" role="tablist">
+      {BUILD_TABS.map((each) => (
+        <button
+          key={each}
+          type="button"
+          role="tab"
+          class={each === tab ? "hud-menu-tab hud-menu-tab-chosen" : "hud-menu-tab"}
+          aria-selected={each === tab}
+          onClick={() => {
+            onChooseTab(each);
+          }}
+        >
+          {strings.buildMenu.tabs[each]}
+        </button>
+      ))}
+    </div>
+  );
+  const menuEntries = entriesInTab(entries, tab).map(({ structure, cost, tool }): MenuEntry => {
     const name = strings.buildMenu.structures[structure];
+    const addOn = isHost(structure) ? strings.buildMenu.addOnDetail[structure] : undefined;
     const costText = strings.buildMenu.cost([
       ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
       ...(tool === undefined ? [] : [strings.actionReasons.needsTool(strings.backpackContents[tool])]),
@@ -390,13 +424,14 @@ function BuildMenu({ entries, onPick, onClose }: { entries: GameView["buildMenu"
           )}
         </span>
       ),
-      label: strings.buildMenu.entryLabel(name, costText),
+      ...(addOn === undefined ? {} : { detail: addOn }),
+      label: [strings.buildMenu.entryLabel(name, costText), ...(addOn === undefined ? [] : [addOn])].join(" · "),
       onPick: () => {
         onPick(structure);
       },
     };
   });
-  return <ListMenu title={strings.buildMenu.title} entries={menuEntries} onClose={onClose} />;
+  return <ListMenu title={strings.buildMenu.title} tabs={tabs} entries={menuEntries} onClose={onClose} />;
 }
 
 /** Warmth's bar colour runs from this cold blue at 0 to the ember orange at 1. */
@@ -732,6 +767,8 @@ export function Hud({
   onCloseJournal = () => {},
 }: HudProps) {
   const [view, setView] = useState(client.getView());
+  // The build menu opens on the tab the player used last. The HUD stays while the menu closes, so this lasts until the page reloads. It is never saved.
+  const [buildTab, setBuildTab] = useState<BuildTab>(FIRST_BUILD_TAB);
   useEffect(
     () =>
       client.subscribe(() => {
@@ -846,7 +883,9 @@ export function Hud({
                 pressed={craftMenuOpen}
                 onClick={onToggleCraftMenu}
               />
-              {buildMenuOpen && <BuildMenu entries={view.buildMenu} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />}
+              {buildMenuOpen && (
+                <BuildMenu entries={view.buildMenu} tab={buildTab} onChooseTab={setBuildTab} onPick={onPickBuildEntry} onClose={onToggleBuildMenu} />
+              )}
               {craftMenuOpen && (
                 <CraftMenu
                   client={client}

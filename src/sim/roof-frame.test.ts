@@ -3,7 +3,7 @@ import type { Command } from "./api";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_FRAME_LOG_COST, type StructureKind } from "./structures";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_FRAME_LOG_COST, structureOf, type StructureKind } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
 import { LARGE_VALLEY_UPGRADES, readSave, ROOF_FRAMES_SAVE_VERSION, writeSave } from "./save";
@@ -13,15 +13,13 @@ import { isWalkable } from "./walk-map";
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);
 
 describe("the roof frame in the build menu", () => {
-  it("lists the roof frame between the window and the roof, costing debarked logs, and the roof costing only planks", () => {
+  it("lists the roof frame after the window, costing debarked logs, and the roof, built from its frame, costing only planks", () => {
     const game = createGame({ seed: 42 });
 
     const menu = game.client.getView().buildMenu;
     const window = menu.findIndex(({ structure }) => structure === "window");
-    expect(menu.slice(window + 1, window + 3)).toEqual([
-      { structure: "roofFrame", cost: [{ material: "debarkedLog", count: ROOF_FRAME_LOG_COST }], placement: "overWalls" },
-      { structure: "roof", cost: [{ material: "plank", count: ROOF_PLANK_COST }], placement: "onFrame", fixedFacing: true },
-    ]);
+    expect(menu[window + 1]).toEqual({ structure: "roofFrame", cost: [{ material: "debarkedLog", count: ROOF_FRAME_LOG_COST }], placement: "overWalls" });
+    expect(structureOf("roof").cost).toEqual([{ material: "plank", count: ROOF_PLANK_COST }]);
   });
 });
 

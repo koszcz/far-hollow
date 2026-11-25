@@ -731,6 +731,33 @@ body {
   letter-spacing: 0.12em;
   color: var(--hud-text-secondary);
 }
+/* The build menu's text tabs, in a row under its title. The chosen tab is amber and underlined. */
+.hud-menu-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 4px 6px;
+}
+.hud-menu-tab {
+  flex: 1;
+  padding: 5px 6px;
+  color: var(--hud-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.hud-menu-tab:hover,
+.hud-menu-tab:focus-visible {
+  background: var(--hud-amber-tint);
+  border-radius: 8px 8px 0 0;
+}
+.hud-menu-tab-chosen {
+  color: var(--hud-amber);
+  border-bottom-color: var(--hud-amber);
+}
 .hud-menu ul {
   display: flex;
   flex-direction: column;

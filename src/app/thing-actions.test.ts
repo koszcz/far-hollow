@@ -170,6 +170,7 @@ describe("a campfire's actions", () => {
         "addFuel:bark off: no bark",
         "putPotOn off: light the fire first",
         "cookFish off: light the fire first",
+        "addOn",
         "takeDown off: let the fire burn out first",
       ]);
       expect(mainAction(actions)?.command).toEqual({ type: "lightCampfire", campfireId: fireplace });
@@ -183,7 +184,14 @@ describe("a campfire's actions", () => {
 
     const actions = actionsFor({ kind: "scene", pick: { kind: "fireplace", id: fireplace } }, world.reader);
 
-    expect(summary(actions).slice(2)).toEqual(["addFuel:bark off: no bark", "takePotOff", "cookFish", "takeFishOff", "takeDown off: take the pot off first"]);
+    expect(summary(actions).slice(2)).toEqual([
+      "addFuel:bark off: no bark",
+      "takePotOff",
+      "cookFish",
+      "takeFishOff",
+      "addOn",
+      "takeDown off: take the pot off first",
+    ]);
     expect(find(actions, "cookFish")?.command).toEqual({ type: "cookFish", campfireId: fireplace });
     expect(find(actions, "takeFishOff")?.command).toEqual({ type: "takeFishOff", campfireId: fireplace });
     expect(find(actions, "takePotOff")?.command).toEqual({ type: "takePotOffFire", campfireId: fireplace });

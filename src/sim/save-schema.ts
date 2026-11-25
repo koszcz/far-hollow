@@ -257,6 +257,9 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   chimneyNeedsFireplace: true,
   fireplaceHasChimney: true,
   takeChimneyDownFirst: true,
+  finishHostFirst: true,
+  holdsAddOn: true,
+  addOnInTheWay: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

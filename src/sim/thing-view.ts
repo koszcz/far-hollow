@@ -1,6 +1,8 @@
 // Says what a thing in the world is, given by its entity id. The action queue uses it to pick the icon of an action on it.
 import type { ThingView } from "./api";
 import type { EntityStore } from "./entities";
+import { holdsAddOn } from "./add-ons";
+import { isHost } from "./structure-kind";
 import { structureKindOf } from "./structures";
 import { isSapling, isYoungTree } from "./tree-growth";
 
@@ -10,6 +12,9 @@ export function describeThing(entities: EntityStore, id: number): ThingView | un
   if (entity === undefined) return undefined;
   const structure = structureKindOf(entity);
   if (structure === "shutters" && entity.shutters !== undefined) return { kind: "structure", structure, open: entity.shutters.open };
+  if (structure !== undefined && isHost(structure) && entity.blueprint === undefined && entity.position !== undefined) {
+    return { kind: "structure", structure, holdsAddOn: holdsAddOn(entities, structure, entity.position) };
+  }
   if (structure !== undefined) return { kind: "structure", structure };
   if (entity.forageSpot !== undefined) return { kind: "forage", food: entity.forageSpot.food };
   if (entity.pile !== undefined) return { kind: "pile", content: entity.pile.content };

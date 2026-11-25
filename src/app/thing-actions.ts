@@ -8,6 +8,7 @@ import {
   CARRIED_LOGS,
   furnitureMoreUses,
   isCarriedLog,
+  isHost,
   furnitureUse,
   hasRoom,
   holdsWater,
@@ -148,10 +149,28 @@ function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[]
   const under = pick.under === undefined ? [] : thingActions(pick.under, context);
   const [own] = structureOffers(pick, context);
   const takeDownStructure: ThingAction = { ...takeDown(context, pick.id), id: "takeDownStructure", isMain: false };
+  // A finished door frame, window, or roof frame that does not hold its add-on yet offers to build it, as the main action.
+  const [addOn] = addOnOffers(pick.id, context);
+  if (addOn !== undefined) return [{ ...addOn, isMain: true }, ...notMain(under), ...(own === undefined ? [] : [{ ...own, isMain: false }]), takeDownStructure];
   if (own === undefined) return [...under, takeDownStructure];
   // The structure's own action is the main one when nothing under it has one, such as when the pointer is on the lean-to's roof.
   if (under[0]?.isMain === true) return [...under, { ...own, isMain: false }, takeDownStructure];
   return [{ ...own, isMain: true }, ...under, takeDownStructure];
+}
+
+/**
+ * Building a finished host's add-on, such as hanging a door in a door frame, while the host does not hold it, finished or as a blueprint.
+ * Empty for anything else, including a host that is still a blueprint. The game says why it would refuse, such as something in the way.
+ */
+function addOnOffers(hostId: number, { reader, offer }: Context): readonly Offer[] {
+  const host = reader.describeThing(hostId);
+  if (host?.kind !== "structure" || !isHost(host.structure) || !("holdsAddOn" in host) || host.holdsAddOn) return [];
+  return [offer("addOn", strings.actions.addOn[host.structure], { hud: "place" }, { type: "buildAddOn", hostId })];
+}
+
+/** The same actions, none of them the main one. */
+function notMain(actions: readonly ThingAction[]): readonly ThingAction[] {
+  return actions.map((action) => ({ ...action, isMain: false }));
 }
 
 /** What a finished structure itself offers, besides being taken down. A lean-to offers to lay the bedroll in it while the backpack holds one. */
@@ -216,10 +235,15 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
         ],
         "forage",
       );
-    case "campfire":
-    case "fireplace": {
+    case "campfire": {
       const campfire = reader.describeCampfire(pick.id);
       return campfire === null ? withMain([takeDown(context, pick.id)], undefined) : campfireActions(campfire, context);
+    }
+    case "fireplace": {
+      // A fireplace also offers to build its chimney, just before taking it down. The fire keeps the main action.
+      const campfire = reader.describeCampfire(pick.id);
+      const fire = campfire === null ? withMain([takeDown(context, pick.id)], undefined) : campfireActions(campfire, context);
+      return [...fire.slice(0, -1), ...notMain(withMain(addOnOffers(pick.id, context), undefined)), ...fire.slice(-1)];
     }
     case "woodpile": {
       const woodpile = reader.describeWoodpile(pick.id);

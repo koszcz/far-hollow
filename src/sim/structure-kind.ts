@@ -36,6 +36,26 @@ export function byFurnitureKind<T>(make: (kind: FurnitureKind) => T): Record<Fur
   return Object.fromEntries(FURNITURE_KINDS.map((kind) => [kind, make(kind)])) as Record<FurnitureKind, T>;
 }
 
+/**
+ * Each host and its add-on. An add-on is a building piece the player builds from the finished piece it goes on, its host,
+ * not from the build menu. The build menu lists every other structure.
+ */
+export const ADD_ON_OF_HOST = { doorFrame: "door", window: "shutters", roofFrame: "roof", fireplace: "chimney" } as const;
+export type HostKind = keyof typeof ADD_ON_OF_HOST;
+export type AddOnKind = (typeof ADD_ON_OF_HOST)[HostKind];
+/** Every structure the build menu lists: every structure but the add-ons. */
+export type BuildMenuKind = Exclude<StructureKind, AddOnKind>;
+
+/** Whether a structure is a host, which offers to build its add-on once finished. */
+export function isHost(kind: StructureKind): kind is HostKind {
+  return Object.hasOwn(ADD_ON_OF_HOST, kind);
+}
+
+/** Whether a structure is an add-on, which the build menu does not list. */
+export function isAddOn(kind: StructureKind): kind is AddOnKind {
+  return Object.values<StructureKind>(ADD_ON_OF_HOST).includes(kind);
+}
+
 /** The building pieces that stand on the edge of a foundation square, on the line between it and the square beside it. */
 export const EDGE_PIECE_KINDS = ["logWall", "doorFrame", "window"] as const;
 export type EdgePieceKind = (typeof EDGE_PIECE_KINDS)[number];

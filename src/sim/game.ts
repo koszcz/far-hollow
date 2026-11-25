@@ -27,8 +27,10 @@ import { createApproach } from "./approach";
 import { addToBackpack, BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, createStartingBackpack } from "./backpack";
 import { playerActivity, playerIsBusy, type Activity } from "./activity";
 import { createBuilding, buildingRules } from "./building";
+import { addOnRules } from "./add-ons";
 import { createTakingDown, takingDownRules } from "./taking-down";
 import { STRUCTURES } from "./structures";
+import { isAddOn } from "./structure-kind";
 import { createCarrying, carryingRules } from "./carrying";
 import { createCampfires, isWarmedByCampfire, campfireRules } from "./campfires";
 import { createChopping, choppingRules } from "./chopping";
@@ -113,16 +115,18 @@ import { createHandReach } from "./hand-reach";
 import { GOAL_NOTICE_MINUTES, goalsProvenByCamp, journalRules, markGoalDone, newJournal, newlyShownGoals, type Goal, type Journal } from "./journal";
 import type { GroundPoint } from "./ground-point";
 
-/** The build menu never changes, so every view shares one frozen copy. */
+/** The build menu never changes, so every view shares one frozen copy. It lists every structure but the add-ons, which the player builds from their host. */
 const BUILD_MENU: GameView["buildMenu"] = Object.freeze(
-  STRUCTURES.map(({ kind, cost, tool, placement, fixedFacing }) =>
-    Object.freeze({
-      structure: kind,
-      cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))),
-      ...(tool === undefined ? {} : { tool }),
-      placement,
-      ...(fixedFacing === true ? { fixedFacing } : {}),
-    }),
+  STRUCTURES.flatMap(({ kind, cost, tool, placement, fixedFacing }) =>
+    isAddOn(kind)
+      ? []
+      : Object.freeze({
+          structure: kind,
+          cost: Object.freeze(cost.map((item) => Object.freeze({ ...item }))),
+          ...(tool === undefined ? {} : { tool }),
+          placement,
+          ...(fixedFacing === true ? { fixedFacing } : {}),
+        }),
   ),
 );
 
@@ -521,6 +525,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     }),
     ...pileRules(piles, ruleGame),
     ...buildingRules(building, ruleGame),
+    ...addOnRules(building, ruleGame),
     ...takingDownRules(takingDown),
     ...campfireRules(campfires, ruleGame),
     ...potRules(pot, campfires, ruleGame, () => {

@@ -32,11 +32,8 @@ describe("the window and the shutters in the build menu", () => {
     expect(WINDOW_BUILD_SECONDS).toBe(10);
   });
 
-  it("lists the shutters after the door, for 2 planks and 4 seconds", () => {
-    const menu = createGame({ seed: 42 }).client.getView().buildMenu;
-    const door = menu.findIndex(({ structure }) => structure === "door");
-
-    expect(menu[door + 1]).toEqual({ structure: "shutters", cost: [{ material: "plank", count: 2 }], placement: "inWindow", fixedFacing: true });
+  it("makes the shutters cost 2 planks and 4 seconds", () => {
+    expect(structureOf("shutters").cost).toEqual([{ material: "plank", count: 2 }]);
     expect(SHUTTERS_PLANK_COST).toBe(2);
     expect(SHUTTERS_BUILD_SECONDS).toBe(4);
   });

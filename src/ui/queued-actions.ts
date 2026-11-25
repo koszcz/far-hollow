@@ -1,6 +1,6 @@
 // Picks the icon and name of each action in the action queue, for the row of icons beside the clock.
 // The icon shows what the action works on, such as a tree, a log, or a campfire. The name is the action's, such as "Chop".
-import { isCarriedLog, jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "../sim/api";
+import { ADD_ON_OF_HOST, isCarriedLog, isHost, jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "../sim/api";
 import type { ActionCommand, BackpackContent, CarriedLog, GameClient, GameView, StructureKind, ThingView } from "../sim/api";
 import { strings } from "../strings";
 import type { QueueThing } from "./action-queue-icons";
@@ -78,6 +78,11 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { content: command.content }, name: actions.drop };
     case "placeBlueprint":
       return { icon: { structure: command.structure }, name: actions.build };
+    case "buildAddOn": {
+      const host = thing(command.hostId);
+      const addOn = host?.kind === "structure" && isHost(host.structure) ? ADD_ON_OF_HOST[host.structure] : "door";
+      return { icon: { structure: addOn }, name: actions.build };
+    }
     case "build":
       return { icon: structure(command.blueprintId, "campfire"), name: actions.build };
     case "deliverToBlueprint":

@@ -58,6 +58,38 @@ const BASE_VIEW: GameView = {
   journal: { done: [], hidden: false, justDone: null },
 };
 
+/** Every structure in the build menu, with its real cost, for the "hud" and "build-icons" showcases. */
+const FULL_BUILD_MENU: GameView["buildMenu"] = [
+  { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
+  {
+    structure: "leanTo",
+    cost: [
+      { material: "stick", count: 10 },
+      { material: "bark", count: 6 },
+    ],
+    placement: "onGround",
+  },
+  { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
+  { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true },
+  { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
+  { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
+  { structure: "window", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
+  { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
+  { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
+  { structure: "woodpile", cost: [], placement: "onGround" },
+  ...FURNITURE_BUILD_MENU,
+  { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
+  {
+    structure: "sled",
+    cost: [
+      { material: "log", count: 2 },
+      { material: "stick", count: 4 },
+    ],
+    tool: "axe",
+    placement: "anywhere",
+  },
+];
+
 /** One HUD state: the game state, whether the build menu is open, what the player is placing, and whether the craft menu is open. */
 interface ShowcaseState {
   view: GameView;
@@ -69,6 +101,7 @@ interface ShowcaseState {
 /** One game state per view, with whether the build menu is open and what the player is placing. */
 const STATES: readonly ShowcaseState[] = [
   {
+    // The build menu opens on its first tab, Camp. A quarter of the screen fits only one row under the tabs.
     view: {
       ...BASE_VIEW,
       nearby: [
@@ -315,41 +348,12 @@ const BERRY_BUSH_ICON_STATES: readonly (ShowcaseState | null)[] = [
   },
 ];
 
-/** Every structure in the build menu, with its real cost, for the "build-icons" showcase. */
-const FULL_BUILD_MENU: GameView["buildMenu"] = [
-  { structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" },
-  {
-    structure: "leanTo",
-    cost: [
-      { material: "stick", count: 10 },
-      { material: "bark", count: 6 },
-    ],
-    placement: "onGround",
-  },
-  { structure: "foundation", cost: [{ material: "debarkedLog", count: 4 }], placement: "onGround" },
-  { structure: "floor", cost: [{ material: "plank", count: 2 }], placement: "underfoot", fixedFacing: true },
-  { structure: "logWall", cost: [{ material: "debarkedLog", count: 4 }], placement: "onEdge" },
-  { structure: "doorFrame", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
-  { structure: "window", cost: [{ material: "debarkedLog", count: 3 }], placement: "onEdge" },
-  { structure: "roofFrame", cost: [{ material: "debarkedLog", count: 5 }], placement: "overWalls" },
-  { structure: "roof", cost: [{ material: "plank", count: 6 }], placement: "onFrame", fixedFacing: true },
-  { structure: "door", cost: [{ material: "plank", count: 3 }], placement: "inDoorFrame", fixedFacing: true },
-  { structure: "shutters", cost: [{ material: "plank", count: 2 }], placement: "inWindow", fixedFacing: true },
-  { structure: "fireplace", cost: [{ material: "stone", count: 12 }], placement: "onFoundation" },
-  { structure: "chimney", cost: [{ material: "stone", count: 8 }], placement: "onFireplace", fixedFacing: true },
-  { structure: "woodpile", cost: [], placement: "onGround" },
-  ...FURNITURE_BUILD_MENU,
-  { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
-  {
-    structure: "sled",
-    cost: [
-      { material: "log", count: 2 },
-      { material: "stick", count: 4 },
-    ],
-    tool: "axe",
-    placement: "anywhere",
-  },
-];
+/** Every structure with an icon, in the order the "build-icons" sheet draws them: the build menu's structures, with each add-on after its host. */
+const ICON_SHEET_STRUCTURES: readonly StructureKind[] = FULL_BUILD_MENU.flatMap(({ structure }) => {
+  if (structure === "roofFrame") return [structure, "roof", "door", "shutters"];
+  if (structure === "fireplace") return [structure, "chimney"];
+  return [structure];
+});
 
 /** The "build-icons" asset: the full build menu open, in four game states. */
 const BUILD_ICON_STATES: readonly ShowcaseState[] = [
@@ -568,7 +572,7 @@ function BuildIconSheet() {
   } as const;
   return (
     <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "4px" }}>
-      {FULL_BUILD_MENU.map(({ structure }) => (
+      {ICON_SHEET_STRUCTURES.map((structure) => (
         <div key={structure} style={cell}>
           <span style={{ width: "64px", height: "64px", display: "grid" }} class="showcase-big-icon">
             <StructureIcon structure={structure} />

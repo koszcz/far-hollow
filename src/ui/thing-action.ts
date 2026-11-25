@@ -42,6 +42,7 @@ export type ActionId =
   | "layBedroll"
   | "sit"
   | "build"
+  | "addOn"
   | `deliver:${CarriedThing}`
   | "openMenu"
   | `craft:${RecipeKind}`

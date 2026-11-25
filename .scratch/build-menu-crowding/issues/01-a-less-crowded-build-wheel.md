@@ -2,7 +2,7 @@
 
 **What to build:** The build menu lists all 22 structures in one list that scrolls. Each new spec adds more rows, so the player struggles to find a structure. Two changes fix this. Add-ons leave the build menu and become actions on the finished piece they go on. The remaining 18 structures split into three tabs: Camp, Shelter, and Furniture.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Changes the approved `hud`. The owner approved this change in chat on 2026-11-25. Adds no new asset and no category icons. Reuses `build-icons` for the rows.
 

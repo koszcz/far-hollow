@@ -12,14 +12,15 @@ import { CHIMNEYS_SAVE_VERSION, SEASONS_SAVE_VERSION, readSave, SAVE_VERSION, wr
 import { CHIMNEY_BUILD_SECONDS, CHIMNEY_STONE_COST, structureOf, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 
-describe("the chimney in the build menu", () => {
-  it("lists the chimney with its cost of 8 stone and no tool, after the fireplace", () => {
+describe("the chimney's cost", () => {
+  it("costs 8 stone and no tool, and is built from its fireplace, not the build menu", () => {
     const game = createGame({ seed: 42 });
-    const menu = game.client.getView().buildMenu;
+    const chimney = structureOf("chimney");
 
     expect(CHIMNEY_STONE_COST).toBe(8);
-    expect(menu).toContainEqual({ structure: "chimney", cost: [{ material: "stone", count: 8 }], placement: "onFireplace", fixedFacing: true });
-    expect(menu.findIndex(({ structure }) => structure === "chimney")).toBe(menu.findIndex(({ structure }) => structure === "fireplace") + 1);
+    expect(chimney.cost).toEqual([{ material: "stone", count: 8 }]);
+    expect(chimney.tool).toBeUndefined();
+    expect(game.client.getView().buildMenu.map(({ structure }) => structure)).not.toContain("chimney" as StructureKind);
   });
 });
 

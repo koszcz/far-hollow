@@ -176,6 +176,15 @@ export const strings = {
   buildMenu: {
     open: "Build",
     title: "Build",
+    /** The names of the build menu's tabs. */
+    tabs: { camp: "Camp", shelter: "Shelter", furniture: "Furniture" },
+    /** The detail line on a host's row, which names the add-on the player builds from it. */
+    addOnDetail: {
+      doorFrame: "Hang a door in it once it is built.",
+      window: "Hang shutters in it once it is built.",
+      roofFrame: "Lay the roof on it once it is built.",
+      fireplace: "Build a chimney on it once it is built.",
+    },
     structures: {
       campfire: "Campfire",
       leanTo: "Lean-to",
@@ -390,12 +399,12 @@ export const strings = {
       },
       buildRoom: {
         name: "Build a first room.",
-        hint: "Press B to lay foundations, close them in with log walls and a door frame, and roof them over. Walls take debarked logs, and the roof takes planks.",
+        hint: "Press B to lay foundations, close them in with log walls and a door frame, and put a roof frame over them. Then click each finished roof frame to lay the roof. Walls take debarked logs, and the roof takes planks.",
         done: "first room built",
       },
       makeRoomSnug: {
         name: "Make the room snug.",
-        hint: "Press B to lay a plank floor on every square, hang a door in the door frame, and hang shutters in every window.",
+        hint: "Press B to lay a plank floor on every square. Click the finished door frame to hang a door, and each finished window to hang shutters.",
         done: "the room is snug",
       },
     } satisfies Record<Goal, { name: string; hint: string; done: string }>,
@@ -504,6 +513,8 @@ export const strings = {
   },
   /** What the player can do to a thing, as the action menu names it. */
   actions: {
+    /** Building a finished host's add-on, named by the host. */
+    addOn: { doorFrame: "Hang a door", window: "Hang shutters", roofFrame: "Lay the roof", fireplace: "Build a chimney" },
     walk: "Walk here",
     drink: "Drink",
     fish: "Fish",
@@ -636,6 +647,9 @@ export const strings = {
     chimneyNeedsFireplace: "a chimney goes only on a finished fireplace",
     fireplaceHasChimney: "this fireplace already has a chimney",
     takeChimneyDownFirst: "take down the chimney first",
+    finishHostFirst: "finish building it first",
+    holdsAddOn: "it already has one",
+    addOnInTheWay: "something is in the way",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

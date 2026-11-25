@@ -48,8 +48,8 @@ export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, Mat
 
 import { FURNITURE, type FurnitureUse } from "./furniture";
 export type { FurnitureUse } from "./furniture";
-import { FURNITURE_KINDS } from "./structure-kind";
-export { isPlacedInRows } from "./structure-kind";
+import { FURNITURE_KINDS, type BuildMenuKind, type HostKind } from "./structure-kind";
+export { ADD_ON_OF_HOST, isAddOn, isHost, isPlacedInRows, type AddOnKind, type BuildMenuKind, type HostKind } from "./structure-kind";
 
 /** The HUD uses these to tell the player when a low need slows them, and which needs there are. */
 export { LOW_NEED, NEED_KINDS, type NeedKind } from "./needs";
@@ -135,6 +135,12 @@ export type Command =
    * With `thenBuild`, the player starts building it at once if they have what the first stage needs, as if they had sent build.
    */
   | ({ type: "placeBlueprint"; structure: StructureKind; turns: QuarterTurns; thenBuild?: boolean } & GroundPoint)
+  /**
+   * Place the blueprint of a finished host's add-on on it, given by the host's entity id, such as a door in a door frame,
+   * and start building it, as build does. It is refused when the host is not finished, already holds its add-on, finished
+   * or as a blueprint, or something is in the way. When the player cannot start building it, the blueprint stays and a notice says why.
+   */
+  | { type: "buildAddOn"; hostId: number }
   /**
    * Start building a blueprint, given by its entity id. The player walks to it first if needed.
    * Construction goes on until the player sends stopBuilding, walks away, finishes, or runs out of materials.
@@ -410,7 +416,7 @@ export interface GameView {
   readonly backpackWeight: number;
   /** The most the backpack can hold, in kilograms. */
   readonly backpackWeightLimit: number;
-  /** Every structure the player can build, with its cost, in the order the build menu lists them. */
+  /** Every structure the player can build from the build menu, with its cost, in the order it lists them. Add-ons are not among them. */
   readonly buildMenu: readonly BuildMenuEntry[];
   /** Every recipe, in the order the craft menu lists them, with what the player lacks to follow each one now. */
   readonly craftMenu: readonly CraftMenuEntry[];
@@ -620,7 +626,7 @@ export interface CampfireView {
 
 /** One structure in the build menu. */
 export interface BuildMenuEntry {
-  readonly structure: StructureKind;
+  readonly structure: BuildMenuKind;
   /** Everything building it costs. Placing its blueprint costs nothing. Construction spends it. */
   readonly cost: readonly MaterialCost[];
   /** The tool the player needs in the backpack to build it. Missing if it needs none. Building does not use the tool up. */
@@ -734,6 +740,9 @@ export type Refusal =
  * - `chimneyNeedsFireplace`: a chimney goes only on a finished fireplace.
  * - `fireplaceHasChimney`: the fireplace already has a chimney, finished or as a blueprint.
  * - `takeChimneyDownFirst`: a chimney stands on the fireplace, finished or as a blueprint, so it cannot come down.
+ * - `finishHostFirst`: an add-on goes only on a finished host, such as a door in a finished door frame.
+ * - `holdsAddOn`: the host already holds its add-on, finished or as a blueprint.
+ * - `addOnInTheWay`: something is in the way of the add-on's blueprint.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -793,7 +802,10 @@ export type PlainRefusal =
   | "riverFrozen"
   | "chimneyNeedsFireplace"
   | "fireplaceHasChimney"
-  | "takeChimneyDownFirst";
+  | "takeChimneyDownFirst"
+  | "finishHostFirst"
+  | "holdsAddOn"
+  | "addOnInTheWay";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {
@@ -961,9 +973,11 @@ export type GroundOrThingPick = Exclude<ScenePick, { kind: "structure" }>;
  * What a thing in the world is, given by its entity id. The action queue shows it as the icon of an action on it.
  * A blueprint or finished structure gives its structure, a forage spot its food, and a pile what it holds.
  * Shutters have a variant of their own: finished shutters also say whether they are `open`. A shutters blueprint does not.
+ * A finished host also says whether it `holdsAddOn`, finished or as a blueprint. A host blueprint does not.
  */
 export type ThingView =
-  | { readonly kind: "structure"; readonly structure: Exclude<StructureKind, "shutters"> }
+  | { readonly kind: "structure"; readonly structure: Exclude<StructureKind, "shutters" | HostKind> }
+  | { readonly kind: "structure"; readonly structure: HostKind; readonly holdsAddOn?: boolean }
   | { readonly kind: "structure"; readonly structure: "shutters"; readonly open?: boolean }
   | { readonly kind: "forage"; readonly food: WildFood }
   | { readonly kind: "pile"; readonly content: BackpackContent }

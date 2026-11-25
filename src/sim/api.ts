@@ -721,6 +721,8 @@ export type Refusal =
  * - `takeFishFirst`: the fish trap holds a fish, so it cannot be picked up.
  * - `atCorner`: a door frame or window would meet another edge piece at a right angle at a corner, where a log cabin needs crossed logs.
  * - `takeShuttersDownFirst`: shutters hang in the window, finished or as a blueprint, so it cannot come down.
+ * - `nothingGrowsInWinter`: it is winter, so a bush, mushroom patch, or mushroom log has no food.
+ * - `riverFrozen`: it is winter, so the river is frozen and nobody can fish in it or set a trap.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -775,7 +777,9 @@ export type PlainRefusal =
   | "fishTrapTooClose"
   | "takeFishFirst"
   | "atCorner"
-  | "takeShuttersDownFirst";
+  | "takeShuttersDownFirst"
+  | "nothingGrowsInWinter"
+  | "riverFrozen";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {

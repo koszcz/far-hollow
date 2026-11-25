@@ -628,6 +628,8 @@ export const strings = {
     takeFishFirst: "take the fish first",
     atCorner: "a door frame or window cannot stand at a corner, which needs crossed logs",
     takeShuttersDownFirst: "take the shutters down first",
+    nothingGrowsInWinter: "nothing grows in winter",
+    riverFrozen: "the river is frozen",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

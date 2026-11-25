@@ -242,7 +242,7 @@ export function showAsset(
     const z = middle.z + focusOffset.z + (follow.z ?? 0);
     const focus = new THREE.Vector3(x, groundAt(x, z) + focusOffset.y + (follow.y ?? 0), z);
     rain.update(seconds, focus, daylightAt(shot.hour ?? NOON));
-    fireflies?.update(seconds, focus, daylightAt(shot.hour ?? NOON));
+    fireflies?.update(seconds, focus, daylightAt(shot.hour ?? NOON), true);
     const distance = (shot.radius ?? showcase.radius) / Math.sin(THREE.MathUtils.degToRad(FIELD_OF_VIEW_DEGREES / 2));
     sky.update(shot.hour ?? NOON, { focus, distance });
     const yaw = THREE.MathUtils.degToRad(shot.yaw);

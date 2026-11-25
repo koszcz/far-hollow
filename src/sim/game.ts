@@ -41,6 +41,7 @@ import {
   clockStartMinutes,
   createClock,
   isNightAt,
+  MINUTES_PER_DAY,
   MINUTES_PER_HOUR,
   nextMorning,
   readClock,
@@ -199,7 +200,7 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const debarking = createDebarking(entities);
   const crafting = createCrafting(entities, valley.terrain);
   const gathering = createGathering(entities, handReach);
-  const foraging = createForaging(entities, handReach);
+  const foraging = createForaging(entities, handReach, isWinter);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities);
@@ -216,10 +217,10 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   const drinking = createDrinking(entities, walking.walkMap, valley, (river) => {
     reportEatOrDrink("drinkFromRiver", river);
   });
-  const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE);
+  const fishing = createFishing(entities, walking.walkMap, valley, seed, STEP_MS / REAL_MS_PER_GAME_MINUTE, isWinter);
   const stoneGathering = createStoneGathering(entities, walking.walkMap, valley);
   const clayDigging = createClayDigging(entities, walking.walkMap, valley);
-  const fishTraps = createFishTraps(entities, walking.walkMap, valley, seed);
+  const fishTraps = createFishTraps(entities, walking.walkMap, valley, seed, isWinter);
   // The ground follows the trees that stand for good. The clock is read only once the game runs.
   const groundChanges = createGroundChanges(entities, valley, () => clock.minutes);
   const diggingUp = createDiggingUp(entities, (spot) => {
@@ -528,10 +529,11 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   function passTime(gameMinutes: number, asleepIn?: SleepPlace): boolean {
     for (let left = gameMinutes; left > 0; left -= PASS_TIME_SLICE_MINUTES) {
       const minutes = Math.min(PASS_TIME_SLICE_MINUTES, left);
+      const winter = isWinter();
       clock.skip(minutes / MINUTES_PER_HOUR);
       passRainTime(rain, seed, clock.minutes);
       // Rain does not put out campfires.
-      passWorldTime(minutes);
+      passWorldTime(minutes, winter);
       const underRoof = isUnderRoof(entities, player.position);
       passNeedsTime(player.needs, minutes, {
         night: isNightAt(clock.minutes),
@@ -571,6 +573,16 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   /** The season today, from the day on the clock and the day the year started on. */
   function seasonNow(): SeasonDay {
     return seasonDayOf(readClock(clock.minutes).day, yearStartDay);
+  }
+
+  /** Whether it is winter now, when nature rests: nothing grows and the river is frozen. */
+  function isWinter(): boolean {
+    return isWinterAt(clock.minutes);
+  }
+
+  /** Whether it is winter at this game minute, counted from midnight at the start of day 1. */
+  function isWinterAt(minutes: number): boolean {
+    return seasonDayOf(readClock(minutes).day, yearStartDay).season === "winter";
   }
 
   /**
@@ -632,18 +644,19 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
    * sticks fall, pots and fish heat, rain barrels catch the rain falling now, and set fish traps catch fish.
+   * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
-  function passWorldTime(minutes: number): void {
+  function passWorldTime(minutes: number, winter: boolean): void {
     rainBarrels.catchRain(minutes, rain.falling);
     campfires.burn(minutes);
     torches.burn(minutes);
-    foraging.grow(minutes);
-    regrowth.grow(minutes);
+    foraging.grow(minutes, winter);
+    if (!winter) regrowth.grow(minutes);
     stickFall.pass(minutes);
     pot.heat(minutes);
     cooking.cook(minutes);
     firing.fire(minutes);
-    fishTraps.pass(minutes);
+    fishTraps.pass(minutes, winter);
   }
 
   /**
@@ -662,9 +675,15 @@ export function createGame({ seed, progress, startNotice, freeBuilding = false, 
     // The sled stays where the player fell, with its load.
     sleds.letGo();
     entities.removeComponent(player, "walkPath");
-    const asleepMinutes = nextMorning(clock.minutes) - clock.minutes;
-    clock.skip(asleepMinutes / MINUTES_PER_HOUR);
-    passWorldTime(asleepMinutes);
+    // The valley moves on in two parts when midnight falls before morning, so a season that starts at midnight counts from then.
+    const morning = nextMorning(clock.minutes);
+    const midnight = (Math.floor(clock.minutes / MINUTES_PER_DAY) + 1) * MINUTES_PER_DAY;
+    let from = clock.minutes;
+    for (const until of midnight < morning ? [midnight, morning] : [morning]) {
+      clock.skip((until - from) / MINUTES_PER_HOUR);
+      passWorldTime(until - from, isWinterAt(from));
+      from = until;
+    }
     // A bed blocks walking, so a player whose respawn point is a bed wakes on the open ground nearest it.
     const { x, z } = isWalkable(walking.walkMap, player.respawnPoint)
       ? player.respawnPoint

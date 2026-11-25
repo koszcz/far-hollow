@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, Plantable, ScenePick, SleepView } from "../sim/api";
+import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, Plantable, ScenePick, Season, SleepView } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { diggingClayNow } from "../sim/clay";
 import { gatheringStoneNow } from "../sim/stone";
@@ -108,7 +108,8 @@ export interface SceneRenderer {
 /**
  * readHourOfDay returns the clock's hour of the day, with its fraction, from game logic.
  * readClockMinutes returns the game minutes since midnight at the start of day 1, from game logic.
- * Rendering only reads the clock. It never changes it.
+ * readSeason returns the season today, from game logic.
+ * Rendering only reads the clock and the season. It never changes them.
  * readLastSleep returns the player's last sleep on a bedroll, from game logic. A new one plays the sleep animation.
  * readLastEatOrDrink returns the player's last bite or drink, from game logic. A new one plays its motion once.
  * shapes are the loaded models, from loadModelShapes.
@@ -119,6 +120,7 @@ export function createSceneRenderer(
   entities: EntityStore,
   readHourOfDay: () => number,
   readClockMinutes: () => number,
+  readSeason: () => Season,
   readLastSleep: () => SleepView | null,
   readLastEatOrDrink: () => EatOrDrinkView | null,
   shapes: ModelShapes,
@@ -688,7 +690,7 @@ export function createSceneRenderer(
       undergrowthMeshes.update(cameraRig.view().focus);
       rainEffect.update(nowSeconds, cameraRig.view().focus, daylight);
       birdMeshes.update(nowSeconds, players.first === undefined ? undefined : playerDrawn, daylight);
-      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight);
+      fireflyEffect.update(nowSeconds, players.first === undefined ? cameraRig.view().focus : playerDrawn, daylight, readSeason() === "summer");
       windowGlowMeshes.update({ daylight, nowSeconds, cutaway });
       skyLighting.update(hourOfDay, { focus: cameraRig.view().focus, distance: cameraRig.distance });
       // Trees, plants, and undergrowth draw only what the camera and the sun's shadow box can see.

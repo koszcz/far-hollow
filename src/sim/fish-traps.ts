@@ -30,7 +30,7 @@ export interface FishTraps {
   trapSpot(spot: GroundPoint): GroundPoint | undefined;
   /** Where the approach takes the player to set a trap toward a spot on the river: to the bank beside where it goes. */
   reachToSet(spot: GroundPoint): ApproachReach | undefined;
-  /** Why the player could not set a trap toward this spot: no trap in the backpack, a log carried, or another set trap too close. */
+  /** Why the player could not set a trap toward this spot: the river is frozen, no trap in the backpack, a log carried, or another set trap too close. */
   setRefusal(spot: GroundPoint): Refusal | undefined;
   /** Sets a trap from the backpack toward a spot on the river. Does nothing if `setRefusal` gives a reason. */
   set(spot: GroundPoint): void;
@@ -46,12 +46,18 @@ export interface FishTraps {
   pickUpRefusal(trapId: number): Refusal | undefined;
   /** Puts an empty set trap back in the backpack. Does nothing if `pickUpRefusal` gives a reason. */
   pickUp(trapId: number): void;
-  /** Moves every set trap on by this many game minutes. An empty trap whose wait runs out catches a fish. */
-  pass(minutes: number): void;
+  /**
+   * Moves every set trap on by this many game minutes. An empty trap whose wait runs out catches a fish.
+   * While `frozen` says the river is frozen, nothing changes: a trap keeps the fish it holds, and its wait for the next one stops.
+   */
+  pass(minutes: number, frozen: boolean): void;
 }
 
-/** Lets the player set fish traps in the river. `seed` is the game's seed, which each trap's waits are drawn from. */
-export function createFishTraps(entities: EntityStore, walkMap: WalkMap, valley: Valley, seed: number): FishTraps {
+/**
+ * Lets the player set fish traps in the river. `seed` is the game's seed, which each trap's waits are drawn from.
+ * `isRiverFrozen` says whether the river is frozen now, in winter, when nobody sets a trap.
+ */
+export function createFishTraps(entities: EntityStore, walkMap: WalkMap, valley: Valley, seed: number, isRiverFrozen: () => boolean): FishTraps {
   const players = playerEntities(entities);
   const traps = fishTrapEntities(entities);
 
@@ -71,6 +77,7 @@ export function createFishTraps(entities: EntityStore, walkMap: WalkMap, valley:
   function setRefusal(spot: GroundPoint): Refusal | undefined {
     const player = players.first;
     if (player?.backpack === undefined) return undefined;
+    if (isRiverFrozen()) return { kind: "riverFrozen" };
     if (!hasInBackpack(player.backpack, "fishTrap")) return { kind: "noFishTrap" };
     if (player.carrying !== undefined) return { kind: "putLogDownFirst" };
     const at = trapSpot(spot);
@@ -135,7 +142,8 @@ export function createFishTraps(entities: EntityStore, walkMap: WalkMap, valley:
       if (trap === undefined || backpack === undefined || pickUpRefusal(trapId) !== undefined) return;
       if (addToBackpack(backpack, "fishTrap", 1)) entities.remove(trap);
     },
-    pass(minutes) {
+    pass(minutes, frozen) {
+      if (frozen) return;
       for (const trap of traps) trap.fishTrap = passCatchTime(trap.fishTrap, minutes, FISH_TRAP_CATCH_RANGE, seedFromSpot(seed, trap.position));
     },
   };

@@ -24,13 +24,16 @@ const SPRITE_TEXELS = 64;
 
 export interface FireflyEffect {
   readonly group: THREE.Group;
-  /** Moves the fireflies to where they are at `nowSeconds`, near `player`. `daylight` runs from 0 (night) to 1 (full day). */
-  update(nowSeconds: number, player: GroundPoint, daylight: number): void;
+  /**
+   * Moves the fireflies to where they are at `nowSeconds`, near `player`. `daylight` runs from 0 (night) to 1 (full day).
+   * `summer` says whether it is summer, the only season fireflies come out.
+   */
+  update(nowSeconds: number, player: GroundPoint, daylight: number, summer: boolean): void;
   dispose(): void;
 }
 
 /**
- * Draws the fireflies. Rendering only reads the rain. It never changes it.
+ * Draws the fireflies. Rendering only reads the rain and the season. It never changes them.
  * The game leaves `random` unset, so fireflies start in new places each time it loads. The showcase fixes it.
  */
 export function createFireflyEffect(entities: EntityStore, ground: FireflyGround, random: Random = Math.random): FireflyEffect {
@@ -74,8 +77,8 @@ export function createFireflyEffect(entities: EntityStore, ground: FireflyGround
 
   return {
     group,
-    update(nowSeconds, player, daylight) {
-      const fireflies = swarm.update(nowSeconds, player, daylight, isRaining(entities));
+    update(nowSeconds, player, daylight, summer) {
+      const fireflies = swarm.update(nowSeconds, player, daylight, isRaining(entities), summer);
       group.visible = fireflies.length > 0;
       geometry.setDrawRange(0, fireflies.length);
       fireflies.forEach((firefly, index) => {

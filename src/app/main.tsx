@@ -193,6 +193,7 @@ const sceneRenderer = createSceneRenderer(
   game.entities,
   () => game.client.getView().time.hourOfDay,
   () => clockMinutesOf(game.client.getView().time),
+  () => game.client.getView().season.season,
   () => game.client.getView().lastSleep,
   () => game.client.getView().lastEatOrDrink,
   await loadModelShapes(),

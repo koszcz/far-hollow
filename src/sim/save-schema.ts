@@ -249,6 +249,8 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   takeFishFirst: true,
   atCorner: true,
   takeShuttersDownFirst: true,
+  nothingGrowsInWinter: true,
+  riverFrozen: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

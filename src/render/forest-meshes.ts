@@ -81,7 +81,7 @@ export interface ForestMeshes {
   update(nowSeconds: number): void;
   /** Fades the trees between the camera and the player drawn at `player`. Pass null to fade none. */
   seeThroughTo(player: Readonly<Vec3> | null): void;
-  /** Draws the broadleaf crowns, near and far, `share` of the way from summer green (0) to autumn amber (1). Pines keep their green. */
+  /** Draws the broadleaf crowns, near and far, `share` of the way from summer green (0) to each type's autumn colour (1). Pines keep their green. */
   setLeafTurn(share: number): void;
   /** Draws only the standing and growing trees each camera can see. Call it once the cameras have moved for this frame. */
   cull(views: CullViews): void;
@@ -115,11 +115,14 @@ export function createTreeMaterial(colour: number): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color: colour, flatShading: true });
 }
 
-/** A tree's trunk and crown materials, one of each for each tone. Conifer crowns and broadleaf crowns each have their own. */
+/**
+ * A tree's trunk and crown materials, one of each for each tone, for one growth stage.
+ * Each broadleaf type has its own crown material, by type name, because each turns its own autumn colour.
+ */
 interface TreeMaterials {
   readonly trunk: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
   readonly crown: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
-  readonly broadleafCrown: Readonly<Record<TreeTone, THREE.MeshStandardMaterial>>;
+  readonly broadleafCrown: ReadonlyMap<string, { readonly shape: TreeShape; readonly material: THREE.MeshStandardMaterial }>;
 }
 
 /** `windSway` sways the treetops, young trees, and saplings. `snow`, if given, lays snow on the tops of their crowns, near and far. */
@@ -139,19 +142,24 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
   // Every tree spot gets a place in its type's batches: standing trees, and felled trees that grow back there.
   const trees = [...new Set([...treeEntities(entities), ...stumpEntities(entities), ...growingTreeEntities(entities)])];
   /** One material for each tone of a tree part, swaying like `look`, or still with none. */
-  const toneMaterials = (part: "trunk" | "crown", look?: SwayLook): Record<TreeTone, THREE.MeshStandardMaterial> => {
-    const made = (colour: number) => {
-      const material = track(createTreeMaterial(colour));
-      return look === undefined ? material : windSway.sway(material, look);
-    };
-    return { dark: made(TREE_COLOURS[part].dark), light: made(TREE_COLOURS[part].light) };
+  const swayingMaterial = (colour: number, look?: SwayLook): THREE.MeshStandardMaterial => {
+    const material = track(createTreeMaterial(colour));
+    return look === undefined ? material : windSway.sway(material, look);
   };
+  const toneMaterials = (part: "trunk" | "crown", look?: SwayLook): Record<TreeTone, THREE.MeshStandardMaterial> => ({
+    dark: swayingMaterial(TREE_COLOURS[part].dark, look),
+    light: swayingMaterial(TREE_COLOURS[part].light, look),
+  });
   // Full trees sway only in their crowns. Young trees and saplings sway whole, each by their own height.
-  // Broadleaf crowns get their own materials, so they can turn amber in autumn while the pines stay green.
+  // Each broadleaf type gets its own crown material, so it can turn its own autumn colour while the pines stay green.
   const treeMaterials = (trunkLook: SwayLook | undefined, crownLook: SwayLook): TreeMaterials => ({
     trunk: toneMaterials("trunk", trunkLook),
     crown: toneMaterials("crown", crownLook),
-    broadleafCrown: toneMaterials("crown", crownLook),
+    broadleafCrown: new Map(
+      treeShapes
+        .filter((shape) => isBroadleaf(shape.name))
+        .map((shape) => [shape.name, { shape, material: swayingMaterial(TREE_COLOURS.crown[shape.crownTone], crownLook) }]),
+    ),
   });
   const fullMaterials = treeMaterials(undefined, TREE_SWAY);
   const youngMaterials = treeMaterials(YOUNG_TREE_SWAY, YOUNG_TREE_SWAY);
@@ -160,13 +168,14 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
   const trunkMaterials = fullMaterials.trunk;
   /** The crown material for a tree type in this stage's materials: a broadleaf one, or a conifer one. */
   const crownOf = (materials: TreeMaterials, shape: TreeShape): THREE.MeshStandardMaterial =>
-    (isBroadleaf(shape.name) ? materials.broadleafCrown : materials.crown)[shape.crownTone];
+    materials.broadleafCrown.get(shape.name)?.material ?? materials.crown[shape.crownTone];
+  const broadleafMaterialsOf = ({ broadleafCrown }: TreeMaterials) => [...broadleafCrown.values()].map(({ material }) => material);
   const seeThrough = addTreeSeeThrough(
-    allMaterials.flatMap(({ trunk, crown, broadleafCrown }) => [...Object.values(trunk), ...Object.values(crown), ...Object.values(broadleafCrown)]),
+    allMaterials.flatMap((materials) => [...Object.values(materials.trunk), ...Object.values(materials.crown), ...broadleafMaterialsOf(materials)]),
   );
   if (snow !== undefined) {
-    for (const { crown, broadleafCrown } of allMaterials) {
-      for (const material of [...Object.values(crown), ...Object.values(broadleafCrown)]) snow.cover(material, CROWN_SNOW);
+    for (const materials of allMaterials) {
+      for (const material of [...Object.values(materials.crown), ...broadleafMaterialsOf(materials)]) snow.cover(material, CROWN_SNOW);
     }
   }
   for (const shape of treeShapes) {
@@ -683,7 +692,7 @@ export function createForestMeshes(entities: EntityStore, shapes: ForestShapes, 
     },
     setLeafTurn(share) {
       for (const { broadleafCrown } of allMaterials) {
-        for (const tone of ["dark", "light"] as const) crownColour(tone, share, broadleafCrown[tone].color);
+        for (const { shape, material } of broadleafCrown.values()) crownColour(shape, share, material.color);
       }
     },
     update(nowSeconds) {

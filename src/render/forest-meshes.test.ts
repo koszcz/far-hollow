@@ -148,12 +148,12 @@ describe("autumn leaves", () => {
     };
   }
 
-  it("turns broadleaf crowns amber and leaves the pines green", () => {
+  it("turns broadleaf crowns to their autumn colour and leaves the pines green", () => {
     const { forest, oakCrowns, pineCrowns } = oakAndPine();
     forest.setLeafTurn(1);
     expect(oakCrowns().length).toBeGreaterThan(0);
     expect(pineCrowns().length).toBeGreaterThan(0);
-    for (const colour of oakCrowns()) expect(colour).toBe(AUTUMN_CROWN_COLOURS.light);
+    for (const colour of oakCrowns()) expect(colour).toBe(AUTUMN_CROWN_COLOURS.tree_oak);
     for (const colour of pineCrowns()) expect(colour).toBe(TREE_COLOURS.crown.light);
     forest.setLeafTurn(0);
     for (const colour of oakCrowns()) expect(colour).toBe(TREE_COLOURS.crown.light);

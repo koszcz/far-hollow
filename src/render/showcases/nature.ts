@@ -96,7 +96,7 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       });
     },
   },
-  // Every broadleaf tree type fully turned for autumn: its real shape in the front row and its far shape behind.
+  // Every broadleaf tree type fully turned to its own autumn colour: its real shape in the front row and its far shape behind.
   // Pines keep their green, so they are left out.
   "autumn-trees": {
     radius: 12,
@@ -107,11 +107,11 @@ export const NATURE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       broadleaf.forEach((shape, index) => {
         const x = (index - (broadleaf.length - 1) / 2) * FAR_TREE_SPACING_METRES;
         const far = createFarTreeShape(shape);
-        const amber = crownColour(shape.crownTone, 1).getHex();
+        const autumn = crownColour(shape, 1).getHex();
         addProp(shape.trunk.clone(), createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, 0);
-        addProp(shape.crown.clone(), createTreeMaterial(amber), x, 0);
+        addProp(shape.crown.clone(), createTreeMaterial(autumn), x, 0);
         addProp(far.trunk, createTreeMaterial(TREE_COLOURS.trunk[shape.trunkTone]), x, -FAR_TREE_SPACING_METRES);
-        addProp(far.crown, createTreeMaterial(amber), x, -FAR_TREE_SPACING_METRES);
+        addProp(far.crown, createTreeMaterial(autumn), x, -FAR_TREE_SPACING_METRES);
       });
     },
   },

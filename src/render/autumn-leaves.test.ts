@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { SeasonDay } from "../sim/season";
-import { AUTUMN_CROWN_COLOURS, crownColour, isBroadleaf, leafTurnShare } from "./autumn-leaves";
+import { AUTUMN_CROWN_COLOURS, AUTUMN_CROWN_FALLBACK, crownColour, isBroadleaf, leafTurnShare } from "./autumn-leaves";
 import { TREE_COLOURS } from "./forest-meshes";
 
 const day = (season: SeasonDay["season"], dayOfSeason: number): SeasonDay => ({ season, dayOfSeason, seasonDays: 7 });
@@ -53,14 +53,23 @@ describe("isBroadleaf", () => {
 });
 
 describe("crownColour", () => {
-  it("is the summer green with no turn, and the autumn amber with a full turn", () => {
-    expect(crownColour("light", 0).getHex()).toBe(TREE_COLOURS.crown.light);
-    expect(crownColour("dark", 1).getHex()).toBe(AUTUMN_CROWN_COLOURS.dark);
+  const broadleafNames = ["tree_oak", "tree_default", "tree_detailed", "tree_tall"];
+
+  it("is the summer green with no turn, and the type's autumn colour with a full turn", () => {
+    expect(crownColour({ name: "tree_oak", crownTone: "light" }, 0).getHex()).toBe(TREE_COLOURS.crown.light);
+    expect(crownColour({ name: "tree_oak", crownTone: "dark" }, 1).getHex()).toBe(AUTUMN_CROWN_COLOURS.tree_oak);
   });
 
-  it("is amber: more red than green, and more green than blue", () => {
-    const amber = crownColour("light", 1);
-    expect(amber.r).toBeGreaterThan(amber.g);
-    expect(amber.g).toBeGreaterThan(amber.b);
+  it("gives every broadleaf type its own warm colour: more red than green, and more green than blue", () => {
+    const colours = broadleafNames.map((name) => crownColour({ name, crownTone: "light" }, 1));
+    expect(new Set(colours.map((colour) => colour.getHex())).size).toBe(broadleafNames.length);
+    for (const colour of colours) {
+      expect(colour.r).toBeGreaterThan(colour.g);
+      expect(colour.g).toBeGreaterThan(colour.b);
+    }
+  });
+
+  it("gives a broadleaf type with no colour of its own the fallback colour", () => {
+    expect(crownColour({ name: "tree_unknown", crownTone: "light" }, 1).getHex()).toBe(AUTUMN_CROWN_FALLBACK);
   });
 });

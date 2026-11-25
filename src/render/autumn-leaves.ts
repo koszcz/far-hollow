@@ -1,13 +1,21 @@
-// The draft "autumn-trees" asset in asset-manifest.json: broadleaf crowns turn amber in autumn, near and far.
+// The "autumn-trees" asset in asset-manifest.json, approved by the owner: broadleaf crowns turn to autumn colours, near and far.
+// Each broadleaf type has its own colour: the oak turns rust red, the default tree orange, the detailed tree gold, and the tall tree yellow.
 // The turn eases in over the first days of autumn, stays through winter, and eases back to green over spring days 1 and 2.
 // A spring that no winter came before, such as a new game's first spring, is green from its first day, as it has no snow.
 // Conifers keep their green all year. forest-meshes.ts draws the crowns in the colour this file gives.
 import * as THREE from "three";
 import type { SeasonDay } from "../sim/season";
-import { TREE_COLOURS, type TreeTone } from "./tree-model";
+import { TREE_COLOURS, type TreeShape } from "./tree-model";
 
-/** The colour of a broadleaf crown in each tone once it has fully turned. */
-export const AUTUMN_CROWN_COLOURS: Readonly<Record<TreeTone, number>> = { dark: 0x9a5418, light: 0xc98a24 };
+/** The colour of each broadleaf type's crown once it has fully turned, by its name in trees.glb. */
+export const AUTUMN_CROWN_COLOURS = {
+  tree_oak: 0xb8481e,
+  tree_default: 0xd9741c,
+  tree_detailed: 0xe0a526,
+  tree_tall: 0xf0b428,
+} as const satisfies Readonly<Record<string, number>>;
+/** The autumn colour of a broadleaf type that AUTUMN_CROWN_COLOURS does not name. */
+export const AUTUMN_CROWN_FALLBACK = 0xd9741c;
 /** The leaves take this many days, from the start of autumn, to turn fully amber. */
 const TURN_DAYS = 3;
 /** The leaves take this many days, from the start of spring, to turn back to green. */
@@ -36,7 +44,12 @@ export function isBroadleaf(treeName: string): boolean {
   return !treeName.includes("pine");
 }
 
-/** The colour of a broadleaf crown in this tone, `share` of the way from summer green to autumn amber. */
-export function crownColour(tone: TreeTone, share: number, out = new THREE.Color()): THREE.Color {
-  return out.set(TREE_COLOURS.crown[tone]).lerp(new THREE.Color(AUTUMN_CROWN_COLOURS[tone]), share);
+/** The colour a broadleaf type's crown has once it has fully turned. */
+export function autumnColourOf(treeName: string): number {
+  return (AUTUMN_CROWN_COLOURS as Readonly<Record<string, number>>)[treeName] ?? AUTUMN_CROWN_FALLBACK;
+}
+
+/** The colour of a broadleaf type's crown, `share` of the way from its summer green to its autumn colour. */
+export function crownColour(shape: Pick<TreeShape, "name" | "crownTone">, share: number, out = new THREE.Color()): THREE.Color {
+  return out.set(TREE_COLOURS.crown[shape.crownTone]).lerp(new THREE.Color(autumnColourOf(shape.name)), share);
 }

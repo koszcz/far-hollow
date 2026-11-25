@@ -338,6 +338,10 @@ _Avoid_: Attachment, extension, upgrade
 A see-through outline of a building piece the player has placed but not finished. It shows where the piece will go and how far along it is.
 _Avoid_: Ghost, preview, plan
 
+**Swap**:
+To build a window or door frame in place of a finished log wall, from the wall's own logs. The wall stands until the swap finishes, so a roof on it stays up.
+_Avoid_: Replace, convert, cut in
+
 **Take down**:
 To remove a blueprint or a finished structure and get back the materials in it. Taking down a finished structure is timed work.
 _Avoid_: Demolish, deconstruct, destroy

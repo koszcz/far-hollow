@@ -24,6 +24,7 @@ export const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {
   cannotQueue: 4,
   actionSkipped: 4,
   refused: 4,
+  foodSpoiled: 6,
 };
 
 /** The refusals that have a plain notice of their own. Each refusal that stops taking something down says to empty it first. */

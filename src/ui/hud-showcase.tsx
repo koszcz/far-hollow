@@ -23,6 +23,7 @@ const BASE_VIEW: GameView = {
   seasonBanner: null,
   afterFirstWinter: false,
   backpack: { axe: 1, knife: 1, steelAndFlint: 1, bedroll: 1, stick: 3 },
+  backpackFreshness: {},
   backpackWeight: 4.2,
   backpackWeightLimit: 20,
   buildMenu: [{ structure: "campfire", cost: [{ material: "stick", count: 5 }], placement: "onGround" }],
@@ -107,7 +108,14 @@ const STATES: readonly ShowcaseState[] = [
       nearby: [
         {
           kind: "openChest",
-          view: { id: 3, furniture: "chest", contents: { stick: 8, firewood: 4, bark: 2, berries: 6, pot: 1 }, weight: 9.4, weightLimit: 60 },
+          view: {
+            id: 3,
+            furniture: "chest",
+            contents: { stick: 8, firewood: 4, bark: 2, berries: 6, pot: 1 },
+            weight: 9.4,
+            weightLimit: 60,
+            freshness: { berries: { minutesLeft: 840, share: 0.3 } },
+          },
         },
       ],
     },
@@ -440,6 +448,7 @@ const FISHING_ICON_STATES: readonly ShowcaseState[] = [
     view: {
       ...BASE_VIEW,
       backpack: { axe: 1, knife: 1, fishingRod: 1, fishingLine: 2, stick: 3, rawFish: 3, cookedFish: 2 },
+      backpackFreshness: { rawFish: { minutesLeft: 300, share: 0.21 }, cookedFish: { minutesLeft: 2400, share: 0.83 } },
       nearby: [
         {
           kind: "campfire",

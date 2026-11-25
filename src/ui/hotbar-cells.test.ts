@@ -4,6 +4,7 @@ import { hotbarCells } from "./hotbar-cells";
 describe("the hotbar cells", () => {
   it("shows the log on the shoulder first, then each kind in the backpack, numbered 1 to 9", () => {
     const cells = hotbarCells({
+      backpackFreshness: {},
       carrying: "debarkedLog",
       dragging: null,
       litTorch: null,
@@ -20,6 +21,7 @@ describe("the hotbar cells", () => {
 
   it("shows the sled the player drags where the shoulder cell goes, with how many logs it holds", () => {
     const cells = hotbarCells({
+      backpackFreshness: {},
       carrying: null,
       litTorch: null,
       dragging: { id: 9, contents: { log: 3, debarkedLog: 1, plank: 0 }, total: 4, capacity: 6, logsThatFit: 2, planksThatFit: 8 },
@@ -34,6 +36,7 @@ describe("the hotbar cells", () => {
 
   it("shows the lit torch in the player's hand after the shoulder, with a gauge of its burning time left", () => {
     const cells = hotbarCells({
+      backpackFreshness: {},
       carrying: "log",
       dragging: null,
       litTorch: { minutesLeft: 130 },
@@ -50,6 +53,7 @@ describe("the hotbar cells", () => {
 
   it("counts each plank on the sled as a quarter of a log space", () => {
     const cells = hotbarCells({
+      backpackFreshness: {},
       carrying: null,
       litTorch: null,
       dragging: { id: 9, contents: { log: 1, debarkedLog: 0, plank: 2 }, total: 1.5, capacity: 6, logsThatFit: 4, planksThatFit: 18 },
@@ -61,6 +65,7 @@ describe("the hotbar cells", () => {
 
   it("gives no key to the tenth kind and after", () => {
     const cells = hotbarCells({
+      backpackFreshness: {},
       carrying: null,
       dragging: null,
       litTorch: null,
@@ -84,6 +89,7 @@ describe("the hotbar cells", () => {
 
   it("adds how much a backpack cell's contents weigh to its label, but not to the shoulder or sled", () => {
     const cells = hotbarCells({
+      backpackFreshness: {},
       carrying: "log",
       dragging: null,
       litTorch: null,
@@ -94,11 +100,27 @@ describe("the hotbar cells", () => {
   });
 
   it("shows unfired jugs in a cell of their own", () => {
-    const cells = hotbarCells({ carrying: null, dragging: null, litTorch: null, backpack: { clay: 1, unfiredJug: 2 } });
+    const cells = hotbarCells({ backpackFreshness: {}, carrying: null, dragging: null, litTorch: null, backpack: { clay: 1, unfiredJug: 2 } });
 
     expect(cells.map(({ target, tip }) => [target, tip])).toEqual([
       [{ kind: "backpackContent", content: "clay" }, "Clay · 2 kg"],
       [{ kind: "backpackContent", content: "unfiredJug" }, "Unfired jug ×2 · 2 kg"],
+    ]);
+  });
+
+  it("gives each fresh food a bar that drains as the oldest nears spoiling, and says how long it has left", () => {
+    const cells = hotbarCells({
+      backpackFreshness: { berries: { minutesLeft: 14 * 60 - 20, share: 0.29 }, rawFish: { minutesLeft: 40, share: 0.03 } },
+      carrying: null,
+      dragging: null,
+      litTorch: null,
+      backpack: { axe: 1, berries: 3, rawFish: 1 },
+    });
+
+    expect(cells.map(({ name, tip, gauge }) => [name, tip, gauge])).toEqual([
+      ["Axe", "Axe · 1.5 kg", undefined],
+      ["Berries", "Berries ×3 · 0.3 kg · Spoils in 14 h", 0.29],
+      ["Raw fish", "Raw fish · 0.5 kg · Spoils in 40 min", 0.03],
     ]);
   });
 });

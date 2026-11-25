@@ -221,6 +221,19 @@ describe("a set fish trap catching fish", () => {
     expect(onlyTrap(game).fishTrap.holding).toBe(false);
   });
 
+  it("keeps its fish from spoiling, so a fish taken days later keeps its full day", () => {
+    const game = createGame({ seed: 42 });
+    giveTrap(game);
+    setTrap(game, riverMiddleNearPlayer(game));
+    skipHours(game, 72);
+    expect(onlyTrap(game).fishTrap.holding).toBe(true);
+
+    takeFish(game);
+    game.step();
+
+    expect(game.client.getView().backpackFreshness.rawFish?.minutesLeft).toBeCloseTo(24 * 60, -1);
+  });
+
   it("catches while the player sleeps", () => {
     const game = createGame({ seed: 42 });
     giveTrap(game);

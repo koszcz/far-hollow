@@ -1,5 +1,5 @@
 // All player-facing text lives here, so the game can be translated later.
-import { ACTION_QUEUE_LIMIT, type BackpackContent, type Goal } from "./sim/api";
+import { ACTION_QUEUE_LIMIT, type BackpackContent, type FreshFood, type Goal } from "./sim/api";
 import { FETCH_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
 import { CAMPFIRE_STICK_COST, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST, SAWHORSE_LOG_COST } from "./sim/structures";
@@ -55,6 +55,22 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   rawFish: (count) => (count === 1 ? "1 raw fish" : `${count} raw fish`),
   cookedFish: (count) => (count === 1 ? "1 cooked fish" : `${count} cooked fish`),
 };
+
+/** How many of each fresh food spoiled, in words, for the notice that says so. */
+const SPOILED: Readonly<Record<FreshFood, (count: number) => string>> = {
+  berries: (count) => (count === 1 ? "1 handful of berries" : `${count} berries`),
+  mushroom: (count) => (count === 1 ? "1 mushroom" : `${count} mushrooms`),
+  rawFish: (count) => (count === 1 ? "1 raw fish" : `${count} raw fish`),
+  cookedFish: (count) => (count === 1 ? "1 cooked fish" : `${count} cooked fish`),
+};
+
+/** A stretch of game minutes in hours and minutes, such as "2 h 10 min", "3 h", or "40 min". */
+function hoursText(minutes: number): string {
+  const whole = Math.max(0, Math.ceil(minutes));
+  const hours = Math.floor(whole / 60);
+  const left = whole % 60;
+  return hours === 0 ? `${left} min` : left === 0 ? `${hours} h` : `${hours} h ${left} min`;
+}
 
 export const strings = {
   gameTitle: "Far Hollow",
@@ -362,6 +378,9 @@ export const strings = {
     actionSkipped: (reason: string) => `Skipped the next action: ${reason}.`,
     /** The player sent an action the game refuses now, such as "You cannot do that: needs the fishing rod." */
     refused: (reason: string) => `You cannot do that: ${reason}.`,
+    /** Fresh food kept its full time and is gone, such as "2 berries spoiled." or "2 berries and 1 raw fish spoiled." */
+    foodSpoiled: (spoiled: readonly (readonly [FreshFood, number])[]) =>
+      `${capitalise(listText(spoiled.map(([food, count]) => SPOILED[food](count))))} spoiled.`,
   },
   /** The journal of suggested goals, its panel, and the HUD line that names the next goal. */
   journal: {
@@ -508,13 +527,14 @@ export const strings = {
     /** The name of the lit torch cell for screen readers, such as "In your hand: Lit torch · 2 h 10 min left". */
     inHand: (what: string) => `In your hand: ${what}`,
     /** The label above the lit torch cell, with how long it still burns, such as "Lit torch · 2 h 10 min left". */
-    burnsFor: (name: string, minutes: number) => {
-      const whole = Math.max(0, Math.ceil(minutes));
-      const hours = Math.floor(whole / 60);
-      const left = whole % 60;
-      const time = hours === 0 ? `${left} min` : left === 0 ? `${hours} h` : `${hours} h ${left} min`;
-      return `${name} · ${time} left`;
-    },
+    burnsFor: (name: string, minutes: number) => `${name} · ${hoursText(minutes)} left`,
+    /**
+     * How long the oldest of a fresh food has left before it spoils, such as "Spoils in 14 h". Under an hour it gives minutes,
+     * such as "Spoils in 40 min". Over an hour it gives whole hours, rounded up.
+     */
+    spoilsIn: (minutes: number) => `Spoils in ${minutes > 60 ? `${Math.ceil(minutes / 60)} h` : hoursText(minutes)}`,
+    /** A backpack cell's label with how soon its food spoils, such as "Berries ×3 · 0.3 kg · Spoils in 14 h". */
+    withSpoilsIn: (tip: string, spoilsIn: string) => `${tip} · ${spoilsIn}`,
   },
   /** The action queue: the row of icons beside the clock, one per lined-up action. */
   actionQueue: {

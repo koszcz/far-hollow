@@ -83,6 +83,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addJournal,
   startTheYear,
   addChimneys,
+  spoilFreshFood,
 ];
 
 /** The version of the save format this code writes. */
@@ -198,6 +199,8 @@ export const JOURNAL_SAVE_VERSION = SAVE_UPGRADES.indexOf(addJournal) + 2;
 export const SEASONS_SAVE_VERSION = SAVE_UPGRADES.indexOf(startTheYear) + 2;
 /** The first save version that can hold chimneys. */
 export const CHIMNEYS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addChimneys) + 2;
+/** The first save version in which fresh food spoils, and the backpack, chests, shelves, and piles save when each food spoils. */
+export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1047,4 +1050,49 @@ function startTheYear(save: Readonly<Record<string, unknown>>): Record<string, u
 /** Version 60 to 61: the player can build a chimney on a fireplace. A save from before then holds none, so it carries over unchanged. */
 function addChimneys(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 61 to 62: fresh food spoils, and the backpack, chests, shelves, and piles save when each fresh food in them spoils.
+ * A save from before then gives every fresh food its full keeping time from the moment the save loads, so the update costs
+ * the player nothing (ADR 0011). A fish in a fish trap or on a fire does not spoil, so it needs nothing.
+ * A save with a broken clock is passed on unchanged, so the shape check turns it away.
+ */
+function spoilFreshFood(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  // These copy KEEPS_FOR_MINUTES in fresh-food.ts on purpose. An upgrade keeps its own fixed values (see SAVE_UPGRADES).
+  const MINUTES_PER_DAY = 24 * 60;
+  const KEEPS_FOR: Readonly<Record<string, number>> = {
+    berries: 2 * MINUTES_PER_DAY,
+    mushroom: 3 * MINUTES_PER_DAY,
+    rawFish: 1 * MINUTES_PER_DAY,
+    cookedFish: 2 * MINUTES_PER_DAY,
+  };
+  const { clockMinutes, entities } = save;
+  if (typeof clockMinutes !== "number" || !Number.isFinite(clockMinutes) || !Array.isArray(entities)) return { ...save };
+  /** The spoil times of everything fresh in `contents`, each its full keeping time from now. */
+  const spoilTimesOf = (contents: Readonly<Record<string, unknown>>): Record<string, number[]> => {
+    const times: Record<string, number[]> = {};
+    for (const [food, keepsFor] of Object.entries(KEEPS_FOR)) {
+      const count = contents[food];
+      if (Number.isSafeInteger(count) && (count as number) > 0) times[food] = new Array<number>(count as number).fill(clockMinutes + keepsFor);
+    }
+    return times;
+  };
+  const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+  const upgraded: unknown[] = entities.map((entity: unknown) => {
+    const components = (entity as { components?: unknown } | null)?.components;
+    if (!isRecord(components)) return entity;
+    const { backpack, storage, pile } = components;
+    const changed: Record<string, unknown> = { ...components };
+    // A holder with no fresh food in it gets no spoil times, as in a new game.
+    const withTimes = (holder: Record<string, unknown>, contents: Readonly<Record<string, unknown>>): Record<string, unknown> => {
+      const spoilsAt = spoilTimesOf(contents);
+      return Object.keys(spoilsAt).length === 0 ? holder : { ...holder, spoilsAt };
+    };
+    if (isRecord(backpack) && isRecord(backpack.contents)) changed.backpack = withTimes(backpack, backpack.contents);
+    if (isRecord(storage) && isRecord(storage.contents)) changed.storage = withTimes(storage, storage.contents);
+    if (isRecord(pile) && typeof pile.content === "string") changed.pile = withTimes(pile, { [pile.content]: pile.count });
+    return { ...(entity as object), components: changed };
+  });
+  return { ...save, entities: upgraded };
 }

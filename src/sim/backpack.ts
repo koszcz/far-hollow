@@ -1,4 +1,5 @@
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";
+import type { SpoilTimes } from "./fresh-food";
 import { byJug, jugWeightKg, type JugContent } from "./jug";
 
 export type { JugContent } from "./jug";
@@ -61,6 +62,8 @@ export type BackpackContents = Partial<Record<BackpackContent, number>>;
 
 export interface Backpack {
   contents: BackpackContents;
+  /** When each fresh food in the backpack spoils (see fresh-food.ts). Food it does not cover yet gets its full keeping time. */
+  spoilsAt?: SpoilTimes;
 }
 
 /** The most the backpack can hold, in kilograms. */

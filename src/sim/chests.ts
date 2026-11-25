@@ -1,7 +1,16 @@
 // Opening a piece of furniture that stores things, and moving small materials, tools, and food between it and the backpack.
 // Every such piece works the same way and opens in the chest panel. Its definition in src/sim/furniture/ says how much it holds.
 import type { ChestView, ChestOrShelf, PlainNotice, Refusal } from "./api";
-import { addToBackpack, CONTENT_WEIGHT_KG, countInBackpack, fitsInBackpack, removeFromBackpack, type BackpackContent, type BackpackContents } from "./backpack";
+import {
+  addToBackpack,
+  CONTENT_WEIGHT_KG,
+  countInBackpack,
+  fitsInBackpack,
+  howManyFit,
+  removeFromBackpack,
+  type BackpackContent,
+  type BackpackContents,
+} from "./backpack";
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
 import { playerEntities, type Entity, type EntityStore, type ReachHeight, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
@@ -9,6 +18,7 @@ import { groundDistance } from "./ground-point";
 import type { ApproachReach } from "./approach";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { reachToward } from "./hand-reach";
+import { moveSpoilTimes, viewFreshness } from "./spoiling";
 
 /** The player walks to a spot this far from a chest's middle to open it, in metres. */
 const CHEST_STAND_METRES = 1.1;
@@ -19,7 +29,7 @@ const CHEST_REACH_METRES = 2;
 interface ChestOrShelfEntity {
   readonly furniture: ChestOrShelf;
   readonly position: Vec3;
-  readonly holding: { contents: BackpackContents };
+  readonly holding: NonNullable<Entity["storage"]>;
   readonly rule: FurnitureStorage;
 }
 
@@ -66,8 +76,8 @@ export function contentsWeight(contents: Readonly<BackpackContents>): number {
   return weightedTotal(contents, CONTENT_WEIGHT_KG);
 }
 
-/** Lets the player keep small things in the furniture that stores them. */
-export function createChests(entities: EntityStore): Chests {
+/** Lets the player keep small things in the furniture that stores them. `now` reads the game minute on the clock. */
+export function createChests(entities: EntityStore, now: () => number): Chests {
   const players = playerEntities(entities);
   /** The chest or shelf the player opened. It is not saved: a loaded game starts with every chest closed. */
   let openId: number | undefined;
@@ -125,6 +135,7 @@ export function createChests(entities: EntityStore): Chests {
         contents,
         weight: contentsWeight(contents),
         weightLimit: chest.rule.weightLimitKg,
+        freshness: viewFreshness(chest.holding, now()),
       });
     },
     put(chestId, content, all) {
@@ -138,6 +149,7 @@ export function createChests(entities: EntityStore): Chests {
       // The small allowance stops rounding errors in the weights from refusing the last thing that fits.
       const moved = Math.min(wanted, Math.floor((room + 1e-9) / CONTENT_WEIGHT_KG[content]));
       if (moved <= 0) return chest.rule.fullNotice;
+      moveSpoilTimes(backpack, chest.holding, content, moved, now());
       removeFromBackpack(backpack, content, moved);
       chest.holding.contents = addCount(chest.holding.contents, content, moved);
       return undefined;
@@ -148,9 +160,10 @@ export function createChests(entities: EntityStore): Chests {
       if (chest === undefined || chestId !== openId || backpack === undefined) return undefined;
       const held = countOf(chest.holding.contents, content);
       const wanted = all ? held : Math.min(1, held);
-      let moved = 0;
-      while (moved < wanted && addToBackpack(backpack, content, 1)) moved += 1;
+      const moved = howManyFit(backpack, content, wanted);
       if (wanted > 0 && moved === 0) return "backpackFull";
+      moveSpoilTimes(chest.holding, backpack, content, moved, now());
+      addToBackpack(backpack, content, moved);
       // Kinds the chest no longer holds drop out of its contents, so an emptied chest holds nothing at all.
       chest.holding.contents = withoutEmptyKinds(takeCount(chest.holding.contents, content, moved));
       return undefined;

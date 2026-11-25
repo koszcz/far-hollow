@@ -2,6 +2,7 @@ import { World } from "miniplex";
 import type { ActionCommand } from "./api";
 import type { CampfireFuel, CarriedLog, CarriedThing, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, Plantable, WildFood } from "./backpack";
+import type { SpoilTimes } from "./fresh-food";
 import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { Fire, FireKind } from "./fire";
@@ -229,8 +230,9 @@ export interface Entity {
   /**
    * What a finished piece of furniture that stores things holds: small materials, tools, and food, grouped by
    * kind like the backpack. `contents` says how many of each kind it holds, up to the piece's weight limit in all. Logs never go in.
+   * `spoilsAt` says when each fresh food in it spoils (see fresh-food.ts). Food it does not cover yet gets its full keeping time.
    */
-  storage?: { contents: BackpackContents };
+  storage?: { contents: BackpackContents; spoilsAt?: SpoilTimes };
   /**
    * The clean water in a finished rain barrel: how many drinks it holds, up to RAIN_BARREL_DRINK_LIMIT, and how far it is
    * toward the next drink. It fills while rain falls on it. See rain-barrels.ts.
@@ -336,8 +338,9 @@ export interface Entity {
   /**
    * Marks a pile: things of one kind the player dropped from the backpack, lying on the ground. Its position is the middle of the pile.
    * `count` is how many it holds, always at least 1. A pile with nothing left is removed.
+   * `spoilsAt` says when each fresh food in it spoils (see fresh-food.ts). Food it does not cover yet gets its full keeping time.
    */
-  pile?: { content: BackpackContent; count: number };
+  pile?: { content: BackpackContent; count: number; spoilsAt?: SpoilTimes };
 }
 
 /** Holds every entity in the game. miniplex calls this a "World". */

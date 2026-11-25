@@ -182,7 +182,7 @@ describe("cooked fish", () => {
     send(game, { type: "dropFromBackpack", content: "cookedFish" });
 
     expect(game.client.getView().backpack.cookedFish ?? 0).toBe(0);
-    expect([...game.entities.with("pile")].map(({ pile }) => pile)).toContainEqual({ content: "cookedFish", count: 3 });
+    expect([...game.entities.with("pile")].map(({ pile: { content, count } }) => ({ content, count }))).toContainEqual({ content: "cookedFish", count: 3 });
   });
 });
 
@@ -233,6 +233,40 @@ describe("saving cooking", () => {
     expect(loaded.game.client.getView().backpack).toEqual(onlyPlayer(game).backpack.contents);
   });
 });
+
+describe("cooked fish keeping", () => {
+  it("does not spoil on the fire, and starts its 2 days once cooked, however old the raw fish was", () => {
+    const { game, campfireId } = gameWithLitCampfire();
+    give(game, "rawFish", 1);
+    game.step();
+    skipHoursFed(game, 20);
+    expect(game.client.getView().backpackFreshness.rawFish?.minutesLeft).toBeCloseTo(4 * 60, -1);
+
+    resume(game);
+    // The fire has burned out by now, so the player lights it again.
+    give(game, "firewood", 1);
+    send(game, { type: "addFuel", campfireId, fuel: "firewood" });
+    send(game, { type: "lightCampfire", campfireId });
+    send(game, { type: "cookFish", campfireId });
+    // A fish on a fire does not spoil, even long after the fire goes out.
+    skipHoursFed(game, 30);
+    expect(fishOnFire(game)).toEqual([{ cooked: true, cookProgress: 1 }]);
+    resume(game);
+    send(game, { type: "takeFishOff", campfireId });
+    game.step();
+
+    expect(game.client.getView().backpack.cookedFish).toBe(1);
+    expect(game.client.getView().backpackFreshness.cookedFish?.minutesLeft).toBeCloseTo(2 * 24 * 60, -1);
+  });
+});
+
+/** Moves the clock on an hour at a time, paused, filling the player's needs before each so they never collapse. */
+function skipHoursFed(game: Game, hours: number): void {
+  for (let left = hours; left > 0; left -= 1) {
+    for (const need of Object.values(onlyPlayer(game).needs)) need.level = 1;
+    skipMinutes(game, Math.min(1, left) * 60);
+  }
+}
 
 /** The fish on the campfire beside the player, as its panel shows them. */
 function fishOnFire(game: Game) {

@@ -515,6 +515,10 @@ body {
   border-radius: 2px;
   background: linear-gradient(90deg, var(--hud-amber) calc(var(--hud-level) * 100%), rgb(255 255 255 / 0.12) 0);
 }
+/* A fresh food's cell has a number key in its bottom left corner, so its freshness bar starts after it. */
+.hud-hotbar-gauge-keyed {
+  left: 16px;
+}
 /* The build and craft buttons sit side by side at the right end of the hotbar, apart from the backpack contents. */
 .hud-hotbar-tools {
   position: relative;

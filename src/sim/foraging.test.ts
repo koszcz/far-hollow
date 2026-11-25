@@ -141,9 +141,11 @@ describe("growing back", () => {
     skipHoursWellFed(game, 1.5);
     expect(bush.regrowing).toBeUndefined();
 
+    // The first berries kept for 2 days, so they have spoiled by now.
+    expect(game.client.getView().backpack.berries ?? 0).toBe(0);
     game.client.send({ type: "forage", spotId: idOf(game, bush) });
-    stepUntil(game, () => (game.client.getView().backpack.berries ?? 0) > 3);
-    expect(game.client.getView().backpack.berries).toBe(6);
+    stepUntil(game, () => (game.client.getView().backpack.berries ?? 0) > 0);
+    expect(game.client.getView().backpack.berries).toBe(3);
   });
 });
 

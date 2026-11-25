@@ -24,7 +24,7 @@ import type {
   WoodpileView,
   WoodpileWood,
 } from "../sim/api";
-import { isCarriedLog, isHost, nearbyOf } from "../sim/api";
+import { FRESH_FOODS, isCarriedLog, isFreshFood, isHost, nearbyOf, type FreshnessViews } from "../sim/api";
 import { BUILD_TABS, entriesInTab, FIRST_BUILD_TAB, type BuildTab } from "./build-tabs";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
@@ -60,11 +60,14 @@ function backpackContents(backpack: GameView["backpack"]): [BackpackContent, num
  */
 function ContentGrid({
   contents,
+  freshness,
   label,
   reason,
   onClick,
 }: {
   contents: GameView["backpack"];
+  /** How fresh the oldest of each fresh food is. Each fresh food's cell shows a bar that drains as it nears spoiling. */
+  freshness: FreshnessViews;
   label: (name: string) => string;
   /** Why the game would refuse a click on this content now, or null if it would not. A refused cell is dimmed and does nothing. */
   reason: (content: BackpackContent) => string | null;
@@ -75,15 +78,17 @@ function ContentGrid({
       {backpackContents(contents).map(([content, count]) => {
         const name = strings.backpackContents[content];
         const refused = reason(content);
-        const described = label(strings.backpackContentCount(name, count));
+        const fresh = isFreshFood(content) ? freshness[content] : undefined;
+        const spoilsIn = fresh === undefined ? null : strings.hotbar.spoilsIn(fresh.minutesLeft);
+        const described = [label(strings.backpackContentCount(name, count)), spoilsIn, refused].filter((part) => part !== null).join(" · ");
         return (
           <li key={content}>
             <button
               type="button"
               class={refused === null ? "hud-content-move" : "hud-content-move hud-content-move-dimmed"}
-              aria-label={refused === null ? described : `${described} · ${refused}`}
+              aria-label={described}
               aria-disabled={refused !== null}
-              title={refused ?? undefined}
+              title={refused ?? spoilsIn ?? undefined}
               onClick={(event) => {
                 if (refused === null) onClick(content, event.shiftKey);
               }}
@@ -94,6 +99,7 @@ function ContentGrid({
                   {strings.backpackCountBadge(count)}
                 </span>
               )}
+              {fresh !== undefined && <span class="hud-hotbar-gauge" style={{ "--hud-level": fresh.share }} aria-hidden="true" />}
             </button>
           </li>
         );
@@ -134,7 +140,13 @@ function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (target:
                 {key}
               </span>
             )}
-            {gauge !== undefined && <span class="hud-hotbar-gauge" style={{ "--hud-level": gauge }} aria-hidden="true" />}
+            {gauge !== undefined && (
+              <span
+                class={key === undefined ? "hud-hotbar-gauge" : "hud-hotbar-gauge hud-hotbar-gauge-keyed"}
+                style={{ "--hud-level": gauge }}
+                aria-hidden="true"
+              />
+            )}
           </button>
         </li>
       ))}
@@ -263,6 +275,8 @@ function noticeText(notice: Notice): string {
     case "actionSkipped":
     case "refused":
       return strings.notices[notice.kind](refusalText(notice.refusal));
+    case "foodSpoiled":
+      return strings.notices.foodSpoiled(FRESH_FOODS.flatMap((food) => ((notice.spoiled[food] ?? 0) > 0 ? [[food, notice.spoiled[food] ?? 0] as const] : [])));
     default:
       return strings.notices[notice.kind];
   }
@@ -923,6 +937,7 @@ function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView })
       ) : (
         <ContentGrid
           contents={chest.contents}
+          freshness={chest.freshness}
           label={text.take}
           reason={(content) => chestTakeReason(client, chest.id, content)}
           onClick={(content, all) => {

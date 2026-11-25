@@ -7,6 +7,7 @@ import { type Terrain, type Valley } from "./valley";
 import { groundDistance, nearestWithin, type GroundPoint } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { putDown } from "./hand-reach";
+import { addToPile, putInHolder, takeFromHolder, takeFromPile } from "./spoiling";
 
 /** Things dropped this close to a pile of the same kind join it, in metres. */
 export const JOIN_PILE_METRES = 1;
@@ -52,8 +53,11 @@ export interface Piles {
   nearby(): PileEntity | undefined;
 }
 
-/** Lets the player drop things from the backpack in piles on the ground, and pick them up again. */
-export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<HandReach, "start">): Piles {
+/**
+ * Lets the player drop things from the backpack in piles on the ground, and pick them up again. Fresh food keeps its spoil times
+ * as it moves. `now` reads the game minute on the clock.
+ */
+export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<HandReach, "start">, now: () => number): Piles {
   const players = playerEntities(entities);
   const piles = pileEntities(entities);
 
@@ -70,7 +74,9 @@ export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<Ha
       for (const player of players) {
         if (player.backpack === undefined) continue;
         const count = countInBackpack(player.backpack, content);
-        if (count === 0 || !removeFromBackpack(player.backpack, content, count)) continue;
+        if (count === 0) continue;
+        const spoilsAt = takeFromHolder(player.backpack, content, count, now());
+        if (!removeFromBackpack(player.backpack, content, count)) continue;
         if (content === "stick") {
           for (let index = 0; index < count; index += 1) {
             const spot = droppedStickSpot(player.position, index);
@@ -78,7 +84,7 @@ export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<Ha
           }
           continue;
         }
-        addToPileAt(entities, valley.terrain, content, count, player.position);
+        addToPileAt(entities, valley.terrain, content, count, player.position, { spoilsAt, now: now() });
       }
     },
     reach(pileId) {
@@ -95,6 +101,7 @@ export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<Ha
           if (still === undefined) return undefined;
           const taken = howManyFit(backpack, still.pile.content, still.pile.count);
           if (taken === 0) return "backpackFull";
+          putInHolder(backpack, still.pile.content, takeFromPile(still.pile, taken, now()), now());
           addToBackpack(backpack, still.pile.content, taken);
           still.pile.count -= taken;
           if (still.pile.count === 0) entities.remove(still);
@@ -112,20 +119,32 @@ export function createPiles(entities: EntityStore, valley: Valley, hand: Pick<Ha
 /**
  * Lays `count` of `content` on the ground at `spot`, as one pile.
  * If a pile of the same kind lies within JOIN_PILE_METRES of the spot, they join that pile instead.
+ * For fresh food, `fresh` gives the spoil times of the food laid down, at game minute `now`. Food it does not cover gets its full keeping time.
  * Not for sticks, which never form piles.
  */
-export function addToPileAt(entities: EntityStore, terrain: Terrain, content: BackpackContent, count: number, spot: GroundPoint): void {
+export function addToPileAt(
+  entities: EntityStore,
+  terrain: Terrain,
+  content: BackpackContent,
+  count: number,
+  spot: GroundPoint,
+  fresh?: { readonly spoilsAt: readonly number[]; readonly now: number },
+): void {
   const near = nearestWithin(
     spot,
     pileEntities(entities).entities.filter((pile) => pile.pile.content === content),
     JOIN_PILE_METRES,
   );
   if (near !== undefined) {
+    if (fresh !== undefined) addToPile(near.pile, fresh.spoilsAt, fresh.now);
     near.pile.count += count;
     return;
   }
   const { x, z } = spot;
-  entities.add({ pile: { content, count }, position: { x, y: standingHeightAt(entities, terrain, { x, z }), z } });
+  const pile: PileEntity["pile"] = { content, count: 0 };
+  if (fresh !== undefined) addToPile(pile, fresh.spoilsAt, fresh.now);
+  pile.count = count;
+  entities.add({ pile, position: { x, y: standingHeightAt(entities, terrain, { x, z }), z } });
 }
 
 /** The rules for dropping things from the backpack into a pile and picking a pile up. */

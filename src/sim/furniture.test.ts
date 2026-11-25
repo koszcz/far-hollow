@@ -70,7 +70,7 @@ describe("loading a save from before one part marked all furniture", () => {
     if (!loaded.ok) throw new Error("The save did not load");
 
     expect(storingPiecesOf(loaded.game.entities, "chest").map(({ storage }) => storage)).toEqual([{ contents: { stick: 4, pot: 1 } }]);
-    expect(storingPiecesOf(loaded.game.entities, "shelf").map(({ storage }) => storage)).toEqual([{ contents: { berries: 3 } }]);
+    expect(storingPiecesOf(loaded.game.entities, "shelf").map(({ storage }) => storage.contents)).toEqual([{ berries: 3 }]);
     for (const kind of ["bed", "table", "stool"] as const) expect(piecesOf(loaded.game.entities, kind)[0]?.storage).toBeUndefined();
   });
 });

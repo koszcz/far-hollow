@@ -19,7 +19,14 @@ describe("opening a chest", () => {
 
     open(game, chest);
 
-    expect(nearbyOf(game.client.getView(), "openChest")).toEqual({ id: idOf(game, chest), furniture: "chest", contents: {}, weight: 0, weightLimit: 60 });
+    expect(nearbyOf(game.client.getView(), "openChest")).toEqual({
+      id: idOf(game, chest),
+      furniture: "chest",
+      contents: {},
+      weight: 0,
+      weightLimit: 60,
+      freshness: {},
+    });
   });
 
   it("closes when the player walks away, and stays closed when they come back", () => {

@@ -175,7 +175,14 @@ describe("opening a shelf", () => {
 
     open(game, shelf);
 
-    expect(nearbyOf(game.client.getView(), "openChest")).toEqual({ id: idOf(game, shelf), furniture: "shelf", contents: {}, weight: 0, weightLimit: 30 });
+    expect(nearbyOf(game.client.getView(), "openChest")).toEqual({
+      id: idOf(game, shelf),
+      furniture: "shelf",
+      contents: {},
+      weight: 0,
+      weightLimit: 30,
+      freshness: {},
+    });
   });
 
   it("moves small materials, tools, and food between the backpack and the shelf", () => {

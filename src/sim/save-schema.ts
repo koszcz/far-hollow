@@ -5,6 +5,7 @@ import type { Entity } from "./entities";
 import { isFillProgress } from "./fill-level";
 import { GOALS } from "./journal";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
+import { FRESH_FOODS } from "./fresh-food";
 import { NEED_KINDS } from "./needs";
 import { RECIPE_KINDS } from "./recipe-kind";
 import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
@@ -39,6 +40,18 @@ const list =
     Array.isArray(value) && value.every(item);
 
 const point = shape({ x: finite, z: finite });
+/** How many of each fresh food kind. A kind that is missing counts as none. */
+const freshCounts: Check = shape(Object.fromEntries(FRESH_FOODS.map((food) => [food, count])), FRESH_FOODS);
+/** When each fresh food in a holder spoils, by kind, soonest first. */
+const spoilTimes: Check = shape(
+  Object.fromEntries(
+    FRESH_FOODS.map((food) => [
+      food,
+      (value: unknown) => list(finite)(value) && (value as number[]).every((time, index, all) => index === 0 || (all[index - 1] ?? time) <= time),
+    ]),
+  ),
+  FRESH_FOODS,
+);
 const vec3 = shape({ x: finite, y: finite, z: finite });
 const backpackContents: Check = (value) =>
   shape(Object.fromEntries(Object.keys(CONTENT_WEIGHT_KG).map((content) => [content, count])), Object.keys(CONTENT_WEIGHT_KG))(value);
@@ -111,7 +124,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   blocksWalking: shape({ radius: finite }),
   blocksWalkingSpots: list(point),
   blocksWalkingEdges: list(shape({ from: point, to: point })),
-  backpack: shape({ contents: backpackContents }),
+  backpack: shape({ contents: backpackContents, spoilsAt: spoilTimes }, ["spoilsAt"]),
   chopTask: shape({ treeId: count, secondsDone: finite }),
   stump: exactly(true),
   fellHeading: finite,
@@ -152,7 +165,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   campfire: shape({ lit: boolean, fuelMinutes: finite }),
   onFoundation: point,
   furniture: exactly(...FURNITURE_KINDS),
-  storage: shape({ contents: backpackContents }),
+  storage: shape({ contents: backpackContents, spoilsAt: spoilTimes }, ["spoilsAt"]),
   rainBarrel: shape({ held: count, progress: isFillProgress }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
@@ -183,10 +196,14 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   stickFall: shape({ minutesToNext: finite, falls: count, owed: count }, ["owed"]),
   groundChange: shape({ x: finite, z: finite, toward: exactly("clearing", "forestFloor"), startedAtMinutes: finite }),
   // Dropped sticks lie on the ground one by one, so a pile never holds sticks.
-  pile: shape({
-    content: exactly(...Object.keys(CONTENT_WEIGHT_KG).filter((content) => content !== "stick")),
-    count: (value) => count(value) && (value as number) > 0,
-  }),
+  pile: shape(
+    {
+      content: exactly(...Object.keys(CONTENT_WEIGHT_KG).filter((content) => content !== "stick")),
+      count: (value) => count(value) && (value as number) > 0,
+      spoilsAt: spoilTimes,
+    },
+    ["spoilsAt"],
+  ),
 };
 
 const components: Check = shape(COMPONENT_CHECKS, Object.keys(COMPONENT_CHECKS));
@@ -304,6 +321,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   cannotQueue: { refusal },
   actionSkipped: { refusal },
   refused: { refusal },
+  foodSpoiled: { spoiled: freshCounts },
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

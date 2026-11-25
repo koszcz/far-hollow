@@ -1,10 +1,13 @@
 import type { BackpackContent, BackpackContents, Food, WildFood } from "./backpack";
+import type { Freshness, FreshFood } from "./fresh-food";
 import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 import type { Goal } from "./journal";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
 export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugContent, Plantable, WildFood } from "./backpack";
+export type { Freshness, FreshFood } from "./fresh-food";
+export { FRESH_FOODS, isFreshFood } from "./fresh-food";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
@@ -419,6 +422,11 @@ export interface GameView {
   readonly seasonBanner: Season | null;
   /** How many of each tool and material the player's backpack holds. */
   readonly backpack: Readonly<BackpackContents>;
+  /**
+   * How fresh the oldest of each fresh food in the backpack is: how long it has left before it spoils, and that as a share
+   * of its whole keeping time. A kind the backpack holds none of is missing. The hotbar shows it.
+   */
+  readonly backpackFreshness: FreshnessViews;
   /** How much the backpack's contents weigh, in kilograms. */
   readonly backpackWeight: number;
   /** The most the backpack can hold, in kilograms. */
@@ -555,13 +563,15 @@ export interface SleepView {
  * `refused`: the player sent a command that the game refuses now, for the `refusal`, so nothing happened.
  * `droppedBesideStation`: crafting at the `station` finished, and `count` of the result, `content`, did not fit in the backpack,
  * so they dropped in a pile beside the station.
+ * `foodSpoiled`: fresh food kept its full time and is gone, wherever it was. `spoiled` says how many of each kind.
  */
 export type Notice =
   | { readonly kind: PlainNotice }
   | { readonly kind: "noLogBesideStation"; readonly station: WorkStationKind }
   | { readonly kind: "cannotCraftYet"; readonly lacks: readonly RecipeLack[] }
   | { readonly kind: "cannotQueue" | "actionSkipped" | "refused"; readonly refusal: Refusal }
-  | { readonly kind: "droppedBesideStation"; readonly content: BackpackContent; readonly count: number; readonly station: WorkStationKind };
+  | { readonly kind: "droppedBesideStation"; readonly content: BackpackContent; readonly count: number; readonly station: WorkStationKind }
+  | { readonly kind: "foodSpoiled"; readonly spoiled: Readonly<Partial<Record<FreshFood, number>>> };
 
 /** The kind of each notice. */
 export type GameNotice = Notice["kind"];
@@ -861,7 +871,12 @@ export interface ChestView {
   readonly weight: number;
   /** The most it can hold, in kilograms. */
   readonly weightLimit: number;
+  /** How fresh the oldest of each fresh food in it is. A kind it holds none of is missing. See `GameView.backpackFreshness`. */
+  readonly freshness: FreshnessViews;
 }
+
+/** How fresh the oldest of each fresh food in a holder is, by kind. A kind the holder holds none of is missing. */
+export type FreshnessViews = Readonly<Partial<Record<FreshFood, Freshness>>>;
 
 export interface BedrollView {
   /** The bedroll's entity id. */

@@ -132,9 +132,10 @@ describe("dropping things from the backpack", () => {
 
   it("leaves piles where they lie, through days of rain", () => {
     const game = createGame({ seed: 42 });
-    giveBackpack(game, { bark: 4, berries: 2 });
+    // Food would spoil over these days, so the piles hold things that keep.
+    giveBackpack(game, { bark: 4, stone: 2 });
     send(game, { type: "dropFromBackpack", content: "bark" });
-    send(game, { type: "dropFromBackpack", content: "berries" });
+    send(game, { type: "dropFromBackpack", content: "stone" });
     const before = structuredClone(pilesOf(game));
 
     for (let i = 0; i < 6; i += 1) send(game, { type: "skipToRainChange" });
@@ -377,7 +378,7 @@ function sortedPiles(piles: PileContents[]): PileContents[] {
 
 /** What each pile in the valley holds, in a fixed order. */
 function pileContents(game: Game): PileContents[] {
-  return sortedPiles(pilesOf(game).map((pile) => ({ ...pile.pile })));
+  return sortedPiles(pilesOf(game).map(({ pile: { content, count } }) => ({ content, count })));
 }
 
 function giveBackpack(game: Game, contents: NonNullable<Entity["backpack"]>["contents"]): void {

@@ -123,7 +123,9 @@ function readerWith({
       ? null
       : { id: draggingSledId, contents: { log: 0, debarkedLog: 0, plank: 0 }, total: 0, capacity: 6, logsThatFit: 6, planksThatFit: 24 };
   const nearby: GameView["nearby"] =
-    openChestId === undefined ? [] : [{ kind: "openChest", view: { id: openChestId, furniture: "chest", contents: {}, weight: 0, weightLimit: 60 } }];
+    openChestId === undefined
+      ? []
+      : [{ kind: "openChest", view: { id: openChestId, furniture: "chest", contents: {}, weight: 0, weightLimit: 60, freshness: {} } }];
   const view: GameView = { ...START.getView(), backpack, carrying, nearby, dragging };
   return { ...START, getView: () => view };
 }

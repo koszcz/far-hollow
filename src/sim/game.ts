@@ -109,6 +109,9 @@ import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
 import { createSledFilling, sledFillingRules } from "./sled-filling";
 import { createWoodpiles, woodpileRules } from "./woodpiles";
 import { createChests, chestRules } from "./chests";
+import { createSpoiling, viewFreshness } from "./spoiling";
+import { addCount, holdsNone, type Counts } from "./counts";
+import type { FreshFood } from "./fresh-food";
 import { nearestInReach } from "./reach";
 import { describeThing } from "./thing-view";
 import { createStickFallSystem } from "./stick-fall";
@@ -263,7 +266,8 @@ export function createGame({
   const woodpiles = createWoodpiles(entities);
   const sleds = createSleds(entities, valley, walking.walkMap);
   const sledFilling = createSledFilling(entities, walking, handReach);
-  const chests = createChests(entities);
+  // The clock is read only once the game runs.
+  const chests = createChests(entities, () => clock.minutes);
   // The player puts down what they hold to sit, as they do to sleep.
   const stools = createStools(entities, () => {
     carrying.drop();
@@ -290,7 +294,8 @@ export function createGame({
   const jugs = createJugs(entities);
   const torches = createTorches(entities, valley, handReach);
   const shutters = createShutters(entities);
-  const piles = createPiles(entities, valley, handReach);
+  const piles = createPiles(entities, valley, handReach, () => clock.minutes);
+  const spoiling = createSpoiling(entities);
   const stickFall = createStickFallSystem(entities, valley);
   const regrowth = createRegrowth(entities, walking.walkMap, (spot) => {
     groundChanges.treeGrown(spot);
@@ -349,6 +354,8 @@ export function createGame({
   /** The goal the journal's notice says is done now, with the game minute it stops showing at, or null. It is not saved. */
   let goalNotice: { goal: Goal; untilMinutes: number } | null = null;
   let notice: (Notice & { untilMinutes: number }) | null = progress?.notice ? structuredClone(progress.notice) : null;
+  /** Fresh food that has spoiled since a notice last said so, by kind. It waits while another notice shows. It is not saved. */
+  let spoiledToTell: Counts<FreshFood> = {};
   let paused = false;
   /** The player's last sleep since the game was loaded. It is not saved. */
   let lastSleep: SleepView | null = null;
@@ -388,6 +395,7 @@ export function createGame({
       afterFirstWinter: isAfterFirstWinter(readClock(clock.minutes).day, yearStartDay),
       seasonBanner: seasonBanner !== null && clock.minutes < seasonBanner.untilMinutes ? seasonBanner.season : null,
       backpack: Object.freeze({ ...player.backpack.contents }),
+      backpackFreshness: viewFreshness(player.backpack, clock.minutes),
       backpackWeight: backpackWeight(player.backpack),
       backpackWeightLimit: BACKPACK_WEIGHT_LIMIT_KG,
       buildMenu: instantBuilding ? INSTANT_BUILD_MENU : BUILD_MENU,
@@ -711,6 +719,21 @@ export function createGame({
     showNotice("snugRoomKeepsOutCold");
   }
 
+  /**
+   * Says what fresh food has spoiled since the last such notice. It waits until no other notice is on screen, so neither hides
+   * the other. Food that spoils while the notice shows joins it.
+   */
+  function noticeSpoiledFood(): void {
+    if (holdsNone(spoiledToTell)) return;
+    const showing = notice !== null && isNoticeOnScreen() ? notice : null;
+    if (showing !== null && showing.kind !== "foodSpoiled") return;
+    let spoiled = spoiledToTell;
+    if (showing?.kind === "foodSpoiled")
+      for (const [food, count] of Object.entries(showing.spoiled) as [FreshFood, number][]) spoiled = addCount(spoiled, food, count);
+    spoiledToTell = {};
+    showNotice({ kind: "foodSpoiled", spoiled });
+  }
+
   /** Whether a notice shows on screen now. */
   function isNoticeOnScreen(): boolean {
     return notice !== null && clock.minutes < notice.untilMinutes;
@@ -718,7 +741,7 @@ export function createGame({
 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
-   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, and set fish traps catch fish.
+   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, and fresh food spoils.
    * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
   function passWorldTime(minutes: number, winter: boolean): void {
@@ -733,6 +756,7 @@ export function createGame({
     cooking.cook(minutes);
     firing.fire(minutes);
     fishTraps.pass(minutes, winter);
+    for (const [food, count] of Object.entries(spoiling.pass(clock.minutes)) as [FreshFood, number][]) spoiledToTell = addCount(spoiledToTell, food, count);
   }
 
   /**
@@ -889,6 +913,7 @@ export function createGame({
       passTime(STEP_MS / REAL_MS_PER_GAME_MINUTE);
       actionQueue.moveOn();
       noteGoals();
+      noticeSpoiledFood();
       noticeSnugRoom();
       noticeSeasonStart();
       stepCount += 1;

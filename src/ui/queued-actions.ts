@@ -100,6 +100,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: "campfire" }, name: actions.addFuel[command.fuel] };
     case "lightCampfire":
       return { icon: { structure: "campfire" }, name: actions.light };
+    case "putOutCampfire":
+      return { icon: { structure: "campfire" }, name: actions.putOut };
     case "putPotOnFire":
       return { icon: { structure: "campfire" }, name: actions.putPotOn };
     case "takePotOffFire":

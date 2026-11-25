@@ -13,6 +13,7 @@ import type { ReachHeight, TendTask } from "./entities";
 const TEND_REACH: Readonly<Record<TendTask["type"], ReachHeight | undefined>> = {
   addFuel: "low",
   lightCampfire: undefined,
+  putOutCampfire: "low",
   putPotOnFire: "low",
   takePotOffFire: "low",
   cookFish: "low",

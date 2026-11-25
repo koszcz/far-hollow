@@ -426,6 +426,10 @@ _Avoid_: Bonfire, fire pit
 A stone building piece built from stone on one foundation square. It does everything a campfire does, and its fuel lasts longer. A lit fireplace heats the room it is in. The player can build it before the walls and roof.
 _Avoid_: Hearth, stove
 
+**Chimney**:
+A stone building piece built on a finished fireplace. It rises through the roof, and the fireplace's smoke comes out of its top. It is only for looks: a fireplace heats its room the same with or without one. The player can build it before or after the roof.
+_Avoid_: Flue, stack
+
 **Unfired jug**:
 A jug the player has shaped by hand from 2 clay but not yet fired. Shaping it needs no tool. The player carries it in the backpack. It cannot hold water.
 _Avoid_: Raw jug, green jug

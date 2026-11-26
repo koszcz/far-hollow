@@ -2,12 +2,16 @@ import type { BackpackContent, BackpackContents, Food, WildFood } from "./backpa
 import type { Freshness, FreshFood } from "./fresh-food";
 import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 import type { Goal } from "./journal";
+import type { RackFood } from "./rack-food";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
-export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugContent, Plantable, WildFood } from "./backpack";
+export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugContent, Plantable, PreservedFood, WildFood } from "./backpack";
 export type { Freshness, FreshFood } from "./fresh-food";
 export { FRESH_FOODS, isFreshFood } from "./fresh-food";
+
+/** The action menu offers to hang each of these on a drying rack. */
+export { RACK_FOODS, type RackFood } from "./rack-food";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
@@ -304,6 +308,17 @@ export type Command =
    * in the backpack that still has room. It is refused while the barrel is empty or the backpack holds no jug with room.
    */
   | { type: "fillJugFromRainBarrel"; barrelId: number }
+  /**
+   * Walk the player within reach of a finished drying rack, given by its entity id, and hang one of this food from the backpack on it.
+   * Berries and a mushroom dry in 6 game hours, with no fire. It is refused when the backpack holds none of the food, or the rack
+   * already holds DRYING_RACK_FOOD_LIMIT foods.
+   */
+  | { type: "hangOnRack"; rackId: number; food: RackFood }
+  /**
+   * Walk the player within reach of a finished drying rack, given by its entity id, and take every food off it into the backpack,
+   * dried food first, as far as they fit. The rest stay on the rack. It is refused while the rack holds no food.
+   */
+  | { type: "takeFoodOffRack"; rackId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
@@ -766,6 +781,8 @@ export type Refusal =
  * - `finishHostFirst`: an add-on goes only on a finished host, such as a door in a finished door frame.
  * - `holdsAddOn`: the host already holds its add-on, finished or as a blueprint.
  * - `addOnInTheWay`: something is in the way of the add-on's blueprint.
+ * - `noBerries`: the backpack holds no berries to hang on a drying rack.
+ * - `rackFull`: the drying rack holds as many foods as it can.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -829,7 +846,9 @@ export type PlainRefusal =
   | "takeChimneyDownFirst"
   | "finishHostFirst"
   | "holdsAddOn"
-  | "addOnInTheWay";
+  | "addOnInTheWay"
+  | "noBerries"
+  | "rackFull";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {
@@ -911,6 +930,23 @@ export interface RainBarrelView {
   readonly underRoof: boolean;
 }
 
+/** One food on a drying rack: what was hung, whether it has dried, and how far it is through drying, from 0 to 1. */
+export interface FoodOnRackView {
+  readonly food: RackFood;
+  readonly dried: boolean;
+  readonly dryProgress: number;
+}
+
+/** A finished drying rack, with the food hanging on it. */
+export interface DryingRackView {
+  /** The rack's entity id. */
+  readonly id: number;
+  /** The food on the rack, in the order it was hung. */
+  readonly food: readonly FoodOnRackView[];
+  /** The most foods it holds. */
+  readonly limit: number;
+}
+
 /** A pile of things the player dropped on the ground. */
 export interface PileView {
   /** The pile's entity id. */
@@ -924,7 +960,7 @@ export interface PileView {
 /**
  * What the HUD shows for each kind of thing within the player's reach:
  * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, the nearest blueprint,
- * and the nearest rain barrel.
+ * the nearest rain barrel, and the nearest drying rack.
  * A chest closes when the player walks away.
  */
 export interface NearbyViews {
@@ -935,6 +971,7 @@ export interface NearbyViews {
   readonly openChest: ChestView;
   readonly blueprint: BlueprintView;
   readonly rainBarrel: RainBarrelView;
+  readonly dryingRack: DryingRackView;
 }
 
 /** One thing within the player's reach, with its kind. */
@@ -1055,6 +1092,8 @@ export interface GameClient {
   describeWoodpile(woodpileId: number): WoodpileView | null;
   /** A finished sled, given by its entity id, near or far, or null if it is not one. It only reads game state. */
   describeSled(sledId: number): SledView | null;
+  /** A finished drying rack, given by its entity id, near or far, or null if it is not one. It only reads game state. */
+  describeDryingRack(rackId: number): DryingRackView | null;
   /** What a thing in the world is, given by its entity id, or null if it is gone or is none of the kinds ThingView names. It only reads game state. */
   describeThing(id: number): ThingView | null;
   /** The thing nearest the player within the reach of E, or null if nothing is in reach. It only reads game state. */

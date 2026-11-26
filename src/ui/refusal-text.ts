@@ -28,6 +28,8 @@ function buildLackText(lacks: BuildLack): string {
     case "bark":
     case "plank":
       return reasons.noContent[lacks.material];
+    case "cord":
+      return reasons.noCord;
     case "stone":
       return reasons.noStone;
     case "log":

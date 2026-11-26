@@ -2,7 +2,7 @@
 
 **What to build:** Clicking a fish trap often misses it, so the player cannot open its action menu. The player should hit the trap every time they click on it. This fixes the fish trap from ticket 01.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** Reuses `fish-trap` with no change. The pick shape is invisible, so the approved look stays the same. Settled with the owner on 2026-11-26.
 

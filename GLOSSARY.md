@@ -194,7 +194,7 @@ To do a thing's main action. The player uses a thing by picking the top option o
 _Avoid_: Interact, activate
 
 **Reach**:
-How close the player must stand to act on a thing. If the player is out of reach, they walk to the thing first, then act.
+How close the player must stand to act on a thing. Reach never crosses a wall or a window, so a thing behind one is out of reach. If the player is out of reach, they walk to the thing first, then act.
 _Avoid_: Range, interaction distance
 
 **Approach**:

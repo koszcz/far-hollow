@@ -8,6 +8,7 @@ import { fishTrapEntities, type Entity, type EntityStore } from "../sim/entities
 import { nearestRiverPoint, type River } from "../sim/valley";
 import {
   createFishTrapGeometries,
+  createFishTrapPickGeometry,
   createFishTrapStakeGeometries,
   CORD_COLOUR,
   FISH_TRAP_MOUTH_RADIUS_METRES,
@@ -92,9 +93,12 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
   const cordMaterial = material(CORD_COLOUR);
   const stakeMaterial = material(STAKE_COLOUR);
   const fishParts = rawFishParts(material, track);
+  // The pick shapes are never drawn. They catch clicks that pass through the gaps between the trap's thin sticks.
+  const basketPick = track(createFishTrapPickGeometry());
+  const pickMaterial = track(new THREE.MeshBasicMaterial({ visible: false }));
   const query = fishTrapEntities(entities).connect();
-  /** Each drawn trap, with its meshes, its own stake and line geometries, and whether they show a fish. */
-  const drawn = new Map<Entity, { holder: THREE.Group; own: THREE.BufferGeometry[]; holding: boolean }>();
+  /** Each drawn trap, with its meshes, its pick shapes, its own stake and line geometries, and whether they show a fish. */
+  const drawn = new Map<Entity, { holder: THREE.Group; pickers: THREE.Mesh[]; own: THREE.BufferGeometry[]; holding: boolean }>();
   let dirty = true;
   const markDirty = () => {
     dirty = true;
@@ -102,7 +106,11 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
   query.onEntityAdded.subscribe(markDirty);
   query.onEntityRemoved.subscribe(markDirty);
 
-  function build(entity: Entity & { position: THREE.Vector3Like; fishTrap: { holding: boolean } }): { holder: THREE.Group; own: THREE.BufferGeometry[] } {
+  function build(entity: Entity & { position: THREE.Vector3Like; fishTrap: { holding: boolean } }): {
+    holder: THREE.Group;
+    pickers: THREE.Mesh[];
+    own: THREE.BufferGeometry[];
+  } {
     const holder = new THREE.Group();
     holder.position.set(entity.position.x, entity.position.y - SINK_METRES, entity.position.z);
     // The trap's mouth is at -z. Turn it so the mouth faces upstream, where the fish swim in from.
@@ -112,7 +120,7 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
     // The stake's foot on the bank, in the trap's own frame.
     const stakeAt = stakeSpot(river, entity.position, heading);
     const stakeFoot = new THREE.Vector3(stakeAt.x, heightAt(stakeAt.x, stakeAt.z), stakeAt.z).applyMatrix4(holder.matrix.clone().invert());
-    const { stake, line } = createFishTrapStakeGeometries(stakeFoot);
+    const { stake, line, stakePick } = createFishTrapStakeGeometries(stakeFoot);
     for (const [geometry, partMaterial] of [
       [sticks, stickMaterial],
       [withy, withyMaterial],
@@ -131,8 +139,14 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
         holder.add(mesh);
       }
     }
-    for (const mesh of holder.children) mesh.userData.fishTrap = entity;
-    return { holder, own: [stake, line] };
+    // The pick shapes are added last and kept apart, so the hover outline traces only the drawn shapes.
+    const pickers = [basketPick, stakePick].map((geometry) => {
+      const picker = new THREE.Mesh(geometry, pickMaterial);
+      picker.userData.fishTrap = entity;
+      holder.add(picker);
+      return picker;
+    });
+    return { holder, pickers, own: [stake, line, stakePick] };
   }
 
   function rebuild(): void {
@@ -142,8 +156,8 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
     }
     drawn.clear();
     for (const entity of query) {
-      const { holder, own } = build(entity);
-      drawn.set(entity, { holder, own, holding: entity.fishTrap.holding });
+      const { holder, pickers, own } = build(entity);
+      drawn.set(entity, { holder, pickers, own, holding: entity.fishTrap.holding });
       group.add(holder);
     }
   }
@@ -161,8 +175,8 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
     pick(raycaster) {
       hits.length = 0;
       raycaster.intersectObjects(
-        [...drawn.values()].map(({ holder }) => holder),
-        true,
+        [...drawn.values()].flatMap(({ pickers }) => pickers),
+        false,
         hits,
       );
       hits.sort((a, b) => a.distance - b.distance);
@@ -173,11 +187,13 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
       return undefined;
     },
     outlineOf(entity) {
-      const holder = drawn.get(entity)?.holder;
-      if (holder === undefined) return [];
-      holder.updateMatrixWorld(true);
-      return holder.children.flatMap((child) =>
-        child instanceof THREE.Mesh ? [{ geometry: child.geometry as THREE.BufferGeometry, matrix: child.matrixWorld.clone() }] : [],
+      const trap = drawn.get(entity);
+      if (trap === undefined) return [];
+      trap.holder.updateMatrixWorld(true);
+      return trap.holder.children.flatMap((child) =>
+        child instanceof THREE.Mesh && child.material !== pickMaterial
+          ? [{ geometry: child.geometry as THREE.BufferGeometry, matrix: child.matrixWorld.clone() }]
+          : [],
       );
     },
     dispose() {

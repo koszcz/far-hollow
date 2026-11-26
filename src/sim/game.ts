@@ -262,7 +262,7 @@ export function createGame({
   const takingDown = createTakingDown(entities, walking, valley);
   const campfires = createCampfires(entities);
   const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
-  const beds = createBeds(entities, sleepIn);
+  const beds = createBeds(entities, walking.walkMap, sleepIn);
   const woodpiles = createWoodpiles(entities);
   const sleds = createSleds(entities, valley, walking.walkMap);
   const sledFilling = createSledFilling(entities, walking, handReach);

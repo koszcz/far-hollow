@@ -332,6 +332,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   actionSkipped: { refusal },
   refused: { refusal },
   foodSpoiled: { spoiled: freshCounts },
+  cantGetThere: {},
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

@@ -386,6 +386,7 @@ export const strings = {
     cannotCraftYet: (lacking: readonly string[]) => `This needs ${lacking.join(" and ")} first.`,
     /** Crafting finished, but some of the result did not fit in the backpack, such as "2 planks dropped beside the sawhorse." */
     droppedBesideStation: (what: string, station: string) => `${what} dropped beside the ${station.toLowerCase()}.`,
+    cantGetThere: "You can't get to it from here.",
     queueFull: `You can line up at most ${ACTION_QUEUE_LIMIT} actions.`,
     /** The player tried to line up an action the game refuses now, such as "You cannot line that up: needs the axe." */
     cannotQueue: (reason: string) => `You cannot line that up: ${reason}.`,

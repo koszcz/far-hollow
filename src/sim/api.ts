@@ -579,6 +579,7 @@ export interface SleepView {
  * `droppedBesideStation`: crafting at the `station` finished, and `count` of the result, `content`, did not fit in the backpack,
  * so they dropped in a pile beside the station.
  * `foodSpoiled`: fresh food kept its full time and is gone, wherever it was. `spoiled` says how many of each kind.
+ * `cantGetThere`: the player sent an action on a thing behind a wall, and no walk leads to the thing's side of it.
  */
 export type Notice =
   | { readonly kind: PlainNotice }
@@ -605,7 +606,8 @@ export type PlainNotice =
   | "putLogDownFirst"
   | "letGoFirst"
   | "fishGotAway"
-  | "queueFull";
+  | "queueFull"
+  | "cantGetThere";
 
 /**
  * Why the game refuses to load a save (ADR 0008):

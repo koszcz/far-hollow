@@ -4,7 +4,7 @@
 
 This is not a camera problem. The walls do not need to fade more. Fireplaces and chimneys still never fade.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Assets:** None. Settled with the owner on 2026-11-26.
 

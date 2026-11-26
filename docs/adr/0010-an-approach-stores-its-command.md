@@ -14,4 +14,5 @@ Timed work, such as chopping or debarking, still keeps its own component. That c
 ## Consequences
 
 - Older saves upgrade each walk-only task component, and each timed task saved before its work began, to an approach. The upgrade writes the command shapes as literals, so later changes to a command do not change what the upgrade does.
-- A walk that ends out of reach ends the approach without a notice, and nothing retries it.
+- A walk that ends out of reach ends the approach, and nothing retries it. There is a notice only when a wall stands between the player and the thing: "You can't get to it from here." Otherwise there is no notice.
+- An approach starts only if its walk ends within reach. If no walk does, such as into a cabin with no way in, the player stays put and sees the same notice.

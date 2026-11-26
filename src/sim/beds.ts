@@ -4,12 +4,12 @@ import { entityWith, playerEntities, type Entity, type EntityStore } from "./ent
 import { BED_WIDTH_METRES } from "./furniture/bed";
 import { addGroundPoints, groundDistance, subtractGroundPoints, type GroundPoint } from "./ground-point";
 import { findPath } from "./pathfinding";
-import { turnOffset, wrapQuarterTurns, type QuarterTurns } from "./quarter-turns";
+import { turnOffset, wrapQuarterTurns } from "./quarter-turns";
 import { footprintOfEntity } from "./structures";
 import { isWalkable, type WalkMap } from "./walk-map";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { goneRefusal } from "./refusals";
-import { isBehindWall } from "./wall-reach";
+import { isBehindWall, wallsIn, type Walls } from "./wall-reach";
 
 /** The player can lie down in a bed from this far outside its edges, in metres. */
 export const BED_REACH_METRES = 1;
@@ -23,26 +23,23 @@ const BEDSIDE_METRES = [0.4, 0.7, 1] as const;
 const BEDSIDE_ALONG_METRES = 0.5;
 
 /**
- * Where the player stands to step up into a bed facing `turns` with its middle at `bed`, coming from `from`: off one of its
- * long sides, on open ground, as near the bed as the walk map allows. They step up from the side, never over the headboard
- * or footboard. Of the two sides, it picks the one with the shorter walk, so a bed against a wall is entered from the room.
- * `canReachFrom` turns down a spot the player could not reach the bed from, such as one behind a wall.
+ * Where the player stands to step up into a bed, coming from `from`: off one of its long sides, on open ground, as near the
+ * bed as the walk map allows. They step up from the side, never over the headboard or footboard.
+ * The spot is on the bed's side of every wall in `walls`. Of the two long sides, it picks the one with the shorter walk.
+ * So the player gets into a bed against a wall from the room.
  * Undefined if the player cannot walk to open ground beside either long side.
  */
-export function bedsideSpot(
-  walkMap: WalkMap,
-  bed: GroundPoint,
-  turns: QuarterTurns,
-  from: GroundPoint,
-  canReachFrom: (spot: GroundPoint) => boolean = () => true,
-): GroundPoint | undefined {
+export function bedsideSpot(walkMap: WalkMap, walls: Walls, bedEntity: BedEntity, from: GroundPoint): GroundPoint | undefined {
+  const bed = bedEntity.position;
+  const turns = bedEntity.facing?.turns ?? 0;
+  const footprint = footprintOfEntity(bedEntity);
   // In the bed's own frame, its length runs along z and its width along x, as when it faces the default way.
   const own = turnOffset(subtractGroundPoints(from, bed), wrapQuarterTurns(-turns));
   const along = Math.min(BEDSIDE_ALONG_METRES, Math.max(-BEDSIDE_ALONG_METRES, own.z));
   let best: { spot: GroundPoint; metres: number } | undefined;
   for (const side of [-1, 1]) {
     const spot = BEDSIDE_METRES.map((past) => addGroundPoints(bed, turnOffset({ x: side * (BED_WIDTH_METRES / 2 + past), z: along }, turns))).find(
-      (candidate) => isWalkable(walkMap, candidate) && canReachFrom(candidate),
+      (candidate) => isWalkable(walkMap, candidate) && !isBehindWall(walls, candidate, footprint),
     );
     if (spot === undefined) continue;
     const metres = walkMetres(walkMap, from, spot);
@@ -96,10 +93,8 @@ export function createBeds(entities: EntityStore, walkMap: WalkMap, sleepIn: (be
       const bed = bedById(bedId);
       if (bed === undefined) return undefined;
       const from = players.first?.position;
-      const footprint = footprintOfEntity(bed);
-      const canReachFrom = (spot: GroundPoint) => !isBehindWall(entities, spot, footprint);
-      const spot = from === undefined ? undefined : bedsideSpot(walkMap, bed.position, bed.facing?.turns ?? 0, from, canReachFrom);
-      return { target: footprint, metres: BED_REACH_METRES, walk: spot === undefined ? { style: "beside" } : { style: "onto", spot } };
+      const spot = from === undefined ? undefined : bedsideSpot(walkMap, wallsIn(entities), bed, from);
+      return { target: footprintOfEntity(bed), metres: BED_REACH_METRES, walk: spot === undefined ? { style: "beside" } : { style: "onto", spot } };
     },
     sleep(bedId) {
       const bed = bedById(bedId);

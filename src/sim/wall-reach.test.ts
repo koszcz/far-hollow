@@ -6,6 +6,8 @@ import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { addFinished, onlyPlayer, openFoundation, stepUntil } from "./test-steps";
+import { isBehindWall, wallsIn } from "./wall-reach";
+import { nearbyOf } from "./api";
 
 // Reach never crosses a wall: the player acts on a thing only from the thing's side of every log wall and window.
 // The tests build a cabin of 3 by 3 foundation squares, walled all round. Its west wall, on the -x side, has a log wall or a
@@ -135,6 +137,18 @@ describe("what blocks reach", () => {
     expect(game.client.nearestInReach()).toEqual({ kind: "furniture", id: idOf(game, stool), furniture: "stool" });
   });
 
+  it("is not a bare blueprint of a log wall: the player sits on a stool beyond one at once", () => {
+    const game = createGame({ seed: 42 });
+    const middle = openFoundation(game, 8);
+    send(game, { type: "placeBlueprint", structure: "logWall", turns: 1, ...middle });
+    const stool = addStool(game, { x: middle.x, z: middle.z });
+    standAt(game, { x: middle.x - 1.5, z: middle.z });
+
+    send(game, { type: "sitOnStool", stoolId: idOf(game, stool) });
+    expect(onlyPlayer(game).approach).toBeUndefined();
+    expect(game.client.getView().sittingOn).toBe(idOf(game, stool));
+  });
+
   it("is not a half-built log wall: the player sits on a stool beyond one at once", () => {
     const game = createGame({ seed: 42 });
     const middle = openFoundation(game, 8);
@@ -149,6 +163,71 @@ describe("what blocks reach", () => {
     send(game, { type: "sitOnStool", stoolId: idOf(game, stool) });
     expect(onlyPlayer(game).approach).toBeUndefined();
     expect(game.client.getView().sittingOn).toBe(idOf(game, stool));
+  });
+});
+
+describe("things inside a cabin, seen from behind its wall", () => {
+  it("are out of E's reach: a chest, a fireplace, and a bed", () => {
+    for (const kind of ["chest", "fireplace", "bed"] as const) {
+      const game = createGame({ seed: 42 });
+      const cabin = buildCabin(game);
+      // Each stands on the square inside the middle of the west wall. The fireplace backs onto the wall.
+      addFinished(game, kind, insideWest(cabin), kind === "fireplace" ? 1 : 0);
+      standAt(game, outsideWest(cabin));
+
+      expect(game.client.nearestInReach()).toBeNull();
+    }
+  });
+
+  it("closes an open chest once the player stands behind the wall from it, though still close by", () => {
+    const game = createGame({ seed: 42 });
+    const cabin = buildCabin(game);
+    const chest = addFinished(game, "chest", insideWest(cabin), 0);
+    standAt(game, cabin.middle);
+    send(game, { type: "openChest", chestId: chest.id });
+    stepUntil(game, () => onlyPlayer(game).approach === undefined && onlyPlayer(game).walkPath === undefined);
+    expect(nearbyOf(game.client.getView(), "openChest")?.id).toBe(chest.id);
+
+    standAt(game, outsideWest(cabin));
+    game.step();
+
+    expect(nearbyOf(game.client.getView(), "openChest")).toBeNull();
+  });
+
+  it("refuses to put the player in a bed in a cabin with no way in", () => {
+    const game = createGame({ seed: 42 });
+    const cabin = buildCabin(game, { east: "logWall" });
+    const bed = addFinished(game, "bed", insideWest(cabin), 0);
+    standAt(game, outsideWest(cabin));
+
+    send(game, { type: "sleepInBed", bedId: bed.id });
+
+    expect(game.client.getView().notice).toEqual({ kind: "cantGetThere" });
+    expect(onlyPlayer(game).approach).toBeUndefined();
+  });
+});
+
+describe("where a wall stands right at the player or the thing", () => {
+  it("lets a player standing on the wall's own line reach both sides of it", () => {
+    const game = createGame({ seed: 42 });
+    const cabin = buildCabin(game);
+    const walls = wallsIn(game.entities);
+    const onWall = { x: cabin.middle.x - 1.5, z: cabin.middle.z };
+
+    expect(isBehindWall(walls, onWall, insideWest(cabin))).toBe(false);
+    expect(isBehindWall(walls, onWall, outsideWest(cabin))).toBe(false);
+  });
+
+  it("lets the player reach a thing whose ground runs across the wall from either side", () => {
+    const game = createGame({ seed: 42 });
+    const cabin = buildCabin(game);
+    const walls = wallsIn(game.entities);
+    const across = { min: { x: cabin.middle.x - 1.8, z: cabin.middle.z - 0.3 }, max: { x: cabin.middle.x - 1.2, z: cabin.middle.z + 0.3 } };
+
+    expect(isBehindWall(walls, outsideWest(cabin), across)).toBe(false);
+    expect(isBehindWall(walls, insideWest(cabin), across)).toBe(false);
+    // A point just past the wall is behind it, as a check that the wall is there.
+    expect(isBehindWall(walls, outsideWest(cabin), insideWest(cabin))).toBe(true);
   });
 });
 

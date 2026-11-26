@@ -56,7 +56,7 @@ describe("chopping a tree", () => {
     for (const tree of treesNearestPlayer(game).slice(0, 12)) {
       const toCentre = pathLength(player.position, findPath(game.walkMap, player.position, tree.position));
       // 2 m is the walk the chop asks for: the tree's 1.2 m blocked circle, plus 1 m reach, less a 0.2 m margin.
-      const toReach = pathLength(player.position, findPathWithin(game.walkMap, player.position, tree.position, 2));
+      const toReach = pathLength(player.position, findPathWithin(game.walkMap, player.position, tree.position, 2, []));
       expect(toReach).toBeLessThanOrEqual(toCentre);
     }
   });

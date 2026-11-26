@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
-import { distanceToTarget, findPath, findPathWithin } from "./pathfinding";
+import { findPath, findPathWithin } from "./pathfinding";
+import { distanceToTarget } from "./walk-target";
 import type { GroundPoint } from "./ground-point";
 import { blockCircle, blockEdges, blockWhere, createWalkMap, isWalkable, unblockEdges, type WalkEdge } from "./walk-map";
 
@@ -91,7 +92,7 @@ describe("findPathWithin", () => {
     blockCircle(map, tree, TREE_RADIUS);
     const from = { x: -10, z: 0.5 };
 
-    const path = findPathWithin(map, from, tree, REACH);
+    const path = findPathWithin(map, from, tree, REACH, []);
 
     const end = path.at(-1) ?? from;
     expect(distanceBetween(end, tree)).toBeLessThanOrEqual(REACH + 1e-9);
@@ -109,7 +110,7 @@ describe("findPathWithin", () => {
     blockWhere(map, { x: 4, z: -5 }, { x: 9, z: 6 }, (spot) => spot.x < tree.x - 1);
     const from = { x: -10, z: 0.5 };
 
-    const path = findPathWithin(map, from, tree, REACH);
+    const path = findPathWithin(map, from, tree, REACH, []);
 
     const end = path.at(-1) ?? from;
     expect(isWalkable(map, end)).toBe(true);
@@ -125,7 +126,7 @@ describe("findPathWithin", () => {
     const tree = { x: 10.5, z: 0.5 };
     blockCircle(map, tree, TREE_RADIUS);
 
-    expect(findPathWithin(map, { x: 8.7, z: 0.5 }, tree, REACH)).toEqual([]);
+    expect(findPathWithin(map, { x: 8.7, z: 0.5 }, tree, REACH, [])).toEqual([]);
   });
 
   it("walks to the reachable spot nearest the target when nothing within the distance can be reached", () => {
@@ -137,7 +138,7 @@ describe("findPathWithin", () => {
     });
     const from = { x: -10, z: 0 };
 
-    const path = findPathWithin(map, from, pen, REACH);
+    const path = findPathWithin(map, from, pen, REACH, []);
 
     expect(path).toEqual(findPath(map, from, pen));
     const end = path.at(-1) ?? from;
@@ -153,7 +154,7 @@ describe("findPathWithin", () => {
       const map = createWalkMap({ size: 100 });
       const from = { x: 10, z: -10 };
 
-      const path = findPathWithin(map, from, sled, STAND);
+      const path = findPathWithin(map, from, sled, STAND, []);
 
       expect(path).toHaveLength(1);
       expect(path[0]?.x).toBeCloseTo(10, 6);
@@ -164,7 +165,7 @@ describe("findPathWithin", () => {
     it("stays put when the player already stands within the distance of the edge, though further from the middle", () => {
       const map = createWalkMap({ size: 100 });
 
-      expect(findPathWithin(map, { x: 11.5, z: 0.5 }, sled, STAND)).toEqual([]);
+      expect(findPathWithin(map, { x: 11.5, z: 0.5 }, sled, STAND, [])).toEqual([]);
     });
 
     it("walks the short way round a tree between the player and the rectangle, and stops within the distance of its edge", () => {
@@ -173,7 +174,7 @@ describe("findPathWithin", () => {
       blockCircle(map, tree, TREE_RADIUS);
       const from = { x: 10, z: -10 };
 
-      const path = findPathWithin(map, from, sled, STAND);
+      const path = findPathWithin(map, from, sled, STAND, []);
 
       const end = path.at(-1) ?? from;
       expect(distanceToTarget(sled, end)).toBeLessThanOrEqual(STAND);

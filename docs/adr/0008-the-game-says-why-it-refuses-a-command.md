@@ -6,6 +6,8 @@ Each module that carries out a command also gives its refusal, such as `woodpile
 
 Each kind of command has one rule. The activity module that carries out the command exports its rule, such as `woodpileRules` in `src/sim/woodpiles.ts`. `src/sim/command-rule.ts` defines the shape of a rule, and `commandRules` in `src/sim/game.ts` collects the rules of every module. The rule says whether the command stops what the player was doing, how to carry it out, why it is refused, and whether it needs free hands.
 
+One check does not run before the menu: whether any walk leads to the thing's side of every wall, since reach never crosses a wall. That check finds a path, and finding a path for each action in the menu would cost too much. So the menu lists an action on a thing in a cabin with no way in as allowed. When the player sends the command, the approach finds the path. If no walk gets there, the approach does not start, and the notice "You can't get to it from here." shows. Both the walk and the act step use the same reach rule, `isWithinReach` in `src/sim/wall-reach.ts`.
+
 We chose this because the UI used to check the same rules again from the game view, such as whether a woodpile was full. When a rule changed in the game, the menu could still show an action as allowed, and the action then did nothing.
 
 ## Considered options

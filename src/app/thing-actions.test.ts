@@ -793,6 +793,22 @@ describe("other things' actions", () => {
     ]);
   });
 
+  it("keeps the main action of other furniture in its usual states, as before the wood box", () => {
+    const world = worldWith({ backpack: { pot: 1, jug: 1, berries: 1 } });
+    const bed = world.add({ furniture: "bed", facing: { turns: 0 } });
+    const stool = world.add({ furniture: "stool", facing: { turns: 0 } });
+    const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 2, progress: 0 }, facing: { turns: 0 } });
+    const emptyBarrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 0, progress: 0 }, facing: { turns: 0 } });
+    const rack = world.add({ furniture: "dryingRack", dryingRack: [], facing: { turns: 0 } });
+    const mainOf = (kind: FurnitureKind, id: number) => summary(actionsFor(furniture(kind, id), world.reader)).find((line) => line.includes(" main"));
+
+    expect(mainOf("bed", bed)).toBe("sleep main");
+    expect(mainOf("stool", stool)).toBe("sit main");
+    expect(mainOf("rainBarrel", barrel)).toBe("drink main");
+    expect(mainOf("rainBarrel", emptyBarrel)).toBe("drink main off: the barrel is empty");
+    expect(mainOf("dryingRack", rack)).toBe("hang:berries main");
+  });
+
   it("lists filling a jug, enabled, while the barrel holds water and a jug has room", () => {
     const world = worldWith({ backpack: { jug: 1 } });
     const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 1, progress: 0 }, facing: { turns: 0 } });

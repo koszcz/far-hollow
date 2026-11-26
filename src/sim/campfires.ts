@@ -1,5 +1,5 @@
 import type { CampfireFuel, CampfireView, Command, Refusal } from "./api";
-import { hasInBackpack, removeFromBackpack } from "./backpack";
+import { hasInBackpack, removeFromBackpack, type Backpack } from "./backpack";
 import { toolRefusal } from "./refusals";
 import { snapToGridSquare } from "./build-grid";
 import { heldFireOf, heldFires, playerEntities, type EntityStore, type HeldFire } from "./entities";
@@ -13,7 +13,7 @@ import type { ApproachReach } from "./approach";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { reachToward } from "./hand-reach";
 import { tendApproach } from "./tending";
-import { takeOneFirewood, woodBoxFeeding } from "./wood-boxes";
+import type { WoodBoxes } from "./wood-boxes";
 
 export { FUEL_BURN_MINUTES } from "./fire";
 /** The most fuel a campfire holds, in game minutes of burning. Fuel that would go past it is not taken. */
@@ -57,8 +57,11 @@ export interface Campfires {
   burn(gameMinutes: number): void;
 }
 
-/** Lets the player light campfires and fireplaces, and keep them fuelled. */
-export function createCampfires(entities: EntityStore): Campfires {
+/** Where a fire's next piece of fuel comes from: a wood box in the fire's room, given by its entity id, or a backpack. */
+type FuelSource = { readonly from: "woodBox"; readonly woodBoxId: number } | { readonly from: "backpack"; readonly backpack: Backpack };
+
+/** Lets the player light campfires and fireplaces, and keep them fuelled. A fire takes its firewood from `woodBoxes` first. */
+export function createCampfires(entities: EntityStore, woodBoxes: WoodBoxes): Campfires {
   const players = playerEntities(entities);
 
   function fireById(campfireId: number): HeldFire | undefined {
@@ -84,19 +87,19 @@ export function createCampfires(entities: EntityStore): Campfires {
     return fire.fuelMinutes <= 0 ? { kind: "fireEmpty" } : toolRefusal(players.first, "steelAndFlint");
   }
 
-  /** The wood box the fire would take this fuel from: for firewood, the one nearest it in its room that holds any. None for other fuel. */
-  function woodBoxFor({ entity }: HeldFire, fuel: CampfireFuel) {
-    return fuel === "firewood" ? woodBoxFeeding(entities, entity.position) : undefined;
+  /**
+   * Where the fire's next piece of this fuel comes from: for firewood, the wood box nearest the fire in its room that holds any,
+   * and otherwise this backpack, if it holds the fuel. Undefined if neither holds any. Only firewood comes from a wood box.
+   */
+  function fuelSource({ entity }: HeldFire, fuel: CampfireFuel, backpack: Backpack | undefined): FuelSource | undefined {
+    const woodBoxId = fuel === "firewood" ? woodBoxes.woodBoxFeedingFire(entity.position) : undefined;
+    if (woodBoxId !== undefined) return { from: "woodBox", woodBoxId };
+    return backpack !== undefined && hasInBackpack(backpack, fuel) ? { from: "backpack", backpack } : undefined;
   }
 
-  /**
-   * Why the player could not put one piece of this fuel on the fire: neither a wood box in its room nor the backpack holds any,
-   * or it would not fit. Only firewood comes from a wood box.
-   */
+  /** Why the player could not put one piece of this fuel on the fire: neither a wood box in its room nor the backpack holds any, or it would not fit. */
   function fuelRefusal(held: HeldFire, fuel: CampfireFuel): Refusal | undefined {
-    const backpack = players.first?.backpack;
-    const inBackpack = backpack !== undefined && hasInBackpack(backpack, fuel);
-    if (!inBackpack && woodBoxFor(held, fuel) === undefined) return { kind: "noContent", content: fuel };
+    if (fuelSource(held, fuel, players.first?.backpack) === undefined) return { kind: "noContent", content: fuel };
     return fuelFits(held.fire, held.kind, fuel) ? undefined : { kind: "fireFull" };
   }
 
@@ -133,9 +136,10 @@ export function createCampfires(entities: EntityStore): Campfires {
       const player = tenderOf(held);
       if (player?.backpack === undefined || fuelRefusal(held, fuel) !== undefined) return;
       // Firewood comes from a wood box in the fire's room first. The player tends the fire from beside it, not from the box.
-      const box = woodBoxFor(held, fuel);
-      if (box !== undefined) takeOneFirewood(box);
-      else if (!removeFromBackpack(player.backpack, fuel, 1)) return;
+      const source = fuelSource(held, fuel, player.backpack);
+      if (source === undefined) return;
+      if (source.from === "woodBox") woodBoxes.takeOneForFire(source.woodBoxId);
+      else if (!removeFromBackpack(source.backpack, fuel, 1)) return;
       setFire(held, withFuel(held.fire, held.kind, fuel));
     },
     refusal(command) {

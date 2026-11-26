@@ -262,7 +262,9 @@ export function createGame({
   const foraging = createForaging(entities, handReach, isWinter);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding, instantBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
-  const campfires = createCampfires(entities);
+  // A fire takes its firewood from a wood box in its room first.
+  const woodBoxes = createWoodBoxes(entities);
+  const campfires = createCampfires(entities, woodBoxes);
   const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
   const beds = createBeds(entities, walking.walkMap, sleepIn);
   const woodpiles = createWoodpiles(entities);
@@ -292,7 +294,6 @@ export function createGame({
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const rainBarrels = createRainBarrels(entities);
   const dryingRacks = createDryingRacks(entities);
-  const woodBoxes = createWoodBoxes(entities);
   const cooking = createCooking(entities, campfires);
   const firing = createFiring(entities, campfires);
   const jugs = createJugs(entities);

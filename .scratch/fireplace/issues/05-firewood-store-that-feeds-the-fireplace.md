@@ -18,7 +18,7 @@
 ## Filling and emptying it
 
 - [x] A wood box holds up to 20 firewood and nothing else.
-- [x] "Put in firewood" moves one firewood from the backpack into the box. Shift-click moves all that fit.
+- [x] "Put in firewood" moves one firewood from the backpack into the box. "Put in all firewood" moves all that fit.
 - [x] "Take firewood" moves as much firewood as fits from the box into the backpack.
 - [x] Each action shows greyed, with the reason, when it cannot be done: the backpack has no firewood, the box is full, the box is empty, or the backpack has no room.
 - [x] The wood box shows how full it is.

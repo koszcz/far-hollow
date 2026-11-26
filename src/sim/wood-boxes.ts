@@ -35,7 +35,7 @@ function standsIn(box: WoodBoxEntity, room: Room): boolean {
  * The wood box a fire at this spot takes its next piece of firewood from: of the boxes in the fire's room that hold firewood,
  * the one nearest the fire. Undefined if the fire is in no room, or no box in its room holds firewood.
  */
-export function woodBoxFeeding(entities: EntityStore, fire: GroundPoint): WoodBoxEntity | undefined {
+function woodBoxFeedingFire(entities: EntityStore, fire: GroundPoint): WoodBoxEntity | undefined {
   const room = roomAround(entities, snapToGridSquare(fire));
   if (room === undefined) return undefined;
   let nearest: WoodBoxEntity | undefined;
@@ -46,10 +46,26 @@ export function woodBoxFeeding(entities: EntityStore, fire: GroundPoint): WoodBo
   return nearest;
 }
 
-/** Takes one piece of firewood out of the wood box. */
-export function takeOneFirewood(box: WoodBoxEntity): void {
-  box.woodBox = { firewood: Math.max(0, box.woodBox.firewood - 1) };
+/** A wood box and the player's backpack, which the player moves firewood between. */
+interface Move {
+  readonly box: WoodBoxEntity;
+  readonly backpack: Backpack;
 }
+
+/** Why the player could not make a move between this wood box and this backpack, given that the box still stands. */
+type MoveRule = (box: WoodBoxEntity, backpack: Backpack) => Refusal | undefined;
+
+/** Putting firewood in needs firewood in the backpack and room in the box. */
+const putInRule: MoveRule = (box, backpack) => {
+  if (countInBackpack(backpack, "firewood") <= 0) return { kind: "noContent", content: "firewood" };
+  return woodBoxRoom(box.woodBox.firewood) <= 0 ? { kind: "woodBoxFull" } : undefined;
+};
+
+/** Taking firewood out needs firewood in the box and room in the backpack for one more. */
+const takeRule: MoveRule = (box, backpack) => {
+  if (box.woodBox.firewood <= 0) return { kind: "woodBoxEmpty" };
+  return fitsInBackpack(backpack, "firewood", 1) ? undefined : { kind: "backpackFull" };
+};
 
 export interface WoodBoxes {
   /** Where the player walks to use a finished wood box: beside it, on their own side. Undefined if the entity is not one. */
@@ -59,9 +75,16 @@ export interface WoodBoxes {
   /** Why the player could not take firewood from the box, wherever they stand: it is gone or empty, or no firewood fits in the backpack. */
   takeRefusal(woodBoxId: number): Refusal | undefined;
   /** Moves one firewood from the backpack into the box, or with `all` as many as fit. Does nothing if the refusal does not pass. */
-  putIn(woodBoxId: number, all: boolean): void;
+  putIn(woodBoxId: number, all: boolean): PlainNotice | undefined;
   /** Moves as much of the box's firewood into the backpack as fits. Returns a notice if none fits. */
   take(woodBoxId: number): PlainNotice | undefined;
+  /**
+   * The entity id of the wood box a fire at this spot takes its next piece of firewood from: of the boxes in the fire's room
+   * that hold firewood, the one nearest the fire. Undefined if the fire is in no room, or no box in its room holds firewood.
+   */
+  woodBoxFeedingFire(fire: GroundPoint): number | undefined;
+  /** Takes one piece of firewood out of the wood box, for a fire. Does nothing if the box is gone or empty. */
+  takeOneForFire(woodBoxId: number): void;
   /** The wood box nearest the player that is within their reach, if any, as the HUD shows it. */
   nearby(): WoodBoxView | undefined;
 }
@@ -78,22 +101,19 @@ export function createWoodBoxes(entities: EntityStore): WoodBoxes {
   /** The player's backpack. A player with no backpack is treated as one whose backpack holds nothing. */
   const backpackOf = (): Backpack => players.first?.backpack ?? { contents: {} };
 
-  function putInRefusal(woodBoxId: number): Refusal | undefined {
+  /**
+   * Checks one move between the wood box and the backpack against its rule: why the game refuses it, or else the move to make.
+   * Gives neither if the entity is not a wood box, or the player has no backpack to move firewood into or out of.
+   */
+  function check(woodBoxId: number, rule: MoveRule): { readonly refusal?: Refusal; readonly move?: Move } {
     const gone = goneRefusal(entities, woodBoxId);
-    if (gone !== undefined) return gone;
+    if (gone !== undefined) return { refusal: gone };
     const box = boxById(woodBoxId);
-    if (box === undefined) return undefined;
-    if (countInBackpack(backpackOf(), "firewood") <= 0) return { kind: "noContent", content: "firewood" };
-    return woodBoxRoom(box.woodBox.firewood) <= 0 ? { kind: "woodBoxFull" } : undefined;
-  }
-
-  function takeRefusal(woodBoxId: number): Refusal | undefined {
-    const gone = goneRefusal(entities, woodBoxId);
-    if (gone !== undefined) return gone;
-    const box = boxById(woodBoxId);
-    if (box === undefined) return undefined;
-    if (box.woodBox.firewood <= 0) return { kind: "woodBoxEmpty" };
-    return fitsInBackpack(backpackOf(), "firewood", 1) ? undefined : { kind: "backpackFull" };
+    if (box === undefined) return {};
+    const refusal = rule(box, backpackOf());
+    if (refusal !== undefined) return { refusal };
+    const backpack = players.first?.backpack;
+    return backpack === undefined ? {} : { move: { box, backpack } };
   }
 
   return {
@@ -102,24 +122,32 @@ export function createWoodBoxes(entities: EntityStore): WoodBoxes {
       if (box === undefined) return undefined;
       return { target: box.position, metres: WOOD_BOX_REACH_METRES, walk: { style: "beside", standMetres: WOOD_BOX_STAND_METRES } };
     },
-    putInRefusal,
-    takeRefusal,
+    putInRefusal: (woodBoxId) => check(woodBoxId, putInRule).refusal,
+    takeRefusal: (woodBoxId) => check(woodBoxId, takeRule).refusal,
     putIn(woodBoxId, all) {
-      const box = boxById(woodBoxId);
-      const backpack = players.first?.backpack;
-      if (box === undefined || backpack === undefined || putInRefusal(woodBoxId) !== undefined) return;
+      const { move } = check(woodBoxId, putInRule);
+      if (move === undefined) return undefined;
+      const { box, backpack } = move;
       const moved = Math.min(all ? countInBackpack(backpack, "firewood") : 1, woodBoxRoom(box.woodBox.firewood));
-      if (moved <= 0 || !removeFromBackpack(backpack, "firewood", moved)) return;
-      box.woodBox = { firewood: box.woodBox.firewood + moved };
+      if (removeFromBackpack(backpack, "firewood", moved)) box.woodBox = { firewood: box.woodBox.firewood + moved };
+      return undefined;
     },
     take(woodBoxId) {
-      const box = boxById(woodBoxId);
-      const backpack = players.first?.backpack;
-      if (box === undefined || backpack === undefined || box.woodBox.firewood <= 0) return undefined;
+      const { move } = check(woodBoxId, takeRule);
+      if (move === undefined) return undefined;
+      const { box, backpack } = move;
       const moved = howManyFit(backpack, "firewood", box.woodBox.firewood);
       if (moved <= 0 || !addToBackpack(backpack, "firewood", moved)) return "backpackFull";
       box.woodBox = { firewood: box.woodBox.firewood - moved };
       return undefined;
+    },
+    woodBoxFeedingFire(fire) {
+      const box = woodBoxFeedingFire(entities, fire);
+      return box === undefined ? undefined : entities.id(box);
+    },
+    takeOneForFire(woodBoxId) {
+      const box = boxById(woodBoxId);
+      if (box !== undefined) box.woodBox = { firewood: Math.max(0, box.woodBox.firewood - 1) };
     },
     nearby() {
       const player = players.first;
@@ -143,10 +171,7 @@ export function woodBoxRules(boxes: WoodBoxes, { entities, hand }: RuleGame): Co
       approach: {
         reach: (command) => boxes.reach(command.woodBoxId),
         act: (command) => {
-          reachInto(command.woodBoxId, () => {
-            boxes.putIn(command.woodBoxId, command.all);
-            return undefined;
-          });
+          reachInto(command.woodBoxId, () => boxes.putIn(command.woodBoxId, command.all));
         },
       },
     },

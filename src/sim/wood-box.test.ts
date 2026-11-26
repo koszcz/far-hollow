@@ -292,18 +292,42 @@ describe("adding firewood to a fire in the same room", () => {
     expect(onlyPlayer(game).position).toMatchObject({ x: before.x, z: before.z });
   });
 
-  it("takes each queued piece from the box first", () => {
+  it("takes each queued piece from the box first, as Shift-click queues them", () => {
     const { game, box, fireplace } = gameWithWoodBox();
     box.entity.woodBox = { firewood: 2 };
-    give(game, "firewood", 1);
+    give(game, "firewood", 2);
     const command: Command = { type: "addFuel", campfireId: fireplace.id, fuel: "firewood" };
 
-    for (let i = 0; i < 3; i += 1) game.client.send({ type: "queueAction", action: command });
+    for (let i = 0; i < 2; i += 1) game.client.send({ type: "queueAction", action: command });
     game.step();
     stepUntil(game, () => game.client.getView().actionQueue.length === 0 && game.client.getView().reach === null);
 
     expect(box.entity.woodBox).toEqual({ firewood: 0 });
-    expect(onlyPlayer(game).backpack.contents.firewood).toBe(0);
+    expect(onlyPlayer(game).backpack.contents.firewood).toBe(2);
+
+    game.client.send({ type: "queueAction", action: command });
+    game.step();
+    stepUntil(game, () => game.client.getView().actionQueue.length === 0 && game.client.getView().reach === null);
+
+    expect(onlyPlayer(game).backpack.contents.firewood).toBe(1);
+  });
+
+  it("feeds a fireplace that stands against a wall of the room, whichever way it faces", () => {
+    for (const turns of [0, 1, 2, 3] as const) {
+      const game = createGame({ seed: 42 });
+      const [first, second, third] = roomNearPlayer(game, 3);
+      if (third === undefined) throw new Error("A short room");
+      // The first square has walls on three sides, so the fireplace backs onto a wall whichever way it faces.
+      const fireplace = addFinished(game, "fireplace", first, turns);
+      const box = addFinished(game, "woodBox", third, 0);
+      box.entity.woodBox = { firewood: 2 };
+      standOn(game, second);
+
+      addFirewood(game, fireplace);
+
+      expect(box.entity.woodBox).toEqual({ firewood: 1 });
+      expect(fireplace.entity.fireplace?.fuelMinutes).toBeGreaterThan(0);
+    }
   });
 
   it("serves no fire in another room or out in the open", () => {

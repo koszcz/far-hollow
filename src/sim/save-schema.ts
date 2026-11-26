@@ -7,6 +7,7 @@ import { GOALS } from "./journal";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { DRYING_RACK_FOOD_LIMIT, FOODS_TO_HANG, RACK_FOODS } from "./rack-food";
 import { FRESH_FOODS } from "./fresh-food";
+import { WOOD_BOX_FIREWOOD_LIMIT } from "./furniture/wood-box";
 import { NEED_KINDS } from "./needs";
 import { RECIPE_KINDS } from "./recipe-kind";
 import { EDGE_PIECE_KINDS, FURNITURE_KINDS, WORK_STATION_KINDS } from "./structure-kind";
@@ -83,6 +84,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("drinkFromRainBarrel", "fillPotFromRainBarrel", "fillJugFromRainBarrel"), barrelId: count })(value) ||
   shape({ type: exactly("hangOnRack"), rackId: count, food: exactly(...FOODS_TO_HANG) })(value) ||
   shape({ type: exactly("takeFoodOffRack"), rackId: count })(value) ||
+  shape({ type: exactly("putInWoodBox"), woodBoxId: count, all: boolean })(value) ||
+  shape({ type: exactly("takeFromWoodBox"), woodBoxId: count })(value) ||
   shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
   shape({ type: exactly("pickUpBark"), barkId: count })(value) ||
   shape({ type: exactly("forage"), spotId: count })(value) ||
@@ -175,6 +178,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   dryingRack: (value) =>
     list(shape({ food: exactly(...RACK_FOODS), minutesPreserved: finite, spoilsAt: finite }, ["spoilsAt"]))(value) &&
     (value as unknown[]).length <= DRYING_RACK_FOOD_LIMIT,
+  woodBox: shape({ firewood: (value) => count(value) && (value as number) <= WOOD_BOX_FIREWOOD_LIMIT }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
   dragHeading: finite,
@@ -293,6 +297,9 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   noBerries: true,
   rackFull: true,
   onlyRawFishSmokes: true,
+  needsRoom: true,
+  woodBoxFull: true,
+  woodBoxEmpty: true,
 };
 
 /** Why the game refused a command, as a notice names it. */

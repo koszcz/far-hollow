@@ -22,6 +22,7 @@ const OLD_HUD_IDS = [
   "drying-rack-icon",
   "dried-food-icons",
   "smoked-fish-icon",
+  "wood-box-icon",
   "floor-and-door-icons",
   "window-icons",
   "chimney-icon",

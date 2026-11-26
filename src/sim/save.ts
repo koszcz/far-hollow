@@ -86,6 +86,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addWallSwaps,
   spoilFreshFood,
   addDryingRacks,
+  addWoodBoxes,
   smokeFish,
 ];
 
@@ -210,6 +211,9 @@ export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
 export const DRYING_RACKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDryingRacks) + 2;
 /** The first save version that can hold raw fish smoking on a drying rack, and smoked fish. */
 export const SMOKED_FISH_SAVE_VERSION = SAVE_UPGRADES.indexOf(smokeFish) + 2;
+
+/** The first save version that can hold wood boxes and their blueprints. */
+export const WOOD_BOXES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWoodBoxes) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1122,8 +1126,13 @@ function addDryingRacks(save: Readonly<Record<string, unknown>>): Record<string,
   return nothingToUpgrade(save);
 }
 
+/** Version 64 to 65: the player can build wood boxes and keep firewood in them. A save from before then holds none, so it carries over unchanged. */
+function addWoodBoxes(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
 /**
- * Version 64 to 65: raw fish can smoke on a drying rack, and smoked fish can be kept anywhere food is kept. How far each food on
+ * Version 65 to 66: raw fish can smoke on a drying rack, and smoked fish can be kept anywhere food is kept. How far each food on
  * a rack has come is now called `minutesPreserved`, since it counts smoking as well as drying. A save from before then holds
  * no fish on a rack and no smoked fish, so only that name changes.
  */

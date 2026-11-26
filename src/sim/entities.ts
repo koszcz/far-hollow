@@ -252,6 +252,11 @@ export interface Entity {
    */
   dryingRack?: readonly FoodOnRack[];
   /**
+   * The firewood in a finished wood box, up to WOOD_BOX_FIREWOOD_LIMIT. A fire in the same room takes firewood from it before
+   * the backpack. See wood-boxes.ts.
+   */
+  woodBox?: { firewood: number };
+  /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.
    */

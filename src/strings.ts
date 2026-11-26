@@ -239,6 +239,7 @@ export const strings = {
       stool: "Stool",
       rainBarrel: "Rain barrel",
       dryingRack: "Drying rack",
+      woodBox: "Wood box",
       sawhorse: "Sawhorse",
       sled: "Sled",
     },
@@ -351,6 +352,12 @@ export const strings = {
     /** Raw fish on the rack that is not smoking, because no lit fire stands close by. Short, so it fits beside the bar. */
     noFire: "No fire",
     empty: "Nothing hangs here. Hang berries or mushrooms to dry them, or raw fish beside a lit fire to smoke it.",
+  },
+  woodBox: {
+    title: "Wood box",
+    fill: "Firewood",
+    /** How many pieces of firewood the box holds, out of the most it holds. */
+    count: (firewood: number, limit: number) => `${firewood} of ${limit} firewood`,
   },
   warmth: "Warmth",
   needs: "Needs",
@@ -637,6 +644,9 @@ export const strings = {
     fillPotHere: "Fill the pot",
     /** Pouring 1 drink from a rain barrel into a jug in the backpack. */
     fillJug: "Fill jug",
+    putInFirewood: "Put in firewood",
+    putInAllFirewood: "Put in all firewood",
+    takeFirewood: "Take firewood",
     drinkFromPot: "Drink",
     pourIntoJug: "Pour in clean water",
     drinkFromJug: "Drink",
@@ -724,6 +734,9 @@ export const strings = {
     noBerries: "no berries in the backpack",
     rackFull: `the rack holds ${DRYING_RACK_FOOD_LIMIT} foods`,
     onlyRawFishSmokes: "only raw fish can be smoked",
+    needsRoom: "a wood box goes only inside a room",
+    woodBoxFull: "the wood box is full",
+    woodBoxEmpty: "the wood box is empty",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

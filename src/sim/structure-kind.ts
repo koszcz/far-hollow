@@ -28,7 +28,7 @@ export type WorkStationKind = (typeof WORK_STATION_KINDS)[number];
  * The pieces of furniture the build menu can list, in the order it lists them. Furniture is placed freely and does not snap to the building grid.
  * This is the only list that names every piece. See src/sim/furniture.ts for what a new piece adds.
  */
-export const FURNITURE_KINDS = ["chest", "shelf", "bed", "table", "stool", "rainBarrel", "dryingRack"] as const;
+export const FURNITURE_KINDS = ["chest", "shelf", "bed", "table", "stool", "rainBarrel", "dryingRack", "woodBox"] as const;
 export type FurnitureKind = (typeof FURNITURE_KINDS)[number];
 
 /** A record with one entry for each piece of furniture, each made by `make`. */

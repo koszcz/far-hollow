@@ -601,14 +601,14 @@ function BuildIconSheet() {
   );
 }
 
-/** The furniture icons the "rain-barrel-icon" and "drying-rack-icon" sheets draw beside their piece, so the owner can compare their style. */
+/** The furniture icons the "rain-barrel-icon", "drying-rack-icon", and "wood-box-icon" sheets draw beside their piece, so the owner can compare their style. */
 const FURNITURE_ICON_NEIGHBOURS = ["chest", "table", "stool", "bed"] as const;
 
 /**
- * The first view of "rain-barrel-icon" or "drying-rack-icon": the piece's icon drawn large and at build menu size, beside four other
+ * The first view of "rain-barrel-icon", "drying-rack-icon", or "wood-box-icon": the piece's icon drawn large and at build menu size, beside four other
  * furniture icons. The full build icon sheet does not fit the piece in a quarter of the screen.
  */
-function FurnitureIconSheet({ piece }: { piece: "rainBarrel" | "dryingRack" }) {
+function FurnitureIconSheet({ piece }: { piece: "rainBarrel" | "dryingRack" | "woodBox" }) {
   const cell = {
     display: "flex",
     flexDirection: "column",
@@ -927,6 +927,8 @@ const STATES_BY_ASSET = {
   "drying-rack-icon": BUILD_ICON_STATES,
   "dried-food-icons": DRIED_FOOD_ICON_STATES,
   "smoked-fish-icon": SMOKED_FISH_ICON_STATES,
+  // And the wood box's.
+  "wood-box-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
   "window-icons": BUILD_ICON_STATES,
@@ -961,6 +963,7 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       asset === "fireplace-icon" ||
       asset === "rain-barrel-icon" ||
       asset === "drying-rack-icon" ||
+      asset === "wood-box-icon" ||
       asset === "floor-and-door-icons" ||
       asset === "window-icons" ||
       asset === "chimney-icon"
@@ -973,6 +976,8 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
             <FurnitureIconSheet piece="rainBarrel" />
           ) : asset === "drying-rack-icon" ? (
             <FurnitureIconSheet piece="dryingRack" />
+          ) : asset === "wood-box-icon" ? (
+            <FurnitureIconSheet piece="woodBox" />
           ) : (
             <BuildIconSheet />
           );

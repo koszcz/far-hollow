@@ -21,7 +21,7 @@ import type { OutlinePart } from "./hover-outline";
 
 /** The trap sinks this far below the ground under it, in metres, so its lower half sits in the water. */
 const SINK_METRES = FISH_TRAP_MOUTH_RADIUS_METRES * 0.6;
-/** The fish inside lies just above the waterline, in metres above the trap's bottom, so it shows, and toward the narrow end, past the funnel. */
+/** The fish inside lies just above the waterline, in metres above the trap's bottom, so it shows, and toward the narrow end, past the funnel. It lies wholly inside the basket's pick shape, so a click on it hits the trap. */
 const FISH_LIFT_METRES = SINK_METRES + 0.03;
 const FISH_ALONG_METRES = 0.1;
 /** The stake stands on the bank this far from the trap, away from the river, and this far upstream, beside the trap's mouth. In metres. */
@@ -75,6 +75,16 @@ function stakeSpot(river: River, spot: { x: number; z: number }, heading: number
   };
 }
 
+/** One drawn trap: its holder, the meshes that draw it, its pick shapes, its own stake and line geometries, and whether it shows a fish. */
+interface DrawnTrap {
+  readonly holder: THREE.Group;
+  /** The drawn meshes, the ones the hover outline traces. The pick shapes are kept apart from them. */
+  readonly shapes: THREE.Mesh[];
+  readonly pickers: THREE.Mesh[];
+  readonly own: THREE.BufferGeometry[];
+  readonly holding: boolean;
+}
+
 /** Draws set fish traps. `heightAt` gives the ground's height at a spot, for the stake on the bank. */
 export function createFishTrapMeshes(entities: EntityStore, river: River, heightAt: (x: number, z: number) => number): FishTrapMeshes {
   const group = new THREE.Group();
@@ -97,8 +107,7 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
   const basketPick = track(createFishTrapPickGeometry());
   const pickMaterial = track(new THREE.MeshBasicMaterial({ visible: false }));
   const query = fishTrapEntities(entities).connect();
-  /** Each drawn trap, with its meshes, its pick shapes, its own stake and line geometries, and whether they show a fish. */
-  const drawn = new Map<Entity, { holder: THREE.Group; pickers: THREE.Mesh[]; own: THREE.BufferGeometry[]; holding: boolean }>();
+  const drawn = new Map<Entity, DrawnTrap>();
   let dirty = true;
   const markDirty = () => {
     dirty = true;
@@ -106,11 +115,7 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
   query.onEntityAdded.subscribe(markDirty);
   query.onEntityRemoved.subscribe(markDirty);
 
-  function build(entity: Entity & { position: THREE.Vector3Like; fishTrap: { holding: boolean } }): {
-    holder: THREE.Group;
-    pickers: THREE.Mesh[];
-    own: THREE.BufferGeometry[];
-  } {
+  function build(entity: Entity & { position: THREE.Vector3Like; fishTrap: { holding: boolean } }): DrawnTrap {
     const holder = new THREE.Group();
     holder.position.set(entity.position.x, entity.position.y - SINK_METRES, entity.position.z);
     // The trap's mouth is at -z. Turn it so the mouth faces upstream, where the fish swim in from.
@@ -121,32 +126,36 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
     const stakeAt = stakeSpot(river, entity.position, heading);
     const stakeFoot = new THREE.Vector3(stakeAt.x, heightAt(stakeAt.x, stakeAt.z), stakeAt.z).applyMatrix4(holder.matrix.clone().invert());
     const { stake, line, stakePick } = createFishTrapStakeGeometries(stakeFoot);
-    for (const [geometry, partMaterial] of [
-      [sticks, stickMaterial],
-      [withy, withyMaterial],
-      [cord, cordMaterial],
-      [stake, stakeMaterial],
-      [line, cordMaterial],
+    const shapes: THREE.Mesh[] = [];
+    for (const [name, geometry, partMaterial] of [
+      ["sticks", sticks, stickMaterial],
+      ["withy", withy, withyMaterial],
+      ["cord", cord, cordMaterial],
+      ["stake", stake, stakeMaterial],
+      ["line", line, cordMaterial],
     ] as const) {
       const mesh = new THREE.Mesh(geometry, partMaterial);
+      mesh.name = name;
       mesh.castShadow = true;
-      holder.add(mesh);
+      shapes.push(mesh);
     }
     if (entity.fishTrap.holding) {
       for (const part of fishParts) {
         const mesh = new THREE.Mesh(part.geometry, part.material);
+        mesh.name = "fish";
         mesh.position.set(0, FISH_LIFT_METRES, FISH_ALONG_METRES);
-        holder.add(mesh);
+        shapes.push(mesh);
       }
     }
-    // The pick shapes are added last and kept apart, so the hover outline traces only the drawn shapes.
+    holder.add(...shapes);
+    // The pick shapes are kept apart from the drawn shapes, so the hover outline traces only the drawn shapes.
     const pickers = [basketPick, stakePick].map((geometry) => {
       const picker = new THREE.Mesh(geometry, pickMaterial);
       picker.userData.fishTrap = entity;
       holder.add(picker);
       return picker;
     });
-    return { holder, pickers, own: [stake, line, stakePick] };
+    return { holder, shapes, pickers, own: [stake, line, stakePick], holding: entity.fishTrap.holding };
   }
 
   function rebuild(): void {
@@ -156,9 +165,9 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
     }
     drawn.clear();
     for (const entity of query) {
-      const { holder, pickers, own } = build(entity);
-      drawn.set(entity, { holder, pickers, own, holding: entity.fishTrap.holding });
-      group.add(holder);
+      const trap = build(entity);
+      drawn.set(entity, trap);
+      group.add(trap.holder);
     }
   }
 
@@ -190,11 +199,7 @@ export function createFishTrapMeshes(entities: EntityStore, river: River, height
       const trap = drawn.get(entity);
       if (trap === undefined) return [];
       trap.holder.updateMatrixWorld(true);
-      return trap.holder.children.flatMap((child) =>
-        child instanceof THREE.Mesh && child.material !== pickMaterial
-          ? [{ geometry: child.geometry as THREE.BufferGeometry, matrix: child.matrixWorld.clone() }]
-          : [],
-      );
+      return trap.shapes.map((mesh) => ({ geometry: mesh.geometry, matrix: mesh.matrixWorld.clone() }));
     },
     dispose() {
       query.disconnect();

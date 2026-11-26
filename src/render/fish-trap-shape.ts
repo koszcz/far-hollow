@@ -18,6 +18,10 @@ const TAIL_RADIUS_METRES = 0.05;
 /** The trap is made of this many sticks round the cone. */
 const STICK_COUNT = 18;
 const STICK_RADIUS_METRES = 0.007;
+/** The hoop that holds the mouth open is a stick twice as thick, this far from its middle line to its outside, in metres. */
+const HOOP_TUBE_RADIUS_METRES = STICK_RADIUS_METRES * 2;
+/** The sticks run past the tail, to this share of the trap's length from the mouth, where the cord gathers them. */
+const STICK_OVERRUN_SHARE = 1.08;
 /** How far each stick bends and strays from a straight line, in metres, so the basket looks made by hand. */
 const STICK_WOBBLE_METRES = 0.008;
 /** Each band of withy is woven round the cone this far from the mouth, as a share of its length. */
@@ -79,15 +83,15 @@ export function createFishTrapGeometries(): { sticks: THREE.BufferGeometry; with
       const stray = share === 0 ? 0 : wobble(i, point) * STICK_WOBBLE_METRES;
       return onCone(angle + stray / radiusAt(share), share, Math.abs(wobble(i, point + 7)) * STICK_WOBBLE_METRES * 0.5);
     });
-    points.push(onCone(angle, 1.08, -0.025));
+    points.push(onCone(angle, STICK_OVERRUN_SHARE, -0.025));
     sticks.push(tube(points, STICK_RADIUS_METRES));
   }
   // A thicker hoop of stick holds the mouth open.
-  sticks.push(new THREE.TorusGeometry(radiusAt(0), STICK_RADIUS_METRES * 2, 5, 24).translate(0, axisY, mouthZ));
+  sticks.push(new THREE.TorusGeometry(radiusAt(0), HOOP_TUBE_RADIUS_METRES, 5, 24).translate(0, axisY, mouthZ));
   // The inner funnel: sticks from the hoop, leaning in to a small opening inside the basket.
   for (let i = 0; i < FUNNEL_COUNT; i += 1) {
     const angle = ((i + 0.5) / FUNNEL_COUNT) * Math.PI * 2;
-    const from = onCone(angle, 0, -STICK_RADIUS_METRES * 2);
+    const from = onCone(angle, 0, -HOOP_TUBE_RADIUS_METRES);
     const to = new THREE.Vector3(
       Math.cos(angle) * FUNNEL_OPENING_RADIUS_METRES,
       axisY + Math.sin(angle) * FUNNEL_OPENING_RADIUS_METRES,
@@ -141,18 +145,18 @@ export function createFishTrapGeometries(): { sticks: THREE.BufferGeometry; with
 }
 
 /** A click this close to the trap's basket or stake, in metres, still counts as a click on the trap. */
-const PICK_MARGIN_METRES = 0.05;
+export const PICK_MARGIN_METRES = 0.05;
 
 /**
  * The invisible solid shape that catches clicks on a trap's basket: a closed cone round the whole basket, sticks, hoop, and
  * tail knot, reaching PICK_MARGIN_METRES past them on every side, with no gaps. In the trap's own frame. The caller disposes it.
  */
 export function createFishTrapPickGeometry(): THREE.BufferGeometry {
-  // The hoop is the widest part at the mouth. The sticks run past the tail, to 1.08 of the length.
-  const mouthRadius = radiusAt(0) + STICK_RADIUS_METRES * 2 + PICK_MARGIN_METRES;
+  // The hoop is the widest part at the mouth. The sticks run past the tail, to STICK_OVERRUN_SHARE of the length.
+  const mouthRadius = radiusAt(0) + HOOP_TUBE_RADIUS_METRES + PICK_MARGIN_METRES;
   const tailRadius = radiusAt(1) + PICK_MARGIN_METRES;
-  const fromZ = -FISH_TRAP_LENGTH_METRES / 2 - STICK_RADIUS_METRES * 2 - PICK_MARGIN_METRES;
-  const toZ = -FISH_TRAP_LENGTH_METRES / 2 + FISH_TRAP_LENGTH_METRES * 1.08 + PICK_MARGIN_METRES;
+  const fromZ = -FISH_TRAP_LENGTH_METRES / 2 - HOOP_TUBE_RADIUS_METRES - PICK_MARGIN_METRES;
+  const toZ = -FISH_TRAP_LENGTH_METRES / 2 + FISH_TRAP_LENGTH_METRES * STICK_OVERRUN_SHARE + PICK_MARGIN_METRES;
   // A cylinder stands along +y with its top at +y. Turned a quarter about x, its top points along +z, at the tail.
   return new THREE.CylinderGeometry(tailRadius, mouthRadius, toZ - fromZ, 12)
     .rotateX(Math.PI / 2)
@@ -162,7 +166,7 @@ export function createFishTrapPickGeometry(): THREE.BufferGeometry {
 /** How tall the stake stands above the ground, and how deep it goes in, in metres. */
 const STAKE_HEIGHT_METRES = 0.4;
 const STAKE_DEPTH_METRES = 0.1;
-const STAKE_RADIUS_METRES = 0.016;
+export const STAKE_RADIUS_METRES = 0.016;
 
 /**
  * The stake a set trap is tied to and the cord line to the trap's hoop, both in the trap's own frame. `stakeAt` is the foot
@@ -229,7 +233,7 @@ export function fishTrapPileParts(material: MakeMaterial, track: Track): readonl
     .applyMatrix4(turn)
     .add(new THREE.Vector3(0, FISH_TRAP_MOUTH_RADIUS_METRES - TAIL_RADIUS_METRES, FISH_TRAP_LENGTH_METRES / 2).applyMatrix4(turn))
     .multiplyScalar(0.5);
-  const lay = (geometry: THREE.BufferGeometry) => geometry.applyMatrix4(turn).translate(-underside.x, -underside.y + STICK_RADIUS_METRES * 2, -underside.z);
+  const lay = (geometry: THREE.BufferGeometry) => geometry.applyMatrix4(turn).translate(-underside.x, -underside.y + HOOP_TUBE_RADIUS_METRES, -underside.z);
   return [
     { geometry: track(lay(sticks)), material: material(TRAP_STICK_COLOUR) },
     { geometry: track(lay(withy)), material: material(WITHY_COLOUR) },

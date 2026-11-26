@@ -1,6 +1,7 @@
 // The fish trap and cord shapes. Built in code. Added by fish-trap ticket 01.
 // The fish trap is part of the approved "fish-trap" asset: fish-trap-meshes.ts draws a set trap half in the river's water,
-// with the stake and line from createFishTrapStakeGeometries that tie it to the bank.
+// with the stake and line from createFishTrapStakeGeometries that tie it to the bank. createFishTrapPickGeometry and the
+// stake's pick shape are never drawn: they catch clicks that would pass through the gaps between the thin sticks.
 // The trap lying in a pile and a coil of cord in a pile are the approved "fish-trap-piles" asset: pile-meshes.ts lays them out.
 // A fish trap is a woven cone basket, about 70 cm long, its wide mouth at -z and its narrow tail at +z. Eighteen slightly
 // bent sticks run from a hoop at the mouth to the tail, where a knot of cord gathers them. Bands of pale withy are woven
@@ -139,6 +140,25 @@ export function createFishTrapGeometries(): { sticks: THREE.BufferGeometry; with
   return merged;
 }
 
+/** A click this close to the trap's basket or stake, in metres, still counts as a click on the trap. */
+const PICK_MARGIN_METRES = 0.05;
+
+/**
+ * The invisible solid shape that catches clicks on a trap's basket: a closed cone round the whole basket, sticks, hoop, and
+ * tail knot, reaching PICK_MARGIN_METRES past them on every side, with no gaps. In the trap's own frame. The caller disposes it.
+ */
+export function createFishTrapPickGeometry(): THREE.BufferGeometry {
+  // The hoop is the widest part at the mouth. The sticks run past the tail, to 1.08 of the length.
+  const mouthRadius = radiusAt(0) + STICK_RADIUS_METRES * 2 + PICK_MARGIN_METRES;
+  const tailRadius = radiusAt(1) + PICK_MARGIN_METRES;
+  const fromZ = -FISH_TRAP_LENGTH_METRES / 2 - STICK_RADIUS_METRES * 2 - PICK_MARGIN_METRES;
+  const toZ = -FISH_TRAP_LENGTH_METRES / 2 + FISH_TRAP_LENGTH_METRES * 1.08 + PICK_MARGIN_METRES;
+  // A cylinder stands along +y with its top at +y. Turned a quarter about x, its top points along +z, at the tail.
+  return new THREE.CylinderGeometry(tailRadius, mouthRadius, toZ - fromZ, 12)
+    .rotateX(Math.PI / 2)
+    .translate(0, FISH_TRAP_MOUTH_RADIUS_METRES, (fromZ + toZ) / 2);
+}
+
 /** How tall the stake stands above the ground, and how deep it goes in, in metres. */
 const STAKE_HEIGHT_METRES = 0.4;
 const STAKE_DEPTH_METRES = 0.1;
@@ -149,7 +169,12 @@ const STAKE_RADIUS_METRES = 0.016;
  * of the stake on the bank. The line runs from near the stake's top to the side of the mouth's hoop nearest the stake, and
  * sags a little between them. The caller disposes the geometries.
  */
-export function createFishTrapStakeGeometries(stakeAt: THREE.Vector3Like): { stake: THREE.BufferGeometry; line: THREE.BufferGeometry } {
+export function createFishTrapStakeGeometries(stakeAt: THREE.Vector3Like): {
+  stake: THREE.BufferGeometry;
+  line: THREE.BufferGeometry;
+  /** The invisible solid shape that catches clicks on the stake, PICK_MARGIN_METRES wider than it all round. */
+  stakePick: THREE.BufferGeometry;
+} {
   const foot = new THREE.Vector3(stakeAt.x, stakeAt.y, stakeAt.z);
   // The stake leans a little away from the trap, as if the line pulls on it.
   const lean = new THREE.Vector3(foot.x, 0, foot.z).normalize().multiplyScalar(0.06);
@@ -158,9 +183,13 @@ export function createFishTrapStakeGeometries(stakeAt: THREE.Vector3Like): { sta
     .clone()
     .add(new THREE.Vector3(-lean.x * (STAKE_DEPTH_METRES / STAKE_HEIGHT_METRES), -STAKE_DEPTH_METRES, -lean.z * (STAKE_DEPTH_METRES / STAKE_HEIGHT_METRES)));
   const length = top.distanceTo(bottom);
-  const stake = new THREE.CylinderGeometry(STAKE_RADIUS_METRES * 0.9, STAKE_RADIUS_METRES, length, 6);
-  stake.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(bottom).normalize()));
-  stake.translate((top.x + bottom.x) / 2, (top.y + bottom.y) / 2, (top.z + bottom.z) / 2);
+  const upright = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(bottom).normalize());
+  const place = (geometry: THREE.BufferGeometry) =>
+    geometry.applyQuaternion(upright).translate((top.x + bottom.x) / 2, (top.y + bottom.y) / 2, (top.z + bottom.z) / 2);
+  const stake = place(new THREE.CylinderGeometry(STAKE_RADIUS_METRES * 0.9, STAKE_RADIUS_METRES, length, 6));
+  const stakePick = place(
+    new THREE.CylinderGeometry(STAKE_RADIUS_METRES + PICK_MARGIN_METRES, STAKE_RADIUS_METRES + PICK_MARGIN_METRES, length + PICK_MARGIN_METRES * 2, 8),
+  );
   // The cord ties round the stake just below its top, and onto the hoop on the stake's side.
   const tieOnStake = foot.clone().lerp(top, 0.8);
   const side = Math.atan2(foot.y - FISH_TRAP_MOUTH_RADIUS_METRES, foot.x);
@@ -175,7 +204,7 @@ export function createFishTrapStakeGeometries(stakeAt: THREE.Vector3Like): { sta
   ];
   const line = mergeGeometries(lineParts);
   for (const part of lineParts) part.dispose();
-  return { stake, line };
+  return { stake, line, stakePick };
 }
 
 /** Makes a material from a colour. The caller disposes it. */

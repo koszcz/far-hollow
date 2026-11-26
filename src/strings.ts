@@ -4,7 +4,7 @@ import { FETCH_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
 import { CAMPFIRE_STICK_COST, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST, SAWHORSE_LOG_COST } from "./sim/structures";
 import { DRYING_RACK_CORD_COST, DRYING_RACK_STICK_COST } from "./sim/furniture/drying-rack";
-import { DRY_MINUTES, DRYING_RACK_FOOD_LIMIT } from "./sim/rack-food";
+import { DRY_MINUTES, DRYING_RACK_FOOD_LIMIT, SMOKE_MINUTES } from "./sim/rack-food";
 
 /** A weight in kilograms, to one decimal place at most, such as "5.5" or "10". */
 function kilogramsText(kilograms: number): string {
@@ -58,6 +58,7 @@ const PILE_HOLDS: Readonly<Record<BackpackContent, (count: number) => string>> =
   cookedFish: (count) => (count === 1 ? "1 cooked fish" : `${count} cooked fish`),
   driedBerries: (count) => (count === 1 ? "1 handful of dried berries" : `${count} handfuls of dried berries`),
   driedMushroom: (count) => (count === 1 ? "1 dried mushroom" : `${count} dried mushrooms`),
+  smokedFish: (count) => (count === 1 ? "1 smoked fish" : `${count} smoked fish`),
 };
 
 /** How many of each fresh food spoiled, in words, for the notice that says so. */
@@ -238,6 +239,7 @@ export const strings = {
       stool: "Stool",
       rainBarrel: "Rain barrel",
       dryingRack: "Drying rack",
+      woodBox: "Wood box",
       sawhorse: "Sawhorse",
       sled: "Sled",
     },
@@ -345,7 +347,17 @@ export const strings = {
     /** One food on the rack, as the rack's panel lists it. */
     drying: "Drying",
     dried: "Dried",
-    empty: "Nothing hangs here. Hang berries or mushrooms to dry them.",
+    smoking: "Smoking",
+    smoked: "Smoked",
+    /** Raw fish on the rack that is not smoking, because no lit fire stands close by. Short, so it fits beside the bar. */
+    noFire: "No fire",
+    empty: "Nothing hangs here. Hang berries or mushrooms to dry them, or raw fish beside a lit fire to smoke it.",
+  },
+  woodBox: {
+    title: "Wood box",
+    fill: "Firewood",
+    /** How many pieces of firewood the box holds, out of the most it holds. */
+    count: (firewood: number, limit: number) => `${firewood} of ${limit} firewood`,
   },
   warmth: "Warmth",
   needs: "Needs",
@@ -386,6 +398,7 @@ export const strings = {
     cannotCraftYet: (lacking: readonly string[]) => `This needs ${lacking.join(" and ")} first.`,
     /** Crafting finished, but some of the result did not fit in the backpack, such as "2 planks dropped beside the sawhorse." */
     droppedBesideStation: (what: string, station: string) => `${what} dropped beside the ${station.toLowerCase()}.`,
+    cantGetThere: "You can't get to it from here.",
     queueFull: `You can line up at most ${ACTION_QUEUE_LIMIT} actions.`,
     /** The player tried to line up an action the game refuses now, such as "You cannot line that up: needs the axe." */
     cannotQueue: (reason: string) => `You cannot line that up: ${reason}.`,
@@ -458,7 +471,7 @@ export const strings = {
       },
       preserveFood: {
         name: "Preserve some food for winter.",
-        hint: `Press B to build a drying rack from ${DRYING_RACK_STICK_COST} sticks and ${DRYING_RACK_CORD_COST} cords. Hang berries or mushrooms on it, and they dry in ${DRY_MINUTES / 60} hours. Dried food never spoils.`,
+        hint: `Press B to build a drying rack from ${DRYING_RACK_STICK_COST} sticks and ${DRYING_RACK_CORD_COST} cords. Hang berries or mushrooms on it, and they dry in ${DRY_MINUTES / 60} hours. Hang raw fish on it beside a lit fire, and it smokes in ${SMOKE_MINUTES / 60} hours. Dried and smoked food never spoils.`,
         done: "first food preserved",
       },
     } satisfies Record<Goal, { name: string; hint: string; done: string }>,
@@ -499,6 +512,7 @@ export const strings = {
     cookedFish: "Cooked fish",
     driedBerries: "Dried berries",
     driedMushroom: "Dried mushroom",
+    smokedFish: "Smoked fish",
   },
   chest: {
     title: "Chest",
@@ -593,7 +607,7 @@ export const strings = {
     cookFish: "Cook fish",
     takeFishOff: "Take fish off",
     /** Hanging one food from the backpack on a drying rack. */
-    hangOnRack: { berries: "Hang berries", mushroom: "Hang a mushroom" },
+    hangOnRack: { berries: "Hang berries", mushroom: "Hang a mushroom", rawFish: "Hang raw fish", cookedFish: "Hang cooked fish" },
     /** Taking every food off a drying rack into the backpack. */
     takeFoodOffRack: "Take food off",
     fireJug: "Fire jug",
@@ -631,6 +645,9 @@ export const strings = {
     fillPotHere: "Fill the pot",
     /** Pouring 1 drink from a rain barrel into a jug in the backpack. */
     fillJug: "Fill jug",
+    putInFirewood: "Put in firewood",
+    putInAllFirewood: "Put in all firewood",
+    takeFirewood: "Take firewood",
     drinkFromPot: "Drink",
     pourIntoJug: "Pour in clean water",
     drinkFromJug: "Drink",
@@ -717,6 +734,10 @@ export const strings = {
     addOnInTheWay: "something is in the way",
     noBerries: "no berries in the backpack",
     rackFull: `the rack holds ${DRYING_RACK_FOOD_LIMIT} foods`,
+    onlyRawFishSmokes: "only raw fish can be smoked",
+    needsRoom: "a wood box goes only inside a room",
+    woodBoxFull: "the wood box is full",
+    woodBoxEmpty: "the wood box is empty",
     /** A delivered material the blueprint needs before the next stage can be built. */
     bringFirst: { log: "bring a log first", debarkedLog: "bring a debarked log first" },
   },

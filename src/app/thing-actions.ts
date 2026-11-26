@@ -23,6 +23,7 @@ import type {
   CampfireView,
   CarriedLog,
   DryingRackView,
+  FoodToHang,
   CarriedThing,
   Command,
   FurnitureKind,
@@ -333,12 +334,17 @@ const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: Furnitur
     icon: { content: "jugWith3Drinks" },
     listed: (view) => JUG_CONTENTS.some((jug) => has(view, jug)),
   },
+  putInFirewood: { id: "putInFirewood", label: strings.actions.putInFirewood, icon: { content: "firewood" } },
+  putInAllFirewood: { id: "putInAllFirewood", label: strings.actions.putInAllFirewood, icon: { content: "firewood" } },
+  takeFirewood: { id: "takeFirewood", label: strings.actions.takeFirewood, icon: { content: "firewood" } },
 };
 
 /**
- * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action.
+ * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action,
+ * unless the game would refuse it and allows one of the other uses, which is then the main action.
  * A piece with no use, such as a table, offers only taking it down. The player eats at a table as they eat anywhere.
  * A rain barrel offers drinking, then filling the pot, then filling a jug while the backpack holds one.
+ * A wood box offers putting in one firewood, then all that fit, then taking firewood.
  * Each shows greyed, with the reason, when the game would refuse it.
  */
 function furnitureActions(kind: FurnitureKind, id: number, context: Context): readonly ThingAction[] {
@@ -349,27 +355,32 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
     return context.offer(action.id, action.label, action.icon, command(id));
   };
   const main = offerUse(use);
-  const moreUses = furnitureMoreUses(kind).filter(({ name }) => FURNITURE_USE_ACTIONS[name].listed?.(context.view) ?? true);
-  return withMain([main, ...moreUses.map(offerUse), takeDown(context, id)], main.id);
+  const moreUses = furnitureMoreUses(kind)
+    .filter(({ name }) => FURNITURE_USE_ACTIONS[name].listed?.(context.view) ?? true)
+    .map(offerUse);
+  // A greyed main action does nothing, so another use the player can do now takes its place, such as taking firewood from a wood box.
+  const mainId = main.enabled ? main.id : (moreUses.find(({ enabled }) => enabled)?.id ?? main.id);
+  return withMain([main, ...moreUses, takeDown(context, id)], mainId);
 }
 
 /**
  * Hang each food, take the food off, then take the rack down. Hanging a food shows only while the backpack holds it, and taking
  * food off only while the rack holds some. Each shows greyed, with the reason, when the game would refuse it, such as on a full rack.
- * Main: take the food off once some has dried, or else hang the first food the player can hang.
+ * Hanging cooked fish shows, greyed with the reason, while the backpack holds cooked fish but no raw fish, so the player learns
+ * that only raw fish can be smoked.
+ * Main: take the food off once some is preserved, or else hang the first food the player can hang.
  */
 function dryingRackActions(rack: DryingRackView, context: Context): readonly ThingAction[] {
   const { view, offer } = context;
   const rackId = rack.id;
-  const hang = RACK_FOODS.flatMap((food) =>
-    offerIf(has(view, food), () => offer(`hang:${food}`, strings.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
+  const shown = (food: FoodToHang): boolean => has(view, food) && (food !== "cookedFish" || !has(view, "rawFish"));
+  const hang = [...RACK_FOODS, "cookedFish" as const].flatMap((food) =>
+    offerIf(shown(food), () => offer(`hang:${food}`, strings.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
   );
-  const driedOne = rack.food.find(({ dried }) => dried);
-  const takeIcon: ActionIcon = {
-    content: driedOne === undefined ? (rack.food[0]?.food ?? "berries") : driedOne.food === "berries" ? "driedBerries" : "driedMushroom",
-  };
+  const preservedOne = rack.food.find(({ preserved }) => preserved);
+  const takeIcon: ActionIcon = { content: (preservedOne ?? rack.food[0])?.content ?? "berries" };
   const takeOff = offerIf(rack.food.length > 0, () => offer("takeFoodOffRack", strings.actions.takeFoodOffRack, takeIcon, { type: "takeFoodOffRack", rackId }));
-  const main = driedOne !== undefined ? takeOff[0] : (hang.find(({ enabled }) => enabled) ?? takeOff[0] ?? hang[0]);
+  const main = preservedOne !== undefined ? takeOff[0] : (hang.find(({ enabled }) => enabled) ?? takeOff[0] ?? hang[0]);
   return withMain([...hang, ...takeOff, takeDown(context, rackId)], main?.id);
 }
 
@@ -547,6 +558,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
     case "cookedFish":
     case "driedBerries":
     case "driedMushroom":
+    case "smokedFish":
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };

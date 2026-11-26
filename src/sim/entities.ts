@@ -247,9 +247,15 @@ export interface Entity {
   rainBarrel?: FillLevel;
   /**
    * The food hanging on a finished drying rack, in the order it was hung, up to DRYING_RACK_FOOD_LIMIT. Empty when it holds none.
-   * Each food dries as time passes, and fresh food on it spoils until it has dried. See drying-racks.ts.
+   * Berries and mushrooms dry as time passes, and raw fish smokes while a lit fire is close by. Fresh food on it spoils until
+   * it is preserved. See drying-racks.ts.
    */
   dryingRack?: readonly FoodOnRack[];
+  /**
+   * The firewood in a finished wood box, up to WOOD_BOX_FIREWOOD_LIMIT. A fire in the same room takes firewood from it before
+   * the backpack. See wood-boxes.ts.
+   */
+  woodBox?: { firewood: number };
   /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.

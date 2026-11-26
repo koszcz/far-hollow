@@ -14,7 +14,7 @@ import {
   type EntityStore,
 } from "./entities";
 import { findRooms, isRoomSnug } from "./rooms";
-import { anyFoodDriedOnRack } from "./drying-racks";
+import { anyFoodPreservedOnRack } from "./drying-racks";
 import type { CommandRules } from "./command-rule";
 
 /** How many game minutes the notice that a goal is done shows for. One game minute is one real second. */
@@ -94,7 +94,7 @@ function valleyShowsGoal(goal: Goal, entities: EntityStore, player: Entity): boo
       return findRooms(entities).some((room) => isRoomSnug(entities, room));
     case "preserveFood":
       // Food finishes on the rack and stays there until the player takes it off, so the rack shows it the moment it does.
-      return anyFoodDriedOnRack(entities);
+      return anyFoodPreservedOnRack(entities);
   }
 }
 

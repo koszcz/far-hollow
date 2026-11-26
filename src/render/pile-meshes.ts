@@ -13,6 +13,7 @@
 // The pivot of each pile is its middle, on the ground.
 import * as THREE from "three";
 import { driedFoodParts } from "./dried-food-shapes";
+import { smokedFishParts } from "./smoked-fish-shape";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { BackpackContent } from "../sim/backpack";
 import { pileEntities, type Entity, type EntityStore } from "../sim/entities";
@@ -347,6 +348,8 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     berryBush: owned(berryBushPileParts((colour) => material(colour))),
     // Dried berries and dried mushrooms are the draft "dried-food-piles" asset, drawn by dried-food-shapes.ts.
     ...driedFoodParts((colour) => material(colour), track),
+    // Smoked fish is the draft "smoked-fish-pile" asset, drawn by smoked-fish-shape.ts.
+    smokedFish: smokedFishParts((colour) => material(colour), track),
   };
   const spread = (spacing: number): Layout => ({ kind: "spread", spacing });
   const LAYOUTS: Readonly<Record<Exclude<BackpackContent, "stick">, Layout>> = {
@@ -376,6 +379,7 @@ export function createPileMeshes(entities: EntityStore, mushrooms: MushroomsShap
     mushroom: spread(0.1),
     driedBerries: spread(0.05),
     driedMushroom: spread(0.07),
+    smokedFish: spread(0.12),
     bedroll: spread(0.3),
     pot: spread(0.3),
     potOfRiverWater: spread(0.3),

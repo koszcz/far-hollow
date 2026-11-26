@@ -764,6 +764,35 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(furniture("rainBarrel", other), noJug.reader))).not.toContain("fillJug");
   });
 
+  it("puts firewood in a wood box as its main action, all of it, or takes firewood from it", () => {
+    const world = worldWith({ backpack: { firewood: 3 } });
+    const box = world.add({ furniture: "woodBox", woodBox: { firewood: 2 }, facing: { turns: 0 } });
+    const actions = actionsFor(furniture("woodBox", box), world.reader);
+    expect(summary(actions)).toEqual(["putInFirewood main", "putInAllFirewood", "takeFirewood", "takeDown off: empty it first"]);
+    expect(find(actions, "putInFirewood")).toMatchObject({ label: "Put in firewood", command: { type: "putInWoodBox", woodBoxId: box, all: false } });
+    expect(find(actions, "putInAllFirewood")).toMatchObject({ label: "Put in all firewood", command: { type: "putInWoodBox", woodBoxId: box, all: true } });
+    expect(find(actions, "takeFirewood")).toMatchObject({ label: "Take firewood", command: { type: "takeFromWoodBox", woodBoxId: box } });
+  });
+
+  it("greys each wood box action with its reason, and takes firewood as the main action when that is all the player can do", () => {
+    const world = worldWith({});
+    const empty = world.add({ furniture: "woodBox", woodBox: { firewood: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("woodBox", empty), world.reader))).toEqual([
+      "putInFirewood main off: no firewood",
+      "putInAllFirewood off: no firewood",
+      "takeFirewood off: the wood box is empty",
+      "takeDown",
+    ]);
+
+    const full = world.add({ furniture: "woodBox", woodBox: { firewood: 20 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("woodBox", full), world.reader))).toEqual([
+      "takeFirewood main",
+      "putInFirewood off: no firewood",
+      "putInAllFirewood off: no firewood",
+      "takeDown off: empty it first",
+    ]);
+  });
+
   it("lists filling a jug, enabled, while the barrel holds water and a jug has room", () => {
     const world = worldWith({ backpack: { jug: 1 } });
     const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 1, progress: 0 }, facing: { turns: 0 } });
@@ -788,7 +817,7 @@ describe("other things' actions", () => {
     expect(find(actions, "hang:mushroom")).toMatchObject({ label: "Hang a mushroom", command: { type: "hangOnRack", rackId: rack, food: "mushroom" } });
 
     const onlyMushroom = worldWith({ backpack: { mushroom: 1 } });
-    const hung = onlyMushroom.add({ furniture: "dryingRack", dryingRack: [{ food: "berries", minutesDried: 10, spoilsAt: 5000 }], facing: { turns: 0 } });
+    const hung = onlyMushroom.add({ furniture: "dryingRack", dryingRack: [{ food: "berries", minutesPreserved: 10, spoilsAt: 5000 }], facing: { turns: 0 } });
     expect(summary(actionsFor(furniture("dryingRack", hung), onlyMushroom.reader))).toEqual([
       "hang:mushroom main",
       "takeFoodOffRack",
@@ -800,12 +829,33 @@ describe("other things' actions", () => {
     const world = worldWith({ backpack: { berries: 1 } });
     const rack = world.add({
       furniture: "dryingRack",
-      dryingRack: Array.from({ length: 6 }, () => ({ food: "mushroom" as const, minutesDried: 360 })),
+      dryingRack: Array.from({ length: 6 }, () => ({ food: "mushroom" as const, minutesPreserved: 360 })),
       facing: { turns: 0 },
     });
     const actions = actionsFor(furniture("dryingRack", rack), world.reader);
     expect(summary(actions)).toEqual(["takeFoodOffRack main", "hang:berries off: the rack holds 6 foods", "takeDown off: empty it first"]);
     expect(find(actions, "takeFoodOffRack")).toMatchObject({ icon: { content: "driedMushroom" }, command: { type: "takeFoodOffRack", rackId: rack } });
+  });
+
+  it("hangs raw fish on a drying rack, and greys hanging cooked fish, since only raw fish can be smoked", () => {
+    const world = worldWith({ backpack: { rawFish: 1, cookedFish: 1 } });
+    const rack = world.add({ furniture: "dryingRack", dryingRack: [], facing: { turns: 0 } });
+    const actions = actionsFor(furniture("dryingRack", rack), world.reader);
+    expect(summary(actions)).toEqual(["hang:rawFish main", "takeDown"]);
+    expect(find(actions, "hang:rawFish")).toMatchObject({ label: "Hang raw fish", command: { type: "hangOnRack", rackId: rack, food: "rawFish" } });
+
+    const onlyCooked = worldWith({ backpack: { cookedFish: 2 } });
+    const empty = onlyCooked.add({ furniture: "dryingRack", dryingRack: [], facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("dryingRack", empty), onlyCooked.reader))).toEqual([
+      "hang:cookedFish main off: only raw fish can be smoked",
+      "takeDown",
+    ]);
+  });
+
+  it("shows smoked fish on the action that takes it off the rack", () => {
+    const world = worldWith({});
+    const rack = world.add({ furniture: "dryingRack", dryingRack: [{ food: "rawFish", minutesPreserved: 240 }], facing: { turns: 0 } });
+    expect(find(actionsFor(furniture("dryingRack", rack), world.reader), "takeFoodOffRack")).toMatchObject({ icon: { content: "smokedFish" } });
   });
 
   it("opens a chest, or takes it down", () => {

@@ -247,7 +247,8 @@ export interface Entity {
   rainBarrel?: FillLevel;
   /**
    * The food hanging on a finished drying rack, in the order it was hung, up to DRYING_RACK_FOOD_LIMIT. Empty when it holds none.
-   * Each food dries as time passes, and fresh food on it spoils until it has dried. See drying-racks.ts.
+   * Berries and mushrooms dry as time passes, and raw fish smokes while a lit fire is close by. Fresh food on it spoils until
+   * it is preserved. See drying-racks.ts.
    */
   dryingRack?: readonly FoodOnRack[];
   /**

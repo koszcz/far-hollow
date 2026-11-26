@@ -33,8 +33,9 @@ export interface Walking {
    * Sets the player walking the shortest way to a spot within `distance` of a target, around anything in the way.
    * The distance is measured to a point, or to a rectangle's edge.
    * The player stays put if they already stand within it. If no such spot can be reached, the player walks as close as they can.
+   * `canReachFrom` turns down spots the player could not act from, such as a spot behind a wall.
    */
-  walkWithin(target: WalkTarget, distance: number): void;
+  walkWithin(target: WalkTarget, distance: number, canReachFrom?: (spot: GroundPoint) => boolean): void;
   /** Moves every walking entity along its path by one logic step. */
   step(stepSeconds: number): void;
 }
@@ -59,8 +60,8 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
     walkTo(target) {
       for (const player of players) setPath(player, findPath(walkMap, player.position, target));
     },
-    walkWithin(target, distance) {
-      for (const player of players) setPath(player, findPathWithin(walkMap, player.position, target, distance));
+    walkWithin(target, distance, canReachFrom) {
+      for (const player of players) setPath(player, findPathWithin(walkMap, player.position, target, distance, canReachFrom));
     },
     step(stepSeconds) {
       const stepDistance = WALK_SPEED_METRES_PER_SECOND * stepSeconds;

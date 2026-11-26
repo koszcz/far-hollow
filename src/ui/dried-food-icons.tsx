@@ -19,12 +19,15 @@ const DRIED_WRINKLE = "#4a2e1a";
 /** The twine the dried berries are threaded on. */
 const TWINE = "#d8c08a";
 
-/** True if `content` is preserved food, so this module draws its icon. */
-export function isPreservedFood(content: BackpackContent): content is PreservedFood {
+/** The dried foods this module draws. Smoked fish is drawn in smoked-fish-icon.tsx. */
+export type DriedFood = Exclude<PreservedFood, "smokedFish">;
+
+/** True if `content` is dried food, so this module draws its icon. */
+export function isDriedFood(content: BackpackContent): content is DriedFood {
   return Object.hasOwn(DRIED_FOOD_DRAWINGS, content);
 }
 
-export const DRIED_FOOD_DRAWINGS: Readonly<Record<PreservedFood, BackpackIconDrawing>> = {
+export const DRIED_FOOD_DRAWINGS: Readonly<Record<DriedFood, BackpackIconDrawing>> = {
   /** Five small shrivelled berries, darker than fresh ones, each with a crease, under a loop of twine. */
   driedBerries: {
     colour: DRIED_BERRY,

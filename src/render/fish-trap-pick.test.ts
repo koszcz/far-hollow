@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 import { createEntityStore, type Entity } from "../sim/entities";
 import { generateValley, riverEdgeSpot, startSpotBeside, terrainHeightAt } from "../sim/valley";
 import { createFishTrapMeshes, type FishTrapMeshes } from "./fish-trap-meshes";
+import { PICK_MARGIN_METRES, STAKE_RADIUS_METRES } from "./fish-trap-shape";
 import type { OutlinePart } from "./hover-outline";
 
 const valley = generateValley(42);
@@ -76,25 +77,52 @@ describe("picking a set fish trap", () => {
 
   it("catches a ray just beside the stake on the bank", () => {
     const { traps, trap, holder } = setTrap(false);
-    // The drawn shapes are the sticks, withy, cord, stake, and line, in that order.
-    const stake = traps.outlineOf(trap)[3];
+    const stake = holder.getObjectByName("stake");
     if (stake === undefined) throw new Error("No stake drawn");
-    stake.geometry.computeBoundingBox();
-    const middle = (stake.geometry.boundingBox ?? new THREE.Box3()).getCenter(new THREE.Vector3()).applyMatrix4(stake.matrix);
-    // A ray straight down 3 cm past the stake's side. The stake leans away from the trap, and the line runs toward it, so a
+    const middle = new THREE.Box3().setFromObject(stake).getCenter(new THREE.Vector3());
+    // A ray straight down past the stake's side, a little over half the margin out. The stake leans away from the trap, and the line runs toward it, so a
     // ray to the side, square to that line, misses both.
     const trapAt = holder.getWorldPosition(new THREE.Vector3());
     const side = new THREE.Vector3(-(middle.z - trapAt.z), 0, middle.x - trapAt.x).normalize();
-    const beside = middle.clone().addScaledVector(side, 0.03 + 0.016);
+    const beside = middle.clone().addScaledVector(side, STAKE_RADIUS_METRES + PICK_MARGIN_METRES * 0.6);
     const ray = new THREE.Raycaster(new THREE.Vector3(beside.x, beside.y + TOP, beside.z), new THREE.Vector3(0, -1, 0));
     expect(hitsDrawnShapes(traps.outlineOf(trap), ray)).toBe(false);
     expect(traps.pick(ray)?.hit.entity).toBe(trap);
     traps.dispose();
   });
 
-  it("outlines only the drawn shapes, never the pick shapes", () => {
-    const { traps, trap } = setTrap(false);
-    expect(traps.outlineOf(trap)).toHaveLength(5);
+  for (const holding of [false, true]) {
+    it(`outlines only the drawn shapes, never the pick shapes, ${holding ? "holding a fish" : "empty"}`, () => {
+      const { traps, trap, holder } = setTrap(holding);
+      const pickShapes = new Set<THREE.BufferGeometry>();
+      holder.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.Material && !child.material.visible)
+          pickShapes.add(child.geometry as THREE.BufferGeometry);
+      });
+      expect(pickShapes.size).toBeGreaterThan(0);
+      const outline = traps.outlineOf(trap);
+      expect(outline.length).toBeGreaterThan(0);
+      expect(outline.some(({ geometry }) => pickShapes.has(geometry))).toBe(false);
+      traps.dispose();
+    });
+  }
+
+  it("catches a ray onto any part of the fish it holds, before the ray reaches the fish", () => {
+    const { traps, trap, holder } = setTrap(true);
+    const corners: THREE.Vector3[] = [];
+    holder.traverse((child) => {
+      if (!(child instanceof THREE.Mesh) || child.name !== "fish") return;
+      const position = (child.geometry as THREE.BufferGeometry).getAttribute("position");
+      for (let i = 0; i < position.count; i += 1) corners.push(new THREE.Vector3().fromBufferAttribute(position, i).applyMatrix4(child.matrixWorld));
+    });
+    expect(corners.length).toBeGreaterThan(0);
+    // A ray straight down onto every corner of the fish's shapes meets the pick shape no later than the fish.
+    for (const corner of corners) {
+      const ray = new THREE.Raycaster(new THREE.Vector3(corner.x, corner.y + TOP, corner.z), new THREE.Vector3(0, -1, 0));
+      const hit = traps.pick(ray);
+      expect(hit?.hit.entity).toBe(trap);
+      expect(hit?.distance ?? Infinity).toBeLessThanOrEqual(TOP);
+    }
     traps.dispose();
   });
 

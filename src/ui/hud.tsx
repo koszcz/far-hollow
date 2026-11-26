@@ -645,19 +645,27 @@ function RainBarrelPanel({ barrel }: { barrel: RainBarrelView }) {
 /** The colour of the bar that shows how far a food on the rack has dried: the brown of dried food. */
 const DRYING_COLOUR = "#9a6a3c";
 
-/** One food on a drying rack: its icon, fresh or dried, and a bar for how far it has dried. */
+/** What the rack's panel says about one food: drying or smoking, dried or smoked, or raw fish that needs a lit fire close by. */
+function foodOnRackLabel(item: DryingRackView["food"][number]): string {
+  const text = strings.dryingRack;
+  if (item.waitsForFire) return text.noFire;
+  const smoked = item.food === "rawFish";
+  if (item.preserved) return smoked ? text.smoked : text.dried;
+  return smoked ? text.smoking : text.drying;
+}
+
+/** One food on a drying rack: its icon, fresh or preserved, and a bar for how far it has dried or smoked. */
 function FoodOnRackMeter({ item }: { item: DryingRackView["food"][number] }) {
-  const content = item.dried ? (item.food === "berries" ? "driedBerries" : "driedMushroom") : item.food;
   return (
     <label class="hud-meter" style={{ "--hud-bar": DRYING_COLOUR }}>
-      <BackpackIcon content={content} />
-      <span class="hud-meter-label">{item.dried ? strings.dryingRack.dried : strings.dryingRack.drying}</span>
-      <progress max={1} value={item.dryProgress} />
+      <BackpackIcon content={item.content} />
+      <span class="hud-meter-label">{foodOnRackLabel(item)}</span>
+      <progress max={1} value={item.progress} />
     </label>
   );
 }
 
-/** Shows what hangs on the drying rack beside the player and how far each food has dried. Its actions are on the rack itself. */
+/** Shows what hangs on the drying rack beside the player and how far each food has dried or smoked. Its actions are on the rack itself. */
 function DryingRackPanel({ rack }: { rack: DryingRackView }) {
   const text = strings.dryingRack;
   return (

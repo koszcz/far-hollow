@@ -214,8 +214,12 @@ describe("walking around walls", () => {
     const game = createGame({ seed: 42 });
     const square = openSquareNearPlayer(game);
     finishedFoundationAt(game, square);
-    for (const side of [0, 1, 2, 3] as const) finishedPieceAt(game, "logWall", square, side);
     const player = onlyPlayer(game);
+    const start = { x: player.position.x, z: player.position.z };
+    for (const side of [0, 1, 2, 3] as const) finishedPieceAt(game, "logWall", square, side);
+    // Reach never crosses a wall, so the player may have stepped onto the square to build its last wall. They start outside.
+    player.position.x = start.x;
+    player.position.z = start.z;
 
     send(game, { type: "walkTo", x: square.x, z: square.z });
     stepUntil(game, () => player.walkPath === undefined);

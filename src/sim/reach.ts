@@ -5,6 +5,8 @@ import type { Entity, EntityStore } from "./entities";
 import { footprintOfEntity, isPlacedStructure } from "./structures";
 import { isSapling, isYoungTree } from "./tree-growth";
 import { groundDistance, type GroundPoint } from "./ground-point";
+import type { WalkTarget } from "./pathfinding";
+import { isBehindWall } from "./wall-reach";
 
 /** E reaches things this far from the player, in metres. It is measured to a structure's edge and to a tree's trunk. */
 export const USE_REACH_METRES = 2.5;
@@ -12,7 +14,7 @@ export const USE_REACH_METRES = 2.5;
 /** No structure's footprint or tree's trunk reaches further than this from its middle, in metres. */
 const LARGEST_HALF_SIZE_METRES = 5;
 
-/** The thing nearest `at` within USE_REACH_METRES, or null if none is. Of two things just as near, the first found wins. */
+/** The thing nearest `at` within USE_REACH_METRES, on the same side of every wall, or null if none is. Of two things just as near, the first found wins. */
 export function nearestInReach(entities: EntityStore, at: GroundPoint): ThingInReach | null {
   let nearest: ThingInReach | null = null;
   let nearestDistance = Infinity;
@@ -24,7 +26,7 @@ export function nearestInReach(entities: EntityStore, at: GroundPoint): ThingInR
     const thing = id === undefined ? undefined : thingOf(entity, id);
     if (thing === undefined) continue;
     const distance = distanceTo(entity, at);
-    if (distance <= USE_REACH_METRES && distance < nearestDistance) {
+    if (distance <= USE_REACH_METRES && distance < nearestDistance && !isBehindWall(entities, at, targetOf(entity))) {
       nearest = thing;
       nearestDistance = distance;
     }
@@ -67,4 +69,9 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
 function distanceTo(entity: Entity & { position: GroundPoint }, at: GroundPoint): number {
   if (isPlacedStructure(entity)) return distanceOutside(footprintOfEntity(entity), at);
   return Math.max(0, groundDistance(entity.position, at) - (entity.blocksWalking?.radius ?? 0));
+}
+
+/** What reach aims at in the entity: its footprint for a structure, and its middle for anything else. */
+function targetOf(entity: Entity & { position: GroundPoint }): WalkTarget {
+  return isPlacedStructure(entity) ? footprintOfEntity(entity) : { x: entity.position.x, z: entity.position.z };
 }

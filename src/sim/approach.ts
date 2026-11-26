@@ -2,6 +2,7 @@
 // A command that walks first starts an approach. The player's pending approach stores that command, as plain data, so a
 // save made mid-walk loads and the player carries on (ADR 0010). When the walk ends, the game checks the command's
 // refusal again. If it passes and the player stands within reach, the command's act step runs. It is not sent again.
+// Reach never crosses a wall, so the walk takes the player round to the thing's side of every wall, through a door frame.
 import type { Activity } from "./activity";
 import type { ActionCommand, Notice, PlainNotice, Refusal } from "./api";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
@@ -9,6 +10,7 @@ import type { GroundPoint } from "./ground-point";
 import { refusedNotice } from "./notices";
 import { distanceToTarget, type WalkTarget } from "./pathfinding";
 import { isWalkable } from "./walk-map";
+import { isBehindWall } from "./wall-reach";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 
 /**
@@ -63,13 +65,21 @@ export function createApproach(entities: EntityStore, walking: Walking, rules: A
   const players = playerEntities(entities);
   const approachers = entities.with("approach", "position");
 
-  const withinReach = (reach: ApproachReach, at: GroundPoint) => distanceToTarget(reach.target, at) <= reach.metres;
+  /** Whether a player at `at` stands on the target's side of every wall. */
+  const sameSide = (reach: ApproachReach, at: GroundPoint) => !isBehindWall(entities, at, reach.target);
+  const withinReach = (reach: ApproachReach, at: GroundPoint) => distanceToTarget(reach.target, at) <= reach.metres && sameSide(reach, at);
 
   function walk(reach: ApproachReach): void {
     const { walk: how } = reach;
     if (how.style === "to") walking.walkTo(how.spot);
-    else if ((how.style === "onto" || how.style === "offAndBeside") && isWalkable(walking.walkMap, how.spot)) walking.walkTo(how.spot);
-    else walking.walkWithin(reach.target, how.style === "beside" && how.standMetres !== undefined ? how.standMetres : reach.metres - WALK_REACH_MARGIN_METRES);
+    else if ((how.style === "onto" || how.style === "offAndBeside") && isWalkable(walking.walkMap, how.spot) && sameSide(reach, how.spot))
+      walking.walkTo(how.spot);
+    else
+      walking.walkWithin(
+        reach.target,
+        how.style === "beside" && how.standMetres !== undefined ? how.standMetres : reach.metres - WALK_REACH_MARGIN_METRES,
+        (spot) => sameSide(reach, spot),
+      );
   }
 
   /** Whether a player at `at`, within reach, acts there without walking first. */
@@ -94,6 +104,11 @@ export function createApproach(entities: EntityStore, walking: Walking, rules: A
       }
       rules.stopOtherWork();
       walk(reach);
+      if (!withinReach(reach, player.walkPath?.at(-1) ?? player.position)) {
+        // No walk gets the player within reach, such as into a cabin with no door frame. They stay put.
+        entities.removeComponent(player, "walkPath");
+        return { kind: "cantGetThere" };
+      }
       setComponent(entities, player, "approach", { command: structuredClone(command) });
       return undefined;
     },
@@ -113,7 +128,10 @@ export function createApproach(entities: EntityStore, walking: Walking, rules: A
           continue;
         }
         const reach = rules.reach(command);
-        if (reach !== undefined && withinReach(reach, player.position)) notice = rules.act(command) ?? notice;
+        if (reach === undefined || distanceToTarget(reach.target, player.position) > reach.metres) continue;
+        // A wall may have gone up between the player and the thing while they walked.
+        if (!sameSide(reach, player.position)) notice = { kind: "cantGetThere" };
+        else notice = rules.act(command) ?? notice;
       }
       return notice;
     },

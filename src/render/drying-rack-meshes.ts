@@ -4,6 +4,9 @@
 // The food on it hangs from the top rail on short lengths of cord, one spot for each food it holds, in the order it was hung.
 // Fresh berries hang as a red bunch and a fresh mushroom as a pale-stemmed brown cap. Once dried, each shows the shrunken,
 // darker shape of the draft "dried-food-piles" asset, from dried-food-shapes.ts.
+// Food-keeping ticket 03 added fish. Raw fish hangs by its tail, head down, as the trout of the approved "fishing-piles" asset.
+// Once smoked, it shows the amber-brown trout of the draft "smoked-fish-pile" asset, from smoked-fish-shape.ts.
+// Fish hang at true size, since a trout already reads from the game's camera.
 // The model is built in two stages, each taking half of construction: the sticks, then the cord lashings.
 // plank-furniture-meshes.ts draws the stages. This file adds the food.
 import * as THREE from "three";
@@ -11,8 +14,11 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { furnitureEntities, type Entity, type EntityStore } from "../sim/entities";
 import { DRYING_RACK_DEPTH_METRES, DRYING_RACK_WIDTH_METRES } from "../sim/furniture/drying-rack";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
-import { DRYING_RACK_FOOD_LIMIT, isDried, PRESERVED_FORM, type FoodOnRack, type RackFood } from "../sim/rack-food";
+import type { PreservedFood } from "../sim/backpack";
+import { DRYING_RACK_FOOD_LIMIT, isPreserved, PRESERVED_FORM, type FoodOnRack, type RackFood } from "../sim/rack-food";
 import { driedFoodParts } from "./dried-food-shapes";
+import { FISH_LENGTH_METRES, FISH_THICKNESS_METRES, rawFishParts, type FishingPilePart } from "./fishing-pile-shapes";
+import { smokedFishParts } from "./smoked-fish-shape";
 import { createFurnitureMeshes, type FurnitureMeshes, type FurniturePart } from "./plank-furniture-meshes";
 
 /** How many stages the drying rack model is built in: the sticks, then the cord lashings. */
@@ -89,12 +95,26 @@ export function hangingSpotX(index: number): number {
   return -span / 2 + (span * (index + 0.5)) / DRYING_RACK_FOOD_LIMIT;
 }
 
-/** The look of one food on the rack: fresh berries or mushroom, or their dried form. */
-type HangingLook = RackFood | "driedBerries" | "driedMushroom";
+/** The look of one food on the rack: fresh berries, mushroom, or raw fish, or their preserved form. */
+type HangingLook = RackFood | PreservedFood;
 
 /** The look of a food on the rack, as it is now. */
 function lookOf(item: FoodOnRack): HangingLook {
-  return isDried(item) ? PRESERVED_FORM[item.food] : item.food;
+  return isPreserved(item) ? PRESERVED_FORM[item.food] : item.food;
+}
+
+/** How much larger than true size each look is drawn. Fish are big enough already. */
+function scaleOf(look: HangingLook): number {
+  return look === "rawFish" || look === "smokedFish" ? 1 : FOOD_SCALE;
+}
+
+/** Turns a fish lying on its side to hang by its tail from the string, head down, its flat side to the rack's front and back. */
+function hungByTail(parts: readonly FishingPilePart[]): readonly FishingPilePart[] {
+  for (const part of parts) {
+    // The tail end points to -z. The turn sends it up, and the snout down. The tail tip ends at the string's end.
+    part.geometry.rotateX(Math.PI / 2).translate(0, -FISH_LENGTH_METRES / 2, -FISH_THICKNESS_METRES / 2);
+  }
+  return parts;
 }
 
 export function createDryingRackMeshes(entities: EntityStore): FurnitureMeshes {
@@ -123,7 +143,7 @@ export function createDryingRackMeshes(entities: EntityStore): FurnitureMeshes {
       ].map(([x = 0, y = 0, radius = 0.014]) => new THREE.SphereGeometry(radius, 7, 5).translate(x, y, 0)),
     ),
   );
-  const fresh: Readonly<Record<RackFood, readonly { geometry: THREE.BufferGeometry; material: THREE.Material }[]>> = {
+  const fresh: Readonly<Record<Exclude<RackFood, "rawFish">, readonly { geometry: THREE.BufferGeometry; material: THREE.Material }[]>> = {
     berries: [{ geometry: berryGeometry, material: material(BERRY_COLOUR) }],
     mushroom: [
       { geometry: track(new THREE.CylinderGeometry(0.008, 0.01, 0.035, 6).translate(0, -0.0175, 0)), material: material(STEM_COLOUR) },
@@ -136,7 +156,11 @@ export function createDryingRackMeshes(entities: EntityStore): FurnitureMeshes {
   // Dried food hangs upside down from its string, so turn the pile shapes over: their underside goes up, against the string.
   const dried = driedFoodParts(material, track);
   for (const parts of Object.values(dried)) for (const part of parts) part.geometry.rotateX(Math.PI);
-  const looks: Readonly<Record<HangingLook, readonly { geometry: THREE.BufferGeometry; material: THREE.Material }[]>> = { ...fresh, ...dried };
+  const fish = {
+    rawFish: hungByTail(rawFishParts(material, track)),
+    smokedFish: hungByTail(smokedFishParts(material, track)),
+  };
+  const looks: Readonly<Record<HangingLook, readonly { geometry: THREE.BufferGeometry; material: THREE.Material }[]>> = { ...fresh, ...dried, ...fish };
 
   /** The food hanging on each rack, as a group set where the rack stands, with one group for each spot. */
   const hanging = new Map<Entity, { root: THREE.Group; spots: { group: THREE.Group; look: HangingLook | undefined }[] }>();
@@ -163,7 +187,7 @@ export function createDryingRackMeshes(entities: EntityStore): FurnitureMeshes {
     for (const part of looks[look]) {
       const mesh = new THREE.Mesh(part.geometry, part.material);
       mesh.position.y = -STRING_METRES;
-      mesh.scale.setScalar(FOOD_SCALE);
+      mesh.scale.setScalar(scaleOf(look));
       mesh.castShadow = true;
       spot.group.add(mesh);
     }

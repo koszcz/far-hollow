@@ -5,7 +5,7 @@ import type { Entity } from "./entities";
 import { isFillProgress } from "./fill-level";
 import { GOALS } from "./journal";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
-import { DRYING_RACK_FOOD_LIMIT, RACK_FOODS } from "./rack-food";
+import { DRYING_RACK_FOOD_LIMIT, FOODS_TO_HANG, RACK_FOODS } from "./rack-food";
 import { FRESH_FOODS } from "./fresh-food";
 import { WOOD_BOX_FIREWOOD_LIMIT } from "./furniture/wood-box";
 import { NEED_KINDS } from "./needs";
@@ -82,7 +82,7 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
   shape({ type: exactly("drinkFromRainBarrel", "fillPotFromRainBarrel", "fillJugFromRainBarrel"), barrelId: count })(value) ||
-  shape({ type: exactly("hangOnRack"), rackId: count, food: exactly(...RACK_FOODS) })(value) ||
+  shape({ type: exactly("hangOnRack"), rackId: count, food: exactly(...FOODS_TO_HANG) })(value) ||
   shape({ type: exactly("takeFoodOffRack"), rackId: count })(value) ||
   shape({ type: exactly("putInWoodBox"), woodBoxId: count, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodBox"), woodBoxId: count })(value) ||
@@ -174,9 +174,9 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   furniture: exactly(...FURNITURE_KINDS),
   storage: shape({ contents: backpackContents, spoilsAt: spoilTimes }, ["spoilsAt"]),
   rainBarrel: shape({ held: count, progress: isFillProgress }),
-  // Dried food has no spoil time.
+  // Preserved food has no spoil time.
   dryingRack: (value) =>
-    list(shape({ food: exactly(...RACK_FOODS), minutesDried: finite, spoilsAt: finite }, ["spoilsAt"]))(value) &&
+    list(shape({ food: exactly(...RACK_FOODS), minutesPreserved: finite, spoilsAt: finite }, ["spoilsAt"]))(value) &&
     (value as unknown[]).length <= DRYING_RACK_FOOD_LIMIT,
   woodBox: shape({ firewood: (value) => count(value) && (value as number) <= WOOD_BOX_FIREWOOD_LIMIT }),
   workStation: exactly(...WORK_STATION_KINDS),
@@ -296,6 +296,7 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   addOnInTheWay: true,
   noBerries: true,
   rackFull: true,
+  onlyRawFishSmokes: true,
   needsRoom: true,
   woodBoxFull: true,
   woodBoxEmpty: true,
@@ -339,6 +340,7 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
   actionSkipped: { refusal },
   refused: { refusal },
   foodSpoiled: { spoiled: freshCounts },
+  cantGetThere: {},
 };
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */

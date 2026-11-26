@@ -2223,7 +2223,12 @@
     {
       "id": "cutaway-button",
       "kind": "code",
-      "code": ["src/ui/cutaway-button.tsx", "src/app/style.css", "src/render/showcases/interface.ts", "src/ui/cutaway-showcase.tsx"],
+      "code": [
+        "src/ui/cutaway-button.tsx",
+        "src/app/style.css",
+        "src/render/showcases/interface.ts",
+        "src/ui/cutaway-showcase.tsx"
+      ],
       "description": "The wall mode button. On the HUD, a round button sits left of the sound button, in the same glass style. It has one icon per wall mode, in the HUD icons' line style: a cabin with its roof on for walls up, a cabin with its roof lifted off above it for cutaway, and low walls with no roof for walls down.",
       "source": "Built in code in this project",
       "license": "Project code",
@@ -2238,9 +2243,10 @@
       "code": [
         "src/render/drying-rack-meshes.ts",
         "src/render/plank-furniture-meshes.ts",
-        "src/render/dried-food-shapes.ts"
+        "src/render/dried-food-shapes.ts",
+        "src/render/smoked-fish-shape.ts"
       ],
-      "description": "The drying rack: two A-frame ends of bark-brown sticks 1 m apart, a top rail across their peaks about 1 m up, and a lower rail front and back, with pale cord lashed round each joint. Food hangs from the top rail on short pale strings, up to 6 spread evenly along it in the order hung. Fresh berries hang as a small red bunch and a fresh mushroom as a brown cap on a pale stem. Once dried, each shows the shrunken, darker shape of the dried-food-piles asset. As a blueprint it shows see-through, and construction builds it in two stages: the sticks, then the cord lashings.",
+      "description": "The drying rack: two A-frame ends of bark-brown sticks 1 m apart, a top rail across their peaks about 1 m up, and a lower rail front and back, with pale cord lashed round each joint. Food hangs from the top rail on short pale strings, up to 6 spread evenly along it in the order hung. Fresh berries hang as a small red bunch and a fresh mushroom as a brown cap on a pale stem. Once dried, each shows the shrunken, darker shape of the dried-food-piles asset. Raw fish hangs by its tail, head down, at true size, as the grey-green trout of the fishing-piles asset. Once smoked, it shows the amber-brown trout of the smoked-fish-pile asset. Food-keeping ticket 03 added the fish. As a blueprint it shows see-through, and construction builds it in two stages: the sticks, then the cord lashings.",
       "source": "Built in code in this project",
       "license": "Project code",
       "approval": {
@@ -2291,6 +2297,36 @@
       "approval": {
         "status": "draft",
         "ticket": ".scratch/food-keeping/issues/02-drying-rack-dries-berries-and-mushrooms.md"
+      }
+    },
+    {
+      "id": "smoked-fish-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/smoked-fish-icon.tsx",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "The backpack icon for smoked fish, in the backpack icons' shaded style. It is the trout of the fishing-icons asset, head to the left, smoked a deep amber brown, with a dull gold belly line, two darker smoke lines along its side, a small dark eye, and a loop of pale twine through its tail, where it hung on the rack. It reads apart from the browned, char-marked cooked fish.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/food-keeping/issues/03-smoke-fish-on-the-drying-rack.md"
+      }
+    },
+    {
+      "id": "smoked-fish-pile",
+      "kind": "code",
+      "code": [
+        "src/render/smoked-fish-shape.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "How smoked fish looks lying in a pile on the ground: the trout of the fishing-piles asset on its side, its skin smoked an even deep amber brown and its belly a dull gold, with no char marks. A pile of several spreads them out like raw and cooked fish.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/food-keeping/issues/03-smoke-fish-on-the-drying-rack.md"
       }
     }
   ]

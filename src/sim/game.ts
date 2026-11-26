@@ -750,8 +750,8 @@ export function createGame({
 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
-   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, food on drying racks dries,
-   * and fresh food spoils.
+   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, food on drying racks dries
+   * and smokes, and fresh food spoils.
    * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
   function passWorldTime(minutes: number, winter: boolean): void {
@@ -766,8 +766,9 @@ export function createGame({
     cooking.cook(minutes);
     firing.fire(minutes);
     fishTraps.pass(minutes, winter);
-    // Food dries before it spoils, so food that dries in the same minute it would spoil keeps.
-    dryingRacks.dry(minutes);
+    // Food dries and smokes before it spoils, so food preserved in the same minute it would spoil keeps.
+    // It comes after the fires burn, so a fire that went out does not smoke fish.
+    dryingRacks.preserve(minutes);
     for (const [food, count] of Object.entries(spoiling.pass(clock.minutes)) as [FreshFood, number][]) spoiledToTell = addCount(spoiledToTell, food, count);
   }
 

@@ -9,6 +9,7 @@ import { createRainBarrelMeshes } from "./rain-barrel-meshes";
 import { createShelfMeshes } from "./shelf-meshes";
 import { createStoolMeshes } from "./stool-meshes";
 import { createTableMeshes } from "./table-meshes";
+import { createWoodBoxMeshes } from "./wood-box-meshes";
 
 /** Makes the meshes of each piece of furniture. TypeScript reports a piece with no entry. */
 export const FURNITURE_MESHES: { readonly [Kind in FurnitureKind]: (entities: EntityStore) => FurnitureMeshes } = {
@@ -18,6 +19,7 @@ export const FURNITURE_MESHES: { readonly [Kind in FurnitureKind]: (entities: En
   table: createTableMeshes,
   stool: createStoolMeshes,
   rainBarrel: createRainBarrelMeshes,
+  woodBox: createWoodBoxMeshes,
 };
 
 /** The chest's own approved meshes, in chest-meshes.ts, as FurnitureMeshes. */

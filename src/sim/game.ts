@@ -108,6 +108,7 @@ import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
 import { createSledFilling, sledFillingRules } from "./sled-filling";
 import { createWoodpiles, woodpileRules } from "./woodpiles";
+import { createWoodBoxes, woodBoxRules } from "./wood-boxes";
 import { createChests, chestRules } from "./chests";
 import { createSpoiling, viewFreshness } from "./spoiling";
 import { addCount, holdsNone, type Counts } from "./counts";
@@ -289,6 +290,7 @@ export function createGame({
   const mushroomLogs = createMushroomLogs(entities);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const rainBarrels = createRainBarrels(entities);
+  const woodBoxes = createWoodBoxes(entities);
   const cooking = createCooking(entities, campfires);
   const firing = createFiring(entities, campfires);
   const jugs = createJugs(entities);
@@ -447,6 +449,7 @@ export function createGame({
     add("blueprint", building.nearby());
     add("openChest", chests.opened());
     add("rainBarrel", rainBarrels.nearby());
+    add("woodBox", woodBoxes.nearby());
     return Object.freeze(things);
   }
 
@@ -578,6 +581,7 @@ export function createGame({
     ...bedRules(beds, ruleGame),
     ...stoolRules(stools, ruleGame),
     ...rainBarrelRules(rainBarrels, ruleGame),
+    ...woodBoxRules(woodBoxes, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...fishTrapRules(fishTraps, ruleGame),

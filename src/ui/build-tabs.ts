@@ -29,6 +29,7 @@ const TAB_OF: Readonly<Record<BuildMenuKind, BuildTab>> = {
   table: "furniture",
   stool: "furniture",
   rainBarrel: "furniture",
+  woodBox: "furniture",
 };
 
 /** The build menu's rows in one tab, in the order the game lists them. */

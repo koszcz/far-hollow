@@ -17,6 +17,7 @@ import type {
   Notice,
   PileView,
   RainBarrelView,
+  WoodBoxView,
   RecipeKind,
   Plantable,
   Refusal,
@@ -640,6 +641,21 @@ function RainBarrelPanel({ barrel }: { barrel: RainBarrelView }) {
   );
 }
 
+/** Shows how much firewood the wood box beside the player holds. A fire in the same room takes its firewood first. */
+function WoodBoxPanel({ box }: { box: WoodBoxView }) {
+  const text = strings.woodBox;
+  return (
+    <section class="hud-section hud-wood-box" aria-label={text.title}>
+      <h2>
+        <HudIcon name="log" />
+        {text.title}
+        <span class="hud-tag">{text.count(box.firewood, box.limit)}</span>
+      </h2>
+      <Meter icon="log" label={text.fill} value={box.firewood / box.limit} colour={WORK_BAR_COLOUR} />
+    </section>
+  );
+}
+
 /** Shows what the pile beside the player holds and how many. A click on the pile picks it up. */
 function PilePanel({ pile }: { pile: PileView }) {
   return (
@@ -763,6 +779,8 @@ function NearbyPanel({ thing }: { thing: PanelThing }) {
       return <BlueprintPanel blueprint={thing.view} />;
     case "rainBarrel":
       return <RainBarrelPanel barrel={thing.view} />;
+    case "woodBox":
+      return <WoodBoxPanel box={thing.view} />;
   }
 }
 

@@ -85,6 +85,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addChimneys,
   addWallSwaps,
   spoilFreshFood,
+  addWoodBoxes,
 ];
 
 /** The version of the save format this code writes. */
@@ -204,6 +205,9 @@ export const CHIMNEYS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addChimneys) + 2;
 export const WALL_SWAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWallSwaps) + 2;
 /** The first save version in which fresh food spoils, and the backpack, chests, shelves, and piles save when each food spoils. */
 export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
+
+/** The first save version that can hold wood boxes and their blueprints. */
+export const WOOD_BOXES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWoodBoxes) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1106,4 +1110,9 @@ function spoilFreshFood(save: Readonly<Record<string, unknown>>): Record<string,
     return { ...(entity as object), components: changed };
   });
   return { ...save, entities: upgraded };
+}
+
+/** Version 63 to 64: the player can build wood boxes and keep firewood in them. A save from before then holds none, so it carries over unchanged. */
+function addWoodBoxes(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

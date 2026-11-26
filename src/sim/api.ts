@@ -165,7 +165,11 @@ export type Command =
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
   | { type: "tendCampfire"; campfireId: number }
-  /** Put one stick, piece of firewood, or piece of bark from the backpack on a campfire. The player walks beside it first if needed. */
+  /**
+   * Put one stick, piece of firewood, or piece of bark on a campfire or fireplace. The player walks beside it first if needed.
+   * Firewood comes from the wood box nearest the fire in the same room, if one holds any, and otherwise from the backpack.
+   * Sticks and bark come from the backpack.
+   */
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Walk the player beside a finished woodpile, given by its entity id, so they can stack wood on it or take wood off. */
   | { type: "tendWoodpile"; woodpileId: number }
@@ -304,6 +308,16 @@ export type Command =
    * in the backpack that still has room. It is refused while the barrel is empty or the backpack holds no jug with room.
    */
   | { type: "fillJugFromRainBarrel"; barrelId: number }
+  /**
+   * Walk the player within reach of a finished wood box, given by its entity id, and move one firewood from the backpack into it,
+   * or with `all` as many as fit. It is refused while the backpack holds no firewood or the box is full.
+   */
+  | { type: "putInWoodBox"; woodBoxId: number; all: boolean }
+  /**
+   * Walk the player within reach of a finished wood box, given by its entity id, and move as much of its firewood into the
+   * backpack as fits. It is refused while the box is empty or not one more firewood fits in the backpack.
+   */
+  | { type: "takeFromWoodBox"; woodBoxId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
@@ -766,6 +780,9 @@ export type Refusal =
  * - `finishHostFirst`: an add-on goes only on a finished host, such as a door in a finished door frame.
  * - `holdsAddOn`: the host already holds its add-on, finished or as a blueprint.
  * - `addOnInTheWay`: something is in the way of the add-on's blueprint.
+ * - `needsRoom`: the piece goes only inside a room, as a wood box does.
+ * - `woodBoxFull`: the wood box holds as much firewood as it can.
+ * - `woodBoxEmpty`: the wood box holds no firewood.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -829,7 +846,10 @@ export type PlainRefusal =
   | "takeChimneyDownFirst"
   | "finishHostFirst"
   | "holdsAddOn"
-  | "addOnInTheWay";
+  | "addOnInTheWay"
+  | "needsRoom"
+  | "woodBoxFull"
+  | "woodBoxEmpty";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {
@@ -911,6 +931,16 @@ export interface RainBarrelView {
   readonly underRoof: boolean;
 }
 
+/** A finished wood box, with the firewood it holds. */
+export interface WoodBoxView {
+  /** The wood box's entity id. */
+  readonly id: number;
+  /** How many pieces of firewood it holds. */
+  readonly firewood: number;
+  /** The most firewood it holds. */
+  readonly limit: number;
+}
+
 /** A pile of things the player dropped on the ground. */
 export interface PileView {
   /** The pile's entity id. */
@@ -924,7 +954,7 @@ export interface PileView {
 /**
  * What the HUD shows for each kind of thing within the player's reach:
  * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, the nearest blueprint,
- * and the nearest rain barrel.
+ * the nearest rain barrel, and the nearest wood box.
  * A chest closes when the player walks away.
  */
 export interface NearbyViews {
@@ -935,6 +965,7 @@ export interface NearbyViews {
   readonly openChest: ChestView;
   readonly blueprint: BlueprintView;
   readonly rainBarrel: RainBarrelView;
+  readonly woodBox: WoodBoxView;
 }
 
 /** One thing within the player's reach, with its kind. */

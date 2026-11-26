@@ -176,6 +176,10 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: "rainBarrel" }, name: actions.fillPotHere };
     case "fillJugFromRainBarrel":
       return { icon: { structure: "rainBarrel" }, name: actions.fillJug };
+    case "putInWoodBox":
+      return { icon: { structure: "woodBox" }, name: command.all ? actions.putInAllFirewood : actions.putInFirewood };
+    case "takeFromWoodBox":
+      return { icon: { structure: "woodBox" }, name: actions.takeFirewood };
     case "drinkFromRiver":
       return { icon: { thing: "river" }, name: actions.drink };
     case "fish":

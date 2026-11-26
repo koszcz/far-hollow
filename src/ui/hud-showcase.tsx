@@ -601,14 +601,14 @@ function BuildIconSheet() {
   );
 }
 
-/** The furniture icons the "rain-barrel-icon" sheet draws beside the rain barrel, so the owner can compare their style. */
-const RAIN_BARREL_NEIGHBOURS = ["chest", "table", "stool", "bed"] as const;
+/** The furniture icons a furniture icon sheet draws beside its own icon, so the owner can compare their style. */
+const FURNITURE_ICON_NEIGHBOURS = ["chest", "table", "stool", "bed"] as const;
 
 /**
- * The "rain-barrel-icon" first view: the rain barrel's icon drawn large and at build menu size, beside four other furniture icons.
- * The full build icon sheet does not fit the rain barrel in a quarter of the screen.
+ * The first view of "rain-barrel-icon" or "wood-box-icon": that piece's icon drawn large and at build menu size, beside four
+ * other furniture icons. The full build icon sheet does not fit them in a quarter of the screen.
  */
-function RainBarrelIconSheet() {
+function FurnitureIconSheet({ structure: own }: { structure: "rainBarrel" | "woodBox" }) {
   const cell = {
     display: "flex",
     flexDirection: "column",
@@ -624,15 +624,15 @@ function RainBarrelIconSheet() {
     <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "flex", gap: "6px" }}>
       <div style={cell}>
         <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
-          <StructureIcon structure="rainBarrel" />
+          <StructureIcon structure={own} />
         </span>
         <span style={{ width: "40px", height: "40px", display: "grid" }} class="showcase-big-icon">
-          <StructureIcon structure="rainBarrel" />
+          <StructureIcon structure={own} />
         </span>
-        rainBarrel
+        {own}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
-        {RAIN_BARREL_NEIGHBOURS.map((structure) => (
+        {FURNITURE_ICON_NEIGHBOURS.map((structure) => (
           <div key={structure} style={cell}>
             <span style={{ width: "72px", height: "72px", display: "grid" }} class="showcase-big-icon">
               <StructureIcon structure={structure} />
@@ -826,6 +826,8 @@ const STATES_BY_ASSET = {
   "fireplace-icon": BUILD_ICON_STATES,
   // And the rain barrel's.
   "rain-barrel-icon": BUILD_ICON_STATES,
+  // And the wood box's.
+  "wood-box-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
   "floor-and-door-icons": BUILD_ICON_STATES,
   "window-icons": BUILD_ICON_STATES,
@@ -859,6 +861,7 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       asset === "furniture-icons" ||
       asset === "fireplace-icon" ||
       asset === "rain-barrel-icon" ||
+      asset === "wood-box-icon" ||
       asset === "floor-and-door-icons" ||
       asset === "window-icons" ||
       asset === "chimney-icon"
@@ -866,7 +869,15 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       // The needs panel would cover the menu's top row in a quarter of the screen, so these views hide it.
       quarter.classList.add("showcase-hud-no-needs");
       if (index === 0) {
-        render(asset === "rain-barrel-icon" ? <RainBarrelIconSheet /> : <BuildIconSheet />, quarter);
+        const sheet =
+          asset === "rain-barrel-icon" ? (
+            <FurnitureIconSheet structure="rainBarrel" />
+          ) : asset === "wood-box-icon" ? (
+            <FurnitureIconSheet structure="woodBox" />
+          ) : (
+            <BuildIconSheet />
+          );
+        render(sheet, quarter);
         return;
       }
     }

@@ -7,6 +7,7 @@ import type { RecipeKind } from "./recipe-kind";
 import type { Needs } from "./needs";
 import type { Fire, FireKind } from "./fire";
 import type { FishOnFire } from "./fish-on-fire";
+import type { FoodOnRack } from "./rack-food";
 import type { JugOnFire } from "./jug-on-fire";
 import type { PotOnFire } from "./pot-state";
 import type { FillLevel } from "./fill-level";
@@ -244,6 +245,11 @@ export interface Entity {
    * toward the next drink. It fills while rain falls on it. See rain-barrels.ts.
    */
   rainBarrel?: FillLevel;
+  /**
+   * The food hanging on a finished drying rack, in the order it was hung, up to DRYING_RACK_FOOD_LIMIT. Empty when it holds none.
+   * Each food dries as time passes, and fresh food on it spoils until it has dried. See drying-racks.ts.
+   */
+  dryingRack?: readonly FoodOnRack[];
   /**
    * Marks a finished sled, with how many logs, debarked logs, and planks lie on it. Its position is the middle of the ground it covers.
    * Its `facing` says which way it is turned. A sled blocks no walking, since the player drags it about.

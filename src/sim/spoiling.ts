@@ -1,5 +1,5 @@
-// Fresh food spoiling wherever it is kept: in the backpack, in a chest, on a shelf, and in a pile on the ground.
-// A fish in a fish trap or on a fire is not kept in any of these, so it does not spoil.
+// Fresh food spoiling wherever it is kept: in the backpack, in a chest, on a shelf, in a pile on the ground, and on a drying rack
+// until it has dried. A fish in a fish trap or on a fire is not kept in any of these, so it does not spoil.
 // The rules for when food spoils live in fresh-food.ts.
 import type { BackpackContent } from "./backpack";
 import { addCount, holdsNone, takeCount, withoutEmptyKinds, type Counts } from "./counts";
@@ -16,6 +16,7 @@ import {
   type FreshFood,
   type SpoilTimes,
 } from "./fresh-food";
+import { hasSpoiled } from "./rack-food";
 
 /** Something that keeps a count per kind and when each fresh food in it spoils: the backpack, or a chest's or shelf's storage. */
 export interface FoodHolder {
@@ -89,14 +90,16 @@ export function addToPile(pile: { content: BackpackContent; count: number; spoil
 export interface Spoiling {
   /**
    * Matches every holder's spoil times to what it holds at game minute `now`, then takes out every fresh food that has spoiled.
-   * A pile left with nothing is removed. Returns how many of each kind spoiled, everywhere together.
+   * A pile left with nothing is removed. Fresh food on a drying rack that has spoiled comes off the rack.
+   * Returns how many of each kind spoiled, everywhere together.
    */
   pass(now: number): Counts<FreshFood>;
 }
 
-/** Lets fresh food spoil in the backpack, in chests, on shelves, and in piles on the ground. */
+/** Lets fresh food spoil in the backpack, in chests, on shelves, in piles on the ground, and on drying racks. */
 export function createSpoiling(entities: EntityStore): Spoiling {
   const backpacks = entities.with("backpack");
+  const racks = entities.with("dryingRack");
   const storages = entities.with("storage");
   const piles = pileEntities(entities);
 
@@ -130,6 +133,12 @@ export function createSpoiling(entities: EntityStore): Spoiling {
         spoiled = addCount(spoiled, content, count);
         pile.pile.count -= count;
         if (pile.pile.count <= 0) entities.remove(pile);
+      }
+      for (const rack of racks) {
+        const gone = rack.dryingRack.filter((item) => hasSpoiled(item, now));
+        if (gone.length === 0) continue;
+        for (const { food } of gone) spoiled = addCount(spoiled, food, 1);
+        rack.dryingRack = rack.dryingRack.filter((item) => !gone.includes(item));
       }
       return spoiled;
     },

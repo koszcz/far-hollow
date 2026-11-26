@@ -190,7 +190,7 @@ To do a thing's main action. The player uses a thing by picking the top option o
 _Avoid_: Interact, activate
 
 **Reach**:
-How close the player must stand to act on a thing. If the player is out of reach, they walk to the thing first, then act.
+How close the player must stand to act on a thing. Reach never crosses a wall or a window, so a thing behind one is out of reach. If the player is out of reach, they walk to the thing first, then act.
 _Avoid_: Range, interaction distance
 
 **Approach**:
@@ -198,7 +198,7 @@ The walk the player makes to get within reach of a thing or a spot, so they can 
 _Avoid_: Go-to, walk-to-act, errand
 
 **Tend**:
-To add fuel to a campfire, to stack things on or take things off a woodpile, or to load, take from, or tip out a sled.
+To add fuel to a campfire or fireplace, to stack things on or take things off a woodpile, to put firewood in or take it out of a wood box, or to load, take from, or tip out a sled.
 _Avoid_: Feed, refuel, manage
 
 **Action menu**:
@@ -437,6 +437,10 @@ _Avoid_: Box, crate, container, storage
 **Shelf**:
 Furniture that stores small materials, tools, and food, like a chest, but holds less. It stands on the ground.
 _Avoid_: Rack, cupboard, bookcase
+
+**Wood box**:
+Furniture that holds firewood and nothing else. It stands only inside a room. When the player adds firewood to a fireplace or campfire in the same room, the fire takes it from the wood box before the backpack. A wood box never fuels a fire on its own.
+_Avoid_: Firewood store, log basket, wood bin
 
 **Bedroll**:
 A rolled mat the player starts the game with and carries in the backpack. The player lays it on the ground or inside a lean-to and sleeps on it. It restores fatigue more slowly than a bed.

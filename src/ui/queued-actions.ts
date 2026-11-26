@@ -110,6 +110,10 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { structure: "campfire" }, name: actions.cookFish };
     case "takeFishOff":
       return { icon: { structure: "campfire" }, name: actions.takeFishOff };
+    case "hangOnRack":
+      return { icon: { content: command.food }, name: actions.hangOnRack[command.food] };
+    case "takeFoodOffRack":
+      return { icon: { structure: "dryingRack" }, name: actions.takeFoodOffRack };
     case "fireJug":
       return { icon: { structure: "campfire" }, name: actions.fireJug };
     case "takeJugOff":

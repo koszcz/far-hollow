@@ -85,6 +85,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addChimneys,
   addWallSwaps,
   spoilFreshFood,
+  addDryingRacks,
 ];
 
 /** The version of the save format this code writes. */
@@ -204,6 +205,8 @@ export const CHIMNEYS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addChimneys) + 2;
 export const WALL_SWAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWallSwaps) + 2;
 /** The first save version in which fresh food spoils, and the backpack, chests, shelves, and piles save when each food spoils. */
 export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
+/** The first save version that can hold drying racks, the food on them, and dried food. */
+export const DRYING_RACKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDryingRacks) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1106,4 +1109,12 @@ function spoilFreshFood(save: Readonly<Record<string, unknown>>): Record<string,
     return { ...(entity as object), components: changed };
   });
   return { ...save, entities: upgraded };
+}
+
+/**
+ * Version 63 to 64: the player can build a drying rack, which is saved with the food on it and how far each has dried, and
+ * dried berries and dried mushrooms can be kept anywhere food is kept. A save from before then holds none, so it carries over unchanged.
+ */
+function addDryingRacks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
 }

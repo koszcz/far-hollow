@@ -4,9 +4,11 @@
 // They are drawn on the same 24 by 24 grid, in the same shaded style, as the approved build icons in build-icons.tsx.
 // FURNITURE_DRAWINGS lists every piece's icon. The chest's icon is part of the approved build icons, so its entry points there.
 // The rain barrel's icon is its own approved asset, so its entry points to rain-barrel-icon.tsx.
+// The drying rack's icon is its own draft asset, so its entry points to drying-rack-icon.tsx.
 import type { FurnitureKind } from "../sim/api";
 import { CHEST_DRAWING } from "./build-icons";
 import { RAIN_BARREL_DRAWING } from "./rain-barrel-icon";
+import { DRYING_RACK_DRAWING } from "./drying-rack-icon";
 import type { BackpackIconDrawing, IconPart } from "./icon-drawing";
 
 /**
@@ -164,4 +166,5 @@ export const FURNITURE_DRAWINGS: Readonly<Record<FurnitureKind, BackpackIconDraw
   table: TABLE_DRAWING,
   stool: STOOL_DRAWING,
   rainBarrel: RAIN_BARREL_DRAWING,
+  dryingRack: DRYING_RACK_DRAWING,
 };

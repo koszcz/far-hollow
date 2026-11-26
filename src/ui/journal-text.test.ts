@@ -26,6 +26,7 @@ describe("the journal panel's sections", () => {
       "Build a sawhorse and cut a plank.",
       "Build a first room.",
       "Make the room snug.",
+      "Preserve some food for winter.",
     ]);
     expect(sections.toDo[0]?.hint).toContain("Press B");
     expect(sections.done.map((goal) => goal.name)).toEqual(["Pick up sticks.", "Fell a tree."]);

@@ -209,7 +209,7 @@ export const CHEST_DRAWING: IconDrawing = {
 };
 
 /** Build materials that are not backpack contents, so they have no backpack icon. The log's icon is in sled-icons.tsx. */
-type DeliveredOnlyMaterial = Exclude<BuildMaterial, "stick" | "bark" | "plank" | "stone" | "log">;
+type DeliveredOnlyMaterial = Exclude<BuildMaterial, "stick" | "bark" | "cord" | "plank" | "stone" | "log">;
 
 const MATERIAL_DRAWINGS: Readonly<Record<DeliveredOnlyMaterial, IconDrawing>> = {
   /** A pale, peeled log on its side, with grain lines and growth rings on its cut end. */
@@ -229,9 +229,10 @@ export function carriedLogDrawing(log: CarriedLog): IconDrawing {
   return log === "log" ? LOG_DRAWING : MATERIAL_DRAWINGS.debarkedLog;
 }
 
-/** Draws the icon for one build material. Sticks, bark, planks, and stone reuse their backpack icons. */
+/** Draws the icon for one build material. Sticks, bark, cord, planks, and stone reuse their backpack icons. */
 export function MaterialIcon({ material }: { material: BuildMaterial }) {
-  if (material === "stick" || material === "bark" || material === "plank" || material === "stone") return <BackpackIcon content={material} />;
+  if (material === "stick" || material === "bark" || material === "cord" || material === "plank" || material === "stone")
+    return <BackpackIcon content={material} />;
   if (material === "log") return <ShadedIcon drawing={LOG_DRAWING} className="backpack-icon" />;
   return <ShadedIcon drawing={MATERIAL_DRAWINGS[material]} className="backpack-icon" />;
 }

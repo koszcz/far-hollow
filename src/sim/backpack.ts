@@ -50,9 +50,9 @@ export type Fish = "rawFish" | "cookedFish";
 
 /**
  * Preserved food: food dried or smoked on a drying rack, which never spoils (see GLOSSARY.md).
- * Dried berries and a dried mushroom come from berries and a mushroom.
+ * Dried berries and a dried mushroom come from berries and a mushroom. Smoked fish comes from raw fish.
  */
-export type PreservedFood = "driedBerries" | "driedMushroom";
+export type PreservedFood = "driedBerries" | "driedMushroom" | "smokedFish";
 
 /** Everything the player can eat from the backpack. */
 export type Food = WildFood | Fish | PreservedFood;
@@ -112,6 +112,7 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   // Preserved food weighs the same as the fresh food it came from.
   driedBerries: 0.1,
   driedMushroom: 0.1,
+  smokedFish: 0.5,
 };
 
 /** What the player starts a new game with. */

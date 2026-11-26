@@ -1,16 +1,31 @@
-// Drying racks: the player hangs berries and mushrooms from the backpack on a rack, and they dry there with no fire, so they keep
-// for good. The player takes them off by hand, dried food first, as with fish on a fire. Rain does not slow drying.
-// How food on a rack dries lives in rack-food.ts. Fresh food on a rack spoils in spoiling.ts, as it does everywhere else.
+// Drying racks: the player hangs berries, mushrooms, and raw fish from the backpack on a rack, so they keep for good. Berries and
+// mushrooms dry there with no fire. Raw fish smokes only while a lit campfire or fireplace is close by, and keeps its progress
+// while there is none. The player takes food off by hand, preserved food first, as with fish on a fire. Rain does not slow it.
+// How food on a rack dries and smokes lives in rack-food.ts. Fresh food on a rack spoils in spoiling.ts, as it does everywhere else.
 // A rack that holds food cannot be taken down: taking-down.ts asks `holdsSomething`.
 import type { DryingRackView, PlainNotice, Refusal } from "./api";
 import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import type { CommandRules, RuleGame } from "./command-rule";
-import { entityWith, playerEntities, type Entity, type EntityStore } from "./entities";
+import { entityWith, heldFires, playerEntities, type Entity, type EntityStore } from "./entities";
 import { KEEPS_FOR_MINUTES } from "./fresh-food";
 import { DRYING_RACK_REACH_METRES, DRYING_RACK_STAND_METRES } from "./furniture/drying-rack";
-import { nearestWithin } from "./ground-point";
-import { DRYING_RACK_FOOD_LIMIT, driedFirst, driedFor, dryProgress, hungOnRack, isDried, takenAs, type FoodOnRack, type RackFood } from "./rack-food";
+import { groundDistance, nearestWithin, type GroundPoint } from "./ground-point";
+import {
+  DRYING_RACK_FOOD_LIMIT,
+  hungOnRack,
+  isPreserved,
+  isRackFood,
+  preservedFirst,
+  preservedFor,
+  preserveProgress,
+  SMOKING_FIRE_METRES,
+  takenAs,
+  waitsForFire,
+  type FoodOnRack,
+  type FoodToHang,
+  type RackFood,
+} from "./rack-food";
 import { goneRefusal } from "./refusals";
 import { putInHolder, takeFromHolder } from "./spoiling";
 
@@ -20,29 +35,48 @@ type DryingRackEntity = Entity & Required<Pick<Entity, "furniture" | "position" 
 export interface DryingRacks {
   /** Where the player walks to use a finished rack: beside it, on their own side. Undefined if the entity is not one. */
   reach(rackId: number): ApproachReach | undefined;
-  /** Why the player could not hang this food on the rack, wherever they stand: it is gone, the backpack holds none, or the rack is full. */
-  hangRefusal(rackId: number, food: RackFood): Refusal | undefined;
+  /**
+   * Why the player could not hang this food on the rack, wherever they stand: it is gone, the food is cooked fish, which cannot
+   * be smoked, the backpack holds none, or the rack is full.
+   */
+  hangRefusal(rackId: number, food: FoodToHang): Refusal | undefined;
   /** Why the player could not take food off the rack, wherever they stand: it is gone, or it holds no food. */
   takeOffRefusal(rackId: number): Refusal | undefined;
   /** Hangs one of this food from the backpack on the rack at game minute `now`. It keeps its spoil time. Does nothing if the refusal does not pass. */
-  hang(rackId: number, food: RackFood, now: number): void;
+  hang(rackId: number, food: FoodToHang, now: number): void;
   /**
-   * Takes every food off the rack into the backpack at game minute `now`, dried food first, as far as they fit. Fresh food keeps
-   * its spoil time. The rest stay on the rack and go on drying. Returns a notice if any did not fit.
+   * Takes every food off the rack into the backpack at game minute `now`, preserved food first, as far as they fit. Fresh food
+   * keeps its spoil time. The rest stay on the rack and go on drying or smoking. Returns a notice if any did not fit.
    */
   takeOff(rackId: number, now: number): PlainNotice | undefined;
-  /** Dries the food on every rack for this many game minutes. Drying needs no fire, and rain does not slow it. */
-  dry(gameMinutes: number): void;
+  /**
+   * Dries and smokes the food on every rack for this many game minutes. Drying needs no fire. Raw fish smokes only while a lit
+   * campfire or fireplace stands within SMOKING_FIRE_METRES of the rack. Rain slows neither. Call it after the fires burn,
+   * so a fire that went out does not smoke.
+   */
+  preserve(gameMinutes: number): void;
   /** A finished rack, near or far, as the HUD shows it, or undefined if the entity is not one. */
   describe(rackId: number): DryingRackView | undefined;
   /** The rack nearest the player that is within their reach, if any, as the HUD shows it. */
   nearby(): DryingRackView | undefined;
 }
 
-/** True if any drying rack holds food that has dried on it. The journal's last goal is done the first time one does. */
-export function anyFoodDriedOnRack(entities: EntityStore): boolean {
-  return entities.with("dryingRack").entities.some((rack) => rack.dryingRack.some(isDried));
+/** True if any drying rack holds food that has dried or smoked on it. The journal's last goal is done the first time one does. */
+export function anyFoodPreservedOnRack(entities: EntityStore): boolean {
+  return entities.with("dryingRack").entities.some((rack) => rack.dryingRack.some(isPreserved));
 }
+
+/** True if a lit campfire or fireplace stands within SMOKING_FIRE_METRES of this spot, so raw fish on a rack there smokes. */
+function litFireCloseBy(entities: EntityStore, at: GroundPoint): boolean {
+  return heldFires(entities).some(({ entity, fire }) => fire.lit && groundDistance(entity.position, at) <= SMOKING_FIRE_METRES);
+}
+
+/** The refusal for a food the backpack holds none of. */
+const NONE_IN_BACKPACK: Readonly<Record<RackFood, Refusal>> = {
+  berries: { kind: "noBerries" },
+  mushroom: { kind: "noMushroom" },
+  rawFish: { kind: "noRawFish" },
+};
 
 export function createDryingRacks(entities: EntityStore): DryingRacks {
   const players = playerEntities(entities);
@@ -53,11 +87,12 @@ export function createDryingRacks(entities: EntityStore): DryingRacks {
     return rack?.furniture === "dryingRack" ? rack : undefined;
   };
 
-  function hangRefusal(rackId: number, food: RackFood): Refusal | undefined {
+  function hangRefusal(rackId: number, food: FoodToHang): Refusal | undefined {
     const gone = goneRefusal(entities, rackId);
     if (gone !== undefined) return gone;
+    if (!isRackFood(food)) return { kind: "onlyRawFishSmokes" };
     const backpack = players.first?.backpack;
-    if (backpack === undefined || !hasInBackpack(backpack, food)) return { kind: food === "berries" ? "noBerries" : "noMushroom" };
+    if (backpack === undefined || !hasInBackpack(backpack, food)) return NONE_IN_BACKPACK[food];
     const rack = rackById(rackId);
     return rack !== undefined && rack.dryingRack.length >= DRYING_RACK_FOOD_LIMIT ? { kind: "rackFull" } : undefined;
   }
@@ -72,7 +107,16 @@ export function createDryingRacks(entities: EntityStore): DryingRacks {
   function viewOf(rack: DryingRackEntity): DryingRackView | undefined {
     const id = entities.id(rack);
     if (id === undefined) return undefined;
-    const food = rack.dryingRack.map((item) => Object.freeze({ food: item.food, dried: isDried(item), dryProgress: dryProgress(item) }));
+    const fireCloseBy = litFireCloseBy(entities, rack.position);
+    const food = rack.dryingRack.map((item) =>
+      Object.freeze({
+        food: item.food,
+        content: takenAs(item),
+        preserved: isPreserved(item),
+        progress: preserveProgress(item),
+        waitsForFire: waitsForFire(item, fireCloseBy),
+      }),
+    );
     return Object.freeze({ id, food: Object.freeze(food), limit: DRYING_RACK_FOOD_LIMIT });
   }
 
@@ -87,7 +131,7 @@ export function createDryingRacks(entities: EntityStore): DryingRacks {
     hang(rackId, food, now) {
       const rack = rackById(rackId);
       const backpack = players.first?.backpack;
-      if (rack === undefined || backpack === undefined || hangRefusal(rackId, food) !== undefined) return;
+      if (rack === undefined || backpack === undefined || !isRackFood(food) || hangRefusal(rackId, food) !== undefined) return;
       // The oldest one goes on the rack, so the food left in the backpack is the freshest.
       const [spoilsAt] = takeFromHolder(backpack, food, 1, now);
       if (!removeFromBackpack(backpack, food, 1)) return;
@@ -97,9 +141,9 @@ export function createDryingRacks(entities: EntityStore): DryingRacks {
       const rack = rackById(rackId);
       const backpack = players.first?.backpack;
       if (rack === undefined || backpack === undefined) return undefined;
-      // Dried food comes off first, so a full backpack leaves the fresh food drying.
+      // Preserved food comes off first, so a full backpack leaves the fresh food drying or smoking.
       const left: FoodOnRack[] = [];
-      for (const item of driedFirst(rack.dryingRack)) {
+      for (const item of preservedFirst(rack.dryingRack)) {
         const content = takenAs(item);
         if (!fitsInBackpack(backpack, content, 1)) {
           left.push(item);
@@ -112,10 +156,11 @@ export function createDryingRacks(entities: EntityStore): DryingRacks {
       rack.dryingRack = rack.dryingRack.filter((item) => left.includes(item));
       return left.length > 0 ? "backpackFull" : undefined;
     },
-    dry(gameMinutes) {
+    preserve(gameMinutes) {
       for (const rack of racks) {
         if (rack.furniture !== "dryingRack" || rack.dryingRack.length === 0) continue;
-        rack.dryingRack = rack.dryingRack.map((item) => driedFor(item, gameMinutes));
+        const fireCloseBy = litFireCloseBy(entities, rack.position);
+        rack.dryingRack = rack.dryingRack.map((item) => preservedFor(item, gameMinutes, fireCloseBy));
       }
     },
     describe(rackId) {

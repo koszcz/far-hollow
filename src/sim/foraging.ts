@@ -23,9 +23,10 @@ export const HUNGER_FILLED_BY: Readonly<Record<Food, number>> = {
   mushroom: 0.15,
   rawFish: 0.15,
   cookedFish: 0.3,
-  // Preserved food fills as much hunger as the fresh food it came from.
+  // Preserved food fills as much hunger as the fresh food it came from. Smoked fish fills as much as cooked fish.
   driedBerries: 0.1,
   driedMushroom: 0.15,
+  smokedFish: 0.3,
 };
 /** Whether eating each food makes the player sick, as unboiled river water does. */
 export const MAKES_SICK: Readonly<Record<Food, boolean>> = {
@@ -35,6 +36,7 @@ export const MAKES_SICK: Readonly<Record<Food, boolean>> = {
   cookedFish: false,
   driedBerries: false,
   driedMushroom: false,
+  smokedFish: false,
 };
 
 /** Whether an entity is a berry bush, wild or planted, with berries or growing them back. */

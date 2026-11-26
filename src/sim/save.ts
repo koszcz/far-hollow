@@ -86,6 +86,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addWallSwaps,
   spoilFreshFood,
   addDryingRacks,
+  smokeFish,
 ];
 
 /** The version of the save format this code writes. */
@@ -207,6 +208,8 @@ export const WALL_SWAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWallSwaps) + 2;
 export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
 /** The first save version that can hold drying racks, the food on them, and dried food. */
 export const DRYING_RACKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDryingRacks) + 2;
+/** The first save version that can hold raw fish smoking on a drying rack, and smoked fish. */
+export const SMOKED_FISH_SAVE_VERSION = SAVE_UPGRADES.indexOf(smokeFish) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1117,4 +1120,26 @@ function spoilFreshFood(save: Readonly<Record<string, unknown>>): Record<string,
  */
 function addDryingRacks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
+}
+
+/**
+ * Version 64 to 65: raw fish can smoke on a drying rack, and smoked fish can be kept anywhere food is kept. How far each food on
+ * a rack has come is now called `minutesPreserved`, since it counts smoking as well as drying. A save from before then holds
+ * no fish on a rack and no smoked fish, so only that name changes.
+ */
+function smokeFish(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const { entities } = save;
+  if (!Array.isArray(entities)) return { ...save };
+  const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+  const upgraded: unknown[] = entities.map((entity: unknown) => {
+    const components = (entity as { components?: unknown } | null)?.components;
+    if (!isRecord(components) || !Array.isArray(components.dryingRack)) return entity;
+    const dryingRack = components.dryingRack.map((item: unknown) => {
+      if (!isRecord(item)) return item;
+      const { minutesDried, ...rest } = item;
+      return { ...rest, minutesPreserved: minutesDried };
+    });
+    return { ...(entity as object), components: { ...components, dryingRack } };
+  });
+  return { ...save, entities: upgraded };
 }

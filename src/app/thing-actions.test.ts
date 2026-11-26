@@ -788,7 +788,7 @@ describe("other things' actions", () => {
     expect(find(actions, "hang:mushroom")).toMatchObject({ label: "Hang a mushroom", command: { type: "hangOnRack", rackId: rack, food: "mushroom" } });
 
     const onlyMushroom = worldWith({ backpack: { mushroom: 1 } });
-    const hung = onlyMushroom.add({ furniture: "dryingRack", dryingRack: [{ food: "berries", minutesDried: 10, spoilsAt: 5000 }], facing: { turns: 0 } });
+    const hung = onlyMushroom.add({ furniture: "dryingRack", dryingRack: [{ food: "berries", minutesPreserved: 10, spoilsAt: 5000 }], facing: { turns: 0 } });
     expect(summary(actionsFor(furniture("dryingRack", hung), onlyMushroom.reader))).toEqual([
       "hang:mushroom main",
       "takeFoodOffRack",
@@ -800,12 +800,33 @@ describe("other things' actions", () => {
     const world = worldWith({ backpack: { berries: 1 } });
     const rack = world.add({
       furniture: "dryingRack",
-      dryingRack: Array.from({ length: 6 }, () => ({ food: "mushroom" as const, minutesDried: 360 })),
+      dryingRack: Array.from({ length: 6 }, () => ({ food: "mushroom" as const, minutesPreserved: 360 })),
       facing: { turns: 0 },
     });
     const actions = actionsFor(furniture("dryingRack", rack), world.reader);
     expect(summary(actions)).toEqual(["takeFoodOffRack main", "hang:berries off: the rack holds 6 foods", "takeDown off: empty it first"]);
     expect(find(actions, "takeFoodOffRack")).toMatchObject({ icon: { content: "driedMushroom" }, command: { type: "takeFoodOffRack", rackId: rack } });
+  });
+
+  it("hangs raw fish on a drying rack, and greys hanging cooked fish, since only raw fish can be smoked", () => {
+    const world = worldWith({ backpack: { rawFish: 1, cookedFish: 1 } });
+    const rack = world.add({ furniture: "dryingRack", dryingRack: [], facing: { turns: 0 } });
+    const actions = actionsFor(furniture("dryingRack", rack), world.reader);
+    expect(summary(actions)).toEqual(["hang:rawFish main", "takeDown"]);
+    expect(find(actions, "hang:rawFish")).toMatchObject({ label: "Hang raw fish", command: { type: "hangOnRack", rackId: rack, food: "rawFish" } });
+
+    const onlyCooked = worldWith({ backpack: { cookedFish: 2 } });
+    const empty = onlyCooked.add({ furniture: "dryingRack", dryingRack: [], facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("dryingRack", empty), onlyCooked.reader))).toEqual([
+      "hang:cookedFish main off: only raw fish can be smoked",
+      "takeDown",
+    ]);
+  });
+
+  it("shows smoked fish on the action that takes it off the rack", () => {
+    const world = worldWith({});
+    const rack = world.add({ furniture: "dryingRack", dryingRack: [{ food: "rawFish", minutesPreserved: 240 }], facing: { turns: 0 } });
+    expect(find(actionsFor(furniture("dryingRack", rack), world.reader), "takeFoodOffRack")).toMatchObject({ icon: { content: "smokedFish" } });
   });
 
   it("opens a chest, or takes it down", () => {

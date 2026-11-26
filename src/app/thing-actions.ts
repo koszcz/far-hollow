@@ -23,6 +23,7 @@ import type {
   CampfireView,
   CarriedLog,
   DryingRackView,
+  FoodToHang,
   CarriedThing,
   Command,
   FurnitureKind,
@@ -356,20 +357,21 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
 /**
  * Hang each food, take the food off, then take the rack down. Hanging a food shows only while the backpack holds it, and taking
  * food off only while the rack holds some. Each shows greyed, with the reason, when the game would refuse it, such as on a full rack.
- * Main: take the food off once some has dried, or else hang the first food the player can hang.
+ * Hanging cooked fish shows, greyed with the reason, while the backpack holds cooked fish but no raw fish, so the player learns
+ * that only raw fish can be smoked.
+ * Main: take the food off once some is preserved, or else hang the first food the player can hang.
  */
 function dryingRackActions(rack: DryingRackView, context: Context): readonly ThingAction[] {
   const { view, offer } = context;
   const rackId = rack.id;
-  const hang = RACK_FOODS.flatMap((food) =>
-    offerIf(has(view, food), () => offer(`hang:${food}`, strings.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
+  const shown = (food: FoodToHang): boolean => has(view, food) && (food !== "cookedFish" || !has(view, "rawFish"));
+  const hang = [...RACK_FOODS, "cookedFish" as const].flatMap((food) =>
+    offerIf(shown(food), () => offer(`hang:${food}`, strings.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
   );
-  const driedOne = rack.food.find(({ dried }) => dried);
-  const takeIcon: ActionIcon = {
-    content: driedOne === undefined ? (rack.food[0]?.food ?? "berries") : driedOne.food === "berries" ? "driedBerries" : "driedMushroom",
-  };
+  const preservedOne = rack.food.find(({ preserved }) => preserved);
+  const takeIcon: ActionIcon = { content: (preservedOne ?? rack.food[0])?.content ?? "berries" };
   const takeOff = offerIf(rack.food.length > 0, () => offer("takeFoodOffRack", strings.actions.takeFoodOffRack, takeIcon, { type: "takeFoodOffRack", rackId }));
-  const main = driedOne !== undefined ? takeOff[0] : (hang.find(({ enabled }) => enabled) ?? takeOff[0] ?? hang[0]);
+  const main = preservedOne !== undefined ? takeOff[0] : (hang.find(({ enabled }) => enabled) ?? takeOff[0] ?? hang[0]);
   return withMain([...hang, ...takeOff, takeDown(context, rackId)], main?.id);
 }
 
@@ -547,6 +549,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
     case "cookedFish":
     case "driedBerries":
     case "driedMushroom":
+    case "smokedFish":
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };

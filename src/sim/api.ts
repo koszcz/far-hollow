@@ -2,7 +2,7 @@ import type { BackpackContent, BackpackContents, Food, WildFood } from "./backpa
 import type { Freshness, FreshFood } from "./fresh-food";
 import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 import type { Goal } from "./journal";
-import type { RackFood } from "./rack-food";
+import type { FoodToHang, RackFood } from "./rack-food";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
@@ -10,8 +10,8 @@ export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugC
 export type { Freshness, FreshFood } from "./fresh-food";
 export { FRESH_FOODS, isFreshFood } from "./fresh-food";
 
-/** The action menu offers to hang each of these on a drying rack. */
-export { RACK_FOODS, type RackFood } from "./rack-food";
+/** The action menu offers to hang each of these on a drying rack. It offers cooked fish too, which the rack refuses. */
+export { RACK_FOODS, type FoodToHang, type RackFood } from "./rack-food";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
@@ -310,13 +310,14 @@ export type Command =
   | { type: "fillJugFromRainBarrel"; barrelId: number }
   /**
    * Walk the player within reach of a finished drying rack, given by its entity id, and hang one of this food from the backpack on it.
-   * Berries and a mushroom dry in 6 game hours, with no fire. It is refused when the backpack holds none of the food, or the rack
-   * already holds DRYING_RACK_FOOD_LIMIT foods.
+   * Berries and a mushroom dry in 6 game hours, with no fire. Raw fish smokes in 4 game hours while a lit fire is close by.
+   * It is refused for cooked fish, which cannot be smoked, when the backpack holds none of the food, or when the rack already
+   * holds DRYING_RACK_FOOD_LIMIT foods.
    */
-  | { type: "hangOnRack"; rackId: number; food: RackFood }
+  | { type: "hangOnRack"; rackId: number; food: FoodToHang }
   /**
    * Walk the player within reach of a finished drying rack, given by its entity id, and take every food off it into the backpack,
-   * dried food first, as far as they fit. The rest stay on the rack. It is refused while the rack holds no food.
+   * preserved food first, as far as they fit. The rest stay on the rack. It is refused while the rack holds no food.
    */
   | { type: "takeFoodOffRack"; rackId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
@@ -783,6 +784,7 @@ export type Refusal =
  * - `addOnInTheWay`: something is in the way of the add-on's blueprint.
  * - `noBerries`: the backpack holds no berries to hang on a drying rack.
  * - `rackFull`: the drying rack holds as many foods as it can.
+ * - `onlyRawFishSmokes`: the player tried to hang cooked fish on a drying rack. Only raw fish can be smoked.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -848,7 +850,8 @@ export type PlainRefusal =
   | "holdsAddOn"
   | "addOnInTheWay"
   | "noBerries"
-  | "rackFull";
+  | "rackFull"
+  | "onlyRawFishSmokes";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {
@@ -930,11 +933,18 @@ export interface RainBarrelView {
   readonly underRoof: boolean;
 }
 
-/** One food on a drying rack: what was hung, whether it has dried, and how far it is through drying, from 0 to 1. */
+/** One food on a drying rack, as the rack's panel shows it. */
 export interface FoodOnRackView {
+  /** What was hung on the rack. */
   readonly food: RackFood;
-  readonly dried: boolean;
-  readonly dryProgress: number;
+  /** What it goes into the backpack as if taken off now: its preserved form once preserved, or else the fresh food. */
+  readonly content: BackpackContent;
+  /** True once it has dried or smoked, so it never spoils. */
+  readonly preserved: boolean;
+  /** How far it is through drying or smoking, from 0 to 1. */
+  readonly progress: number;
+  /** True if it is raw fish that is not smoking, because no lit campfire or fireplace stands close to the rack. */
+  readonly waitsForFire: boolean;
 }
 
 /** A finished drying rack, with the food hanging on it. */

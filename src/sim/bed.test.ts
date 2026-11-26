@@ -244,6 +244,48 @@ describe("sleeping in a bed", () => {
     expect(game.client.getView().lastSleep).not.toBeNull();
   });
 
+  it("walks a player standing past the bed's head or foot round to a long side, so they never step over a headboard", () => {
+    for (const turns of [0, 1] as const) {
+      const game = createGame({ seed: 42 });
+      const square = openSquareNearPlayer(game, 8);
+      send(game, place("bed", square.x, square.z, turns));
+      const bed = blueprintOf(game, "bed");
+      buildFully(game, bed);
+      // 1.8 m from the middle along the bed's length is 0.8 m past its end, within reach of it.
+      const along = turns === 0 ? { x: 0, z: 1 } : { x: 1, z: 0 };
+      walkTo(game, { x: square.x + along.x * 1.8, z: square.z + along.z * 1.8 });
+
+      send(game, { type: "sleepInBed", bedId: idOf(game, bed) });
+      stepUntil(game, () => game.client.getView().lastSleep !== null);
+
+      const player = onlyPlayer(game);
+      const lengthwise = Math.abs((player.position.x - square.x) * along.x + (player.position.z - square.z) * along.z);
+      const sideways = Math.abs((player.position.x - square.x) * along.z + (player.position.z - square.z) * along.x);
+      expect(lengthwise).toBeLessThan(1);
+      expect(sideways).toBeGreaterThan(0.5);
+      expect(sideways).toBeLessThanOrEqual(1.5);
+    }
+  });
+
+  it("walks the player round to the far long side when something blocks the near one", () => {
+    const game = createGame({ seed: 42 });
+    const square = openSquareNearPlayer(game, 8);
+    send(game, place("bed", square.x, square.z, 0));
+    const bed = blueprintOf(game, "bed");
+    buildFully(game, bed);
+    walkTo(game, { x: square.x + 4, z: square.z });
+    // Something fills the two walk-map squares along the bed's +x side, the side the player comes from.
+    const blocked = [0.9, 1.9].flatMap((dx) => [-1, -0.5, 0, 0.5, 1].map((dz) => ({ x: square.x + dx, z: square.z + dz })));
+    game.entities.add({ blocksWalkingSpots: blocked });
+
+    send(game, { type: "sleepInBed", bedId: idOf(game, bed) });
+    stepUntil(game, () => game.client.getView().lastSleep !== null);
+
+    const player = onlyPlayer(game);
+    expect(player.position.x).toBeLessThan(square.x - 0.5);
+    expect(Math.abs(player.position.z - square.z)).toBeLessThan(1);
+  });
+
   it("makes the spot where the bed stands the respawn point, and taking the bed down leaves it there", () => {
     const game = createGame({ seed: 42 });
     const bed = finishedBedNearPlayer(game);

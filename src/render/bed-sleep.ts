@@ -5,10 +5,15 @@
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { blendGroundPoints, stepAlongHeading, type GroundPoint } from "../sim/ground-point";
 import { BED_MATTRESS_TOP_METRES } from "./bed-meshes";
-import { SLEEP_FEET_Z, SLEEP_HEADING, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, type SleepSpot } from "./sleep-animation";
+import { SLEEP_HEADING, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, type SleepSpot } from "./sleep-animation";
 
 /** Seconds the player takes to step back down beside the bed once they stand, after the sleep animation. */
 export const BED_STEP_OFF_SECONDS = 0.5;
+/**
+ * Where the player's feet stand on the mattress when lying down begins, in metres from the bed's middle toward its foot.
+ * Lie_Down lies the body back, so the head lands far behind the feet. From here the head lies on the pillow, inside the headboard.
+ */
+export const BED_SLEEP_FEET_METRES = 0.95;
 /** When going to sleep in a bed is over, in seconds from when the player reached it. The game waits until then. */
 export const BED_SLEEP_SECONDS = SLEEP_SECONDS + BED_STEP_OFF_SECONDS;
 
@@ -30,7 +35,7 @@ function settle(t: number): number {
 export function bedSleepSpotFrom(from: SleepSpot, bed: GroundPoint, turns: QuarterTurns, seconds: number): BedSleepSpot {
   const facing = quarterTurnsToRadians(turns);
   const heading = SLEEP_HEADING + facing;
-  const lying = stepAlongHeading(bed, facing, SLEEP_FEET_Z);
+  const lying = stepAlongHeading(bed, facing, BED_SLEEP_FEET_METRES);
   const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));
   // How far onto the bed the player is: 0 beside it, 1 on the mattress.
   const on = seconds < SLEEP_SECONDS ? settle(seconds / SLEEP_STEP_ON_SECONDS) : 1 - settle((seconds - SLEEP_SECONDS) / BED_STEP_OFF_SECONDS);

@@ -58,8 +58,12 @@ The four body states the player must keep up: hunger, thirst, warmth, and fatigu
 _Avoid_: Stats, vitals, meters
 
 **Collapse**:
-What happens when the player's needs are neglected for too long. The player wakes up again at their respawn point.
+What happens when the player's needs are neglected for too long. The player wakes up again at their respawn point. A collapse never happens in the player's sleep: a need that runs empty wakes them first.
 _Avoid_: Death, game over
+
+**Collapse countdown**:
+The hour a need can stay empty before the player collapses. The player sees it on the empty need's gauge.
+_Avoid_: Timer, grace period
 
 **Drink**:
 The amount of water that fills thirst completely. A full pot holds 1 drink. Jugs and rain barrels count their water in drinks.

@@ -1,4 +1,5 @@
 // The showcase of the approved "bed" asset, with the player going to sleep in it.
+import { setComponent } from "../../../sim/entities";
 import { BUILD_FADE_SHARE } from "../../structure-look";
 import { BED_MODEL_STAGES } from "../../bed-meshes";
 import { BED_SLEEP_SECONDS, bedSleepSpotFrom } from "../../bed-sleep";
@@ -53,7 +54,8 @@ export const BED_SHOWCASE: Showcase = {
       for (const entity of [...stage.store.with("blueprint")]) {
         stage.store.removeComponent(entity, "blueprint");
         stage.store.addComponent(entity, "furniture", "bed");
-        stage.store.addComponent(entity, "facing", { turns: BED_PLAY_TURNS });
+        // The blueprint already faces the default way. addComponent never overwrites, so this turns it.
+        setComponent(stage.store, entity, "facing", { turns: BED_PLAY_TURNS });
       }
       poseBedSleeper(stage, seconds % (BED_SLEEP_SECONDS + BED_PLAY_REST_SECONDS));
       return undefined;

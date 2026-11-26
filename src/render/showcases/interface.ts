@@ -123,6 +123,38 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The drying rack icon shows among the build icons, so this showcase draws the same views as "build-icons",
+  // except the first, which draws the drying rack icon large beside other furniture icons.
+  "drying-rack-icon": {
+    overlay: "hud",
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Drying rack icon, large", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
+      { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
+  // The draft "dried-food-icons". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with dried and fresh food in the
+  // backpack, and the drying rack panel with food drying on it.
+  "dried-food-icons": {
+    overlay: "hud",
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: dried and fresh food in the backpack", yaw: 20, pitch: 35 },
+      { label: "HUD: the drying rack panel", yaw: -20, pitch: 35 },
+      { label: "HUD: the drying rack panel, evening", yaw: 40, pitch: 35, hour: 19 },
+      { label: "Icons, large", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The chimney icon shows among the build icons, so this showcase draws the same views as "build-icons".
   "chimney-icon": {
     overlay: "hud",

@@ -108,7 +108,7 @@ describe("the build menu", () => {
 
     for (const addOn of ["door", "shutters", "roof", "chimney"]) expect(structures).not.toContain(addOn);
     expect(structures).toContain("floor");
-    expect(structures).toHaveLength(18);
+    expect(structures).toHaveLength(19);
   });
 });
 

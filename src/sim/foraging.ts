@@ -18,9 +18,24 @@ export const FOOD_PER_FORAGE: Readonly<Record<WildFood, number>> = { berries: 3,
 /** How long a foraged bush or mushroom patch takes to grow back, in game minutes. Three days. */
 export const REGROW_MINUTES = 3 * 24 * 60;
 /** How much one of each food fills hunger, out of 1. */
-export const HUNGER_FILLED_BY: Readonly<Record<Food, number>> = { berries: 0.1, mushroom: 0.15, rawFish: 0.15, cookedFish: 0.3 };
+export const HUNGER_FILLED_BY: Readonly<Record<Food, number>> = {
+  berries: 0.1,
+  mushroom: 0.15,
+  rawFish: 0.15,
+  cookedFish: 0.3,
+  // Preserved food fills as much hunger as the fresh food it came from.
+  driedBerries: 0.1,
+  driedMushroom: 0.15,
+};
 /** Whether eating each food makes the player sick, as unboiled river water does. */
-export const MAKES_SICK: Readonly<Record<Food, boolean>> = { berries: false, mushroom: false, rawFish: true, cookedFish: false };
+export const MAKES_SICK: Readonly<Record<Food, boolean>> = {
+  berries: false,
+  mushroom: false,
+  rawFish: true,
+  cookedFish: false,
+  driedBerries: false,
+  driedMushroom: false,
+};
 
 /** Whether an entity is a berry bush, wild or planted, with berries or growing them back. */
 export function isBerryBush(entity: Entity): boolean {

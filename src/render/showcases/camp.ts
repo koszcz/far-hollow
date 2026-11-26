@@ -215,6 +215,27 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       );
     },
   },
+  // "dried-food-piles": one and several of dried berries and dried mushrooms, beside fresh berries and mushrooms for comparison,
+  // and a knife for size.
+  "dried-food-piles": {
+    radius: 1.4,
+    focus: { x: 0, y: 0.03, z: 0.1 },
+    shots: [
+      { label: "dried and fresh food, one and many", yaw: 0, pitch: 45 },
+      { label: "close up of the dried food, from low", yaw: 20, pitch: 25, radius: 0.6, focus: { x: -0.45, y: 0.02, z: 0.1 } },
+    ],
+    build({ place }) {
+      place(-0.75, -0.2, { pile: { content: "driedBerries", count: 1 } });
+      place(-0.25, -0.2, { pile: { content: "driedMushroom", count: 1 } });
+      place(0.25, -0.2, { pile: { content: "berries", count: 1 } });
+      place(0.75, -0.2, { pile: { content: "mushroom", count: 1 } });
+      place(-0.75, 0.15, { pile: { content: "driedBerries", count: 8 } });
+      place(-0.25, 0.15, { pile: { content: "driedMushroom", count: 5 } });
+      place(0.25, 0.15, { pile: { content: "berries", count: 8 } });
+      place(0.75, 0.15, { pile: { content: "mushroom", count: 5 } });
+      place(0, 0.55, { pile: { content: "knife", count: 1 } });
+    },
+  },
   // "fishing-piles": one and several of the fishing line, the fishing rod, raw fish, and cooked fish, with a knife for size.
   // The small things sit in a row of single piles in front, with their larger piles behind. The rods lie off to one side.
   "fishing-piles": {

@@ -18,7 +18,7 @@ describe("the build menu's tabs", () => {
     expect(listed("shelter")).toEqual(["foundation", "floor", "logWall", "doorFrame", "window", "roofFrame", "fireplace"]);
   });
 
-  it("list the chest, shelf, bed, table, stool, and rain barrel under Furniture", () => {
-    expect(listed("furniture")).toEqual(["chest", "shelf", "bed", "table", "stool", "rainBarrel"]);
+  it("list the chest, shelf, bed, table, stool, rain barrel, and drying rack under Furniture", () => {
+    expect(listed("furniture")).toEqual(["chest", "shelf", "bed", "table", "stool", "rainBarrel", "dryingRack"]);
   });
 });

@@ -1,4 +1,4 @@
-// The journal: the goals it suggests to a new player, in order, from a first campfire to a first snug room.
+// The journal: the goals it suggests to a new player, in order, from a first campfire to a first snug room and food preserved for winter.
 // Following it is optional, and the game never ends. A goal is done the first time the player does it, and stays done.
 import { hasInBackpack } from "./backpack";
 import {
@@ -14,13 +14,24 @@ import {
   type EntityStore,
 } from "./entities";
 import { findRooms, isRoomSnug } from "./rooms";
+import { anyFoodDriedOnRack } from "./drying-racks";
 import type { CommandRules } from "./command-rule";
 
 /** How many game minutes the notice that a goal is done shows for. One game minute is one real second. */
 export const GOAL_NOTICE_MINUTES = 6;
 
 /** Every goal, in the order the journal suggests them. */
-export const GOALS = ["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo", "sleepOnBedroll", "cutPlank", "buildRoom", "makeRoomSnug"] as const;
+export const GOALS = [
+  "pickUpSticks",
+  "lightCampfire",
+  "fellTree",
+  "buildLeanTo",
+  "sleepOnBedroll",
+  "cutPlank",
+  "buildRoom",
+  "makeRoomSnug",
+  "preserveFood",
+] as const;
 
 /** One thing the journal suggests the player do. */
 export type Goal = (typeof GOALS)[number];
@@ -81,6 +92,9 @@ function valleyShowsGoal(goal: Goal, entities: EntityStore, player: Entity): boo
       return findRooms(entities).length > 0;
     case "makeRoomSnug":
       return findRooms(entities).some((room) => isRoomSnug(entities, room));
+    case "preserveFood":
+      // Food finishes on the rack and stays there until the player takes it off, so the rack shows it the moment it does.
+      return anyFoodDriedOnRack(entities);
   }
 }
 

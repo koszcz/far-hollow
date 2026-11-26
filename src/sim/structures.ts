@@ -77,7 +77,7 @@ export type {
  * It spends a delivered material, such as a debarked log, from what the player carried to the blueprint.
  * It spends planks from the ones the blueprint keeps. Building takes them from the backpack, as many as the blueprint still needs.
  */
-export type BuildMaterial = Extract<BackpackContent, "stick" | "bark" | "plank" | "stone"> | DeliveredMaterial;
+export type BuildMaterial = Extract<BackpackContent, "stick" | "bark" | "cord" | "plank" | "stone"> | DeliveredMaterial;
 
 /** How many of one material a structure costs. */
 export interface MaterialCost {

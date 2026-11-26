@@ -2231,6 +2231,67 @@
         "status": "draft",
         "ticket": ".scratch/cabin-cutaway/issues/02-fix-the-automatic-cutaway.md"
       }
+    },
+    {
+      "id": "drying-rack",
+      "kind": "code",
+      "code": [
+        "src/render/drying-rack-meshes.ts",
+        "src/render/plank-furniture-meshes.ts",
+        "src/render/dried-food-shapes.ts"
+      ],
+      "description": "The drying rack: two A-frame ends of bark-brown sticks 1 m apart, a top rail across their peaks about 1 m up, and a lower rail front and back, with pale cord lashed round each joint. Food hangs from the top rail on short pale strings, up to 6 spread evenly along it in the order hung. Fresh berries hang as a small red bunch and a fresh mushroom as a brown cap on a pale stem. Once dried, each shows the shrunken, darker shape of the dried-food-piles asset. As a blueprint it shows see-through, and construction builds it in two stages: the sticks, then the cord lashings.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/food-keeping/issues/02-drying-rack-dries-berries-and-mushrooms.md"
+      }
+    },
+    {
+      "id": "drying-rack-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/drying-rack-icon.tsx",
+        "src/ui/furniture-icons.tsx"
+      ],
+      "description": "The build menu icon for the drying rack, drawn from its model in the furniture icons' shaded style on the same 24 by 24 grid: two A-frame ends of sticks seen from the front, a top and a lower rail, and two red bunches of berries and a mushroom hanging from the top rail on cord.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/food-keeping/issues/02-drying-rack-dries-berries-and-mushrooms.md"
+      }
+    },
+    {
+      "id": "dried-food-icons",
+      "kind": "code",
+      "code": [
+        "src/ui/dried-food-icons.tsx",
+        "src/ui/backpack-icons.tsx"
+      ],
+      "description": "Backpack icons for dried berries and a dried mushroom, in the backpack icons' shaded style. Dried berries are five small dark wine-red berries, each with a crease, under a loop of pale twine. A dried mushroom is a shrunken, flat brown cap with dark wrinkles and a wavy rim, on a thin tan stem. Each reads as its fresh food, smaller and darker.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/food-keeping/issues/02-drying-rack-dries-berries-and-mushrooms.md"
+      }
+    },
+    {
+      "id": "dried-food-piles",
+      "kind": "code",
+      "code": [
+        "src/render/dried-food-shapes.ts",
+        "src/render/pile-meshes.ts"
+      ],
+      "description": "How dried berries and dried mushrooms look lying in a pile on the ground: dried berries are a small cluster of five shrunken, dark wine-red berries, squashed a little flat, with no leaf. A dried mushroom is a thin, leathery brown cap on a short pale stem, smaller than a fresh one. A pile of several spreads them out like other food.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/food-keeping/issues/02-drying-rack-dries-berries-and-mushrooms.md"
+      }
     }
   ]
 }

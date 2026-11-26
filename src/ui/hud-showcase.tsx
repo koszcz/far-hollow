@@ -601,14 +601,14 @@ function BuildIconSheet() {
   );
 }
 
-/** The furniture icons a furniture icon sheet draws beside its own icon, so the owner can compare their style. */
+/** The furniture icons the "rain-barrel-icon", "drying-rack-icon", and "wood-box-icon" sheets draw beside their piece, so the owner can compare their style. */
 const FURNITURE_ICON_NEIGHBOURS = ["chest", "table", "stool", "bed"] as const;
 
 /**
- * The first view of "rain-barrel-icon" or "wood-box-icon": that piece's icon drawn large and at build menu size, beside four
- * other furniture icons. The full build icon sheet does not fit them in a quarter of the screen.
+ * The first view of "rain-barrel-icon", "drying-rack-icon", or "wood-box-icon": the piece's icon drawn large and at build menu size, beside four other
+ * furniture icons. The full build icon sheet does not fit the piece in a quarter of the screen.
  */
-function FurnitureIconSheet({ structure: own }: { structure: "rainBarrel" | "woodBox" }) {
+function FurnitureIconSheet({ piece }: { piece: "rainBarrel" | "dryingRack" | "woodBox" }) {
   const cell = {
     display: "flex",
     flexDirection: "column",
@@ -624,12 +624,12 @@ function FurnitureIconSheet({ structure: own }: { structure: "rainBarrel" | "woo
     <div style={{ position: "absolute", top: "8px", left: "8px", right: "8px", display: "flex", gap: "6px" }}>
       <div style={cell}>
         <span style={{ width: "160px", height: "160px", display: "grid" }} class="showcase-big-icon">
-          <StructureIcon structure={own} />
+          <StructureIcon structure={piece} />
         </span>
         <span style={{ width: "40px", height: "40px", display: "grid" }} class="showcase-big-icon">
-          <StructureIcon structure={own} />
+          <StructureIcon structure={piece} />
         </span>
-        {own}
+        {piece}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
         {FURNITURE_ICON_NEIGHBOURS.map((structure) => (
@@ -767,6 +767,48 @@ const CORD_RECIPES: GameView["craftMenu"] = [
   },
 ];
 
+/**
+ * The draft "dried-food-icons" asset: dried berries and a dried mushroom in the backpack beside fresh ones, the drying rack panel
+ * with fresh and dried food on it, the same by evening, and both icons drawn large beside the fresh foods.
+ */
+const DRIED_FOOD_RACK: GameView["nearby"][number] = {
+  kind: "dryingRack",
+  view: {
+    id: 1,
+    limit: 6,
+    food: [
+      { food: "berries", dried: true, dryProgress: 1 },
+      { food: "mushroom", dried: true, dryProgress: 1 },
+      { food: "berries", dried: false, dryProgress: 0.6 },
+      { food: "mushroom", dried: false, dryProgress: 0.1 },
+    ],
+  },
+};
+const DRIED_FOOD_ICON_STATES: readonly ShowcaseState[] = [
+  {
+    view: {
+      ...BASE_VIEW,
+      backpack: { ...BASE_VIEW.backpack, berries: 3, mushroom: 2, driedBerries: 5, driedMushroom: 4 },
+      backpackFreshness: { berries: { minutesLeft: 1500, share: 0.52 }, mushroom: { minutesLeft: 3000, share: 0.7 } },
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  { view: { ...BASE_VIEW, backpack: { ...BASE_VIEW.backpack, berries: 1, driedBerries: 2 }, nearby: [DRIED_FOOD_RACK] }, buildMenuOpen: false, placing: null },
+  {
+    view: {
+      ...BASE_VIEW,
+      time: { ...BASE_VIEW.time, hour: 19, hourOfDay: 19 },
+      backpack: { ...BASE_VIEW.backpack, driedMushroom: 3 },
+      nearby: [DRIED_FOOD_RACK],
+    },
+    buildMenuOpen: false,
+    placing: null,
+  },
+  // IconSheet replaces this view.
+  { view: BASE_VIEW, buildMenuOpen: false, placing: null },
+];
+
 /** The approved "fish-trap-icons" asset: both recipes in the craft menu, cord and a fish trap in the backpack by day and evening, and both icons drawn large. */
 const FISH_TRAP_ICON_STATES: readonly ShowcaseState[] = [
   {
@@ -785,6 +827,7 @@ const ICON_SHEETS = {
   "crafting-icons": { states: CRAFTING_ICON_STATES, contents: ["sawBlade", "saw", "plank"] },
   "fishing-icons": { states: FISHING_ICON_STATES, contents: ["fishingLine", "fishingRod", "rawFish", "cookedFish"] },
   "fish-trap-icons": { states: FISH_TRAP_ICON_STATES, contents: ["cord", "fishTrap"] },
+  "dried-food-icons": { states: DRIED_FOOD_ICON_STATES, contents: ["berries", "driedBerries", "mushroom", "driedMushroom"] },
 } as const;
 
 /** A client that always shows `view` and ignores commands. `things` says what each made-up entity id is. */
@@ -796,6 +839,7 @@ function stillClient(view: GameView, things: Readonly<Record<number, ThingView>>
     describeCampfire: () => null,
     describeWoodpile: () => null,
     describeSled: () => null,
+    describeDryingRack: () => null,
     refusal: () => null,
     nearestInReach: () => null,
     describeThing: (id) => things[id] ?? null,
@@ -826,6 +870,9 @@ const STATES_BY_ASSET = {
   "fireplace-icon": BUILD_ICON_STATES,
   // And the rain barrel's.
   "rain-barrel-icon": BUILD_ICON_STATES,
+  // And the drying rack's.
+  "drying-rack-icon": BUILD_ICON_STATES,
+  "dried-food-icons": DRIED_FOOD_ICON_STATES,
   // And the wood box's.
   "wood-box-icon": BUILD_ICON_STATES,
   // And the floor's and door's icons.
@@ -861,6 +908,7 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       asset === "furniture-icons" ||
       asset === "fireplace-icon" ||
       asset === "rain-barrel-icon" ||
+      asset === "drying-rack-icon" ||
       asset === "wood-box-icon" ||
       asset === "floor-and-door-icons" ||
       asset === "window-icons" ||
@@ -871,9 +919,11 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       if (index === 0) {
         const sheet =
           asset === "rain-barrel-icon" ? (
-            <FurnitureIconSheet structure="rainBarrel" />
+            <FurnitureIconSheet piece="rainBarrel" />
+          ) : asset === "drying-rack-icon" ? (
+            <FurnitureIconSheet piece="dryingRack" />
           ) : asset === "wood-box-icon" ? (
-            <FurnitureIconSheet structure="woodBox" />
+            <FurnitureIconSheet piece="woodBox" />
           ) : (
             <BuildIconSheet />
           );
@@ -893,7 +943,10 @@ export function renderHudShowcase(ui: HTMLElement, asset: HudShowcaseId): void {
       render(<QueueIconSheet />, quarter);
       return;
     }
-    if ((asset === "crafting-icons" || asset === "fishing-icons" || asset === "fish-trap-icons") && index === ICON_SHEETS[asset].states.length - 1) {
+    if (
+      (asset === "crafting-icons" || asset === "fishing-icons" || asset === "fish-trap-icons" || asset === "dried-food-icons") &&
+      index === ICON_SHEETS[asset].states.length - 1
+    ) {
       render(<IconSheet contents={ICON_SHEETS[asset].contents} />, quarter);
       return;
     }

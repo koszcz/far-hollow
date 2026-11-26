@@ -5,6 +5,7 @@ import type { Entity } from "./entities";
 import { isFillProgress } from "./fill-level";
 import { GOALS } from "./journal";
 import { FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
+import { DRYING_RACK_FOOD_LIMIT, RACK_FOODS } from "./rack-food";
 import { FRESH_FOODS } from "./fresh-food";
 import { WOOD_BOX_FIREWOOD_LIMIT } from "./furniture/wood-box";
 import { NEED_KINDS } from "./needs";
@@ -81,6 +82,8 @@ const approachCommand: Check = (value) =>
   shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
   shape({ type: exactly("drinkFromRainBarrel", "fillPotFromRainBarrel", "fillJugFromRainBarrel"), barrelId: count })(value) ||
+  shape({ type: exactly("hangOnRack"), rackId: count, food: exactly(...RACK_FOODS) })(value) ||
+  shape({ type: exactly("takeFoodOffRack"), rackId: count })(value) ||
   shape({ type: exactly("putInWoodBox"), woodBoxId: count, all: boolean })(value) ||
   shape({ type: exactly("takeFromWoodBox"), woodBoxId: count })(value) ||
   shape({ type: exactly("pickUpStick"), stickId: count })(value) ||
@@ -171,6 +174,10 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   furniture: exactly(...FURNITURE_KINDS),
   storage: shape({ contents: backpackContents, spoilsAt: spoilTimes }, ["spoilsAt"]),
   rainBarrel: shape({ held: count, progress: isFillProgress }),
+  // Dried food has no spoil time.
+  dryingRack: (value) =>
+    list(shape({ food: exactly(...RACK_FOODS), minutesDried: finite, spoilsAt: finite }, ["spoilsAt"]))(value) &&
+    (value as unknown[]).length <= DRYING_RACK_FOOD_LIMIT,
   woodBox: shape({ firewood: (value) => count(value) && (value as number) <= WOOD_BOX_FIREWOOD_LIMIT }),
   workStation: exactly(...WORK_STATION_KINDS),
   sled: shape({ log: count, debarkedLog: count, plank: count }),
@@ -287,6 +294,8 @@ const PLAIN_REFUSALS: Readonly<Record<PlainRefusal, true>> = {
   finishHostFirst: true,
   holdsAddOn: true,
   addOnInTheWay: true,
+  noBerries: true,
+  rackFull: true,
   needsRoom: true,
   woodBoxFull: true,
   woodBoxEmpty: true,
@@ -301,7 +310,7 @@ const refusal: Check = (value) =>
     kind: exactly("cannotBuildYet"),
     lacks: (lacks) =>
       shape({ kind: exactly("tool"), tool: backpackContent })(lacks) ||
-      shape({ kind: exactly("material"), material: exactly("stick", "bark", "plank", "stone", ...CARRIED_LOGS) })(lacks),
+      shape({ kind: exactly("material"), material: exactly("stick", "bark", "cord", "plank", "stone", ...CARRIED_LOGS) })(lacks),
   })(value) ||
   shape({ kind: exactly("cannotCraftYet"), lacks: list(recipeLack) })(value);
 

@@ -48,8 +48,14 @@ export type WildFood = "berries" | "mushroom";
 /** Fish the player catches at the river, raw or cooked on a campfire. Raw fish makes the player sick if they eat it. */
 export type Fish = "rawFish" | "cookedFish";
 
+/**
+ * Preserved food: food dried or smoked on a drying rack, which never spoils (see GLOSSARY.md).
+ * Dried berries and a dried mushroom come from berries and a mushroom.
+ */
+export type PreservedFood = "driedBerries" | "driedMushroom";
+
 /** Everything the player can eat from the backpack. */
-export type Food = WildFood | Fish;
+export type Food = WildFood | Fish | PreservedFood;
 
 /**
  * The pot, by what it holds. The player has one pot, so the backpack holds at most one of these.
@@ -103,6 +109,9 @@ export const CONTENT_WEIGHT_KG: Readonly<Record<BackpackContent, number>> = {
   fishingRod: 0.5,
   rawFish: 0.5,
   cookedFish: 0.5,
+  // Preserved food weighs the same as the fresh food it came from.
+  driedBerries: 0.1,
+  driedMushroom: 0.1,
 };
 
 /** What the player starts a new game with. */

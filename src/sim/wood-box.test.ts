@@ -14,13 +14,13 @@ import { addFinished, finishReach, newestBlueprint, onlyPlayer, piecesOf, stepUn
 import { isWalkable } from "./walk-map";
 
 describe("the wood box in the build menu", () => {
-  it("lists the wood box as furniture after the rain barrel, costing 4 planks and needing no tool", () => {
+  it("lists the wood box as furniture after the drying rack, costing 4 planks and needing no tool", () => {
     const menu = createGame({ seed: 42 }).client.getView().buildMenu;
 
     expect(WOOD_BOX_PLANK_COST).toBe(4);
     expect(WOOD_BOX_BUILD_SECONDS).toBe(8);
-    const barrelAt = menu.findIndex(({ structure }) => structure === "rainBarrel");
-    expect(menu[barrelAt + 1]).toEqual({ structure: "woodBox", cost: [{ material: "plank", count: 4 }], placement: "anywhere" });
+    const rackAt = menu.findIndex(({ structure }) => structure === "dryingRack");
+    expect(menu[rackAt + 1]).toEqual({ structure: "woodBox", cost: [{ material: "plank", count: 4 }], placement: "anywhere" });
   });
 });
 

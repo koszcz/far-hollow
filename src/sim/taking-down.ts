@@ -25,7 +25,6 @@ import {
   isDelivered,
   isKept,
   isPlacedStructure,
-  isTaken,
   roofFrameOn,
   roofFramesStayCarried,
   stageMaterials,
@@ -37,7 +36,6 @@ import {
   type KeptMaterial,
   type PlacedStructure,
   type StructureKind,
-  type TakenMaterial,
 } from "./structures";
 import type { Valley } from "./valley";
 import type { GroundPoint } from "./ground-point";
@@ -78,9 +76,9 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
   const workers = entities.with("takeDownTask", "position", "backpack");
 
   /**
-   * Removes a structure and gives back its materials. Bark goes in the backpack first, then sticks, planks, and stone.
+   * Removes a structure and gives back its materials. Bark goes in the backpack first, then sticks, cord, planks, and stone.
    * Bark and sticks that do not fit, and every debarked log, go on the ground near the worker, on their side of any wall.
-   * Planks that do not fit go on the ground there as one pile, and so does stone.
+   * Cord, planks, and stone that do not fit go on the ground there as one pile of each.
    * Anything lying on a foundation's deck drops to the ground under it.
    */
   function takeDown(worker: Worker, structure: PlacedStructure, kind: StructureKind): void {
@@ -90,14 +88,14 @@ export function createTakingDown(entities: EntityStore, walking: Walking, valley
     if (kind === "foundation") dropOffDeck(structure.position);
     const onGround: Entity[] = [];
     const barkFirst = [...backpack].sort((a, b) => Number(b === "bark") - Number(a === "bark"));
-    const left: Partial<Record<TakenMaterial, number>> = {};
+    const left: Partial<Record<PiledMaterial, number>> = {};
     for (const material of barkFirst) {
       if (addToBackpack(worker.backpack, material, 1)) continue;
-      // Planks and stone have no form of their own on the ground, so the ones that do not fit lie there as one pile of each.
-      if (isTaken(material)) left[material] = (left[material] ?? 0) + 1;
+      // Cord, planks, and stone have no form of their own on the ground, so the ones that do not fit lie there as one pile of each.
+      if (isPiled(material)) left[material] = (left[material] ?? 0) + 1;
       else onGround.push({ [material]: true });
     }
-    for (const content of TAKEN_MATERIALS) {
+    for (const content of PILED_MATERIALS) {
       const count = left[content] ?? 0;
       if (count > 0) onGround.push({ pile: { content, count } });
     }
@@ -212,6 +210,15 @@ function isBackpackMaterial(material: BuildMaterial): material is BackpackMateri
 /** A material that goes back in the backpack rather than on the ground. */
 type BackpackMaterial = Exclude<BuildMaterial, DeliveredMaterial>;
 
+/** The backpack materials with no form of their own on the ground, which lie in a pile when they do not fit in the backpack. */
+const PILED_MATERIALS = ["cord", ...TAKEN_MATERIALS] as const;
+type PiledMaterial = (typeof PILED_MATERIALS)[number];
+
+/** Whether a backpack material lies on the ground in a pile, rather than as a stick or a piece of bark of its own. */
+function isPiled(material: BackpackMaterial): material is PiledMaterial {
+  return (PILED_MATERIALS as readonly BuildMaterial[]).includes(material);
+}
+
 /**
  * Whether another structure stands on this one, so it cannot come down yet.
  * A log wall, door frame, floor, campfire, fireplace, roof frame, roof section, lean-to, or piece of furniture, finished or as a blueprint, stands on the foundation under it.
@@ -262,14 +269,15 @@ function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind
 }
 
 /**
- * Whether a structure is a piece of furniture or woodpile with anything in it, such as a wood box with firewood, or a campfire
- * with a pot or fish on it.
+ * Whether a structure is a piece of furniture or woodpile with anything in it, such as a drying rack with food on it or a
+ * wood box with firewood, or a campfire with a pot or fish on it.
  * It must be emptied before it comes down, so nothing in it is lost.
  * A loaded sled can come down: its logs are laid on the ground beside it first.
  */
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined || structure.jugOnFire !== undefined) return true;
-  return !holdsNone(structure.storage?.contents ?? {}) || !holdsNone(structure.woodpile ?? {}) || (structure.woodBox?.firewood ?? 0) > 0;
+  if ((structure.dryingRack?.length ?? 0) > 0 || (structure.woodBox?.firewood ?? 0) > 0) return true;
+  return !holdsNone(structure.storage?.contents ?? {}) || !holdsNone(structure.woodpile ?? {});
 }
 
 /** The rule for taking down a built piece. */

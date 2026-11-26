@@ -809,6 +809,34 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(furniture("rainBarrel", barrel), fullJugs.reader))).toContain("fillJug off: every jug is full");
   });
 
+  it("hangs each food the backpack holds on a drying rack, takes food off once some hangs there, or takes the rack down", () => {
+    const world = worldWith({ backpack: { berries: 2, mushroom: 1 } });
+    const rack = world.add({ furniture: "dryingRack", dryingRack: [], facing: { turns: 0 } });
+    const actions = actionsFor(furniture("dryingRack", rack), world.reader);
+    expect(summary(actions)).toEqual(["hang:berries main", "hang:mushroom", "takeDown"]);
+    expect(find(actions, "hang:mushroom")).toMatchObject({ label: "Hang a mushroom", command: { type: "hangOnRack", rackId: rack, food: "mushroom" } });
+
+    const onlyMushroom = worldWith({ backpack: { mushroom: 1 } });
+    const hung = onlyMushroom.add({ furniture: "dryingRack", dryingRack: [{ food: "berries", minutesDried: 10, spoilsAt: 5000 }], facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("dryingRack", hung), onlyMushroom.reader))).toEqual([
+      "hang:mushroom main",
+      "takeFoodOffRack",
+      "takeDown off: empty it first",
+    ]);
+  });
+
+  it("takes dried food off a drying rack as its main action, and greys hanging more on a full rack", () => {
+    const world = worldWith({ backpack: { berries: 1 } });
+    const rack = world.add({
+      furniture: "dryingRack",
+      dryingRack: Array.from({ length: 6 }, () => ({ food: "mushroom" as const, minutesDried: 360 })),
+      facing: { turns: 0 },
+    });
+    const actions = actionsFor(furniture("dryingRack", rack), world.reader);
+    expect(summary(actions)).toEqual(["takeFoodOffRack main", "hang:berries off: the rack holds 6 foods", "takeDown off: empty it first"]);
+    expect(find(actions, "takeFoodOffRack")).toMatchObject({ icon: { content: "driedMushroom" }, command: { type: "takeFoodOffRack", rackId: rack } });
+  });
+
   it("opens a chest, or takes it down", () => {
     expect(summary(actionsFor(furniture("chest", 6), worldWith({}).reader))).toEqual(["open main", "takeDown"]);
     expect(summary(actionsFor(furniture("shelf", 7), worldWith({}).reader))).toEqual(["open main", "takeDown"]);

@@ -57,7 +57,8 @@ describe("loading a save from before one part marked all furniture", () => {
       [{ kind: "bed", x: 14, facing: { turns: 1 } }],
       [{ kind: "table", x: 16, facing: { turns: 1 } }],
       [{ kind: "stool", x: 18, facing: { turns: 1 } }],
-      // Rain barrels and wood boxes came after one part marked all furniture, so no save this old holds one.
+      // Rain barrels, drying racks, and wood boxes came after one part marked all furniture, so no save this old holds one.
+      [],
       [],
       [],
     ]);

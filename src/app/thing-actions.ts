@@ -14,6 +14,7 @@ import {
   holdsWater,
   isJug,
   JUG_CONTENTS,
+  RACK_FOODS,
   withOneMoreDrink,
   WOODPILE_WOODS,
 } from "../sim/api";
@@ -21,6 +22,7 @@ import type {
   BackpackContent,
   CampfireView,
   CarriedLog,
+  DryingRackView,
   CarriedThing,
   Command,
   FurnitureKind,
@@ -48,7 +50,7 @@ export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */
 export type ActionReader = Pick<
   GameClient,
-  "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "describeThing" | "refusal"
+  "getView" | "describeBlueprint" | "describeCampfire" | "describeWoodpile" | "describeSled" | "describeDryingRack" | "describeThing" | "refusal"
 >;
 
 /** An action before it is known whether it is the main one. */
@@ -254,8 +256,11 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       const sled = reader.describeSled(pick.id);
       return sled === null ? withMain([takeDown(context, pick.id)], undefined) : sledActions(sled, context);
     }
-    case "furniture":
-      return furnitureActions(pick.furniture, pick.id, context);
+    case "furniture": {
+      if (pick.furniture !== "dryingRack") return furnitureActions(pick.furniture, pick.id, context);
+      const rack = reader.describeDryingRack(pick.id);
+      return rack === null ? withMain([takeDown(context, pick.id)], undefined) : dryingRackActions(rack, context);
+    }
     case "bedroll":
       return withMain(
         [
@@ -355,6 +360,26 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
   // A greyed main action does nothing, so another use the player can do now takes its place, such as taking firewood from a wood box.
   const mainId = main.enabled ? main.id : (moreUses.find(({ enabled }) => enabled)?.id ?? main.id);
   return withMain([main, ...moreUses, takeDown(context, id)], mainId);
+}
+
+/**
+ * Hang each food, take the food off, then take the rack down. Hanging a food shows only while the backpack holds it, and taking
+ * food off only while the rack holds some. Each shows greyed, with the reason, when the game would refuse it, such as on a full rack.
+ * Main: take the food off once some has dried, or else hang the first food the player can hang.
+ */
+function dryingRackActions(rack: DryingRackView, context: Context): readonly ThingAction[] {
+  const { view, offer } = context;
+  const rackId = rack.id;
+  const hang = RACK_FOODS.flatMap((food) =>
+    offerIf(has(view, food), () => offer(`hang:${food}`, strings.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
+  );
+  const driedOne = rack.food.find(({ dried }) => dried);
+  const takeIcon: ActionIcon = {
+    content: driedOne === undefined ? (rack.food[0]?.food ?? "berries") : driedOne.food === "berries" ? "driedBerries" : "driedMushroom",
+  };
+  const takeOff = offerIf(rack.food.length > 0, () => offer("takeFoodOffRack", strings.actions.takeFoodOffRack, takeIcon, { type: "takeFoodOffRack", rackId }));
+  const main = driedOne !== undefined ? takeOff[0] : (hang.find(({ enabled }) => enabled) ?? takeOff[0] ?? hang[0]);
+  return withMain([...hang, ...takeOff, takeDown(context, rackId)], main?.id);
 }
 
 /** Gathering one stone, then digging one clay, at a spot on the river bank or in the river. */
@@ -529,6 +554,8 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
     case "mushroom":
     case "rawFish":
     case "cookedFish":
+    case "driedBerries":
+    case "driedMushroom":
       return { label: strings.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
       return { label: strings.actions.layOut, command: { type: "layBedroll" } };

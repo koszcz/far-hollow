@@ -4,6 +4,7 @@ import type { EntityStore } from "../sim/entities";
 import type { FurnitureKind } from "../sim/structure-kind";
 import { createBedMeshes } from "./bed-meshes";
 import { createChestMeshes } from "./chest-meshes";
+import { createDryingRackMeshes } from "./drying-rack-meshes";
 import type { FurnitureMeshes } from "./plank-furniture-meshes";
 import { createRainBarrelMeshes } from "./rain-barrel-meshes";
 import { createShelfMeshes } from "./shelf-meshes";
@@ -19,6 +20,7 @@ export const FURNITURE_MESHES: { readonly [Kind in FurnitureKind]: (entities: En
   table: createTableMeshes,
   stool: createStoolMeshes,
   rainBarrel: createRainBarrelMeshes,
+  dryingRack: createDryingRackMeshes,
   woodBox: createWoodBoxMeshes,
 };
 

@@ -240,7 +240,7 @@ describe("saving the journal", () => {
     expect(doneGoals(load(olderSave(game)))).toEqual(["pickUpSticks", "lightCampfire", "fellTree", "buildLeanTo", "sleepOnBedroll", "cutPlank"]);
   });
 
-  it("marks every goal done in an older save with a snug room, and the journal's closing line follows", () => {
+  it("marks every goal up to a snug room done in an older save with a snug room", () => {
     const game = createGame({ seed: 42 });
     const square = roomNearPlayer(game);
     game.entities.add({ floor: true, position: { x: square.x, y: foundationDeckTop(game.valley.terrain, square), z: square.z } });

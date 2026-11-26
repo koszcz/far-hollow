@@ -100,6 +100,7 @@ import { findRooms, isInSnugRoom, isRoomHeated, isRoomSnug, roomAround } from ".
 import { passSicknessTime } from "./sickness";
 import { createPot, potRules } from "./pot";
 import { createRainBarrels, rainBarrelRules } from "./rain-barrels";
+import { createDryingRacks, dryingRackRules } from "./drying-racks";
 import { createCooking, cookingRules } from "./cooking";
 import { createFiring, firingRules } from "./firing";
 import { createJugs, jugRules } from "./jugs";
@@ -290,6 +291,7 @@ export function createGame({
   const mushroomLogs = createMushroomLogs(entities);
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const rainBarrels = createRainBarrels(entities);
+  const dryingRacks = createDryingRacks(entities);
   const woodBoxes = createWoodBoxes(entities);
   const cooking = createCooking(entities, campfires);
   const firing = createFiring(entities, campfires);
@@ -449,6 +451,7 @@ export function createGame({
     add("blueprint", building.nearby());
     add("openChest", chests.opened());
     add("rainBarrel", rainBarrels.nearby());
+    add("dryingRack", dryingRacks.nearby());
     add("woodBox", woodBoxes.nearby());
     return Object.freeze(things);
   }
@@ -581,6 +584,7 @@ export function createGame({
     ...bedRules(beds, ruleGame),
     ...stoolRules(stools, ruleGame),
     ...rainBarrelRules(rainBarrels, ruleGame),
+    ...dryingRackRules(dryingRacks, ruleGame, () => clock.minutes),
     ...woodBoxRules(woodBoxes, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
@@ -745,7 +749,8 @@ export function createGame({
 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
-   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, and fresh food spoils.
+   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, food on drying racks dries,
+   * and fresh food spoils.
    * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
   function passWorldTime(minutes: number, winter: boolean): void {
@@ -760,6 +765,8 @@ export function createGame({
     cooking.cook(minutes);
     firing.fire(minutes);
     fishTraps.pass(minutes, winter);
+    // Food dries before it spoils, so food that dries in the same minute it would spoil keeps.
+    dryingRacks.dry(minutes);
     for (const [food, count] of Object.entries(spoiling.pass(clock.minutes)) as [FreshFood, number][]) spoiledToTell = addCount(spoiledToTell, food, count);
   }
 
@@ -934,6 +941,7 @@ export function createGame({
     describeCampfire: (campfireId) => campfires.describe(campfireId) ?? null,
     describeWoodpile: (woodpileId) => woodpiles.describe(woodpileId) ?? null,
     describeSled: (sledId) => sleds.describe(sledId) ?? null,
+    describeDryingRack: (rackId) => dryingRacks.describe(rackId) ?? null,
     describeThing: (id) => describeThing(entities, id) ?? null,
     nearestInReach: () => nearestInReach(entities, player.position),
     refusal: refusalOf,

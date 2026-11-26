@@ -333,12 +333,17 @@ const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: Furnitur
     icon: { content: "jugWith3Drinks" },
     listed: (view) => JUG_CONTENTS.some((jug) => has(view, jug)),
   },
+  putInFirewood: { id: "putInFirewood", label: strings.actions.putInFirewood, icon: { content: "firewood" } },
+  putInAllFirewood: { id: "putInAllFirewood", label: strings.actions.putInAllFirewood, icon: { content: "firewood" } },
+  takeFirewood: { id: "takeFirewood", label: strings.actions.takeFirewood, icon: { content: "firewood" } },
 };
 
 /**
- * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action.
+ * Use the piece, if its definition gives it a use, then its other uses, then take it down. Using it is the main action,
+ * unless the game would refuse it and allows one of the other uses, which is then the main action.
  * A piece with no use, such as a table, offers only taking it down. The player eats at a table as they eat anywhere.
  * A rain barrel offers drinking, then filling the pot, then filling a jug while the backpack holds one.
+ * A wood box offers putting in one firewood, then all that fit, then taking firewood.
  * Each shows greyed, with the reason, when the game would refuse it.
  */
 function furnitureActions(kind: FurnitureKind, id: number, context: Context): readonly ThingAction[] {
@@ -349,8 +354,12 @@ function furnitureActions(kind: FurnitureKind, id: number, context: Context): re
     return context.offer(action.id, action.label, action.icon, command(id));
   };
   const main = offerUse(use);
-  const moreUses = furnitureMoreUses(kind).filter(({ name }) => FURNITURE_USE_ACTIONS[name].listed?.(context.view) ?? true);
-  return withMain([main, ...moreUses.map(offerUse), takeDown(context, id)], main.id);
+  const moreUses = furnitureMoreUses(kind)
+    .filter(({ name }) => FURNITURE_USE_ACTIONS[name].listed?.(context.view) ?? true)
+    .map(offerUse);
+  // A greyed main action does nothing, so another use the player can do now takes its place, such as taking firewood from a wood box.
+  const mainId = main.enabled ? main.id : (moreUses.find(({ enabled }) => enabled)?.id ?? main.id);
+  return withMain([main, ...moreUses, takeDown(context, id)], mainId);
 }
 
 /**

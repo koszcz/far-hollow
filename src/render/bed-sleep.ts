@@ -5,7 +5,7 @@
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { blendGroundPoints, stepAlongHeading, type GroundPoint } from "../sim/ground-point";
 import { BED_MATTRESS_TOP_METRES } from "./bed-meshes";
-import { SLEEP_HEADING, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, sleepBodyAt, type SleepSpot } from "./sleep-animation";
+import { SLEEP_HEADING, SLEEP_ROLL_TOWARD_FEET_METRES, SLEEP_SECONDS, SLEEP_STEP_ON_SECONDS, sleepBodyAt, type SleepSpot } from "./sleep-animation";
 
 /** Seconds the player takes to step back down beside the bed once they stand, after the sleep animation. */
 export const BED_STEP_OFF_SECONDS = 0.5;
@@ -14,11 +14,6 @@ export const BED_STEP_OFF_SECONDS = 0.5;
  * Lie_Down lies the body back onto its side, so the head lands far behind the feet. From here the head lands on the pillow.
  */
 export const BED_SLEEP_FEET_METRES = 0.5;
-/**
- * How far the body shifts toward the foot of the bed as it rolls from its side onto its back, in metres. Death_A_Pose lies
- * the head further from the player's spot than Lie_Idle does, so without the shift the head would go through the headboard.
- */
-export const BED_ROLL_TOWARD_FOOT_METRES = 0.45;
 /** When going to sleep in a bed is over, in seconds from when the player reached it. The game waits until then. */
 export const BED_SLEEP_SECONDS = SLEEP_SECONDS + BED_STEP_OFF_SECONDS;
 
@@ -42,7 +37,7 @@ export function bedSleepSpotFrom(from: SleepSpot, bed: GroundPoint, turns: Quart
   const facing = quarterTurnsToRadians(turns);
   const heading = SLEEP_HEADING + facing;
   const onBack = sleepBodyAt(Math.min(seconds, SLEEP_SECONDS)).onBack;
-  const lying = stepAlongHeading(bed, facing, BED_SLEEP_FEET_METRES + BED_ROLL_TOWARD_FOOT_METRES * onBack);
+  const lying = stepAlongHeading(bed, facing, BED_SLEEP_FEET_METRES + SLEEP_ROLL_TOWARD_FEET_METRES * onBack);
   const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));
   // How far onto the bed the player is: 0 beside it, 1 on the mattress.
   const on = seconds < SLEEP_SECONDS ? settle(seconds / SLEEP_STEP_ON_SECONDS) : 1 - settle((seconds - SLEEP_SECONDS) / BED_STEP_OFF_SECONDS);

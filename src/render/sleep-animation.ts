@@ -90,11 +90,16 @@ export function sleepDarknessAt(seconds: number): number {
 
 /**
  * Which way the player faces while lying on a bedroll, in radians from the +z axis toward +x, and where their feet
- * stand when lying down begins, in metres from the bedroll's middle. Lie_Down lies the body back, so the head lands
- * behind the feet, at the rolled blanket at the bedroll's head end (-z).
+ * stand when lying down begins, in metres from the bedroll's middle. Lie_Down lies the body back onto its side, so the
+ * head lands behind the feet, at the rolled blanket at the bedroll's head end (-z).
  */
 export const SLEEP_HEADING = 0;
-export const SLEEP_FEET_Z = 0.3;
+export const SLEEP_FEET_Z = 0.4;
+/**
+ * How far the body shifts toward the feet as it rolls from its side onto its back, in metres. Death_A_Pose lies the head
+ * further from the player's spot than Lie_Idle does. Without the shift, the head would land past the bedroll's head end.
+ */
+export const SLEEP_ROLL_TOWARD_FEET_METRES = 0.45;
 
 /** A spot on the ground and which way the player faces there, in radians from the +z axis toward +x. */
 export interface SleepSpot {
@@ -105,14 +110,15 @@ export interface SleepSpot {
 
 /**
  * Where the player stands `seconds` after reaching the bedroll at `bedroll`, having reached it at `from`.
- * They step across to the lying spot while turning to face along the bedroll, then stay there.
+ * They step across to the lying spot while turning to face along the bedroll, then stay there. Rolling onto the back
+ * shifts them toward the feet, and rolling back onto the side shifts them back.
  * `facing` is which way the bedroll is turned, in radians, as `quarterTurnsToRadians` gives. A bedroll laid along z has 0.
  */
 export function sleepSpotFrom(from: SleepSpot, bedroll: { x: number; z: number }, seconds: number, facing = 0): SleepSpot {
   const stepped = settle(seconds / SLEEP_STEP_ON_SECONDS);
   const heading = SLEEP_HEADING + facing;
   const turn = Math.atan2(Math.sin(heading - from.heading), Math.cos(heading - from.heading));
-  const lying = stepAlongHeading(bedroll, facing, SLEEP_FEET_Z);
+  const lying = stepAlongHeading(bedroll, facing, SLEEP_FEET_Z + SLEEP_ROLL_TOWARD_FEET_METRES * sleepBodyAt(Math.min(seconds, SLEEP_SECONDS)).onBack);
   return {
     ...blendGroundPoints(from, lying, stepped),
     heading: from.heading + turn * stepped,

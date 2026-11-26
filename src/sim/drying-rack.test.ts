@@ -353,7 +353,7 @@ describe("the journal's last goal", () => {
 describe("saving drying racks", () => {
   it("raises the save version for drying racks, and loads a save from before then", () => {
     const game = createGame({ seed: 42 });
-    expect(DRYING_RACKS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(DRYING_RACKS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = DRYING_RACKS_SAVE_VERSION - 1;
 

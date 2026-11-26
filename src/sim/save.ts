@@ -86,6 +86,7 @@ export const SAVE_UPGRADES: readonly SaveUpgrade[] = [
   addWallSwaps,
   spoilFreshFood,
   addDryingRacks,
+  addWoodBoxes,
 ];
 
 /** The version of the save format this code writes. */
@@ -207,6 +208,9 @@ export const WALL_SWAPS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWallSwaps) + 2;
 export const SPOILING_SAVE_VERSION = SAVE_UPGRADES.indexOf(spoilFreshFood) + 2;
 /** The first save version that can hold drying racks, the food on them, and dried food. */
 export const DRYING_RACKS_SAVE_VERSION = SAVE_UPGRADES.indexOf(addDryingRacks) + 2;
+
+/** The first save version that can hold wood boxes and their blueprints. */
+export const WOOD_BOXES_SAVE_VERSION = SAVE_UPGRADES.indexOf(addWoodBoxes) + 2;
 
 /**
  * Brings a save up to the newest version the upgrades reach, one version at a time.
@@ -1116,5 +1120,10 @@ function spoilFreshFood(save: Readonly<Record<string, unknown>>): Record<string,
  * dried berries and dried mushrooms can be kept anywhere food is kept. A save from before then holds none, so it carries over unchanged.
  */
 function addDryingRacks(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return nothingToUpgrade(save);
+}
+
+/** Version 64 to 65: the player can build wood boxes and keep firewood in them. A save from before then holds none, so it carries over unchanged. */
+function addWoodBoxes(save: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return nothingToUpgrade(save);
 }

@@ -50,6 +50,7 @@ describe("the lean-to in the build menu", () => {
         ],
         placement: "anywhere",
       },
+      { structure: "woodBox", cost: [{ material: "plank", count: 4 }], placement: "anywhere" },
       { structure: "sawhorse", cost: [{ material: "debarkedLog", count: 2 }], placement: "onGround" },
       {
         structure: "sled",

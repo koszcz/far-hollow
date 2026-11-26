@@ -764,6 +764,35 @@ describe("other things' actions", () => {
     expect(summary(actionsFor(furniture("rainBarrel", other), noJug.reader))).not.toContain("fillJug");
   });
 
+  it("puts firewood in a wood box as its main action, all of it, or takes firewood from it", () => {
+    const world = worldWith({ backpack: { firewood: 3 } });
+    const box = world.add({ furniture: "woodBox", woodBox: { firewood: 2 }, facing: { turns: 0 } });
+    const actions = actionsFor(furniture("woodBox", box), world.reader);
+    expect(summary(actions)).toEqual(["putInFirewood main", "putInAllFirewood", "takeFirewood", "takeDown off: empty it first"]);
+    expect(find(actions, "putInFirewood")).toMatchObject({ label: "Put in firewood", command: { type: "putInWoodBox", woodBoxId: box, all: false } });
+    expect(find(actions, "putInAllFirewood")).toMatchObject({ label: "Put in all firewood", command: { type: "putInWoodBox", woodBoxId: box, all: true } });
+    expect(find(actions, "takeFirewood")).toMatchObject({ label: "Take firewood", command: { type: "takeFromWoodBox", woodBoxId: box } });
+  });
+
+  it("greys each wood box action with its reason, and takes firewood as the main action when that is all the player can do", () => {
+    const world = worldWith({});
+    const empty = world.add({ furniture: "woodBox", woodBox: { firewood: 0 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("woodBox", empty), world.reader))).toEqual([
+      "putInFirewood main off: no firewood",
+      "putInAllFirewood off: no firewood",
+      "takeFirewood off: the wood box is empty",
+      "takeDown",
+    ]);
+
+    const full = world.add({ furniture: "woodBox", woodBox: { firewood: 20 }, facing: { turns: 0 } });
+    expect(summary(actionsFor(furniture("woodBox", full), world.reader))).toEqual([
+      "takeFirewood main",
+      "putInFirewood off: no firewood",
+      "putInAllFirewood off: no firewood",
+      "takeDown off: empty it first",
+    ]);
+  });
+
   it("lists filling a jug, enabled, while the barrel holds water and a jug has room", () => {
     const world = worldWith({ backpack: { jug: 1 } });
     const barrel = world.add({ furniture: "rainBarrel", rainBarrel: { held: 1, progress: 0 }, facing: { turns: 0 } });

@@ -28,6 +28,7 @@ import { RAIN_BARREL } from "./furniture/rain-barrel";
 import { DRYING_RACK } from "./furniture/drying-rack";
 import { STOOL } from "./furniture/stool";
 import { TABLE } from "./furniture/table";
+import { WOOD_BOX } from "./furniture/wood-box";
 import type { FurnitureKind } from "./structure-kind";
 import type { MaterialCost } from "./structures";
 
@@ -44,7 +45,7 @@ export interface FurnitureStorage {
  * The action menu turns the name into its label and icon.
  */
 export interface FurnitureUse {
-  readonly name: "open" | "sleep" | "sit" | "drink" | "fillPot" | "fillJug";
+  readonly name: "open" | "sleep" | "sit" | "drink" | "fillPot" | "fillJug" | "putInFirewood" | "putInAllFirewood" | "takeFirewood";
   readonly command: (id: number) => Command;
 }
 
@@ -76,8 +77,10 @@ export interface FurnitureDefinition<Kind extends FurnitureKind = FurnitureKind>
   readonly use?: FurnitureUse;
   /** Other ways the player uses a finished piece, after its main use, in the order the action menu lists them. */
   readonly moreUses?: readonly FurnitureUse[];
+  /** Present when the piece goes only inside a room, with every corner on a square of that room, as a wood box does. */
+  readonly needsRoom?: true;
   /** The parts a finished piece starts with, besides `furniture`, `storage`, and how it blocks walking, such as a rain barrel's water. */
-  readonly finishedParts?: () => Pick<Entity, "rainBarrel" | "dryingRack">;
+  readonly finishedParts?: () => Pick<Entity, "rainBarrel" | "dryingRack" | "woodBox">;
 }
 
 /** Each piece of furniture by its kind. */
@@ -89,6 +92,7 @@ export const FURNITURE: { readonly [Kind in FurnitureKind]: FurnitureDefinition<
   stool: STOOL,
   rainBarrel: RAIN_BARREL,
   dryingRack: DRYING_RACK,
+  woodBox: WOOD_BOX,
 };
 
 /** The definition of the finished piece of furniture an entity is, if it is one. */

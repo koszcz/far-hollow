@@ -109,6 +109,7 @@ import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
 import { createSledFilling, sledFillingRules } from "./sled-filling";
 import { createWoodpiles, woodpileRules } from "./woodpiles";
+import { createWoodBoxes, woodBoxRules } from "./wood-boxes";
 import { createChests, chestRules } from "./chests";
 import { createSpoiling, viewFreshness } from "./spoiling";
 import { addCount, holdsNone, type Counts } from "./counts";
@@ -291,6 +292,7 @@ export function createGame({
   const pot = createPot(entities, walking.walkMap, valley, campfires, handReach);
   const rainBarrels = createRainBarrels(entities);
   const dryingRacks = createDryingRacks(entities);
+  const woodBoxes = createWoodBoxes(entities);
   const cooking = createCooking(entities, campfires);
   const firing = createFiring(entities, campfires);
   const jugs = createJugs(entities);
@@ -450,6 +452,7 @@ export function createGame({
     add("openChest", chests.opened());
     add("rainBarrel", rainBarrels.nearby());
     add("dryingRack", dryingRacks.nearby());
+    add("woodBox", woodBoxes.nearby());
     return Object.freeze(things);
   }
 
@@ -582,6 +585,7 @@ export function createGame({
     ...stoolRules(stools, ruleGame),
     ...rainBarrelRules(rainBarrels, ruleGame),
     ...dryingRackRules(dryingRacks, ruleGame, () => clock.minutes),
+    ...woodBoxRules(woodBoxes, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...fishTrapRules(fishTraps, ruleGame),

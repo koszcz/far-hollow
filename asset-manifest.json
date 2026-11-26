@@ -1355,6 +1355,37 @@
       }
     },
     {
+      "id": "wood-box",
+      "kind": "code",
+      "code": [
+        "src/render/wood-box-meshes.ts",
+        "src/render/plank-furniture-meshes.ts",
+        "src/render/firewood-shape.ts"
+      ],
+      "description": "The wood box: an open box of pale planks 0.75 m wide, 0.6 m deep, and 0.42 m high. A bottom of four boards rests on two low battens, three planks one above the other make each side, and a darker square post stands in each corner. Inside, the firewood it holds shows, from none to 20 pieces, in rows of four laid front to back and stacked in layers, using the approved firewood shape. A full box heaps a little above its rim. As a blueprint it shows see-through, a stage whose planks it has waits pale and half solid, and construction builds it in two stages: the bottom with its posts, then the sides.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fireplace/issues/05-firewood-store-that-feeds-the-fireplace.md"
+      }
+    },
+    {
+      "id": "wood-box-icon",
+      "kind": "code",
+      "code": [
+        "src/ui/wood-box-icon.tsx",
+        "src/ui/furniture-icons.tsx"
+      ],
+      "description": "The build menu icon for the wood box, drawn from its model in the furniture icons' shaded style on the same 24 by 24 grid: seen from the front and a little above, three front planks with seams, a darker post at each front corner, and the ends of split firewood heaped inside.",
+      "source": "Built in code in this project",
+      "license": "Project code",
+      "approval": {
+        "status": "draft",
+        "ticket": ".scratch/fireplace/issues/05-firewood-store-that-feeds-the-fireplace.md"
+      }
+    },
+    {
       "id": "sit-animation",
       "kind": "code",
       "code": [

@@ -13,6 +13,7 @@ import type { ApproachReach } from "./approach";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { reachToward } from "./hand-reach";
 import { tendApproach } from "./tending";
+import { takeOneFirewood, woodBoxFeeding } from "./wood-boxes";
 
 export { FUEL_BURN_MINUTES } from "./fire";
 /** The most fuel a campfire holds, in game minutes of burning. Fuel that would go past it is not taken. */
@@ -35,7 +36,10 @@ export interface Campfires {
    * Undefined if the entity is neither.
    */
   reach(campfireId: number): ApproachReach | undefined;
-  /** Puts one piece of fuel from the backpack on a campfire or fireplace within the player's reach. Does nothing if it would not fit. */
+  /**
+   * Puts one piece of fuel on a campfire or fireplace within the player's reach. Does nothing if it would not fit.
+   * Firewood comes from the wood box nearest the fire in its room, if one holds any, and otherwise from the backpack.
+   */
   addFuel(campfireId: number, fuel: CampfireFuel): void;
   /** Lights a campfire or fireplace within the player's reach with the steel and flint. It needs fuel. */
   light(campfireId: number): void;
@@ -80,11 +84,20 @@ export function createCampfires(entities: EntityStore): Campfires {
     return fire.fuelMinutes <= 0 ? { kind: "fireEmpty" } : toolRefusal(players.first, "steelAndFlint");
   }
 
-  /** Why the player could not put one piece of this fuel on the fire: the backpack holds none, or it would not fit. */
-  function fuelRefusal({ fire, kind }: HeldFire, fuel: CampfireFuel): Refusal | undefined {
+  /** The wood box the fire would take this fuel from: for firewood, the one nearest it in its room that holds any. None for other fuel. */
+  function woodBoxFor({ entity }: HeldFire, fuel: CampfireFuel) {
+    return fuel === "firewood" ? woodBoxFeeding(entities, entity.position) : undefined;
+  }
+
+  /**
+   * Why the player could not put one piece of this fuel on the fire: neither a wood box in its room nor the backpack holds any,
+   * or it would not fit. Only firewood comes from a wood box.
+   */
+  function fuelRefusal(held: HeldFire, fuel: CampfireFuel): Refusal | undefined {
     const backpack = players.first?.backpack;
-    if (backpack === undefined || !hasInBackpack(backpack, fuel)) return { kind: "noContent", content: fuel };
-    return fuelFits(fire, kind, fuel) ? undefined : { kind: "fireFull" };
+    const inBackpack = backpack !== undefined && hasInBackpack(backpack, fuel);
+    if (!inBackpack && woodBoxFor(held, fuel) === undefined) return { kind: "noContent", content: fuel };
+    return fuelFits(held.fire, held.kind, fuel) ? undefined : { kind: "fireFull" };
   }
 
   /** Of `candidates`, the one nearest the player that is within their reach, if any. */
@@ -119,7 +132,10 @@ export function createCampfires(entities: EntityStore): Campfires {
       if (held === undefined) return;
       const player = tenderOf(held);
       if (player?.backpack === undefined || fuelRefusal(held, fuel) !== undefined) return;
-      if (!removeFromBackpack(player.backpack, fuel, 1)) return;
+      // Firewood comes from a wood box in the fire's room first. The player tends the fire from beside it, not from the box.
+      const box = woodBoxFor(held, fuel);
+      if (box !== undefined) takeOneFirewood(box);
+      else if (!removeFromBackpack(player.backpack, fuel, 1)) return;
       setFire(held, withFuel(held.fire, held.kind, fuel));
     },
     refusal(command) {

@@ -65,11 +65,18 @@ function middleOf(target: WalkTarget): GroundPoint {
  * unless something blocks it. The path ends at a spot within `distance` of the target, and does not include `from`.
  * If the player already stands within `distance`, the path is empty.
  * If no spot within `distance` can be reached, the path ends at the closest spot to the target's middle that can, as `findPath` does.
+ * `canReachFrom` turns down spots the player could not act from even within `distance`, such as a spot behind a wall.
  */
-export function findPathWithin(map: WalkMap, from: GroundPoint, target: WalkTarget, distance: number): GroundPoint[] {
+export function findPathWithin(
+  map: WalkMap,
+  from: GroundPoint,
+  target: WalkTarget,
+  distance: number,
+  canReachFrom: (spot: GroundPoint) => boolean = () => true,
+): GroundPoint[] {
   const nearestPoint = nearestPointOf(target, from);
   const away = groundDistance(from, nearestPoint);
-  if (away <= distance) return [];
+  if (away <= distance && canReachFrom(from)) return [];
   const startCell = cellIndexAt(map, from);
   if (startCell === undefined) return [];
 
@@ -79,14 +86,15 @@ export function findPathWithin(map: WalkMap, from: GroundPoint, target: WalkTarg
     x: nearestPoint.x + ((from.x - nearestPoint.x) / away) * distance,
     z: nearestPoint.z + ((from.z - nearestPoint.z) / away) * distance,
   };
-  if (hasLineOfSight(map, from, nearest)) return [nearest];
+  if (away > distance && hasLineOfSight(map, from, nearest) && canReachFrom(nearest)) return [nearest];
 
   const regions = regionsOf(map);
   const openCell = nearestCellWhere(map, from, (cell) => regions[cell] !== BLOCKED_REGION);
   const startRegion = regions[openCell ?? startCell];
-  const isGoal = (cell: number) => map.blockerCounts[cell] === 0 && distanceToTarget(target, cellCentre(map, cell)) <= distance;
+  const isGoal = (cell: number) =>
+    map.blockerCounts[cell] === 0 && distanceToTarget(target, cellCentre(map, cell)) <= distance && canReachFrom(cellCentre(map, cell));
   // Check first that some cell within reach shares the player's region, so a hopeless search does not cover the whole region.
-  const closest = nearestCellWhere(map, nearestPoint, (cell) => regions[cell] === startRegion);
+  const closest = nearestCellWhere(map, nearestPoint, (cell) => regions[cell] === startRegion && canReachFrom(cellCentre(map, cell)));
   if (closest === undefined || !isGoal(closest)) return findPath(map, from, middleOf(target));
   if (isGoal(startCell)) return [cellCentre(map, startCell)];
 
@@ -95,7 +103,7 @@ export function findPathWithin(map: WalkMap, from: GroundPoint, target: WalkTarg
     // The player stands where something now blocks walking, with every square around them blocked too. They step out first.
     if (isWalkable(map, from) || openCell === undefined || openCell === startCell) return [];
     const out = cellCentre(map, openCell);
-    return [out, ...findPathWithin(map, out, target, distance)];
+    return [out, ...findPathWithin(map, out, target, distance, canReachFrom)];
   }
   return smooth(
     map,

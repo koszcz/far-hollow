@@ -7,7 +7,8 @@ import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import type { GroundPoint } from "./ground-point";
 import { droppedStickSpot } from "./piles";
-import { createGame, type Game, type GameProgress } from "./game";
+import { createGame, type Game } from "./game";
+import type { GameProgress } from "./game-start";
 import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
 

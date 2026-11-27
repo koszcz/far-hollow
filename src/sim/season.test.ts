@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { type Command } from "./api-commands";
 import { nearbyOf } from "./api-game-view";
-import { createGame, type Game, SEASON_BANNER_MINUTES, STEPS_PER_SECOND } from "./game";
+import { createGame, type Game, STEPS_PER_SECOND } from "./game";
+import { SEASON_BANNER_MINUTES } from "./game-start";
 import { clockStartMinutes, isNightAt, nextMorning } from "./clock";
 import { readSave, SEASONS_SAVE_VERSION, SAVE_VERSION, writeSave } from "./save";
 import { finishReach } from "./test-steps";

@@ -1,5 +1,5 @@
 // Eating at a table: food eaten within reach of a finished table fills more hunger.
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { furnitureEntities, type EntityStore } from "./entities";
 import { footprintOfEntity } from "./structure-queries";
 import type { GroundPoint } from "./ground-point";

@@ -1,4 +1,4 @@
-import { FETCH_METRES } from "../sim/building";
+import { FETCH_METRES } from "../sim/building-sources";
 
 export const workText = {
   chopping: "Chopping",

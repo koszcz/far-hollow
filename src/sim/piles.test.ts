@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf } from "./api";
+import { nearbyOf } from "./api-game-view";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";

@@ -1,5 +1,6 @@
 import { useRef, useState } from "preact/hooks";
-import { seedFromText, type ImportRefusal, type SaveSlotSummary } from "../sim/api";
+import { seedFromText } from "../sim/api";
+import { type ImportRefusal, type SaveSlotSummary } from "../sim/api-save";
 import type { VolumeControl } from "../sound/volume-control";
 import { strings } from "../strings";
 import { VolumeSlider } from "./sound-button";

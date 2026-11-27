@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { BuildMenuEntry } from "../sim/api";
+import type { BuildMenuEntry } from "../sim/api-build-menu";
 import { placingHint, plantingHint } from "./placing-hint";
 
 const MENU: readonly BuildMenuEntry[] = [

@@ -1,4 +1,7 @@
-import type { CampfireFuel, CampfireView, Command, Refusal } from "./api";
+import type { CampfireFuel } from "./api";
+import type { CampfireView } from "./api-nearby";
+import type { Command } from "./api-commands";
+import type { Refusal } from "./api-refusal";
 import { hasInBackpack, removeFromBackpack, type Backpack } from "./backpack";
 import { toolRefusal } from "./refusals";
 import { snapToGridSquare } from "./build-grid";

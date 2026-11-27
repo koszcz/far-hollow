@@ -1,5 +1,6 @@
 // Cooking fish: the player puts raw fish on a lit campfire or fireplace, and they become cooked fish after a while.
-import type { PlainNotice, Refusal } from "./api";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack } from "./backpack";
 import type { Campfires } from "./campfires";
 import { heldFireOf, heldFires, type EntityStore, type HeldFire } from "./entities";

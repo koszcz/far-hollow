@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
-import { nearbyOf } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { createEntityStore, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, passNeedsTime, type NeedConditions } from "./needs";

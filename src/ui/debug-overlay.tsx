@@ -1,7 +1,8 @@
 // Developer tools: the frame rate, the clock, the season, the rain, and the rooms the game has found. Off by default. The backquote key (`) shows and hides it.
 import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import type { GameClient, GameView } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
 import { strings } from "../strings";
 
 /** The key left of 1 on a US keyboard, or the backquote character on any layout. */

@@ -1,4 +1,6 @@
-import { type BuildMenuEntry, type Plantable, type Refusal, type StructureKind } from "../sim/api";
+import { type BuildMenuEntry } from "../sim/api-build-menu";
+import { type Plantable, type StructureKind } from "../sim/api";
+import { type Refusal } from "../sim/api-refusal";
 import { strings } from "../strings";
 import { refusalText } from "./refusal-text";
 

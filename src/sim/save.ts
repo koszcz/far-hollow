@@ -1,7 +1,8 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
-import type { SaveRefusal, SaveSlotSummary } from "./api";
+import type { SaveRefusal, SaveSlotSummary } from "./api-save";
 import { readClock } from "./clock";
-import { createGame, type Game, type GameProgress } from "./game";
+import { createGame, type Game } from "./game";
+import type { GameProgress } from "./game-start";
 import { addJournal } from "./save-upgrade-steps-3";
 import { turnAwayLargeValley } from "./save-upgrade-steps-1";
 import { isValidSave } from "./save-schema";

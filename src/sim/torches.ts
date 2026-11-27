@@ -3,7 +3,8 @@
 // The player can plant the torch in their hand at their feet, and pick a planted torch up again with the time it has left.
 // Unlit torches are an ordinary backpack content. A lit torch is not, so it uses no backpack weight.
 // A planted torch is its own entity. It does not block walking.
-import type { PlantedTorchView, Refusal } from "./api";
+import type { PlantedTorchView } from "./api-game-view";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { burnDown, freshBurnTime, type BurnTime } from "./burn-time";

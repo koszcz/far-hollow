@@ -1,4 +1,4 @@
-import type { GameClient } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
 import { STEPS_PER_SECOND } from "../sim/game";
 import type { SoundState } from "../sound/sound-engine";
 

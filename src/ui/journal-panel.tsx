@@ -1,6 +1,7 @@
 // The journal: one HUD line under the clock that names the next goal, and the panel J opens, listing every goal.
 // Text only, in the HUD's panel style. Its look lives in the .hud-journal rules of src/app/style.css.
-import type { GameClient, JournalView } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { JournalView } from "../sim/api-game-view";
 import { strings } from "../strings";
 import { journalLineText, journalSections } from "./journal-text";
 

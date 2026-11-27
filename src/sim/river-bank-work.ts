@@ -1,7 +1,8 @@
 // Timed work by hand on the river bank: gathering stone and digging clay. The player walks into reach of a spot on the river
 // bank or in the river, works there for a few seconds, and puts one of the material in the backpack. Neither material runs out
 // and neither needs a tool.
-import type { ActionCommand, Refusal } from "./api";
+import type { ActionCommand } from "./api-commands";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack, type Backpack, type BackpackContent } from "./backpack";
 import type { CommandRule } from "./command-rule";

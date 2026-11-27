@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type BackpackContent, type Command, type FoodToHang } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type BackpackContent, type FoodToHang } from "./api";
+import { type Command } from "./api-commands";
 import { MINUTES_PER_HOUR } from "./clock";
 import { rainEntities, type Entity } from "./entities";
 import { addToBackpack, CONTENT_WEIGHT_KG } from "./backpack";

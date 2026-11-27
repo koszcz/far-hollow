@@ -28,13 +28,21 @@ import { blueprintEntities, edgePieceEntities } from "../sim/entity-queries";
 import { EDGE_PIECE_KINDS, type EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structure-cabin-shell";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
+import {
+  doorLogGeometry,
+  LEFT_POST_LEAN_RADIANS,
+  LINTEL_OVERHANG_METRES,
+  LINTEL_RADIUS_METRES,
+  POST_FOOT_RADIUS_METRES,
+  POST_TOP_RADIUS_METRES,
+  RIGHT_POST_LEAN_RADIANS,
+} from "./door-frame-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
 import type { OutlinePart } from "./hover-outline";
 import { deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";
-import { areAtRightAngles, quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
-import { addGroundPoints, subtractGroundPoints } from "../sim/ground-point";
+import { quarterTurnsToRadians, runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { isEdgePiece, isLaidInCourses } from "../sim/edge-pieces";
 import {
   CORNER_STAGGER_METRES,
@@ -54,6 +62,7 @@ import {
   WINDOW_STUB_INNER_METRES,
   WINDOW_STUB_LENGTH_METRES,
 } from "./window-shape";
+import { wallEnds, type WallEnds, type WallLine } from "./wall-corners";
 
 const BLUEPRINT_COLOUR = 0xbfe3ff;
 /** How see-through the parts of a blueprint not yet built are, from 0 (invisible) to 1 (solid). */
@@ -62,23 +71,6 @@ const BLUEPRINT_OPACITY = 0.35;
 const DELIVERED_OPACITY = 0.7;
 /** How much further a course reaches past an end where another wall crosses it at a corner, in metres. */
 const CORNER_REACH_METRES = 0.2;
-/** Two corner points closer than this, in metres, are the same point. */
-const SAME_POINT_METRES = 1e-6;
-/** A door post is a little thicker at the foot than at the top, like the trunk it was cut from. */
-const POST_FOOT_RADIUS_METRES = 0.125;
-const POST_TOP_RADIUS_METRES = 0.11;
-const LINTEL_RADIUS_METRES = 0.11;
-/** How wide the doorway is between the feet of a door frame's posts, in metres. A door hung in it fits this gap. */
-export const DOORWAY_WIDTH_METRES = BUILD_GRID_METRES - 4 * POST_FOOT_RADIUS_METRES;
-/** How high the doorway is, from the deck to the underside of the lintel, in metres. */
-export const DOORWAY_HEIGHT_METRES = EDGE_PIECE_HEIGHT_METRES - 2 * LINTEL_RADIUS_METRES;
-/** How far the lintel reaches past the outside of each post, in metres. */
-const LINTEL_OVERHANG_METRES = 0.08;
-/** How far each door post leans from upright, in radians, so the frame looks set up by hand. */
-const LEFT_POST_LEAN_RADIANS = 0.018;
-const RIGHT_POST_LEAN_RADIANS = -0.012;
-/** How many flat sides a door post or lintel has round its length. */
-const DOOR_LOG_SIDES = 10;
 /** How thick the invisible box that catches clicks on a blueprint is, across its edge, in metres. */
 const PICK_THICKNESS_METRES = 0.35;
 
@@ -168,26 +160,6 @@ interface Drawn {
   /** The parts each stage of construction adds, in order. Each part has its own see-through copy of the wood for fading in. */
   readonly stages: Part[][];
   readonly picker: THREE.Mesh;
-}
-
-/**
- * A debarked log for a door frame, standing along y with its middle at the origin.
- * Its sides are coloured as stripped wood and its two ends as the paler cut wood, so it is drawn with vertex colours.
- */
-function doorLogGeometry(topRadius: number, footRadius: number, length: number): THREE.BufferGeometry {
-  const geometry = new THREE.CylinderGeometry(topRadius, footRadius, length, DOOR_LOG_SIDES);
-  const index = geometry.getIndex();
-  const colours = new Float32Array(geometry.getAttribute("position").count * 3);
-  const side = new THREE.Color(DEBARKED_LOG_COLOUR);
-  const cut = new THREE.Color(DEBARKED_LOG_CUT_COLOUR);
-  // A cylinder has three groups: the sides, then the top end, then the foot end.
-  geometry.groups.forEach((part, partIndex) => {
-    const colour = partIndex === 0 ? side : cut;
-    for (let i = part.start; i < part.start + part.count; i++) colour.toArray(colours, (index?.getX(i) ?? i) * 3);
-  });
-  geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
-  geometry.clearGroups();
-  return geometry;
 }
 
 export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
@@ -490,35 +462,4 @@ export function createEdgePieceMeshes(entities: EntityStore): EdgePieceMeshes {
       for (const placingBlueprint of placingBlueprints.values()) disposeFading(placingBlueprint.stages);
     },
   };
-}
-
-/** A log wall on the edge with this middle, facing `turns`. */
-export interface WallLine {
-  readonly middle: { readonly x: number; readonly z: number };
-  readonly turns: QuarterTurns;
-}
-
-/** Which ends of a log wall another wall crosses at a corner. `start` is the end at the wall's -x, facing the default way. */
-export interface WallEnds {
-  readonly start: boolean;
-  readonly end: boolean;
-}
-
-/** The two ends of a wall, in the world: first its start, then its end. */
-function endsOf(wall: WallLine): [{ x: number; z: number }, { x: number; z: number }] {
-  // Turning the default way's +x by the wall's facing gives the way from its start to its end.
-  const radians = quarterTurnsToRadians(wall.turns);
-  const half = { x: (Math.cos(radians) * BUILD_GRID_METRES) / 2, z: (-Math.sin(radians) * BUILD_GRID_METRES) / 2 };
-  return [subtractGroundPoints(wall.middle, half), addGroundPoints(wall.middle, half)];
-}
-
-/**
- * Which ends of `wall` meet another wall at a corner, among `walls`. A wall running the other way crosses an end when
- * one of its own ends is at that same point. A wall running the same way, carrying on in a straight line, is not a corner.
- */
-export function wallEnds(wall: WallLine, walls: readonly WallLine[]): WallEnds {
-  const [start, end] = endsOf(wall);
-  const same = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.abs(a.x - b.x) < SAME_POINT_METRES && Math.abs(a.z - b.z) < SAME_POINT_METRES;
-  const crossing = walls.filter((other) => areAtRightAngles(other.turns, wall.turns)).flatMap(endsOf);
-  return { start: crossing.some((point) => same(point, start)), end: crossing.some((point) => same(point, end)) };
 }

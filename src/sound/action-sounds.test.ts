@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { STRIDE_METRES } from "../render/player-mesh";
+import { STRIDE_METRES } from "../render/player-timing";
 import { createActionSounds, FOOT_DOWN_SHARE, FOOTSTEP_SECONDS, PLACE_SECONDS, WORK_RHYTHMS, type PlayerSoundsNow } from "./action-sounds";
 import type { DrawnWork } from "../render/drawn-work";
 import { listenerFrom } from "./listener";

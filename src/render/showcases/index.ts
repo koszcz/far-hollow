@@ -2,13 +2,18 @@
 // An animation gets its own file in ./animations and one line in ./animations/registry.ts.
 import { NATURE_SHOWCASES } from "./nature";
 import { BUILDING_SHOWCASES } from "./building";
-import { CAMP_SHOWCASES } from "./camp";
+import { CAMP_FIRE_SHOWCASES } from "./camp-fire";
+import { CAMP_GEAR_SHOWCASES } from "./camp-gear";
+import { CAMP_PILE_SHOWCASES } from "./camp-piles";
 import { INTERFACE_SHOWCASES } from "./interface";
 import { WEATHER_SHOWCASES } from "./weather";
 import { VALLEY_LIFE_SHOWCASES } from "./valley-life";
 import { SOUND_SHOWCASES } from "./sound";
 import { ANIMATIONS_SHOWCASES } from "./animations";
 import type { Showcase } from "./types";
+
+/** The camp family: the player's gear, fire and shelter, and things that lie on the ground. */
+const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = { ...CAMP_GEAR_SHOWCASES, ...CAMP_FIRE_SHOWCASES, ...CAMP_PILE_SHOWCASES };
 
 export const SHOWCASES: Readonly<Record<string, Showcase>> = {
   ...NATURE_SHOWCASES,

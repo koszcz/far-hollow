@@ -1,6 +1,6 @@
 // The showcase of the "walk-animation".
 import { WALK_SPEED_METRES_PER_SECOND } from "../../../sim/walking";
-import { STRIDE_METRES } from "../../player-mesh";
+import { STRIDE_METRES } from "../../player-timing";
 import type { Showcase } from "../types";
 
 export const WALK_ANIMATION_SHOWCASE: Showcase = {

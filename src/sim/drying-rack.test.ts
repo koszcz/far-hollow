@@ -15,7 +15,8 @@ import { SAVE_VERSION } from "./save-upgrades";
 import { DRYING_RACKS_SAVE_VERSION } from "./save-versions";
 import { addFinished, finishReach, onlyPlayer, openFoundation, piecesOf, stepUntil } from "./test-steps";
 import { isWalkable } from "./walk-map";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
+import { noticesText } from "../strings/notices";
 
 describe("the drying rack in the build menu", () => {
   it("lists the drying rack as furniture after the rain barrel, costing 6 sticks and 2 cord and needing no tool", () => {
@@ -118,7 +119,7 @@ describe("hanging food on the rack", () => {
     hang(game, rack, "berries");
     expect(rack.entity.dryingRack).toHaveLength(6);
     expect(game.client.getView().backpack).toMatchObject({ berries: 2, mushroom: 2 });
-    expect(strings.actionReasons.rackFull).toBe("the rack holds 6 foods");
+    expect(actionsText.actionReasons.rackFull).toBe("the rack holds 6 foods");
   });
 
   it("hangs the oldest one, which keeps the time it has left", () => {
@@ -353,7 +354,7 @@ describe("the journal's last goal", () => {
 
     skipHours(game, 1.5);
     expect(game.client.getView().journal?.done).toContain("preserveFood");
-    expect(strings.journal.goals.preserveFood.name).toBe("Preserve some food for winter.");
+    expect(noticesText.journal.goals.preserveFood.name).toBe("Preserve some food for winter.");
   });
 });
 

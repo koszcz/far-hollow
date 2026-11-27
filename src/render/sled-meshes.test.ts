@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { runnerTipsAt } from "./sled-meshes";
+import { runnerTipsAt } from "./sled-body-shapes";
 
 describe("the runner tips a dragged sled's rope leaves from", () => {
   // The sled is 1.8 m long. Each tow rope leaves its runner 4 cm in from the tip, above the ground.

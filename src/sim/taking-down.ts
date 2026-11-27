@@ -7,7 +7,7 @@ import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";
-import { structureReach } from "./building";
+import { structureReach } from "./building-reach";
 import { isOnGridSquare } from "./build-grid";
 import { isEdgePiece, squaresBeside } from "./edge-pieces";
 import { setComponent, type Entity, type EntityStore } from "./entities";

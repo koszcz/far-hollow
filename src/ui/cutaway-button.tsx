@@ -2,7 +2,7 @@
 // Each click moves to the next wall mode. Its icon shows the current wall mode, drawn in the HUD icons' line style.
 // Its label and tooltip name the wall mode the next click switches to.
 import { nextWallMode, type WallMode } from "../wall-mode";
-import { strings } from "../strings";
+import { shellText } from "../strings/shell";
 
 /** One icon per wall mode, on the HUD icons' 24 by 24 grid. */
 const WALL_MODE_ICONS: Readonly<Record<WallMode, string>> = {
@@ -16,7 +16,7 @@ const WALL_MODE_ICONS: Readonly<Record<WallMode, string>> = {
 
 /** The round wall mode button at the top right of the HUD, left of the sound button. */
 export function WallModeButton({ mode, onNext }: { mode: WallMode; onNext: () => void }) {
-  const label = strings.wallMode.show[nextWallMode(mode)];
+  const label = shellText.wallMode.show[nextWallMode(mode)];
   return (
     <div class="hud hud-cutaway">
       <div class="hud-panel">

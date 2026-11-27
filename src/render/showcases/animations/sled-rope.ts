@@ -1,5 +1,5 @@
 // The showcase of the "sled-rope". It reuses the "sled-drag-animation" showcase with closer framing.
-import { STRIDE_METRES } from "../../player-mesh";
+import { STRIDE_METRES } from "../../player-timing";
 import type { Showcase } from "../types";
 import { DRAG_WALK_METRES_PER_SECOND } from "./shared";
 import { SLED_DRAG_SHOWCASE } from "./sled-drag-animation";

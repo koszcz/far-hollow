@@ -2,7 +2,7 @@
 // Nothing else opens or closes them. See windows.ts for where shutters hang.
 import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
-import { structureReach } from "./building";
+import { structureReach } from "./building-reach";
 import type { CommandRules } from "./command-rule";
 import { type EntityStore } from "./entities";
 import { playerEntities } from "./entity-queries";

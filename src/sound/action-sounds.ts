@@ -4,7 +4,7 @@
 import type { GroundPoint } from "../sim/ground-point";
 import { CROUCH_CYCLE_SECONDS } from "../render/player-build-pose";
 import { DEBARK_STROKE_SECONDS } from "../render/player-debark-pose";
-import { CHOP_SWINGS_PER_SECOND, STRIDE_METRES } from "../render/player-mesh";
+import { CHOP_SWINGS_PER_SECOND, STRIDE_METRES } from "../render/player-timing";
 import { SAW_STROKE_SECONDS } from "../render/player-saw-pose";
 import type { DrawnWork } from "../render/drawn-work";
 import { distanceFade, panToward, type Listener } from "./listener";

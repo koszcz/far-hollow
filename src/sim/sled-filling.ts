@@ -4,7 +4,7 @@
 import type { Activity } from "./activity";
 import type { Refusal } from "./api-refusal";
 import { addCount } from "./counts";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { shoulderLog } from "./carrying";
 import type { CommandRules } from "./command-rule";
 import { entityWith, type Entity, type EntityStore } from "./entities";

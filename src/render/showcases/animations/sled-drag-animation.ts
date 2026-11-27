@@ -1,6 +1,6 @@
 // The showcase of the "sled-drag-animation". The "sled-rope" showcase reuses it with closer framing.
 import { DRAG_ROPE_METRES } from "../../../sim/sleds";
-import { STRIDE_METRES } from "../../player-mesh";
+import { STRIDE_METRES } from "../../player-timing";
 import { SLED_HEAVE_PEAK_SHARE } from "../../player-sled-drag-pose";
 import type { Showcase, Stage } from "../types";
 import { DRAG_WALK_METRES_PER_SECOND } from "./shared";

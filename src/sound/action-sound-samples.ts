@@ -9,7 +9,7 @@
 // The other two play once:
 // - sound-place: a short, quiet click.
 // - sound-footstep: one soft, low footstep, the same on every ground.
-import { CHOP_STRIKE_SHARE } from "../render/player-mesh";
+import { CHOP_STRIKE_SHARE } from "../render/player-timing";
 import { CROUCH_PRESSED_SHARE } from "../render/player-build-pose";
 import { DEBARK_BITE_SHARE, DEBARK_PULLED_SHARE } from "../render/player-debark-pose";
 import { createRandom, type Random } from "../sim/random";

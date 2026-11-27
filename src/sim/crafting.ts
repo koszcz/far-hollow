@@ -10,7 +10,7 @@ import {
   type Backpack,
   type BackpackContent,
 } from "./backpack";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { addCount, takeCount } from "./counts";
 import { setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
 import { debarkedLogEntities, isParked, logEntities, playerEntities, sledEntities, workStationEntities } from "./entity-queries";

@@ -23,8 +23,8 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
-    // 1008 was the longest file on 2026-11-27: src/ui/hud.tsx.
-    "max-lines": ["error", { "max": 1008 }],
+    // 770 was the longest file on 2026-11-27: src/strings.ts.
+    "max-lines": ["error", { "max": 770 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",

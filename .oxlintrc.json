@@ -23,6 +23,7 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
+    // 1175 was the longest file on 2026-11-27: src/app/thing-actions.test.ts.
     "max-lines": ["error", { "max": 1175 }],
     "constructor-super": "error",
     "for-direction": "error",

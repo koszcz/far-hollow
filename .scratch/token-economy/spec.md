@@ -4,7 +4,7 @@ A retro on the sessions from 2026-11-20 to 2026-11-27 found that implementer sub
 
 This spec makes each implementer cheaper in three ways:
 
-1. Implementers run on Sonnet. Reviews stay on Sonnet, and the fixes for review findings stay on Opus.
+1. Implementers run on Sonnet. Reviews run on Opus, and the fixes for review findings run on Sonnet.
 2. The lint step caps file length, so the biggest modules stop growing. Splitting them comes later, in its own spec.
 3. The implementer brief sends the agent to game state before screenshots.
 

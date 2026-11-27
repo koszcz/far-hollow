@@ -29,7 +29,7 @@ Follow its steps, with these changes. Where the two differ, this file wins.
 - **The implementer brief is `implementer.md`** in this skill's folder. Point each implementer at it. Do not paste its content.
 - **Only `ready-for-agent` tickets join the run.** A ticket with any other open status stays out, and so does every ticket it blocks. List the left-out tickets for the owner at the start.
 - **Ask before each new implementer once the 5-hour limit passes 80%.** Read the `fiveHour` field of `~/.local/state/claude-stats/$HC_TERMINAL_ID.json`. Below 80%, carry on without asking.
-- **Build on Sonnet, review on Sonnet, fix on Opus.** Pass `model: "sonnet"` to each implementer and to the code-review subagents. Pass `model: "opus"` to the fix implementer.
+- **Build on Sonnet, review on Opus, fix on Sonnet.** Pass `model: "sonnet"` to each implementer and to the fix implementer. Pass `model: "opus"` to the code-review subagents.
 - **The review covers the run's range:** from the `main` commit you recorded at the start to the tip of `main`.
 
 ## The run board

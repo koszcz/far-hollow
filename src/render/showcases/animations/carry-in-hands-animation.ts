@@ -1,7 +1,7 @@
 // The showcase of the "carry-in-hands-animation": the player carries a plank or a stone in both hands, as they do when
 // they fetch one for a blueprint.
 import { WALK_SPEED_METRES_PER_SECOND } from "../../../sim/walking";
-import { STRIDE_METRES } from "../../player-mesh";
+import { STRIDE_METRES } from "../../player-timing";
 import type { Showcase } from "../types";
 
 export const CARRY_IN_HANDS_ANIMATION_SHOWCASE: Showcase = {

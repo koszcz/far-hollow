@@ -1,6 +1,6 @@
 // The showcase of the "chop-animation".
 import { chopSecondsForTreeSize, treeSizeAt } from "../../../sim/tree-size";
-import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND } from "../../player-mesh";
+import { CHOP_RAISED_SHARE, CHOP_STRIKE_SHARE, CHOP_SWING_SHARE, CHOP_SWINGS_PER_SECOND } from "../../player-timing";
 import { FALL_LANDS_SECONDS, FALL_SECONDS } from "../../tree-fall";
 import type { Showcase } from "../types";
 

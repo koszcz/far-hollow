@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
 import type { StructureKind } from "./api";
-import { FETCH_METRES } from "./building";
+import { FETCH_METRES } from "./building-sources";
 import type { Entity, SledLoad } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";

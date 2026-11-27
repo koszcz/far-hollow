@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createGame } from "./game";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { findPath } from "./pathfinding";
 import { USE_REACH_METRES } from "./reach";
 import { footprintOfEntity } from "./structure-queries";

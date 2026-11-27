@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { CHOP_STRIKE_SHARE } from "../render/player-mesh";
+import { CHOP_STRIKE_SHARE } from "../render/player-timing";
 import { actionSound } from "./action-sound-samples";
 import { FOOTSTEP_SECONDS, PLACE_SECONDS, WORK_RHYTHMS } from "./action-sounds";
 import type { ActionSoundId } from "./sound-mix";

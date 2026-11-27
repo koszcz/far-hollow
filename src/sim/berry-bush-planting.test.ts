@@ -5,7 +5,9 @@ import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import { createNeeds } from "./needs";
 import { DIG_UP_SECONDS } from "./digging-up";
-import { BERRY_BUSHES_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { BERRY_BUSHES_SAVE_VERSION } from "./save-versions";
 import { isRiverBank } from "./river-bank-work";
 import { finishReach } from "./test-steps";
 

@@ -5,25 +5,17 @@ import type { Command } from "./api-commands";
 import type { Refusal } from "./api-refusal";
 import type { SledView } from "./api-nearby";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";
-import {
-  entityWith,
-  playerEntities,
-  setComponent,
-  woodpileEntities,
-  type CarriedLog,
-  type Entity,
-  type EntityStore,
-  type SledLoad,
-  type Vec3,
-} from "./entities";
+import { entityWith, setComponent, type CarriedLog, type Entity, type EntityStore, type SledLoad, type Vec3 } from "./entities";
+import { playerEntities, woodpileEntities } from "./entity-queries";
 import { standingHeightAt } from "./foundations";
 import { addToPileAt } from "./piles";
 import { USE_REACH_METRES } from "./reach";
 import { shoulderRefusal } from "./refusals";
 import { nearestQuarterTurns, quarterTurnsToRadians } from "./quarter-turns";
-import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
+import { SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structure-shapes";
 import type { Valley } from "./valley";
 import type { ApproachReach } from "./approach";
 import { CARRIED_LOGS, isCarriedLog } from "./wood-and-fuel";

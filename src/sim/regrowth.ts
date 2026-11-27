@@ -1,7 +1,8 @@
 // Grows trees back over game time: stump, then sapling, then young tree, then a full tree. See .scratch/regrowth/spec.md.
 // A felled tree grows back as the felled tree's own entity, so it keeps its spot and its `blocksWalking` through every stage.
 // A planted sapling starts at the sapling stage and blocks no walking until it becomes a young tree.
-import { growingTreeEntities, playerEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { growingTreeEntities, playerEntities } from "./entity-queries";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { grow, hasStump, isSapling, type TreeGrowth } from "./tree-growth";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";

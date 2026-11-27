@@ -7,7 +7,8 @@
 // A growing tree draws as a sapling on its stump, then as a young tree, near and far like a full tree.
 // Treetops, young trees, and saplings sway in the wind with wind-sway.ts. Trunks stay still.
 import * as THREE from "three";
-import { growingTreeEntities, stumpEntities, treeEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { growingTreeEntities, stumpEntities, treeEntities } from "../sim/entity-queries";
 import type { GrowthStage } from "../sim/tree-growth";
 import { isBroadleaf } from "./autumn-leaves";
 import { createCulledBatch, type CulledBatch } from "./culled-batch";

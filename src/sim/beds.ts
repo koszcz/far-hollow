@@ -1,11 +1,12 @@
 // Going to sleep in a bed: where the player walks to reach it, and handing it over to sleep in once they stand beside it.
 import type { ApproachReach } from "./approach";
-import { entityWith, playerEntities, type Entity, type EntityStore } from "./entities";
+import { entityWith, type Entity, type EntityStore } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { BED_WIDTH_METRES } from "./furniture/bed";
 import { addGroundPoints, groundDistance, subtractGroundPoints, type GroundPoint } from "./ground-point";
 import { findPath } from "./pathfinding";
 import { turnOffset, wrapQuarterTurns } from "./quarter-turns";
-import { footprintOfEntity } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
 import { isWalkable, type WalkMap } from "./walk-map";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { goneRefusal } from "./refusals";

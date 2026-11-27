@@ -7,10 +7,11 @@ import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";
-import { structureReach } from "./building";
+import { structureReach } from "./building-reach";
 import { isOnGridSquare } from "./build-grid";
 import { isEdgePiece, squaresBeside } from "./edge-pieces";
-import { blueprintEntities, lyingThings, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { setComponent, type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, lyingThings, playerEntities } from "./entity-queries";
 import { hasDoor } from "./doors";
 import { hasShutters } from "./windows";
 import { hasChimney } from "./chimneys";
@@ -21,23 +22,12 @@ import { standingHeightAt } from "./foundations";
 import { cabinRoofOn } from "./roofs";
 import { isSled, layLoadBeside } from "./sleds";
 import { TAKEN_MATERIALS } from "./structure-kind";
-import {
-  costOf,
-  isDelivered,
-  isKept,
-  isPlacedStructure,
-  roofFrameOn,
-  roofFramesStayCarried,
-  stageMaterials,
-  standsOnFoundation,
-  structureKindOf,
-  structureOf,
-  type BuildMaterial,
-  type DeliveredMaterial,
-  type KeptMaterial,
-  type PlacedStructure,
-  type StructureKind,
-} from "./structures";
+import { stageMaterials, type BuildMaterial, type PlacedStructure } from "./structure-types";
+import { type DeliveredMaterial, type KeptMaterial, type StructureKind } from "./structure-kind";
+import { isPlacedStructure, structureKindOf } from "./structure-queries";
+import { standsOnFoundation } from "./structure-clearance";
+import { roofFrameOn, roofFramesStayCarried } from "./structure-cabin-shell";
+import { costOf, isDelivered, isKept, structureOf } from "./structures";
 import type { Valley } from "./valley";
 import type { GroundPoint } from "./ground-point";
 import { laySpots } from "./walk-map";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
-import { DOOR_PLANK_COST } from "./structures";
+import { DOOR_PLANK_COST } from "./structure-cabin-fittings";
 import { createGame, type Game } from "./game";
 import { addFinished, newestBlueprint, onlyPlayer, openFoundation, stepUntil } from "./test-steps";
 

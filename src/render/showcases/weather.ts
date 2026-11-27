@@ -1,7 +1,7 @@
 // Showcases for daylight, rain, and snow. The registry is src/render/showcases/index.ts.
 import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
-import { rainEntities } from "../../sim/entities";
-import { squareCabin } from "./building";
+import { rainEntities } from "../../sim/entity-queries";
+import { squareCabin } from "./cabin-stage";
 import { NOON, NIGHT, type Showcase } from "./types";
 
 /** How deep the snow cover lies in each shot of the snow cover showcase, by the shot's label. */

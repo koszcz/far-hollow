@@ -1,5 +1,5 @@
 // The showcase of the "split-animation".
-import { SPLIT_STRIKES_PER_SECOND } from "../../player-mesh";
+import { SPLIT_STRIKES_PER_SECOND } from "../../player-timing";
 import type { Showcase } from "../types";
 
 export const SPLIT_ANIMATION_SHOWCASE: Showcase = {

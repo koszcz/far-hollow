@@ -3,7 +3,8 @@
 // The rules for when food spoils live in fresh-food.ts.
 import type { BackpackContent } from "./backpack";
 import { addCount, holdsNone, takeCount, withoutEmptyKinds, type Counts } from "./counts";
-import { pileEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { pileEntities } from "./entity-queries";
 import {
   NO_SPOIL_TIMES,
   freshnessByFood,

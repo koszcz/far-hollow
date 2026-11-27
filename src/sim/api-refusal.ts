@@ -1,6 +1,6 @@
 import type { BackpackContent } from "./backpack";
-import type { RecipeLack } from "./crafting";
-import type { BuildMaterial } from "./structures";
+import type { RecipeLack } from "./crafting-recipes";
+import type { BuildMaterial } from "./structure-types";
 import type { CampfireFuel } from "./wood-and-fuel";
 
 /** Why the player cannot build a blueprint's next stage: a tool not in the backpack, or a material not in the backpack or not yet brought. */

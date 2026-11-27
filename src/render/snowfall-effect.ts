@@ -5,7 +5,8 @@
 // - The flakes fill a box centred on the camera's focus, so snow falls everywhere the player can see.
 // - The snow eases in when it starts and eases out when it stops. It dims with the daylight, so it does not glow at night.
 import * as THREE from "three";
-import { isSnowing, type EntityStore, type Vec3 } from "../sim/entities";
+import { type EntityStore, type Vec3 } from "../sim/entities";
+import { isSnowing } from "../sim/entity-queries";
 import { randomBetween } from "../sim/random";
 import { createEasedShare } from "./eased-share";
 

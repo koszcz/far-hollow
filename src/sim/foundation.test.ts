@@ -5,7 +5,7 @@ import type { Entity } from "./entities";
 import { FOUNDATION_DECK_LIFT_METRES, foundationDeckTop, foundationLegs } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { terrainHeightAt } from "./valley";
-import { FOUNDATION_BUILD_SECONDS, FOUNDATION_LOG_COST } from "./structures";
+import { FOUNDATION_BUILD_SECONDS, FOUNDATION_LOG_COST } from "./structure-cabin-shell";
 import { isWalkable } from "./walk-map";
 
 describe("the foundation in the build menu", () => {

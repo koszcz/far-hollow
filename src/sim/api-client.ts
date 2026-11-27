@@ -6,7 +6,7 @@ import type { ThingInReach, ThingView } from "./api-scene-pick";
 import type { Vec3 } from "./entities";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
-import type { StructureKind } from "./structures";
+import type { StructureKind } from "./structure-kind";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {

@@ -2,7 +2,7 @@
 // The approved "log-wall" asset and the draft "window" asset share them, so a window lines up with the wall beside it.
 // The roof frame, the roof, and the gable ends read the wall's height and thickness from here too.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { LOG_WALL_LOG_COST } from "../sim/structures";
+import { LOG_WALL_LOG_COST } from "../sim/structure-cabin-shell";
 
 /** How tall a log wall and a door frame stand above the deck, in metres. A little taller than the player. */
 export const EDGE_PIECE_HEIGHT_METRES = 2;

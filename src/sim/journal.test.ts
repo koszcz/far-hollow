@@ -6,7 +6,9 @@ import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
-import { JOURNAL_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { JOURNAL_SAVE_VERSION } from "./save-versions";
 import { structureOf } from "./structures";
 import { finishReach } from "./test-steps";
 

@@ -2,7 +2,8 @@
 // A chimney stands on its fireplace's square, at the fireplace's position and facing. It is only for looks: warmth, rooms,
 // fuel, and rain work the same with or without one. Drawing works out how tall it is from the roof over it.
 import { isOnGridSquare } from "./build-grid";
-import { blueprintEntities, chimneyEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { blueprintEntities, chimneyEntities, fireplaceEntities } from "./entity-queries";
 import { nearestWithin, type GroundPoint } from "./ground-point";
 
 /** The finished fireplace on the foundation square with this middle, or undefined if the square holds none. */

@@ -4,7 +4,8 @@
 // fish from the approved "fishing-piles" shapes lies inside it, so the player can see it.
 // There are only ever a few traps, the ones the player set, so each is its own meshes rather than a batch.
 import * as THREE from "three";
-import { fishTrapEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { fishTrapEntities } from "../sim/entity-queries";
 import { nearestRiverPoint, type River } from "../sim/valley";
 import {
   createFishTrapGeometries,

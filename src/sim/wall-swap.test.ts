@@ -1,13 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
 import { edgeMiddle } from "./edge-pieces";
-import { debarkedLogEntities, edgePieceEntities, type Entity } from "./entities";
+import { type Entity } from "./entities";
+import { debarkedLogEntities, edgePieceEntities } from "./entity-queries";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { roomAround } from "./rooms";
-import { readSave, SAVE_VERSION, CHIMNEYS_SAVE_VERSION, WALL_SWAPS_SAVE_VERSION, writeSave } from "./save";
-import { costOf, WINDOW_BUILD_SECONDS, type EdgePieceKind, type StructureKind } from "./structures";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { CHIMNEYS_SAVE_VERSION, WALL_SWAPS_SAVE_VERSION } from "./save-versions";
+import { costOf } from "./structures";
+import { WINDOW_BUILD_SECONDS } from "./structure-cabin-shell";
+import { type EdgePieceKind, type StructureKind } from "./structure-kind";
 import { addFinished, onlyPlayer, openFoundation, stepUntil } from "./test-steps";
 import { canStep, cellIndexAt } from "./walk-map";
 

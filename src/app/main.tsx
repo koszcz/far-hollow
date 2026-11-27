@@ -9,10 +9,11 @@ import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";
 import { clockMinutesOf } from "../sim/clock";
 import { parseSeason, type Season } from "../sim/season";
-import { strings } from "../strings";
+import { shellText } from "../strings/shell";
 import { DebugOverlay } from "../ui/debug-overlay";
 import { ActionMenu } from "../ui/action-menu";
-import { Hud, type PlantingHintState } from "../ui/hud";
+import { Hud } from "../ui/hud";
+import type { PlantingHintState } from "../ui/hud-hints";
 import { StartScreen } from "../ui/start-screen";
 import { SoundButton } from "../ui/sound-button";
 import { WallModeButton } from "../ui/cutaway-button";
@@ -40,7 +41,7 @@ function requireElement<T extends Element>(selector: string, type: new () => T):
   return element;
 }
 
-document.title = strings.gameTitle;
+document.title = shellText.gameTitle;
 
 const { volumeControl, soundEngine } = wireSound();
 

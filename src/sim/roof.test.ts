@@ -3,19 +3,13 @@ import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_BUILD_SECONDS, ROOF_FRAME_LOG_COST, type StructureKind } from "./structures";
+import { type StructureKind } from "./structure-kind";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_BUILD_SECONDS, ROOF_FRAME_LOG_COST } from "./structure-cabin-shell";
 import { type QuarterTurns } from "./quarter-turns";
 import { cabinRoofOn, isUnderRoof } from "./roofs";
-import {
-  LARGE_VALLEY_UPGRADES,
-  PLANK_CHESTS_SAVE_VERSION,
-  PLANK_ROOFS_SAVE_VERSION,
-  readSave,
-  ROOFS_FACE_SAVE_VERSION,
-  SAVE_VERSION,
-  SLEDS_SAVE_VERSION,
-  writeSave,
-} from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, SAVE_VERSION } from "./save-upgrades";
+import { PLANK_CHESTS_SAVE_VERSION, PLANK_ROOFS_SAVE_VERSION, ROOFS_FACE_SAVE_VERSION, SLEDS_SAVE_VERSION } from "./save-versions";
 import { isWalkable } from "./walk-map";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

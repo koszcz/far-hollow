@@ -4,7 +4,9 @@ import { nearbyOf } from "./api-game-view";
 import { createGame, type Game, STEPS_PER_SECOND } from "./game";
 import { SEASON_BANNER_MINUTES } from "./game-start";
 import { clockStartMinutes, isNightAt, nextMorning } from "./clock";
-import { readSave, SEASONS_SAVE_VERSION, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { SEASONS_SAVE_VERSION } from "./save-versions";
 import { finishReach } from "./test-steps";
 import { firstDayOfSeason, isAfterFirstWinter, isNightHour, nextSeasonStartDay, nightHoursOf, parseSeason, seasonDayOf } from "./season";
 

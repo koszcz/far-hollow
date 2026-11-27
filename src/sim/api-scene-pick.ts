@@ -1,7 +1,7 @@
 import type { BackpackContent, WildFood } from "./backpack";
 import type { GroundPoint } from "./ground-point";
 import type { HostKind } from "./structure-kind";
-import type { FurnitureKind, StructureKind, WorkStationKind } from "./structures";
+import type { FurnitureKind, StructureKind, WorkStationKind } from "./structure-kind";
 
 /**
  * A thing in the world the player can act on with E, given by its entity id, with its kind.

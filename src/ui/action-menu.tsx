@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { queued } from "../sim/api-commands";
 import { type GameClient } from "../sim/api-client";
 import { type Plantable } from "../sim/api";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
 import { placeActionMenu } from "./action-menu-place";
 import { BackpackIcon } from "./backpack-icons";
 import { HudIcon } from "./hud-icons";
@@ -74,14 +74,14 @@ export function ActionMenu({ client, x, y, above = false, readActions, onStartPl
       ref={listRef}
       class="action-menu"
       style={place === null ? { left: "0px", top: "0px", visibility: "hidden" } : { left: `${place.left}px`, top: `${place.top}px` }}
-      aria-label={strings.actionMenu}
+      aria-label={actionsText.actionMenu}
     >
       <h3 class="action-menu-title" aria-hidden="true">
-        {strings.actionMenu}
+        {actionsText.actionMenu}
       </h3>
       <ul>
         {shown.map(({ id, label, icon, enabled, reason, command, isMain, startsPlanting }) => {
-          const name = enabled || reason === undefined ? label : strings.actions.withReason(label, reason);
+          const name = enabled || reason === undefined ? label : actionsText.actions.withReason(label, reason);
           return (
             <li key={id}>
               <button

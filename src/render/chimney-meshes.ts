@@ -6,9 +6,10 @@
 // While the player places a chimney from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 // A chimney never hides or fades, even when the wall mode hides the roof around it.
 import * as THREE from "three";
-import { blueprintEntities, chimneyEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, chimneyEntities } from "../sim/entity-queries";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import { CHIMNEY_STONE_COST } from "../sim/structures";
+import { CHIMNEY_STONE_COST } from "../sim/structure-cabin-fittings";
 import { CHIMNEY_BASE_METRES, CHIMNEY_MIDDLE, chimneyTopAt } from "./chimney-height";
 import { createChimneyStageShapes, type ChimneyStageShape } from "./chimney-shape";
 import type { OutlinePart } from "./hover-outline";

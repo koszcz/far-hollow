@@ -1,6 +1,7 @@
 import type { ApproachReach } from "./approach";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack, type BackpackContent } from "./backpack";
-import { entityWith, pileEntities, playerEntities, type Entity, type EntityStore } from "./entities";
+import { entityWith, type Entity, type EntityStore } from "./entities";
+import { pileEntities, playerEntities } from "./entity-queries";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { type Terrain, type Valley } from "./valley";

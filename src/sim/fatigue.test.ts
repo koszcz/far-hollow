@@ -3,7 +3,8 @@ import type { Command } from "./api-commands";
 import { nearbyOf } from "./api-game-view";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, needsSpeed } from "./needs";
-import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, upgradeSave } from "./save-upgrades";
 import { finishReach } from "./test-steps";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

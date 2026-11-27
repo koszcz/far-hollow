@@ -6,24 +6,14 @@ import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { CommandRules } from "./command-rule";
 import { hasInBackpack, removeFromBackpack, type Plantable } from "./backpack";
-import {
-  forageSpotEntities,
-  growingTreeEntities,
-  mushroomLogEntities,
-  playerEntities,
-  setComponent,
-  stumpEntities,
-  treeEntities,
-  type Entity,
-  type EntityStore,
-  type Vec3,
-} from "./entities";
+import { setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { forageSpotEntities, growingTreeEntities, mushroomLogEntities, playerEntities, stumpEntities, treeEntities } from "./entity-queries";
 import { isBerryBush } from "./foraging";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { distanceToLogBody, logBody } from "./log-body";
 import { isRiverBank } from "./river-bank-work";
 import { isInRect, widenRect } from "./structure-kind";
-import { footprintOfEntity, placedStructures } from "./structures";
+import { footprintOfEntity, placedStructures } from "./structure-queries";
 import { startOfStage } from "./tree-growth";
 import { terrainHeightAt, TREE_MIN_SPACING_METRES, type Valley } from "./valley";
 import { cellIndexAt, type WalkMap } from "./walk-map";

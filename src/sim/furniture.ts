@@ -31,7 +31,7 @@ import { STOOL } from "./furniture/stool";
 import { TABLE } from "./furniture/table";
 import { WOOD_BOX } from "./furniture/wood-box";
 import type { FurnitureKind } from "./structure-kind";
-import type { MaterialCost } from "./structures";
+import type { MaterialCost } from "./structure-types";
 
 /** What a piece of furniture that stores things can hold. */
 export interface FurnitureStorage {

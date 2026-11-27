@@ -3,7 +3,8 @@ import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { APPROACHES_SAVE_VERSION, readSave, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { APPROACHES_SAVE_VERSION } from "./save-versions";
 import { isWalkable } from "./walk-map";
 
 // The approach is the walk the player makes to get within reach of a thing or a spot, so they can act on it there.

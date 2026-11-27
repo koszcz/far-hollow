@@ -6,7 +6,12 @@ import type { BackpackContent, CarriedLog, StructureKind } from "../sim/api";
 import type { GameClient } from "../sim/api-client";
 import type { GameView } from "../sim/api-game-view";
 import type { ThingView } from "../sim/api-scene-pick";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
+import { backpackText } from "../strings/backpack";
+import { debugText } from "../strings/debug";
+import { noticesText } from "../strings/notices";
+import { shellText } from "../strings/shell";
+import { workText } from "../strings/work";
 import type { QueueThing } from "./action-queue-icons";
 import type { ActionIcon } from "./thing-action";
 
@@ -30,7 +35,7 @@ export function queuedActions(view: GameView, reader: QueueReader): readonly Que
 
 /** The icon and name of one queued action. TypeScript reports a command with neither. */
 export function queuedAction(command: ActionCommand, view: GameView, reader: QueueReader): QueuedAction {
-  const { actions } = strings;
+  const { actions } = actionsText;
   const thing = (id: number): ThingView | null => reader.describeThing(id);
   const structure = (id: number, otherwise: StructureKind): QueueIcon => {
     const found = thing(id);
@@ -97,9 +102,9 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: piece?.kind === "structure" ? { structure: piece.structure } : { hud: "backpack" }, name: actions.takeDown };
     }
     case "stopBuilding":
-      return { icon: { hud: "place" }, name: strings.actionQueue.stopBuilding };
+      return { icon: { hud: "place" }, name: actionsText.actionQueue.stopBuilding };
     case "tendCampfire":
-      return { icon: { structure: "campfire" }, name: strings.actionQueue.tend };
+      return { icon: { structure: "campfire" }, name: actionsText.actionQueue.tend };
     case "addFuel":
       return { icon: { structure: "campfire" }, name: actions.addFuel[command.fuel] };
     case "lightCampfire":
@@ -123,7 +128,7 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
     case "takeJugOff":
       return { icon: { structure: "campfire" }, name: actions.takeJugOff };
     case "tendWoodpile":
-      return { icon: { structure: "woodpile" }, name: strings.actionQueue.tend };
+      return { icon: { structure: "woodpile" }, name: actionsText.actionQueue.tend };
     case "stackOnWoodpile":
       return { icon: { structure: "woodpile" }, name: command.all && command.wood === "firewood" ? actions.stackAllFirewood : actions.stack[command.wood] };
     case "takeFromWoodpile":
@@ -153,8 +158,8 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
     }
     case "takeFromChest": {
       const icon = structure(command.chestId, "chest");
-      const take = "structure" in icon && icon.structure === "shelf" ? strings.shelf.take : strings.chest.take;
-      return { icon, name: take(strings.backpackContents[command.content]) };
+      const take = "structure" in icon && icon.structure === "shelf" ? backpackText.shelf.take : backpackText.chest.take;
+      return { icon, name: take(backpackText.backpackContents[command.content]) };
     }
     case "lightTorch":
       return { icon: { content: "torch" }, name: actions.light };
@@ -212,20 +217,20 @@ export function queuedAction(command: ActionCommand, view: GameView, reader: Que
       return { icon: { content: jugToDrinkFrom(view.backpack) ?? "jug" }, name: actions.drinkFromJug };
     case "craft": {
       const recipe = view.craftMenu.find(({ kind }) => kind === command.recipe);
-      return { icon: recipe === undefined ? { hud: "backpack" } : { content: recipe.result.content }, name: strings.craftMenu.recipes[command.recipe] };
+      return { icon: recipe === undefined ? { hud: "backpack" } : { content: recipe.result.content }, name: workText.craftMenu.recipes[command.recipe] };
     }
     // Pausing, hiding the journal, and skipping time never wait in the queue. They have an icon and name all the same, so every command has one.
     // The journal has no icon of its own, so hiding it borrows the sun. No player ever sees it.
     case "setPaused":
-      return { icon: { hud: command.paused ? "pause" : "play" }, name: command.paused ? strings.pause : strings.resume };
+      return { icon: { hud: command.paused ? "pause" : "play" }, name: command.paused ? shellText.pause : shellText.resume };
     case "setJournalHidden":
-      return { icon: { hud: "sun" }, name: strings.journal.hide };
+      return { icon: { hud: "sun" }, name: noticesText.journal.hide };
     case "skipTime":
-      return { icon: { hud: "moon" }, name: strings.debugSkipHours(command.hours) };
+      return { icon: { hud: "moon" }, name: debugText.debugSkipHours(command.hours) };
     case "skipToRainChange":
-      return { icon: { hud: "droplet" }, name: strings.debugSkipToRainChange(view.raining || view.snowing) };
+      return { icon: { hud: "droplet" }, name: debugText.debugSkipToRainChange(view.raining || view.snowing) };
     case "skipToSeason":
-      return { icon: { hud: "sun" }, name: strings.debugSkipToSeason };
+      return { icon: { hud: "sun" }, name: debugText.debugSkipToSeason };
   }
 }
 

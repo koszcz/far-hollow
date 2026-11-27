@@ -3,7 +3,7 @@ import type { BackpackContent, BackpackContents } from "./backpack";
 import type { FreshFood, Freshness } from "./fresh-food";
 import type { PotWater } from "./pot-state";
 import type { RackFood } from "./rack-food";
-import type { KeptMaterial, StructureKind } from "./structures";
+import type { KeptMaterial, StructureKind } from "./structure-kind";
 import type { CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export interface CampfireView {

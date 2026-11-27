@@ -1,7 +1,8 @@
 // The parts of game logic the UI may import (ADR 0005): this file, which passes on helpers from other sim modules,
 // and the api-*.ts files. The UI reads a GameView and changes the game only by sending a Command.
 
-export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
+export type { GroundAmount, Recipe, RecipeAmount, RecipeLack } from "./crafting-recipes";
+export type { RecipeKind } from "./recipe-kind";
 
 export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugContent, Plantable, PreservedFood, WildFood } from "./backpack";
 export type { Freshness, FreshFood } from "./fresh-food";
@@ -39,7 +40,8 @@ export {
   type WoodpileWood,
 } from "./wood-and-fuel";
 
-export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
+export type { BuildMaterial, MaterialCost } from "./structure-types";
+export type { DeliveredMaterial, FurnitureKind, KeptMaterial, Placement, StructureKind, WorkStationKind } from "./structure-kind";
 
 export type { FurnitureUse } from "./furniture";
 export { ADD_ON_OF_HOST, isAddOn, isHost, isPlacedInRows, type AddOnKind, type BuildMenuKind, type HostKind } from "./structure-kind";

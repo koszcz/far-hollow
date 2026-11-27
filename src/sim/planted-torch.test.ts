@@ -4,7 +4,9 @@ import type { BackpackContents } from "./backpack";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
-import { FIREPLACES_SAVE_VERSION, PLANTED_TORCHES_SAVE_VERSION, readSave, SAVE_VERSION, TORCHES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { FIREPLACES_SAVE_VERSION, PLANTED_TORCHES_SAVE_VERSION, TORCHES_SAVE_VERSION } from "./save-versions";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

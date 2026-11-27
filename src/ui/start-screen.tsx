@@ -2,7 +2,7 @@ import { useRef, useState } from "preact/hooks";
 import { seedFromText } from "../sim/api";
 import { type ImportRefusal, type SaveSlotSummary } from "../sim/api-save";
 import type { VolumeControl } from "../sound/volume-control";
-import { strings } from "../strings";
+import { shellText } from "../strings/shell";
 import { VolumeSlider } from "./sound-button";
 
 export interface StartScreenProps {
@@ -51,11 +51,11 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
 
   return (
     <main class="start-screen" onClickCapture={clearRefusal} onInputCapture={clearRefusal} onSubmitCapture={clearRefusal}>
-      <h1>{strings.gameTitle}</h1>
+      <h1>{shellText.gameTitle}</h1>
       <div class="start-screen-volume">
         <VolumeSlider control={volume} />
       </div>
-      {!canSave && <p class="start-screen-warning">{strings.startScreen.cannotSave}</p>}
+      {!canSave && <p class="start-screen-warning">{shellText.startScreen.cannotSave}</p>}
       {canSave && (
         <input
           ref={fileInput}
@@ -76,14 +76,14 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
           }}
         />
       )}
-      <ol class="start-screen-slots" aria-label={strings.startScreen.slots}>
+      <ol class="start-screen-slots" aria-label={shellText.startScreen.slots}>
         {slots.map((slot, index) => (
           <li key={index} class="start-screen-slot">
-            <h2>{strings.startScreen.slot(index + 1)}</h2>
+            <h2>{shellText.startScreen.slot(index + 1)}</h2>
             <p>{describeSlot(slot)}</p>
             {importWarningSlot === index ? (
               <>
-                <p class="start-screen-warning">{strings.startScreen.importWarning(index + 1)}</p>
+                <p class="start-screen-warning">{shellText.startScreen.importWarning(index + 1)}</p>
                 <p>
                   <button
                     type="button"
@@ -92,7 +92,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                       pickFile(index);
                     }}
                   >
-                    {strings.startScreen.chooseFile}
+                    {shellText.startScreen.chooseFile}
                   </button>{" "}
                   <button
                     type="button"
@@ -101,7 +101,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                       setImportWarningSlot(null);
                     }}
                   >
-                    {strings.startScreen.cancel}
+                    {shellText.startScreen.cancel}
                   </button>
                 </p>
               </>
@@ -113,20 +113,20 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                 }}
               >
                 <label>
-                  {strings.startScreen.seed}{" "}
+                  {shellText.startScreen.seed}{" "}
                   <input
                     type="text"
                     value={seedText}
-                    placeholder={strings.startScreen.randomSeed}
+                    placeholder={shellText.startScreen.randomSeed}
                     onInput={(event) => {
                       setSeedText(event.currentTarget.value);
                     }}
                   />
                 </label>
-                <p class="start-screen-hint">{strings.startScreen.seedHint}</p>
-                {slot.state !== "empty" && <p class="start-screen-warning">{strings.startScreen.replaceWarning(index + 1)}</p>}
+                <p class="start-screen-hint">{shellText.startScreen.seedHint}</p>
+                {slot.state !== "empty" && <p class="start-screen-warning">{shellText.startScreen.replaceWarning(index + 1)}</p>}
                 <button type="submit" class="hud-button">
-                  {slot.state === "empty" ? strings.startScreen.start : strings.startScreen.replace}
+                  {slot.state === "empty" ? shellText.startScreen.start : shellText.startScreen.replace}
                 </button>{" "}
                 <button
                   type="button"
@@ -135,7 +135,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                     setNewGameSlot(null);
                   }}
                 >
-                  {strings.startScreen.cancel}
+                  {shellText.startScreen.cancel}
                 </button>
               </form>
             ) : (
@@ -148,7 +148,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                       onContinue(index);
                     }}
                   >
-                    {strings.startScreen.continueGame}
+                    {shellText.startScreen.continueGame}
                   </button>
                 )}{" "}
                 <button
@@ -160,7 +160,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                     setNewGameSlot(index);
                   }}
                 >
-                  {strings.startScreen.newGame}
+                  {shellText.startScreen.newGame}
                 </button>
                 {canSave && (
                   <>
@@ -174,7 +174,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                             onExport(index);
                           }}
                         >
-                          {strings.startScreen.exportGame}
+                          {shellText.startScreen.exportGame}
                         </button>
                       </>
                     )}{" "}
@@ -187,7 +187,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
                         else setImportWarningSlot(index);
                       }}
                     >
-                      {strings.startScreen.importGame}
+                      {shellText.startScreen.importGame}
                     </button>
                   </>
                 )}
@@ -195,7 +195,7 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
             )}
             {refusal?.slot === index && (
               <p class="start-screen-warning" role="alert">
-                {strings.startScreen.importRefusals[refusal.reason]}
+                {shellText.startScreen.importRefusals[refusal.reason]}
               </p>
             )}
           </li>
@@ -208,10 +208,10 @@ export function StartScreen({ slots, canSave, onContinue, onNewGame, onExport, o
 function describeSlot(slot: SaveSlotSummary): string {
   switch (slot.state) {
     case "empty":
-      return strings.startScreen.empty;
+      return shellText.startScreen.empty;
     case "broken":
-      return strings.startScreen.broken;
+      return shellText.startScreen.broken;
     case "filled":
-      return strings.startScreen.summary(slot.day, slot.seed);
+      return shellText.startScreen.summary(slot.day, slot.seed);
   }
 }

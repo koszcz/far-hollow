@@ -1,8 +1,9 @@
 // New sticks fall from the standing trees as time passes, so the forest floor never runs out of sticks.
 // Most fall as a deadfall, some fall alone. The ground never holds more sticks than a new valley starts with.
 // Sticks fall where the ground is short of the sticks it started with, so an area the player cleared fills up again.
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { DEADFALL_MIN_STICKS, layDeadfall, layLoneStick, rollDeadfallSize, type SpotIsOpen } from "./deadfall";
+import { type EntityStore } from "./entities";
 import {
   barkEntities,
   bedrollEntities,
@@ -12,10 +13,9 @@ import {
   stickEntities,
   stickFallEntities,
   treeEntities,
-  type EntityStore,
-} from "./entities";
+} from "./entity-queries";
 import { createRandom, scramble, type Random } from "./random";
-import { footprintOfEntity, placedStructures } from "./structures";
+import { footprintOfEntity, placedStructures } from "./structure-queries";
 import { stickSpotCheck, terrainHeightAt, type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
 

@@ -7,13 +7,14 @@ import type { Building } from "./building";
 import { hasChimney } from "./chimneys";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { hasDoor } from "./doors";
-import { blueprintEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { blueprintEntities } from "./entity-queries";
 import type { GroundPoint } from "./ground-point";
 import { refusedNotice } from "./notices";
 import type { QuarterTurns } from "./quarter-turns";
 import { cabinRoofOn } from "./roofs";
 import { ADD_ON_OF_HOST, isHost, type AddOnKind, type HostKind } from "./structure-kind";
-import { structureKindOf } from "./structures";
+import { structureKindOf } from "./structure-queries";
 import { hasShutters } from "./windows";
 
 /** Whether the host of this kind at `at` holds its add-on, finished or as a blueprint. */

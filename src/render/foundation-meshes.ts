@@ -11,9 +11,10 @@
 // While the player places a foundation from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { foundationEntities, blueprintEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { foundationEntities, blueprintEntities } from "../sim/entity-queries";
 import { FOUNDATION_DECK_THICKNESS_METRES, foundationLegs } from "../sim/foundations";
-import { FOUNDATION_LOG_COST } from "../sim/structures";
+import { FOUNDATION_LOG_COST } from "../sim/structure-cabin-shell";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { BUILD_LOWERED_SHARE, deliveredOpacity, NOT_ALLOWED_COLOUR, pickFinished, seeThrough } from "./structure-look";

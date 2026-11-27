@@ -1,9 +1,9 @@
 import type { BackpackContent, Food } from "./backpack";
-import type { RecipeKind } from "./crafting";
+import type { RecipeKind } from "./recipe-kind";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import type { FoodToHang } from "./rack-food";
-import type { StructureKind } from "./structures";
+import type { StructureKind } from "./structure-kind";
 import type { CampfireFuel, CarriedLog, WoodpileWood } from "./wood-and-fuel";
 
 export type Command =

@@ -7,11 +7,12 @@
 // Shutters fade out with their window (cabin-cutaway.ts).
 // While the player places shutters from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { blueprintEntities, shuttersEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, shuttersEntities } from "../sim/entity-queries";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
-import { SHUTTERS_PLANK_COST } from "../sim/structures";
+import { SHUTTERS_PLANK_COST } from "../sim/structure-cabin-fittings";
 import { COURSE_RADIUS_METRES } from "./log-courses";
 import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";

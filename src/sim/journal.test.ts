@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, Goal } from "./api";
+import type { Command } from "./api-commands";
+import type { Goal } from "./api";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";

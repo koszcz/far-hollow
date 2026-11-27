@@ -1,5 +1,8 @@
 import type { CameraRig, CameraView } from "../render/camera-rig";
-import { queued, type GameClient, type PlacingBlueprint, type Plantable, type ScenePick, type StructureKind, type ThingInReach } from "../sim/api";
+import { queued } from "../sim/api-commands";
+import { type GameClient, type PlacingBlueprint } from "../sim/api-client";
+import { type Plantable, type StructureKind } from "../sim/api";
+import { type ScenePick, type ThingInReach } from "../sim/api-scene-pick";
 import { modeAfterPlacing, NOT_BUILDING, pickBuildEntry, placeCommandFor, pressBuildKey, startSweep, type BuildMode, type Sweep } from "./build-mode";
 import { plantCommandFor, plantUnderMouse, pressPlantKey, type PlantUnderMouse } from "./plant-mode";
 import { actionsFor, mainAction, menuActions, type ActionReader, type ActionTarget, type ThingAction } from "./thing-actions";

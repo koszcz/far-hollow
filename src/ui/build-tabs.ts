@@ -1,6 +1,7 @@
 // The build menu's tabs: Camp, Shelter, and Furniture. The menu shows the rows of one tab at a time.
 // Which tab lists a structure is a UI choice, so it lives here, not in the game logic.
-import type { BuildMenuEntry, BuildMenuKind } from "../sim/api";
+import type { BuildMenuEntry } from "../sim/api-build-menu";
+import type { BuildMenuKind } from "../sim/api";
 
 /** The build menu's tabs, in the order the menu shows them. */
 export const BUILD_TABS = ["camp", "shelter", "furniture"] as const;

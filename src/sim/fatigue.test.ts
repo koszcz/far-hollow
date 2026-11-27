@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
-import { nearbyOf } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, needsSpeed } from "./needs";
 import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";

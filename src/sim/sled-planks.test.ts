@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, StructureKind } from "./api";
+import type { Command } from "./api-commands";
+import type { StructureKind } from "./api";
 import type { Entity, SledLoad } from "./entities";
 import { createGame, type Game } from "./game";
 import { readSave, SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave } from "./save";

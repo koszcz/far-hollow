@@ -4,10 +4,10 @@
 import { readFileSync } from "node:fs";
 
 /**
- * Longest allowed CSS file, in lines. It was the length of src/app/style.css on 2026-11-27.
+ * Longest allowed CSS file, in lines. It is the length of the longest CSS file, src/app/styles/hud-needs-and-hotbar.css.
  * Lower this cap whenever a split brings the longest file down. Never raise it.
  */
-export const CSS_CAP = 1619;
+export const CSS_CAP = 429;
 
 export type FileLength = { path: string; lines: number };
 

@@ -2,7 +2,8 @@
 // and puts it in the backpack. Digging up the sapling on a stump removes the stump for good, so the ground is free to walk on
 // and build on. A berry bush comes up with its berries, if it has any, and its spot stays empty for good.
 // See .scratch/regrowth/spec.md and .scratch/garden/spec.md.
-import type { PlainNotice, Refusal } from "./api";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addAllToBackpack, allFitInBackpack, type BackpackContents } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";

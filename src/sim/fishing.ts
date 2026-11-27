@@ -1,6 +1,7 @@
 // Fishing at the river with the fishing rod. The player walks to the bank, casts there, and waits for a fish to bite.
 // Each fish goes in the backpack, and the player casts again until they stop or a fish gets away.
-import type { PlainNotice, Refusal } from "./api";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { CommandRules } from "./command-rule";
 import { addToBackpack } from "./backpack";

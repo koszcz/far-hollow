@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, Command } from "./api";
+import type { BackpackContent } from "./api";
+import type { Command } from "./api-commands";
 import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structure-camp";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

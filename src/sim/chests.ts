@@ -1,6 +1,8 @@
 // Opening a piece of furniture that stores things, and moving small materials, tools, and food between it and the backpack.
 // Every such piece works the same way and opens in the chest panel. Its definition in src/sim/furniture/ says how much it holds.
-import type { ChestView, ChestOrShelf, PlainNotice, Refusal } from "./api";
+import type { ChestView, ChestOrShelf } from "./api-nearby";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import {
   addToBackpack,
   CONTENT_WEIGHT_KG,

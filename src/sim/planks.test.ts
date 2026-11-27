@@ -1,16 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, Command } from "./api";
+import type { BackpackContent } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import {
-  LARGE_VALLEY_UPGRADES,
-  CRAFTING_SAVE_VERSION,
-  NOTICES_NAME_STATION_SAVE_VERSION,
-  PLANKS_SAVE_VERSION,
-  readSave,
-  SAVE_VERSION,
-  writeSave,
-} from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, SAVE_VERSION } from "./save-upgrades";
+import { CRAFTING_SAVE_VERSION, NOTICES_NAME_STATION_SAVE_VERSION, PLANKS_SAVE_VERSION } from "./save-versions";
 import { groundDistance } from "./ground-point";
 import { isWalkable } from "./walk-map";
 

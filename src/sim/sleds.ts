@@ -1,7 +1,9 @@
 // Loading logs and debarked logs on a parked sled, taking them off one at a time, and tipping them all out.
 // Loading every plank from the backpack on a parked sled, and taking as many back as fit.
 // Dragging a sled behind the player, and letting go of it.
-import type { Command, Refusal, SledView } from "./api";
+import type { Command } from "./api-commands";
+import type { Refusal } from "./api-refusal";
+import type { SledView } from "./api-nearby";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
 import { distanceOutside } from "./building";
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";

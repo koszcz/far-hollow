@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type BackpackContent, type Command, type StructureKind } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type BackpackContent, type StructureKind } from "./api";
+import { type Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { readSave, SAVE_VERSION, SHELVES_SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { readSave, type SaveFile, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { SHELVES_SAVE_VERSION, SLED_PLANKS_SAVE_VERSION } from "./save-versions";
 import { SHELF_BUILD_SECONDS } from "./furniture/shelf";
 import { finishReach, piecesOf, storingPiecesOf, withOldFurnitureParts } from "./test-steps";
 import { isWalkable } from "./walk-map";

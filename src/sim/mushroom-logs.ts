@@ -4,7 +4,7 @@
 // A mushroom log is also a forage spot for mushrooms, so foraging and growing back work as for a wild mushroom patch.
 // It starts out growing, and bears its first mushrooms FIRST_MUSHROOMS_MINUTES after planting.
 // The player can take it down. It vanishes and gives nothing back.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
 import { playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";

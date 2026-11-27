@@ -1,0 +1,172 @@
+/* The start screen uses the look of the approved "hud" asset: glass save-slot cards, warm text, and HUD buttons. */
+.start-screen {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 48px 16px;
+  background: #1b2420;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
+  font-size: 14px;
+  line-height: 1.4;
+  pointer-events: auto;
+  text-align: center;
+}
+.start-screen h1 {
+  margin: 0 0 24px;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.start-screen-slots {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.start-screen-slot {
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+.start-screen-slot h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.start-screen-slot p {
+  margin: 0 0 8px;
+  color: var(--hud-text-secondary);
+}
+.start-screen-slot p:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+.start-screen-slot form label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.start-screen-slot input {
+  width: 12em;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--hud-text);
+  background: rgb(0 0 0 / 0.25);
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
+}
+.start-screen-slot input:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: 1px;
+}
+.start-screen-slot form .hud-button {
+  margin-right: 6px;
+}
+.start-screen-hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.start-screen-warning {
+  padding: 6px 8px;
+  color: var(--hud-text);
+  background: var(--hud-amber-tint);
+  border-radius: 10px;
+}
+.loading.done {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #fff3;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: loading-spin 0.9s linear infinite;
+}
+@keyframes loading-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+.showcase-label {
+  position: absolute;
+  padding: 2px 8px;
+  background: #000a;
+  color: #fff;
+  font:
+    13px/1.4 ui-monospace,
+    monospace;
+}
+.showcase-label-0 {
+  top: 8px;
+  left: 8px;
+}
+.showcase-label-1 {
+  top: 8px;
+  left: calc(50% + 8px);
+}
+.showcase-label-2 {
+  top: calc(50% + 8px);
+  left: 8px;
+}
+.showcase-label-3 {
+  top: calc(50% + 8px);
+  left: calc(50% + 8px);
+}
+/* Each HUD in the "hud" showcase fills one quarter, below that quarter's label. */
+.showcase-hud {
+  position: absolute;
+  width: 50%;
+  height: calc(50% - 32px);
+  overflow: hidden;
+}
+.showcase-hud-0 {
+  top: 32px;
+  left: 0;
+}
+.showcase-hud-1 {
+  top: 32px;
+  left: 50%;
+}
+.showcase-hud-2 {
+  top: calc(50% + 32px);
+  left: 0;
+}
+.showcase-hud-3 {
+  top: calc(50% + 32px);
+  left: 50%;
+}
+.showcase-hud-no-needs .hud-needs-dock {
+  display: none;
+}
+.showcase-big-icon svg {
+  width: 100%;
+  height: 100%;
+}
+/* The sound showcases' player sits at the bottom centre, over the views. */
+.showcase-sound-player {
+  bottom: 12px;
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  transform: translateX(-50%);
+}
+.showcase-start-volume {
+  margin: 16px 0 0;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
+}
+.showcase-missing {
+  margin: 16px;
+  padding: 8px 12px;
+  background: #000a;
+  color: #fff;
+}

@@ -4,7 +4,7 @@
 // A new command before then cancels the reach, and the command is never carried out.
 // The reach is not saved, so a game loaded from a save made mid-reach has the command either done or not done.
 import type { Activity } from "./activity";
-import type { Notice, PlainNotice } from "./api";
+import type { Notice, PlainNotice } from "./api-notice";
 import { playerEntities, setComponent, type EntityStore, type ReachHeight, type ReachingFor } from "./entities";
 import { copyToward, type GroundPoint } from "./ground-point";
 

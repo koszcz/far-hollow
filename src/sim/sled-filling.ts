@@ -2,7 +2,7 @@
 // of the sled, nearest first by walking distance, puts it on the sled, and goes for the next one. It stops when the sled
 // is full, no log is left within reach, or the player does something else.
 import type { Activity } from "./activity";
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { addCount } from "./counts";
 import { distanceOutside } from "./building";
 import { shoulderLog } from "./carrying";

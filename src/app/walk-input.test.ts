@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, ScenePick } from "../sim/api";
+import type { Command } from "../sim/api-commands";
+import type { ScenePick } from "../sim/api-scene-pick";
 import { worldWith, type Setup, type World } from "./test-world";
 import { cursorFor, mainActionFor, menuFor, outlineFor } from "./walk-input";
 

@@ -1,6 +1,6 @@
 // Refusals that several kinds of work share: a tool missing from the backpack, a log already on the shoulder, or a thing that is gone.
 // Each module that carries out a command also says why it would refuse it, so the UI and the work read the same rule.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { hasInBackpack } from "./backpack";
 import type { Entity, EntityStore } from "./entities";
 

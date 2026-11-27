@@ -1,5 +1,5 @@
 // Says what a thing in the world is, given by its entity id. The action queue uses it to pick the icon of an action on it.
-import type { ThingView } from "./api";
+import type { ThingView } from "./api-scene-pick";
 import type { EntityStore } from "./entities";
 import { holdsAddOn } from "./add-ons";
 import { isHost } from "./structure-kind";

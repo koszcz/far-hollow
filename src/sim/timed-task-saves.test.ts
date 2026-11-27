@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { fishWaitMinutes } from "./fishing";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { readSave, TIMED_APPROACHES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { TIMED_APPROACHES_SAVE_VERSION } from "./save-versions";
 import { CAMPFIRE_STICK_COST } from "./structure-camp";
 import { distanceToRiver } from "./valley";
 import { isWalkable } from "./walk-map";

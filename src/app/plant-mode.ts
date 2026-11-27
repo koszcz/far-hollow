@@ -1,6 +1,10 @@
 // Planting a sapling or berry bush from the backpack: a see-through one follows the mouse, and a click on the ground plants it there.
 // This is input state, not game state, as build mode is. Only the click sends a command.
-import type { Command, GameClient, Plantable, Refusal, ScenePick } from "../sim/api";
+import type { Command } from "../sim/api-commands";
+import type { GameClient } from "../sim/api-client";
+import type { Plantable } from "../sim/api";
+import type { Refusal } from "../sim/api-refusal";
+import type { ScenePick } from "../sim/api-scene-pick";
 import type { GroundPoint } from "../sim/ground-point";
 
 /**

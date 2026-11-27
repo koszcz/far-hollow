@@ -1,11 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
-import { nearbyOf } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { createEntityStore, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, passNeedsTime, type NeedConditions } from "./needs";
 import { isUnderRoof } from "./roofs";
-import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, upgradeSave } from "./save-upgrades";
 import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "./structure-camp";
 import { turnQuarters, type QuarterTurns } from "./quarter-turns";
 import { isWalkable } from "./walk-map";

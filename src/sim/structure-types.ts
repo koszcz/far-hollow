@@ -1,6 +1,6 @@
 // What every structure is made of: its costs, its placement rule, and how it finishes.
 // Each structure's own file fills in a StructureDefinition. structure-shapes.ts holds the part that never needs a rule to read it.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { BackpackContent } from "./backpack";
 import type { Entity, EntityStore, Vec3 } from "./entities";
 import type { GroundPoint } from "./ground-point";

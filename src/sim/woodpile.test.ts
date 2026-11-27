@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, CarriedLog, Command } from "./api";
-import { nearbyOf } from "./api";
+import type { BackpackContent, CarriedLog } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, SAVE_VERSION } from "./save-upgrades";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";
 

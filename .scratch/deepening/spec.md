@@ -45,3 +45,16 @@ These tickets use the architecture words below.
 Tickets 02, 05, and 06 can start now. Ticket 01 needs 02. Ticket 03 needs 01, 02, 04, and 07. Ticket 04 needs 02. Ticket 07 needs 01.
 
 The review report with before and after diagrams was written to a temporary file and is not kept. This spec and the tickets hold everything it said.
+
+## Second review, 2026-11-27
+
+A second architecture review looked at the files that changed most in the last 200 commits. It found six more places where a module is shallow. Each ticket below is an `idea` and needs grilling.
+
+10. `issues/10-stored-commands-declare-their-save-shape.md`: each stored command declares its save shape next to its rule. It fixes a live bug: a save made while the player walks to a chest does not load.
+11. `issues/11-pose-director.md`: the player posing module returns a pose as plain data instead of moving the mesh, so tests can reach it.
+12. `issues/12-reach-for-hud-panels.md`: the HUD panels find things through the reach module, so a thing behind a wall shows no panel.
+13. `issues/13-furniture-definition-owns-its-piece.md`: a furniture definition also answers emptiness, save, nearby view, and use labels.
+14. `issues/14-one-name-and-icon-per-command.md`: the action menu and the queue read one label and icon per command.
+15. `issues/15-announcements-module.md`: tests check the notice timing rules directly through the game notices module.
+
+Ticket 10 should go first, because it fixes a bug that loses the player's progress. The rest can start in any order. File-length tickets 07 and 11 already moved the notice and pose code into their own files, so tickets 11 and 15 deepen those files.

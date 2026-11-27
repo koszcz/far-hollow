@@ -24,7 +24,7 @@ import {
   type Entity,
   type EntityStore,
 } from "./entities";
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { RecipeKind } from "./recipe-kind";
 import { addToPileAt } from "./piles";

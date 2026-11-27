@@ -1,5 +1,7 @@
 // Stacking logs, debarked logs, and firewood on a woodpile, and taking them off again.
-import type { Command, Refusal, WoodpileView } from "./api";
+import type { Command } from "./api-commands";
+import type { Refusal } from "./api-refusal";
+import type { WoodpileView } from "./api-nearby";
 import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, takeCount, totalCount } from "./counts";
 import { entityWith, playerEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "./entities";

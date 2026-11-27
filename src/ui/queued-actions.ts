@@ -1,7 +1,11 @@
 // Picks the icon and name of each action in the action queue, for the row of icons beside the clock.
 // The icon shows what the action works on, such as a tree, a log, or a campfire. The name is the action's, such as "Chop".
 import { ADD_ON_OF_HOST, isCarriedLog, isHost, jugToDrinkFrom, jugToPourInto, withOneMoreDrink } from "../sim/api";
-import type { ActionCommand, BackpackContent, CarriedLog, GameClient, GameView, StructureKind, ThingView } from "../sim/api";
+import type { ActionCommand } from "../sim/api-commands";
+import type { BackpackContent, CarriedLog, StructureKind } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
+import type { ThingView } from "../sim/api-scene-pick";
 import { strings } from "../strings";
 import type { QueueThing } from "./action-queue-icons";
 import type { ActionIcon } from "./thing-action";

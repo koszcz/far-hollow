@@ -1,4 +1,7 @@
-import type { BlueprintView, BuildLack, Notice, PlacementCheck, Refusal } from "./api";
+import type { BlueprintView } from "./api-nearby";
+import type { BuildLack, Refusal } from "./api-refusal";
+import type { Notice } from "./api-notice";
+import type { PlacementCheck } from "./api-client";
 import type { ApproachReach } from "./approach";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, countOf, takeCount } from "./counts";

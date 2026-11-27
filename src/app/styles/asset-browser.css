@@ -1,0 +1,142 @@
+/* The asset browser at /?assets on the dev server: a sidebar list of assets beside the chosen asset's showcase. */
+#ui.asset-browser-root {
+  pointer-events: auto;
+  background: #1d1712;
+  color: #f6ead8;
+}
+.asset-browser {
+  display: flex;
+  height: 100%;
+  font-size: 14px;
+}
+.asset-browser-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  flex: none;
+  padding: 12px;
+  box-sizing: border-box;
+  border-right: 1px solid rgb(255 214 170 / 0.16);
+}
+.asset-browser-search {
+  padding: 6px 8px;
+  font: inherit;
+}
+.asset-browser-filter {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.asset-browser-groups {
+  flex: 1;
+  overflow-y: auto;
+}
+.asset-browser-groups h2 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(246 234 216 / 0.6);
+}
+.asset-browser-groups ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.asset-browser-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.asset-browser-item:hover {
+  background: rgb(255 230 200 / 0.08);
+}
+.asset-browser-item.chosen {
+  background: rgb(240 160 75 / 0.3);
+}
+.asset-browser-status {
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: rgb(255 230 200 / 0.12);
+}
+.asset-browser-status.status-draft {
+  background: rgb(224 87 58 / 0.5);
+}
+.asset-browser-status.status-pending {
+  background: rgb(240 160 75 / 0.5);
+}
+.asset-browser-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px;
+  gap: 10px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.asset-browser-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.asset-browser-switch {
+  display: flex;
+}
+.asset-browser-switch button {
+  padding: 4px 10px;
+  border: 1px solid rgb(255 214 170 / 0.3);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.asset-browser-switch button.chosen {
+  background: rgb(240 160 75 / 0.4);
+}
+.asset-browser-switch button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.asset-browser-open {
+  color: #f0a04b;
+}
+.asset-browser-frame {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-height: 70vh;
+  border: 0;
+  background: #000;
+}
+.asset-browser-no-showcase,
+.asset-browser-empty {
+  color: rgb(246 234 216 / 0.6);
+}
+.asset-browser-entry {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+.asset-browser-entry dt {
+  color: rgb(246 234 216 / 0.6);
+}
+.asset-browser-entry dd {
+  margin: 0;
+}
+.asset-browser-entry ul {
+  margin: 0;
+  padding-left: 16px;
+}

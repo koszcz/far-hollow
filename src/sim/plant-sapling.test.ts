@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
@@ -7,7 +7,8 @@ import { createNeeds } from "./needs";
 import { PLANT_SECONDS, SAPLING_STRUCTURE_CLEARANCE_METRES } from "./planting";
 import { widenRect } from "./structure-kind";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
-import { readSave, SAPLINGS_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAPLINGS_SAVE_VERSION } from "./save-versions";
 import { isRiverBank } from "./river-bank-work";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";

@@ -25,7 +25,7 @@ import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
 import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { EDGE_PIECE_KINDS, type EdgePieceKind } from "../sim/structure-kind";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structures";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structure-cabin-shell";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";

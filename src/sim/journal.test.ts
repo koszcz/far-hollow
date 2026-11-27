@@ -1,11 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, Goal } from "./api";
+import type { Command } from "./api-commands";
+import type { Goal } from "./api";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
-import { JOURNAL_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { JOURNAL_SAVE_VERSION } from "./save-versions";
 import { structureOf } from "./structures";
 import { finishReach } from "./test-steps";
 

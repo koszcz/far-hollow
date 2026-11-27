@@ -1,7 +1,7 @@
 // Add-ons: the building pieces the player builds from the finished piece they go on, their host, not from the build menu.
 // A door goes in a door frame, shutters in a window, a roof section on a roof frame, and a chimney on a fireplace.
 // Building one places its blueprint on the host and starts building it, as the build command does.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { isOnGridSquare } from "./build-grid";
 import type { Building } from "./building";
 import { hasChimney } from "./chimneys";
@@ -13,7 +13,7 @@ import { refusedNotice } from "./notices";
 import type { QuarterTurns } from "./quarter-turns";
 import { cabinRoofOn } from "./roofs";
 import { ADD_ON_OF_HOST, isHost, type AddOnKind, type HostKind } from "./structure-kind";
-import { structureKindOf } from "./structures";
+import { structureKindOf } from "./structure-queries";
 import { hasShutters } from "./windows";
 
 /** Whether the host of this kind at `at` holds its add-on, finished or as a blueprint. */

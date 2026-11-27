@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type BackpackContent, type Command, type FreshFood } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type BackpackContent, type FreshFood } from "./api";
+import { type Command } from "./api-commands";
 import { MINUTES_PER_DAY, MINUTES_PER_HOUR } from "./clock";
 import type { Entity } from "./entities";
 import { KEEPS_FOR_MINUTES } from "./fresh-food";
 import { createGame, type Game } from "./game";
-import { readSave, SPOILING_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SPOILING_SAVE_VERSION } from "./save-versions";
 import { addFinished, finishReach, onlyPlayer, stepUntil } from "./test-steps";
 import { isWalkable } from "./walk-map";
 import { strings } from "../strings";

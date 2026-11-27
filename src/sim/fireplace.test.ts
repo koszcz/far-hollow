@@ -1,11 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { type QuarterTurns } from "./quarter-turns";
-import { FIREPLACE_BUILD_SECONDS, FIREPLACE_STONE_COST, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
-import { FIREPLACES_SAVE_VERSION, readSave, SAVE_VERSION, STONE_SAVE_VERSION, writeSave } from "./save";
+import { FIREPLACE_BUILD_SECONDS, FIREPLACE_STONE_COST } from "./structure-cabin-fittings";
+import { LOG_WALL_LOG_COST } from "./structure-cabin-shell";
+import { type StructureKind } from "./structure-kind";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { FIREPLACES_SAVE_VERSION, STONE_SAVE_VERSION } from "./save-versions";
 import { isWalkable } from "./walk-map";
 
 describe("the fireplace in the build menu", () => {

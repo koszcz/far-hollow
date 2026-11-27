@@ -1,11 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { QuarterTurns } from "./quarter-turns";
-import { APPROACHES_SAVE_VERSION, FLOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { FLOOR_BUILD_SECONDS, FLOOR_PLANK_COST, type StructureKind } from "./structures";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { APPROACHES_SAVE_VERSION, FLOORS_SAVE_VERSION } from "./save-versions";
+import { FLOOR_BUILD_SECONDS, FLOOR_PLANK_COST } from "./structure-cabin-shell";
+import { type StructureKind } from "./structure-kind";
 import { isWalkable } from "./walk-map";
 
 describe("the floor in the build menu", () => {

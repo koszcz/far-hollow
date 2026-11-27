@@ -1,5 +1,7 @@
 // The base game state and the build menu every HUD showcase state starts from.
-import { FURNITURE_BUILD_MENU, nightHoursOf, type GameView, type StructureKind } from "../sim/api";
+import { nightHoursOf, type StructureKind } from "../sim/api";
+import { FURNITURE_BUILD_MENU } from "../sim/api-build-menu";
+import { type GameView } from "../sim/api-game-view";
 
 export const BASE_VIEW: GameView = {
   seed: 42,

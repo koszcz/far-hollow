@@ -18,7 +18,8 @@
 // It needs no save upgrade. Older saves hold none of it, and older code turns away a save that holds a name it does not know.
 // Keep definition files apart from behaviour files. structures.ts imports the definitions, so a definition that imports
 // structures.ts, or a file that imports it, makes an import loop that fails when the game loads.
-import type { Command, PlainNotice } from "./api";
+import type { Command } from "./api-commands";
+import type { PlainNotice } from "./api-notice";
 import type { BackpackContent } from "./backpack";
 import type { Entity, ReachHeight } from "./entities";
 import { BED } from "./furniture/bed";
@@ -30,7 +31,7 @@ import { STOOL } from "./furniture/stool";
 import { TABLE } from "./furniture/table";
 import { WOOD_BOX } from "./furniture/wood-box";
 import type { FurnitureKind } from "./structure-kind";
-import type { MaterialCost } from "./structures";
+import type { MaterialCost } from "./structure-types";
 
 /** What a piece of furniture that stores things can hold. */
 export interface FurnitureStorage {

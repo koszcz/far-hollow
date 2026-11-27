@@ -1,5 +1,5 @@
 // The HUD showcase states for the jug, build, crafting, torch, fishing, and fish trap icons.
-import type { GameView } from "../sim/api";
+import type { GameView } from "../sim/api-game-view";
 import { BASE_VIEW, FULL_BUILD_MENU, type ShowcaseState } from "./hud-showcase-view";
 
 /** The draft "jug" asset, over the last view only: jugs in the backpack, beside a campfire firing a jug. */

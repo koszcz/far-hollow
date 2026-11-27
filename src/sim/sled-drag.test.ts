@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity, Vec3 } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
 import { DRAG_SPEED } from "./sleds";
-import { SLED_STICK_COST } from "./structures";
+import { SLED_STICK_COST } from "./structure-freely-placed";
 import { WALK_SPEED_METRES_PER_SECOND } from "./walking";
 import { isWalkable } from "./walk-map";
 

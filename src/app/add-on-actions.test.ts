@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { ScenePick, StructureKind } from "../sim/api";
+import type { ScenePick } from "../sim/api-scene-pick";
+import type { StructureKind } from "../sim/api";
 import { createGame, type Game } from "../sim/game";
 import { addFinished, newestBlueprint, onlyPlayer, openFoundation, type FinishedPiece } from "../sim/test-steps";
 import { actionsFor, type ThingAction } from "./thing-actions";

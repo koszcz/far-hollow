@@ -1,5 +1,5 @@
 // The showcase of the "campfire-build-animation".
-import { CAMPFIRE_BUILD_SECONDS } from "../../../sim/structures";
+import { CAMPFIRE_BUILD_SECONDS } from "../../../sim/structure-camp";
 import { BUILD_STONES_SHARE, buildProgressAtStickStage } from "../../campfire-meshes";
 import { BUILD_FADE_SHARE, BUILD_HOLD_SHARE, BUILD_SET_DOWN_SHARE } from "../../structure-look";
 import { BUILD_PLAY_REST_SECONDS, type Showcase } from "../types";

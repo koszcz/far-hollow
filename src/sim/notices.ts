@@ -1,7 +1,8 @@
 // How long each notice the game shows the player, such as a refusal or a collapse, stays on screen.
 // A new notice needs its kind in Notice, an entry here, its shape in the save check, and its text in the strings file.
 // TypeScript reports a missing one.
-import type { GameNotice, Notice, PlainNotice, PlainRefusal, Refusal } from "./api";
+import type { GameNotice, Notice, PlainNotice } from "./api-notice";
+import type { PlainRefusal, Refusal } from "./api-refusal";
 
 /** How many game minutes each notice shows for. One game minute is one real second. */
 export const NOTICE_MINUTES: Readonly<Record<GameNotice, number>> = {

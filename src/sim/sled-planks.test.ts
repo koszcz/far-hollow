@@ -1,9 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, StructureKind } from "./api";
+import type { Command } from "./api-commands";
+import type { StructureKind } from "./api";
 import type { Entity, SledLoad } from "./entities";
 import { createGame, type Game } from "./game";
-import { readSave, SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave } from "./save";
-import { SLED_STICK_COST } from "./structures";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { SLED_PLANKS_SAVE_VERSION } from "./save-versions";
+import { SLED_STICK_COST } from "./structure-freely-placed";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

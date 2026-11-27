@@ -1,9 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, StructureKind } from "./api";
+import type { Command } from "./api-commands";
+import type { StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { HUNGER_FILLED_BY } from "./foraging";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, TABLES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { BEDS_SAVE_VERSION, TABLES_SAVE_VERSION } from "./save-versions";
 import { TABLE_BUILD_SECONDS, TABLE_DEPTH_METRES, TABLE_PLANK_COST } from "./furniture/table";
 import { TABLE_HUNGER_FACTOR, TABLE_REACH_METRES } from "./tables";
 import { isWalkable } from "./walk-map";

@@ -1,5 +1,5 @@
 // Filling and drinking from jugs: the player pours a pot of clean water into a jug, and drinks from a jug later.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { swapInBackpack } from "./backpack";
 import type { CommandRules } from "./command-rule";
 import type { EntityStore } from "./entities";

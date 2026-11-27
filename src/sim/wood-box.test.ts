@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type BackpackContent, type Command } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type BackpackContent } from "./api";
+import { type Command } from "./api-commands";
 import { addToBackpack } from "./backpack";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";
@@ -8,7 +10,9 @@ import { WOOD_BOX_BUILD_SECONDS, WOOD_BOX_FIREWOOD_LIMIT, WOOD_BOX_PLANK_COST } 
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
-import { readSave, SAVE_VERSION, WOOD_BOXES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { WOOD_BOXES_SAVE_VERSION } from "./save-versions";
 import { structureOf } from "./structures";
 import { addFinished, finishReach, newestBlueprint, onlyPlayer, piecesOf, stepUntil } from "./test-steps";
 import { isWalkable } from "./walk-map";

@@ -1,7 +1,7 @@
 // Checks a file the player picked and stores it as the saved game in a save slot.
 
-import type { ImportRefusal, SaveRefusal } from "../sim/api";
-import { readSave, writeSave, type SaveFile } from "../sim/save";
+import type { ImportRefusal, SaveRefusal } from "../sim/api-save";
+import { readSave, type SaveFile, writeSave } from "../sim/save";
 import type { SaveStorage } from "./save-storage";
 
 export type ImportResult = { ok: true; save: SaveFile } | { ok: false; reason: SaveRefusal };

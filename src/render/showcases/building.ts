@@ -4,22 +4,18 @@ import { setComponent, type Entity, type EntityStore } from "../../sim/entities"
 import { BUILD_FADE_SHARE } from "../structure-look";
 import { FOUNDATION_DECK_LIFT_METRES } from "../../sim/foundations";
 import { DOOR_FIRST_BOUNCE_SHARE, DOOR_REBOUND_SECONDS, DOOR_SWING_SECONDS, RING_SHOVE_TAP_SECONDS } from "../door-swing";
+import { SAWHORSE_LOG_COST } from "../../sim/structure-camp";
 import {
   DOOR_FRAME_LOG_COST,
-  DOOR_PLANK_COST,
-  CHIMNEY_STONE_COST,
-  FIREPLACE_STONE_COST,
   FLOOR_PLANK_COST,
   FOUNDATION_LOG_COST,
   LOG_WALL_LOG_COST,
   ROOF_PLANK_COST,
   ROOF_FRAME_LOG_COST,
-  SAWHORSE_LOG_COST,
-  SLED_LOG_COST,
-  SLED_STICK_COST,
-  SHUTTERS_PLANK_COST,
   WINDOW_LOG_COST,
-} from "../../sim/structures";
+} from "../../sim/structure-cabin-shell";
+import { DOOR_PLANK_COST, CHIMNEY_STONE_COST, FIREPLACE_STONE_COST, SHUTTERS_PLANK_COST } from "../../sim/structure-cabin-fittings";
+import { SLED_LOG_COST, SLED_STICK_COST } from "../../sim/structure-freely-placed";
 import { turnOffset, type QuarterTurns } from "../../sim/quarter-turns";
 import type { EdgePieceKind } from "../../sim/structure-kind";
 import { SHUTTER_FIRST_BOUNCE_SHARE, SHUTTER_KNOCK_SECONDS, SHUTTER_SWING_SECONDS } from "../shutter-swing";

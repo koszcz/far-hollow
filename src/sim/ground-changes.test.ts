@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity, Vec3 } from "./entities";
 import { createGame, type Game } from "./game";
 import { GROUND_CHANGE_MINUTES, isGroundChangeOver } from "./ground-change";
@@ -8,7 +8,8 @@ import type { GroundPoint } from "./ground-point";
 import { createGroundMap, groundTypeWeightsAt, type GroundMap, type GroundTypeWeights } from "./ground-types";
 import { createNeeds } from "./needs";
 import { isRiverBank } from "./river-bank-work";
-import { GROUND_CHANGES_SAVE_VERSION, readSave, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { GROUND_CHANGES_SAVE_VERSION } from "./save-versions";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

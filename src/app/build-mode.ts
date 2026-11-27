@@ -1,4 +1,8 @@
-import { type BuildMenuEntry, type Command, type GameClient, type ScenePick, type StructureKind } from "../sim/api";
+import { type BuildMenuEntry } from "../sim/api-build-menu";
+import { type Command } from "../sim/api-commands";
+import { type GameClient } from "../sim/api-client";
+import { type ScenePick } from "../sim/api-scene-pick";
+import { type StructureKind } from "../sim/api";
 import { turnQuarters, type QuarterTurns } from "../sim/quarter-turns";
 
 /**

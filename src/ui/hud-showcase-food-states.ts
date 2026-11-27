@@ -1,5 +1,6 @@
 // The HUD showcase states for the action queue, dried food, and smoked fish icons.
-import type { GameView, ThingView } from "../sim/api";
+import type { GameView } from "../sim/api-game-view";
+import type { ThingView } from "../sim/api-scene-pick";
 import { BASE_VIEW, type ShowcaseState } from "./hud-showcase-view";
 
 /** What each thing the "action-queue-icons" views queue actions on is, by its made-up entity id. */

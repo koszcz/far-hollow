@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent } from "./backpack";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { FISHING_SAVE_VERSION, PLANK_ROOFS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { readSave, type SaveFile, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { FISHING_SAVE_VERSION, PLANK_ROOFS_SAVE_VERSION } from "./save-versions";
 import { finishReach, storingPiecesOf } from "./test-steps";
 
 describe("the fishing line in the starting kit", () => {

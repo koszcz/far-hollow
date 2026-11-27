@@ -1,6 +1,8 @@
 // Why the craft menu greys out a recipe, and why the chest panel greys out a content to take.
 // Each asks the game whether it would refuse the command, so the HUD never copies the game's rules.
-import type { BackpackContent, Command, GameClient, RecipeKind } from "../sim/api";
+import type { BackpackContent, RecipeKind } from "../sim/api";
+import type { Command } from "../sim/api-commands";
+import type { GameClient } from "../sim/api-client";
 import { refusalText } from "./refusal-text";
 
 /** What the module reads. game.client satisfies it, so tests can pass a real game. */

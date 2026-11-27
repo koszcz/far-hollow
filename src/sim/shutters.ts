@@ -1,11 +1,11 @@
 // Opening and closing shutters by hand. The player walks within reach first, then opens or closes them at once.
 // Nothing else opens or closes them. See windows.ts for where shutters hang.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { structureReach } from "./building";
 import type { CommandRules } from "./command-rule";
 import { playerEntities, type EntityStore } from "./entities";
-import { isPlacedStructure } from "./structures";
+import { isPlacedStructure } from "./structure-queries";
 
 /** Opening and closing shutters by hand. */
 export interface Shutters {

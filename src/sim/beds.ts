@@ -5,7 +5,7 @@ import { BED_WIDTH_METRES } from "./furniture/bed";
 import { addGroundPoints, groundDistance, subtractGroundPoints, type GroundPoint } from "./ground-point";
 import { findPath } from "./pathfinding";
 import { turnOffset, wrapQuarterTurns } from "./quarter-turns";
-import { footprintOfEntity } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
 import { isWalkable, type WalkMap } from "./walk-map";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { goneRefusal } from "./refusals";

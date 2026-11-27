@@ -2,7 +2,7 @@
 // of the sled, nearest first by walking distance, puts it on the sled, and goes for the next one. It stops when the sled
 // is full, no log is left within reach, or the player does something else.
 import type { Activity } from "./activity";
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { addCount } from "./counts";
 import { distanceOutside } from "./building";
 import { shoulderLog } from "./carrying";
@@ -14,7 +14,7 @@ import { walkingDistancesFrom } from "./pathfinding";
 import { distanceToTarget, type WalkTarget } from "./walk-target";
 import { USE_REACH_METRES } from "./reach";
 import { isSled, logsThatFitOnSled, type SledEntity } from "./sleds";
-import { footprintOfEntity } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
 import { isWalkable } from "./walk-map";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 import { isCarriedLog } from "./wood-and-fuel";

@@ -1,7 +1,9 @@
 // Draws the real HUD over the asset showcase at /?asset=hud, /?asset=bark, /?asset=stone, /?asset=backpack-icons, /?asset=crafting-icons, /?asset=fishing-icons, or /?asset=build-icons, once in each of the four views, each in a
 // different game state. The states match the order of the views in src/render/showcases/interface.ts and src/render/showcases/camp.ts. Development builds only.
 import { render } from "preact";
-import type { GameClient, GameView, ThingView } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
+import type { ThingView } from "../sim/api-scene-pick";
 import { Hud } from "./hud";
 import { BuildIconSheet, FurnitureIconSheet, IconSheet, JugIconSheet, QueueIconSheet, TorchIconSheet } from "./hud-showcase-sheets";
 import type { ShowcaseState } from "./hud-showcase-view";

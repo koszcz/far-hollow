@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { edgePieceOn } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { DOOR_FRAME_LOG_COST, LOG_WALL_BUILD_SECONDS, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
+import { type StructureKind } from "./structure-kind";
+import { DOOR_FRAME_LOG_COST, LOG_WALL_BUILD_SECONDS, LOG_WALL_LOG_COST } from "./structure-cabin-shell";
 import { type QuarterTurns } from "./quarter-turns";
 import { isWalkable } from "./walk-map";
 

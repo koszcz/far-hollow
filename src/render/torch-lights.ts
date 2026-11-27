@@ -3,7 +3,7 @@
 // as an unlit campfire's glow does, because adding or removing a light makes three.js rebuild every material.
 // Torches cast no shadows.
 import * as THREE from "three";
-import { TORCH_LIGHT_METRES } from "../sim/api";
+import { TORCH_LIGHT_METRES } from "../sim/api-game-view";
 
 /** How many torches cast real light at once: the one in the player's hand, then the planted torches nearest the camera. */
 export const TORCH_LIGHT_COUNT = 4;

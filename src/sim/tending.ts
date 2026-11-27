@@ -1,7 +1,7 @@
 // Tending a campfire, woodpile, or sled: work the player stands beside the thing to do, then reaches to carry out.
 // The module whose thing it is gives each tend command's reach and act step. This module says how high the player
 // reaches for each command, and where the hand reaches to.
-import type { PlainNotice } from "./api";
+import type { PlainNotice } from "./api-notice";
 import type { ApproachReach } from "./approach";
 import type { ApproachRule, RuleGame } from "./command-rule";
 import type { ReachHeight, TendTask } from "./entities";

@@ -9,7 +9,7 @@
 // While the player places a floor from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { blueprintEntities, floorEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { FLOOR_PLANK_COST } from "../sim/structures";
+import { FLOOR_PLANK_COST } from "../sim/structure-cabin-shell";
 import {
   BLUEPRINT_COLOUR,
   BLUEPRINT_OPACITY,

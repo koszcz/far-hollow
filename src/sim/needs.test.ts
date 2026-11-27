@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { createGame, type Game } from "./game";
 import { createNeeds, hasCollapsed, type NeedConditions, needsSpeed, passNeedsTime, quenchThirst, wakeFromCollapse } from "./needs";
 

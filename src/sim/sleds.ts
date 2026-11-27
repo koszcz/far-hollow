@@ -1,7 +1,9 @@
 // Loading logs and debarked logs on a parked sled, taking them off one at a time, and tipping them all out.
 // Loading every plank from the backpack on a parked sled, and taking as many back as fit.
 // Dragging a sled behind the player, and letting go of it.
-import type { Command, Refusal, SledView } from "./api";
+import type { Command } from "./api-commands";
+import type { Refusal } from "./api-refusal";
+import type { SledView } from "./api-nearby";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
 import { distanceOutside } from "./building";
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";
@@ -21,7 +23,8 @@ import { addToPileAt } from "./piles";
 import { USE_REACH_METRES } from "./reach";
 import { shoulderRefusal } from "./refusals";
 import { nearestQuarterTurns, quarterTurnsToRadians } from "./quarter-turns";
-import { footprintOfEntity, SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
+import { SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "./structure-shapes";
 import type { Valley } from "./valley";
 import type { ApproachReach } from "./approach";
 import { CARRIED_LOGS, isCarriedLog } from "./wood-and-fuel";

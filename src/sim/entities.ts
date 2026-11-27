@@ -1,5 +1,5 @@
 import { World } from "miniplex";
-import type { ActionCommand } from "./api";
+import type { ActionCommand } from "./api-commands";
 import type { CampfireFuel, CarriedLog, CarriedThing, WoodpileWood } from "./wood-and-fuel";
 import type { Backpack, BackpackContent, BackpackContents, Plantable, WildFood } from "./backpack";
 import type { SpoilTimes } from "./fresh-food";

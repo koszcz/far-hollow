@@ -83,6 +83,7 @@ const tendCommand: Check = (value) =>
 const approachCommand: Check = (value) =>
   shape({ type: exactly("sleepInBed"), bedId: count })(value) ||
   shape({ type: exactly("sitOnStool"), stoolId: count })(value) ||
+  shape({ type: exactly("openChest"), chestId: count })(value) ||
   shape({ type: exactly("drinkFromRainBarrel", "fillPotFromRainBarrel", "fillJugFromRainBarrel"), barrelId: count })(value) ||
   shape({ type: exactly("hangOnRack"), rackId: count, food: exactly(...FOODS_TO_HANG) })(value) ||
   shape({ type: exactly("takeFoodOffRack"), rackId: count })(value) ||

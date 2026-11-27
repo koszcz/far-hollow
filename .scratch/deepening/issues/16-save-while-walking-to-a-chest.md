@@ -2,7 +2,7 @@
 
 **What to build:** Add the `openChest` command to the stored commands that the save check accepts. A save made while the player walks to a chest then loads.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** None
 
@@ -20,9 +20,9 @@ Ticket 10 replaces the hand-written list with a record that TypeScript checks. T
 
 ## Acceptance criteria
 
-- [ ] `approachCommand` in `src/sim/save-schema.ts` accepts `{ type: "openChest", chestId }`.
-- [ ] A test places a chest away from the player, sends `openChest`, and steps once so the approach starts. It then writes the save, reads it back, and checks that the read succeeds and the approach still holds `openChest`.
-- [ ] `bun test` and `make check` pass.
+- [x] `approachCommand` in `src/sim/save-schema.ts` accepts `{ type: "openChest", chestId }`.
+- [x] A test places a chest away from the player, sends `openChest`, and steps once so the approach starts. It then writes the save, reads it back, and checks that the read succeeds and the approach still holds `openChest`.
+- [x] `bun test` and `make check` pass.
 
 ## Out of scope
 

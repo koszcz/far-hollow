@@ -23,8 +23,8 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
-    // 770 was the longest file on 2026-11-27: src/strings.ts.
-    "max-lines": ["error", { "max": 770 }],
+    // 673 was the longest file on 2026-11-27: src/sim/sled.test.ts.
+    "max-lines": ["error", { "max": 673 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",

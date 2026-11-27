@@ -3,7 +3,7 @@
 // Its look lives in the .hud-queue rules of src/app/style.css.
 import type { GameClient } from "../sim/api-client";
 import type { GameView } from "../sim/api-game-view";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
 import { QUEUE_THING_DRAWINGS } from "./action-queue-icons";
 import { backpackDrawing, ShadedIcon } from "./backpack-icons";
 import { carriedLogDrawing } from "./build-icons";
@@ -15,14 +15,14 @@ export function ActionQueueRow({ client, view }: { client: GameClient; view: Gam
   const actions = queuedActions(view, client);
   if (actions.length === 0) return null;
   return (
-    <ol class="hud-panel hud-queue" aria-label={strings.actionQueue.title}>
+    <ol class="hud-panel hud-queue" aria-label={actionsText.actionQueue.title}>
       {actions.map(({ icon, name }, index) => (
         // The same action can wait more than once, such as two fishing trips, so its place in the queue is part of its key.
         <li key={`${index}-${name}`} class={index === 0 ? "hud-queue-under-way" : undefined}>
           <button
             type="button"
             class="hud-queue-cell"
-            aria-label={strings.actionQueue.cancel(name)}
+            aria-label={actionsText.actionQueue.cancel(name)}
             onClick={() => {
               client.send({ type: "cancelQueuedAction", index });
             }}

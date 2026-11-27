@@ -2,7 +2,7 @@
 // then one cell per kind of thing in the backpack.
 import { burnShare, CONTENT_WEIGHT_KG, isFreshFood, type BackpackContent, type CarriedThing } from "../sim/api";
 import { type GameView } from "../sim/api-game-view";
-import { strings } from "../strings";
+import { backpackText } from "../strings/backpack";
 
 /**
  * What a hotbar cell holds: one kind of thing in the backpack, the log on the shoulder, the lit torch in the hand, or the sled the player drags.
@@ -48,8 +48,8 @@ export function hotbarCells(view: Pick<GameView, "backpack" | "backpackFreshness
       : [
           {
             target: { kind: "sled", sledId: view.dragging.id },
-            name: strings.hotbar.sled(view.dragging.total, view.dragging.capacity),
-            tip: strings.hotbar.sled(view.dragging.total, view.dragging.capacity),
+            name: backpackText.hotbar.sled(view.dragging.total, view.dragging.capacity),
+            tip: backpackText.hotbar.sled(view.dragging.total, view.dragging.capacity),
             count: 1,
             key: undefined,
           },
@@ -60,8 +60,8 @@ export function hotbarCells(view: Pick<GameView, "backpack" | "backpackFreshness
       : [
           {
             target: { kind: "shoulder", log: view.carrying },
-            name: strings.things[view.carrying],
-            tip: strings.things[view.carrying],
+            name: backpackText.things[view.carrying],
+            tip: backpackText.things[view.carrying],
             count: 1,
             key: undefined,
           },
@@ -73,26 +73,26 @@ export function hotbarCells(view: Pick<GameView, "backpack" | "backpackFreshness
       : [
           {
             target: { kind: "litTorch" },
-            name: strings.hotbar.litTorch,
-            tip: strings.hotbar.burnsFor(strings.hotbar.litTorch, torch.minutesLeft),
+            name: backpackText.hotbar.litTorch,
+            tip: backpackText.hotbar.burnsFor(backpackText.hotbar.litTorch, torch.minutesLeft),
             count: 1,
             key: undefined,
             gauge: burnShare(torch),
           },
         ];
-  const contents = (Object.keys(strings.backpackContents) as BackpackContent[])
+  const contents = (Object.keys(backpackText.backpackContents) as BackpackContent[])
     .filter((content) => (view.backpack[content] ?? 0) > 0)
     .map((content, index): HotbarCell => {
-      const name = strings.backpackContents[content];
+      const name = backpackText.backpackContents[content];
       const count = view.backpack[content] ?? 0;
-      const tip = strings.hotbar.nameWithWeight(strings.backpackContentCount(name, count), count * CONTENT_WEIGHT_KG[content]);
+      const tip = backpackText.hotbar.nameWithWeight(backpackText.backpackContentCount(name, count), count * CONTENT_WEIGHT_KG[content]);
       const fresh = isFreshFood(content) ? view.backpackFreshness[content] : undefined;
       return {
         target: { kind: "backpackContent", content },
         name,
-        tip: fresh === undefined ? tip : strings.hotbar.withSpoilsIn(tip, strings.hotbar.spoilsIn(fresh.minutesLeft)),
+        tip: fresh === undefined ? tip : backpackText.hotbar.withSpoilsIn(tip, backpackText.hotbar.spoilsIn(fresh.minutesLeft)),
         count,
-        key: index < KEYED_CELLS ? strings.hotbar.key(index + 1) : undefined,
+        key: index < KEYED_CELLS ? backpackText.hotbar.key(index + 1) : undefined,
         ...(fresh === undefined ? {} : { gauge: fresh.share }),
       };
     });

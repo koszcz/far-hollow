@@ -11,7 +11,12 @@ import type { Refusal } from "../sim/api-refusal";
 import { FRESH_FOODS } from "../sim/api";
 import { nearbyOf } from "../sim/api-game-view";
 import { FIRST_BUILD_TAB, type BuildTab } from "./build-tabs";
-import { strings } from "../strings";
+import { backpackText } from "../strings/backpack";
+import { bodyText } from "../strings/body";
+import { noticesText } from "../strings/notices";
+import { shellText } from "../strings/shell";
+import { timeText } from "../strings/time";
+import { workText } from "../strings/work";
 import { ActionQueueRow } from "./action-queue-row";
 import { lackingText, refusalText } from "./refusal-text";
 import { dayShare, timeOfDayWord } from "./clock-face";
@@ -59,35 +64,37 @@ export interface HudProps {
 function noticeText(notice: Notice): string {
   switch (notice.kind) {
     case "noLogBesideStation":
-      return strings.notices.noLogBesideStation(strings.buildMenu.structures[notice.station]);
+      return noticesText.notices.noLogBesideStation(workText.buildMenu.structures[notice.station]);
     case "cannotCraftYet":
-      return strings.notices.cannotCraftYet(notice.lacks.map(lackingText));
+      return noticesText.notices.cannotCraftYet(notice.lacks.map(lackingText));
     case "droppedBesideStation":
-      return strings.notices.droppedBesideStation(strings.pile.holds(notice.content, notice.count), strings.buildMenu.structures[notice.station]);
+      return noticesText.notices.droppedBesideStation(backpackText.pile.holds(notice.content, notice.count), workText.buildMenu.structures[notice.station]);
     case "cannotQueue":
     case "actionSkipped":
     case "refused":
-      return strings.notices[notice.kind](refusalText(notice.refusal));
+      return noticesText.notices[notice.kind](refusalText(notice.refusal));
     case "foodSpoiled":
-      return strings.notices.foodSpoiled(FRESH_FOODS.flatMap((food) => ((notice.spoiled[food] ?? 0) > 0 ? [[food, notice.spoiled[food] ?? 0] as const] : [])));
+      return noticesText.notices.foodSpoiled(
+        FRESH_FOODS.flatMap((food) => ((notice.spoiled[food] ?? 0) > 0 ? [[food, notice.spoiled[food] ?? 0] as const] : [])),
+      );
     default:
-      return strings.notices[notice.kind];
+      return noticesText.notices[notice.kind];
   }
 }
 
 const actionLabels = {
-  chop: strings.chopping,
-  split: strings.splitting,
-  debark: strings.debarking,
-  build: strings.building,
-  takeDown: strings.takingDown,
-  craft: strings.crafting,
-  fish: strings.fishing,
-  gatherStone: strings.gatheringStone,
-  digClay: strings.diggingClay,
-  digUp: strings.diggingUp,
-  plant: strings.planting,
-  plantMushroom: strings.plantingMushroom,
+  chop: workText.chopping,
+  split: workText.splitting,
+  debark: workText.debarking,
+  build: workText.building,
+  takeDown: workText.takingDown,
+  craft: workText.crafting,
+  fish: workText.fishing,
+  gatherStone: workText.gatheringStone,
+  digClay: workText.diggingClay,
+  digUp: workText.diggingUp,
+  plant: workText.planting,
+  plantMushroom: workText.plantingMushroom,
 } as const;
 
 const actionIcons: Record<keyof typeof actionLabels, HudIconName> = {
@@ -145,14 +152,14 @@ export function Hud({
     <>
       {(view.paused || view.raining || view.snowing || view.seasonBanner !== null || view.notice !== null || justDone !== null) && (
         <div class="hud-banners">
-          {view.paused && <p class="hud-banner hud-paused">{strings.paused}</p>}
+          {view.paused && <p class="hud-banner hud-paused">{shellText.paused}</p>}
           {view.seasonBanner !== null && (
             <p class="hud-banner hud-season" role="status">
-              {strings.seasonStarted[view.seasonBanner]}
+              {timeText.seasonStarted[view.seasonBanner]}
             </p>
           )}
-          {view.raining && <p class="hud-banner hud-raining">{strings.raining}</p>}
-          {view.snowing && <p class="hud-banner hud-snowing">{strings.snowing}</p>}
+          {view.raining && <p class="hud-banner hud-raining">{bodyText.raining}</p>}
+          {view.snowing && <p class="hud-banner hud-snowing">{bodyText.snowing}</p>}
           {view.notice !== null && (
             <p class="hud-banner hud-notice" role="status">
               {noticeText(view.notice)}
@@ -160,7 +167,7 @@ export function Hud({
           )}
           {justDone !== null && (
             <p class="hud-banner hud-notice" role="status">
-              {strings.journal.justDone(strings.journal.goals[justDone].done)}
+              {noticesText.journal.justDone(noticesText.journal.goals[justDone].done)}
             </p>
           )}
         </div>
@@ -170,8 +177,8 @@ export function Hud({
           <span class={`hud-clock-ring hud-clock-ring-${view.season.season}`} style={{ "--hud-day": dayShare(view.time.hourOfDay) }}>
             <HudIcon name={view.night ? "moon" : "sun"} />
           </span>
-          {strings.clock(strings.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays, view.time.hour, view.time.minute)}
-          <small class="hud-clock-word">{strings.timeOfDay[timeOfDayWord(view.time.hourOfDay, view.nightHours)]}</small>
+          {timeText.clock(timeText.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays, view.time.hour, view.time.minute)}
+          <small class="hud-clock-word">{timeText.timeOfDay[timeOfDayWord(view.time.hourOfDay, view.nightHours)]}</small>
         </p>
         <ActionQueueRow client={client} view={view} />
       </div>
@@ -181,7 +188,7 @@ export function Hud({
         <div class="hud-panel">
           <HudIconButton
             icon={view.paused ? "play" : "pause"}
-            label={view.paused ? strings.resume : strings.pause}
+            label={view.paused ? shellText.resume : shellText.pause}
             onClick={() => {
               client.send({ type: "setPaused", paused: !view.paused });
             }}
@@ -207,37 +214,37 @@ export function Hud({
           </div>
         )}
         <div class="hud-dock-bottom">
-          <section class="hud-needs" aria-label={strings.needs}>
+          <section class="hud-needs" aria-label={bodyText.needs}>
             {lowNeeds !== null && (
               <p class="hud-hint" role="status">
                 {lowNeeds}
               </p>
             )}
-            {view.sick && <p class="hud-hint">{strings.sick}</p>}
-            <NeedGauge icon="flame" label={strings.warmth} value={view.warmth} colour={warmthColour(view.warmth)} />
-            <NeedGauge icon="berry" label={strings.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} />
-            <NeedGauge icon="droplet" label={strings.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} />
-            <NeedGauge icon="moon" label={strings.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} />
+            {view.sick && <p class="hud-hint">{bodyText.sick}</p>}
+            <NeedGauge icon="flame" label={bodyText.warmth} value={view.warmth} colour={warmthColour(view.warmth)} />
+            <NeedGauge icon="berry" label={bodyText.hunger} value={view.needs.hunger} colour={HUNGER_COLOUR} />
+            <NeedGauge icon="droplet" label={bodyText.thirst} value={view.needs.thirst} colour={THIRST_COLOUR} />
+            <NeedGauge icon="moon" label={bodyText.fatigue} value={view.needs.fatigue} colour={FATIGUE_COLOUR} />
           </section>
           <div class="hud-panel hud-hotbar">
-            <section class="hud-backpack" aria-label={strings.backpack}>
-              <WeightRing label={strings.backpack} weight={view.backpackWeight} limit={view.backpackWeightLimit} />
+            <section class="hud-backpack" aria-label={backpackText.backpack}>
+              <WeightRing label={backpackText.backpack} weight={view.backpackWeight} limit={view.backpackWeightLimit} />
               <span class="hud-hotbar-divider" aria-hidden="true" />
               <HotbarGrid view={view} onOpenMenu={onOpenHotbarMenu} />
             </section>
             <div class="hud-hotbar-tools">
               <HudToolButton
                 icon="place"
-                label={strings.buildMenu.open}
-                shortcut={strings.hudLabels.buildKey}
+                label={workText.buildMenu.open}
+                shortcut={workText.hudLabels.buildKey}
                 pressed={buildMenuOpen}
                 disabled={placing !== null}
                 onClick={onToggleBuildMenu}
               />
               <HudToolButton
                 icon="axe"
-                label={strings.craftMenu.open}
-                shortcut={strings.hudLabels.craftKey}
+                label={workText.craftMenu.open}
+                shortcut={workText.hudLabels.craftKey}
                 pressed={craftMenuOpen}
                 onClick={onToggleCraftMenu}
               />

@@ -14,7 +14,8 @@ import { SAVE_VERSION } from "./save-upgrades";
 import { SMOKED_FISH_SAVE_VERSION } from "./save-versions";
 import { addFinished, finishReach, onlyPlayer, piecesOf, stepUntil } from "./test-steps";
 import { isWalkable } from "./walk-map";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
+import { backpackText } from "../strings/backpack";
 
 describe("hanging raw fish on the drying rack", () => {
   it("hangs raw fish from the backpack like other food, and it counts toward the rack's 6 foods", () => {
@@ -45,7 +46,7 @@ describe("hanging raw fish on the drying rack", () => {
     give(game, "cookedFish", 1);
 
     expect(game.client.refusal({ type: "hangOnRack", rackId: rack.id, food: "cookedFish" })).toEqual({ kind: "onlyRawFishSmokes" });
-    expect(strings.actionReasons.onlyRawFishSmokes).toBe("only raw fish can be smoked");
+    expect(actionsText.actionReasons.onlyRawFishSmokes).toBe("only raw fish can be smoked");
     send(game, { type: "hangOnRack", rackId: rack.id, food: "cookedFish" });
     expect(rack.entity.dryingRack).toEqual([]);
     expect(game.client.getView().backpack.cookedFish).toBe(1);
@@ -240,8 +241,8 @@ describe("smoked fish", () => {
   });
 
   it("names smoked fish for the player", () => {
-    expect(strings.backpackContents.smokedFish).toBe("Smoked fish");
-    expect(strings.pile.holds("smokedFish", 2)).toBe("2 smoked fish");
+    expect(backpackText.backpackContents.smokedFish).toBe("Smoked fish");
+    expect(backpackText.pile.holds("smokedFish", 2)).toBe("2 smoked fish");
   });
 });
 

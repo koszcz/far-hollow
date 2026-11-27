@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { strings } from "../strings";
+import { backpackText } from "../strings/backpack";
 import { NEARLY_FULL, weightRingShare, weightRingWarns } from "./weight-ring";
 
 describe("a weight ring", () => {
@@ -24,8 +24,8 @@ describe("a weight ring", () => {
   });
 
   it("labels the exact weight, to one decimal place at most", () => {
-    expect(strings.weightOf(5.5, 20)).toBe("5.5 of 20 kg");
-    expect(strings.weightOf(0, 20)).toBe("0 of 20 kg");
-    expect(strings.weightOf(0.1 + 0.2, 60)).toBe("0.3 of 60 kg");
+    expect(backpackText.weightOf(5.5, 20)).toBe("5.5 of 20 kg");
+    expect(backpackText.weightOf(0, 20)).toBe("0 of 20 kg");
+    expect(backpackText.weightOf(0.1 + 0.2, 60)).toBe("0.3 of 60 kg");
   });
 });

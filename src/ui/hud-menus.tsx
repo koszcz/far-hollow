@@ -4,7 +4,9 @@ import type { RecipeKind, StructureKind } from "../sim/api";
 import type { GameView } from "../sim/api-game-view";
 import { isHost } from "../sim/api";
 import { BUILD_TABS, entriesInTab, type BuildTab } from "./build-tabs";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
+import { backpackText } from "../strings/backpack";
+import { workText } from "../strings/work";
 import { BackpackIcon } from "./backpack-icons";
 import { recipeReason, type RefusalReader } from "./menu-refusals";
 import { MaterialIcon } from "./build-icons";
@@ -82,16 +84,16 @@ export function CraftMenu({
   onClose: () => void;
 }) {
   const entries = view.craftMenu.map(({ kind, materials, besideStation, station, seconds, result }): MenuEntry => {
-    const name = strings.craftMenu.recipes[kind];
+    const name = workText.craftMenu.recipes[kind];
     const reason = recipeReason(client, kind);
     const notes = reason === null ? [] : [reason];
-    const cost = strings.craftMenu.cost(
+    const cost = workText.craftMenu.cost(
       [
-        ...materials.map(({ material, count }) => strings.backpackContentCount(strings.backpackContents[material], count)),
+        ...materials.map(({ material, count }) => backpackText.backpackContentCount(backpackText.backpackContents[material], count)),
         ...(besideStation === undefined || station === undefined
           ? []
           : besideStation.map(({ material, count }) =>
-              strings.craftMenu.besideStation(strings.craftMenu.groundMaterials[material](count), strings.buildMenu.structures[station]),
+              workText.craftMenu.besideStation(workText.craftMenu.groundMaterials[material](count), workText.buildMenu.structures[station]),
             )),
       ],
       seconds,
@@ -117,7 +119,7 @@ export function CraftMenu({
       },
     };
   });
-  return <ListMenu title={strings.craftMenu.title} entries={entries} onClose={onClose} />;
+  return <ListMenu title={workText.craftMenu.title} entries={entries} onClose={onClose} />;
 }
 
 /**
@@ -151,17 +153,17 @@ export function BuildMenu({
             onChooseTab(each);
           }}
         >
-          {strings.buildMenu.tabs[each]}
+          {workText.buildMenu.tabs[each]}
         </button>
       ))}
     </div>
   );
   const menuEntries = entriesInTab(entries, tab).map(({ structure, cost, tool }): MenuEntry => {
-    const name = strings.buildMenu.structures[structure];
-    const addOn = isHost(structure) ? strings.buildMenu.addOnDetail[structure] : undefined;
-    const costText = strings.buildMenu.cost([
-      ...cost.map(({ material, count }) => strings.buildMenu.materials[material](count)),
-      ...(tool === undefined ? [] : [strings.actionReasons.needsTool(strings.backpackContents[tool])]),
+    const name = workText.buildMenu.structures[structure];
+    const addOn = isHost(structure) ? workText.buildMenu.addOnDetail[structure] : undefined;
+    const costText = workText.buildMenu.cost([
+      ...cost.map(({ material, count }) => workText.buildMenu.materials[material](count)),
+      ...(tool === undefined ? [] : [actionsText.actionReasons.needsTool(backpackText.backpackContents[tool])]),
     ]);
     return {
       key: structure,
@@ -183,11 +185,11 @@ export function BuildMenu({
         </span>
       ),
       ...(addOn === undefined ? {} : { detail: addOn }),
-      label: strings.buildMenu.entryLabel(name, costText, addOn),
+      label: workText.buildMenu.entryLabel(name, costText, addOn),
       onPick: () => {
         onPick(structure);
       },
     };
   });
-  return <ListMenu title={strings.buildMenu.title} tabs={tabs} entries={menuEntries} onClose={onClose} />;
+  return <ListMenu title={workText.buildMenu.title} tabs={tabs} entries={menuEntries} onClose={onClose} />;
 }

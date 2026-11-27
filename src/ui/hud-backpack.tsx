@@ -4,7 +4,7 @@ import type { GameClient } from "../sim/api-client";
 import type { GameView } from "../sim/api-game-view";
 import type { ChestView, FreshnessViews } from "../sim/api-nearby";
 import { isCarriedLog, isFreshFood } from "../sim/api";
-import { strings } from "../strings";
+import { backpackText } from "../strings/backpack";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { chestTakeReason } from "./menu-refusals";
 import { hotbarCells, type HotbarTarget } from "./hotbar-cells";
@@ -16,7 +16,7 @@ import { weightRingShare, weightRingWarns } from "./weight-ring";
 /** The kinds of thing in the backpack, with how many of each, in a steady order. */
 export function backpackContents(backpack: GameView["backpack"]): [BackpackContent, number][] {
   const contents: [BackpackContent, number][] = [];
-  for (const content of Object.keys(strings.backpackContents) as BackpackContent[]) {
+  for (const content of Object.keys(backpackText.backpackContents) as BackpackContent[]) {
     const count = backpack[content] ?? 0;
     if (count > 0) contents.push([content, count]);
   }
@@ -46,11 +46,11 @@ function ContentGrid({
   return (
     <ul>
       {backpackContents(contents).map(([content, count]) => {
-        const name = strings.backpackContents[content];
+        const name = backpackText.backpackContents[content];
         const refused = reason(content);
         const fresh = isFreshFood(content) ? freshness[content] : undefined;
-        const spoilsIn = fresh === undefined ? null : strings.hotbar.spoilsIn(fresh.minutesLeft);
-        const described = [label(strings.backpackContentCount(name, count)), spoilsIn, refused].filter((part) => part !== null).join(" · ");
+        const spoilsIn = fresh === undefined ? null : backpackText.hotbar.spoilsIn(fresh.minutesLeft);
+        const described = [label(backpackText.backpackContentCount(name, count)), spoilsIn, refused].filter((part) => part !== null).join(" · ");
         return (
           <li key={content}>
             <button
@@ -66,7 +66,7 @@ function ContentGrid({
               <BackpackIcon content={content} />
               {count > 1 && (
                 <span class="hud-backpack-count" aria-hidden="true">
-                  {strings.backpackCountBadge(count)}
+                  {backpackText.backpackCountBadge(count)}
                 </span>
               )}
               {fresh !== undefined && <span class="hud-hotbar-gauge" style={{ "--hud-level": fresh.share }} aria-hidden="true" />}
@@ -102,7 +102,7 @@ export function HotbarGrid({ view, onOpenMenu }: { view: GameView; onOpenMenu: (
             </span>
             {count > 1 && (
               <span class="hud-backpack-count" aria-hidden="true">
-                {strings.backpackCountBadge(count)}
+                {backpackText.backpackCountBadge(count)}
               </span>
             )}
             {key !== undefined && (
@@ -136,13 +136,13 @@ const HOTBAR_CELL_CLASS: Readonly<Record<HotbarTarget["kind"], string | undefine
 function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key: string | undefined, tip: string): string {
   switch (target.kind) {
     case "shoulder":
-      return isCarriedLog(target.log) ? strings.hotbar.shoulder(name) : strings.hotbar.inHands(name);
+      return isCarriedLog(target.log) ? backpackText.hotbar.shoulder(name) : backpackText.hotbar.inHands(name);
     case "litTorch":
-      return strings.hotbar.inHand(tip);
+      return backpackText.hotbar.inHand(tip);
     case "sled":
-      return strings.hotbar.dragging(name);
+      return backpackText.hotbar.dragging(name);
     case "backpackContent":
-      return strings.hotbar.cell(strings.backpackContentCount(name, count), key);
+      return backpackText.hotbar.cell(backpackText.backpackContentCount(name, count), key);
   }
 }
 
@@ -152,7 +152,7 @@ function hotbarCellLabel(target: HotbarTarget, name: string, count: number, key:
  * the exact weight in a label, such as "5.5 of 20 kg". Screen readers read the same text as the meter's value.
  */
 export function WeightRing({ label, weight, limit }: { label: string; weight: number; limit: number }) {
-  const text = strings.weightOf(weight, limit);
+  const text = backpackText.weightOf(weight, limit);
   return (
     <span
       class={weightRingWarns(weight, limit) ? "hud-weight-ring hud-weight-ring-warn" : "hud-weight-ring"}
@@ -192,7 +192,7 @@ function HotbarCellIcon({ target }: { target: HotbarTarget }) {
  * A click on an icon takes one of that kind out into the backpack. A shift-click takes all that fit.
  */
 export function ChestPanel({ client, chest }: { client: GameClient; chest: ChestView }) {
-  const text = strings[chest.furniture];
+  const text = backpackText[chest.furniture];
   const empty = backpackContents(chest.contents).length === 0;
   return (
     <section class="hud-section hud-backpack hud-chest" aria-label={text.title}>

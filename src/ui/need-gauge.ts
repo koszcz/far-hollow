@@ -2,7 +2,7 @@
 // Also the hint above the gauges that tells the player how low needs affect them.
 
 import { LOW_NEED as SLOWING_NEED, type NeedKind } from "../sim/api";
-import { strings } from "../strings";
+import { bodyText } from "../strings/body";
 
 /** The share of a need's ring that fills at `level`, from 0 (empty) to 1 (full). Levels outside that range stay at the nearest end. */
 export function needRingShare(level: number): number {
@@ -25,7 +25,7 @@ const HUD_NEED_ORDER: readonly NeedKind[] = ["warmth", "hunger", "thirst", "fati
 export function lowNeedsHint(needs: Readonly<Record<NeedKind, number>>): string | null {
   const low = HUD_NEED_ORDER.filter((kind) => needPulses(needs[kind]));
   if (low.length === 0) return null;
-  const text = strings.lowNeeds;
+  const text = bodyText.lowNeeds;
   const slowed = text.slowed(
     low.map((kind) => text.feeling[kind]),
     low.map((kind) => text.remedy[kind]),

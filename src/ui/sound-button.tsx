@@ -2,7 +2,7 @@
 // that opens it. The start screen shows the same slider. The button's speaker icon is drawn in the HUD icons' line style.
 import { useEffect, useState } from "preact/hooks";
 import type { VolumeControl, VolumeSetting } from "../sound/volume-control";
-import { strings } from "../strings";
+import { shellText } from "../strings/shell";
 
 /** A speaker with sound waves, and the same speaker crossed out when muted, on the HUD icons' 24 by 24 grid. */
 const SPEAKER = "M4 9h4l5-4v14l-5-4H4z";
@@ -26,7 +26,7 @@ export function VolumeSlider({ control }: { control: VolumeControl }) {
   const setting = useVolumeSetting(control);
   return (
     <label class="volume-slider">
-      <span>{strings.sound.volume}</span>
+      <span>{shellText.sound.volume}</span>
       <input
         type="range"
         min={0}
@@ -46,7 +46,7 @@ export function VolumeSlider({ control }: { control: VolumeControl }) {
 export function SoundButton({ control, startsOpen = false }: { control: VolumeControl; startsOpen?: boolean }) {
   const setting = useVolumeSetting(control);
   const [open, setOpen] = useState(startsOpen);
-  const label = setting.muted ? strings.sound.buttonMuted : strings.sound.button;
+  const label = setting.muted ? shellText.sound.buttonMuted : shellText.sound.button;
   return (
     <div class="hud hud-sound">
       <div class="hud-panel">
@@ -77,7 +77,7 @@ export function SoundButton({ control, startsOpen = false }: { control: VolumeCo
               control.toggleMute();
             }}
           >
-            {setting.muted ? strings.sound.unmute : strings.sound.mute} <kbd class="hud-key">{strings.sound.muteKey}</kbd>
+            {setting.muted ? shellText.sound.unmute : shellText.sound.mute} <kbd class="hud-key">{shellText.sound.muteKey}</kbd>
           </button>
         </div>
       )}

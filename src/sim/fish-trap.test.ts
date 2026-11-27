@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type Command } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type Command } from "./api-commands";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { FISH_TRAP_SPACING_METRES } from "./fish-traps";
 import { createGame, type Game } from "./game";

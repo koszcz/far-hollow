@@ -1,4 +1,4 @@
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import type { ApproachReach } from "./approach";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";

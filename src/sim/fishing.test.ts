@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { FISH_MAX_WAIT_MINUTES, FISH_MIN_WAIT_MINUTES, fishWaitMinutes } from "./fishing";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

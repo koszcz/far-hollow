@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type Command } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type Command } from "./api-commands";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { DIG_CLAY_SECONDS, diggingClayNow } from "./clay";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

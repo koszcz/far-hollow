@@ -1,7 +1,8 @@
 // The action queue beside the clock: one icon per lined-up action, the action under way first and a little larger.
 // Pointing at an icon shows the action's name. A click on it cancels that action. With an empty queue, the row shows nothing.
 // Its look lives in the .hud-queue rules of src/app/style.css.
-import type { GameClient, GameView } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
 import { strings } from "../strings";
 import { QUEUE_THING_DRAWINGS } from "./action-queue-icons";
 import { backpackDrawing, ShadedIcon } from "./backpack-icons";

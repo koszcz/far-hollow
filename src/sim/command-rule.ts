@@ -1,7 +1,9 @@
 // The shape of a command rule: how the game handles one kind of command. Each activity module exports the rules for its
 // own commands, and game.ts collects them. This file imports no activity module and not game.ts, so any module can use it.
 import type { QueueRule } from "./action-queue";
-import type { ActionCommand, Notice, PlainNotice, Refusal } from "./api";
+import type { ActionCommand } from "./api-commands";
+import type { Notice, PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { Entity, EntityStore } from "./entities";
 import type { HandReach } from "./hand-reach";

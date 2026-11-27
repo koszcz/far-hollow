@@ -3,7 +3,9 @@
 // while there is none. The player takes food off by hand, preserved food first, as with fish on a fire. Rain does not slow it.
 // How food on a rack dries and smokes lives in rack-food.ts. Fresh food on a rack spoils in spoiling.ts, as it does everywhere else.
 // A rack that holds food cannot be taken down: taking-down.ts asks `holdsSomething`.
-import type { DryingRackView, PlainNotice, Refusal } from "./api";
+import type { DryingRackView } from "./api-nearby";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import type { CommandRules, RuleGame } from "./command-rule";

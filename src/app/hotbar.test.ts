@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, GameView } from "../sim/api";
+import type { BackpackContent } from "../sim/api";
+import type { GameView } from "../sim/api-game-view";
 import { createGame } from "../sim/game";
 import { hotbarKeyPlanting, mainHotbarCommand, pressHotbarKey } from "./hotbar";
 import { menuActions, type ActionReader } from "./thing-actions";

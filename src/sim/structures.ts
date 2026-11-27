@@ -1,7 +1,7 @@
 // The structures the player can build, as the build menu lists them.
 // Each later shelter structure, such as a log wall, adds one entry to STRUCTURES with its cost, placement rule, and finished form.
 // A piece of furniture comes from its definition in furniture.ts instead. freelyPlaced turns it into a structure.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { BackpackContent } from "./backpack";
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
 import { blocksWalking, edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";

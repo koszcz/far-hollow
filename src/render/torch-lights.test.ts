@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import * as THREE from "three";
-import { TORCH_LIGHT_METRES } from "../sim/api";
+import { TORCH_LIGHT_METRES } from "../sim/api-game-view";
 import { createTorchLights, type TorchFlame } from "./torch-lights";
 
 const flame = { position: new THREE.Vector3(3, 1.6, -2), seed: 0, aboveGroundMetres: 1.6 };

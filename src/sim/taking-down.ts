@@ -2,7 +2,8 @@
 // Every structure can come down: a campfire, a lean-to, or a building piece such as a foundation, wall, roof frame, or roof section.
 // A lit campfire goes out as it comes down, and any fuel still in it is lost. A fireplace comes down only once its fire is out
 // and holds no fuel.
-import type { Notice, Refusal } from "./api";
+import type { Notice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack } from "./backpack";
 import { holdsNone } from "./counts";

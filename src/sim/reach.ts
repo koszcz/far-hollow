@@ -1,5 +1,5 @@
 // Finds the thing the E key acts on: the one nearest the player within reach.
-import type { ThingInReach } from "./api";
+import type { ThingInReach } from "./api-scene-pick";
 import type { Entity, EntityStore } from "./entities";
 import { footprintOfEntity, isPlacedStructure } from "./structures";
 import { isSapling, isYoungTree } from "./tree-growth";

@@ -1,12 +1,14 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
-import type { BackpackContent, SaveRefusal, SaveSlotSummary } from "./api";
+import type { BackpackContent } from "./api";
+import type { SaveRefusal, SaveSlotSummary } from "./api-save";
 import { readClock } from "./clock";
 import { addCount, countOf } from "./counts";
 import type { Entity, SavedEntity } from "./entities";
 import { valleyForageSpots } from "./foraging";
 import type { GroundPoint } from "./ground-point";
 import { droppedStickSpot } from "./piles";
-import { createGame, type Game, type GameProgress } from "./game";
+import { createGame, type Game } from "./game";
+import type { GameProgress } from "./game-start";
 import { generateValley } from "./valley";
 import { isValidSave } from "./save-schema";
 

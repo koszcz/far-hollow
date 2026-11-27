@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, StructureKind } from "./api";
+import type { Command } from "./api-commands";
+import type { StructureKind } from "./api";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, SHELVES_SAVE_VERSION, writeSave } from "./save";

@@ -1,7 +1,8 @@
 // What the player does over time, such as chopping, building, or walking to pick something up.
 // The game holds one list of activities. A new command cancels them all, and each logic step runs each in turn.
 // playerActivity says which timed work the player is doing now, for both the HUD and the player's drawn pose.
-import type { Notice, PlainNotice, PlayerAction } from "./api";
+import type { Notice, PlainNotice } from "./api-notice";
+import type { PlayerAction } from "./api-game-view";
 import { buildingNow } from "./building";
 import { choppingNow } from "./chopping";
 import { craftingNow } from "./crafting";

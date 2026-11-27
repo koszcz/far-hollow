@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, Command } from "./api";
-import { nearbyOf } from "./api";
+import type { BackpackContent } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
 import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, writeSave } from "./save";

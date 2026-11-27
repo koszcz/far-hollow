@@ -6,7 +6,8 @@ import { readSave, ROOF_FRAMES_SAVE_VERSION, SAVE_VERSION, SLEDS_SAVE_VERSION, w
 import { distanceOutside } from "./building";
 import { findPath } from "./pathfinding";
 import { USE_REACH_METRES } from "./reach";
-import { footprintOfEntity, SLED_BUILD_SECONDS, SLED_LOG_COST, SLED_STICK_COST } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
+import { SLED_BUILD_SECONDS, SLED_LOG_COST, SLED_STICK_COST } from "./structure-freely-placed";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";

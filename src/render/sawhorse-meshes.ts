@@ -10,7 +10,9 @@
 import * as THREE from "three";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import { blueprintEntities, workStationEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { SAWHORSE_LENGTH_METRES, SAWHORSE_LOG_COST, SAWHORSE_WIDTH_METRES, structureKindOf } from "../sim/structures";
+import { structureKindOf } from "../sim/structure-queries";
+import { SAWHORSE_LOG_COST } from "../sim/structure-camp";
+import { SAWHORSE_LENGTH_METRES, SAWHORSE_WIDTH_METRES } from "../sim/structure-shapes";
 import { createDebarkedLogGeometry, DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import type { OutlinePart } from "./hover-outline";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";

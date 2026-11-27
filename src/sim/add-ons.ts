@@ -13,7 +13,7 @@ import { refusedNotice } from "./notices";
 import type { QuarterTurns } from "./quarter-turns";
 import { cabinRoofOn } from "./roofs";
 import { ADD_ON_OF_HOST, isHost, type AddOnKind, type HostKind } from "./structure-kind";
-import { structureKindOf } from "./structures";
+import { structureKindOf } from "./structure-queries";
 import { hasShutters } from "./windows";
 
 /** Whether the host of this kind at `at` holds its add-on, finished or as a blueprint. */

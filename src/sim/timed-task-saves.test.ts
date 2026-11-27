@@ -5,7 +5,7 @@ import { fishWaitMinutes } from "./fishing";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { readSave, TIMED_APPROACHES_SAVE_VERSION, writeSave } from "./save";
-import { CAMPFIRE_STICK_COST } from "./structures";
+import { CAMPFIRE_STICK_COST } from "./structure-camp";
 import { distanceToRiver } from "./valley";
 import { isWalkable } from "./walk-map";
 

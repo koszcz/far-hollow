@@ -6,7 +6,8 @@ import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { readSave, SNUG_ROOM_NOTICE_SAVE_VERSION, writeSave } from "./save";
-import { structureOf, type EdgePieceKind } from "./structures";
+import { type EdgePieceKind } from "./structure-kind";
+import { structureOf } from "./structures";
 import { isWalkable } from "./walk-map";
 
 describe("warmth in a snug room", () => {

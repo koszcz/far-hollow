@@ -9,7 +9,9 @@ import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
 import { CHIMNEYS_SAVE_VERSION, SEASONS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { CHIMNEY_BUILD_SECONDS, CHIMNEY_STONE_COST, structureOf, type StructureKind } from "./structures";
+import { type StructureKind } from "./structure-kind";
+import { CHIMNEY_BUILD_SECONDS, CHIMNEY_STONE_COST } from "./structure-cabin-fittings";
+import { structureOf } from "./structures";
 import { isWalkable } from "./walk-map";
 
 describe("the chimney's cost", () => {

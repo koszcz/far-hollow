@@ -9,7 +9,7 @@ import { FIRE_JUG_MINUTES } from "./jug-on-fire";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { BOIL_MINUTES } from "./pot-state";
 import { FIREPLACE_COOKING_SAVE_VERSION, FIREPLACE_FIRES_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
-import { FIREPLACE_STONE_COST } from "./structures";
+import { FIREPLACE_STONE_COST } from "./structure-cabin-fittings";
 import { finishReach } from "./test-steps";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";

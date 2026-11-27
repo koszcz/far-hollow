@@ -6,7 +6,7 @@ import { gatheringStoneNow } from "../sim/stone";
 import { REACH_SECONDS } from "../sim/hand-reach";
 import { MINUTES_PER_HOUR, REAL_MS_PER_GAME_MINUTE } from "../sim/clock";
 import { isRaining, movingEntities, snowCoverDepth, playerEntities, type Entity, type EntityStore } from "../sim/entities";
-import { structureKindOf } from "../sim/structures";
+import { structureKindOf } from "../sim/structure-queries";
 import { distanceToRiver, terrainHeightAt, type Valley } from "../sim/valley";
 import { isRiverBank } from "../sim/river-bank-work";
 import { isCarriedLog } from "../sim/wood-and-fuel";

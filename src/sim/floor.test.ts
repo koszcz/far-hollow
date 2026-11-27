@@ -5,7 +5,8 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { QuarterTurns } from "./quarter-turns";
 import { APPROACHES_SAVE_VERSION, FLOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { FLOOR_BUILD_SECONDS, FLOOR_PLANK_COST, type StructureKind } from "./structures";
+import { type StructureKind } from "./structure-kind";
+import { FLOOR_BUILD_SECONDS, FLOOR_PLANK_COST } from "./structure-cabin-shell";
 import { isWalkable } from "./walk-map";
 
 describe("the floor in the build menu", () => {

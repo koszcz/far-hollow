@@ -3,7 +3,7 @@ import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
 import { bedrollEntities, playerEntities, type Entity, type EntityStore } from "./entities";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
-import { leanToBedrollSpot } from "./structures";
+import { leanToBedrollSpot } from "./structure-camp";
 import { type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";

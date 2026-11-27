@@ -16,7 +16,7 @@ import { blueprintEntities, doorEntities, type Entity, type EntityStore, type Ve
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
-import { DOOR_PLANK_COST } from "../sim/structures";
+import { DOOR_PLANK_COST } from "../sim/structure-cabin-fittings";
 import { DOORWAY_HEIGHT_METRES, DOORWAY_WIDTH_METRES } from "./edge-piece-meshes";
 import { DOOR_OPEN_RADIANS, doorSwingRadians, latchRingRadians } from "./door-swing";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";

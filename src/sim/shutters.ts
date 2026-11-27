@@ -5,7 +5,7 @@ import type { ApproachReach } from "./approach";
 import { structureReach } from "./building";
 import type { CommandRules } from "./command-rule";
 import { playerEntities, type EntityStore } from "./entities";
-import { isPlacedStructure } from "./structures";
+import { isPlacedStructure } from "./structure-queries";
 
 /** Opening and closing shutters by hand. */
 export interface Shutters {

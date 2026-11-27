@@ -4,19 +4,17 @@ import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight, CONTENT_WEIGHT_KG } from "./b
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
+import { type StructureKind } from "./structure-kind";
+import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "./structure-camp";
 import {
   DOOR_FRAME_LOG_COST,
   FOUNDATION_BUILD_SECONDS,
-  LEAN_TO_BARK_COST,
-  LEAN_TO_BUILD_SECONDS,
-  LEAN_TO_STICK_COST,
   LOG_WALL_BUILD_SECONDS,
   LOG_WALL_LOG_COST,
   ROOF_PLANK_COST,
   ROOF_FRAME_LOG_COST,
   roofFrameOn,
-  type StructureKind,
-} from "./structures";
+} from "./structure-cabin-shell";
 import { type QuarterTurns } from "./quarter-turns";
 import { edgePieceOn } from "./edge-pieces";
 import { cabinRoofOn, isUnderRoof } from "./roofs";

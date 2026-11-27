@@ -4,7 +4,7 @@ import { CHIMNEY_CLEARANCE_METRES, chimneyMiddleAt, chimneyTopAt, chimneyTopMetr
 import { createChimneyStageShapes, CHIMNEY_COURSES } from "./chimney-shape";
 import { ALONE, roofPlaces, type RoofPlace } from "./roof-layout";
 import { COVER_THICKNESS_METRES, FRAME_TOP_METRES, frameLayout, RAFTER_RADIUS_METRES, SECTION_RISE_METRES } from "./roof-parts";
-import { CHIMNEY_STONE_COST } from "../sim/structures";
+import { CHIMNEY_STONE_COST } from "../sim/structure-cabin-fittings";
 
 /** The top of the roof's planks at its low edge, above the deck. */
 const ROOF_FOOT = FRAME_TOP_METRES + 2 * RAFTER_RADIUS_METRES + COVER_THICKNESS_METRES;

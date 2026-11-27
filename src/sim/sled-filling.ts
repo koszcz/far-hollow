@@ -14,7 +14,7 @@ import { walkingDistancesFrom } from "./pathfinding";
 import { distanceToTarget, type WalkTarget } from "./walk-target";
 import { USE_REACH_METRES } from "./reach";
 import { isSled, logsThatFitOnSled, type SledEntity } from "./sleds";
-import { footprintOfEntity } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
 import { isWalkable } from "./walk-map";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
 import { isCarriedLog } from "./wood-and-fuel";

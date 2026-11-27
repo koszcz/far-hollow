@@ -23,7 +23,7 @@ import { groundDistance, type GroundPoint } from "./ground-point";
 import { distanceToLogBody, logBody } from "./log-body";
 import { isRiverBank } from "./river-bank-work";
 import { isInRect, widenRect } from "./structure-kind";
-import { footprintOfEntity, placedStructures } from "./structures";
+import { footprintOfEntity, placedStructures } from "./structure-queries";
 import { startOfStage } from "./tree-growth";
 import { terrainHeightAt, TREE_MIN_SPACING_METRES, type Valley } from "./valley";
 import { cellIndexAt, type WalkMap } from "./walk-map";

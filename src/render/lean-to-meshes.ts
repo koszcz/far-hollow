@@ -7,7 +7,8 @@
 // While the player places a lean-to from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { blueprintEntities, leanToEntities, type Entity, type EntityStore } from "../sim/entities";
-import { LEAN_TO_BARK_COST, LEAN_TO_DEPTH_METRES, LEAN_TO_STICK_COST, LEAN_TO_WIDTH_METRES } from "../sim/structures";
+import { LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "../sim/structure-camp";
+import { LEAN_TO_DEPTH_METRES, LEAN_TO_WIDTH_METRES } from "../sim/structure-shapes";
 import type { OutlinePart } from "./hover-outline";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createStickSegment, STICK_COLOUR } from "./stick-shape";

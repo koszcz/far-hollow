@@ -9,7 +9,8 @@ import { edgeMiddle } from "./edge-pieces";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { FIREPLACE_FIRES_SAVE_VERSION, FIREPLACES_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
-import { FIREPLACE_STONE_COST, structureOf } from "./structures";
+import { FIREPLACE_STONE_COST } from "./structure-cabin-fittings";
+import { structureOf } from "./structures";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

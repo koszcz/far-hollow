@@ -7,7 +7,7 @@ import type { Entity } from "./entities";
 import { FIRE_JUG_MINUTES } from "./jug-on-fire";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { JUG_FIRING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structure-camp";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

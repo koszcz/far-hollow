@@ -30,7 +30,7 @@ import type { RecipeKind } from "./recipe-kind";
 import { addToPileAt } from "./piles";
 import { putPlanksOnSled, takeOffSled, type SledEntity } from "./sleds";
 import type { WorkStationKind } from "./structure-kind";
-import { footprintOfEntity } from "./structures";
+import { footprintOfEntity } from "./structure-queries";
 import { type Terrain } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import type { CommandRules, RuleGame } from "./command-rule";

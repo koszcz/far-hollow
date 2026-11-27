@@ -4,7 +4,9 @@ import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { type QuarterTurns } from "./quarter-turns";
-import { FIREPLACE_BUILD_SECONDS, FIREPLACE_STONE_COST, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
+import { type StructureKind } from "./structure-kind";
+import { LOG_WALL_LOG_COST } from "./structure-cabin-shell";
+import { FIREPLACE_BUILD_SECONDS, FIREPLACE_STONE_COST } from "./structure-cabin-fittings";
 import { FIREPLACES_SAVE_VERSION, readSave, SAVE_VERSION, STONE_SAVE_VERSION, writeSave } from "./save";
 import { isWalkable } from "./walk-map";
 

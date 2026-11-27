@@ -3,7 +3,9 @@ import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "./entities";
 import { createGame } from "./game";
 import { readSave, writeSave } from "./save";
-import { finishedStructures, footprintOfEntity, placedStructures, STRUCTURES, structureKindOf, type PlacedStructure } from "./structures";
+import { type PlacedStructure } from "./structure-types";
+import { finishedStructures, footprintOfEntity, placedStructures, structureKindOf } from "./structure-queries";
+import { STRUCTURES } from "./structures";
 
 const SPOT = { x: 10, z: -4 };
 

@@ -47,11 +47,13 @@ export {
   type WoodpileWood,
 } from "./wood-and-fuel";
 import type { PotWater } from "./pot-state";
-import type { BuildMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
+import type { BuildMaterial, MaterialCost } from "./structure-types";
+import type { FurnitureKind, KeptMaterial, Placement, StructureKind, WorkStationKind } from "./structure-kind";
 import type { QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./ground-point";
 
-export type { BuildMaterial, DeliveredMaterial, FurnitureKind, KeptMaterial, MaterialCost, Placement, StructureKind, WorkStationKind } from "./structures";
+export type { BuildMaterial, MaterialCost } from "./structure-types";
+export type { DeliveredMaterial, FurnitureKind, KeptMaterial, Placement, StructureKind, WorkStationKind } from "./structure-kind";
 
 import { FURNITURE, type FurnitureUse } from "./furniture";
 export type { FurnitureUse } from "./furniture";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent, Command } from "./api";
 import { nearbyOf } from "./api";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structure-camp";
 import { isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";

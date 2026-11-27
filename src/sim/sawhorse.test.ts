@@ -3,7 +3,7 @@ import type { Command, StructureKind } from "./api";
 import { workStationEntities, type Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { LARGE_VALLEY_UPGRADES, readSave, SAVE_VERSION, SAWHORSES_SAVE_VERSION, writeSave } from "./save";
-import { SAWHORSE_BUILD_SECONDS } from "./structures";
+import { SAWHORSE_BUILD_SECONDS } from "./structure-camp";
 import { isWalkable } from "./walk-map";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

@@ -7,7 +7,9 @@ import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { roomAround } from "./rooms";
 import { readSave, SAVE_VERSION, CHIMNEYS_SAVE_VERSION, WALL_SWAPS_SAVE_VERSION, writeSave } from "./save";
-import { costOf, WINDOW_BUILD_SECONDS, type EdgePieceKind, type StructureKind } from "./structures";
+import { type EdgePieceKind, type StructureKind } from "./structure-kind";
+import { WINDOW_BUILD_SECONDS } from "./structure-cabin-shell";
+import { costOf } from "./structures";
 import { addFinished, onlyPlayer, openFoundation, stepUntil } from "./test-steps";
 import { canStep, cellIndexAt } from "./walk-map";
 

@@ -2,7 +2,7 @@
 import { ACTION_QUEUE_LIMIT, type BackpackContent, type FreshFood, type Goal } from "./sim/api";
 import { FETCH_METRES } from "./sim/building";
 import { STATION_GROUND_METRES } from "./sim/crafting";
-import { CAMPFIRE_STICK_COST, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST, SAWHORSE_LOG_COST } from "./sim/structures";
+import { CAMPFIRE_STICK_COST, LEAN_TO_BARK_COST, LEAN_TO_STICK_COST, SAWHORSE_LOG_COST } from "./sim/structure-camp";
 import { DRYING_RACK_CORD_COST, DRYING_RACK_STICK_COST } from "./sim/furniture/drying-rack";
 import { DRY_MINUTES, DRYING_RACK_FOOD_LIMIT, SMOKE_MINUTES } from "./sim/rack-food";
 

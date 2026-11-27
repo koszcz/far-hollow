@@ -3,7 +3,7 @@ import type { Command, StructureKind } from "./api";
 import type { Entity, SledLoad } from "./entities";
 import { createGame, type Game } from "./game";
 import { readSave, SAVE_VERSION, SLED_PLANKS_SAVE_VERSION, writeSave } from "./save";
-import { SLED_STICK_COST } from "./structures";
+import { SLED_STICK_COST } from "./structure-freely-placed";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

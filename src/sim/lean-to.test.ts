@@ -6,7 +6,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds, passNeedsTime, type NeedConditions } from "./needs";
 import { isUnderRoof } from "./roofs";
 import { LARGE_VALLEY_UPGRADES, readSave, upgradeSave, writeSave } from "./save";
-import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "./structures";
+import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "./structure-camp";
 import { turnQuarters, type QuarterTurns } from "./quarter-turns";
 import { isWalkable } from "./walk-map";
 import { finishReach } from "./test-steps";

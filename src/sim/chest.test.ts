@@ -4,7 +4,7 @@ import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { LARGE_VALLEY_UPGRADES, CHESTS_BLOCK_WALKING_SAVE_VERSION, PLANK_CHESTS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
 import { CHEST_BUILD_SECONDS, CHEST_DEPTH_METRES, CHEST_PLANK_COST, CHEST_WIDTH_METRES } from "./furniture/chest";
-import { LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structures";
+import { LEAN_TO_BARK_COST, LEAN_TO_STICK_COST } from "./structure-camp";
 import { terrainHeightAt } from "./valley";
 import { isWalkable } from "./walk-map";
 import { type OldFurnitureParts, piecesOf, storingPiecesOf, withOldFurnitureParts } from "./test-steps";

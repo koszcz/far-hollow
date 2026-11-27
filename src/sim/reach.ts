@@ -1,7 +1,7 @@
 // Finds the thing the E key acts on: the one nearest the player within reach.
 import type { ThingInReach } from "./api";
 import type { Entity, EntityStore } from "./entities";
-import { footprintOfEntity, isPlacedStructure } from "./structures";
+import { footprintOfEntity, isPlacedStructure } from "./structure-queries";
 import { isSapling, isYoungTree } from "./tree-growth";
 import type { GroundPoint } from "./ground-point";
 import { distanceToTarget, type WalkTarget } from "./walk-target";

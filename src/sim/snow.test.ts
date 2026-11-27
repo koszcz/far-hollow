@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { snapToGridSquare } from "./build-grid";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { isRaining, isSnowing, rainEntities } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 

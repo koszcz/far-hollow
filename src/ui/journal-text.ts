@@ -1,5 +1,6 @@
 // What the journal's HUD line and panel say, worked out from the journal in the view.
-import { GOALS, nextGoal, type Goal, type JournalView } from "../sim/api";
+import { GOALS, nextGoal, type Goal } from "../sim/api";
+import { type JournalView } from "../sim/api-game-view";
 import { strings } from "../strings";
 
 /** One goal as the journal panel lists it. */

@@ -1,6 +1,7 @@
 // The cells of the hotbar: the sled the player drags, if any, the log on their shoulder, if any, the lit torch in their hand, if any,
 // then one cell per kind of thing in the backpack.
-import { burnShare, CONTENT_WEIGHT_KG, isFreshFood, type BackpackContent, type CarriedThing, type GameView } from "../sim/api";
+import { burnShare, CONTENT_WEIGHT_KG, isFreshFood, type BackpackContent, type CarriedThing } from "../sim/api";
+import { type GameView } from "../sim/api-game-view";
 import { strings } from "../strings";
 
 /**

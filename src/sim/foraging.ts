@@ -1,4 +1,4 @@
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import { goneRefusal } from "./refusals";
 import { addToBackpack, removeFromBackpack, type Food, type WildFood } from "./backpack";
 import type { ApproachReach } from "./approach";

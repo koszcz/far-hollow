@@ -258,9 +258,10 @@
               {
                 "group": [
                   "../sim/*",
-                  "!../sim/api"
+                  "!../sim/api",
+                  "!../sim/api-*"
                 ],
-                "message": "The UI may only use src/sim/api.ts, so it can read state and send commands but never change game state directly. See ADR 0005."
+                "message": "The UI may only use src/sim/api.ts and the src/sim/api-*.ts files, so it can read state and send commands but never change game state directly. See ADR 0005."
               },
               {
                 "group": [

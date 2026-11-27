@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, Command } from "./api";
-import { nearbyOf } from "./api";
+import type { BackpackContent } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";

@@ -5,28 +5,26 @@
 // The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the approved "build-icons" asset.
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
+import type { BackpackContent, RecipeKind, Plantable, StructureKind, WoodpileWood } from "../sim/api";
 import type {
-  BackpackContent,
   BlueprintView,
-  BuildMenuEntry,
   CampfireView,
   ChestView,
-  GameClient,
-  GameView,
   NearbyThing,
-  Notice,
   PileView,
   RainBarrelView,
   DryingRackView,
   WoodBoxView,
-  RecipeKind,
-  Plantable,
-  Refusal,
-  StructureKind,
   WoodpileView,
-  WoodpileWood,
-} from "../sim/api";
-import { FRESH_FOODS, isCarriedLog, isFreshFood, isHost, nearbyOf, type FreshnessViews } from "../sim/api";
+} from "../sim/api-nearby";
+import type { BuildMenuEntry } from "../sim/api-build-menu";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
+import type { Notice } from "../sim/api-notice";
+import type { Refusal } from "../sim/api-refusal";
+import { FRESH_FOODS, isCarriedLog, isFreshFood, isHost } from "../sim/api";
+import { nearbyOf } from "../sim/api-game-view";
+import { type FreshnessViews } from "../sim/api-nearby";
 import { BUILD_TABS, entriesInTab, FIRST_BUILD_TAB, type BuildTab } from "./build-tabs";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";

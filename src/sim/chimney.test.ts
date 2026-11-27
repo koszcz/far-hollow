@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { isWarmedByCampfire } from "./campfires";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";

@@ -1,5 +1,6 @@
 // The pot: the player fills it at the river, boils the water on a lit campfire or fireplace, and drinks from it.
-import type { PlainNotice, Refusal } from "./api";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack, hasInBackpack, removeFromBackpack, type Backpack, type PotContent } from "./backpack";
 import type { Campfires } from "./campfires";

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type BackpackContent, type Command } from "./api";
+import { nearbyOf } from "./api-game-view";
+import { type BackpackContent } from "./api";
+import { type Command } from "./api-commands";
 import { addToBackpack } from "./backpack";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";

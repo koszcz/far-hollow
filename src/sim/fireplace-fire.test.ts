@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, Command } from "./api";
-import { nearbyOf } from "./api";
+import type { BackpackContent } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { CAMPFIRE_WARMTH_RADIUS_METRES, isWarmedByCampfire } from "./campfires";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";

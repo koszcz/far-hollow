@@ -1,7 +1,9 @@
 // Rain barrels: catching rain as clean water, and the player drinking from a barrel or filling the pot or a jug from it.
 // A barrel catches rain only where rain would fall on the player: under a roof it catches nothing. Its water never goes bad.
 // Taking a barrel down spills its water, so taking-down.ts needs nothing from here.
-import type { PlainNotice, RainBarrelView, Refusal } from "./api";
+import type { PlainNotice } from "./api-notice";
+import type { RainBarrelView } from "./api-nearby";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { hasInBackpack, swapInBackpack, type Backpack, type BackpackContent } from "./backpack";
 import type { CommandRules, RuleGame } from "./command-rule";

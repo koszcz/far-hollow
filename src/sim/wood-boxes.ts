@@ -2,7 +2,9 @@
 // When the player adds firewood to a campfire or fireplace, the fire takes it from the wood box nearest it in the same room,
 // before the backpack. A wood box never fuels a fire on its own. A box whose room breaks keeps its firewood, but serves
 // no fire until the room is whole again. Rooms are worked out each time, so nothing here has to follow them.
-import type { PlainNotice, Refusal, WoodBoxView } from "./api";
+import type { PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
+import type { WoodBoxView } from "./api-nearby";
 import type { ApproachReach } from "./approach";
 import { addToBackpack, countInBackpack, fitsInBackpack, howManyFit, removeFromBackpack, type Backpack } from "./backpack";
 import { isOnGridSquare, snapToGridSquare } from "./build-grid";

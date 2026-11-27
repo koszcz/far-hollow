@@ -2,7 +2,8 @@
 // Each is built on the building grid, a square or an edge at a time.
 import { isOnGridSquare, snapToGridSquare } from "./build-grid";
 import { blocksWalking, edgeMiddle, edgePieceOn, foundationsBeside, isEdgeTaken, meetsOpeningAtCorner, squaresBeside } from "./edge-pieces";
-import { blueprintEntities, campfireEntities, foundationEntities, roofFrameEntities, stumpEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, campfireEntities, foundationEntities, roofFrameEntities, stumpEntities } from "./entity-queries";
 import { floorJoin, foundationDeckTop, foundationOn, raiseFloors, type FloorJoin } from "./foundations";
 import { floorOn } from "./floors";
 import type { GroundPoint } from "./ground-point";

@@ -6,18 +6,8 @@ import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { CommandRules } from "./command-rule";
 import { hasInBackpack, removeFromBackpack, type Plantable } from "./backpack";
-import {
-  forageSpotEntities,
-  growingTreeEntities,
-  mushroomLogEntities,
-  playerEntities,
-  setComponent,
-  stumpEntities,
-  treeEntities,
-  type Entity,
-  type EntityStore,
-  type Vec3,
-} from "./entities";
+import { setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { forageSpotEntities, growingTreeEntities, mushroomLogEntities, playerEntities, stumpEntities, treeEntities } from "./entity-queries";
 import { isBerryBush } from "./foraging";
 import { groundDistance, type GroundPoint } from "./ground-point";
 import { distanceToLogBody, logBody } from "./log-body";

@@ -3,7 +3,8 @@
 // Each piece is a peeled strip, curved like the trunk it came off, with its outer bark dark and its inner face pale.
 // One end rolls into a tight curl, like the bark's HUD icon. Each piece lies at its own steady turn, picked from its spot.
 import * as THREE from "three";
-import { barkEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { barkEntities } from "../sim/entity-queries";
 import type { OutlinePart } from "./hover-outline";
 
 /** The outer face of the bark, the same brown as the roof's bark strips. */

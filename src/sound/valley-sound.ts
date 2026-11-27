@@ -1,6 +1,7 @@
 // The sound layer of a running game. Each frame it reads the game state and the drawn player, as the drawing does, works
 // out the ambience and action sounds the player hears, and hands them to the sound engine. It never changes game state (ADR 0001).
-import { campfireEntities, fireplaceEntities, isRaining, playerEntities, type EntityStore } from "../sim/entities";
+import { type EntityStore } from "../sim/entities";
+import { campfireEntities, fireplaceEntities, isRaining, playerEntities } from "../sim/entity-queries";
 import { isUnderRoof } from "../sim/roofs";
 import type { Valley } from "../sim/valley";
 import { daylightAt } from "../render/daylight";

@@ -2,7 +2,8 @@
 // A door never blocks walking. It opens by itself while the player is near the middle of its frame and shuts once they leave.
 // Whether a door stands open is worked out from where the player is each time it is asked for. It is never stored or saved.
 import { isSameEdge } from "./edge-pieces";
-import { blueprintEntities, doorEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { blueprintEntities, doorEntities, edgePieceEntities } from "./entity-queries";
 import { groundDistance, nearestWithin, type GroundPoint } from "./ground-point";
 
 /** A door stands open while the player is within this many metres of the middle of its frame. */

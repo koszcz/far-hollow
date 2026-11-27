@@ -4,7 +4,8 @@ import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { structureReach } from "./building-reach";
 import type { CommandRules } from "./command-rule";
-import { playerEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { isPlacedStructure } from "./structure-queries";
 
 /** Opening and closing shutters by hand. */

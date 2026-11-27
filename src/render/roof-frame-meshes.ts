@@ -24,7 +24,8 @@
 // While the player places a frame from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { isOnGridSquare } from "../sim/build-grid";
-import { blueprintEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, roofFrameEntities } from "../sim/entity-queries";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { ROOF_FRAME_LOG_COST } from "../sim/structure-cabin-shell";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";

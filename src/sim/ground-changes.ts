@@ -3,7 +3,8 @@
 // - Where a planted sapling becomes a full tree, clearing turns into forest floor round it.
 // - A stump that is growing back still counts as a tree, so felling a tree alone changes nothing.
 // Each spot's latest change lives on an entity, so it is saved with the game. groundMapNow in ground-types.ts applies them.
-import { groundChangeEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { groundChangeEntities } from "./entity-queries";
 import { isSameTreeSpot, startGroundChange, type GroundChange, type GroundChangeToward } from "./ground-change";
 import type { GroundPoint } from "./ground-point";
 import { createGroundMap, groundMapNow, type GroundMap } from "./ground-types";

@@ -4,7 +4,7 @@ import { isOnGridSquare, snapToGridSquare } from "./build-grid";
 import { fireplaceOn, hasChimney, nearestBareFireplace } from "./chimneys";
 import { doorFrameOn, hasDoor, nearestDoorFrame } from "./doors";
 import { edgeMiddle } from "./edge-pieces";
-import { blueprintEntities, campfireEntities } from "./entities";
+import { blueprintEntities, campfireEntities } from "./entity-queries";
 import { unlitFire } from "./fire";
 import { foundationOn } from "./foundations";
 import { foundationUnderCampfire, hasThingsLyingOn, isClearOfTreesAndStructures } from "./structure-clearance";

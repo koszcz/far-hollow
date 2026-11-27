@@ -3,7 +3,8 @@
 // When the swap finishes, the wall goes and the blueprint turns into the new piece, built from the wall's own logs.
 // The logs the new piece does not need go on the ground near the player, on their side of the wall.
 import { hasOpening, isEdgePiece, isSameEdge } from "./edge-pieces";
-import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { blueprintEntities, edgePieceEntities } from "./entity-queries";
 import type { GroundPoint } from "./ground-point";
 import type { StructureKind } from "./structure-kind";
 

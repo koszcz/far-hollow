@@ -2,7 +2,8 @@
 // bird-life.ts decides where every bird is. This file tells it about the valley and draws what it says.
 // Birds are only for looks. They are never picked, so they never block walking or the action menu, and they cast no shadows.
 import * as THREE from "three";
-import { heldFires, isRaining, type EntityStore } from "../sim/entities";
+import { type EntityStore } from "../sim/entities";
+import { heldFires, isRaining } from "../sim/entity-queries";
 import { groundTypeAt, type GroundMap } from "../sim/ground-types";
 import type { GroundPoint } from "../sim/ground-point";
 import type { Random } from "../sim/random";

@@ -1,7 +1,8 @@
 // The shape of a foundation: a deck of logs over one building-grid square, held level on a leg at each corner.
 // On sloped ground the deck sits just above the highest corner, so the legs on the low side grow longer.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
-import { blueprintEntities, foundationEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { blueprintEntities, foundationEntities } from "./entity-queries";
 import { terrainHeightAt, type Terrain } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 

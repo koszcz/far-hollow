@@ -1,6 +1,7 @@
 // Which windows let firelight out. At night the renderer shows a warm glow in each of them, seen from outside.
 // The glow is only for looks: game logic never reads it.
-import { edgePieceEntities, plantedTorchEntities, playerEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { edgePieceEntities, plantedTorchEntities, playerEntities } from "./entity-queries";
 import { squaresBeside } from "./edge-pieces";
 import { isOnGridSquare } from "./build-grid";
 import type { GroundPoint } from "./ground-point";

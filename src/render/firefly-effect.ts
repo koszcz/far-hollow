@@ -6,7 +6,8 @@
 // - A firefly lights nothing around it. It is only a dot, so the ground under it stays dark.
 // - The fog does not dim them, so a firefly across a clearing still glows at night.
 import * as THREE from "three";
-import { isRaining, type EntityStore } from "../sim/entities";
+import { type EntityStore } from "../sim/entities";
+import { isRaining } from "../sim/entity-queries";
 import type { GroundPoint } from "../sim/ground-point";
 import type { Random } from "../sim/random";
 import { createFireflySwarm, FIREFLY_COUNT, type FireflyGround } from "./fireflies";

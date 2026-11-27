@@ -2,6 +2,7 @@
 // Each structure's own file calls them from its canPlace. They read only structure shapes, never a whole definition.
 import { isOnGridSquare } from "./build-grid";
 import { edgeMiddle, isEdgeTaken } from "./edge-pieces";
+import { type EntityStore } from "./entities";
 import {
   blueprintEntities,
   cabinRoofEntities,
@@ -17,8 +18,7 @@ import {
   roofEntities,
   roofFrameEntities,
   treeEntities,
-  type EntityStore,
-} from "./entities";
+} from "./entity-queries";
 import { foundationOn } from "./foundations";
 import type { GroundPoint } from "./ground-point";
 import { isInRect, rectsOverlap, SIDES, widenRect, type GroundRect, type StructureKind } from "./structure-kind";

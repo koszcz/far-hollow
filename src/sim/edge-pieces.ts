@@ -2,7 +2,8 @@
 // Two squares side by side share the edge between them, and that edge has one middle.
 // An edge piece sits at the middle of its edge, so one edge holds at most one piece, seen from either square.
 import { BUILD_GRID_METRES, isOnGridSquare } from "./build-grid";
-import { blueprintEntities, edgePieceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, edgePieceEntities, foundationEntities } from "./entity-queries";
 import { EDGE_PIECE_KINDS, type EdgePieceKind } from "./structure-kind";
 import { areAtRightAngles, turnOffset, type QuarterTurns } from "./quarter-turns";
 import { addGroundPoints, type GroundPoint, subtractGroundPoints } from "./ground-point";

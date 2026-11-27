@@ -2,7 +2,8 @@
 // One batch per stick shape, each with room for every stick the valley starts with.
 // Taking down a structure can leave more sticks than that, so the batches grow when they run out of room.
 import * as THREE from "three";
-import { stickEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { stickEntities } from "../sim/entity-queries";
 import type { OutlinePart } from "./hover-outline";
 import { createGroundStickGeometry, GROUND_STICK_SHAPE_COUNT, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
 import { lookFor } from "./tree-placement";

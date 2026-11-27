@@ -1,6 +1,7 @@
 // Hears when the player places a blueprint or takes a piece down, so the action sounds play the place click.
 // It reads game state each frame and never changes it.
-import { blueprintEntities, playerEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { blueprintEntities, playerEntities } from "../sim/entity-queries";
 
 export interface PlaceClicks {
   /**

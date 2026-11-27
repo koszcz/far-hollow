@@ -1,5 +1,6 @@
 import { takeCount } from "./counts";
-import { debarkedLogEntities, isParked, logEntities, pileEntities, sledEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { debarkedLogEntities, isParked, logEntities, pileEntities, sledEntities } from "./entity-queries";
 import { footprintOfEntity, isPlacedStructure } from "./structure-queries";
 import type { KeptMaterial } from "./structure-kind";
 import type { PlacedStructure } from "./structure-types";

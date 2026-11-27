@@ -1,5 +1,6 @@
 import type { ApproachReach } from "./approach";
-import { playerEntities, setComponent, type EntityStore } from "./entities";
+import { setComponent, type EntityStore } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { quenchThirst } from "./needs";
 import { catchSickness } from "./sickness";
 import { distanceToRiver, nearestRiverPoint, type Valley } from "./valley";

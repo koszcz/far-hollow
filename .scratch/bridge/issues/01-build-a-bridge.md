@@ -2,7 +2,7 @@
 
 **What to build:** The player can build a bridge across the river, so they can cross it in any season. It uses logs and planks like other building pieces.
 
-**Status:** idea
+**Status:** deferred
 
 **Assets:** None yet. Decide during grilling. Might reuse `logs`, `debarked-log`, and `floor`.
 

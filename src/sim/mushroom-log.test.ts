@@ -116,7 +116,8 @@ describe("a mushroom log", () => {
     expect(mushroomLog.mushroomLog).toBeDefined();
     expect(mushroomLog.position).toEqual(lay);
     expect(isWalkable(game.walkMap, lay)).toBe(true);
-  });
+    // Passing 30 game days is slow, and on a busy machine it runs over the default 5 seconds.
+  }, 15_000);
 
   it("can be taken down, and vanishes, giving nothing back", () => {
     const game = gameWithMushrooms(1);

@@ -58,8 +58,12 @@ The four body states the player must keep up: hunger, thirst, warmth, and fatigu
 _Avoid_: Stats, vitals, meters
 
 **Collapse**:
-What happens when the player's needs are neglected for too long. The player wakes up again at their respawn point.
+What happens when the player's needs are neglected for too long. The player wakes up again at their respawn point. A collapse never happens in the player's sleep: a need that runs empty wakes them first.
 _Avoid_: Death, game over
+
+**Collapse countdown**:
+The hour a need can stay empty before the player collapses. The player sees it on the empty need's gauge.
+_Avoid_: Timer, grace period
 
 **Drink**:
 The amount of water that fills thirst completely. A full pot holds 1 drink. Jugs and rain barrels count their water in drinks.
@@ -520,8 +524,12 @@ _Avoid_: Torch post, standing torch
 ## Guidance
 
 **Journal**:
-The player's list of suggested goals, in a fixed order, from a first campfire to a first snug room. Following it is optional, and the player can hide it.
+The player's list of suggested goals, in a fixed order, from a first campfire to a first snug room. Following it is optional, and the player can hide it. The journal also holds the tally.
 _Avoid_: Quest log, objectives, achievements
+
+**Tally**:
+The counts of what the player has done in the valley since the game began, such as trees felled and planks cut. A count goes up when the work finishes and never goes down, even if the player later uses up or takes down what they made.
+_Avoid_: Stats, statistics, record, log, achievements
 
 **Goal**:
 One thing the journal suggests the player do, such as lighting a campfire or building a lean-to. A goal is done the first time the player does it, and it stays done even if the player later takes the thing down.

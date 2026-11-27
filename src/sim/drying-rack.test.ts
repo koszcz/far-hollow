@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { nearbyOf, type BackpackContent, type Command } from "./api";
+import { nearbyOf, type BackpackContent, type Command, type FoodToHang } from "./api";
 import { MINUTES_PER_HOUR } from "./clock";
 import { rainEntities, type Entity } from "./entities";
 import { addToBackpack, CONTENT_WEIGHT_KG } from "./backpack";
@@ -87,8 +87,8 @@ describe("hanging food on the rack", () => {
     expect(game.client.getView().backpack).toMatchObject({ berries: 2 });
     expect(game.client.getView().backpack.mushroom ?? 0).toBe(0);
     expect(game.client.describeDryingRack(rack.id)?.food).toMatchObject([
-      { food: "berries", dried: false },
-      { food: "mushroom", dried: false },
+      { food: "berries", preserved: false },
+      { food: "mushroom", preserved: false },
     ]);
   });
 
@@ -126,7 +126,7 @@ describe("hanging food on the rack", () => {
 
     hang(game, rack, "berries");
 
-    expect(rack.entity.dryingRack).toEqual([{ food: "berries", minutesDried: expect.any(Number) as number, spoilsAt: now + 100 }]);
+    expect(rack.entity.dryingRack).toEqual([{ food: "berries", minutesPreserved: expect.any(Number) as number, spoilsAt: now + 100 }]);
     expect(backpack.spoilsAt.berries).toEqual([now + 900]);
   });
 
@@ -139,7 +139,7 @@ describe("hanging food on the rack", () => {
     expect(nearbyOf(game.client.getView(), "dryingRack")).toEqual({
       id: rack.id,
       limit: 6,
-      food: [{ food: "mushroom", dried: false, dryProgress: expect.any(Number) as number }],
+      food: [{ food: "mushroom", content: "mushroom", preserved: false, progress: expect.any(Number) as number, waitsForFire: false }],
     });
   });
 });
@@ -157,11 +157,11 @@ describe("drying", () => {
 
       expect(DRY_MINUTES).toBe(6 * MINUTES_PER_HOUR);
       skipHours(game, 5.5);
-      expect(game.client.describeDryingRack(rack.id)?.food[0]).toMatchObject({ dried: false });
-      expect(game.client.describeDryingRack(rack.id)?.food[0]?.dryProgress).toBeCloseTo(5.5 / 6, 1);
+      expect(game.client.describeDryingRack(rack.id)?.food[0]).toMatchObject({ preserved: false });
+      expect(game.client.describeDryingRack(rack.id)?.food[0]?.progress).toBeCloseTo(5.5 / 6, 1);
 
       skipHours(game, 1);
-      expect(game.client.describeDryingRack(rack.id)?.food[0]).toEqual({ food, dried: true, dryProgress: 1 });
+      expect(game.client.describeDryingRack(rack.id)?.food[0]).toEqual({ food, content: dried, preserved: true, progress: 1, waitsForFire: false });
 
       takeOff(game, rack);
       expect(game.client.getView().backpack).toMatchObject({ [dried]: 1 });
@@ -184,7 +184,7 @@ describe("drying", () => {
     skipHours(game, 6.1);
 
     expect(game.client.getView().raining).toBe(true);
-    expect(game.client.describeDryingRack(rack.id)?.food[0]?.dried).toBe(true);
+    expect(game.client.describeDryingRack(rack.id)?.food[0]?.preserved).toBe(true);
   });
 
   it("lets fresh food on the rack go on spoiling until it is dried, with the usual notice", () => {
@@ -212,7 +212,9 @@ describe("drying", () => {
     // Longer than any fresh food keeps.
     skipHours(game, 24 * 4);
 
-    expect(game.client.describeDryingRack(rack.id)?.food).toEqual([{ food: "mushroom", dried: true, dryProgress: 1 }]);
+    expect(game.client.describeDryingRack(rack.id)?.food).toEqual([
+      { food: "mushroom", content: "driedMushroom", preserved: true, progress: 1, waitsForFire: false },
+    ]);
   });
 });
 
@@ -222,8 +224,8 @@ describe("taking food off the rack", () => {
     const rack = rackNearPlayer(game);
     const now = game.progress().clockMinutes;
     rack.entity.dryingRack = [
-      { food: "berries", minutesDried: 100, spoilsAt: now + 500 },
-      { food: "mushroom", minutesDried: DRY_MINUTES },
+      { food: "berries", minutesPreserved: 100, spoilsAt: now + 500 },
+      { food: "mushroom", minutesPreserved: DRY_MINUTES },
     ];
 
     takeOff(game, rack);
@@ -242,8 +244,8 @@ describe("taking food off the rack", () => {
     // Room for exactly one more food.
     backpack.contents.cord = (backpack.contents.cord ?? 0) - 1;
     rack.entity.dryingRack = [
-      { food: "berries", minutesDried: 10, spoilsAt: game.progress().clockMinutes + 500 },
-      { food: "berries", minutesDried: DRY_MINUTES },
+      { food: "berries", minutesPreserved: 10, spoilsAt: game.progress().clockMinutes + 500 },
+      { food: "berries", minutesPreserved: DRY_MINUTES },
     ];
 
     send(game, { type: "takeFoodOffRack", rackId: rack.id });
@@ -251,7 +253,7 @@ describe("taking food off the rack", () => {
 
     expect(game.client.getView().backpack.driedBerries).toBe(1);
     expect(game.client.getView().backpack.berries ?? 0).toBe(0);
-    expect(rack.entity.dryingRack).toEqual([{ food: "berries", minutesDried: expect.any(Number) as number, spoilsAt: expect.any(Number) as number }]);
+    expect(rack.entity.dryingRack).toEqual([{ food: "berries", minutesPreserved: expect.any(Number) as number, spoilsAt: expect.any(Number) as number }]);
     expect(game.client.getView().notice).toEqual({ kind: "backpackFull" });
   });
 
@@ -353,7 +355,7 @@ describe("the journal's last goal", () => {
 describe("saving drying racks", () => {
   it("raises the save version for drying racks, and loads a save from before then", () => {
     const game = createGame({ seed: 42 });
-    expect(DRYING_RACKS_SAVE_VERSION).toBe(SAVE_VERSION);
+    expect(DRYING_RACKS_SAVE_VERSION).toBeLessThanOrEqual(SAVE_VERSION);
     const save = JSON.parse(JSON.stringify(writeSave(game))) as { version: number };
     save.version = DRYING_RACKS_SAVE_VERSION - 1;
 
@@ -367,8 +369,8 @@ describe("saving drying racks", () => {
     const rack = rackNearPlayer(game);
     const now = game.progress().clockMinutes;
     rack.entity.dryingRack = [
-      { food: "berries", minutesDried: 120, spoilsAt: now + 900 },
-      { food: "mushroom", minutesDried: DRY_MINUTES },
+      { food: "berries", minutesPreserved: 120, spoilsAt: now + 900 },
+      { food: "mushroom", minutesPreserved: DRY_MINUTES },
     ];
     give(game, "driedBerries", 2);
 
@@ -378,8 +380,8 @@ describe("saving drying racks", () => {
     const [saved] = piecesOf(loaded.game.entities, "dryingRack");
     expect(saved?.position).toMatchObject({ x: rack.position.x, z: rack.position.z });
     expect(saved?.dryingRack).toEqual([
-      { food: "berries", minutesDried: 120, spoilsAt: now + 900 },
-      { food: "mushroom", minutesDried: DRY_MINUTES },
+      { food: "berries", minutesPreserved: 120, spoilsAt: now + 900 },
+      { food: "mushroom", minutesPreserved: DRY_MINUTES },
     ]);
     expect(loaded.game.client.getView().backpack).toMatchObject({ driedBerries: 2 });
   });
@@ -387,7 +389,7 @@ describe("saving drying racks", () => {
   it("turns away a rack that holds more than 6 foods", () => {
     const game = createGame({ seed: 42 });
     const rack = rackNearPlayer(game);
-    rack.entity.dryingRack = Array.from({ length: 7 }, () => ({ food: "berries" as const, minutesDried: DRY_MINUTES }));
+    rack.entity.dryingRack = Array.from({ length: 7 }, () => ({ food: "berries" as const, minutesPreserved: DRY_MINUTES }));
 
     expect(readSave(JSON.parse(JSON.stringify(writeSave(game)))).ok).toBe(false);
   });
@@ -399,7 +401,7 @@ function rackNearPlayer(game: Game) {
 }
 
 /** Hangs one food on the rack, once the walk and the reach are done. */
-function hang(game: Game, rack: { id: number }, food: "berries" | "mushroom"): void {
+function hang(game: Game, rack: { id: number }, food: FoodToHang): void {
   send(game, { type: "hangOnRack", rackId: rack.id, food });
   stepUntil(game, () => onlyPlayer(game).walkPath === undefined);
   finishReach(game);

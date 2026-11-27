@@ -37,7 +37,9 @@ import { terrainHeightAt, type Valley } from "./valley";
 import { addGroundPoints, type GroundPoint, scaleGroundPoint } from "./ground-point";
 import type { HandReach } from "./hand-reach";
 import { WALK_REACH_MARGIN_METRES, type Walking } from "./walking";
-import { distanceToTarget, walkingDistancesFrom, type WalkTarget } from "./pathfinding";
+import { walkingDistancesFrom } from "./pathfinding";
+import type { WalkTarget } from "./walk-target";
+import { isBehindWall, isWithinReach, wallsIn } from "./wall-reach";
 import { isWalkable, laySpots } from "./walk-map";
 import { standingHeightAt } from "./foundations";
 import { wallOn } from "./wall-swaps";
@@ -172,9 +174,9 @@ export function createBuilding(
 
   type Placed = NonNullable<ReturnType<typeof placedBlueprint>>;
 
-  /** Whether a worker stands within reach of a placed blueprint. */
+  /** Whether a worker stands within reach of a placed blueprint, on its side of every wall. */
   function inReach(worker: { position: GroundPoint }, target: PlacedStructure): boolean {
-    return distanceOutside(footprintOfEntity(target), worker.position) <= BUILD_REACH_METRES;
+    return isWithinReach(wallsIn(entities), worker.position, footprintOfEntity(target), BUILD_REACH_METRES);
   }
 
   /** The blueprint a task points at, if it still exists and the worker has it within reach. */
@@ -300,10 +302,9 @@ export function createBuilding(
     return lacks === null ? undefined : { kind: "cannotBuildYet", lacks };
   }
 
-  /** Whether the walk the player has just set off on ends within `metres` of `target`. */
+  /** Whether the walk the player has just set off on ends within `metres` of `target`, on its side of every wall. */
   function arrivesWithin(walker: Entity & { position: GroundPoint }, target: WalkTarget, metres: number): boolean {
-    const end = walker.walkPath?.at(-1) ?? walker.position;
-    return distanceToTarget(target, end) <= metres;
+    return isWithinReach(wallsIn(entities), walker.walkPath?.at(-1) ?? walker.position, target, metres);
   }
 
   /**
@@ -372,7 +373,7 @@ export function createBuilding(
     const source = entity === undefined ? undefined : sourceOf(entity, material);
     if (entity === undefined || source === undefined) return undefined;
     if (builder.carrying !== undefined) return STOP_HANDS_FULL;
-    if (distanceToTarget(source.target, builder.position) > FETCH_REACH_METRES) return stopLacking({ kind: "material", material });
+    if (!isWithinReach(wallsIn(entities), builder.position, source.target, FETCH_REACH_METRES)) return stopLacking({ kind: "material", material });
     hand.start("low", source.reachToward, () => {
       const still = sourceOf(entity, material);
       if (still === undefined || builder.carrying !== undefined) return undefined;
@@ -512,11 +513,14 @@ export function createBuilding(
     describe,
     nearby() {
       let nearest: { id: number; distance: number } | undefined;
+      const walls = wallsIn(entities);
       for (const player of players) {
         for (const blueprint of blueprints) {
-          const distance = distanceOutside(footprintOfEntity(blueprint), player.position);
+          const footprint = footprintOfEntity(blueprint);
+          const distance = distanceOutside(footprint, player.position);
           const id = entities.id(blueprint);
           if (id === undefined || distance > BUILD_REACH_METRES || (nearest !== undefined && distance >= nearest.distance)) continue;
+          if (isBehindWall(walls, player.position, footprint)) continue;
           nearest = { id, distance };
         }
       }

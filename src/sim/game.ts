@@ -109,6 +109,7 @@ import { createPiles, pileRules } from "./piles";
 import { createSleds, DRAG_SPEED, sledRules } from "./sleds";
 import { createSledFilling, sledFillingRules } from "./sled-filling";
 import { createWoodpiles, woodpileRules } from "./woodpiles";
+import { createWoodBoxes, woodBoxRules } from "./wood-boxes";
 import { createChests, chestRules } from "./chests";
 import { createSpoiling, viewFreshness } from "./spoiling";
 import { addCount, holdsNone, type Counts } from "./counts";
@@ -261,7 +262,9 @@ export function createGame({
   const foraging = createForaging(entities, handReach, isWinter);
   const building = createBuilding(entities, walking, valley, handReach, freeBuilding, instantBuilding);
   const takingDown = createTakingDown(entities, walking, valley);
-  const campfires = createCampfires(entities);
+  // A fire takes its firewood from a wood box in its room first.
+  const woodBoxes = createWoodBoxes(entities);
+  const campfires = createCampfires(entities, woodBoxes);
   const bedrolls = createBedrolls(entities, valley, handReach, sleepOn);
   const beds = createBeds(entities, walking.walkMap, sleepIn);
   const woodpiles = createWoodpiles(entities);
@@ -450,6 +453,7 @@ export function createGame({
     add("openChest", chests.opened());
     add("rainBarrel", rainBarrels.nearby());
     add("dryingRack", dryingRacks.nearby());
+    add("woodBox", woodBoxes.nearby());
     return Object.freeze(things);
   }
 
@@ -582,6 +586,7 @@ export function createGame({
     ...stoolRules(stools, ruleGame),
     ...rainBarrelRules(rainBarrels, ruleGame),
     ...dryingRackRules(dryingRacks, ruleGame, () => clock.minutes),
+    ...woodBoxRules(woodBoxes, ruleGame),
     ...drinkingRules(drinking),
     ...fishingRules(fishing),
     ...fishTrapRules(fishTraps, ruleGame),
@@ -745,8 +750,8 @@ export function createGame({
 
   /**
    * Moves the valley on by this many game minutes: fires and torches burn, in the hand and planted, food and trees grow back,
-   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, food on drying racks dries,
-   * and fresh food spoils.
+   * sticks fall, pots and fish heat, rain barrels catch the rain falling now, set fish traps catch fish, food on drying racks dries
+   * and smokes, and fresh food spoils.
    * `winter` says whether these minutes fall in winter, when food and trees do not grow and fish traps catch nothing.
    */
   function passWorldTime(minutes: number, winter: boolean): void {
@@ -761,8 +766,9 @@ export function createGame({
     cooking.cook(minutes);
     firing.fire(minutes);
     fishTraps.pass(minutes, winter);
-    // Food dries before it spoils, so food that dries in the same minute it would spoil keeps.
-    dryingRacks.dry(minutes);
+    // Food dries and smokes before it spoils, so food preserved in the same minute it would spoil keeps.
+    // It comes after the fires burn, so a fire that went out does not smoke fish.
+    dryingRacks.preserve(minutes);
     for (const [food, count] of Object.entries(spoiling.pass(clock.minutes)) as [FreshFood, number][]) spoiledToTell = addCount(spoiledToTell, food, count);
   }
 

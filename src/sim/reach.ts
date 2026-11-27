@@ -1,10 +1,11 @@
 // Finds the thing the E key acts on: the one nearest the player within reach.
 import type { ThingInReach } from "./api";
-import { distanceOutside } from "./building";
 import type { Entity, EntityStore } from "./entities";
 import { footprintOfEntity, isPlacedStructure } from "./structures";
 import { isSapling, isYoungTree } from "./tree-growth";
-import { groundDistance, type GroundPoint } from "./ground-point";
+import type { GroundPoint } from "./ground-point";
+import { distanceToTarget, type WalkTarget } from "./walk-target";
+import { isBehindWall, wallsIn } from "./wall-reach";
 
 /** E reaches things this far from the player, in metres. It is measured to a structure's edge and to a tree's trunk. */
 export const USE_REACH_METRES = 2.5;
@@ -12,19 +13,21 @@ export const USE_REACH_METRES = 2.5;
 /** No structure's footprint or tree's trunk reaches further than this from its middle, in metres. */
 const LARGEST_HALF_SIZE_METRES = 5;
 
-/** The thing nearest `at` within USE_REACH_METRES, or null if none is. Of two things just as near, the first found wins. */
+/** The thing nearest `at` within USE_REACH_METRES, on the same side of every wall, or null if none is. Of two things just as near, the first found wins. */
 export function nearestInReach(entities: EntityStore, at: GroundPoint): ThingInReach | null {
   let nearest: ThingInReach | null = null;
   let nearestDistance = Infinity;
   const far = USE_REACH_METRES + LARGEST_HALF_SIZE_METRES;
+  const walls = wallsIn(entities);
   for (const entity of entities.with("position")) {
     // A cheap check first, since most of the valley is far away.
     if (Math.abs(entity.position.x - at.x) > far || Math.abs(entity.position.z - at.z) > far) continue;
     const id = entities.id(entity);
     const thing = id === undefined ? undefined : thingOf(entity, id);
     if (thing === undefined) continue;
-    const distance = distanceTo(entity, at);
-    if (distance <= USE_REACH_METRES && distance < nearestDistance) {
+    const { target, radius } = reachOf(entity);
+    const distance = Math.max(0, distanceToTarget(target, at) - radius);
+    if (distance <= USE_REACH_METRES && distance < nearestDistance && !isBehindWall(walls, at, target)) {
       nearest = thing;
       nearestDistance = distance;
     }
@@ -63,8 +66,11 @@ function thingOf(entity: Entity, id: number): ThingInReach | undefined {
   return undefined;
 }
 
-/** How far `at` is from the entity: from its edge for a structure, from its trunk for a tree, and from its middle for anything else. */
-function distanceTo(entity: Entity & { position: GroundPoint }, at: GroundPoint): number {
-  if (isPlacedStructure(entity)) return distanceOutside(footprintOfEntity(entity), at);
-  return Math.max(0, groundDistance(entity.position, at) - (entity.blocksWalking?.radius ?? 0));
+/**
+ * What E measures to in the entity, and how much of that distance it forgives, in metres.
+ * For a structure, E measures to the edge of its footprint. For anything else, it measures to the middle, less the trunk's radius for a tree.
+ */
+function reachOf(entity: Entity & { position: GroundPoint }): { target: WalkTarget; radius: number } {
+  if (isPlacedStructure(entity)) return { target: footprintOfEntity(entity), radius: 0 };
+  return { target: { x: entity.position.x, z: entity.position.z }, radius: entity.blocksWalking?.radius ?? 0 };
 }

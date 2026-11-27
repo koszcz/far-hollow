@@ -139,6 +139,22 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       movePlayer(0, 0, 0);
     },
   },
+  // The draft wood box icon shows among the build icons, so this showcase draws the same views as "build-icons",
+  // except the first, which draws the wood box icon large beside other furniture icons.
+  "wood-box-icon": {
+    overlay: "hud",
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "Wood box icon, large", yaw: 20, pitch: 35 },
+      { label: "HUD: build menu, few materials", yaw: -20, pitch: 35 },
+      { label: "HUD: build menu, evening", yaw: 40, pitch: 35, hour: 18 },
+      { label: "HUD: build menu, paused", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
   // The draft "dried-food-icons". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with dried and fresh food in the
   // backpack, and the drying rack panel with food drying on it.
   "dried-food-icons": {
@@ -149,6 +165,22 @@ export const INTERFACE_SHOWCASES: Readonly<Record<string, Showcase>> = {
       { label: "HUD: dried and fresh food in the backpack", yaw: 20, pitch: 35 },
       { label: "HUD: the drying rack panel", yaw: -20, pitch: 35 },
       { label: "HUD: the drying rack panel, evening", yaw: 40, pitch: 35, hour: 19 },
+      { label: "Icons, large", yaw: 20, pitch: 35 },
+    ],
+    build({ movePlayer }) {
+      movePlayer(0, 0, 0);
+    },
+  },
+  // The draft "smoked-fish-icon". The HUD is drawn over these views by src/ui/hud-showcase.tsx, with smoked fish in the backpack
+  // beside raw and cooked fish, and the drying rack panel with fish smoking on it and waiting for a fire.
+  "smoked-fish-icon": {
+    overlay: "hud",
+    radius: 6,
+    focus: { x: 0, y: 1, z: 0 },
+    shots: [
+      { label: "HUD: smoked, raw, and cooked fish in the backpack", yaw: 20, pitch: 35 },
+      { label: "HUD: the drying rack panel, fish smoking", yaw: -20, pitch: 35 },
+      { label: "HUD: the drying rack panel, no fire, evening", yaw: 40, pitch: 35, hour: 19 },
       { label: "Icons, large", yaw: 20, pitch: 35 },
     ],
     build({ movePlayer }) {

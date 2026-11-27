@@ -742,7 +742,11 @@ export function freelyPlaced<Kind extends FurnitureKind>(piece: FurnitureDefinit
     footprint: (spot, turns) => turnedRect(spot, halfX, halfZ, turns),
     snap: (_site, at) => ({ x: at.x, z: at.z }),
     heightAt: ({ entities, valley }, spot) => standingHeightAt(entities, valley.terrain, spot),
-    canPlace: (site, spot, turns) => canPlaceFreely(site, spot, turns, halfX, halfZ),
+    canPlace: (site, spot, turns) =>
+      canPlaceFreely(site, spot, turns, halfX, halfZ) && (piece.needsRoom !== true || isInOneRoom(site.entities, spot, turns, halfX, halfZ)),
+    ...(piece.needsRoom === true
+      ? { placementRefusal: ({ entities }, spot, turns) => (isInOneRoom(entities, spot, turns, halfX, halfZ) ? undefined : { kind: "needsRoom" }) }
+      : {}),
     finish: (spot, turns) => ({
       furniture: piece.kind,
       ...(storage === undefined ? {} : { storage: { contents: {} } }),
@@ -866,6 +870,15 @@ function canPlaceFreely({ entities, walkMap, valley }: PlacementSite, spot: Grou
     for (const square of frame.blocksWalkingSpots) if (rectsOverlap(rect, gridSquareAround(square))) return false;
   }
   return isClearOfTreesAndStructures(entities, rect, { ignoreCabinRoofs: true });
+}
+
+/** Whether a piece placed freely at `spot`, facing `turns`, stands wholly inside one room: every corner lies on a square of it. */
+function isInOneRoom(entities: EntityStore, spot: GroundPoint, turns: QuarterTurns, halfX: number, halfZ: number): boolean {
+  const room = roomAround(entities, snapToGridSquare(spot));
+  if (room === undefined) return false;
+  const inside = turnedRect(spot, halfX - EDGE_INSET_METRES, halfZ - EDGE_INSET_METRES, turns);
+  const corners = [inside.min, inside.max, { x: inside.min.x, z: inside.max.z }, { x: inside.max.x, z: inside.min.z }];
+  return corners.every((corner) => room.some((square) => isOnGridSquare(square, corner)));
 }
 
 /** Spots spread evenly across a rectangle, edges and corners included, no further apart than FREE_CHECK_SPACING_METRES. */

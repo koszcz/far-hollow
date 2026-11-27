@@ -18,6 +18,7 @@ import type {
   PileView,
   RainBarrelView,
   DryingRackView,
+  WoodBoxView,
   RecipeKind,
   Plantable,
   Refusal,
@@ -644,19 +645,27 @@ function RainBarrelPanel({ barrel }: { barrel: RainBarrelView }) {
 /** The colour of the bar that shows how far a food on the rack has dried: the brown of dried food. */
 const DRYING_COLOUR = "#9a6a3c";
 
-/** One food on a drying rack: its icon, fresh or dried, and a bar for how far it has dried. */
+/** What the rack's panel says about one food: drying or smoking, dried or smoked, or raw fish that needs a lit fire close by. */
+function foodOnRackLabel(item: DryingRackView["food"][number]): string {
+  const text = strings.dryingRack;
+  if (item.waitsForFire) return text.noFire;
+  const smoked = item.food === "rawFish";
+  if (item.preserved) return smoked ? text.smoked : text.dried;
+  return smoked ? text.smoking : text.drying;
+}
+
+/** One food on a drying rack: its icon, fresh or preserved, and a bar for how far it has dried or smoked. */
 function FoodOnRackMeter({ item }: { item: DryingRackView["food"][number] }) {
-  const content = item.dried ? (item.food === "berries" ? "driedBerries" : "driedMushroom") : item.food;
   return (
     <label class="hud-meter" style={{ "--hud-bar": DRYING_COLOUR }}>
-      <BackpackIcon content={content} />
-      <span class="hud-meter-label">{item.dried ? strings.dryingRack.dried : strings.dryingRack.drying}</span>
-      <progress max={1} value={item.dryProgress} />
+      <BackpackIcon content={item.content} />
+      <span class="hud-meter-label">{foodOnRackLabel(item)}</span>
+      <progress max={1} value={item.progress} />
     </label>
   );
 }
 
-/** Shows what hangs on the drying rack beside the player and how far each food has dried. Its actions are on the rack itself. */
+/** Shows what hangs on the drying rack beside the player and how far each food has dried or smoked. Its actions are on the rack itself. */
 function DryingRackPanel({ rack }: { rack: DryingRackView }) {
   const text = strings.dryingRack;
   return (
@@ -667,6 +676,21 @@ function DryingRackPanel({ rack }: { rack: DryingRackView }) {
         <span class="hud-tag">{text.count(rack.food.length, rack.limit)}</span>
       </h2>
       {rack.food.length === 0 ? <p class="hud-hint">{text.empty}</p> : rack.food.map((item, index) => <FoodOnRackMeter key={index} item={item} />)}
+    </section>
+  );
+}
+
+/** Shows how much firewood the wood box beside the player holds. A fire in the same room takes its firewood first. */
+function WoodBoxPanel({ box }: { box: WoodBoxView }) {
+  const text = strings.woodBox;
+  return (
+    <section class="hud-section hud-wood-box" aria-label={text.title}>
+      <h2>
+        <HudIcon name="log" />
+        {text.title}
+        <span class="hud-tag">{text.count(box.firewood, box.limit)}</span>
+      </h2>
+      <Meter icon="log" label={text.fill} value={box.firewood / box.limit} colour={WORK_BAR_COLOUR} />
     </section>
   );
 }
@@ -796,6 +820,8 @@ function NearbyPanel({ thing }: { thing: PanelThing }) {
       return <RainBarrelPanel barrel={thing.view} />;
     case "dryingRack":
       return <DryingRackPanel rack={thing.view} />;
+    case "woodBox":
+      return <WoodBoxPanel box={thing.view} />;
   }
 }
 

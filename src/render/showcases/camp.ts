@@ -236,6 +236,24 @@ export const CAMP_SHOWCASES: Readonly<Record<string, Showcase>> = {
       place(0, 0.55, { pile: { content: "knife", count: 1 } });
     },
   },
+  // "smoked-fish-pile": one and several smoked fish, beside raw and cooked fish for comparison, and a knife for size.
+  "smoked-fish-pile": {
+    radius: 1.4,
+    focus: { x: 0, y: 0.03, z: 0.1 },
+    shots: [
+      { label: "smoked, raw, and cooked fish, one and many", yaw: 0, pitch: 45 },
+      { label: "close up of a smoked fish, from low", yaw: 20, pitch: 25, radius: 0.6, focus: { x: -0.5, y: 0.02, z: -0.2 } },
+    ],
+    build({ place }) {
+      place(-0.5, -0.2, { pile: { content: "smokedFish", count: 1 } });
+      place(0, -0.2, { pile: { content: "rawFish", count: 1 } });
+      place(0.5, -0.2, { pile: { content: "cookedFish", count: 1 } });
+      place(-0.5, 0.35, { pile: { content: "smokedFish", count: 5 } });
+      place(0, 0.35, { pile: { content: "rawFish", count: 5 } });
+      place(0.5, 0.35, { pile: { content: "cookedFish", count: 5 } });
+      place(0, 0.8, { pile: { content: "knife", count: 1 } });
+    },
+  },
   // "fishing-piles": one and several of the fishing line, the fishing rod, raw fish, and cooked fish, with a knife for size.
   // The small things sit in a row of single piles in front, with their larger piles behind. The rods lie off to one side.
   "fishing-piles": {

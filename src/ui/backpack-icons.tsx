@@ -14,7 +14,8 @@ import { CLAY_DRAWING } from "./clay-icon";
 import { JUG_DRAWINGS, UNFIRED_JUG_DRAWING } from "./jug-icons";
 import { TORCH_DRAWING } from "./torch-icons";
 import { CORD_DRAWING, FISH_TRAP_DRAWING } from "./fish-trap-icons";
-import { DRIED_FOOD_DRAWINGS, isPreservedFood } from "./dried-food-icons";
+import { DRIED_FOOD_DRAWINGS, isDriedFood } from "./dried-food-icons";
+import { SMOKED_FISH_DRAWING } from "./smoked-fish-icon";
 
 /** The background of a backpack chip. Cut parts use it, so it must match `.hud-backpack li` and `.hud-build-entry` in style.css. */
 const CHIP_BACKGROUND = "#3d2b1e";
@@ -49,7 +50,7 @@ const POT_WAVE = "M7.5 15.5c1.5-1.2 3 1.2 4.5 0s3 1.2 4.5 0";
 
 /**
  * The approved drawings. Things that crafting uses or makes are drawn in the approved "crafting-icons" asset instead,
- * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the approved "clay" asset, the unfired jug and the jug at each fill level in the approved "jug-icons" asset, the torch in the approved "torch-icons" asset, and cord and the fish trap in the approved "fish-trap-icons" asset. A sapling is drawn in the approved "sapling-icon" asset, and a berry bush in the approved "berry-bush-icon" asset. Dried berries and a dried mushroom are drawn in the draft "dried-food-icons" asset.
+ * and fishing gear and fish in the approved "fishing-icons" asset. Stone is drawn in the approved "stone" asset, clay in the approved "clay" asset, the unfired jug and the jug at each fill level in the approved "jug-icons" asset, the torch in the approved "torch-icons" asset, and cord and the fish trap in the approved "fish-trap-icons" asset. A sapling is drawn in the approved "sapling-icon" asset, and a berry bush in the approved "berry-bush-icon" asset. Dried berries and a dried mushroom are drawn in the draft "dried-food-icons" asset, and smoked fish in the draft "smoked-fish-icon" asset.
  */
 const DRAWINGS: Readonly<
   Record<
@@ -256,7 +257,8 @@ export function backpackDrawing(content: BackpackContent): BackpackIconDrawing {
   if (content === "fishTrap") return FISH_TRAP_DRAWING;
   if (content === "sapling") return SAPLING_DRAWING;
   if (content === "berryBush") return BERRY_BUSH_DRAWING;
-  if (isPreservedFood(content)) return DRIED_FOOD_DRAWINGS[content];
+  if (isDriedFood(content)) return DRIED_FOOD_DRAWINGS[content];
+  if (content === "smokedFish") return SMOKED_FISH_DRAWING;
   return isCraftingContent(content) ? CRAFTING_DRAWINGS[content] : isFishingContent(content) ? FISHING_DRAWINGS[content] : DRAWINGS[content];
 }
 

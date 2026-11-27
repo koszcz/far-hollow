@@ -20,6 +20,9 @@ export const DRIED_BERRY_COLOUR = 0x6e1f2a;
 export const DRIED_CAP_COLOUR = 0x7a4c2c;
 export const DRIED_STEM_COLOUR = 0xbfa781;
 
+/** The dried foods this file draws. Smoked fish is drawn by smoked-fish-shape.ts. */
+export type DriedFood = Exclude<PreservedFood, "smokedFish">;
+
 /** Makes a material from a colour. The caller disposes it. */
 type MakeMaterial = (colour: number) => THREE.Material;
 /** Hands a geometry to the caller to dispose, and returns it. */
@@ -51,7 +54,7 @@ function driedStemGeometry(): THREE.BufferGeometry {
  * Dried berries and a dried mushroom, as parts to lie in a pile or hang on the drying rack.
  * `material` makes a material from a colour, and the caller disposes it. `track` hands each geometry to the caller to dispose.
  */
-export function driedFoodParts(material: MakeMaterial, track: Track): Readonly<Record<PreservedFood, readonly DriedFoodPart[]>> {
+export function driedFoodParts(material: MakeMaterial, track: Track): Readonly<Record<DriedFood, readonly DriedFoodPart[]>> {
   return {
     driedBerries: [{ geometry: track(driedBerriesGeometry()), material: material(DRIED_BERRY_COLOUR) }],
     driedMushroom: [

@@ -269,14 +269,14 @@ function takeDownRefusal(entities: EntityStore, structure: PlacedStructure, kind
 }
 
 /**
- * Whether a structure is a piece of furniture or woodpile with anything in it, such as a drying rack with food on it,
- * or a campfire with a pot or fish on it.
+ * Whether a structure is a piece of furniture or woodpile with anything in it, such as a drying rack with food on it or a
+ * wood box with firewood, or a campfire with a pot or fish on it.
  * It must be emptied before it comes down, so nothing in it is lost.
  * A loaded sled can come down: its logs are laid on the ground beside it first.
  */
 export function holdsSomething(structure: Entity): boolean {
   if (structure.potOnFire !== undefined || structure.fishOnFire !== undefined || structure.jugOnFire !== undefined) return true;
-  if ((structure.dryingRack?.length ?? 0) > 0) return true;
+  if ((structure.dryingRack?.length ?? 0) > 0 || (structure.woodBox?.firewood ?? 0) > 0) return true;
   return !holdsNone(structure.storage?.contents ?? {}) || !holdsNone(structure.woodpile ?? {});
 }
 

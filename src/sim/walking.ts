@@ -1,5 +1,6 @@
 import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
-import { findPath, findPathWithin, type WalkTarget } from "./pathfinding";
+import { findPath, findPathWithin } from "./pathfinding";
+import type { WalkTarget } from "./walk-target";
 import { standingHeightAt } from "./foundations";
 import { distanceToRiver, startSpotBeside, type Valley } from "./valley";
 import { type GroundPoint } from "./ground-point";
@@ -17,6 +18,7 @@ import {
   type WalkMap,
 } from "./walk-map";
 import type { CommandRules } from "./command-rule";
+import { wallsIn } from "./wall-reach";
 
 /** How fast the player walks, in metres per second. */
 export const WALK_SPEED_METRES_PER_SECOND = 3;
@@ -33,6 +35,7 @@ export interface Walking {
    * Sets the player walking the shortest way to a spot within `distance` of a target, around anything in the way.
    * The distance is measured to a point, or to a rectangle's edge.
    * The player stays put if they already stand within it. If no such spot can be reached, the player walks as close as they can.
+   * The walk ends on the target's side of every wall, since reach never crosses a wall. It goes round through a door frame if it must.
    */
   walkWithin(target: WalkTarget, distance: number): void;
   /** Moves every walking entity along its path by one logic step. */
@@ -60,7 +63,8 @@ export function createWalking(entities: EntityStore, valley: Valley): Walking {
       for (const player of players) setPath(player, findPath(walkMap, player.position, target));
     },
     walkWithin(target, distance) {
-      for (const player of players) setPath(player, findPathWithin(walkMap, player.position, target, distance));
+      const walls = wallsIn(entities);
+      for (const player of players) setPath(player, findPathWithin(walkMap, player.position, target, distance, walls));
     },
     step(stepSeconds) {
       const stepDistance = WALK_SPEED_METRES_PER_SECOND * stepSeconds;

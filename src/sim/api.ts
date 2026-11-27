@@ -2,7 +2,7 @@ import type { BackpackContent, BackpackContents, Food, WildFood } from "./backpa
 import type { Freshness, FreshFood } from "./fresh-food";
 import type { Recipe, RecipeKind, RecipeLack } from "./crafting";
 import type { Goal } from "./journal";
-import type { RackFood } from "./rack-food";
+import type { FoodToHang, RackFood } from "./rack-food";
 
 export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
 
@@ -10,8 +10,8 @@ export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugC
 export type { Freshness, FreshFood } from "./fresh-food";
 export { FRESH_FOODS, isFreshFood } from "./fresh-food";
 
-/** The action menu offers to hang each of these on a drying rack. */
-export { RACK_FOODS, type RackFood } from "./rack-food";
+/** The action menu offers to hang each of these on a drying rack. It offers cooked fish too, which the rack refuses. */
+export { RACK_FOODS, type FoodToHang, type RackFood } from "./rack-food";
 
 /** The hotbar uses it to show how much each kind of thing in the backpack weighs. */
 export { CONTENT_WEIGHT_KG } from "./backpack";
@@ -169,7 +169,11 @@ export type Command =
   | { type: "stopBuilding" }
   /** Walk the player beside a finished campfire, given by its entity id, so they can tend it. */
   | { type: "tendCampfire"; campfireId: number }
-  /** Put one stick, piece of firewood, or piece of bark from the backpack on a campfire. The player walks beside it first if needed. */
+  /**
+   * Put one stick, piece of firewood, or piece of bark on a campfire or fireplace. The player walks beside it first if needed.
+   * Firewood comes from the wood box nearest the fire in the same room, if one holds any, and otherwise from the backpack.
+   * Sticks and bark come from the backpack.
+   */
   | { type: "addFuel"; campfireId: number; fuel: CampfireFuel }
   /** Walk the player beside a finished woodpile, given by its entity id, so they can stack wood on it or take wood off. */
   | { type: "tendWoodpile"; woodpileId: number }
@@ -310,15 +314,26 @@ export type Command =
   | { type: "fillJugFromRainBarrel"; barrelId: number }
   /**
    * Walk the player within reach of a finished drying rack, given by its entity id, and hang one of this food from the backpack on it.
-   * Berries and a mushroom dry in 6 game hours, with no fire. It is refused when the backpack holds none of the food, or the rack
-   * already holds DRYING_RACK_FOOD_LIMIT foods.
+   * Berries and a mushroom dry in 6 game hours, with no fire. Raw fish smokes in 4 game hours while a lit fire is close by.
+   * It is refused for cooked fish, which cannot be smoked, when the backpack holds none of the food, or when the rack already
+   * holds DRYING_RACK_FOOD_LIMIT foods.
    */
-  | { type: "hangOnRack"; rackId: number; food: RackFood }
+  | { type: "hangOnRack"; rackId: number; food: FoodToHang }
   /**
    * Walk the player within reach of a finished drying rack, given by its entity id, and take every food off it into the backpack,
-   * dried food first, as far as they fit. The rest stay on the rack. It is refused while the rack holds no food.
+   * preserved food first, as far as they fit. The rest stay on the rack. It is refused while the rack holds no food.
    */
   | { type: "takeFoodOffRack"; rackId: number }
+  /**
+   * Walk the player within reach of a finished wood box, given by its entity id, and move one firewood from the backpack into it,
+   * or with `all` as many as fit. It is refused while the backpack holds no firewood or the box is full.
+   */
+  | { type: "putInWoodBox"; woodBoxId: number; all: boolean }
+  /**
+   * Walk the player within reach of a finished wood box, given by its entity id, and move as much of its firewood into the
+   * backpack as fits. It is refused while the box is empty or not one more firewood fits in the backpack.
+   */
+  | { type: "takeFromWoodBox"; woodBoxId: number }
   /** Put the full pot from the backpack on a lit campfire, to boil its water. The player walks beside it first if needed. */
   | { type: "putPotOnFire"; campfireId: number }
   /** Take the pot off a campfire and put it back in the backpack. The player walks beside it first if needed. */
@@ -579,6 +594,7 @@ export interface SleepView {
  * `droppedBesideStation`: crafting at the `station` finished, and `count` of the result, `content`, did not fit in the backpack,
  * so they dropped in a pile beside the station.
  * `foodSpoiled`: fresh food kept its full time and is gone, wherever it was. `spoiled` says how many of each kind.
+ * `cantGetThere`: the player sent an action on a thing behind a wall, and no walk leads to the thing's side of it.
  */
 export type Notice =
   | { readonly kind: PlainNotice }
@@ -605,7 +621,8 @@ export type PlainNotice =
   | "putLogDownFirst"
   | "letGoFirst"
   | "fishGotAway"
-  | "queueFull";
+  | "queueFull"
+  | "cantGetThere";
 
 /**
  * Why the game refuses to load a save (ADR 0008):
@@ -783,6 +800,10 @@ export type Refusal =
  * - `addOnInTheWay`: something is in the way of the add-on's blueprint.
  * - `noBerries`: the backpack holds no berries to hang on a drying rack.
  * - `rackFull`: the drying rack holds as many foods as it can.
+ * - `onlyRawFishSmokes`: the player tried to hang cooked fish on a drying rack. Only raw fish can be smoked.
+ * - `needsRoom`: the piece goes only inside a room, as a wood box does.
+ * - `woodBoxFull`: the wood box holds as much firewood as it can.
+ * - `woodBoxEmpty`: the wood box holds no firewood.
  */
 export type PlainRefusal =
   | "fireEmpty"
@@ -848,7 +869,11 @@ export type PlainRefusal =
   | "holdsAddOn"
   | "addOnInTheWay"
   | "noBerries"
-  | "rackFull";
+  | "rackFull"
+  | "onlyRawFishSmokes"
+  | "needsRoom"
+  | "woodBoxFull"
+  | "woodBoxEmpty";
 
 /** A room: foundation squares closed in by log walls, door frames, or windows, with a roof over every square. */
 export interface RoomView {
@@ -930,11 +955,18 @@ export interface RainBarrelView {
   readonly underRoof: boolean;
 }
 
-/** One food on a drying rack: what was hung, whether it has dried, and how far it is through drying, from 0 to 1. */
+/** One food on a drying rack, as the rack's panel shows it. */
 export interface FoodOnRackView {
+  /** What was hung on the rack. */
   readonly food: RackFood;
-  readonly dried: boolean;
-  readonly dryProgress: number;
+  /** What it goes into the backpack as if taken off now: its preserved form once preserved, or else the fresh food. */
+  readonly content: BackpackContent;
+  /** True once it has dried or smoked, so it never spoils. */
+  readonly preserved: boolean;
+  /** How far it is through drying or smoking, from 0 to 1. */
+  readonly progress: number;
+  /** True if it is raw fish that is not smoking, because no lit campfire or fireplace stands close to the rack. */
+  readonly waitsForFire: boolean;
 }
 
 /** A finished drying rack, with the food hanging on it. */
@@ -944,6 +976,16 @@ export interface DryingRackView {
   /** The food on the rack, in the order it was hung. */
   readonly food: readonly FoodOnRackView[];
   /** The most foods it holds. */
+  readonly limit: number;
+}
+
+/** A finished wood box, with the firewood it holds. */
+export interface WoodBoxView {
+  /** The wood box's entity id. */
+  readonly id: number;
+  /** How many pieces of firewood it holds. */
+  readonly firewood: number;
+  /** The most firewood it holds. */
   readonly limit: number;
 }
 
@@ -960,7 +1002,7 @@ export interface PileView {
 /**
  * What the HUD shows for each kind of thing within the player's reach:
  * the campfire, the laid bedroll, the nearest pile, the woodpile, the chest the player has open, the nearest blueprint,
- * the nearest rain barrel, and the nearest drying rack.
+ * the nearest rain barrel, the nearest drying rack, and the nearest wood box.
  * A chest closes when the player walks away.
  */
 export interface NearbyViews {
@@ -972,6 +1014,7 @@ export interface NearbyViews {
   readonly blueprint: BlueprintView;
   readonly rainBarrel: RainBarrelView;
   readonly dryingRack: DryingRackView;
+  readonly woodBox: WoodBoxView;
 }
 
 /** One thing within the player's reach, with its kind. */

@@ -14,7 +14,8 @@ import {
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
 import { playerEntities, type Entity, type EntityStore, type ReachHeight, type Vec3 } from "./entities";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
-import { groundDistance } from "./ground-point";
+import type { GroundPoint } from "./ground-point";
+import { isWithinReach, wallsIn } from "./wall-reach";
 import type { ApproachReach } from "./approach";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { reachToward } from "./hand-reach";
@@ -85,13 +86,15 @@ export function createChests(entities: EntityStore, now: () => number): Chests {
   let reached = false;
 
   const chestById = (chestId: number): ChestOrShelfEntity | undefined => chestOrShelfOf(entities.entity(chestId));
+  /** Whether a player at `at` can use the chest or shelf: close enough, and on its side of every wall. */
+  const inReach = (chest: ChestOrShelfEntity, at: GroundPoint) => isWithinReach(wallsIn(entities), at, chest.position, CHEST_REACH_METRES);
 
   /** The open chest or shelf, while the player stands still within reach of it. */
   function openChest(): ChestOrShelfEntity | undefined {
     const chest = openId === undefined ? undefined : chestById(openId);
     if (chest === undefined) return undefined;
     for (const player of players) {
-      if (player.walkPath === undefined && groundDistance(chest.position, player.position) <= CHEST_REACH_METRES) return chest;
+      if (player.walkPath === undefined && inReach(chest, player.position)) return chest;
     }
     return undefined;
   }
@@ -117,9 +120,9 @@ export function createChests(entities: EntityStore, now: () => number): Chests {
         return;
       }
       for (const player of players) {
-        const inReach = groundDistance(chest.position, player.position) <= CHEST_REACH_METRES;
-        if (inReach && player.walkPath === undefined) reached = true;
-        if (!inReach && (reached || player.walkPath === undefined)) openId = undefined;
+        const standsInReach = inReach(chest, player.position);
+        if (standsInReach && player.walkPath === undefined) reached = true;
+        if (!standsInReach && (reached || player.walkPath === undefined)) openId = undefined;
       }
     },
     refusal(chestId) {

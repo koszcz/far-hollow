@@ -23,8 +23,8 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
-    // 517 was the longest file on 2026-11-27: src/sim/bed.test.ts.
-    "max-lines": ["error", { "max": 517 }],
+    // 502 was the longest file on 2026-11-27: src/sim/game.ts.
+    "max-lines": ["error", { "max": 502 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",

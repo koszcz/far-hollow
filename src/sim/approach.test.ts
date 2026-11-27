@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
 import { groundDistance, type GroundPoint } from "./ground-point";
@@ -90,6 +91,24 @@ describe("saving during an approach", () => {
     expect(onlyPlayer(loaded).approach).toEqual({ command: { type: "sitOnStool", stoolId } });
     stepUntil(loaded, () => onlyPlayer(loaded).approach === undefined);
     expect(loaded.client.getView().sittingOn).toBe(stoolId);
+  });
+
+  it("loads a save made while the player walks to a chest, and the chest opens when they arrive", () => {
+    const game = createGame({ seed: 42 });
+    const chest = game.entities.add({
+      furniture: "chest",
+      storage: { contents: {} },
+      position: { ...openSpotAway(game, 10), y: 0 },
+      facing: { turns: 0 },
+    });
+    const chestId = idOf(game, chest);
+    send(game, { type: "openChest", chestId });
+
+    const loaded = readSave(writeSave(game));
+    if (!loaded.ok) throw new Error(`The save did not load: ${loaded.reason}`);
+    expect(onlyPlayer(loaded.game).approach).toEqual({ command: { type: "openChest", chestId } });
+    stepUntil(loaded.game, () => nearbyOf(loaded.game.client.getView(), "openChest") !== null);
+    expect(nearbyOf(loaded.game.client.getView(), "openChest")?.id).toBe(chestId);
   });
 
   it("upgrades a save from before approaches, with the player walking to a bed, and they sleep when they arrive", () => {

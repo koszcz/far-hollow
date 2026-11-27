@@ -8,7 +8,9 @@ import { WOOD_BOX_BUILD_SECONDS, WOOD_BOX_FIREWOOD_LIMIT, WOOD_BOX_PLANK_COST } 
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
-import { readSave, SAVE_VERSION, WOOD_BOXES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { WOOD_BOXES_SAVE_VERSION } from "./save-versions";
 import { structureOf } from "./structures";
 import { addFinished, finishReach, newestBlueprint, onlyPlayer, piecesOf, stepUntil } from "./test-steps";
 import { isWalkable } from "./walk-map";

@@ -5,7 +5,9 @@ import { addToBackpack } from "./backpack";
 import { RAIN_BARREL_BUILD_SECONDS, RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_MINUTES_PER_DRINK, RAIN_BARREL_PLANK_COST } from "./furniture/rain-barrel";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { FULL_NEED } from "./needs";
-import { RAIN_BARRELS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { RAIN_BARRELS_SAVE_VERSION } from "./save-versions";
 import { finishReach, piecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

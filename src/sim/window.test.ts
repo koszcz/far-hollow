@@ -8,7 +8,9 @@ import type { GroundPoint } from "./ground-point";
 import { findPath } from "./pathfinding";
 import type { QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
-import { readSave, SAVE_VERSION, SNUG_ROOM_NOTICE_SAVE_VERSION, WINDOWS_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { SNUG_ROOM_NOTICE_SAVE_VERSION, WINDOWS_SAVE_VERSION } from "./save-versions";
 import {
   LOG_WALL_LOG_COST,
   SHUTTERS_BUILD_SECONDS,

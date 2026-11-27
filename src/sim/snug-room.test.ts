@@ -5,7 +5,8 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
-import { readSave, SNUG_ROOM_NOTICE_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SNUG_ROOM_NOTICE_SAVE_VERSION } from "./save-versions";
 import { structureOf, type EdgePieceKind } from "./structures";
 import { isWalkable } from "./walk-map";
 

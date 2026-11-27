@@ -3,7 +3,9 @@ import type { BackpackContent } from "./backpack";
 import { recipeLacks, type Recipe } from "./crafting";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { LARGE_VALLEY_UPGRADES, CRAFTING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { readSave, type SaveFile, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES, SAVE_VERSION } from "./save-upgrades";
+import { CRAFTING_SAVE_VERSION } from "./save-versions";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */
 const readLargeValleySave = (data: unknown) => readSave(data, LARGE_VALLEY_UPGRADES);

@@ -2,7 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { type Command, nearbyOf } from "./api";
 import { createGame, type Game, SEASON_BANNER_MINUTES, STEPS_PER_SECOND } from "./game";
 import { clockStartMinutes, isNightAt, nextMorning } from "./clock";
-import { readSave, SEASONS_SAVE_VERSION, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { SEASONS_SAVE_VERSION } from "./save-versions";
 import { finishReach } from "./test-steps";
 import { firstDayOfSeason, isAfterFirstWinter, isNightHour, nextSeasonStartDay, nightHoursOf, parseSeason, seasonDayOf } from "./season";
 

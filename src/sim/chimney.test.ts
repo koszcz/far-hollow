@@ -8,7 +8,9 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
-import { CHIMNEYS_SAVE_VERSION, SEASONS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { CHIMNEYS_SAVE_VERSION, SEASONS_SAVE_VERSION } from "./save-versions";
 import { CHIMNEY_BUILD_SECONDS, CHIMNEY_STONE_COST, structureOf, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 

@@ -5,7 +5,9 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { type QuarterTurns } from "./quarter-turns";
 import { FIREPLACE_BUILD_SECONDS, FIREPLACE_STONE_COST, LOG_WALL_LOG_COST, type StructureKind } from "./structures";
-import { FIREPLACES_SAVE_VERSION, readSave, SAVE_VERSION, STONE_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { FIREPLACES_SAVE_VERSION, STONE_SAVE_VERSION } from "./save-versions";
 import { isWalkable } from "./walk-map";
 
 describe("the fireplace in the build menu", () => {

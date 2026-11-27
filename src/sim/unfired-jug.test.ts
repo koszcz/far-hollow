@@ -3,7 +3,9 @@ import { nearbyOf, type Command } from "./api";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
-import { CLAY_SAVE_VERSION, readSave, SAVE_VERSION, UNFIRED_JUGS_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { CLAY_SAVE_VERSION, UNFIRED_JUGS_SAVE_VERSION } from "./save-versions";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

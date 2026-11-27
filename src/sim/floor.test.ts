@@ -4,7 +4,9 @@ import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { QuarterTurns } from "./quarter-turns";
-import { APPROACHES_SAVE_VERSION, FLOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { APPROACHES_SAVE_VERSION, FLOORS_SAVE_VERSION } from "./save-versions";
 import { FLOOR_BUILD_SECONDS, FLOOR_PLANK_COST, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 

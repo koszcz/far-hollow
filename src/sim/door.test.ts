@@ -6,7 +6,9 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { isDoorOpen } from "./doors";
 import { findPath } from "./pathfinding";
 import { type QuarterTurns } from "./quarter-turns";
-import { DOORS_SAVE_VERSION, FLOORS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { DOORS_SAVE_VERSION, FLOORS_SAVE_VERSION } from "./save-versions";
 import { DOOR_BUILD_SECONDS, DOOR_FRAME_LOG_COST, DOOR_PLANK_COST, LOG_WALL_LOG_COST, structureOf, type StructureKind } from "./structures";
 import { isWalkable } from "./walk-map";
 

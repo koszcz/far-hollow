@@ -6,7 +6,9 @@ import { createGame, type Game } from "./game";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, ROOF_PLANK_COST, ROOF_FRAME_LOG_COST, structureOf, type StructureKind } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
-import { LARGE_VALLEY_UPGRADES, readSave, ROOF_FRAMES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES } from "./save-upgrades";
+import { ROOF_FRAMES_SAVE_VERSION } from "./save-versions";
 import { isWalkable } from "./walk-map";
 
 /** Loads a save made before the valley shrank, the way the game loaded it then. */

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { createGame } from "../sim/game";
-import { readSave, SAVE_VERSION, SMALL_VALLEY_SAVE_VERSION, SNUG_ROOM_NOTICE_SAVE_VERSION, writeSave } from "../sim/save";
+import { readSave, writeSave } from "../sim/save";
+import { SAVE_VERSION } from "../sim/save-upgrades";
+import { SMALL_VALLEY_SAVE_VERSION, SNUG_ROOM_NOTICE_SAVE_VERSION } from "../sim/save-versions";
 import { saveExportFile } from "./save-export";
 import { importIntoSlot, importSaveFile } from "./save-import";
 import type { SaveStorage } from "./save-storage";

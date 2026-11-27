@@ -367,6 +367,7 @@
       "kind": "code",
       "code": [
         "src/render/roof-meshes.ts",
+        "src/render/roof-plank-geometry.ts",
         "src/render/roof-parts.ts",
         "src/sim/roofs.ts"
       ],
@@ -388,6 +389,7 @@
       "kind": "code",
       "code": [
         "src/render/roof-meshes.ts",
+        "src/render/roof-plank-geometry.ts",
         "src/render/roof-frame-meshes.ts",
         "src/render/roof-layout.ts"
       ],

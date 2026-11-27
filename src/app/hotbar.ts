@@ -2,7 +2,8 @@
 import { queued, type Command } from "../sim/api-commands";
 import { type Plantable } from "../sim/api";
 import { hotbarCells, type HotbarTarget } from "../ui/hotbar-cells";
-import { actionsFor, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
+import { actionsFor, mainAction, type ThingAction } from "./thing-actions";
+import type { ActionReader } from "./thing-actions-context";
 
 /**
  * The command a hotbar cell's main action sends, such as eating berries or dropping the log on the shoulder.

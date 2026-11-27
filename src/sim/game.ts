@@ -450,9 +450,7 @@ export function createGame({
     for (const command of pendingCommands.splice(0)) actionQueue.receive(command);
 
     if (!paused) {
-      for (const entity of moving) {
-        Object.assign(entity.previousPosition, entity.position);
-      }
+      for (const entity of moving) Object.assign(entity.previousPosition, entity.position);
       // A player with a low need moves and works more slowly, as if less time passed for them.
       const playerSeconds = (STEP_MS / 1000) * needsSpeed(player.needs);
       // Dragging a sled and deep snow slow walking further, but not other work.

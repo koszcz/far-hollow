@@ -14,7 +14,6 @@ import { letGoActions, withMain, type ActionReader, type Context, type Offer } f
 import { sceneActions } from "./thing-actions-scene";
 
 export type { ActionIcon, ActionId, ThingAction } from "../ui/thing-action";
-export type { ActionReader } from "./thing-actions-context";
 
 /** What the player points at or clicks: a thing in the world, or a hotbar cell, which holds a backpack content or the log on their shoulder. */
 export type ActionTarget = { readonly kind: "scene"; readonly pick: ScenePick } | HotbarTarget;

@@ -3,7 +3,8 @@ import type { BackpackContent } from "../sim/api";
 import type { GameView } from "../sim/api-game-view";
 import { createGame } from "../sim/game";
 import { hotbarKeyPlanting, mainHotbarCommand, pressHotbarKey } from "./hotbar";
-import { menuActions, type ActionReader } from "./thing-actions";
+import { menuActions } from "./thing-actions";
+import type { ActionReader } from "./thing-actions-context";
 
 describe("a hotbar cell's main action", () => {
   it("uses the backpack content", () => {

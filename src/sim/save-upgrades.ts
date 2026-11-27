@@ -21,7 +21,7 @@ import {
   renameNotEmptyNotice,
   scatterDroppedSticks,
   turnAwayLargeValley,
-} from "./save-upgrade-steps-1";
+} from "./save-upgrades-v1-to-v22";
 import {
   addBeds,
   addFireplaces,
@@ -43,7 +43,7 @@ import {
   putFurnitureInOnePart,
   putPlanksOnSleds,
   startApproaches,
-} from "./save-upgrade-steps-2";
+} from "./save-upgrades-v22-to-v42";
 import {
   addChimneys,
   addClay,
@@ -69,7 +69,7 @@ import {
   smokeFish,
   spoilFreshFood,
   startTheYear,
-} from "./save-upgrade-steps-3";
+} from "./save-upgrades-from-v42";
 
 /** Turns a save of one version into the next version. It is given the save without its version number. */
 export type SaveUpgrade = (save: Readonly<Record<string, unknown>>) => Record<string, unknown>;

@@ -1,8 +1,7 @@
 import type { BackpackContent } from "./backpack";
-import type { Recipe } from "./crafting-recipes";
-import { FURNITURE, type FurnitureUse } from "./furniture";
+import { FURNITURE } from "./furniture";
 import { FURNITURE_KINDS, type BuildMenuKind } from "./structure-kind";
-import type { FurnitureKind, Placement } from "./structure-kind";
+import type { Placement } from "./structure-kind";
 import type { MaterialCost } from "./structure-types";
 
 /** One structure in the build menu. */
@@ -28,16 +27,3 @@ export const FURNITURE_BUILD_MENU: readonly BuildMenuEntry[] = FURNITURE_KINDS.m
   const { cost, tool } = FURNITURE[kind];
   return { structure: kind, cost, ...(tool === undefined ? {} : { tool }), placement: "anywhere" };
 });
-
-/** How the player uses a finished piece of furniture, from its definition, or undefined if it has no use, as for a table. */
-export function furnitureUse(kind: FurnitureKind): FurnitureUse | undefined {
-  return FURNITURE[kind].use;
-}
-
-/** The other ways the player uses a finished piece of furniture, after its main use, from its definition. Empty for most pieces. */
-export function furnitureMoreUses(kind: FurnitureKind): readonly FurnitureUse[] {
-  return FURNITURE[kind].moreUses ?? [];
-}
-
-/** One recipe in the craft menu. What the player lacks to follow it now comes from `GameClient.refusal`. */
-export type CraftMenuEntry = Recipe;

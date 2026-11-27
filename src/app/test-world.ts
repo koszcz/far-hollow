@@ -6,7 +6,7 @@ import { COOK_MINUTES } from "../sim/fish-on-fire";
 import { FIRE_JUG_MINUTES } from "../sim/jug-on-fire";
 import { createGame, type Game } from "../sim/game";
 import type { PotWater } from "../sim/pot-state";
-import type { ActionReader } from "./thing-actions";
+import type { ActionReader } from "./thing-actions-context";
 
 /** What a test game holds besides the valley. Each thing it names is added well away from the player. */
 export interface Setup {

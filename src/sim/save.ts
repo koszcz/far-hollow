@@ -3,8 +3,8 @@ import type { SaveRefusal, SaveSlotSummary } from "./api-save";
 import { readClock } from "./clock";
 import { createGame, type Game } from "./game";
 import type { GameProgress } from "./game-start";
-import { addJournal } from "./save-upgrade-steps-3";
-import { turnAwayLargeValley } from "./save-upgrade-steps-1";
+import { addJournal } from "./save-upgrades-from-v42";
+import { turnAwayLargeValley } from "./save-upgrades-v1-to-v22";
 import { isValidSave } from "./save-schema";
 import { checkVersion, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, type SaveUpgrade } from "./save-upgrades";
 

@@ -11,7 +11,7 @@ import {
   renameNotEmptyNotice,
   scatterDroppedSticks,
   turnAwayLargeValley,
-} from "./save-upgrade-steps-1";
+} from "./save-upgrades-v1-to-v22";
 import {
   addBeds,
   addFireplaces,
@@ -33,7 +33,7 @@ import {
   putFurnitureInOnePart,
   putPlanksOnSleds,
   startApproaches,
-} from "./save-upgrade-steps-2";
+} from "./save-upgrades-v22-to-v42";
 import {
   addChimneys,
   addClay,
@@ -59,7 +59,7 @@ import {
   smokeFish,
   spoilFreshFood,
   startTheYear,
-} from "./save-upgrade-steps-3";
+} from "./save-upgrades-from-v42";
 import { SAVE_UPGRADES } from "./save-upgrades";
 
 /** The first save version in which every roof section faces the way it slopes down. */

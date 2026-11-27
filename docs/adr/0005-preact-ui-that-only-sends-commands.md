@@ -6,3 +6,7 @@ Menus, the backpack, the build menu, and the action menu are built with Preact, 
 
 - **Plain DOM code**: rejected. The backpack and build menu have enough nested state that hand-written DOM updates would get messy.
 - **Drawing the UI inside the 3D view**: rejected. Text, layout, and accessibility are far easier in HTML.
+
+## What the UI may import from the game logic
+
+The UI may import `src/sim/api.ts` and every `src/sim/api-*.ts` module. These modules hold the types the UI reads and the commands it sends. The lint rule allows `../sim/api-*` for this reason. Any other module in `src/sim` stays off limits.

@@ -1,4 +1,5 @@
-import type { BuildMenuEntry, CraftMenuEntry } from "./api-build-menu";
+import type { BuildMenuEntry } from "./api-build-menu";
+import type { CraftMenuEntry } from "./api-craft-menu";
 import type { ActionCommand } from "./api-commands";
 import type { FreshnessViews, NearbyThing, NearbyViews, SledView } from "./api-nearby";
 import type { Notice } from "./api-notice";

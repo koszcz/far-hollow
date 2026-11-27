@@ -1,6 +1,6 @@
 // The actions of a piece of furniture, a drying rack, a campfire, a woodpile, and a sled.
 import { CAMPFIRE_FUELS, CARRIED_LOGS, JUG_CONTENTS, RACK_FOODS, WOODPILE_WOODS } from "../sim/api";
-import { furnitureMoreUses, furnitureUse } from "../sim/api-build-menu";
+import { furnitureMoreUses, furnitureUse } from "../sim/api-furniture-use";
 import type { CarriedLog, FoodToHang, FurnitureKind, FurnitureUse, WoodpileWood } from "../sim/api";
 import type { CampfireView, DryingRackView, SledView, WoodpileView } from "../sim/api-nearby";
 import type { GameView } from "../sim/api-game-view";

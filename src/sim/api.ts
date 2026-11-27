@@ -1,7 +1,8 @@
 // The parts of game logic the UI may import (ADR 0005): this file, which passes on helpers from other sim modules,
 // and the api-*.ts files. The UI reads a GameView and changes the game only by sending a Command.
 
-export type { GroundAmount, Recipe, RecipeAmount, RecipeKind, RecipeLack } from "./crafting";
+export type { GroundAmount, Recipe, RecipeAmount, RecipeLack } from "./crafting-recipes";
+export type { RecipeKind } from "./recipe-kind";
 
 export type { BackpackContent, CraftingContent, Fish, FishingContent, Food, JugContent, Plantable, PreservedFood, WildFood } from "./backpack";
 export type { Freshness, FreshFood } from "./fresh-food";

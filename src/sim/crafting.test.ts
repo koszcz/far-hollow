@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { BackpackContent } from "./backpack";
-import { recipeLacks, type Recipe } from "./crafting";
+import { recipeLacks, type Recipe } from "./crafting-recipes";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, type SaveFile, writeSave } from "./save";

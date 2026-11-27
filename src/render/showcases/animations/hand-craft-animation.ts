@@ -1,5 +1,5 @@
 // The showcase of the approved "hand-craft-animation": the player crafts the saw, a hand recipe, lashing a bundle of sticks at waist height.
-import { SAW_CRAFT_SECONDS } from "../../../sim/crafting";
+import { SAW_CRAFT_SECONDS } from "../../../sim/crafting-recipes";
 import {
   HAND_CRAFT_CYCLE_SECONDS,
   HAND_CRAFT_ENTER_SECONDS,

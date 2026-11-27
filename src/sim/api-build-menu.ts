@@ -1,5 +1,5 @@
 import type { BackpackContent } from "./backpack";
-import type { Recipe } from "./crafting";
+import type { Recipe } from "./crafting-recipes";
 import { FURNITURE, type FurnitureUse } from "./furniture";
 import { FURNITURE_KINDS, type BuildMenuKind } from "./structure-kind";
 import type { FurnitureKind, Placement } from "./structure-kind";

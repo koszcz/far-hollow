@@ -3,7 +3,7 @@ import type { EatOrDrinkView, GameView, PlayerAction } from "./api-game-view";
 import { BACKPACK_WEIGHT_LIMIT_KG, backpackWeight } from "./backpack";
 import { buildMenuFor } from "./build-menu";
 import { isNightAt, nightHoursAt, readClock, type Clock } from "./clock";
-import { RECIPES } from "./crafting";
+import { RECIPES } from "./crafting-recipes";
 import { deepFreeze } from "./deep-freeze";
 import { isRaining, isSnowing, snowCoverDepth } from "./entity-queries";
 import type { GameNotices } from "./game-notices";

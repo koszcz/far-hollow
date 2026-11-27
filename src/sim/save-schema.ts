@@ -3,7 +3,7 @@ import type { BackpackContent } from "./api";
 import type { ActionCommand } from "./api-commands";
 import type { GameNotice } from "./api-notice";
 import type { PlainRefusal } from "./api-refusal";
-import { CONTENT_WEIGHT_KG } from "./backpack";
+import { CONTENT_WEIGHT_KG, type Food } from "./backpack";
 import type { Entity } from "./entities";
 import { isFillProgress } from "./fill-level";
 import { GOALS } from "./journal";
@@ -70,116 +70,134 @@ const fuel = exactly(...CAMPFIRE_FUELS);
 const wood = exactly(...WOODPILE_WOODS);
 const backpackContent = exactly(...(Object.keys(CONTENT_WEIGHT_KG) as BackpackContent[]));
 
-/** The check for one command type: its `type` and the fields it carries. Fields in `optional` may be missing. */
-const commandOf = (type: string, fields: Record<string, Check> = {}, optional: readonly string[] = []): Check =>
-  shape({ type: exactly(type), ...fields }, optional);
+/** The fields a command carries besides its `type`. Fields in `optional` may be missing. */
+interface CommandFields {
+  readonly fields: Record<string, Check>;
+  readonly optional: readonly string[];
+}
+const command = (fields: Record<string, Check> = {}, optional: readonly string[] = []): CommandFields => ({ fields, optional });
 const at = { x: finite, z: finite };
-const atSpot = (type: string) => commandOf(type, at);
-const onCampfire = (type: string) => commandOf(type, { campfireId: count });
-const onSled = (type: string) => commandOf(type, { sledId: count });
-const onBarrel = (type: string) => commandOf(type, { barrelId: count });
-const onLog = (type: string) => commandOf(type, { logId: count });
+/** Every food the player can eat. TypeScript reports a food that is missing. */
+const FOODS: Readonly<Record<Food, true>> = {
+  berries: true,
+  mushroom: true,
+  rawFish: true,
+  cookedFish: true,
+  driedBerries: true,
+  driedMushroom: true,
+  smokedFish: true,
+};
 
 /**
- * How each action command must look when a pending approach stores it.
+ * The fields of each action command that a pending approach may store.
  * Every `ActionCommand` type needs an entry here. TypeScript reports a missing one.
  */
-const COMMAND_CHECKS: { readonly [Type in ActionCommand["type"]]: Check } = {
-  setPaused: commandOf("setPaused", { paused: boolean }),
-  walkTo: atSpot("walkTo"),
-  chopTree: commandOf("chopTree", { treeId: count }),
-  digUpSapling: commandOf("digUpSapling", { saplingId: count }),
-  plantSapling: atSpot("plantSapling"),
-  digUpBerryBush: commandOf("digUpBerryBush", { bushId: count }),
-  plantBerryBush: atSpot("plantBerryBush"),
-  pickUpLog: onLog("pickUpLog"),
-  debarkLog: onLog("debarkLog"),
-  plantMushroom: onLog("plantMushroom"),
-  takeDownMushroomLog: commandOf("takeDownMushroomLog", { mushroomLogId: count }),
-  pickUpStick: commandOf("pickUpStick", { stickId: count }),
-  pickUpBark: commandOf("pickUpBark", { barkId: count }),
-  forage: commandOf("forage", { spotId: count }),
-  eat: commandOf("eat", { food: exactly("berries", "mushroom", "rawFish", "cookedFish", "driedBerries", "driedMushroom", "smokedFish") }),
-  splitLog: commandOf("splitLog", { logId: count }, ["logId"]),
-  dropLog: commandOf("dropLog"),
-  dropLogAt: atSpot("dropLogAt"),
-  dropFromBackpack: commandOf("dropFromBackpack", { content: backpackContent }),
-  pickUpPile: commandOf("pickUpPile", { pileId: count }),
-  placeBlueprint: commandOf(
-    "placeBlueprint",
-    { ...at, structure: exactly(...STRUCTURES.map(({ kind }) => kind)), turns: exactly(0, 1, 2, 3), thenBuild: boolean },
-    ["thenBuild"],
-  ),
-  buildAddOn: commandOf("buildAddOn", { hostId: count }),
-  build: commandOf("build", { blueprintId: count }),
-  deliverToBlueprint: commandOf("deliverToBlueprint", { blueprintId: count }),
-  takeDown: commandOf("takeDown", { pieceId: count }),
-  stopBuilding: commandOf("stopBuilding"),
-  tendCampfire: onCampfire("tendCampfire"),
-  addFuel: commandOf("addFuel", { campfireId: count, fuel }),
-  tendWoodpile: commandOf("tendWoodpile", { woodpileId: count }),
-  stackOnWoodpile: commandOf("stackOnWoodpile", { woodpileId: count, wood, all: boolean }),
-  takeFromWoodpile: commandOf("takeFromWoodpile", { woodpileId: count, wood }),
-  loadSled: onSled("loadSled"),
-  takeFromSled: commandOf("takeFromSled", { sledId: count, log: exactly(...CARRIED_LOGS) }),
-  loadPlanksOnSled: onSled("loadPlanksOnSled"),
-  takePlanksFromSled: onSled("takePlanksFromSled"),
-  tipOutSled: onSled("tipOutSled"),
-  dragSled: onSled("dragSled"),
-  letGoOfSled: commandOf("letGoOfSled"),
-  fillSled: onSled("fillSled"),
-  openChest: commandOf("openChest", { chestId: count }),
-  putInChest: commandOf("putInChest", { chestId: count, content: backpackContent, all: boolean }),
-  takeFromChest: commandOf("takeFromChest", { chestId: count, content: backpackContent, all: boolean }),
-  lightCampfire: onCampfire("lightCampfire"),
-  putOutCampfire: onCampfire("putOutCampfire"),
-  layBedroll: commandOf("layBedroll"),
-  layBedrollInLeanTo: commandOf("layBedrollInLeanTo", { leanToId: count }),
-  pickUpBedroll: commandOf("pickUpBedroll", { bedrollId: count }),
-  sleep: commandOf("sleep", { bedrollId: count }),
-  sleepInBed: commandOf("sleepInBed", { bedId: count }),
-  sitOnStool: commandOf("sitOnStool", { stoolId: count }),
-  drinkFromRiver: atSpot("drinkFromRiver"),
-  fish: atSpot("fish"),
-  setFishTrap: atSpot("setFishTrap"),
-  takeFishFromTrap: commandOf("takeFishFromTrap", { trapId: count }),
-  pickUpFishTrap: commandOf("pickUpFishTrap", { trapId: count }),
-  gatherStone: atSpot("gatherStone"),
-  digClay: atSpot("digClay"),
-  fillPot: commandOf("fillPot"),
-  drinkFromPot: commandOf("drinkFromPot"),
-  pourIntoJug: commandOf("pourIntoJug"),
-  drinkFromJug: commandOf("drinkFromJug"),
-  drinkFromRainBarrel: onBarrel("drinkFromRainBarrel"),
-  fillPotFromRainBarrel: onBarrel("fillPotFromRainBarrel"),
-  fillJugFromRainBarrel: onBarrel("fillJugFromRainBarrel"),
-  hangOnRack: commandOf("hangOnRack", { rackId: count, food: exactly(...FOODS_TO_HANG) }),
-  takeFoodOffRack: commandOf("takeFoodOffRack", { rackId: count }),
-  putInWoodBox: commandOf("putInWoodBox", { woodBoxId: count, all: boolean }),
-  takeFromWoodBox: commandOf("takeFromWoodBox", { woodBoxId: count }),
-  putPotOnFire: onCampfire("putPotOnFire"),
-  takePotOffFire: onCampfire("takePotOffFire"),
-  cookFish: onCampfire("cookFish"),
-  takeFishOff: onCampfire("takeFishOff"),
-  fireJug: onCampfire("fireJug"),
-  takeJugOff: onCampfire("takeJugOff"),
-  craft: commandOf("craft", { recipe: exactly(...RECIPE_KINDS), stationId: count }, ["stationId"]),
-  lightTorch: commandOf("lightTorch"),
-  putOutTorch: commandOf("putOutTorch"),
-  plantTorch: commandOf("plantTorch"),
-  pickUpTorch: commandOf("pickUpTorch", { torchId: count }),
-  setShutters: commandOf("setShutters", { shuttersId: count, open: boolean }),
-  setJournalHidden: commandOf("setJournalHidden", { hidden: boolean }),
-  skipTime: commandOf("skipTime", { hours: finite }),
-  skipToRainChange: commandOf("skipToRainChange"),
-  skipToSeason: commandOf("skipToSeason"),
+const COMMAND_FIELDS: { readonly [Type in ActionCommand["type"]]: CommandFields } = {
+  setPaused: command({ paused: boolean }),
+  walkTo: command(at),
+  chopTree: command({ treeId: count }),
+  digUpSapling: command({ saplingId: count }),
+  plantSapling: command(at),
+  digUpBerryBush: command({ bushId: count }),
+  plantBerryBush: command(at),
+  pickUpLog: command({ logId: count }),
+  debarkLog: command({ logId: count }),
+  plantMushroom: command({ logId: count }),
+  takeDownMushroomLog: command({ mushroomLogId: count }),
+  pickUpStick: command({ stickId: count }),
+  pickUpBark: command({ barkId: count }),
+  forage: command({ spotId: count }),
+  eat: command({ food: exactly(...Object.keys(FOODS)) }),
+  splitLog: command({ logId: count }, ["logId"]),
+  dropLog: command(),
+  dropLogAt: command(at),
+  dropFromBackpack: command({ content: backpackContent }),
+  pickUpPile: command({ pileId: count }),
+  placeBlueprint: command({ ...at, structure: exactly(...STRUCTURES.map(({ kind }) => kind)), turns: exactly(0, 1, 2, 3), thenBuild: boolean }, ["thenBuild"]),
+  buildAddOn: command({ hostId: count }),
+  build: command({ blueprintId: count }),
+  deliverToBlueprint: command({ blueprintId: count }),
+  takeDown: command({ pieceId: count }),
+  stopBuilding: command(),
+  tendCampfire: command({ campfireId: count }),
+  addFuel: command({ campfireId: count, fuel }),
+  tendWoodpile: command({ woodpileId: count }),
+  stackOnWoodpile: command({ woodpileId: count, wood, all: boolean }),
+  takeFromWoodpile: command({ woodpileId: count, wood }),
+  loadSled: command({ sledId: count }),
+  takeFromSled: command({ sledId: count, log: exactly(...CARRIED_LOGS) }),
+  loadPlanksOnSled: command({ sledId: count }),
+  takePlanksFromSled: command({ sledId: count }),
+  tipOutSled: command({ sledId: count }),
+  dragSled: command({ sledId: count }),
+  letGoOfSled: command(),
+  fillSled: command({ sledId: count }),
+  openChest: command({ chestId: count }),
+  putInChest: command({ chestId: count, content: backpackContent, all: boolean }),
+  takeFromChest: command({ chestId: count, content: backpackContent, all: boolean }),
+  lightCampfire: command({ campfireId: count }),
+  putOutCampfire: command({ campfireId: count }),
+  layBedroll: command(),
+  layBedrollInLeanTo: command({ leanToId: count }),
+  pickUpBedroll: command({ bedrollId: count }),
+  sleep: command({ bedrollId: count }),
+  sleepInBed: command({ bedId: count }),
+  sitOnStool: command({ stoolId: count }),
+  drinkFromRiver: command(at),
+  fish: command(at),
+  setFishTrap: command(at),
+  takeFishFromTrap: command({ trapId: count }),
+  pickUpFishTrap: command({ trapId: count }),
+  gatherStone: command(at),
+  digClay: command(at),
+  fillPot: command(),
+  drinkFromPot: command(),
+  pourIntoJug: command(),
+  drinkFromJug: command(),
+  drinkFromRainBarrel: command({ barrelId: count }),
+  fillPotFromRainBarrel: command({ barrelId: count }),
+  fillJugFromRainBarrel: command({ barrelId: count }),
+  hangOnRack: command({ rackId: count, food: exactly(...FOODS_TO_HANG) }),
+  takeFoodOffRack: command({ rackId: count }),
+  putInWoodBox: command({ woodBoxId: count, all: boolean }),
+  takeFromWoodBox: command({ woodBoxId: count }),
+  putPotOnFire: command({ campfireId: count }),
+  takePotOffFire: command({ campfireId: count }),
+  cookFish: command({ campfireId: count }),
+  takeFishOff: command({ campfireId: count }),
+  fireJug: command({ campfireId: count }),
+  takeJugOff: command({ campfireId: count }),
+  craft: command({ recipe: exactly(...RECIPE_KINDS), stationId: count }, ["stationId"]),
+  lightTorch: command(),
+  putOutTorch: command(),
+  plantTorch: command(),
+  pickUpTorch: command({ torchId: count }),
+  setShutters: command({ shuttersId: count, open: boolean }),
+  setJournalHidden: command({ hidden: boolean }),
+  skipTime: command({ hours: finite }),
+  skipToRainChange: command(),
+  skipToSeason: command(),
 };
 
+/** The check for each action command type: its `type` and the fields it carries. */
+const COMMAND_CHECKS: Readonly<Record<string, Check>> = Object.fromEntries(
+  Object.entries(COMMAND_FIELDS).map(([type, { fields, optional }]) => [type, shape({ type: exactly(type), ...fields }, optional)]),
+);
+
+/** The `type` or `kind` a stored value names, or undefined if it names none. */
+function nameOf(value: unknown, key: "type" | "kind"): string | undefined {
+  const name = (value as Record<string, unknown> | null)?.[key];
+  return typeof name === "string" ? name : undefined;
+}
+
 /** A command the player is on their way to carry out, which a pending approach holds. */
-const approachCommand: Check = (value) => {
-  const type = (value as { type?: unknown } | null)?.type;
-  return typeof type === "string" && Object.hasOwn(COMMAND_CHECKS, type) && COMMAND_CHECKS[type as ActionCommand["type"]](value);
+const storedCommand: Check = (value) => {
+  const type = nameOf(value, "type");
+  return type !== undefined && Object.hasOwn(COMMAND_CHECKS, type) && (COMMAND_CHECKS[type] as Check)(value);
 };
+
+/** A pending approach: the command the player walks to carry out. */
+const approach = shape({ command: storedCommand });
 
 /**
  * How each entity component must look in a save.
@@ -192,7 +210,7 @@ const COMPONENT_CHECKS: { readonly [Component in keyof Entity]-?: Check } = {
   tree: exactly(true),
   player: exactly(true),
   walkPath: list(point),
-  approach: shape({ command: approachCommand }),
+  approach,
   blocksWalking: shape({ radius: finite }),
   blocksWalkingSpots: list(point),
   blocksWalkingEdges: list(shape({ from: point, to: point })),
@@ -409,8 +427,8 @@ const NOTICES: { readonly [Kind in GameNotice]: Record<string, Check> } = {
 
 /** A saved notice: its kind, what that kind names, and the game minute it stops showing at. */
 const notice: Check = (value) => {
-  const kind = (value as { kind?: unknown } | null)?.kind;
-  if (typeof kind !== "string" || !Object.hasOwn(NOTICES, kind)) return false;
+  const kind = nameOf(value, "kind");
+  if (kind === undefined || !Object.hasOwn(NOTICES, kind)) return false;
   return shape({ kind: exactly(kind), untilMinutes: finite, ...NOTICES[kind as GameNotice] })(value);
 };
 
@@ -440,8 +458,10 @@ export function isValidSave(data: unknown): boolean {
 }
 
 /**
- * Removes every `approach` whose command fails its check, and keeps the rest of the save, so the player still has their walk.
- * It is the one component a bad value does not turn the save away for. It warns with the command type of each one it drops.
+ * A bad command in an approach does not make the save fail. This function removes that approach and keeps the rest of the save.
+ * The player then still has their walk.
+ * Any other fault in an approach stays a fault, and the save is refused.
+ * It warns with the command type of each approach it removes.
  * It changes nothing else, and does not change `data`.
  */
 export function dropBadApproaches(data: unknown): unknown {
@@ -449,10 +469,9 @@ export function dropBadApproaches(data: unknown): unknown {
   if (!Array.isArray(entities)) return data;
   const kept = (entities as unknown[]).map((entity) => {
     const components = (entity as { components?: Record<string, unknown> } | null)?.components;
-    const approach: unknown = components?.approach;
-    if (typeof approach !== "object" || approach === null || shape({ command: approachCommand })(approach)) return entity;
-    const command = (approach as { command?: unknown }).command;
-    console.warn(`Dropped a saved approach with a bad command: ${String((command as { type?: unknown } | null | undefined)?.type)}`);
+    const stored: unknown = components?.approach;
+    if (typeof stored !== "object" || stored === null || !("command" in stored) || storedCommand(stored.command)) return entity;
+    console.warn(`Dropped a saved approach with a bad command: ${String(nameOf(stored.command, "type"))}`);
     const { approach: _approach, ...rest } = components ?? {};
     return { ...(entity as object), components: rest };
   });

@@ -29,14 +29,14 @@ Every new walk-first command repeats the risk. The wood box and the drying rack 
 
 ## Acceptance criteria
 
-- [ ] `save-schema.ts` has one record keyed by every `ActionCommand` type. `approachCommand` and `tendCommand` are gone, and the `approach` component's check uses the record.
-- [ ] Leaving a command type out of the record is a type error.
-- [ ] A test file holds one sample command per `ActionCommand` type, in a record that TypeScript checks is complete. A test checks that each sample passes the save check.
-- [ ] A test writes a save, replaces the `approach` command with one of an unknown type, and reads it back. The read succeeds. The player has no `approach`, still has the `walkPath`, and the rest of the game matches.
-- [ ] The same broken save shows as filled on the start screen. `describeSave` returns `filled`, not `broken`.
-- [ ] A save that fails for any other reason is still refused.
-- [ ] Every older save still loads (ADR 0011). The save version does not change, because the stored data does not change.
-- [ ] `bun test` and `make check` pass.
+- [x] `save-schema.ts` has one record keyed by every `ActionCommand` type. `approachCommand` and `tendCommand` are gone, and the `approach` component's check uses the record.
+- [x] Leaving a command type out of the record is a type error.
+- [x] A test file holds one sample command per `ActionCommand` type, in a record that TypeScript checks is complete. A test checks that each sample passes the save check.
+- [x] A test writes a save, replaces the `approach` command with one of an unknown type, and reads it back. The read succeeds. The player has no `approach`, still has the `walkPath`, and the rest of the game matches.
+- [x] The same broken save shows as filled on the start screen. `describeSave` returns `filled`, not `broken`.
+- [x] A save that fails for any other reason is still refused.
+- [x] Every older save still loads (ADR 0011). The save version does not change, because the stored data does not change.
+- [x] `bun test` and `make check` pass.
 
 ## Out of scope
 

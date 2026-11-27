@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, type Mock, spyOn } from "b
 import type { ActionCommand } from "./api-commands";
 import type { Entity } from "./entities";
 import { createGame, type Game } from "./game";
+import { type GroundPoint, groundDistance } from "./ground-point";
 import { describeSave, readSave, writeSave } from "./save";
 import { isValidSave } from "./save-schema";
 
@@ -97,10 +98,11 @@ describe("the save check for a stored command", () => {
   it("accepts a sample of every action command type", () => {
     const save = withApproach(writeSave(createGame({ seed: 5 })), SAMPLES.walkTo);
     const player = save.entities.find((entity) => entity.components.player);
+    if (player === undefined) throw new Error("No player");
     // Only the player matters here, and a small save keeps the check fast.
-    save.entities = player === undefined ? [] : [player];
+    save.entities = [player];
     for (const [type, command] of Object.entries(SAMPLES)) {
-      if (player !== undefined) player.components.approach = { command };
+      player.components.approach = { command };
       expect({ type, valid: isValidSave(save) }).toEqual({ type, valid: true });
     }
   });
@@ -125,9 +127,7 @@ describe("a saved approach whose command fails its check", () => {
     const player = loaded.game.entities.with("player").first;
     expect(player?.approach).toBeUndefined();
     expect(player?.walkPath).toEqual(onlyPlayerOf(saved).walkPath);
-    const { approach: _dropped, ...kept } = onlyPlayerOf(saved);
-    expect(onlyPlayerOf(writeSave(loaded.game))).toEqual(kept);
-    expect({ ...writeSave(loaded.game), entities: undefined }).toEqual({ ...saved, entities: undefined });
+    expect(withoutApproach(writeSave(loaded.game))).toEqual(withoutApproach(saved));
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0])).toContain("wander");
   });
@@ -144,6 +144,17 @@ describe("a saved approach whose command fails its check", () => {
     expect(loaded.ok && loaded.game.entities.with("player").first?.approach).toEqual(onlyPlayerOf(saved).approach);
   });
 
+  it("is not dropped when the approach has a fault besides its command: the save is refused", () => {
+    const saved = writeSave(gameWalkingToAStick());
+    const command = onlyPlayerOf(saved).approach?.command;
+    for (const approach of [{}, { command, extra: 1 }, "walking"]) {
+      const broken = structuredClone(saved);
+      onlyPlayerOf(broken).approach = approach as never;
+      expect(readSave(broken)).toEqual({ ok: false, reason: "notASave" });
+      expect(describeSave(broken).state).toBe("broken");
+    }
+  });
+
   it("does not hide any other fault: the save is still refused", () => {
     const broken = withApproach(writeSave(gameWalkingToAStick()), { type: "wander" });
     const entities = broken.entities.map((entity) => (entity.components.player ? { ...entity, components: { ...entity.components, fishCasts: -1 } } : entity));
@@ -156,7 +167,7 @@ function gameWalkingToAStick(): Game {
   const game = createGame({ seed: 42 });
   const player = game.entities.with("player", "position").first;
   if (player === undefined) throw new Error("No player");
-  const distance = (stick: { position: { x: number; z: number } }) => Math.hypot(stick.position.x - player.position.x, stick.position.z - player.position.z);
+  const distance = (stick: { position: GroundPoint }) => groundDistance(stick.position, player.position);
   const nearest = [...game.entities.with("stick", "position")].sort((a, b) => distance(a) - distance(b))[0];
   const id = nearest && game.entities.id(nearest);
   if (id === undefined) throw new Error("No stick");
@@ -171,9 +182,14 @@ type StoredSave = ReturnType<typeof writeSave>;
 /** A copy of the save in which the player's approach holds this command. */
 function withApproach(save: StoredSave, command: object): StoredSave {
   const copy = structuredClone(save);
-  const player = copy.entities.find((entity) => entity.components.player);
-  if (player === undefined) throw new Error("No player");
-  player.components.approach = { command } as { command: ActionCommand };
+  onlyPlayerOf(copy).approach = { command } as { command: ActionCommand };
+  return copy;
+}
+
+/** The save with the player's approach left out, so the rest of the game can be compared. */
+function withoutApproach(save: StoredSave): StoredSave {
+  const copy = structuredClone(save);
+  delete onlyPlayerOf(copy).approach;
   return copy;
 }
 

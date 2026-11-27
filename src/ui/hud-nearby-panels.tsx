@@ -1,5 +1,6 @@
 // The panels under the work for the things within the player's reach: campfire, woodpile, pile, blueprint, rain barrel, drying rack, wood box.
-import type { BlueprintView, CampfireView, DryingRackView, NearbyThing, PileView, RainBarrelView, WoodBoxView, WoodpileView, WoodpileWood } from "../sim/api";
+import type { WoodpileWood } from "../sim/api";
+import type { BlueprintView, CampfireView, DryingRackView, NearbyThing, PileView, RainBarrelView, WoodBoxView, WoodpileView } from "../sim/api-nearby";
 import { strings } from "../strings";
 import { BackpackIcon } from "./backpack-icons";
 import { HudIcon } from "./hud-icons";

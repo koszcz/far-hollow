@@ -8,12 +8,12 @@ Every screenshot stays in your context for the rest of the session, and every la
 
 ## Read and drive the game from the page
 
-The dev build puts the game client on `window.farHollow.client`. Its interface is `GameClient` in `src/sim/api.ts`. Call it with `javascript_tool`:
+The dev build puts the game client on `window.farHollow.client`. Its interface is `GameClient` in `src/sim/api-client.ts`. Call it with `javascript_tool`:
 
 - `getView()` returns what the player sees: position, carried items, HUD state, and more.
 - `nearestInReach()` returns the thing the E key would act on.
 - `describeCampfire(id)`, `describeSled(id)`, `describeWoodpile(id)`, and `describeBlueprint(id)` return one thing's state.
-- `send({ type: ... })` runs a command, such as `walkTo`, `chopTree`, `debarkLog`, or `placeBlueprint`. The `Command` type in `src/sim/api.ts` lists them all.
+- `send({ type: ... })` runs a command, such as `walkTo`, `chopTree`, `debarkLog`, or `placeBlueprint`. The `Command` type in `src/sim/api-commands.ts` lists them all.
 - `subscribe(listener)` calls the listener after each logic step.
 
 ## Skip the waiting with `advance`

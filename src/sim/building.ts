@@ -1,4 +1,7 @@
-import type { BlueprintView, BuildLack, Notice, PlacementCheck, Refusal } from "./api";
+import type { BlueprintView } from "./api-nearby";
+import type { BuildLack, Refusal } from "./api-refusal";
+import type { Notice } from "./api-notice";
+import type { PlacementCheck } from "./api-client";
 import type { ApproachReach } from "./approach";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, countOf, takeCount } from "./counts";
@@ -15,21 +18,10 @@ import {
   type Entity,
   type EntityStore,
 } from "./entities";
-import {
-  costOf,
-  footprintOfEntity,
-  isDelivered,
-  isKept,
-  isPlacedStructure,
-  stageMaterials,
-  structureOf,
-  type BuildMaterial,
-  type GroundRect,
-  type KeptMaterial,
-  type MaterialCost,
-  type PlacedStructure,
-  type StructureKind,
-} from "./structures";
+import { stageMaterials, type BuildMaterial, type MaterialCost, type PlacedStructure } from "./structure-types";
+import { type GroundRect, type KeptMaterial, type StructureKind } from "./structure-kind";
+import { footprintOfEntity, isPlacedStructure } from "./structure-queries";
+import { costOf, isDelivered, isKept, structureOf } from "./structures";
 import { TAKEN_MATERIALS } from "./structure-kind";
 import { gardenThingInTheWay } from "./garden-things";
 import { type QuarterTurns } from "./quarter-turns";

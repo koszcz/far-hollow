@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { ACTION_QUEUE_LIMIT, queued, type ActionCommand, type Notice, type PlainNotice, type Refusal } from "./api";
+import { ACTION_QUEUE_LIMIT, queued, type ActionCommand } from "./api-commands";
+import { type Notice, type PlainNotice } from "./api-notice";
+import { type Refusal } from "./api-refusal";
 import { createActionQueue, type ActionQueue, type QueueRule } from "./action-queue";
 
 describe("the action queue on its own", () => {

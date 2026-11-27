@@ -15,7 +15,7 @@ import {
   type EntityStore,
 } from "./entities";
 import { createRandom, scramble, type Random } from "./random";
-import { footprintOfEntity, placedStructures } from "./structures";
+import { footprintOfEntity, placedStructures } from "./structure-queries";
 import { stickSpotCheck, terrainHeightAt, type Valley } from "./valley";
 import { groundDistance, type GroundPoint } from "./ground-point";
 

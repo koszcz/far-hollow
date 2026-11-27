@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, StructureKind } from "./api";
+import type { Command } from "./api-commands";
+import type { StructureKind } from "./api";
 import { REAL_MS_PER_GAME_MINUTE } from "./clock";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { FATIGUE_DRAIN_PER_HOUR, FATIGUE_RECOVERY_PER_HOUR } from "./needs";
-import { BEDS_SAVE_VERSION, readSave, SAVE_VERSION, STOOLS_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { BEDS_SAVE_VERSION, STOOLS_SAVE_VERSION } from "./save-versions";
 import { STOOL_BUILD_SECONDS, STOOL_PLANK_COST } from "./furniture/stool";
 import { isWalkable } from "./walk-map";
 import { piecesOf } from "./test-steps";

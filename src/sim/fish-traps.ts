@@ -1,7 +1,8 @@
 // Fish traps: the player sets a fish trap from the backpack in the river's water at the bank. Some hours later it holds a fish,
 // which the player comes back to take. A set trap holds one fish at a time, and stays set when its fish is taken.
 // Setting a trap, taking its fish, and picking it up are quick reaches, not timed work. The catch rule is in trap-catch.ts.
-import type { ActionCommand, Refusal } from "./api";
+import type { ActionCommand } from "./api-commands";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { addToBackpack, fitsInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import type { ApproachRule, CommandRules, RuleGame } from "./command-rule";

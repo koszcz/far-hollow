@@ -5,8 +5,10 @@ import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
-import { readSave, SNUG_ROOM_NOTICE_SAVE_VERSION, writeSave } from "./save";
-import { structureOf, type EdgePieceKind } from "./structures";
+import { readSave, writeSave } from "./save";
+import { SNUG_ROOM_NOTICE_SAVE_VERSION } from "./save-versions";
+import { structureOf } from "./structures";
+import { type EdgePieceKind } from "./structure-kind";
 import { isWalkable } from "./walk-map";
 
 describe("warmth in a snug room", () => {

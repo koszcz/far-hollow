@@ -1,6 +1,7 @@
 // The HUD's list menus: the build menu and the craft menu, above their buttons.
 import type { ComponentChildren } from "preact";
-import type { GameView, RecipeKind, StructureKind } from "../sim/api";
+import type { RecipeKind, StructureKind } from "../sim/api";
+import type { GameView } from "../sim/api-game-view";
 import { isHost } from "../sim/api";
 import { BUILD_TABS, entriesInTab, type BuildTab } from "./build-tabs";
 import { strings } from "../strings";

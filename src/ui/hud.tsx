@@ -4,8 +4,12 @@
 // Built in code. Approved by the owner. Its look lives in the .hud rules of src/app/style.css. Its icons are in hud-icons.tsx.
 // The backpack content icons, in backpack-icons.tsx, are the approved "backpack-icons" asset. The build icons, in build-icons.tsx, are the approved "build-icons" asset.
 import { useEffect, useState } from "preact/hooks";
-import type { GameClient, Notice, Refusal, StructureKind } from "../sim/api";
-import { FRESH_FOODS, nearbyOf } from "../sim/api";
+import type { StructureKind } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { Notice } from "../sim/api-notice";
+import type { Refusal } from "../sim/api-refusal";
+import { FRESH_FOODS } from "../sim/api";
+import { nearbyOf } from "../sim/api-game-view";
 import { FIRST_BUILD_TAB, type BuildTab } from "./build-tabs";
 import { strings } from "../strings";
 import { ActionQueueRow } from "./action-queue-row";

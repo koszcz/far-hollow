@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
-import { TREE_COLOURS } from "./forest-meshes";
+import { TREE_COLOURS } from "./tree-model";
 import { createStickGeometry, STICK_COLOUR } from "./stick-shape";
 
 /** The forest floor's base colour, from ground-texture.ts. */

@@ -15,7 +15,7 @@
 import * as THREE from "three";
 import { finishedChimneyOn } from "../sim/chimneys";
 import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
-import { FIREPLACE_STONE_COST } from "../sim/structures";
+import { FIREPLACE_STONE_COST } from "../sim/structure-cabin-fittings";
 import type { Fire as FireState } from "../sim/fire";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
 import { CHIMNEY_MIDDLE, chimneyTopAt } from "./chimney-height";

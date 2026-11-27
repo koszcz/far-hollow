@@ -13,7 +13,7 @@ import * as THREE from "three";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";
 import { createPotMaker, type PotMesh } from "./pot-shape";
 import { createStickGeometry, STICK_COLOUR, STICK_LENGTH_METRES } from "./stick-shape";
-import { CAMPFIRE_STICK_COST } from "../sim/structures";
+import { CAMPFIRE_STICK_COST } from "../sim/structure-camp";
 import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 import { blueprintEntities, campfireEntities, type Entity, type EntityStore } from "../sim/entities";

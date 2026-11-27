@@ -23,8 +23,8 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
-    // 1175 was the longest file on 2026-11-27: src/app/thing-actions.test.ts.
-    "max-lines": ["error", { "max": 1175 }],
+    // 1029 was the longest file on 2026-11-27: src/ui/hud-showcase.tsx.
+    "max-lines": ["error", { "max": 1029 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",
@@ -258,9 +258,10 @@
               {
                 "group": [
                   "../sim/*",
-                  "!../sim/api"
+                  "!../sim/api",
+                  "!../sim/api-*"
                 ],
-                "message": "The UI may only use src/sim/api.ts, so it can read state and send commands but never change game state directly. See ADR 0005."
+                "message": "The UI may only use src/sim/api.ts and the src/sim/api-*.ts files, so it can read state and send commands but never change game state directly. See ADR 0005."
               },
               {
                 "group": [

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { BackpackContents } from "./backpack";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { Entity } from "./entities";
 import { groundDistance, type GroundPoint } from "./ground-point";
-import { FIREPLACES_SAVE_VERSION, readSave, SAVE_VERSION, TORCHES_SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { FIREPLACES_SAVE_VERSION, TORCHES_SAVE_VERSION } from "./save-versions";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

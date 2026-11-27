@@ -11,7 +11,7 @@ import { blueprintEntities, shuttersEntities, type Entity, type EntityStore, typ
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";
-import { SHUTTERS_PLANK_COST } from "../sim/structures";
+import { SHUTTERS_PLANK_COST } from "../sim/structure-cabin-fittings";
 import { COURSE_RADIUS_METRES } from "./log-courses";
 import { WINDOW_OPENING, WINDOW_OPENING_WIDTH_METRES } from "./window-shape";
 import { PLANK_WOOD_COLOUR } from "./plank-furniture-meshes";

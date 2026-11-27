@@ -1,9 +1,9 @@
 // Says what a thing in the world is, given by its entity id. The action queue uses it to pick the icon of an action on it.
-import type { ThingView } from "./api";
+import type { ThingView } from "./api-scene-pick";
 import type { EntityStore } from "./entities";
 import { holdsAddOn } from "./add-ons";
 import { isHost } from "./structure-kind";
-import { structureKindOf } from "./structures";
+import { structureKindOf } from "./structure-queries";
 import { isSapling, isYoungTree } from "./tree-growth";
 
 /** What the entity with this id is, or undefined if it is gone or is none of the kinds ThingView names. */

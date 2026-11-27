@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { createGame } from "./game";
 import { FURNITURE } from "./furniture";
-import { FURNITURE_PART_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
+import { readSave, type SaveFile, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { FURNITURE_PART_SAVE_VERSION } from "./save-versions";
 import { FURNITURE_KINDS } from "./structure-kind";
 import { structureOf } from "./structures";
 import { piecesOf, storingPiecesOf } from "./test-steps";

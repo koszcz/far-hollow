@@ -4,7 +4,7 @@ import { CAMPFIRE_FUEL_LIMIT_MINUTES } from "../../sim/campfires";
 import { COOK_MINUTES } from "../../sim/fish-on-fire";
 import { FIRE_JUG_MINUTES } from "../../sim/jug-on-fire";
 import { type Entity } from "../../sim/entities";
-import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../../sim/structures";
+import { LEAN_TO_BARK_COST, LEAN_TO_BUILD_SECONDS, LEAN_TO_STICK_COST } from "../../sim/structure-camp";
 import { type PotLook, type PotMesh } from "../pot-shape";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "../firewood-shape";
 import { createSaw, SAW_TEETH_BELOW_GRIP_METRES } from "../saw-model";

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { queued, type ActionCommand, type GameView } from "../sim/api";
+import { queued, type ActionCommand } from "../sim/api-commands";
+import { type GameView } from "../sim/api-game-view";
 import type { Entity } from "../sim/entities";
 import { createGame, type Game } from "../sim/game";
 import { queuedAction, queuedActions, type QueuedAction } from "./queued-actions";

@@ -1,11 +1,12 @@
 // What may share ground with a cabin's building pieces, and where things land on a foundation's deck.
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
-import { structureOf, type EdgePieceKind, type StructureKind } from "./structures";
+import { type EdgePieceKind, type StructureKind } from "./structure-kind";
+import { structureOf } from "./structures";
 import { type QuarterTurns } from "./quarter-turns";
 import type { GroundPoint } from "./ground-point";
 import { isWalkable } from "./walk-map";

@@ -1,5 +1,7 @@
 // The hints in the HUD's context panel while the player places a structure or plants a sapling.
-import type { BuildMenuEntry, Plantable, Refusal, StructureKind } from "../sim/api";
+import type { Plantable, StructureKind } from "../sim/api";
+import type { BuildMenuEntry } from "../sim/api-build-menu";
+import type { Refusal } from "../sim/api-refusal";
 import { placingHint, plantingHint } from "./placing-hint";
 
 /** The hint shown while placing a structure: what to click, then the keys on a line of their own. */

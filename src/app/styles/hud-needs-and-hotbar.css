@@ -1,0 +1,429 @@
+/* The need group sits left of the hotbar, bottom aligned with it. When the screen is too narrow for both side by side, */
+/* the need group moves above the hotbar. The row runs right to left and wraps upwards, with the hotbar first, to do that. */
+.hud-dock-bottom {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap-reverse;
+  justify-content: center;
+  /* With the wrap reversed, the cross start is the bottom, so this aligns the bottoms. */
+  align-items: flex-start;
+  gap: 6px 10px;
+  max-width: 100%;
+}
+.hud-dock-bottom > .hud-hotbar {
+  order: -1;
+  min-width: 0;
+}
+/* The need group: one round gauge per need, in a row. */
+.hud-needs {
+  display: grid;
+  grid-template-columns: repeat(4, 46px);
+  gap: 6px;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 18px;
+  pointer-events: auto;
+}
+.hud-needs .hud-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+.hud-need {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+/* A ring in the need's colour that fills with its level, with the need's icon inside. */
+.hud-need-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+}
+.hud-need-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--hud-bar) calc(var(--hud-level) * 1turn), rgb(255 255 255 / 0.1) 0);
+  -webkit-mask: radial-gradient(circle, transparent 16px, #000 17px);
+  mask: radial-gradient(circle, transparent 16px, #000 17px);
+}
+.hud-need-ring .hud-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--hud-bar);
+}
+.hud-need-label {
+  font-size: 10px;
+  line-height: 1.1;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.hud-need-low {
+  animation: hud-pulse 1.2s ease-in-out infinite;
+}
+.hud-meter-label {
+  width: 64px;
+  flex: none;
+}
+/* The hotbar stays one row high. Its cells narrow to fit, and on a very small screen the cells scroll sideways. */
+.hud-hotbar {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+/* The hotbar draws its glass on a layer behind its cells. A blur on the hotbar itself would trap the build and craft menus, */
+/* and the clear layer that closes them, inside the hotbar. */
+.hud-panel.hud-hotbar {
+  padding: 8px;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.hud-hotbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 18px;
+}
+.hud-hotbar .hud-backpack {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+/* The cells scroll sideways, which clips anything outside the list. The list reaches up over the space above the hotbar, */
+/* without taking that space, so a cell's name label above it stays in view. */
+.hud-hotbar .hud-backpack .hud-hotbar-cells {
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin-top: -44px;
+  padding-top: 44px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+/* A hotbar cell is a 58 px square with a faint light fill. It shows its icon, a count top right, and its number key bottom left. */
+/* Its name shows only in a label above it, while the player points at it or focuses it. */
+.hud-backpack .hud-hotbar-cells li {
+  flex: 0 1 58px;
+  width: 58px;
+  min-width: 46px;
+  height: 58px;
+  background: rgb(255 230 200 / 0.05);
+  border: none;
+  border-radius: 12px;
+}
+/* Two classes, so this padding beats the zero padding of .hud-content-move further down. */
+.hud-content-move.hud-hotbar-cell {
+  position: relative;
+  padding: 0;
+  border-radius: 12px;
+}
+.hud-hotbar-cell .backpack-icon,
+.hud-hotbar-cell .hud-icon {
+  width: 38px;
+  max-width: calc(100% - 8px);
+  height: auto;
+  aspect-ratio: 1;
+}
+.hud-content-move.hud-hotbar-cell:hover,
+.hud-content-move.hud-hotbar-cell:focus-visible {
+  background: var(--hud-amber-tint);
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--hud-amber);
+}
+/* The name label: a pill above the cell. It sits over the middle of the cell, except at either end of the row, */
+/* where it lines up with the cell's outer edge so the list does not clip it. */
+.hud-hotbar-name {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  z-index: 1;
+  padding: 3px 9px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.hud-hotbar-cell:hover .hud-hotbar-name,
+.hud-hotbar-cell:focus-visible .hud-hotbar-name {
+  display: block;
+}
+.hud-hotbar-cells li:first-child .hud-hotbar-name {
+  left: 0;
+  transform: none;
+}
+.hud-hotbar-cells li:last-child .hud-hotbar-name {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+.hud-hotbar-cells li:first-child:last-child .hud-hotbar-name {
+  right: auto;
+}
+.hud-hotbar-key {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--hud-text);
+  opacity: 0.5;
+}
+/* In a hotbar cell the count sits top right. */
+.hud-hotbar-cell .hud-backpack-count {
+  top: 4px;
+  right: 6px;
+  bottom: auto;
+}
+/* The log on the shoulder and the dragged sled sit apart from the backpack contents. */
+.hud-backpack .hud-hotbar-cells .hud-hotbar-shoulder,
+.hud-backpack .hud-hotbar-cells .hud-hotbar-sled,
+.hud-backpack .hud-hotbar-cells .hud-hotbar-torch {
+  margin-right: 6px;
+  box-shadow: inset 0 0 0 1px var(--hud-edge);
+}
+/* The lit torch's gauge: a thin amber bar along the bottom of its cell that shrinks as the torch burns down. */
+.hud-hotbar-gauge {
+  position: absolute;
+  right: 8px;
+  bottom: 5px;
+  left: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--hud-amber) calc(var(--hud-level) * 100%), rgb(255 255 255 / 0.12) 0);
+}
+/* A fresh food's cell has a number key in its bottom left corner, so its freshness bar starts after it. */
+.hud-hotbar-gauge-keyed {
+  left: 16px;
+}
+/* The build and craft buttons sit side by side at the right end of the hotbar, apart from the backpack contents. */
+.hud-hotbar-tools {
+  position: relative;
+  flex: none;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 10px;
+  border-left: 1px solid var(--hud-edge);
+}
+/* Each is a 58 px square with an amber tint: its icon over its name, and its key in the top right corner. */
+.hud-button.hud-tool-button {
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 58px;
+  height: 58px;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgb(240 160 75 / 0.14);
+  border: 1px solid rgb(240 160 75 / 0.35);
+  border-radius: 12px;
+}
+.hud-button.hud-tool-button .hud-icon {
+  width: 26px;
+  height: 26px;
+}
+.hud-tool-button[aria-pressed="true"] {
+  background: rgb(240 160 75 / 0.3);
+  border-color: var(--hud-amber);
+}
+.hud-tool-button .hud-key {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  font-size: 9px;
+  border: none;
+}
+/* The key that does the same as a button, such as "B" on the build button. */
+.hud-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--hud-text);
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid var(--hud-edge);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+/* The keys that work while placing, on a line of their own under the hint. */
+.hud-placing-keys {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.hud-backpack ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hud-backpack li {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  background: #3d2b1e;
+  border: 1px solid #5a3f2a;
+  border-radius: 6px;
+}
+.hud-chest ul {
+  max-width: 100%;
+}
+/* A weight ring: the backpack icon inside a ring that fills with the weight held, in amber, or the warning colour when nearly full. */
+/* The backpack's ring is a 58 px cell at the start of the hotbar. The open chest or shelf has a smaller one in its heading. */
+.hud-weight-ring {
+  --hud-load: var(--hud-amber);
+  --hud-ring-size: 58px;
+  --hud-ring-hole: 21px;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--hud-ring-size);
+  height: var(--hud-ring-size);
+  border-radius: 50%;
+  cursor: default;
+}
+.hud-weight-ring::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--hud-load) calc(var(--hud-level) * 1turn), rgb(255 255 255 / 0.1) 0);
+  -webkit-mask: radial-gradient(circle, transparent var(--hud-ring-hole), #000 calc(var(--hud-ring-hole) + 1px));
+  mask: radial-gradient(circle, transparent var(--hud-ring-hole), #000 calc(var(--hud-ring-hole) + 1px));
+}
+.hud-weight-ring .hud-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--hud-load);
+}
+.hud-weight-ring-warn {
+  --hud-load: var(--hud-warning);
+}
+.hud-weight-ring-warn .hud-icon {
+  animation: hud-pulse 1.2s ease-in-out infinite;
+}
+.hud-weight-ring:focus-visible {
+  outline: 2px solid var(--hud-amber);
+  outline-offset: 1px;
+}
+/* The exact weight, in a pill above the ring, while the player points at it or focuses it. */
+.hud-weight-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
+  pointer-events: none;
+}
+.hud-weight-ring:hover .hud-weight-tip,
+.hud-weight-ring:focus-visible .hud-weight-tip {
+  display: block;
+}
+.hud-section h2 .hud-weight-ring {
+  --hud-ring-size: 30px;
+  --hud-ring-hole: 10px;
+}
+.hud-section h2 .hud-weight-ring::before {
+  inset: 1px;
+}
+.hud-section h2 .hud-weight-ring .hud-icon {
+  width: 15px;
+  height: 15px;
+}
+/* The thin line between the backpack ring and the backpack contents. */
+.hud-hotbar-divider {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  margin: 4px 2px;
+  background: var(--hud-edge);
+}
+.hud-icon-button {
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+}
+.hud-icon-button .hud-icon {
+  width: 26px;
+  height: 26px;
+}
+.hud-icon-button[aria-pressed="true"] {
+  background: var(--hud-amber-tint);
+  border-color: var(--hud-amber);
+}
+.hud [data-tip] {
+  position: relative;
+}
+.hud-icon-button[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 1;
+  padding: 3px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.hud-pause .hud-icon-button[data-tip]:hover::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}

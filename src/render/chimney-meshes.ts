@@ -8,7 +8,7 @@
 import * as THREE from "three";
 import { blueprintEntities, chimneyEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
-import { CHIMNEY_STONE_COST } from "../sim/structures";
+import { CHIMNEY_STONE_COST } from "../sim/structure-cabin-fittings";
 import { CHIMNEY_BASE_METRES, CHIMNEY_MIDDLE, chimneyTopAt } from "./chimney-height";
 import { createChimneyStageShapes, type ChimneyStageShape } from "./chimney-shape";
 import type { OutlinePart } from "./hover-outline";

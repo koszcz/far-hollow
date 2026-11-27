@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { createEntityStore, logEntities, lyingThings, type Entity, type Vec3 } from "./entities";
 import { createGame, type Game } from "./game";
 import { gardenThingInTheWay } from "./garden-things";
 import { PLANT_MUSHROOM_SECONDS } from "./mushroom-logs";
 import { createNeeds } from "./needs";
-import { MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION, MUSHROOM_LOGS_SAVE_VERSION, readSave, SAVE_VERSION, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { MUSHROOM_LOG_REFUSAL_RENAMED_SAVE_VERSION, MUSHROOM_LOGS_SAVE_VERSION } from "./save-versions";
 import { finishReach } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

@@ -29,7 +29,7 @@ import { edgePieceOn, isLaidInCourses } from "../sim/edge-pieces";
 import { blueprintEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
 import { SIDES, type EdgePieceKind } from "../sim/structure-kind";
 import { areOpposite, quarterTurnsToRadians, runsAlongX, turnOffset, type QuarterTurns } from "../sim/quarter-turns";
-import { ROOF_FRAME_LOG_COST } from "../sim/structures";
+import { ROOF_FRAME_LOG_COST } from "../sim/structure-cabin-shell";
 import { DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { CORNER_STAGGER_METRES } from "./log-courses";
 import type { OutlinePart } from "./hover-outline";

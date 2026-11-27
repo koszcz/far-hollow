@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import { edgeMiddle } from "./edge-pieces";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
@@ -8,17 +8,13 @@ import type { GroundPoint } from "./ground-point";
 import { findPath } from "./pathfinding";
 import type { QuarterTurns } from "./quarter-turns";
 import { isUnderRoof } from "./roofs";
-import { readSave, SAVE_VERSION, SNUG_ROOM_NOTICE_SAVE_VERSION, WINDOWS_SAVE_VERSION, writeSave } from "./save";
-import {
-  LOG_WALL_LOG_COST,
-  SHUTTERS_BUILD_SECONDS,
-  SHUTTERS_PLANK_COST,
-  structureOf,
-  WINDOW_BUILD_SECONDS,
-  WINDOW_LOG_COST,
-  type EdgePieceKind,
-  type StructureKind,
-} from "./structures";
+import { readSave, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { SNUG_ROOM_NOTICE_SAVE_VERSION, WINDOWS_SAVE_VERSION } from "./save-versions";
+import { LOG_WALL_LOG_COST, WINDOW_BUILD_SECONDS, WINDOW_LOG_COST } from "./structure-cabin-shell";
+import { SHUTTERS_BUILD_SECONDS, SHUTTERS_PLANK_COST } from "./structure-cabin-fittings";
+import { structureOf } from "./structures";
+import { type EdgePieceKind, type StructureKind } from "./structure-kind";
 import { isWalkable } from "./walk-map";
 import { firelitWindows } from "./window-glow";
 

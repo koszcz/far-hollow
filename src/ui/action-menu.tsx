@@ -1,7 +1,9 @@
 // The list of actions a click on a thing opens. It sits beside the click, with the main action on top.
 // Its look lives in the .action-menu rules of src/app/style.css. src/ui/action-menu-place.ts decides where it goes.
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { queued, type GameClient, type Plantable } from "../sim/api";
+import { queued } from "../sim/api-commands";
+import { type GameClient } from "../sim/api-client";
+import { type Plantable } from "../sim/api";
 import { strings } from "../strings";
 import { placeActionMenu } from "./action-menu-place";
 import { BackpackIcon } from "./backpack-icons";

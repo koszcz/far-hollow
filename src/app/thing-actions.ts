@@ -6,10 +6,8 @@
 import {
   CAMPFIRE_FUELS,
   CARRIED_LOGS,
-  furnitureMoreUses,
   isCarriedLog,
   isHost,
-  furnitureUse,
   hasRoom,
   holdsWater,
   isJug,
@@ -18,26 +16,13 @@ import {
   withOneMoreDrink,
   WOODPILE_WOODS,
 } from "../sim/api";
-import type {
-  BackpackContent,
-  CampfireView,
-  CarriedLog,
-  DryingRackView,
-  FoodToHang,
-  CarriedThing,
-  Command,
-  FurnitureKind,
-  FurnitureUse,
-  GroundOrThingPick,
-  JugContent,
-  Plantable,
-  ScenePick,
-  GameClient,
-  GameView,
-  SledView,
-  WoodpileView,
-  WoodpileWood,
-} from "../sim/api";
+import { furnitureMoreUses, furnitureUse } from "../sim/api-build-menu";
+import type { BackpackContent, CarriedLog, FoodToHang, CarriedThing, FurnitureKind, FurnitureUse, JugContent, Plantable, WoodpileWood } from "../sim/api";
+import type { CampfireView, DryingRackView, SledView, WoodpileView } from "../sim/api-nearby";
+import type { Command } from "../sim/api-commands";
+import type { GroundOrThingPick, ScenePick } from "../sim/api-scene-pick";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
 import { strings } from "../strings";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import { refusalText } from "../ui/refusal-text";

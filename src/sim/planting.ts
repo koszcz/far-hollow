@@ -2,7 +2,7 @@
 // and leaves it growing there. A sapling grows into a full tree as a felled tree does, but from the sapling stage. It does not
 // block walking until it becomes a young tree. A berry bush bears its first berries 2 days after planting, then works like a
 // wild bush. It never blocks walking. See .scratch/regrowth/spec.md and .scratch/garden/spec.md.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { CommandRules } from "./command-rule";
 import { hasInBackpack, removeFromBackpack, type Plantable } from "./backpack";
@@ -23,7 +23,7 @@ import { groundDistance, type GroundPoint } from "./ground-point";
 import { distanceToLogBody, logBody } from "./log-body";
 import { isRiverBank } from "./river-bank-work";
 import { isInRect, widenRect } from "./structure-kind";
-import { footprintOfEntity, placedStructures } from "./structures";
+import { footprintOfEntity, placedStructures } from "./structure-queries";
 import { startOfStage } from "./tree-growth";
 import { terrainHeightAt, TREE_MIN_SPACING_METRES, type Valley } from "./valley";
 import { cellIndexAt, type WalkMap } from "./walk-map";

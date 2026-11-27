@@ -1,13 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import type { BackpackContent, Command } from "./api";
-import { nearbyOf } from "./api";
+import type { BackpackContent } from "./api";
+import type { Command } from "./api-commands";
+import { nearbyOf } from "./api-game-view";
 import { BACKPACK_WEIGHT_LIMIT_KG, CONTENT_WEIGHT_KG } from "./backpack";
 import { FUEL_BURN_MINUTES } from "./campfires";
 import type { Entity } from "./entities";
 import { COOK_MINUTES, FISH_ON_FIRE_LIMIT } from "./fish-on-fire";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
-import { COOKING_SAVE_VERSION, readSave, SAVE_VERSION, writeSave, type SaveFile } from "./save";
-import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structures";
+import { readSave, type SaveFile, writeSave } from "./save";
+import { SAVE_VERSION } from "./save-upgrades";
+import { COOKING_SAVE_VERSION } from "./save-versions";
+import { CAMPFIRE_BUILD_SECONDS, CAMPFIRE_STICK_COST } from "./structure-camp";
 import { finishReach, storingPiecesOf } from "./test-steps";
 import { isWalkable } from "./walk-map";
 

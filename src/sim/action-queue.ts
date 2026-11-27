@@ -2,7 +2,9 @@
 // The player adds an action to the end with a Shift-click. A plain click empties the waiting actions.
 // The queue knows no activity by name. It asks the game, through the functions it is given, whether the player is busy,
 // and asks the rule of the action under way whether an action with no end may stop for the next one.
-import { ACTION_QUEUE_LIMIT, type ActionCommand, type Command, type Notice, type PlainNotice, type Refusal } from "./api";
+import { ACTION_QUEUE_LIMIT, type ActionCommand, type Command } from "./api-commands";
+import { type Notice, type PlainNotice } from "./api-notice";
+import { type Refusal } from "./api-refusal";
 
 /** What the action queue needs to know about one kind of command, from its command rule. */
 export interface QueueRule {

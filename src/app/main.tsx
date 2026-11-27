@@ -3,7 +3,7 @@ import { attachCameraInput } from "../render/camera-input";
 import { CAMERA_FIELD_OF_VIEW_DEGREES, createSceneRenderer } from "../render/scene-renderer";
 import { loadModelShapes } from "../render/model-shapes";
 import { createFixedStepLoop } from "../sim/fixed-step-loop";
-import type { Refusal } from "../sim/api";
+import type { Refusal } from "../sim/api-refusal";
 import { createGame, STEP_MS, type Game } from "../sim/game";
 import { continueOrStartGame, describeSave, writeSave } from "../sim/save";
 import { randomSeed } from "../sim/seed";

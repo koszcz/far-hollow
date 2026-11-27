@@ -1,6 +1,9 @@
 // The HUD's backpack: the hotbar, the weight ring, and the open chest's grid of contents.
-import type { BackpackContent, ChestView, GameClient, GameView } from "../sim/api";
-import { isCarriedLog, isFreshFood, type FreshnessViews } from "../sim/api";
+import type { BackpackContent } from "../sim/api";
+import type { GameClient } from "../sim/api-client";
+import type { GameView } from "../sim/api-game-view";
+import type { ChestView, FreshnessViews } from "../sim/api-nearby";
+import { isCarriedLog, isFreshFood } from "../sim/api";
 import { strings } from "../strings";
 import { BackpackIcon, ShadedIcon } from "./backpack-icons";
 import { chestTakeReason } from "./menu-refusals";

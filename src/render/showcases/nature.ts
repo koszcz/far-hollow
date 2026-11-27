@@ -1,6 +1,7 @@
 // Showcases for the land and what grows on it: ground, river, trees, undergrowth, and logs. The registry is src/render/showcases/index.ts.
 import { crownColour, isBroadleaf } from "../autumn-leaves";
-import { createTreeMaterial, TREE_COLOURS } from "../forest-meshes";
+import { createTreeMaterial } from "../tree-batches";
+import { TREE_COLOURS } from "../tree-model";
 import { createSaplingShapes } from "../sapling-shape";
 import { createFarTreeShape } from "../tree-far-shape";
 import { createUndergrowthMaterial, undergrowthSway } from "../undergrowth-meshes";

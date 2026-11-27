@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { createNeeds } from "./needs";
-import { LARGE_VALLEY_UPGRADES, readSave, writeSave } from "./save";
+import { readSave, writeSave } from "./save";
+import { LARGE_VALLEY_UPGRADES } from "./save-upgrades";
 import { distanceToRiver, generateValley } from "./valley";
 import { groundDistance } from "./ground-point";
 import { finishReach } from "./test-steps";

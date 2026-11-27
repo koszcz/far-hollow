@@ -23,8 +23,8 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
-    // 528 was the longest file on 2026-11-27: src/sim/rain-barrel.test.ts.
-    "max-lines": ["error", { "max": 528 }],
+    // 521 was the longest file on 2026-11-27: src/render/roof-meshes.ts.
+    "max-lines": ["error", { "max": 521 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",

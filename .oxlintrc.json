@@ -22,6 +22,8 @@
     "third-party"
   ],
   "rules": {
+    // Lower this cap whenever a split brings the longest file down. Never raise it.
+    "max-lines": ["error", { "max": 1175 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",

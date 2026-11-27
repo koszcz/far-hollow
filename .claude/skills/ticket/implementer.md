@@ -17,7 +17,7 @@ Your worktree's guard refuses `$(git …)` inside another command, `&&` chains w
 ## Steps
 
 1. **Start from main.** Run `git merge-base --is-ancestor main HEAD`. If it fails, run `git reset --hard main`. Create your branch with `git switch -c <feature>-<NN>`. Set your ticket to `building` with the note "reading". Done when your branch starts at the tip of local `main`.
-2. **Build it test-first.** Call the Skill tool with `mattpocock-skills:tdd` and build the ticket. Follow the ticket's `**Assets:**` line and the Assets section of AGENTS.md. Done when every acceptance item of the ticket has a passing test or a check you ran.
+2. **Build it test-first.** Call the Skill tool with `mattpocock-skills:tdd` and build the ticket. Follow the ticket's `**Assets:**` line and the Assets section of AGENTS.md. Before you play the game in a browser or take a screenshot, read `docs/agents/game-testing.md` and check behaviour through game state. Take a screenshot only for a visual result, such as a model, a texture, or the layout. Done when every acceptance item of the ticket has a passing test or a check you ran.
 3. **Resolve it.** Set the ticket file's `Status:` line to `resolved`. Run `make fix`, then commit your work. Done when `git status` is clean.
 4. **Land it.** Set your ticket to `landing`. Run `make land`. On a merge conflict, resolve it, commit, and run `make land` again. If `make check` fails, fix the cause and run it again. Done when `make land` reports that your branch is on main.
 

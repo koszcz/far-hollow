@@ -1,5 +1,7 @@
 // Checks that stored data has the shape of a save, so a broken save is turned away before the game loads it.
-import type { BackpackContent, GameNotice, PlainRefusal } from "./api";
+import type { BackpackContent } from "./api";
+import type { GameNotice } from "./api-notice";
+import type { PlainRefusal } from "./api-refusal";
 import { CONTENT_WEIGHT_KG } from "./backpack";
 import type { Entity } from "./entities";
 import { isFillProgress } from "./fill-level";

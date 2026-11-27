@@ -1,6 +1,6 @@
 // The jug's fill level: how many drinks of clean water a jug holds. Each fill level is its own backpack content.
 // It imports only types, so the backpack can take its weights from here. See ADR 0009.
-import type { Refusal } from "./api";
+import type { Refusal } from "./api-refusal";
 import type { BackpackContent, BackpackContents } from "./backpack";
 
 /** The most drinks a jug holds. */

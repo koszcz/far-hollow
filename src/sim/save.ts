@@ -1,5 +1,6 @@
 // Saving and loading a game. Saves are plain data, read from game state only (ADR 0003).
-import type { BackpackContent, SaveRefusal, SaveSlotSummary } from "./api";
+import type { BackpackContent } from "./api";
+import type { SaveRefusal, SaveSlotSummary } from "./api-save";
 import { readClock } from "./clock";
 import { addCount, countOf } from "./counts";
 import type { Entity, SavedEntity } from "./entities";

@@ -1,5 +1,6 @@
 // What a number key sends. A click on a hotbar cell opens the action menu instead. The cells and their order come from src/ui/hotbar-cells.ts.
-import { queued, type Command, type Plantable } from "../sim/api";
+import { queued, type Command } from "../sim/api-commands";
+import { type Plantable } from "../sim/api";
 import { hotbarCells, type HotbarTarget } from "../ui/hotbar-cells";
 import { actionsFor, mainAction, type ActionReader, type ThingAction } from "./thing-actions";
 

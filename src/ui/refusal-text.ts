@@ -1,5 +1,6 @@
 // The words for why the game refuses a command. A greyed-out action shows them, and so do notices about the action queue.
-import type { BuildLack, RecipeLack, Refusal } from "../sim/api";
+import type { BuildLack, Refusal } from "../sim/api-refusal";
+import type { RecipeLack } from "../sim/api";
 import { strings } from "../strings";
 
 /** Says why the game refuses a command, as a greyed-out action shows it, such as "needs the axe". */

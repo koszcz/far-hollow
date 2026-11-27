@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Command, Refusal } from "../sim/api";
+import type { Command } from "../sim/api-commands";
+import type { Refusal } from "../sim/api-refusal";
 import { plantCommandFor, plantUnderMouse, pressPlantKey } from "./plant-mode";
 
 /** A game that refuses planting at x below 0, and records what it was asked about. */

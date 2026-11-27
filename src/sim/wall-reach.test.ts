@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Command } from "./api";
+import type { Command } from "./api-commands";
 import type { Entity } from "./entities";
 import { foundationDeckTop } from "./foundations";
 import { createGame, type Game } from "./game";
@@ -7,7 +7,7 @@ import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import { addFinished, onlyPlayer, openFoundation, stepUntil } from "./test-steps";
 import { isBehindWall, wallsIn } from "./wall-reach";
-import { nearbyOf } from "./api";
+import { nearbyOf } from "./api-game-view";
 
 // Reach never crosses a wall: the player acts on a thing only from the thing's side of every log wall and window.
 // The tests build a cabin of 3 by 3 foundation squares, walled all round. Its west wall, on the -x side, has a log wall or a

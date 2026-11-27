@@ -5,7 +5,9 @@
 // Reach never crosses a wall. The walk takes the player to the thing's side of every wall, through a door frame if needed.
 // If no walk leads there, the approach does not start, and a notice says the player can't get to it.
 import type { Activity } from "./activity";
-import type { ActionCommand, Notice, PlainNotice, Refusal } from "./api";
+import type { ActionCommand } from "./api-commands";
+import type { Notice, PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
 import type { GroundPoint } from "./ground-point";
 import { refusedNotice } from "./notices";

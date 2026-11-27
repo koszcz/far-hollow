@@ -3,23 +3,12 @@ import { createGroundChanges } from "./ground-changes";
 import type { GroundMap } from "./ground-types";
 import { TREE_WALK_BLOCK_RADIUS_METRES } from "./tree-size";
 import { createActionQueue } from "./action-queue";
-import type {
-  ActionCommand,
-  BedrollView,
-  CampfireView,
-  Command,
-  GameClient,
-  GameView,
-  NearbyThing,
-  NearbyViews,
-  Notice,
-  PileView,
-  PlainNotice,
-  PlayerAction,
-  Refusal,
-  SleepView,
-  EatOrDrinkView,
-} from "./api";
+import type { ActionCommand, Command } from "./api-commands";
+import type { BedrollView, CampfireView, NearbyThing, NearbyViews, PileView } from "./api-nearby";
+import type { GameClient } from "./api-client";
+import type { GameView, PlayerAction, SleepView, EatOrDrinkView } from "./api-game-view";
+import type { Notice, PlainNotice } from "./api-notice";
+import type { Refusal } from "./api-refusal";
 import { createBedrolls, type BedrollEntity, bedrollRules } from "./bedrolls";
 import { createBeds, type BedEntity, bedRules } from "./beds";
 import { createStools, stoolRules } from "./stools";
@@ -534,7 +523,7 @@ export function createGame({
    * This file keeps only what every command shares: hands busy with a sled, standing up from a stool, cancelling tasks,
    * and the action queue. A new command touches these files, and no other file in the sim:
    * - its activity module, which exports its rule (see command-rule.ts);
-   * - the `Command` union in src/sim/api.ts;
+   * - the `Command` union in src/sim/api-commands.ts;
    * - the save check for commands in src/sim/save-schema.ts;
    * - the UI files that offer it, such as src/app/thing-actions.ts;
    * - src/strings.ts, for its label.

@@ -1,5 +1,8 @@
 import * as THREE from "three";
-import type { EatOrDrinkView, GroundOrThingPick, PlacingBlueprint, Plantable, ScenePick, SeasonDay, SleepView } from "../sim/api";
+import type { EatOrDrinkView, SleepView } from "../sim/api-game-view";
+import type { GroundOrThingPick, ScenePick } from "../sim/api-scene-pick";
+import type { PlacingBlueprint } from "../sim/api-client";
+import type { Plantable, SeasonDay } from "../sim/api";
 import { playerActivity } from "../sim/activity";
 import { diggingClayNow } from "../sim/clay";
 import { gatheringStoneNow } from "../sim/stone";

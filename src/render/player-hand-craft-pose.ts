@@ -4,7 +4,8 @@
 // the shoulders dip with the tug. The head bows to watch. It is posed in code on top of the idle clip with the build
 // pose's bones, so it has no clip of its own. hand-craft-work.ts draws the bundle and the cord. Added by player motions
 // ticket 02. The owner approved it.
-import { recipeOf, type RecipeKind } from "../sim/crafting";
+import { recipeOf } from "../sim/crafting-recipes";
+import type { RecipeKind } from "../sim/recipe-kind";
 import { scaleBuildPose, type BuildPose, type HandSpot } from "./player-build-pose";
 import { easeInOut, lerp, smoothstep } from "./easing";
 

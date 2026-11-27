@@ -1,5 +1,5 @@
 import type { BackpackContent, Food } from "./backpack";
-import type { RecipeKind } from "./crafting";
+import type { RecipeKind } from "./recipe-kind";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";
 import type { FoodToHang } from "./rack-food";

@@ -1,5 +1,5 @@
 // The showcase of the "sawing-animation".
-import { PLANKS_CRAFT_SECONDS } from "../../../sim/crafting";
+import { PLANKS_CRAFT_SECONDS } from "../../../sim/crafting-recipes";
 import { SAW_STANCE_METRES, SAW_STROKE_SECONDS } from "../../player-saw-pose";
 import type { Showcase } from "../types";
 

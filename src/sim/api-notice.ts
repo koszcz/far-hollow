@@ -1,6 +1,6 @@
 import type { Refusal } from "./api-refusal";
 import type { BackpackContent } from "./backpack";
-import type { RecipeLack } from "./crafting";
+import type { RecipeLack } from "./crafting-recipes";
 import type { FreshFood } from "./fresh-food";
 import type { WorkStationKind } from "./structure-kind";
 

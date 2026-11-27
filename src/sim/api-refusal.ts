@@ -1,5 +1,5 @@
 import type { BackpackContent } from "./backpack";
-import type { RecipeLack } from "./crafting";
+import type { RecipeLack } from "./crafting-recipes";
 import type { BuildMaterial } from "./structure-types";
 import type { CampfireFuel } from "./wood-and-fuel";
 

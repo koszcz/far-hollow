@@ -1074,7 +1074,8 @@
       "id": "sled",
       "kind": "code",
       "code": [
-        "src/render/sled-meshes.ts"
+        "src/render/sled-meshes.ts",
+        "src/render/sled-body-shapes.ts"
       ],
       "description": "The sled: two log runners made from the logs asset's Kenney log, stretched to 1.8 m and lying side by side 0.8 m apart, with four crooked sticks laid across them. The front of each runner curves up and narrows like a skid. Dark rope lashes each stick to each runner in an X, and a tow rope runs in a V from the runner tips to a loop in front. While the player drags the sled, this flat tow rope hides and the draft sled-rope draws it lifted instead. The runners show dark bark and pale cut ends, and the sticks are the stick colour with pale cut ends. As a blueprint it shows see-through, each delivered log waits pale and half solid in its runner's place, and construction lays one runner per log, then one lashed cross piece per stick; the last brings the tow rope. A finished sled shows the 0 to 6 logs and debarked logs on it, lying along the runners: logs first, then debarked logs, stacked in a pyramid of three on the cross pieces, two above, and one on top. They use the logs and debarked-log shapes. A sled the player has dragged points the way it was last pulled, front first, at any angle.",
       "source": "Built in code in this project",
@@ -1090,7 +1091,8 @@
       "kind": "code",
       "code": [
         "src/render/sled-plank-meshes.ts",
-        "src/render/sled-meshes.ts"
+        "src/render/sled-meshes.ts",
+        "src/render/sled-body-shapes.ts"
       ],
       "description": "The 0 to 24 planks lying on a finished sled, drawn on top of the approved sled model. Each plank is the pile's plank shape: a flat board of pale sawn wood, 0.8 m long, in one of three near tones, with darker sawn ends. The planks lie flat along the runners in layers of eight, two end to end and four side by side. Each layer and plank slides a little so the ends of the stack are ragged. Two rope lashings bind every full layer. Planks in a layer that is not full lie loose on top. They rest on the cross pieces when the sled holds no logs, and on top of the logs when it does.",
       "source": "Built in code in this project",
@@ -1442,7 +1444,8 @@
       "kind": "code",
       "code": [
         "src/render/sled-rope.ts",
-        "src/render/sled-meshes.ts"
+        "src/render/sled-meshes.ts",
+        "src/render/sled-body-shapes.ts"
       ],
       "description": "The short rope the player drags a sled by. While the sled is dragged it takes the place of the sled's own tow rope. It runs in a V from the two runner tips to a knot 34 cm in front of them, lifted toward the hand, and from the knot to the player's left hand, held low behind the left hip. A turn of rope wraps the hand, and an 11 cm tail hangs from it. It is light hemp, laid from three twisted strands, 2.2 cm across, the same colour as the parked sled's tow rope. While the player walks it pulls taut and sags 2 cm. When they stand still it goes slack: it sags 15 cm, the knot drops 8 cm, and the V sags 3 cm. It eases between the two in about 0.15 s. It follows the player and the sled as they move, shows only while the player drags a sled, and hides at once when they let go.",
       "source": "Built in code in this project",

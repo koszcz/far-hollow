@@ -5,7 +5,7 @@ import { nightHoursOf } from "../../sim/season";
 import { type PotMesh } from "../pot-shape";
 import type { SaplingModels } from "../sapling-shape";
 import type { TreeShape } from "../tree-model";
-import { type PlayerMesh } from "../player-mesh";
+import { type PlayerMesh } from "../player-mesh-type";
 import type { UndergrowthShape } from "../undergrowth-models";
 import type { WindSway } from "../wind-sway";
 

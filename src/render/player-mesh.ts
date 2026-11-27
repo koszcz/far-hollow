@@ -19,65 +19,41 @@ import { HAND_AT_SECONDS, REACH_SECONDS } from "../sim/hand-reach";
 import { BACKPACK_DEPTH, createBackpack, type Backpack } from "./backpack-shape";
 import { applyBuildPose, scaleBuildPose, type BuildBones, type BuildPose } from "./player-build-pose";
 import { createDebarkedLogGeometry } from "./debarked-log-shape";
-import type { RopeHold } from "./sled-rope";
 import { smoothstep } from "./easing";
 import type { Leaving } from "./work-motion";
-import { blendLeftAt, REACH_BLEND_IN_SECONDS, REACH_BLEND_OUT_SECONDS, reachPoseAt } from "./player-reach-pose";
+import { reachPoseAt } from "./player-reach-pose";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { sleepBodyAt, sleepBreathAt } from "./sleep-animation";
 import type { SitBody } from "./sit-animation";
 import type { PlayerModel } from "./player-model";
-import { createPlayerMotions, type MotionId, type MotionMoment } from "./player-motions/motion-list";
+import {
+  CARRY_CLIP,
+  CHOP_CLIP,
+  IDLE_CLIP,
+  LIE_DOWN_CLIP,
+  LIE_IDLE_CLIP,
+  ON_BACK_CLIP,
+  REACH_CLIPS,
+  SIT_CLIPS,
+  SPLIT_CLIP,
+  STAND_UP_CLIP,
+  WALK_CLIP,
+} from "./player-clip-names";
+import { createBeanie } from "./player-beanie";
+import { contactSeconds, createShowClip } from "./player-clip-show";
+import { createClipPoseMemory } from "./player-clip-pose";
+import { createReachBlend } from "./player-reach-blend";
+import type { PlayerMesh } from "./player-mesh-type";
+import { CHOP_SWINGS_PER_SECOND, MODEL_SCALE, SPLIT_STRIKES_PER_SECOND, STRIDE_METRES } from "./player-timing";
+import { createPlayerMotions } from "./player-motions/motion-list";
 import { freeArms, type PlayerMotion, type PlayerRig } from "./player-motions/player-motion";
 
-/** The Barbarian is modelled about 2.4 units tall with his hood. This scale makes him about 1.85 m tall in it. */
-const MODEL_SCALE = 0.78;
 /** GLTFLoader drops the dots from node names, so "handslot.r" in the file is "handslotr" here. */
 const HIDDEN_PARTS = ["1H_Axe_Offhand", "Barbarian_Round_Shield", "2H_Axe", "Mug", "Barbarian_Hat", "Barbarian_Cape"];
 const AXE_PART = "1H_Axe";
-const BEANIE_COLOUR = 0xb08a5e;
-const BEANIE_CUFF_COLOUR = 0x96714a;
 
-const IDLE_CLIP = "Idle";
-const WALK_CLIP = "Running_A";
-const CHOP_CLIP = "2H_Melee_Attack_Slice";
-const SPLIT_CLIP = "2H_Melee_Attack_Chop";
-const LIE_DOWN_CLIP = "Lie_Down";
-const LIE_IDLE_CLIP = "Lie_Idle";
-const STAND_UP_CLIP = "Lie_StandUp";
-/** The clip that lies the body flat on its back. KayKit made it as a death pose. Here it is the sleeping pose. */
-const ON_BACK_CLIP = "Death_A_Pose";
 /** How far the chest turns up on a full slow breath while asleep, in radians about the chest's own x axis. */
 const SLEEP_BREATH_RADIANS = 0.035;
-/** The clips for sitting down on a stool, resting there, and standing up: the approved "sit-animation". */
-const SIT_CLIPS = { sitDown: "Sit_Chair_Down", sitIdle: "Sit_Chair_Idle", standUp: "Sit_Chair_StandUp" } as const;
-/** The clips for reaching to the ground, and out at waist height. */
-const REACH_CLIPS: Readonly<Record<ReachHeight, string>> = { low: "PickUp", waist: "Interact" };
-/** The clip that holds both arms still while the right hand steadies a log on the shoulder. */
-const CARRY_CLIP = "Walking_B";
-
-/** Seconds each clip lasts, as KayKit made them. The game plays each at its own speed. */
-const CHOP_CLIP_SECONDS = 1.1;
-const SPLIT_CLIP_SECONDS = 1.6333;
-
-/**
- * Metres walked in one full loop of the walk clip, left foot and right foot. Each foot moves 0.6 model units against
- * the hips while it is planted, so the feet stay put on the ground when the clip keeps pace with this.
- */
-export const STRIDE_METRES = 1.2 * MODEL_SCALE;
-
-/** How many times a second the player swings the axe at a tree: once per loop of the chop clip. */
-export const CHOP_SWINGS_PER_SECOND = 1 / CHOP_CLIP_SECONDS;
-/**
- * Moments in each chopping swing, as shares of one swing: the axe is drawn back over the left side by
- * `CHOP_RAISED_SHARE`, starts across at `CHOP_SWING_SHARE`, and strikes the trunk at `CHOP_STRIKE_SHARE`.
- */
-export const CHOP_RAISED_SHARE = 0.28;
-export const CHOP_SWING_SHARE = 0.31;
-export const CHOP_STRIKE_SHARE = 0.38;
-/** How many times a second the player strikes down at a log when splitting: once per loop of the split clip. */
-export const SPLIT_STRIKES_PER_SECOND = 1 / SPLIT_CLIP_SECONDS;
-
 /** The carried log rests here on the player's right shoulder, from the player's feet, in metres. The player faces +z, so the right side is -x. */
 const SHOULDER_LOG_SPOT = new THREE.Vector3(-0.3, 1.0, 0);
 /**
@@ -93,50 +69,6 @@ const CARRY_UPPER_ARM = new THREE.Euler(-1.3, 0, 1.3);
 const CARRY_FOREARM = new THREE.Euler(0, 0, 0);
 const CARRY_UPPER_ARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_UPPER_ARM);
 const CARRY_FOREARM_TURN = new THREE.Quaternion().setFromEuler(CARRY_FOREARM);
-
-export interface PlayerMesh {
-  /** Place this at the player's feet. */
-  readonly group: THREE.Group;
-  /** Turns the player to face along a direction on the ground, in radians from the +z axis toward +x. */
-  setHeading(radians: number): void;
-  /** Shows the log or debarked log on the player's shoulder, or hides it when given undefined. */
-  setCarryingLog(carrying: CarriedLog | undefined): void;
-  /** Moves the legs and arms in step. Pass the total metres walked so far, or undefined to stand still. */
-  setWalking(walkedMetres: number | undefined): void;
-  /** Swings the player as if chopping. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setChopping(nowSeconds: number | undefined): void;
-  /** Lifts the axe overhead and drops it as if splitting a log. Pass undefined to stand upright. `nowSeconds` is a steady real-time clock. */
-  setSplitting(nowSeconds: number | undefined): void;
-  /**
-   * Lies the player down to sleep, and gets them up again, as sleep-animation.ts times it. Pass the seconds since the
-   * player reached the bedroll, or undefined while not sleeping.
-   */
-  setSleeping(seconds: number | undefined): void;
-  /**
-   * Sits the player down on a stool, rests there, or stands them up, as sit-animation.ts times it.
-   * Pass which clip shows and how far into it, or undefined while not sitting.
-   */
-  setSitting(body: SitBody | undefined): void;
-  /**
-   * Bends down, or reaches out at waist height, to pick something up or put it down. Pass the seconds since the reach
-   * began, from 0 to REACH_SECONDS, or undefined while not reaching. The hand gets to the thing at HAND_AT_SECONDS.
-   * `distance` is how far the thing is in front of the player's feet, in metres, if known. The hand reaches toward it.
-   */
-  setReaching(reach: { height: ReachHeight; seconds: number; distance?: number } | undefined): void;
-  /**
-   * Moves the motion `id`, from the list in player-motions/motion-list.ts, on to `moment`, or stops it when `moment` is
-   * undefined. Each motion's module says what its moment is.
-   */
-  setMotion<Id extends MotionId>(id: Id, moment: MotionMoment<Id> | undefined): void;
-  /** Where the player holds the sled's rope, as world points, while dragging. Undefined while not dragging. See sled-drag-animation.ts. */
-  ropeHold(): RopeHold | undefined;
-  /**
-   * Copies where the lit torch's flame is, as a world point, into `target.position`, and how high it is above the player's feet
-   * into `target.aboveGroundMetres`. Returns false, and copies nothing, while no torch shows. See player-motions/torch.ts.
-   */
-  torchFlame(target: { readonly position: THREE.Vector3; aboveGroundMetres: number }): boolean;
-  dispose(): void;
-}
 
 /** playerModel is the loaded Barbarian, from loadPlayerModel. logShape is the loaded log, from loadLogShape. */
 export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): PlayerMesh {
@@ -196,50 +128,16 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   const sitClips = { sitDown: clip(SIT_CLIPS.sitDown), sitIdle: clip(SIT_CLIPS.sitIdle), standUp: clip(SIT_CLIPS.standUp) };
   const reachClips = { low: clip(REACH_CLIPS.low), waist: clip(REACH_CLIPS.waist) };
   const onBackClip = clip(ON_BACK_CLIP);
-  let playing: THREE.AnimationAction[] = [];
-  /**
-   * Shows `action` frozen `seconds` into its clip. With `blend`, mixes in a second clip, frozen at its own seconds,
-   * by `blend.weight`, from 0 (none of it) to 1 (all of it).
-   */
-  function showClip(action: THREE.AnimationAction, seconds: number, blend?: { action: THREE.AnimationAction; seconds: number; weight: number }): void {
-    const wanted = blend !== undefined && blend.weight > 0 ? [action, blend.action] : [action];
-    for (const shown of playing) if (!wanted.includes(shown)) shown.stop();
-    for (const shown of wanted) if (!playing.includes(shown)) shown.play();
-    playing = wanted;
-    const freeze = (shown: THREE.AnimationAction, at: number, weight: number) => {
-      const duration = shown.getClip().duration;
-      shown.time = ((at % duration) + duration) % duration;
-      shown.setEffectiveWeight(weight);
-    };
-    const weight = blend !== undefined && blend.weight > 0 ? Math.min(1, blend.weight) : 0;
-    freeze(action, seconds, 1 - weight);
-    if (blend !== undefined && weight > 0) freeze(blend.action, blend.seconds, weight);
-    mixer.update(0);
-  }
+  const showClip = createShowClip(mixer);
 
   /**
    * The moment in each reach clip when a hand gets to the thing: the lowest a wrist goes in the clip to the ground,
    * and the furthest forward a wrist goes in the clip at waist height. The player faces +z.
    */
   const reachContact: Record<ReachHeight, { seconds: number; arm: typeof leftArm }> = {
-    low: contactSeconds(reachClips.low, (wrist) => -wrist.y),
-    waist: contactSeconds(reachClips.waist, (wrist) => wrist.z),
+    low: contactSeconds(showClip, group, [leftArm, rightArm], reachClips.low, (wrist) => -wrist.y),
+    waist: contactSeconds(showClip, group, [leftArm, rightArm], reachClips.waist, (wrist) => wrist.z),
   };
-  /** The moment in a clip when a wrist scores best, and the arm that wrist belongs to: the arm that reaches. */
-  function contactSeconds(action: THREE.AnimationAction, score: (wrist: THREE.Vector3) => number): { seconds: number; arm: typeof leftArm } {
-    const wrist = new THREE.Vector3();
-    const duration = action.getClip().duration;
-    let best = { seconds: duration / 2, arm: rightArm, score: -Infinity };
-    for (let seconds = 0; seconds < duration; seconds += 1 / 60) {
-      showClip(action, seconds);
-      group.updateMatrixWorld(true);
-      for (const arm of [leftArm, rightArm]) {
-        const scored = score(group.worldToLocal(arm.end.getWorldPosition(wrist)));
-        if (scored > best.score) best = { seconds, arm, score: scored };
-      }
-    }
-    return { seconds: best.seconds, arm: best.arm };
-  }
 
   // Stand in the idle pose, then fit the beanie to the head as it is now, and fix it to the head bone.
   showClip(idle, 0.4);
@@ -289,11 +187,6 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   let sittingBody: SitBody | undefined;
   /** How far the player is through a reach, while reaching. */
   let reaching: { height: ReachHeight; seconds: number; distance?: number } | undefined;
-  /**
-   * The pose the player held when a reach started, started again, or ended, which fades into the pose now.
-   * While reaching, the blend runs on the reach's own clock. Afterwards, it runs on the performance clock from `endedAt`.
-   */
-  let reachBlend: { from: Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>; endedAt?: number } | undefined;
   /** While standing up after a work motion stops. */
   let standingUp: Leaving | undefined;
 
@@ -332,33 +225,9 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     return made;
   }
 
-  /** A knit beanie with a folded cuff and a bobble, sized to the head and riding on the head bone. */
+  /** Fits a knit beanie to the head as it is now, and fixes it to the head bone. */
   function addBeanie(): void {
-    const head = bone("Barbarian_Head");
-    const box = new THREE.Box3().setFromObject(head, true);
-    const size = box.getSize(new THREE.Vector3());
-    const middle = box.getCenter(new THREE.Vector3());
-    // The skinned head's own box stops short of the crown, so take the crown from the whole posed model.
-    const crown = new THREE.Box3().setFromObject(model, true).max.y;
-    const radius = (Math.max(size.x, size.z) / 2) * 0.86;
-    const knit = material(BEANIE_COLOUR);
-    const beanie = new THREE.Group();
-    const domeShape = new THREE.SphereGeometry(radius, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
-    const cuffShape = new THREE.CylinderGeometry(radius * 1.04, radius * 1.04, radius * 0.32, 24);
-    const bobbleShape = new THREE.SphereGeometry(radius * 0.2, 12, 8);
-    geometries.push(domeShape, cuffShape, bobbleShape);
-    const dome = new THREE.Mesh(domeShape, knit);
-    dome.scale.set(1, 0.85, 1);
-    const cuff = new THREE.Mesh(cuffShape, material(BEANIE_CUFF_COLOUR));
-    cuff.position.y = radius * 0.1;
-    const bobble = new THREE.Mesh(bobbleShape, knit);
-    bobble.position.y = radius * 0.9;
-    for (const part of [dome, cuff, bobble]) {
-      part.castShadow = true;
-      beanie.add(part);
-    }
-    // The cuff sits across the forehead, just above the brows. The box was measured from the group, so place it there first.
-    beanie.position.set(middle.x, crown - radius * 1.05, middle.z);
+    const beanie = createBeanie(model, bone("Barbarian_Head"), material, geometries);
     group.add(beanie);
     headBone.attach(beanie);
   }
@@ -374,21 +243,10 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     axe.scale.copy(spot.scale);
   }
 
-  /** Each bone turned or moved by code, as the clip last posed it. The mixer does not put these back itself. */
-  const posedByCode = new Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>();
-  function rememberClipPose(...bones: THREE.Object3D[]): void {
-    for (const posed of bones) {
-      if (!posedByCode.has(posed)) posedByCode.set(posed, { position: posed.position.clone(), quaternion: posed.quaternion.clone() });
-    }
-  }
-  /** Puts every bone code turned or moved back as the clip posed it. */
-  function restoreClipPose(): void {
-    for (const [posed, clipPose] of posedByCode) {
-      posed.position.copy(clipPose.position);
-      posed.quaternion.copy(clipPose.quaternion);
-    }
-    posedByCode.clear();
-  }
+  const clipPose = createClipPoseMemory();
+  const rememberClipPose = (...bones: THREE.Object3D[]): void => {
+    clipPose.remember(...bones);
+  };
   const buildPosedBones = [
     buildBones.hips,
     buildBones.chest,
@@ -412,7 +270,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   function pose(): void {
     // The mixer skips a bone whose clip value has not changed since it last wrote it.
     // Undo the carry turn first, so the turn never piles up on itself.
-    restoreClipPose();
+    clipPose.restore();
     posePlayingClip();
     if (carrying) {
       // The right arm turns up so the hand steadies the log on the shoulder, whatever the legs do.
@@ -425,7 +283,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
     // An upper body motion, such as eating, poses the arms and head over whatever body motion plays.
     for (const motion of upperBodyMotions) motion.pose?.();
     poseReaching();
-    blendFromReach();
+    reachBlend.apply(reaching?.seconds ?? 0, rememberClipPose);
     // Props go on last, once every pose is applied, so they follow the hands.
     for (const motion of motionList) motion.placeProps();
   }
@@ -435,29 +293,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
   model.traverse((object) => {
     if (object instanceof THREE.Bone) skeletonBones.push(object);
   });
-  /** Starts a blend from the pose shown now. Pass `endedAt` when the reach has ended. */
-  function startReachBlend(endedAt?: number): void {
-    const from = new Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>();
-    for (const posed of skeletonBones) from.set(posed, { position: posed.position.clone(), quaternion: posed.quaternion.clone() });
-    reachBlend = endedAt === undefined ? { from } : { from, endedAt };
-  }
-  /** Fades the pose a reach started from, or ended in, into the pose now, so the player never jumps between frames. */
-  function blendFromReach(): void {
-    if (reachBlend === undefined) return;
-    const left =
-      reachBlend.endedAt === undefined
-        ? blendLeftAt(reaching?.seconds ?? 0, REACH_BLEND_IN_SECONDS)
-        : blendLeftAt(performance.now() / 1000 - reachBlend.endedAt, REACH_BLEND_OUT_SECONDS);
-    if (left <= 0) {
-      reachBlend = undefined;
-      return;
-    }
-    rememberClipPose(...skeletonBones);
-    for (const [posed, was] of reachBlend.from) {
-      posed.position.lerp(was.position, left);
-      posed.quaternion.slerp(was.quaternion, left);
-    }
-  }
+  const reachBlend = createReachBlend(skeletonBones);
 
   /** Bends deeper and steers the reaching hand to the thing, on top of the reach clip. */
   function poseReaching(): void {
@@ -614,7 +450,7 @@ export function createPlayerMesh(playerModel: PlayerModel, logShape: LogShape): 
       const changed = (reach === undefined) !== (reaching === undefined);
       // A reach that starts, starts again, or ends blends from the pose shown now.
       const startsAgain = reach !== undefined && reaching !== undefined && (reach.seconds < reaching.seconds || reach.height !== reaching.height);
-      if (changed || startsAgain) startReachBlend(reach === undefined ? performance.now() / 1000 : undefined);
+      if (changed || startsAgain) reachBlend.start(reach === undefined ? performance.now() / 1000 : undefined);
       reaching = reach;
       if (changed) updateAxe();
       pose();

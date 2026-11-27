@@ -23,6 +23,7 @@
       "kind": "code",
       "code": [
         "src/render/river-meshes.ts",
+        "src/render/river-shaders.ts",
         "src/render/scene-renderer.ts"
       ],
       "description": "The river that runs through the valley.",
@@ -39,6 +40,7 @@
       "kind": "code",
       "code": [
         "src/render/river-meshes.ts",
+        "src/render/river-shaders.ts",
         "src/render/scene-renderer.ts",
         "src/render/showcases/nature.ts"
       ],

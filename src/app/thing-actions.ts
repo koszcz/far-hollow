@@ -23,7 +23,8 @@ import type { Command } from "../sim/api-commands";
 import type { GroundOrThingPick, ScenePick } from "../sim/api-scene-pick";
 import type { GameClient } from "../sim/api-client";
 import type { GameView } from "../sim/api-game-view";
-import { strings } from "../strings";
+import { actionsText } from "../strings/actions";
+import { workText } from "../strings/work";
 import type { HotbarTarget } from "../ui/hotbar-cells";
 import { refusalText } from "../ui/refusal-text";
 import { isListed, type ActionIcon, type ActionId, type ThingAction } from "../ui/thing-action";
@@ -87,15 +88,15 @@ export function menuActions(target: ActionTarget, reader: ActionReader): readonl
 
 /** Letting go of the dragged sled, as the only and main action. */
 function letGoActions({ offer }: Context): readonly ThingAction[] {
-  return withMain([offer("letGo", strings.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
+  return withMain([offer("letGo", actionsText.actions.letGo, { hud: "log" }, { type: "letGoOfSled" })], "letGo");
 }
 
 /** Planting the lit torch in the player's hand, as the main action, then putting it out. */
 function litTorchActions({ offer }: Context): readonly ThingAction[] {
   return withMain(
     [
-      offer("plant", strings.actions.plant, { content: "torch" }, { type: "plantTorch" }),
-      offer("putOut", strings.actions.putOut, { content: "torch" }, { type: "putOutTorch" }),
+      offer("plant", actionsText.actions.plant, { content: "torch" }, { type: "plantTorch" }),
+      offer("putOut", actionsText.actions.putOut, { content: "torch" }, { type: "putOutTorch" }),
     ],
     "plant",
   );
@@ -116,15 +117,15 @@ function offerIf(shown: boolean, make: () => Offer): readonly Offer[] {
 }
 
 function chop({ offer }: Context, treeId: number): Offer {
-  return offer("chop", strings.actions.chop, { hud: "axe" }, { type: "chopTree", treeId });
+  return offer("chop", actionsText.actions.chop, { hud: "axe" }, { type: "chopTree", treeId });
 }
 
 function digUp({ offer }: Context, saplingId: number): Offer {
-  return offer("digUp", strings.actions.digUp, { content: "sapling" }, { type: "digUpSapling", saplingId });
+  return offer("digUp", actionsText.actions.digUp, { content: "sapling" }, { type: "digUpSapling", saplingId });
 }
 
 function takeDown({ offer }: Context, id: number): Offer {
-  return offer("takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
+  return offer("takeDown", actionsText.actions.takeDown, { hud: "backpack" }, { type: "takeDown", pieceId: id });
 }
 
 function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[] {
@@ -154,7 +155,7 @@ function sceneActions(pick: ScenePick, context: Context): readonly ThingAction[]
 function addOnOffers(hostId: number, { reader, offer }: Context): readonly Offer[] {
   const host = reader.describeThing(hostId);
   if (host?.kind !== "structure" || !isHost(host.structure) || !("holdsAddOn" in host) || host.holdsAddOn) return [];
-  return [offer("addOn", strings.actions.addOn[host.structure], { hud: "place" }, { type: "buildAddOn", hostId })];
+  return [offer("addOn", actionsText.actions.addOn[host.structure], { hud: "place" }, { type: "buildAddOn", hostId })];
 }
 
 /** The same actions or offers, none of them the main one. */
@@ -165,7 +166,7 @@ function notMain(actions: readonly Offer[]): readonly ThingAction[] {
 /** What a finished structure itself offers, besides being taken down. A lean-to offers to lay the bedroll in it while the backpack holds one. */
 function structureOffers(pick: Extract<ScenePick, { kind: "structure" }>, { view, offer }: Context): readonly Offer[] {
   if (pick.structure !== "leanTo" || !has(view, "bedroll")) return [];
-  return [offer("layBedroll", strings.actions.layBedrollHere, { content: "bedroll" }, { type: "layBedrollInLeanTo", leanToId: pick.id })];
+  return [offer("layBedroll", actionsText.actions.layBedrollHere, { content: "bedroll" }, { type: "layBedrollInLeanTo", leanToId: pick.id })];
 }
 
 function thingActions(pick: GroundOrThingPick, context: Context): readonly ThingAction[] {
@@ -173,9 +174,10 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
   switch (pick.kind) {
     case "ground": {
       const { x, z } = pick.spot;
-      const walk = offer("walk", strings.actions.walk, { hud: "place" }, { type: "walkTo", x, z });
+      const walk = offer("walk", actionsText.actions.walk, { hud: "place" }, { type: "walkTo", x, z });
       // With a log on the shoulder, the player can also carry it to the spot and drop it there.
-      const dropHere = view.carrying === null ? [] : [offer("dropHere", strings.actions.dropHere[view.carrying], { hud: "log" }, { type: "dropLogAt", x, z })];
+      const dropHere =
+        view.carrying === null ? [] : [offer("dropHere", actionsText.actions.dropHere[view.carrying], { hud: "log" }, { type: "dropLogAt", x, z })];
       // River bank ground also gives stone and clay.
       const riverBankWork = pick.riverBank === true ? riverBankOffers(pick.spot, context) : [];
       return withMain([walk, ...dropHere, ...riverBankWork], "walk");
@@ -192,24 +194,24 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain([digUp(context, pick.id)], "digUp");
     case "log":
     case "debarkedLog": {
-      const pickUp = offer("pickUp", strings.actions.pickUp, { hud: "log" }, { type: "pickUpLog", logId: pick.id });
+      const pickUp = offer("pickUp", actionsText.actions.pickUp, { hud: "log" }, { type: "pickUpLog", logId: pick.id });
       if (pick.kind === "debarkedLog") return withMain([pickUp], "pickUp");
-      const split = offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog", logId: pick.id });
-      const debark = offer("debark", strings.actions.debark, { content: "bark" }, { type: "debarkLog", logId: pick.id });
+      const split = offer("split", actionsText.actions.split, { content: "firewood" }, { type: "splitLog", logId: pick.id });
+      const debark = offer("debark", actionsText.actions.debark, { content: "bark" }, { type: "debarkLog", logId: pick.id });
       // Planting a mushroom shows only while the backpack holds one.
       const plantMushroom = has(view, "mushroom")
-        ? [offer("plantMushroom", strings.actions.plantMushroom, { content: "mushroom" }, { type: "plantMushroom", logId: pick.id })]
+        ? [offer("plantMushroom", actionsText.actions.plantMushroom, { content: "mushroom" }, { type: "plantMushroom", logId: pick.id })]
         : [];
       return withMain([pickUp, split, debark, ...plantMushroom], "pickUp");
     }
     case "stick":
-      return withMain([offer("pickUp", strings.actions.pickUp, { content: "stick" }, { type: "pickUpStick", stickId: pick.id })], "pickUp");
+      return withMain([offer("pickUp", actionsText.actions.pickUp, { content: "stick" }, { type: "pickUpStick", stickId: pick.id })], "pickUp");
     case "bark":
-      return withMain([offer("pickUp", strings.actions.pickUp, { content: "bark" }, { type: "pickUpBark", barkId: pick.id })], "pickUp");
+      return withMain([offer("pickUp", actionsText.actions.pickUp, { content: "bark" }, { type: "pickUpBark", barkId: pick.id })], "pickUp");
     case "pile":
-      return withMain([offer("pickUp", strings.actions.pickUp, { hud: "backpack" }, { type: "pickUpPile", pileId: pick.id })], "pickUp");
+      return withMain([offer("pickUp", actionsText.actions.pickUp, { hud: "backpack" }, { type: "pickUpPile", pileId: pick.id })], "pickUp");
     case "plantedTorch":
-      return withMain([offer("pickUp", strings.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
+      return withMain([offer("pickUp", actionsText.actions.pickUp, { content: "torch" }, { type: "pickUpTorch", torchId: pick.id })], "pickUp");
     case "fishTrap":
       return fishTrapActions(pick.id, context);
     case "shutters":
@@ -219,8 +221,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
     case "mushroomLog":
       return withMain(
         [
-          offer("forage", strings.actions.forage, { content: "mushroom" }, { type: "forage", spotId: pick.id }),
-          offer("takeDown", strings.actions.takeDown, { hud: "backpack" }, { type: "takeDownMushroomLog", mushroomLogId: pick.id }),
+          offer("forage", actionsText.actions.forage, { content: "mushroom" }, { type: "forage", spotId: pick.id }),
+          offer("takeDown", actionsText.actions.takeDown, { hud: "backpack" }, { type: "takeDownMushroomLog", mushroomLogId: pick.id }),
         ],
         "forage",
       );
@@ -250,8 +252,8 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
     case "bedroll":
       return withMain(
         [
-          offer("sleep", strings.actions.sleep, { hud: "moon" }, { type: "sleep", bedrollId: pick.id }),
-          offer("pickUp", strings.actions.pickUp, { content: "bedroll" }, { type: "pickUpBedroll", bedrollId: pick.id }),
+          offer("sleep", actionsText.actions.sleep, { hud: "moon" }, { type: "sleep", bedrollId: pick.id }),
+          offer("pickUp", actionsText.actions.pickUp, { content: "bedroll" }, { type: "pickUpBedroll", bedrollId: pick.id }),
         ],
         "sleep",
       );
@@ -261,11 +263,11 @@ function thingActions(pick: GroundOrThingPick, context: Context): readonly Thing
       return withMain(
         [
           // Opening the menu sends no command, so the game has nothing to refuse.
-          { id: "openMenu", label: strings.actions.openMenu, icon: { hud: "place" }, enabled: true, command: undefined },
+          { id: "openMenu", label: actionsText.actions.openMenu, icon: { hud: "place" }, enabled: true, command: undefined },
           ...view.craftMenu
             .filter(({ station }) => station === pick.station)
             .map(({ kind, result }) =>
-              offer(`craft:${kind}`, strings.craftMenu.recipes[kind], { content: result.content }, { type: "craft", recipe: kind, stationId: pick.id }),
+              offer(`craft:${kind}`, workText.craftMenu.recipes[kind], { content: result.content }, { type: "craft", recipe: kind, stationId: pick.id }),
             ),
           takeDown(context, pick.id),
         ],
@@ -280,8 +282,8 @@ function shuttersActions(shuttersId: number, context: Context): readonly ThingAc
   const thing = reader.describeThing(shuttersId);
   const open = thing?.kind === "structure" && thing.structure === "shutters" && thing.open === true;
   const toggle = open
-    ? offer("closeShutters", strings.actions.closeShutters, { hud: "flame" }, { type: "setShutters", shuttersId, open: false })
-    : offer("openShutters", strings.actions.openShutters, { hud: "sun" }, { type: "setShutters", shuttersId, open: true });
+    ? offer("closeShutters", actionsText.actions.closeShutters, { hud: "flame" }, { type: "setShutters", shuttersId, open: false })
+    : offer("openShutters", actionsText.actions.openShutters, { hud: "sun" }, { type: "setShutters", shuttersId, open: true });
   return withMain([toggle, takeDown(context, shuttersId)], toggle.id);
 }
 
@@ -290,10 +292,10 @@ function shuttersActions(shuttersId: number, context: Context): readonly ThingAc
  * A mushroom patch cannot be dug up.
  */
 function forageActions(spotId: number, { reader, offer }: Context): readonly ThingAction[] {
-  const forage = offer("forage", strings.actions.forage, { hud: "berry" }, { type: "forage", spotId });
+  const forage = offer("forage", actionsText.actions.forage, { hud: "berry" }, { type: "forage", spotId });
   const thing = reader.describeThing(spotId);
   if (thing?.kind !== "forage" || thing.food !== "berries") return withMain([forage], "forage");
-  const digUpBush = offer("digUp", strings.actions.digUp, { content: "berryBush" }, { type: "digUpBerryBush", bushId: spotId });
+  const digUpBush = offer("digUp", actionsText.actions.digUp, { content: "berryBush" }, { type: "digUpBerryBush", bushId: spotId });
   return withMain([forage, digUpBush], forage.enabled ? "forage" : "digUp");
 }
 
@@ -307,21 +309,21 @@ interface FurnitureUseAction {
 
 /** The action id, label, and icon for each way the player uses a piece of furniture. */
 const FURNITURE_USE_ACTIONS: { readonly [Name in FurnitureUse["name"]]: FurnitureUseAction } = {
-  open: { id: "open", label: strings.actions.open, icon: { hud: "backpack" } },
-  sleep: { id: "sleep", label: strings.actions.sleep, icon: { hud: "moon" } },
-  sit: { id: "sit", label: strings.actions.sit, icon: { hud: "moon" } },
-  drink: { id: "drink", label: strings.actions.drink, icon: { hud: "droplet" } },
-  fillPot: { id: "fillPot", label: strings.actions.fillPotHere, icon: { content: "potOfBoiledWater" } },
+  open: { id: "open", label: actionsText.actions.open, icon: { hud: "backpack" } },
+  sleep: { id: "sleep", label: actionsText.actions.sleep, icon: { hud: "moon" } },
+  sit: { id: "sit", label: actionsText.actions.sit, icon: { hud: "moon" } },
+  drink: { id: "drink", label: actionsText.actions.drink, icon: { hud: "droplet" } },
+  fillPot: { id: "fillPot", label: actionsText.actions.fillPotHere, icon: { content: "potOfBoiledWater" } },
   // Filling a jug is listed only while the backpack holds a jug, so a player without one never sees it.
   fillJug: {
     id: "fillJug",
-    label: strings.actions.fillJug,
+    label: actionsText.actions.fillJug,
     icon: { content: "jugWith3Drinks" },
     listed: (view) => JUG_CONTENTS.some((jug) => has(view, jug)),
   },
-  putInFirewood: { id: "putInFirewood", label: strings.actions.putInFirewood, icon: { content: "firewood" } },
-  putInAllFirewood: { id: "putInAllFirewood", label: strings.actions.putInAllFirewood, icon: { content: "firewood" } },
-  takeFirewood: { id: "takeFirewood", label: strings.actions.takeFirewood, icon: { content: "firewood" } },
+  putInFirewood: { id: "putInFirewood", label: actionsText.actions.putInFirewood, icon: { content: "firewood" } },
+  putInAllFirewood: { id: "putInAllFirewood", label: actionsText.actions.putInAllFirewood, icon: { content: "firewood" } },
+  takeFirewood: { id: "takeFirewood", label: actionsText.actions.takeFirewood, icon: { content: "firewood" } },
 };
 
 /**
@@ -360,11 +362,13 @@ function dryingRackActions(rack: DryingRackView, context: Context): readonly Thi
   const rackId = rack.id;
   const shown = (food: FoodToHang): boolean => has(view, food) && (food !== "cookedFish" || !has(view, "rawFish"));
   const hang = [...RACK_FOODS, "cookedFish" as const].flatMap((food) =>
-    offerIf(shown(food), () => offer(`hang:${food}`, strings.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
+    offerIf(shown(food), () => offer(`hang:${food}`, actionsText.actions.hangOnRack[food], { content: food }, { type: "hangOnRack", rackId, food })),
   );
   const preservedOne = rack.food.find(({ preserved }) => preserved);
   const takeIcon: ActionIcon = { content: (preservedOne ?? rack.food[0])?.content ?? "berries" };
-  const takeOff = offerIf(rack.food.length > 0, () => offer("takeFoodOffRack", strings.actions.takeFoodOffRack, takeIcon, { type: "takeFoodOffRack", rackId }));
+  const takeOff = offerIf(rack.food.length > 0, () =>
+    offer("takeFoodOffRack", actionsText.actions.takeFoodOffRack, takeIcon, { type: "takeFoodOffRack", rackId }),
+  );
   const main = preservedOne !== undefined ? takeOff[0] : (hang.find(({ enabled }) => enabled) ?? takeOff[0] ?? hang[0]);
   return withMain([...hang, ...takeOff, takeDown(context, rackId)], main?.id);
 }
@@ -372,8 +376,8 @@ function dryingRackActions(rack: DryingRackView, context: Context): readonly Thi
 /** Gathering one stone, then digging one clay, at a spot on the river bank or in the river. */
 function riverBankOffers({ x, z }: { readonly x: number; readonly z: number }, { offer }: Context): readonly Offer[] {
   return [
-    offer("gatherStone", strings.actions.gatherStone, { content: "stone" }, { type: "gatherStone", x, z }),
-    offer("digClay", strings.actions.digClay, { content: "clay" }, { type: "digClay", x, z }),
+    offer("gatherStone", actionsText.actions.gatherStone, { content: "stone" }, { type: "gatherStone", x, z }),
+    offer("digClay", actionsText.actions.digClay, { content: "clay" }, { type: "digClay", x, z }),
   ];
 }
 
@@ -382,10 +386,10 @@ function riverBankOffers({ x, z }: { readonly x: number; readonly z: number }, {
  * Take fish shows only while the trap holds a fish.
  */
 function fishTrapActions(trapId: number, { reader, offer }: Context): readonly ThingAction[] {
-  const pickUp = offer("pickUp", strings.actions.pickUp, { content: "fishTrap" }, { type: "pickUpFishTrap", trapId });
+  const pickUp = offer("pickUp", actionsText.actions.pickUp, { content: "fishTrap" }, { type: "pickUpFishTrap", trapId });
   const thing = reader.describeThing(trapId);
   if (thing?.kind !== "fishTrap" || !thing.holdsFish) return withMain([pickUp], "pickUp");
-  const takeFish = offer("takeFish", strings.actions.takeFish, { content: "rawFish" }, { type: "takeFishFromTrap", trapId });
+  const takeFish = offer("takeFish", actionsText.actions.takeFish, { content: "rawFish" }, { type: "takeFishFromTrap", trapId });
   return withMain([takeFish, pickUp], "takeFish");
 }
 
@@ -395,13 +399,13 @@ function fishTrapActions(trapId: number, { reader, offer }: Context): readonly T
  */
 function riverActions({ x, z }: { readonly x: number; readonly z: number }, context: Context): readonly ThingAction[] {
   const { view, offer } = context;
-  const fillPot = has(view, "pot") ? [offer("fillPot", strings.actions.fillPotHere, { content: "potOfRiverWater" }, { type: "fillPot" })] : [];
+  const fillPot = has(view, "pot") ? [offer("fillPot", actionsText.actions.fillPotHere, { content: "potOfRiverWater" }, { type: "fillPot" })] : [];
   return withMain(
     [
-      offer("drink", strings.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
+      offer("drink", actionsText.actions.drink, { hud: "droplet" }, { type: "drinkFromRiver", x, z }),
       ...fillPot,
-      offer("fish", strings.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
-      offer("setFishTrap", strings.actions.setFishTrap, { content: "fishTrap" }, { type: "setFishTrap", x, z }),
+      offer("fish", actionsText.actions.fish, { content: "fishingRod" }, { type: "fish", x, z }),
+      offer("setFishTrap", actionsText.actions.setFishTrap, { content: "fishTrap" }, { type: "setFishTrap", x, z }),
       ...riverBankOffers({ x, z }, context),
     ],
     "drink",
@@ -416,9 +420,9 @@ function campfireJugOffers(campfire: CampfireView, { view, offer }: Context): re
   const campfireId = campfire.id;
   const jugOn = campfire.jug;
   return [
-    ...offerIf(has(view, "unfiredJug"), () => offer("fireJug", strings.actions.fireJug, { content: "unfiredJug" }, { type: "fireJug", campfireId })),
+    ...offerIf(has(view, "unfiredJug"), () => offer("fireJug", actionsText.actions.fireJug, { content: "unfiredJug" }, { type: "fireJug", campfireId })),
     ...offerIf(jugOn !== null, () =>
-      offer("takeJugOff", strings.actions.takeJugOff, { content: jugOn?.fired === true ? "jug" : "unfiredJug" }, { type: "takeJugOff", campfireId }),
+      offer("takeJugOff", actionsText.actions.takeJugOff, { content: jugOn?.fired === true ? "jug" : "unfiredJug" }, { type: "takeJugOff", campfireId }),
     ),
   ];
 }
@@ -434,16 +438,18 @@ function campfireActions(campfire: CampfireView, context: Context): readonly Thi
   const { offer } = context;
   const campfireId = campfire.id;
   // The menu lists the fuels in the order a lit fire takes them.
-  const fuels = CAMPFIRE_FUELS.map((fuel) => offer(`addFuel:${fuel}`, strings.actions.addFuel[fuel], { content: fuel }, { type: "addFuel", campfireId, fuel }));
+  const fuels = CAMPFIRE_FUELS.map((fuel) =>
+    offer(`addFuel:${fuel}`, actionsText.actions.addFuel[fuel], { content: fuel }, { type: "addFuel", campfireId, fuel }),
+  );
   const pot =
     campfire.pot === null
-      ? offer("putPotOn", strings.actions.putPotOn, { content: "potOfRiverWater" }, { type: "putPotOnFire", campfireId })
-      : offer("takePotOff", strings.actions.takePotOff, { content: "pot" }, { type: "takePotOffFire", campfireId });
-  const cookFish = offer("cookFish", strings.actions.cookFish, { content: "rawFish" }, { type: "cookFish", campfireId });
+      ? offer("putPotOn", actionsText.actions.putPotOn, { content: "potOfRiverWater" }, { type: "putPotOnFire", campfireId })
+      : offer("takePotOff", actionsText.actions.takePotOff, { content: "pot" }, { type: "takePotOffFire", campfireId });
+  const cookFish = offer("cookFish", actionsText.actions.cookFish, { content: "rawFish" }, { type: "cookFish", campfireId });
   const fishIcon: ActionIcon = { content: campfire.fish.some(({ cooked }) => cooked) ? "cookedFish" : "rawFish" };
-  const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", strings.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
-  const light = campfire.lit ? [] : [offer("light", strings.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
-  const putOut = campfire.lit ? [offer("putOut", strings.actions.putOut, { hud: "flame" }, { type: "putOutCampfire", campfireId })] : [];
+  const takeFishOff = campfire.fish.length === 0 ? [] : [offer("takeFishOff", actionsText.actions.takeFishOff, fishIcon, { type: "takeFishOff", campfireId })];
+  const light = campfire.lit ? [] : [offer("light", actionsText.actions.light, { hud: "flame" }, { type: "lightCampfire", campfireId })];
+  const putOut = campfire.lit ? [offer("putOut", actionsText.actions.putOut, { hud: "flame" }, { type: "putOutCampfire", campfireId })] : [];
   const offers = [...light, ...fuels, pot, cookFish, ...takeFishOff, ...campfireJugOffers(campfire, context), ...putOut, takeDown(context, campfireId)];
   const lightsNow = !campfire.lit && campfire.fuelMinutes > 0;
   const main = lightsNow ? "light" : (fuels.find(({ enabled }) => enabled) ?? fuels[0])?.id;
@@ -460,17 +466,24 @@ function woodpileActions(woodpile: WoodpileView, context: Context): readonly Thi
   const woodIcon = (wood: WoodpileWood): ActionIcon => (wood === "firewood" ? { content: "firewood" } : { hud: "log" });
   const shouldered = shoulderedLog(view);
   // With nothing on the shoulder, stacking the log still shows, greyed, so the player learns they can.
-  const stackLog = offer(`stack:${shouldered ?? "log"}`, strings.actions.stack[shouldered ?? "log"], woodIcon(shouldered ?? "log"), {
+  const stackLog = offer(`stack:${shouldered ?? "log"}`, actionsText.actions.stack[shouldered ?? "log"], woodIcon(shouldered ?? "log"), {
     type: "stackOnWoodpile",
     woodpileId,
     wood: shouldered ?? "log",
     all: false,
   });
   const stackFirewood = [
-    offer("stack:firewood", strings.actions.stack.firewood, woodIcon("firewood"), { type: "stackOnWoodpile", woodpileId, wood: "firewood", all: false }),
-    offer("stack:firewood:all", strings.actions.stackAllFirewood, woodIcon("firewood"), { type: "stackOnWoodpile", woodpileId, wood: "firewood", all: true }),
+    offer("stack:firewood", actionsText.actions.stack.firewood, woodIcon("firewood"), { type: "stackOnWoodpile", woodpileId, wood: "firewood", all: false }),
+    offer("stack:firewood:all", actionsText.actions.stackAllFirewood, woodIcon("firewood"), {
+      type: "stackOnWoodpile",
+      woodpileId,
+      wood: "firewood",
+      all: true,
+    }),
   ];
-  const take = WOODPILE_WOODS.map((wood) => offer(`take:${wood}`, strings.actions.take[wood], woodIcon(wood), { type: "takeFromWoodpile", woodpileId, wood }));
+  const take = WOODPILE_WOODS.map((wood) =>
+    offer(`take:${wood}`, actionsText.actions.take[wood], woodIcon(wood), { type: "takeFromWoodpile", woodpileId, wood }),
+  );
   const offers = [stackLog, ...stackFirewood, ...take, takeDown(context, woodpileId)];
   return withMain(
     offers,
@@ -499,19 +512,21 @@ function sledActions(sled: SledView, context: Context): readonly ThingAction[] {
   const { view, offer } = context;
   const sledId = sled.id;
   if (view.dragging?.id === sledId) return letGoActions(context);
-  const drag = offer("drag", strings.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
+  const drag = offer("drag", actionsText.actions.drag, { hud: "log" }, { type: "dragSled", sledId });
   const shouldered = shoulderedLog(view);
-  const load = shouldered === null ? [] : [offer(`load:${shouldered}`, strings.actions.loadSled[shouldered], { hud: "log" }, { type: "loadSled", sledId })];
+  const load = shouldered === null ? [] : [offer(`load:${shouldered}`, actionsText.actions.loadSled[shouldered], { hud: "log" }, { type: "loadSled", sledId })];
   // Only the kinds the sled holds are offered. An empty sled still shows taking a log, greyed, so the player learns they can.
   const held = CARRIED_LOGS.filter((log) => sled.contents[log] > 0);
   const take = (held.length === 0 ? (["log"] as const) : held).map((log: CarriedLog) =>
-    offer(`take:${log}`, strings.actions.take[log], { hud: "log" }, { type: "takeFromSled", sledId, log }),
+    offer(`take:${log}`, actionsText.actions.take[log], { hud: "log" }, { type: "takeFromSled", sledId, log }),
   );
-  const loadPlanks = has(view, "plank") ? [offer("load:plank", strings.actions.loadPlanks, { content: "plank" }, { type: "loadPlanksOnSled", sledId })] : [];
+  const loadPlanks = has(view, "plank")
+    ? [offer("load:plank", actionsText.actions.loadPlanks, { content: "plank" }, { type: "loadPlanksOnSled", sledId })]
+    : [];
   const takePlanks =
-    sled.contents.plank > 0 ? [offer("take:plank", strings.actions.takePlanks, { content: "plank" }, { type: "takePlanksFromSled", sledId })] : [];
-  const fill = offer("fillSled", strings.actions.fillSled, { hud: "log" }, { type: "fillSled", sledId });
-  const tipOut = offer("tipOut", strings.actions.tipOut, { hud: "log" }, { type: "tipOutSled", sledId });
+    sled.contents.plank > 0 ? [offer("take:plank", actionsText.actions.takePlanks, { content: "plank" }, { type: "takePlanksFromSled", sledId })] : [];
+  const fill = offer("fillSled", actionsText.actions.fillSled, { hud: "log" }, { type: "fillSled", sledId });
+  const tipOut = offer("tipOut", actionsText.actions.tipOut, { hud: "log" }, { type: "tipOutSled", sledId });
   // A loaded sled can be taken down. Its logs are laid on the ground beside it first, and its planks drop in a pile.
   const offers = [...load, ...loadPlanks, drag, fill, ...take, ...takePlanks, tipOut, takeDown(context, sledId)];
   return withMain(offers, shouldered === null ? "drag" : `load:${shouldered}`);
@@ -526,11 +541,11 @@ function shoulderedLog(view: GameView): CarriedLog | null {
 function blueprintActions(blueprintId: number, context: Context): readonly ThingAction[] {
   const { view, reader, offer } = context;
   const blueprint = reader.describeBlueprint(blueprintId);
-  const build = offer("build", strings.actions.build, { hud: "place" }, { type: "build", blueprintId });
+  const build = offer("build", actionsText.actions.build, { hud: "place" }, { type: "build", blueprintId });
   const carried = view.carrying;
   const needed = carried !== null && blueprint?.deliveries.some(({ material, has: delivered, needs }) => material === carried && delivered < needs);
   const icon: ActionIcon = carried === null || isCarriedLog(carried) ? { hud: "log" } : { content: carried };
-  const deliver = needed ? [offer(`deliver:${carried}`, strings.actions.deliver[carried], icon, { type: "deliverToBlueprint", blueprintId })] : [];
+  const deliver = needed ? [offer(`deliver:${carried}`, actionsText.actions.deliver[carried], icon, { type: "deliverToBlueprint", blueprintId })] : [];
   return withMain([...deliver, build, takeDown(context, blueprintId)], deliver[0]?.id ?? "build");
 }
 
@@ -544,16 +559,16 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
     case "driedBerries":
     case "driedMushroom":
     case "smokedFish":
-      return { label: strings.actions.eat, command: { type: "eat", food: content } };
+      return { label: actionsText.actions.eat, command: { type: "eat", food: content } };
     case "bedroll":
-      return { label: strings.actions.layOut, command: { type: "layBedroll" } };
+      return { label: actionsText.actions.layOut, command: { type: "layBedroll" } };
     case "torch":
-      return { label: strings.actions.light, command: { type: "lightTorch" } };
+      return { label: actionsText.actions.light, command: { type: "lightTorch" } };
     case "pot":
-      return { label: strings.actions.fillPot, command: { type: "fillPot" } };
+      return { label: actionsText.actions.fillPot, command: { type: "fillPot" } };
     case "potOfRiverWater":
     case "potOfBoiledWater":
-      return { label: strings.actions.drinkFromPot, command: { type: "drinkFromPot" } };
+      return { label: actionsText.actions.drinkFromPot, command: { type: "drinkFromPot" } };
     default:
       return undefined;
   }
@@ -561,7 +576,7 @@ function useCommand(content: BackpackContent): { readonly label: string; readonl
 
 /** Planting a sapling or berry bush: it puts a see-through one under the mouse, so it sends no command until the player clicks the ground. */
 function plantOffer(plant: Plantable): Offer {
-  return { id: "plant", label: strings.actions.plant, icon: { content: plant }, enabled: true, command: undefined, startsPlanting: plant };
+  return { id: "plant", label: actionsText.actions.plant, icon: { content: plant }, enabled: true, command: undefined, startsPlanting: plant };
 }
 
 /** A backpack content's own actions, which come before dropping it, and which of them is the main action, if any. */
@@ -576,9 +591,9 @@ interface OwnOffers {
  * Drinking is the main action. Without it, pouring is the main action only when it can run, since a greyed main action does nothing.
  */
 function jugOffers(jug: JugContent, { offer }: Context): OwnOffers {
-  const drink = offerIf(holdsWater(jug), () => offer("drinkFromJug", strings.actions.drinkFromJug, { content: jug }, { type: "drinkFromJug" }));
+  const drink = offerIf(holdsWater(jug), () => offer("drinkFromJug", actionsText.actions.drinkFromJug, { content: jug }, { type: "drinkFromJug" }));
   // The icon shows the jug as pouring leaves it, with one more drink.
-  const pour = offerIf(hasRoom(jug), () => offer("pourIntoJug", strings.actions.pourIntoJug, { content: withOneMoreDrink(jug) }, { type: "pourIntoJug" }));
+  const pour = offerIf(hasRoom(jug), () => offer("pourIntoJug", actionsText.actions.pourIntoJug, { content: withOneMoreDrink(jug) }, { type: "pourIntoJug" }));
   const main = drink[0] ?? pour.find(({ enabled }) => enabled);
   return { offers: [...drink, ...pour], main: main?.id };
 }
@@ -605,21 +620,21 @@ function backpackContentActions(content: BackpackContent, context: Context): rea
     chest === undefined
       ? []
       : [
-          offer("putInChest", strings.actions.putInChest[chest.view.furniture], icon, { type: "putInChest", chestId: chest.view.id, content, all: false }),
-          offer("putInChest:all", strings.actions.putAllInChest[chest.view.furniture], icon, {
+          offer("putInChest", actionsText.actions.putInChest[chest.view.furniture], icon, { type: "putInChest", chestId: chest.view.id, content, all: false }),
+          offer("putInChest:all", actionsText.actions.putAllInChest[chest.view.furniture], icon, {
             type: "putInChest",
             chestId: chest.view.id,
             content,
             all: true,
           }),
         ];
-  const offers = [...intoChest, ...own.offers, offer("drop", strings.actions.drop, icon, { type: "dropFromBackpack", content })];
+  const offers = [...intoChest, ...own.offers, offer("drop", actionsText.actions.drop, icon, { type: "dropFromBackpack", content })];
   return withMain(offers, chest !== undefined ? "putInChest" : own.main);
 }
 
 /** Drop it, then split it into firewood if it is a log. */
 function shoulderActions(log: CarriedThing, { offer }: Context): readonly ThingAction[] {
-  const drop = offer("drop", strings.actions.drop, { hud: "log" }, { type: "dropLog" });
-  const split = log === "log" ? [offer("split", strings.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
+  const drop = offer("drop", actionsText.actions.drop, { hud: "log" }, { type: "dropLog" });
+  const split = log === "log" ? [offer("split", actionsText.actions.split, { content: "firewood" }, { type: "splitLog" })] : [];
   return withMain([drop, ...split], "drop");
 }

@@ -3,7 +3,8 @@ import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { GameClient } from "../sim/api-client";
 import type { GameView } from "../sim/api-game-view";
-import { strings } from "../strings";
+import { debugText } from "../strings/debug";
+import { timeText } from "../strings/time";
 
 /** The key left of 1 on a US keyboard, or the backquote character on any layout. */
 const TOGGLE_KEY_CODE = "Backquote";
@@ -40,24 +41,24 @@ function DebugPanel({ client }: { client: GameClient }) {
   return (
     <div class="debug-overlay">
       <dl>
-        <dt>{strings.debugFps}</dt>
+        <dt>{debugText.debugFps}</dt>
         <dd>{fps === undefined ? "–" : Math.round(fps)}</dd>
-        <dt>{strings.debugEntities}</dt>
+        <dt>{debugText.debugEntities}</dt>
         <dd>{view.entityCount}</dd>
-        <dt>{strings.debugSeed}</dt>
+        <dt>{debugText.debugSeed}</dt>
         <dd>{view.seed}</dd>
-        <dt>{strings.debugTime}</dt>
+        <dt>{debugText.debugTime}</dt>
         <dd>{formatTime(view.time)}</dd>
-        <dt>{strings.debugSeason}</dt>
-        <dd>{strings.debugSeasonDay(strings.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays)}</dd>
-        <dt>{strings.debugRain}</dt>
-        <dd>{view.snowing ? strings.debugRainSnowing : view.raining ? strings.debugRainFalling : strings.debugRainDry}</dd>
-        <dt>{strings.debugRooms}</dt>
+        <dt>{debugText.debugSeason}</dt>
+        <dd>{debugText.debugSeasonDay(timeText.seasons[view.season.season], view.season.dayOfSeason, view.season.seasonDays)}</dd>
+        <dt>{debugText.debugRain}</dt>
+        <dd>{view.snowing ? debugText.debugRainSnowing : view.raining ? debugText.debugRainFalling : debugText.debugRainDry}</dd>
+        <dt>{debugText.debugRooms}</dt>
         <dd>{rooms.length}</dd>
         {rooms.map((room, index) => (
           <Fragment key={index}>
             <dt>{index + 1}</dt>
-            <dd>{strings.debugRoom(room.squares.length, room.heated, room.snug)}</dd>
+            <dd>{debugText.debugRoom(room.squares.length, room.heated, room.snug)}</dd>
           </Fragment>
         ))}
       </dl>
@@ -69,7 +70,7 @@ function DebugPanel({ client }: { client: GameClient }) {
             client.send({ type: "skipTime", hours });
           }}
         >
-          {strings.debugSkipHours(hours)}
+          {debugText.debugSkipHours(hours)}
         </button>
       ))}
       <button
@@ -78,7 +79,7 @@ function DebugPanel({ client }: { client: GameClient }) {
           client.send({ type: "skipToRainChange" });
         }}
       >
-        {strings.debugSkipToRainChange(view.raining || view.snowing)}
+        {debugText.debugSkipToRainChange(view.raining || view.snowing)}
       </button>
       <button
         type="button"
@@ -86,7 +87,7 @@ function DebugPanel({ client }: { client: GameClient }) {
           client.send({ type: "skipToSeason" });
         }}
       >
-        {strings.debugSkipToSeason}
+        {debugText.debugSkipToSeason}
       </button>
     </div>
   );
@@ -95,7 +96,7 @@ function DebugPanel({ client }: { client: GameClient }) {
 function formatTime(time: GameView["time"]): string {
   const hh = String(time.hour).padStart(2, "0");
   const mm = String(time.minute).padStart(2, "0");
-  return strings.debugDayAndTime(time.day, `${hh}:${mm}`);
+  return debugText.debugDayAndTime(time.day, `${hh}:${mm}`);
 }
 
 function useGameView(client: GameClient): GameView {

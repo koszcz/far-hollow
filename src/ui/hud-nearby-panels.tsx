@@ -1,7 +1,9 @@
 // The panels under the work for the things within the player's reach: campfire, woodpile, pile, blueprint, rain barrel, drying rack, wood box.
 import type { WoodpileWood } from "../sim/api";
 import type { BlueprintView, CampfireView, DryingRackView, NearbyThing, PileView, RainBarrelView, WoodBoxView, WoodpileView } from "../sim/api-nearby";
-import { strings } from "../strings";
+import { backpackText } from "../strings/backpack";
+import { campText } from "../strings/camp";
+import { workText } from "../strings/work";
 import { BackpackIcon } from "./backpack-icons";
 import { HudIcon } from "./hud-icons";
 import { Meter, THIRST_COLOUR, WARM_RGB, WORK_BAR_COLOUR } from "./hud-meters";
@@ -14,7 +16,7 @@ function FishOnFireMeter({ fish }: { fish: CampfireView["fish"][number] }) {
   return (
     <label class="hud-meter" style={{ "--hud-bar": COOKING_COLOUR }}>
       <BackpackIcon content={fish.cooked ? "cookedFish" : "rawFish"} />
-      <span class="hud-meter-label">{fish.cooked ? strings.fishCooked : strings.fishCooking}</span>
+      <span class="hud-meter-label">{fish.cooked ? campText.fishCooked : campText.fishCooking}</span>
       <progress max={1} value={fish.cookProgress} />
     </label>
   );
@@ -28,7 +30,7 @@ function JugOnFireMeter({ jug }: { jug: NonNullable<CampfireView["jug"]> }) {
   return (
     <label class="hud-meter" style={{ "--hud-bar": FIRING_COLOUR }}>
       <BackpackIcon content={jug.fired ? "jug" : "unfiredJug"} />
-      <span class="hud-meter-label">{jug.fired ? strings.jugFired : strings.jugFiring}</span>
+      <span class="hud-meter-label">{jug.fired ? campText.jugFired : campText.jugFiring}</span>
       <progress max={1} value={jug.fireProgress} />
     </label>
   );
@@ -39,20 +41,20 @@ function JugOnFireMeter({ jug }: { jug: NonNullable<CampfireView["jug"]> }) {
  * how far each fish on it has cooked, and how far the jug on it has fired. Its actions are on the campfire or fireplace itself.
  */
 function CampfirePanel({ campfire }: { campfire: CampfireView }) {
-  const title = campfire.kind === "fireplace" ? strings.fireplace : strings.campfire;
+  const title = campfire.kind === "fireplace" ? campText.fireplace : campText.campfire;
   return (
     <section class="hud-section hud-campfire" aria-label={title}>
       <h2>
         <HudIcon name="campfire" />
         {title}
-        <span class={campfire.lit ? "hud-tag hud-tag-lit" : "hud-tag"}>{campfire.lit ? strings.campfireLit : strings.campfireUnlit}</span>
+        <span class={campfire.lit ? "hud-tag hud-tag-lit" : "hud-tag"}>{campfire.lit ? campText.campfireLit : campText.campfireUnlit}</span>
       </h2>
-      <Meter icon="flame" label={strings.campfireFuel} value={campfire.fuelLeft} colour={`rgb(${WARM_RGB.join(" ")})`} />
+      <Meter icon="flame" label={campText.campfireFuel} value={campfire.fuelLeft} colour={`rgb(${WARM_RGB.join(" ")})`} />
       {campfire.pot !== null &&
         (campfire.pot.water === "boiled" ? (
-          <p class="hud-hint">{strings.potBoiled}</p>
+          <p class="hud-hint">{campText.potBoiled}</p>
         ) : (
-          <Meter icon="droplet" label={strings.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
+          <Meter icon="droplet" label={campText.potBoiling} value={campfire.pot.boilProgress} colour={THIRST_COLOUR} />
         ))}
       {campfire.fish.map((fish, index) => (
         <FishOnFireMeter key={index} fish={fish} />
@@ -68,16 +70,16 @@ const WOODPILE_WOODS: readonly WoodpileWood[] = ["log", "debarkedLog", "firewood
 /** Shows how full the woodpile beside the player is and what it holds. Its actions are on the woodpile itself. */
 function WoodpilePanel({ woodpile }: { woodpile: WoodpileView }) {
   return (
-    <section class="hud-section hud-woodpile" aria-label={strings.woodpile.title}>
+    <section class="hud-section hud-woodpile" aria-label={campText.woodpile.title}>
       <h2>
         <HudIcon name="log" />
-        {strings.woodpile.title}
-        <span class="hud-tag">{strings.woodpile.count(woodpile.total, woodpile.capacity)}</span>
+        {campText.woodpile.title}
+        <span class="hud-tag">{campText.woodpile.count(woodpile.total, woodpile.capacity)}</span>
       </h2>
-      <Meter icon="log" label={strings.woodpile.fill} value={woodpile.total / woodpile.capacity} colour={WORK_BAR_COLOUR} />
+      <Meter icon="log" label={campText.woodpile.fill} value={woodpile.total / woodpile.capacity} colour={WORK_BAR_COLOUR} />
       <ul>
         {WOODPILE_WOODS.filter((wood) => woodpile.contents[wood] > 0).map((wood) => (
-          <li key={wood}>{strings.woodpile.contents[wood](woodpile.contents[wood])}</li>
+          <li key={wood}>{campText.woodpile.contents[wood](woodpile.contents[wood])}</li>
         ))}
       </ul>
     </section>
@@ -86,7 +88,7 @@ function WoodpilePanel({ woodpile }: { woodpile: WoodpileView }) {
 
 /** Shows how many drinks of clean water the rain barrel beside the player holds, and whether a roof keeps the rain off it. */
 function RainBarrelPanel({ barrel }: { barrel: RainBarrelView }) {
-  const text = strings.rainBarrel;
+  const text = campText.rainBarrel;
   return (
     <section class="hud-section hud-rain-barrel" aria-label={text.title}>
       <h2>
@@ -105,7 +107,7 @@ const DRYING_COLOUR = "#9a6a3c";
 
 /** What the rack's panel says about one food: drying or smoking, dried or smoked, or raw fish that needs a lit fire close by. */
 function foodOnRackLabel(item: DryingRackView["food"][number]): string {
-  const text = strings.dryingRack;
+  const text = campText.dryingRack;
   if (item.waitsForFire) return text.noFire;
   const smoked = item.food === "rawFish";
   if (item.preserved) return smoked ? text.smoked : text.dried;
@@ -125,7 +127,7 @@ function FoodOnRackMeter({ item }: { item: DryingRackView["food"][number] }) {
 
 /** Shows what hangs on the drying rack beside the player and how far each food has dried or smoked. Its actions are on the rack itself. */
 function DryingRackPanel({ rack }: { rack: DryingRackView }) {
-  const text = strings.dryingRack;
+  const text = campText.dryingRack;
   return (
     <section class="hud-section hud-drying-rack" aria-label={text.title}>
       <h2>
@@ -140,7 +142,7 @@ function DryingRackPanel({ rack }: { rack: DryingRackView }) {
 
 /** Shows how much firewood the wood box beside the player holds. A fire in the same room takes its firewood first. */
 function WoodBoxPanel({ box }: { box: WoodBoxView }) {
-  const text = strings.woodBox;
+  const text = campText.woodBox;
   return (
     <section class="hud-section hud-wood-box" aria-label={text.title}>
       <h2>
@@ -156,10 +158,10 @@ function WoodBoxPanel({ box }: { box: WoodBoxView }) {
 /** Shows what the pile beside the player holds and how many. A click on the pile picks it up. */
 function PilePanel({ pile }: { pile: PileView }) {
   return (
-    <section class="hud-section hud-pile" aria-label={strings.pile.title}>
+    <section class="hud-section hud-pile" aria-label={backpackText.pile.title}>
       <h2>
         <BackpackIcon content={pile.content} />
-        {strings.pile.holds(pile.content, pile.count)}
+        {backpackText.pile.holds(pile.content, pile.count)}
       </h2>
     </section>
   );
@@ -167,21 +169,21 @@ function PilePanel({ pile }: { pile: PileView }) {
 
 /** Shows the blueprint beside the player: how many of each carried material it has and needs, and how to go on. */
 function BlueprintPanel({ blueprint }: { blueprint: BlueprintView }) {
-  const name = strings.buildMenu.structures[blueprint.structure];
+  const name = workText.buildMenu.structures[blueprint.structure];
   const waiting = blueprint.deliveries.find(({ has, needs }) => has < needs);
   return (
-    <section class="hud-section hud-blueprint" aria-label={strings.blueprint.title(name)}>
+    <section class="hud-section hud-blueprint" aria-label={workText.blueprint.title(name)}>
       <h2>
         <HudIcon name="place" />
-        {strings.blueprint.title(name)}
+        {workText.blueprint.title(name)}
       </h2>
       <ul>
         {blueprint.deliveries.map(({ material, has, needs }) => (
-          <li key={material}>{strings.blueprint.deliveries[material](has, needs)}</li>
+          <li key={material}>{workText.blueprint.deliveries[material](has, needs)}</li>
         ))}
       </ul>
       <p class="hud-hint">
-        {waiting === undefined || blueprint.lacks === null ? strings.blueprint.buildHint : strings.blueprint.deliverHint[waiting.material]}
+        {waiting === undefined || blueprint.lacks === null ? workText.blueprint.buildHint : workText.blueprint.deliverHint[waiting.material]}
       </p>
     </section>
   );

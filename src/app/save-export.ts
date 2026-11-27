@@ -1,7 +1,7 @@
 // Turns a save slot's saved game into a file the player can keep outside the browser.
 
 import { describeSave } from "../sim/save";
-import { strings } from "../strings";
+import { shellText } from "../strings/shell";
 
 /** A file to put on the player's computer: its name and its text. */
 export interface ExportFile {
@@ -16,7 +16,7 @@ export interface ExportFile {
 export function saveExportFile(slot: number, stored: unknown): ExportFile | undefined {
   const summary = describeSave(stored);
   if (summary.state === "empty") return undefined;
-  const name = summary.state === "filled" ? strings.startScreen.exportFileName(slot + 1, summary.day) : strings.startScreen.brokenExportFileName(slot + 1);
+  const name = summary.state === "filled" ? shellText.startScreen.exportFileName(slot + 1, summary.day) : shellText.startScreen.brokenExportFileName(slot + 1);
   return { name, text: JSON.stringify(stored, null, 2) };
 }
 
@@ -25,7 +25,7 @@ export function saveExportFile(slot: number, stored: unknown): ExportFile | unde
  * The developer can use it with a bug report. Slots are numbered from 0.
  */
 export function unreadableSlotExportFile(slot: number, error: unknown): ExportFile {
-  return { name: strings.startScreen.brokenExportFileName(slot + 1), text: JSON.stringify({ unreadable: String(error) }, null, 2) };
+  return { name: shellText.startScreen.brokenExportFileName(slot + 1), text: JSON.stringify({ unreadable: String(error) }, null, 2) };
 }
 
 /** How long a download link stays valid after the click, in milliseconds. */

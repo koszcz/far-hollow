@@ -10,7 +10,7 @@ import { readSave, writeSave } from "./save";
 import { SPOILING_SAVE_VERSION } from "./save-versions";
 import { addFinished, finishReach, onlyPlayer, stepUntil } from "./test-steps";
 import { isWalkable } from "./walk-map";
-import { strings } from "../strings";
+import { noticesText } from "../strings/notices";
 
 describe("fresh food in the backpack", () => {
   for (const food of ["rawFish", "cookedFish", "berries", "mushroom"] as const) {
@@ -50,9 +50,9 @@ describe("fresh food in the backpack", () => {
     skipMinutesUntil(game, 90, () => (game.client.getView().backpack.berries ?? 0) === 0);
 
     expect(game.client.getView().notice).toEqual({ kind: "foodSpoiled", spoiled: { berries: 2, cookedFish: 1 } });
-    expect(strings.notices.foodSpoiled([["berries", 2]])).toBe("2 berries spoiled.");
+    expect(noticesText.notices.foodSpoiled([["berries", 2]])).toBe("2 berries spoiled.");
     expect(
-      strings.notices.foodSpoiled([
+      noticesText.notices.foodSpoiled([
         ["berries", 2],
         ["rawFish", 1],
       ]),

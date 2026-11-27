@@ -9,7 +9,8 @@
 // To change how one asset looks, edit its shape file. Read this file only for where and how many are drawn.
 import * as THREE from "three";
 import { isSapling, isYoungTree, type GrowthStage } from "../sim/tree-growth";
-import { growingTreeEntities, playerEntities, stumpEntities, treeEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { growingTreeEntities, playerEntities, stumpEntities, treeEntities } from "../sim/entity-queries";
 import { crownColour } from "./autumn-leaves";
 import type { CullViews } from "./culled-batch";
 import type { OutlinePart } from "./hover-outline";

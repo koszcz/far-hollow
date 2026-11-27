@@ -1,6 +1,7 @@
 // Questions about structures in general: what kind an entity is, where it stands, and what it covers.
 // They read only each structure's shape, so the placement rules in every structure's file can ask them.
-import { blueprintEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { blueprintEntities } from "./entity-queries";
 import type { GroundRect, StructureKind } from "./structure-kind";
 import { SHAPES } from "./structure-shapes";
 import type { FinishedMarker, PlacedStructure, StructureShape } from "./structure-types";

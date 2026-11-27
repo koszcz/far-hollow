@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { snapToGridSquare } from "./build-grid";
 import type { Command } from "./api-commands";
-import { isRaining, isSnowing, rainEntities } from "./entities";
+import { isRaining, isSnowing, rainEntities } from "./entity-queries";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 
 describe("snowfall in place of rain", () => {

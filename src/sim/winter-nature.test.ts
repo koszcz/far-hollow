@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
-import { stickEntities, type Entity } from "./entities";
+import { type Entity } from "./entities";
+import { stickEntities } from "./entity-queries";
 import { REGROW_MINUTES } from "./foraging";
 import { createGame, type Game } from "./game";
 import { createNeeds } from "./needs";

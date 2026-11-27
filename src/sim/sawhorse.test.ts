@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
 import type { StructureKind } from "./api";
-import { workStationEntities, type Entity } from "./entities";
+import { type Entity } from "./entities";
+import { workStationEntities } from "./entity-queries";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
 import { LARGE_VALLEY_UPGRADES, SAVE_VERSION } from "./save-upgrades";

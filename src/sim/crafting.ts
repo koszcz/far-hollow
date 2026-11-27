@@ -12,18 +12,8 @@ import {
 } from "./backpack";
 import { distanceOutside } from "./building";
 import { addCount, takeCount } from "./counts";
-import {
-  debarkedLogEntities,
-  isParked,
-  logEntities,
-  playerEntities,
-  setComponent,
-  sledEntities,
-  workStationEntities,
-  type CarriedLog,
-  type Entity,
-  type EntityStore,
-} from "./entities";
+import { setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import { debarkedLogEntities, isParked, logEntities, playerEntities, sledEntities, workStationEntities } from "./entity-queries";
 import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import type { RecipeKind } from "./recipe-kind";

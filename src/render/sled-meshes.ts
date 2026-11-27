@@ -21,7 +21,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
-import { blueprintEntities, sledEntities, type CarriedLog, type Entity, type EntityStore, type SledLoad, type Vec3 } from "../sim/entities";
+import { type CarriedLog, type Entity, type EntityStore, type SledLoad, type Vec3 } from "../sim/entities";
+import { blueprintEntities, sledEntities } from "../sim/entity-queries";
 import { SLED_CAPACITY } from "../sim/sleds";
 import { SLED_LENGTH_METRES, SLED_WIDTH_METRES } from "../sim/structure-shapes";
 import { SLED_LOG_COST, SLED_STICK_COST } from "../sim/structure-freely-placed";

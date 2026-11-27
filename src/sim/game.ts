@@ -26,7 +26,8 @@ import { clockStartMinutes, createClock, nextMorning, readClock, REAL_MS_PER_GAM
 import { NEW_GAME_YEAR_START_DAY, type SeasonDay, seasonDayOf } from "./season";
 import { createForaging, foragingRules } from "./foraging";
 import { createGathering, gatheringRules } from "./gathering";
-import { createEntityStore, movingEntities, restoreEntities, saveEntities, type EntityStore } from "./entities";
+import { createEntityStore, restoreEntities, saveEntities, type EntityStore } from "./entities";
+import { movingEntities } from "./entity-queries";
 import { generateValley, type Valley } from "./valley";
 import type { WalkMap } from "./walk-map";
 import { createWalking, walkingRules } from "./walking";

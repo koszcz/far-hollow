@@ -5,7 +5,8 @@
 // The model is built in two stages, each taking half of construction: the bottom with its staves and rim, then the hoops.
 // plank-furniture-meshes.ts draws the stages. This file adds the water.
 import * as THREE from "three";
-import { furnitureEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { furnitureEntities } from "../sim/entity-queries";
 import { RAIN_BARREL_DRINK_LIMIT, RAIN_BARREL_WIDTH_METRES } from "../sim/furniture/rain-barrel";
 import { createFurnitureMeshes, type FurnitureMeshes, type FurniturePart } from "./plank-furniture-meshes";
 

@@ -7,17 +7,8 @@ import type { SledView } from "./api-nearby";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
 import { distanceOutside } from "./building";
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";
-import {
-  entityWith,
-  playerEntities,
-  setComponent,
-  woodpileEntities,
-  type CarriedLog,
-  type Entity,
-  type EntityStore,
-  type SledLoad,
-  type Vec3,
-} from "./entities";
+import { entityWith, setComponent, type CarriedLog, type Entity, type EntityStore, type SledLoad, type Vec3 } from "./entities";
+import { playerEntities, woodpileEntities } from "./entity-queries";
 import { standingHeightAt } from "./foundations";
 import { addToPileAt } from "./piles";
 import { USE_REACH_METRES } from "./reach";

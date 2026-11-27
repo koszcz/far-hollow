@@ -14,7 +14,8 @@ import {
   type BackpackContents,
 } from "./backpack";
 import { addCount, countOf, takeCount, weightedTotal, withoutEmptyKinds } from "./counts";
-import { playerEntities, type Entity, type EntityStore, type ReachHeight, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type ReachHeight, type Vec3 } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { furnitureOf, type FurnitureStorage } from "./furniture";
 import type { GroundPoint } from "./ground-point";
 import { isWithinReach, wallsIn } from "./wall-reach";

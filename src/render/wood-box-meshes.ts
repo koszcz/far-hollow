@@ -6,7 +6,8 @@
 // The model is built in two stages, each taking half of construction: the bottom with the corner posts, then the sides.
 // plank-furniture-meshes.ts draws the stages. This file adds the firewood.
 import * as THREE from "three";
-import { furnitureEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { furnitureEntities } from "../sim/entity-queries";
 import { WOOD_BOX_DEPTH_METRES, WOOD_BOX_FIREWOOD_LIMIT, WOOD_BOX_WIDTH_METRES } from "../sim/furniture/wood-box";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { createFirewoodGeometry, FIREWOOD_COLOUR } from "./firewood-shape";

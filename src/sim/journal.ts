@@ -1,6 +1,7 @@
 // The journal: the goals it suggests to a new player, in order, from a first campfire to a first snug room and food preserved for winter.
 // Following it is optional, and the game never ends. A goal is done the first time the player does it, and stays done.
 import { hasInBackpack } from "./backpack";
+import { type Entity, type EntityStore } from "./entities";
 import {
   campfireEntities,
   debarkedLogEntities,
@@ -10,9 +11,7 @@ import {
   sledEntities,
   stumpEntities,
   workStationEntities,
-  type Entity,
-  type EntityStore,
-} from "./entities";
+} from "./entity-queries";
 import { findRooms, isRoomSnug } from "./rooms";
 import { anyFoodPreservedOnRack } from "./drying-racks";
 import type { CommandRules } from "./command-rule";

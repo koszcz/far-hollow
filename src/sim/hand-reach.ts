@@ -5,7 +5,8 @@
 // The reach is not saved, so a game loaded from a save made mid-reach has the command either done or not done.
 import type { Activity } from "./activity";
 import type { Notice, PlainNotice } from "./api-notice";
-import { playerEntities, setComponent, type EntityStore, type ReachHeight, type ReachingFor } from "./entities";
+import { setComponent, type EntityStore, type ReachHeight, type ReachingFor } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { copyToward, type GroundPoint } from "./ground-point";
 
 /** How long the whole reach takes, from standing to standing again, in seconds. */

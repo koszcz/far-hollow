@@ -4,7 +4,8 @@
 import { finishedDoorOn } from "./doors";
 import { edgeMiddle, edgePieceOn, squaresBeside } from "./edge-pieces";
 import { isOnGridSquare, snapToGridSquare } from "./build-grid";
-import { campfireEntities, fireplaceEntities, foundationEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { campfireEntities, fireplaceEntities, foundationEntities } from "./entity-queries";
 import { finishedFloorOn } from "./floors";
 import { foundationOn } from "./foundations";
 import { cabinRoofOn } from "./roofs";

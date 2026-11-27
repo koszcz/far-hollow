@@ -5,7 +5,8 @@
 // A blueprint shows the parts see-through. A stage whose planks the blueprint already has shows pale and half solid.
 // While the player places the piece from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
-import { blueprintEntities, furnitureEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, furnitureEntities } from "../sim/entity-queries";
 import type { FurnitureKind } from "../sim/structure-kind";
 import { costOf, isKept } from "../sim/structures";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";

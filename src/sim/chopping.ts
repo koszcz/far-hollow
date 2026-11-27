@@ -1,7 +1,8 @@
 import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { toolRefusal } from "./refusals";
-import { growingTreeEntities, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { setComponent, type Entity, type EntityStore } from "./entities";
+import { growingTreeEntities, playerEntities } from "./entity-queries";
 import { isYoungTree, justFelled } from "./tree-growth";
 import { chopSecondsForTreeSize, logsForTreeSize, treeSizeAt } from "./tree-size";
 import { terrainHeightAt, type Valley } from "./valley";

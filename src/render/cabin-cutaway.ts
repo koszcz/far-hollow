@@ -7,7 +7,8 @@
 // Where the player stands changes nothing else. A cabin with only its roof frames up counts as a cabin.
 import { BUILD_GRID_METRES, isOnGridSquare } from "../sim/build-grid";
 import { squaresBeside } from "../sim/edge-pieces";
-import { cabinRoofEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { cabinRoofEntities, roofFrameEntities } from "../sim/entity-queries";
 import { subtractGroundPoints, type GroundPoint } from "../sim/ground-point";
 import { runsAlongX, type QuarterTurns } from "../sim/quarter-turns";
 import { EDGE_PIECE_HEIGHT_METRES } from "./log-courses";

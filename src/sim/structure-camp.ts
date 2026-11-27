@@ -1,7 +1,8 @@
 // The structures a camp is made of: a campfire, a lean-to, a woodpile, and a sawhorse.
 // Each stands on open ground, on a grid point, off the building grid's walls.
 import { isOnGridSquare, snapToGridPoint, snapToGridSquare } from "./build-grid";
-import { blueprintEntities, campfireEntities, fireplaceEntities, woodpileEntities, workStationEntities, type Entity } from "./entities";
+import { type Entity } from "./entities";
+import { blueprintEntities, campfireEntities, fireplaceEntities, woodpileEntities, workStationEntities } from "./entity-queries";
 import { foundationOn } from "./foundations";
 import { addGroundPoints, groundDistance, type GroundPoint } from "./ground-point";
 import { roomAround } from "./rooms";

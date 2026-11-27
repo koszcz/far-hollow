@@ -1,6 +1,7 @@
 import type { ApproachReach } from "./approach";
 import { addToBackpack, countInBackpack, removeFromBackpack } from "./backpack";
-import { bedrollEntities, playerEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { bedrollEntities, playerEntities } from "./entity-queries";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";
 import { leanToBedrollSpot } from "./structure-camp";

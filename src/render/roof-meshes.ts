@@ -22,7 +22,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { blueprintEntities, cabinRoofEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, cabinRoofEntities } from "../sim/entity-queries";
 import { areOpposite, quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { ROOF_PLANK_COST } from "../sim/structure-cabin-shell";
 import type { OutlinePart } from "./hover-outline";

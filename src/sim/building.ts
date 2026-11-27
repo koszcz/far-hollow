@@ -6,18 +6,8 @@ import type { ApproachReach } from "./approach";
 import { countInBackpack, hasInBackpack, removeFromBackpack } from "./backpack";
 import { addCount, countOf, takeCount } from "./counts";
 import { snapToGridPoint } from "./build-grid";
-import {
-  blueprintEntities,
-  debarkedLogEntities,
-  isParked,
-  logEntities,
-  pileEntities,
-  playerEntities,
-  setComponent,
-  sledEntities,
-  type Entity,
-  type EntityStore,
-} from "./entities";
+import { setComponent, type Entity, type EntityStore } from "./entities";
+import { blueprintEntities, debarkedLogEntities, isParked, logEntities, pileEntities, playerEntities, sledEntities } from "./entity-queries";
 import { stageMaterials, type BuildMaterial, type MaterialCost, type PlacedStructure } from "./structure-types";
 import { type GroundRect, type KeptMaterial, type StructureKind } from "./structure-kind";
 import { footprintOfEntity, isPlacedStructure } from "./structure-queries";

@@ -4,7 +4,8 @@
 // the spiral of its layers. The pivot is the centre of the mat's underside, flat on the ground.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { bedrollEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { bedrollEntities } from "../sim/entity-queries";
 import { fitToGround } from "./ground-fit";
 import type { OutlinePart } from "./hover-outline";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";

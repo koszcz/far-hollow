@@ -23,7 +23,8 @@
 // While the player places one from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { blueprintEntities, edgePieceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, edgePieceEntities } from "../sim/entity-queries";
 import { EDGE_PIECE_KINDS, type EdgePieceKind } from "../sim/structure-kind";
 import { DOOR_FRAME_LOG_COST, LOG_WALL_LOG_COST, WINDOW_LOG_COST } from "../sim/structure-cabin-shell";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";

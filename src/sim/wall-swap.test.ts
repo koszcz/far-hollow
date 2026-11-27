@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
 import { edgeMiddle } from "./edge-pieces";
-import { debarkedLogEntities, edgePieceEntities, type Entity } from "./entities";
+import { type Entity } from "./entities";
+import { debarkedLogEntities, edgePieceEntities } from "./entity-queries";
 import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import type { GroundPoint } from "./ground-point";
 import type { QuarterTurns } from "./quarter-turns";

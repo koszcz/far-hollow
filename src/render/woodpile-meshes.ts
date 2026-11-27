@@ -9,7 +9,8 @@
 // The one under the mouse turns red where the woodpile is not allowed.
 import * as THREE from "three";
 import { NOT_ALLOWED_COLOUR } from "./structure-look";
-import { blueprintEntities, woodpileEntities, type Entity, type EntityStore, type WoodpileWood } from "../sim/entities";
+import { type Entity, type EntityStore, type WoodpileWood } from "../sim/entities";
+import { blueprintEntities, woodpileEntities } from "../sim/entity-queries";
 import { WOODPILE_CAPACITY } from "../sim/woodpiles";
 import { createDebarkedLogGeometry, DEBARKED_LOG_COLOUR } from "./debarked-log-shape";
 import { createFirewoodGeometry, FIREWOOD_COLOUR, FIREWOOD_LENGTH_METRES } from "./firewood-shape";

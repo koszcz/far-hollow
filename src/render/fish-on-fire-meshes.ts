@@ -8,7 +8,8 @@
 // A fireplace's fish stand upright in a row at its opening instead. See FIREPLACE_FEET.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { campfireEntities, fireplaceEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { campfireEntities, fireplaceEntities } from "../sim/entity-queries";
 import { cookProgress, FISH_ON_FIRE_LIMIT } from "../sim/fish-on-fire";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import { CHAR_COLOUR, charMarkPart, COOKED_FISH_COLOURS, FISH_THICKNESS_METRES, fishParts, RAW_FISH_COLOURS } from "./fishing-pile-shapes";

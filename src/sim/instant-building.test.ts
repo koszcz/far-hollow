@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
-import { blueprintEntities } from "./entities";
+import { blueprintEntities } from "./entity-queries";
 import { createGame, type Game } from "./game";
 import { type QuarterTurns } from "./quarter-turns";
 import type { StructureKind } from "./structure-kind";

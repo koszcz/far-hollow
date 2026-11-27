@@ -1,7 +1,8 @@
 // Floors: planks laid flush across the deck of one finished foundation square. A square holds one floor.
 // The floor's structure definition is in structures.ts. Rooms ask here whether a square has a finished floor.
 import { isOnGridSquare } from "./build-grid";
-import { blueprintEntities, floorEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { blueprintEntities, floorEntities } from "./entity-queries";
 import type { GroundPoint } from "./ground-point";
 
 /** The finished floor on the foundation square with this middle, if any. */

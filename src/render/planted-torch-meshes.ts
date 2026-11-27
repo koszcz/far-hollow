@@ -5,7 +5,8 @@
 // Only a few torches cast real light on the ground. torch-lights.ts holds those lights, and flames() tells it where each flame is.
 // The pivot of each torch is the spot where it stands.
 import * as THREE from "three";
-import { plantedTorchEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { plantedTorchEntities } from "../sim/entity-queries";
 import { createFireMaker, type Fire } from "./fire-effect";
 import type { OutlinePart } from "./hover-outline";
 import { createTorchFlame, createTorchShape, TORCH_FLAME_HEIGHT_METRES } from "./torch-shape";

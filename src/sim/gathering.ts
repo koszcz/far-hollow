@@ -1,7 +1,8 @@
 import type { Refusal } from "./api-refusal";
 import { addToBackpack, fitsInBackpack, hasInBackpack, type Backpack } from "./backpack";
 import type { ApproachReach } from "./approach";
-import { playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { setComponent, type Entity, type EntityStore } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { goneRefusal, shoulderRefusal, toolRefusal } from "./refusals";
 import type { HandReach } from "./hand-reach";
 import { groundDistance, type GroundPoint } from "./ground-point";

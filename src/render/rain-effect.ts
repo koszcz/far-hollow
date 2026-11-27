@@ -6,7 +6,8 @@
 // - Splashes are short-lived rings that grow and fade on the ground, each time at a new spot near the focus.
 // - The rain eases in when it starts and eases out when it stops. It dims with the daylight, so it does not glow at night.
 import * as THREE from "three";
-import { isRaining, type EntityStore, type Vec3 } from "../sim/entities";
+import { type EntityStore, type Vec3 } from "../sim/entities";
+import { isRaining } from "../sim/entity-queries";
 import { randomBetween } from "../sim/random";
 import { createEasedShare } from "./eased-share";
 

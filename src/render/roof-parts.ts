@@ -4,7 +4,8 @@
 // Heights here are in metres above the foundation's deck, in a section's own frame: drawn unturned, sloping down to +z.
 import * as THREE from "three";
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { blueprintEntities, cabinRoofEntities, roofFrameEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, cabinRoofEntities, roofFrameEntities } from "../sim/entity-queries";
 import { turnOffset } from "../sim/quarter-turns";
 import { SHADOW_ONLY_LAYER } from "./culled-batch";
 import { DEBARKED_LOG_COLOUR, DEBARKED_LOG_CUT_COLOUR } from "./debarked-log-shape";

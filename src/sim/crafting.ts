@@ -10,7 +10,7 @@ import {
   type Backpack,
   type BackpackContent,
 } from "./backpack";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { addCount, takeCount } from "./counts";
 import {
   debarkedLogEntities,

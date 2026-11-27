@@ -5,7 +5,7 @@ import type { Command } from "./api-commands";
 import type { Refusal } from "./api-refusal";
 import type { SledView } from "./api-nearby";
 import { addToBackpack, countInBackpack, howManyFit, removeFromBackpack } from "./backpack";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { addCount, countOf, takeCount, weightedTotal } from "./counts";
 import {
   entityWith,

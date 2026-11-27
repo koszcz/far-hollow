@@ -23,8 +23,8 @@
   ],
   "rules": {
     // Lower this cap whenever a split brings the longest file down. Never raise it.
-    // 673 was the longest file on 2026-11-27: src/sim/sled.test.ts.
-    "max-lines": ["error", { "max": 673 }],
+    // 672 was the longest file on 2026-11-27: src/sim/entities.ts.
+    "max-lines": ["error", { "max": 672 }],
     "constructor-super": "error",
     "for-direction": "error",
     "getter-return": "error",

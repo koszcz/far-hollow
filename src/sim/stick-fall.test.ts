@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { stickEntities, treeEntities } from "./entities";
 import { createGame, type Game } from "./game";
 import { STICK_GAP_FROM_PLACED_METRES } from "./stick-fall";

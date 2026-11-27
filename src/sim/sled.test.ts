@@ -6,7 +6,7 @@ import { createGame, STEPS_PER_SECOND, type Game } from "./game";
 import { readSave, writeSave } from "./save";
 import { SAVE_VERSION } from "./save-upgrades";
 import { ROOF_FRAMES_SAVE_VERSION, SLEDS_SAVE_VERSION } from "./save-versions";
-import { distanceOutside } from "./building";
+import { distanceOutside } from "./building-reach";
 import { findPath } from "./pathfinding";
 import { USE_REACH_METRES } from "./reach";
 import { footprintOfEntity } from "./structure-queries";

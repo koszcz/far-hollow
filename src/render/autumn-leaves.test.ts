@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { SeasonDay } from "../sim/season";
 import { AUTUMN_CROWN_COLOURS, AUTUMN_CROWN_FALLBACK, crownColour, isBroadleaf, leafTurnShare } from "./autumn-leaves";
-import { TREE_COLOURS } from "./forest-meshes";
+import { TREE_COLOURS } from "./tree-model";
 
 const day = (season: SeasonDay["season"], dayOfSeason: number): SeasonDay => ({ season, dayOfSeason, seasonDays: 7 });
 const AFTER_WINTER = { afterWinter: true };

@@ -5,7 +5,7 @@
 1. The save check gets one record that gives the shape of every action command type. TypeScript reports a missing type. This record replaces the hand-written `approachCommand` and `tendCommand` lists.
 2. When a saved `approach` holds a command that fails its check, loading drops that approach and keeps the rest of the save.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 16
 

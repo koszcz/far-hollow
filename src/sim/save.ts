@@ -5,7 +5,7 @@ import { createGame, type Game } from "./game";
 import type { GameProgress } from "./game-start";
 import { addJournal } from "./save-upgrades-from-v42";
 import { turnAwayLargeValley } from "./save-upgrades-v1-to-v22";
-import { isValidSave } from "./save-schema";
+import { dropBadApproaches, isValidSave } from "./save-schema";
 import { checkVersion, SAVE_UPGRADES, SAVE_VERSION, upgradeSave, type SaveUpgrade } from "./save-upgrades";
 
 /** A saved game, as stored in the browser. It is plain data. */
@@ -34,9 +34,9 @@ export function continueOrStartGame(stored: unknown, newSeed: number): Game {
 /** Says what a save slot holds, for the start screen: nothing, a save that cannot be loaded, or a game's seed and day. */
 export function describeSave(stored: unknown): SaveSlotSummary {
   if (stored === undefined) return { state: "empty" };
-  const save = upgradeSave(stored);
+  const save = dropBadApproaches(upgradeSave(stored));
   if (!isValidSave(save)) return { state: "broken" };
-  const { seed, clockMinutes } = save as unknown as SaveFile;
+  const { seed, clockMinutes } = save as SaveFile;
   return { state: "filled", seed, day: readClock(clockMinutes).day };
 }
 
@@ -49,9 +49,9 @@ export function readSave(data: unknown, upgrades: readonly SaveUpgrade[] = SAVE_
   const refusal = refusalBeforeUpgrade(data, upgrades);
   if (refusal !== undefined) return { ok: false, reason: refusal };
   const journalFromCamp = addsJournal(data, upgrades);
-  const save = upgradeSave(data, upgrades);
+  const save = dropBadApproaches(upgradeSave(data, upgrades));
   if (!isValidSave(save)) return { ok: false, reason: "notASave" };
-  const { seed, clockMinutes, yearStartDay, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } = save as unknown as SaveFile;
+  const { seed, clockMinutes, yearStartDay, stepCount, firstNightOver, snugRoomNoticeShown, journal, notice, entities } = save as SaveFile;
   try {
     return {
       ok: true,

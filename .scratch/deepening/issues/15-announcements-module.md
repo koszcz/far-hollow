@@ -1,6 +1,6 @@
-# 15: One announcements module decides which notice shows
+# 15: Test the notice timing rules through the game notices module
 
-**What to build:** One module takes notice requests and the clock, and returns what shows now. It holds the timing rules, such as "wait until no other notice is on screen" and "spoiled food joins the notice already shown".
+**What to build:** Tests that check the notice timing rules directly through `createGameNotices`, with a fake clock. Examples are "wait until no other notice is on screen" and "spoiled food joins the notice already shown".
 
 **Status:** idea
 
@@ -10,18 +10,18 @@
 
 ## Why
 
-`src/sim/game.ts` has 66 references to notices. These state variables interact: `notice`, `goalNotice`, `seasonBanner`, `goalsToAnnounce`, `spoiledToTell`, and `snugRoomNoticeShown`. Their timing rules live in 6 functions, such as `noticeSnugRoom`, `noticeSpoiledFood`, and `noteGoals`. Only whole-game runs test them.
+The review on 2026-11-27 found the notice state and timing rules spread through `src/sim/game.ts`. File-length ticket 07 has since moved them into `src/sim/game-notices.ts`. That module now holds `notice`, `goalNotice`, `seasonBanner`, `goalsToAnnounce`, `spoiledToTell`, and `snugRoomNoticeShown`.
 
-This is also a meaningful seam for file-length ticket 07, which splits `game.ts`. The per-system wiring in `game.ts` should stay explicit, because the order matters ("food dries before it spoils, after fires burn").
+The module has no test file of its own. Only whole-game runs test the timing rules. `createGameNotices` takes its clock and other inputs as plain values, so a direct test needs no running game.
 
 ## Acceptance criteria
 
-- [ ] Tests check the timing rules directly with a fake clock.
-- [ ] Every notice shows at the same time and in the same order as before.
+- [ ] A test file for `game-notices.ts` checks each timing rule with a fake clock.
+- [ ] No notice changes when or in what order it shows.
 - [ ] `bun test` and `make check` pass.
 
 Questions for grilling:
 
 - Is this worth doing now, or only when the next notice is added?
-- Should this ticket replace part of file-length ticket 07, or land first?
-- Do the season banner and goal notices share one queue with the other notices, or stay separate?
+- Does `GameNoticesDeps` need fewer inputs before it is easy to test? It takes the whole entity store today.
+- Should whole-game notice tests move to this file, or stay where they are?

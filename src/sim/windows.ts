@@ -2,7 +2,8 @@
 // Shutters hang in a finished window, the way a door hangs in a door frame. They are not an edge piece, so the window keeps the edge.
 // The player opens and closes them by hand (see shutters.ts). They stay as the player left them, and they never block walking.
 import { isSameEdge } from "./edge-pieces";
-import { blueprintEntities, edgePieceEntities, shuttersEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { blueprintEntities, edgePieceEntities, shuttersEntities } from "./entity-queries";
 import { nearestWithin, type GroundPoint } from "./ground-point";
 
 /** The finished window on the edge with this middle, or undefined if the edge holds none. */

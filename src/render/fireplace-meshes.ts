@@ -14,7 +14,8 @@
 // embers, sparks, and light stay in the fire box. Added by chimney ticket 01.
 import * as THREE from "three";
 import { finishedChimneyOn } from "../sim/chimneys";
-import { blueprintEntities, fireplaceEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, fireplaceEntities } from "../sim/entity-queries";
 import { FIREPLACE_STONE_COST } from "../sim/structure-cabin-fittings";
 import type { Fire as FireState } from "../sim/fire";
 import { addFireLights, createFireMaker, showLitFire, type Fire, type FireLights } from "./fire-effect";

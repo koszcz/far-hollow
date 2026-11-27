@@ -5,7 +5,7 @@ import { buildMenuFor } from "./build-menu";
 import { isNightAt, nightHoursAt, readClock, type Clock } from "./clock";
 import { RECIPES } from "./crafting";
 import { deepFreeze } from "./deep-freeze";
-import { isRaining, isSnowing, snowCoverDepth } from "./entities";
+import { isRaining, isSnowing, snowCoverDepth } from "./entity-queries";
 import type { GameNotices } from "./game-notices";
 import type { Player } from "./game-player";
 import { nearbyThings, type NearbySources } from "./nearby-things";

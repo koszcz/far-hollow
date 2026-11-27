@@ -1,4 +1,5 @@
-import { rainEntities, type Entity } from "./entities";
+import { type Entity } from "./entities";
+import { rainEntities } from "./entity-queries";
 import { type Command } from "./api-commands";
 import { type StructureKind } from "./api";
 import { STEPS_PER_SECOND, type Game } from "./game";

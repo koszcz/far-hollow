@@ -4,7 +4,8 @@
 // While its mushrooms grow back, it shows only the plugs, mould, and moss, so the player can still tell it from a plain log.
 // There are only ever a few mushroom logs, the ones the player planted, so each is its own meshes rather than a batch.
 import * as THREE from "three";
-import { mushroomLogEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { mushroomLogEntities } from "../sim/entity-queries";
 import type { OutlinePart } from "./hover-outline";
 import { LOG_COLOUR, LOG_CUT_COLOUR, type LogShape } from "./log-shape";
 import { CAP_COLOUR, STEM_COLOUR, type MushroomsShape } from "./mushrooms-model";

@@ -1,7 +1,8 @@
 // The structures placed anywhere, wherever the mouse points, off the building grid: furniture and the sled.
 // Each stands on the ground or on a foundation's deck, never half on and half off one.
 import { BUILD_GRID_METRES, isOnGridSquare, snapToGridSquare } from "./build-grid";
-import { campfireEntities, stumpEntities, walkBlockerSpotEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { campfireEntities, stumpEntities, walkBlockerSpotEntities } from "./entity-queries";
 import { foundationOn, standingHeightAt } from "./foundations";
 import { FURNITURE, type FurnitureDefinition } from "./furniture";
 import type { GroundPoint } from "./ground-point";

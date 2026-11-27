@@ -3,7 +3,8 @@
 // so a chimney under a higher roof section is taller. With no roof section over its square, it is as tall as it would be under
 // a roof one rise high. Heights are in metres above the deck the fireplace stands on.
 import { isOnGridSquare } from "../sim/build-grid";
-import { blueprintEntities, type EntityStore, type Vec3 } from "../sim/entities";
+import { type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities } from "../sim/entity-queries";
 import { addGroundPoints, type GroundPoint } from "../sim/ground-point";
 import { turnOffset, type QuarterTurns } from "../sim/quarter-turns";
 import { cabinRoofOn } from "../sim/roofs";

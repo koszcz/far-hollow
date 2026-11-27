@@ -2,7 +2,8 @@
 // While the player sits, fatigue comes back slowly (see needs.ts). Their position stays beside the stool, which blocks walking.
 import type { Activity } from "./activity";
 import type { ApproachReach } from "./approach";
-import { entityWith, playerEntities, setComponent, type Entity, type EntityStore } from "./entities";
+import { entityWith, setComponent, type Entity, type EntityStore } from "./entities";
+import { playerEntities } from "./entity-queries";
 import type { CommandRules, RuleGame } from "./command-rule";
 import { goneRefusal } from "./refusals";
 

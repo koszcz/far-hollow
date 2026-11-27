@@ -4,7 +4,8 @@
 // unless FOOTPRINT_OVERRIDES says otherwise for that structure.
 // Footprints come straight from the camp's entities, so hidden undergrowth follows from the saved camp and nothing extra is saved.
 import { BUILD_GRID_METRES } from "../sim/build-grid";
-import { bedrollEntities, type EntityStore } from "../sim/entities";
+import { type EntityStore } from "../sim/entities";
+import { bedrollEntities } from "../sim/entity-queries";
 import { placedStructures } from "../sim/structure-queries";
 import { structureOf } from "../sim/structures";
 import type { StructureKind } from "../sim/structure-kind";

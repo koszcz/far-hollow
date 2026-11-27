@@ -4,7 +4,8 @@
 // plays live in one full view instead, so the owner can judge its timing. &speed=0.25 slows it down.
 // Each asset's views live in src/render/showcases/, one file per family of assets.
 import * as THREE from "three";
-import { createEntityStore, isRaining, snowCoverDepth, type Vec3 } from "../sim/entities";
+import { createEntityStore, type Vec3 } from "../sim/entities";
+import { isRaining, snowCoverDepth } from "../sim/entity-queries";
 import { generateValley, terrainHeightAt, type Valley } from "../sim/valley";
 import { createBarkMeshes } from "./bark-meshes";
 import { createBedrollMeshes } from "./bedroll-meshes";

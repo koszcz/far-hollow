@@ -1,7 +1,8 @@
 // Reach never crosses a wall. The player acts on a thing only from the thing's side of every wall.
 // The pieces that stop reach are the ones that stop walking: each finished log wall and window.
 // A door frame does not stop reach, with or without a door. A blueprint and a half-built wall do not stop it either.
-import { walkBlockerEdgeEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { walkBlockerEdgeEntities } from "./entity-queries";
 import type { GroundPoint } from "./ground-point";
 import { distanceToTarget, type WalkTarget } from "./walk-target";
 

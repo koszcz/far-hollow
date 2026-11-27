@@ -5,7 +5,8 @@
 // the row of fish.
 // As it fires, it turns from the pale grey-brown of dried clay to the orange-brown of fired clay, and gains a faint sheen.
 import * as THREE from "three";
-import { campfireEntities, fireplaceEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { campfireEntities, fireplaceEntities } from "../sim/entity-queries";
 import { FISH_ON_FIRE_LIMIT } from "../sim/fish-on-fire";
 import { fireProgress } from "../sim/jug-on-fire";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";

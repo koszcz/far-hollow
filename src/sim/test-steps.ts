@@ -1,6 +1,7 @@
 // Helpers that tests share for running a game's logic steps, finding furniture, and making saves in older forms.
 import type { BackpackContents } from "./backpack";
-import { furnitureEntities, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { type Entity, type EntityStore, type Vec3 } from "./entities";
+import { furnitureEntities } from "./entity-queries";
 import type { Game } from "./game";
 import type { FurnitureKind, StructureKind } from "./structure-kind";
 import { foundationDeckTop } from "./foundations";

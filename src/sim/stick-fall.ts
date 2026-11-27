@@ -3,6 +3,7 @@
 // Sticks fall where the ground is short of the sticks it started with, so an area the player cleared fills up again.
 import { distanceOutside } from "./building-reach";
 import { DEADFALL_MIN_STICKS, layDeadfall, layLoneStick, rollDeadfallSize, type SpotIsOpen } from "./deadfall";
+import { type EntityStore } from "./entities";
 import {
   barkEntities,
   bedrollEntities,
@@ -12,8 +13,7 @@ import {
   stickEntities,
   stickFallEntities,
   treeEntities,
-  type EntityStore,
-} from "./entities";
+} from "./entity-queries";
 import { createRandom, scramble, type Random } from "./random";
 import { footprintOfEntity, placedStructures } from "./structure-queries";
 import { stickSpotCheck, terrainHeightAt, type Valley } from "./valley";

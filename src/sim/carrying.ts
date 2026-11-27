@@ -1,6 +1,7 @@
 import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
-import { playerEntities, setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import { setComponent, type CarriedLog, type Entity, type EntityStore } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { shoulderRefusal } from "./refusals";
 import { standingHeightAt } from "./foundations";
 import type { HandReach } from "./hand-reach";

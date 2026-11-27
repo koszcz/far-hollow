@@ -4,7 +4,8 @@
 // A mushroom log is a forage spot too, but mushroom-log-meshes.ts draws it.
 // While the player plants a berry bush, a see-through bush shows where it will go, red where planting is not allowed.
 import * as THREE from "three";
-import { forageSpotEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { forageSpotEntities } from "../sim/entity-queries";
 import { BLUEPRINT_COLOUR, BLUEPRINT_OPACITY, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
 import type { BerryBushShape } from "./berry-bush-model";
 import { createCulledBatch, type CullViews } from "./culled-batch";

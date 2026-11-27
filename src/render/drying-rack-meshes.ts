@@ -11,7 +11,8 @@
 // plank-furniture-meshes.ts draws the stages. This file adds the food.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { furnitureEntities, type Entity, type EntityStore } from "../sim/entities";
+import { type Entity, type EntityStore } from "../sim/entities";
+import { furnitureEntities } from "../sim/entity-queries";
 import { DRYING_RACK_DEPTH_METRES, DRYING_RACK_WIDTH_METRES } from "../sim/furniture/drying-rack";
 import { quarterTurnsToRadians } from "../sim/quarter-turns";
 import type { PreservedFood } from "../sim/backpack";

@@ -9,7 +9,8 @@
 // While the player places a sawhorse from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { buildLift, buildOpacity, NOT_ALLOWED_COLOUR, seeThrough } from "./structure-look";
-import { blueprintEntities, workStationEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, workStationEntities } from "../sim/entity-queries";
 import { structureKindOf } from "../sim/structure-queries";
 import { SAWHORSE_LOG_COST } from "../sim/structure-camp";
 import { SAWHORSE_LENGTH_METRES, SAWHORSE_WIDTH_METRES } from "../sim/structure-shapes";

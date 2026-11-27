@@ -1,4 +1,5 @@
-import { playerEntities, setComponent, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities, type Entity, type EntityStore } from "./entities";
+import { setComponent, type Entity, type EntityStore } from "./entities";
+import { playerEntities, walkBlockerEdgeEntities, walkBlockerEntities, walkBlockerSpotEntities } from "./entity-queries";
 import { findPath, findPathWithin } from "./pathfinding";
 import type { WalkTarget } from "./walk-target";
 import { standingHeightAt } from "./foundations";

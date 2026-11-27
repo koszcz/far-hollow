@@ -12,7 +12,8 @@
 // While the player places a door from the build menu, a see-through copy follows the mouse. It turns red where it is not allowed.
 import * as THREE from "three";
 import { isDoorOpen } from "../sim/doors";
-import { blueprintEntities, doorEntities, type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { type Entity, type EntityStore, type Vec3 } from "../sim/entities";
+import { blueprintEntities, doorEntities } from "../sim/entity-queries";
 import { quarterTurnsToRadians, type QuarterTurns } from "../sim/quarter-turns";
 import { NO_CUTAWAY, type CabinCutaway } from "./cabin-cutaway";
 import { createCutawayFades, cutawayOpacity, showFading } from "./cutaway-fade";

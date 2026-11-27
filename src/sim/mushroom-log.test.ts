@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Command } from "./api-commands";
-import { createEntityStore, logEntities, lyingThings, type Entity, type Vec3 } from "./entities";
+import { createEntityStore, type Entity, type Vec3 } from "./entities";
+import { logEntities, lyingThings } from "./entity-queries";
 import { createGame, type Game } from "./game";
 import { gardenThingInTheWay } from "./garden-things";
 import { PLANT_MUSHROOM_SECONDS } from "./mushroom-logs";

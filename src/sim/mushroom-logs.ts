@@ -7,7 +7,8 @@
 import type { Refusal } from "./api-refusal";
 import type { ApproachReach } from "./approach";
 import { hasInBackpack, removeFromBackpack } from "./backpack";
-import { playerEntities, setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { setComponent, type Entity, type EntityStore, type Vec3 } from "./entities";
+import { playerEntities } from "./entity-queries";
 import { goneRefusal } from "./refusals";
 import type { CommandRules } from "./command-rule";
 

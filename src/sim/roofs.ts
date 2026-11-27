@@ -1,7 +1,8 @@
 // Roofs: whether a spot is under one, and which cabin roof covers which foundation square.
 // Any entity with a `roof` component counts as a roof overhead: a lean-to, or a cabin roof section.
 import { isOnGridSquare } from "./build-grid";
-import { cabinRoofEntities, roofEntities, type Entity, type EntityStore } from "./entities";
+import { type Entity, type EntityStore } from "./entities";
+import { cabinRoofEntities, roofEntities } from "./entity-queries";
 import { isInRect } from "./structure-kind";
 import type { GroundPoint } from "./ground-point";
 

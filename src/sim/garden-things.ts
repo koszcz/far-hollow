@@ -1,6 +1,7 @@
 // Garden things: berry bushes, wild or planted, and mushroom logs. Nothing is built over one. See .scratch/garden/spec.md.
 import type { Refusal } from "./api-refusal";
-import { forageSpotEntities, mushroomLogEntities, type EntityStore } from "./entities";
+import { type EntityStore } from "./entities";
+import { forageSpotEntities, mushroomLogEntities } from "./entity-queries";
 import { logBody, logBodyMeetsRect } from "./log-body";
 import { isInRect, type GroundRect } from "./structure-kind";
 

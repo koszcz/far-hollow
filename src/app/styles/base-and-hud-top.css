@@ -1,0 +1,300 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+/* The HUD, the "hud" asset in asset-manifest.json: "smoked walnut" glass boxes with warm text and amber accents. Approved by the owner. */
+/* These values come from .scratch/hud-restyle/spec.md. The start screen and the action menu use them too. */
+:root {
+  --hud-glass: rgb(38 24 15 / 0.62);
+  /* Where the browser cannot blur what lies behind a box, the glass is nearly opaque so text stays readable. */
+  --hud-glass-solid: rgb(38 24 15 / 0.9);
+  --hud-blur: blur(12px) saturate(1.2);
+  --hud-edge: rgb(255 214 170 / 0.16);
+  --hud-amber: #f0a04b;
+  --hud-amber-tint: rgb(240 160 75 / 0.16);
+  --hud-warning: #e0573a;
+  --hud-text: #f6ead8;
+  --hud-text-secondary: rgb(246 234 216 / 0.6);
+  --hud-fill: rgb(255 230 200 / 0.08);
+  --hud-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  --hud-font: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+/* The glass every HUD box uses: the clock, pause button, banners, need group, hotbar, panels, menus, and save-slot cards. */
+.hud-panel,
+.hud-needs,
+.hud-banner,
+.hud-menu,
+.action-menu,
+.start-screen-slot,
+.hud-hotbar::before {
+  background: var(--hud-glass-solid);
+  border: 1px solid var(--hud-edge);
+  box-shadow: var(--hud-shadow);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .hud-panel,
+  .hud-needs,
+  .hud-banner,
+  .hud-menu,
+  .action-menu,
+  .start-screen-slot,
+  .hud-hotbar::before {
+    background: var(--hud-glass);
+    -webkit-backdrop-filter: var(--hud-blur);
+    backdrop-filter: var(--hud-blur);
+  }
+}
+/* The "hotbar and wheel" layout: the clock top left, pause top right, and a dock at the bottom centre. The dock stacks the open chest, */
+/* the panel, the needs bars, and the hotbar, from top to bottom. Build and craft open as lists above their buttons. */
+.hud {
+  position: absolute;
+  color: var(--hud-text);
+  font-family: var(--hud-font);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.hud-clock {
+  top: 12px;
+  left: 12px;
+}
+/* The clock is a pill. Its icon sits in a ring that fills as the day passes, and the time of day follows as a word. */
+.hud-clock .hud-panel {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding: 6px 14px 6px 6px;
+  font-weight: 500;
+  border-radius: 999px;
+}
+.hud-clock-ring {
+  --hud-ring-colour: var(--hud-amber);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--hud-ring-colour) calc(var(--hud-day) * 1turn), rgb(255 255 255 / 0.1) 0);
+}
+/* The ring and its icon take the season's tint: a deeper amber in autumn and pale blue in winter. Spring and summer keep the HUD amber. */
+.hud-clock-ring-autumn {
+  --hud-ring-colour: #e0782c;
+}
+.hud-clock-ring-winter {
+  --hud-ring-colour: #a9d4f2;
+}
+.hud-clock-ring .hud-icon {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  box-sizing: content-box;
+  color: var(--hud-ring-colour);
+  background: #2b1c12;
+  border-radius: 50%;
+}
+.hud-clock-word {
+  margin-left: -2px;
+  font-size: inherit;
+  color: var(--hud-text-secondary);
+}
+/* The action queue sits in a glass pill beside the clock: one cell per lined-up action. The action under way comes first and is larger. */
+.hud-clock {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.hud-clock .hud-queue {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 999px;
+}
+.hud-clock .hud-queue li {
+  display: flex;
+}
+/* A cell is a round chip with a faint light fill, like a hotbar cell. Pointing at it tints it amber and shows the action's name below it. */
+.hud-queue-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--hud-text);
+  background: rgb(255 230 200 / 0.05);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.hud-queue-under-way .hud-queue-cell {
+  width: 38px;
+  height: 38px;
+  background: rgb(255 230 200 / 0.1);
+  box-shadow: inset 0 0 0 1.5px rgb(240 160 75 / 0.55);
+}
+.hud-queue-cell .hud-queue-icon,
+.hud-queue-cell .hud-icon {
+  width: 22px;
+  height: 22px;
+}
+.hud-queue-under-way .hud-queue-icon,
+.hud-queue-under-way .hud-icon {
+  width: 28px;
+  height: 28px;
+}
+.hud-queue-cell:hover,
+.hud-queue-cell:focus-visible {
+  background: var(--hud-amber-tint);
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--hud-amber);
+}
+.hud-queue-name {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  z-index: 1;
+  padding: 3px 9px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--hud-text);
+  background: #2b1c12;
+  border: 1px solid var(--hud-edge);
+  border-radius: 999px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.hud-queue-cell:hover .hud-queue-name,
+.hud-queue-cell:focus-visible .hud-queue-name {
+  display: block;
+}
+.hud-pause {
+  top: 12px;
+  right: 12px;
+}
+/* The pause button is a round glass button. */
+.hud-pause .hud-panel {
+  padding: 0;
+  border-radius: 50%;
+}
+.hud-pause .hud-icon-button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 50%;
+}
+.hud-pause .hud-icon-button:hover:not(:disabled) {
+  background: var(--hud-fill);
+}
+/* The round wall mode button sits left of the sound button. */
+.hud-cutaway {
+  top: 12px;
+  right: 116px;
+}
+.hud-cutaway .hud-panel {
+  padding: 0;
+  border-radius: 50%;
+}
+.hud-cutaway .hud-icon-button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 50%;
+}
+.hud-cutaway .hud-icon-button:hover:not(:disabled) {
+  background: var(--hud-fill);
+}
+.hud-cutaway .hud-icon-button[data-tip]:hover::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}
+/* The round sound button sits left of the pause button. Its Volume slider opens below it. */
+.hud-sound {
+  top: 12px;
+  right: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.hud-sound > .hud-panel:first-child {
+  padding: 0;
+  border-radius: 50%;
+}
+.hud-sound .hud-icon-button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 50%;
+}
+.hud-sound .hud-icon-button:hover:not(:disabled) {
+  background: var(--hud-fill);
+}
+/* A muted sound button shows its crossed-out speaker in amber, so the player sees at a glance that sound is off. */
+.hud-sound .hud-icon-button[data-muted="true"] {
+  color: var(--hud-amber);
+}
+.hud-sound .hud-icon-button[data-tip]:hover::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.hud-sound-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.volume-slider {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.volume-slider input {
+  width: 10em;
+  accent-color: var(--hud-amber);
+}
+.start-screen-volume {
+  display: flex;
+  justify-content: center;
+  margin: -12px 0 20px;
+}
+.hud-dock {
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.hud-dock > .hud-panel:not(.hud-hotbar) {
+  width: min(300px, 100%);
+  box-sizing: border-box;
+}
+.hud-context > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}

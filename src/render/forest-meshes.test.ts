@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { describe, expect, it } from "bun:test";
 import { createEntityStore } from "../sim/entities";
 import { AUTUMN_CROWN_COLOURS } from "./autumn-leaves";
-import { createForestMeshes, TREE_COLOURS, type ForestShapes } from "./forest-meshes";
+import { createForestMeshes, type ForestShapes } from "./forest-meshes";
+import { TREE_COLOURS } from "./tree-model";
 import { createSnowCoverLook, type SnowCoverLook } from "./snow-cover-look";
 import { createWindSway } from "./wind-sway";
 
